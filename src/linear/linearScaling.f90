@@ -210,8 +210,8 @@ type(wfn_metadata):: wfnmd
       ! This subroutine will also post the point to point messages needed for the calculation
       ! of the charge density.
       updatePhi=.false.
-      !communicate_lphi=.true.
-      communicate_lphi=.true.
+      !wfnmd%bs%communicate_phi_for_lsumrho=.true.
+      wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
       lin%newgradient=.false.
 
@@ -233,9 +233,9 @@ type(wfn_metadata):: wfnmd
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, wfnmd%bs%update_phi, &
               infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
-              communicate_lphi, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
+              wfnmd%bs%communicate_phi_for_lsumrho, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
-              lin%convCrit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
+              wfnmd%bs%conv_crit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
@@ -244,9 +244,9 @@ type(wfn_metadata):: wfnmd
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,wfnmd%bs%update_phi,&
-              infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+              infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
               wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
-              lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+              lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
               wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
@@ -254,7 +254,7 @@ type(wfn_metadata):: wfnmd
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
       !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
       !!    infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-      !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+      !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, wfnmd%bs%communicate_phi_for_lsumrho, coeff_proj)
 
       ! Calculate the charge density.
       !!call cpu_time(t1)
@@ -436,9 +436,9 @@ type(wfn_metadata):: wfnmd
           if(itSCC>nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
-              communicate_lphi=.true.
+              wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
-              communicate_lphi=.false.
+              wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
 
           ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
@@ -463,9 +463,9 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
-                      lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                      lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
@@ -474,9 +474,9 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
-                      lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                      lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
@@ -485,9 +485,9 @@ type(wfn_metadata):: wfnmd
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,wfnmd%bs%update_phi,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                   wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
-                  lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                  lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                   wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
@@ -1140,6 +1140,8 @@ subroutine init_basis_specifications(input, bs)
   type(basis_specifications),intent(out):: bs
   
   bs%update_phi=.false.
+  bs%communicate_phi_for_lsumrho=.false.
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
+  bs%conv_crit=input%lin%convCrit
 
 end subroutine init_basis_specifications

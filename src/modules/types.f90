@@ -773,7 +773,8 @@ end type workarrays_quartic_convolutions
   end type linearParameters
 
   type,public:: basis_specifications
-    logical:: update_phi, use_derivative_basis
+    logical:: update_phi, use_derivative_basis, communicate_phi_for_lsumrho
+    real(8):: conv_crit
   end type basis_specifications
 
 
