@@ -778,8 +778,8 @@ end type workarrays_quartic_convolutions
 
   type,public:: basis_specifications
     logical:: update_phi, use_derivative_basis, communicate_phi_for_lsumrho
-    real(8):: conv_crit
-    integer:: target_function, meth_transform_overlap, nit_precond
+    real(8):: conv_crit, locreg_enlargement
+    integer:: target_function, meth_transform_overlap, nit_precond, nit_basis_optimization
   end type basis_specifications
 
   type,public:: basis_performance_options
