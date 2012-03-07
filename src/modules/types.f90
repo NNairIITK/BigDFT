@@ -782,12 +782,17 @@ end type workarrays_quartic_convolutions
     integer:: target_function
   end type basis_specifications
 
+  type,public:: basis_performance_options
+    integer:: blocksize_pdgemm, blocksize_pdsyev, nproc_pdsyev
+  end type basis_performance_options
+
 
   type,public:: wfn_metadata
     integer:: nphi, nlbphi
     real(8),dimension(:),pointer:: phi, phiRestart
     real(8),dimension(:,:),pointer:: coeff, coeff_proj
     type(basis_specifications):: bs
+    type(basis_performance_options):: bpo
   end type wfn_metadata
 
 

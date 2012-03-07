@@ -134,8 +134,8 @@ type(wfn_metadata):: wfnmd
 
   orthpar%methTransformOverlap = lin%methTransformOverlap
   orthpar%nItOrtho = lin%nItOrtho
-  orthpar%blocksize_pdsyev = lin%blocksize_pdsyev
-  orthpar%blocksize_pdgemm = lin%blocksize_pdgemm
+  orthpar%blocksize_pdsyev = wfnmd%bpo%blocksize_pdsyev
+  orthpar%blocksize_pdgemm = wfnmd%bpo%blocksize_pdgemm
 
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -235,9 +235,9 @@ type(wfn_metadata):: wfnmd
               denspot, GPU, wfnmd%bs%update_phi, &
               infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
               wfnmd%bs%communicate_phi_for_lsumrho, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
-              orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
+              orthpar, confdatarr, lin%methTransformOverlap, wfnmd%bpo%blocksize_pdgemm, &
               wfnmd%bs%conv_crit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
-              lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+              lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
@@ -247,8 +247,8 @@ type(wfn_metadata):: wfnmd
               denspot,GPU,wfnmd%bs%update_phi,&
               infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
               wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,& 
-              lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
-              wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+              lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+              wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -469,8 +469,8 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                      lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
-                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
                   wfnmd%bs%use_derivative_basis=.true.
@@ -480,8 +480,8 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                      lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
-                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
           else
@@ -491,8 +491,8 @@ type(wfn_metadata):: wfnmd
                   denspot,GPU,wfnmd%bs%update_phi,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                   wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                  lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
-                  wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                  lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                  wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
 
@@ -1082,6 +1082,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
       call init_basis_specifications(input, wfnmd%bs)
+      call init_basis_performance_options(input, wfnmd%bpo)
 
   else if(mode=='c') then
       ! cubic scaling mode
@@ -1150,3 +1151,19 @@ subroutine init_basis_specifications(input, bs)
   bs%target_function=TARGET_FUNCTION_IS_TRACE
 
 end subroutine init_basis_specifications
+
+
+subroutine init_basis_performance_options(input, bpo)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(basis_performance_options),intent(out):: bpo
+  
+  bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
+  bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
+  bpo%nproc_pdsyev=input%lin%nproc_pdsyev
+
+end subroutine init_basis_performance_options
