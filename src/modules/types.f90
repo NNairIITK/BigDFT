@@ -754,7 +754,7 @@ end type workarrays_quartic_convolutions
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
-    type(arraySizes):: as
+    !type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient, mixedmode
     character(len=4):: mixingMethod

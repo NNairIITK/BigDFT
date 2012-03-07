@@ -2073,6 +2073,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   integer :: input_wf_format, i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
+
   norbv=abs(in%norbv)
   inputpsi=in%inputPsiId
   input_wf_format=WF_FORMAT_NONE !default value
@@ -2103,12 +2104,20 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
+  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  print *,'here22',iproc
+
+
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
   end if
 
   call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+
+  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  print *,'here',iproc
+
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)

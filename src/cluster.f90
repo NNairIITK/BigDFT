@@ -374,7 +374,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        n1,n2,n3,n1i,n2i,n3i,&
        denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3pi,&
        denspot%V_ext,denspot%pkernel)
-
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Lzd%Glr,&
        hxh,hyh,hzh,&
@@ -399,21 +398,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      inputpsi = in%inputPsiId
      !call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
      !this does not work with ndebug activated
-     lin%as%size_rhopot=size(denspot%rhov)
-     lin%as%size_potxc(1)=size(denspot%V_XC,1)
-     lin%as%size_potxc(2)=size(denspot%V_XC,2)
-     lin%as%size_potxc(3)=size(denspot%V_XC,3)
-     lin%as%size_potxc(4)=size(denspot%V_XC,4)
-     lin%as%size_rhocore=size(denspot%rho_C)
-     lin%as%size_pot_ion=size(denspot%V_ext)
-     lin%as%size_pkernel=size(denspot%pkernel)
-     lin%as%size_pkernelseq=size(denspot%pkernelseq)
-     lin%as%size_phnons(1)=size(atoms%sym%phnons,1)
-     lin%as%size_phnons(2)=size(atoms%sym%phnons,2)
-     lin%as%size_phnons(3)=size(atoms%sym%phnons,3)
-     lin%as%size_irrzon(1)=size(atoms%sym%irrzon,1)
-     lin%as%size_irrzon(2)=size(atoms%sym%irrzon,2)
-     lin%as%size_irrzon(3)=size(atoms%sym%irrzon,3)
+!!$     lin%as%size_rhopot=size(denspot%rhov)
+!!$     lin%as%size_potxc(1)=size(denspot%V_XC,1)
+!!$     lin%as%size_potxc(2)=size(denspot%V_XC,2)
+!!$     lin%as%size_potxc(3)=size(denspot%V_XC,3)
+!!$     lin%as%size_potxc(4)=size(denspot%V_XC,4)
+!!$     lin%as%size_rhocore=size(denspot%rho_C)
+!!$     lin%as%size_pot_ion=size(denspot%V_ext)
+!!$     lin%as%size_pkernel=size(denspot%pkernel)
+!!$     lin%as%size_pkernelseq=size(denspot%pkernelseq)
+!!$     lin%as%size_phnons(1)=size(atoms%sym%phnons,1)
+!!$     lin%as%size_phnons(2)=size(atoms%sym%phnons,2)
+!!$     lin%as%size_phnons(3)=size(atoms%sym%phnons,3)
+!!$     lin%as%size_irrzon(1)=size(atoms%sym%irrzon,1)
+!!$     lin%as%size_irrzon(2)=size(atoms%sym%irrzon,2)
+!!$     lin%as%size_irrzon(3)=size(atoms%sym%irrzon,3)
 
      !!if(.not.lin%transformToGlobal) then
      !!    ! psi and psit will not be calculated, so only allocate them with size 1
