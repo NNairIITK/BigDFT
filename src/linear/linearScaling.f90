@@ -374,7 +374,7 @@ type(wfn_metadata):: wfnmd
       ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
       ! or high accuracy part.
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
-           locrad, nitSCC, nitSCCWhenOptimizing, mixHist)
+           locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
       if(lowaccur_converged) then
           nit_highaccuracy=nit_highaccuracy+1
           if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
@@ -414,18 +414,6 @@ type(wfn_metadata):: wfnmd
           end if
 
           ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
-          !if(lin%newgradient) then
-          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-              do ilr=1,lin%lzd%nlr
-                  !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
-                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
-              end do
-          else
-              do ilr=1,lin%lzd%nlr
-                  !locrad(ilr)=lin%locrad_highaccuracy(ilr)
-                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
-              end do
-          end if
           if(lin%mixedmode) then
               if(.not.withder) then
                   wfnmd%bs%use_derivative_basis=.false.
@@ -491,19 +479,6 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
-              if(wfnmd%bs%update_phi) then
-                  if(lowaccur_converged) then
-                      alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
-                  else
-                      alphaMix=lin%alphaMixWhenOptimizing_lowaccuracy
-                  end if
-              else
-                  if(lowaccur_converged) then
-                      alphaMix=lin%alphaMixWhenFixed_highaccuracy
-                  else
-                      alphaMix=lin%alphaMixWhenFixed_lowaccuracy
-                  end if
-              end if
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
@@ -547,19 +522,6 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the potential
           if(trim(lin%mixingMethod)=='pot') then
-              if(wfnmd%bs%update_phi) then
-                  if(lowaccur_converged) then
-                      alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
-                  else
-                      alphaMix=lin%alphaMixWhenOptimizing_lowaccuracy
-                  end if
-              else
-                  if(lowaccur_converged) then
-                      alphaMix=lin%alphaMixWhenFixed_highaccuracy
-                  else
-                      alphaMix=lin%alphaMixWhenFixed_lowaccuracy
-                  end if
-              end if
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
@@ -1141,7 +1103,7 @@ end subroutine init_basis_performance_options
 
 
 subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
-           locrad, nitSCC, nitSCCWhenOptimizing, mixHist)
+           locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
   use module_base
   use module_types
   implicit none
@@ -1157,6 +1119,7 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
   type(wfn_metadata),intent(inout):: wfnmd
   real(8),dimension(nlr),intent(out):: locrad
   integer,intent(out):: nitSCC, nitSCCWhenOptimizing, mixHist
+  real(8),intent(out):: alphaMix
 
   ! Local variables
   integer:: iorb, ilr, iiat
@@ -1173,6 +1136,14 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
       nitSCC=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
       nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
       mixHist=input%lin%mixHist_highaccuracy
+      do ilr=1,nlr
+          locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
+      end do
+      if(wfnmd%bs%update_phi) then
+          alphaMix=input%lin%alphaMixWhenOptimizing_highaccuracy
+      else
+          alphaMix=input%lin%alphaMixWhenFixed_highaccuracy
+      end if
 
   else
 
@@ -1183,20 +1154,18 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-
       nitSCC=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
       nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       mixHist=input%lin%mixHist_lowaccuracy
+      do ilr=1,nlr
+          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+      end do
+      if(wfnmd%bs%update_phi) then
+          alphaMix=input%lin%alphaMixWhenOptimizing_lowaccuracy
+      else
+          alphaMix=input%lin%alphaMixWhenFixed_lowaccuracy
+      end if
 
   end if
-!!          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-!!              do ilr=1,lin%lzd%nlr
-!!                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
-!!              end do
-!!          else
-!!              do ilr=1,lin%lzd%nlr
-!!                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
-!!              end do
-!!          end if
 
 end subroutine set_optimization_variables
