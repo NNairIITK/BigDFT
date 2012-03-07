@@ -70,6 +70,7 @@ BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
 void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
 void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
+gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
 void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc,
                                             guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
@@ -78,8 +79,6 @@ void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
                                             double frmult, double projrad);
-gboolean*     bigdft_atoms_get_grid        (const BigDFT_Atoms *atoms, double *radii,
-                                            double mult, guint n[3]);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -153,16 +152,14 @@ typedef struct BigDFT_LocRegClass_
 typedef struct BigDFT_locReg_
 {
 #ifdef GLIB_MAJOR_VERSION
-  GObject parent;
+  BigDFT_Atoms parent;
   gboolean dispose_has_run;
 #endif
 
-  gchar geocode;
   double h[3];
   guint n[3], ni[3];
 
   /* Values that have been used to built this localisation region. */
-  const BigDFT_Atoms *atoms;
   double *radii;
   double crmult, frmult;
   
@@ -172,13 +169,20 @@ typedef struct BigDFT_locReg_
   void *d;
   void *data;
 } BigDFT_LocReg;
+typedef enum
+  {
+    GRID_COARSE,
+    GRID_FINE
+  } BigDFT_Grid;
 
-BigDFT_LocReg* bigdft_locreg_new                 (BigDFT_Atoms *atoms, double *radii,
-                                                  double h[3],double crmult, double frmult);
-BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
-                                                       double h[3], double crmult, double frmult);
+BigDFT_LocReg* bigdft_locreg_new                 ();
 void           bigdft_locreg_free                (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
+void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, double h[3],
+                                                  double crmult, double frmult);
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
+gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
+                                                  BigDFT_Grid gridType);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -205,11 +209,9 @@ struct BigDFT_lzd_
   /* Private. */
   void *data;
 };
-BigDFT_Lzd* bigdft_lzd_new (BigDFT_Atoms *atoms, double *radii, double h[3],
-                            double crmult, double frmult);
+BigDFT_Lzd* bigdft_lzd_new ();
 void        bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
-                                    const BigDFT_Inputs *in, const BigDFT_Atoms *atoms,
-                                    guint iproc, guint nproc);
+                                    const BigDFT_Inputs *in, guint iproc, guint nproc);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
 
 

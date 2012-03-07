@@ -8,6 +8,10 @@ Test BigDFT_Atoms pseudo-potential on the fly.
  Type 1, radii 1.463418 0.200000 0.000000
 Test BigDFT_Atoms free.
  Ok
+Test BigDFT_Inputs structure creation.
+ Read 'test.dft' file: 1
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
+Test BigDFT_Lzd structure creation.
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -15,13 +19,9 @@ Test BigDFT_Atoms structure creation from file.
  Atom 3, coord. 3.240000 0.000000 0.000000, type 2
  Atom 4, coord. 0.000000 3.240000 0.000000, type 2
  Box [S], is in 17.123000 0.000000 17.123000
-Test BigDFT_Inputs structure creation.
- Read 'test.dft' file: 1
- Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
 Test BigDFT_Atoms pseudo-potential evaluation.
  Type 0, radii 1.806025 0.435634 0.770571
  Type 1, radii 1.463418 0.200000 0.000000
-Test BigDFT_Lzd structure creation.
  Atoms 0, coord.   1.620000   6.240000   1.620000 'Si', type 1
  Atoms 1, coord.   3.240000   7.860000   3.240000 ' H', type 2
  Atoms 2, coord.   0.000000   4.620000   3.240000 ' H', type 2
@@ -68,7 +68,7 @@ Test BigDFT_LocalFields creation.
  evale(4)= -2.76718255360796E-01 <- Last InputGuess eval, H-L IG gap:  14.5579 eV
  evale(5)=  2.58274958796652E-01 <- First virtual eval
  evale(6)=  2.59158927194188E-01 <-
- evale(7)=  2.64763436928129E-01 <-
+ evale(7)=  2.64763436928128E-01 <-
  evale(8)=  2.83685190892612E-01 <-
  Building orthogonal Wavefunctions... done.
  Calculation of input guess finished.
@@ -81,8 +81,6 @@ Test BigDFT_Wf free.
 Test BigDFT_Inputs free.
  Ok
 Test BigDFT_Lzd free.
- Ok
-Test BigDFT_Atoms free.
  Ok
 # BigDFT file - Test from memory generation.
  0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01

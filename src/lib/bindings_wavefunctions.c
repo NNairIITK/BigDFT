@@ -110,7 +110,7 @@ static guint bigdft_orbs_define(BigDFT_Orbs *orbs,
 #endif
   orbs->glr = glr;
   FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
-                                                           glr->atoms->data,
+                                                           glr->parent.data,
                                                            orbs->data, &nelec_);
   FC_FUNC_(orbs_comm, ORBS_COMM)(&orbs->comm, orbs->data, glr->data, &iproc, &nproc);
   
@@ -279,8 +279,8 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT
 
   FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
   FC_FUNC_(input_wf, INPUT_WF)(&iproc, &nproc, wf->parent.in->data, GPU,
-                               BIGDFT_LOCREG(wf->lzd)->atoms->data,
-                               BIGDFT_LOCREG(wf->lzd)->atoms->rxyz.data,
+                               BIGDFT_ATOMS(wf->lzd)->data,
+                               BIGDFT_ATOMS(wf->lzd)->rxyz.data,
                                wf->lzd->data, BIGDFT_LOCREG(wf->lzd)->h,
                                BIGDFT_LOCREG(wf->lzd)->h + 1, BIGDFT_LOCREG(wf->lzd)->h + 2,
                                denspot->data, proj->nlpspd, &proj->proj,

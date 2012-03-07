@@ -163,14 +163,12 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
-subroutine glr_get_dimensions(glr, geocode, n, ni)
+subroutine glr_get_dimensions(glr , n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  character, intent(out) :: geocode(1)
   integer, dimension(3), intent(out) :: n, ni
 
-  write(geocode, "(A1)") glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
