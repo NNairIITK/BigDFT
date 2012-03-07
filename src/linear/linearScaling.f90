@@ -88,7 +88,7 @@ integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
-logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
+logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 integer:: iorb, ndimtot, iiat
@@ -194,6 +194,7 @@ type(wfn_metadata):: wfnmd
   allocate(locrad(lin%lzd%nlr), stat=istat)
   call memocc(istat, locrad, 'locrad', subname)
 
+
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
@@ -208,7 +209,6 @@ type(wfn_metadata):: wfnmd
       ! the basis functions (therefore update is set to false).
       ! This subroutine will also post the point to point messages needed for the calculation
       ! of the charge density.
-      updatePhi=.false.
       !wfnmd%bs%communicate_phi_for_lsumrho=.true.
       wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
@@ -217,11 +217,13 @@ type(wfn_metadata):: wfnmd
 
       if(lin%newgradient) then
           do ilr=1,lin%lzd%nlr
-              locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+              !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+              locrad(ilr)=lin%locrad_highaccuracy(ilr)
           end do
       else
           do ilr=1,lin%lzd%nlr
-              locrad(ilr)=lin%locrad_highaccuracy(ilr)
+              !locrad(ilr)=lin%locrad_highaccuracy(ilr)
+              locrad(ilr)=lin%locrad_lowaccuracy(ilr)
           end do
       end if
 
@@ -330,7 +332,6 @@ type(wfn_metadata):: wfnmd
   !if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
-  updatePhi=.true.
   wfnmd%bs%update_phi=.true.
   pnrm=1.d100
   pnrm_out=1.d100
@@ -351,7 +352,6 @@ type(wfn_metadata):: wfnmd
       ldiis%alphaSD=lin%alphaSD
       ldiis%alphaDIIS=lin%alphaDIIS
 
-      updatePhi=.true.
       wfnmd%bs%update_phi=.true.
       selfConsistent=lin%convCritMix
 
@@ -373,53 +373,25 @@ type(wfn_metadata):: wfnmd
 
       ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
       ! or high accuracy part.
+      call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
+           locrad, nitSCC, nitSCCWhenOptimizing, mixHist)
       if(lowaccur_converged) then
-          !!lin%potentialPrefac = lin%potentialPrefac_highaccuracy
-          do iorb=1,lin%orbs%norbp
-              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              iiat=onwhichatom(lin%orbs%isorb+iorb)
-              !confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
-              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(iiat))
-          end do
-          lin%newgradient=.true.
-          wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
           nit_highaccuracy=nit_highaccuracy+1
-          wfnmd%bs%nit_basis_optimization=lin%nItBasis_highaccuracy
-          if(nit_highaccuracy==lin%nit_highaccuracy+1) then
+          if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
               ! Deallocate DIIS structures.
               call deallocateDIIS(ldiis)
               exit outerLoop
           end if
           ! only use steepest descent if the localization regions may change
-          if(lin%nItInnerLoop/=-1 .or. wfnmd%bs%locreg_enlargement/=1.d0) then
+          if(input%lin%nItInnerLoop/=-1 .or. wfnmd%bs%locreg_enlargement/=1.d0) then
               ldiis%isx=0
           end if
 
-          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
-          mixHist=lin%mixHist_highaccuracy
-          if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
-             !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
-          else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
+          if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+              call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+          else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
               call deallocateMixrhopotDIIS(mixdiis)
           end if
-
-      else
-          !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
-          do iorb=1,lin%orbs%norbp
-              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              iiat=onwhichatom(lin%orbs%isorb+iorb)
-              !confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
-              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-          end do
-          lin%newgradient=.false.
-          wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
-          wfnmd%bs%nit_basis_optimization=lin%nItBasis_lowaccuracy
-
-          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
-          mixHist=lin%mixHist_lowaccuracy
       end if
 
 
@@ -429,28 +401,11 @@ type(wfn_metadata):: wfnmd
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
 
-      ! Optimize the basis functions and them mix the density / potential to reach self consistency.
-      !!!if(lowaccur_converged) then
-      !!!    nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
-      !!!    nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
-      !!!    mixHist=lin%mixHist_highaccuracy
-      !!!    if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
-      !!!       !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      !!!        call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
-      !!!    else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
-      !!!        call deallocateMixrhopotDIIS(mixdiis)
-      !!!    end if
-      !!!else
-      !!!    nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
-      !!!    nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
-      !!!    mixHist=lin%mixHist_lowaccuracy
-      !!!end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
-          if(itSCC>nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               wfnmd%bs%communicate_phi_for_lsumrho=.true.
@@ -459,20 +414,18 @@ type(wfn_metadata):: wfnmd
           end if
 
           ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
-          if(lin%newgradient) then
+          !if(lin%newgradient) then
+          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
               do ilr=1,lin%lzd%nlr
-                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+                  !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
               end do
           else
               do ilr=1,lin%lzd%nlr
-                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
+                  !locrad(ilr)=lin%locrad_highaccuracy(ilr)
+                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
               end do
           end if
-!!if(lin%newgradient) then
-!!     deallocate(lphi)
-!!     call mpi_barrier(mpi_comm_world, ierr)
-!!     stop
-!!end if
           if(lin%mixedmode) then
               if(.not.withder) then
                   wfnmd%bs%use_derivative_basis=.false.
@@ -538,7 +491,6 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
-              !if(updatePhi) then
               if(wfnmd%bs%update_phi) then
                   if(lowaccur_converged) then
                       alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
@@ -595,7 +547,6 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the potential
           if(trim(lin%mixingMethod)=='pot') then
-              !if(updatePhi) then
               if(wfnmd%bs%update_phi) then
                   if(lowaccur_converged) then
                       alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
@@ -1186,3 +1137,66 @@ subroutine init_basis_performance_options(input, bpo)
   bpo%nproc_pdsyev=input%lin%nproc_pdsyev
 
 end subroutine init_basis_performance_options
+
+
+
+subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
+           locrad, nitSCC, nitSCCWhenOptimizing, mixHist)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  logical,intent(in):: lowaccur_converged
+  integer,intent(in):: nlr
+  type(orbitals_data),intent(in):: lorbs
+  type(input_variables),intent(in):: input
+  type(atoms_data),intent(in):: at
+  integer,dimension(lorbs%norb),intent(in):: onwhichatom
+  type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
+  type(wfn_metadata),intent(inout):: wfnmd
+  real(8),dimension(nlr),intent(out):: locrad
+  integer,intent(out):: nitSCC, nitSCCWhenOptimizing, mixHist
+
+  ! Local variables
+  integer:: iorb, ilr, iiat
+
+  if(lowaccur_converged) then
+
+      do iorb=1,lorbs%norbp
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+          iiat=onwhichatom(lorbs%isorb+iorb)
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
+      end do
+      wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
+      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
+      nitSCC=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
+      nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
+      mixHist=input%lin%mixHist_highaccuracy
+
+  else
+
+      do iorb=1,lorbs%norbp
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+          iiat=onwhichatom(lorbs%isorb+iorb)
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+      end do
+      wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+
+      nitSCC=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
+      nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
+      mixHist=input%lin%mixHist_lowaccuracy
+
+  end if
+!!          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+!!              do ilr=1,lin%lzd%nlr
+!!                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+!!              end do
+!!          else
+!!              do ilr=1,lin%lzd%nlr
+!!                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
+!!              end do
+!!          end if
+
+end subroutine set_optimization_variables
