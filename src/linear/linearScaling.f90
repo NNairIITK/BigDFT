@@ -181,7 +181,6 @@ type(wfn_metadata):: wfnmd
   !lphi=wfnmd%phi
   !call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
 
-  call deallocateBasicArraysInput(at, input%lin)
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
@@ -396,6 +395,16 @@ type(wfn_metadata):: wfnmd
               ldiis%isx=0
           end if
 
+          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
+          mixHist=lin%mixHist_highaccuracy
+          if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
+             !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+          else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
+              call deallocateMixrhopotDIIS(mixdiis)
+          end if
+
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           do iorb=1,lin%orbs%norbp
@@ -407,6 +416,10 @@ type(wfn_metadata):: wfnmd
           lin%newgradient=.false.
           wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
           wfnmd%bs%nit_basis_optimization=lin%nItBasis_lowaccuracy
+
+          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
+          mixHist=lin%mixHist_lowaccuracy
       end if
 
 
@@ -417,21 +430,21 @@ type(wfn_metadata):: wfnmd
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
 
       ! Optimize the basis functions and them mix the density / potential to reach self consistency.
-      if(lowaccur_converged) then
-          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
-          mixHist=lin%mixHist_highaccuracy
-          if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
-             !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
-          else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
-              call deallocateMixrhopotDIIS(mixdiis)
-          end if
-      else
-          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
-          mixHist=lin%mixHist_lowaccuracy
-      end if
+      !!!if(lowaccur_converged) then
+      !!!    nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
+      !!!    nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
+      !!!    mixHist=lin%mixHist_highaccuracy
+      !!!    if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
+      !!!       !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      !!!        call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+      !!!    else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
+      !!!        call deallocateMixrhopotDIIS(mixdiis)
+      !!!    end if
+      !!!else
+      !!!    nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
+      !!!    nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
+      !!!    mixHist=lin%mixHist_lowaccuracy
+      !!!end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
@@ -776,6 +789,8 @@ type(wfn_metadata):: wfnmd
   call deallocate_linearParameters(lin, subname)
 
   call destroy_wfn_metadata(wfnmd)
+
+  call deallocateBasicArraysInput(at, input%lin)
 
   deallocate(confdatarr)
   call deallocateBasicArrays(at,lin)
