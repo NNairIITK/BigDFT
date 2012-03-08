@@ -285,8 +285,6 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    integer :: iat,i_stat,i_all,iseg
    logical, dimension(:,:,:), allocatable :: logrid
 
-   write(*,*) at%nat, iproc, radii_cf, cpmult, fpmult, hx, hy, hz
-
    !allocate the different localization regions of the projectors
    nlpspd%natoms=at%nat
    allocate(nlpspd%plr(at%nat),stat=i_stat)

@@ -71,6 +71,9 @@ Test BigDFT_LocalFields creation.
  evale(7)=  2.64763436928128E-01 <-
  evale(8)=  2.83685190892612E-01 <-
  Building orthogonal Wavefunctions... done.
+Callback for 'psi-ready' signal at iter 0.
+ Band 4 has 48507 bytes.
+ Band 4 has min partial density 0 and max 0.000260154. 
  Calculation of input guess finished.
 Test BigDFT_LocalFields free.
  Ok

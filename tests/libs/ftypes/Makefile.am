@@ -19,7 +19,7 @@ $(EXTRA_DIST):
 	@cp -p $(srcdir)/$@ .
 
 bindings.report: $(srcdir)/bindings.out.ref bindings.out
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
 
 bindings.out: check_lib_c posinp.ascii $(srcdir)/test.dft
 	./check_lib_c $(srcdir) > $@

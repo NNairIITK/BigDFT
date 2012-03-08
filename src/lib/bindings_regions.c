@@ -260,5 +260,6 @@ void bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
                              const BigDFT_Inputs *in, guint iproc, guint nproc)
 {  
   FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, in->data, lzd->data, lzd->parent.parent.data, orbs->data, lzd->parent.parent.rxyz.data);
+    (&iproc, &nproc, in->data, lzd->parent.h, lzd->parent.h + 1, lzd->parent.h + 2,
+     lzd->data, lzd->parent.parent.data, orbs->data, lzd->parent.parent.rxyz.data);
 }

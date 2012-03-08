@@ -384,10 +384,10 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
   guint size, i;
   double minDens, maxDens;
 
-  fprintf(stderr, "Callback for 'psi-ready' signal at iter %d.\n", iter);
+  fprintf(stdout, "Callback for 'psi-ready' signal at iter %d.\n", iter);
 
   psic = bigdft_wf_get_psi_compress(wf, 1, 4, BIGDFT_SPIN_UP, BIGDFT_REAL, &size, 0);
-  fprintf(stderr, " Band 4 has %d bytes.\n", size);
+  fprintf(stdout, " Band 4 has %d bytes.\n", size);
   
   minDens = G_MAXDOUBLE;
   maxDens = 0.;
@@ -398,7 +398,7 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
       minDens = MIN(minDens, psir[i]);
       maxDens = MAX(maxDens, psir[i]);
     }
-  fprintf(stderr, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
+  fprintf(stdout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
   g_free(psir);
 }
