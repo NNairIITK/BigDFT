@@ -2,10 +2,10 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,&
     infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-    ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
-    methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
+    ldiis,nItInnerLoop,orthpar,confdatarr,&
+    methTransformOverlap,blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
+    hx,hy,hz,SIC,locrad,wfnmd)
 !
 ! Purpose:
 ! ========
@@ -63,8 +63,8 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, itSCC, nit, nItInnerLoop
-integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+integer,intent(in):: iproc, nproc, itSCC, nItInnerLoop
+integer,intent(in):: methTransformOverlap, blocksize_pdgemm
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
@@ -80,7 +80,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
-real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
+real(8),intent(in):: hx, hy, hz
 !real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 !real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
@@ -138,9 +138,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           denspot,GPU,wfnmd%phi,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,wfnmd%coeff_proj,ldiis,nit,nItInnerLoop,&
-          orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
-          hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad,wfnmd)
+          infoBasisFunctions,ovrlp,nlpspd,proj,wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,nItInnerLoop,&
+          orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,wfnmd%bs%conv_crit,&
+          hx,hy,hz,SIC,wfnmd%bs%nit_precond,wfnmd%bs%locreg_enlargement,locrad,wfnmd)
 
   end if
 

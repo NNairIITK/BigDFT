@@ -235,11 +235,10 @@ type(wfn_metadata):: wfnmd
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
-              ldiis, wfnmd%bs%nit_basis_optimization, lin%nItInnerLoop, &
+              ldiis, lin%nItInnerLoop, &
               orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
-              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
-              hx, hy, hz, input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
+              hx, hy, hz, input%SIC, locrad, wfnmd)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -247,10 +246,10 @@ type(wfn_metadata):: wfnmd
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
-              ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,& 
-              wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
+              ldiis,lin%nItInnerLoop,orthpar,confdatarr,& 
+              wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
               lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
+              hx,hy,hz,input%SIC, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -426,10 +425,10 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
-                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
+                      ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
+                      hx,hy,hz,input%SIC, locrad, wfnmd)
               else
                   wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -437,10 +436,10 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
-                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
+                      ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
+                      hx,hy,hz,input%SIC, locrad, wfnmd)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -448,10 +447,10 @@ type(wfn_metadata):: wfnmd
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
-                  wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
+                  ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                  wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
                   lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
+                  hx,hy,hz,input%SIC, locrad, wfnmd)
           end if
 
 

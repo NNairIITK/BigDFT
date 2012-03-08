@@ -2101,17 +2101,17 @@ module module_interfaces
          mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
          GPU,&
          infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-         ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
-         methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
+         ldiis,nItInnerLoop,orthpar,confdatarr,&
+         methTransformOverlap,blocksize_pdgemm,&
          comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
+         hx,hy,hz,SIC,locrad,wfnmd)
       use module_base
       use module_types
       implicit none
 
       ! Calling arguments
-      integer,intent(in):: iproc, nproc, itSCC, nit, nItInnerLoop
-      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+      integer,intent(in):: iproc, nproc, itSCC, nItInnerLoop
+      integer,intent(in):: methTransformOverlap, blocksize_pdgemm
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
@@ -2128,7 +2128,7 @@ module module_interfaces
       type(GPU_pointers),intent(inout):: GPU
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebs
-      real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
+      real(8),intent(in):: hx, hy, hz
       !real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
       !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
       !real(8),dimension(:),pointer,intent(inout):: lphi
