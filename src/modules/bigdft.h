@@ -289,7 +289,7 @@ typedef struct BigDFT_wf_
 #endif
 
   /* Pointers on building objects. */
-  BigDFT_Lzd *lzd;
+  const BigDFT_Lzd *lzd;
 
   /* Private. */
   f90_pointer_double psi, hpsi, psit;
