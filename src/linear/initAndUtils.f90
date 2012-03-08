@@ -101,12 +101,12 @@ end do
 
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
-call allocateBasicArrays(at, lin)
+call allocateBasicArrays(lin, at%ntypes)
 
 !call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, lin%lzd%nlr, input, lin)
 
-!!call deallocateBasicArraysInput(at, input%lin)
+!!call deallocateBasicArraysInput(input%lin)
 
 allocate(norbsPerLocreg(lin%lzd%nlr), stat=istat)
 call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
@@ -1797,6 +1797,21 @@ subroutine deallocateBasicArraysInput(lin)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
+
+  if(associated(lin%locrad_lowaccuracy)) then
+    i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
+    deallocate(lin%locrad_lowaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_lowaccuracy',subname)
+    nullify(lin%locrad_lowaccuracy)
+  end if 
+
+  if(associated(lin%locrad_highaccuracy)) then
+    i_all = -product(shape(lin%locrad_highaccuracy))*kind(lin%locrad_highaccuracy)
+    deallocate(lin%locrad_highaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
+    nullify(lin%locrad_highaccuracy)
+  end if 
+
 
   if(associated(lin%locrad_lowaccuracy)) then
     i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)

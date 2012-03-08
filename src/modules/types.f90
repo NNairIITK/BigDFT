@@ -223,6 +223,7 @@ module module_types
   type, public :: energy_terms
      real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
      real(gp) :: ebs,eKS,trH
+     !real(gp), dimension(:,:), pointer :: fion,f
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -771,6 +772,12 @@ end type workarrays_quartic_convolutions
     character(len=1):: locregShape
     type(collectiveComms):: collComms
   end type linearParameters
+
+  type,public:: wfn_metadata
+    integer:: nphi, nlbphi
+    real(8),dimension(:),pointer:: phi
+  end type wfn_metadata
+
 
 !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
