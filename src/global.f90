@@ -137,6 +137,7 @@ program MINHOP
 
   ! Read associated pseudo files. Based on the inputs_opt set
   call init_atomic_values((iproc == 0), atoms, inputs_opt%ixc)
+  call read_atomic_variables(atoms, trim(inputs_opt%file_igpop),inputs_opt%nspin)
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then

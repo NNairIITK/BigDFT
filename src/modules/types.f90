@@ -221,8 +221,8 @@ module module_types
   end type input_variables
 
   type, public :: energy_terms
-     real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
-     real(gp) :: ebs,eKS,trH
+     real(gp) :: eh,exc,evxc,eion,edisp,ekin,epot,eproj,eexctX
+     real(gp) :: ebs,eKS,trH,evsum,evsic
      !real(gp), dimension(:,:), pointer :: fion,f
   end type energy_terms
 
@@ -755,7 +755,7 @@ end type workarrays_quartic_convolutions
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
-    type(arraySizes):: as
+    !type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
