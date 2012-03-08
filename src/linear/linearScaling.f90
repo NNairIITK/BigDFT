@@ -382,6 +382,7 @@ type(wfn_metadata):: wfnmd
           tt=1.d0
       else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
+          if(iproc==0) write(*,'(1x,a,f6.2)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
       if(iproc==0) write(*,*) 'confdatarr(1)%prefac',confdatarr(1)%prefac
