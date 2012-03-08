@@ -8,6 +8,10 @@ Test BigDFT_Atoms pseudo-potential on the fly.
  Type 1, radii 1.463418 0.200000 0.000000
 Test BigDFT_Atoms free.
  Ok
+Test BigDFT_Inputs structure creation.
+ Read 'test.dft' file: 1
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
+Test BigDFT_Lzd structure creation.
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -15,13 +19,9 @@ Test BigDFT_Atoms structure creation from file.
  Atom 3, coord. 3.240000 0.000000 0.000000, type 2
  Atom 4, coord. 0.000000 3.240000 0.000000, type 2
  Box [S], is in 17.123000 0.000000 17.123000
-Test BigDFT_Inputs structure creation.
- Read 'test.dft' file: 1
- Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
 Test BigDFT_Atoms pseudo-potential evaluation.
  Type 0, radii 1.806025 0.435634 0.770571
  Type 1, radii 1.463418 0.200000 0.000000
-Test BigDFT_Lzd structure creation.
  Atoms 0, coord.   1.620000   6.240000   1.620000 'Si', type 1
  Atoms 1, coord.   3.240000   7.860000   3.240000 ' H', type 2
  Atoms 2, coord.   0.000000   4.620000   3.240000 ' H', type 2
@@ -46,9 +46,6 @@ Test BigDFT_LocalFields creation.
  Calculation of ionic potential started.
  Calculation of ionic potential finished.
  Calculation of input guess started.
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000040007   0.000E+00
- PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 8 Atomic Input Orbitals
  Calculating AIO wavefunctions: 
@@ -61,18 +58,18 @@ Test BigDFT_LocalFields creation.
  Calculation of charge density... done. Total electronic charge=       7.999999887643
  PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
  Hamiltonian application... done. ekin_sum,eks:       5.1232061070       5.0225194919
- ekin_sum,epot_sum,eproj_sum  5.12320610698E+00 -5.96341059205E+00  8.77781302890E-01
-    ehart,   eexcu,    vexcu  1.97844305898E+00 -2.67724050403E+00 -3.45075509233E+00
+ ekin_sum,epot_sum,eproj_sum  5.12320610698E+00 -7.87803615753E+00  8.77781302890E-01
+    ehart,   eexcu,    vexcu  3.95688611796E+00 -2.67724050403E+00 -3.45075509233E+00
  Input Wavefunctions Orthogonalization:
  Overlap Matrix... Direct diagonalization...
- evale(1)= -2.27063819501416E-01 <-
- evale(2)= -7.51688633856704E-02 <-
- evale(3)= -7.48187788316041E-02 <-
- evale(4)= -7.26148806963623E-02 <- Last InputGuess eval, H-L IG gap:  15.5681 eV
- evale(5)=  4.99501030970494E-01 <- First virtual eval
- evale(6)=  5.00357540730727E-01 <-
- evale(7)=  5.05700645465258E-01 <-
- evale(8)=  5.88467281126363E-01 <-
+ evale(1)= -4.92188580074955E-01 <-
+ evale(2)= -2.78834397004219E-01 <-
+ evale(3)= -2.78541386611952E-01 <-
+ evale(4)= -2.76718255360796E-01 <- Last InputGuess eval, H-L IG gap:  14.5579 eV
+ evale(5)=  2.58274958796652E-01 <- First virtual eval
+ evale(6)=  2.59158927194188E-01 <-
+ evale(7)=  2.64763436928128E-01 <-
+ evale(8)=  2.83685190892612E-01 <-
  Building orthogonal Wavefunctions... done.
  Calculation of input guess finished.
 Test BigDFT_LocalFields free.
@@ -84,8 +81,6 @@ Test BigDFT_Wf free.
 Test BigDFT_Inputs free.
  Ok
 Test BigDFT_Lzd free.
- Ok
-Test BigDFT_Atoms free.
  Ok
 # BigDFT file - Test from memory generation.
  0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
