@@ -2103,7 +2103,7 @@ module module_interfaces
          infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,&
          ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
-         useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
+         useDerivativeBasisFunctions,comrp,blocksize_pdsyev,nproc_pdsyev,&
          hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
       use module_base
       use module_types
@@ -2141,7 +2141,7 @@ module module_interfaces
       type(orthon_data),intent(in):: orthpar
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
       !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
-      real(8),dimension(:),pointer,intent(inout)::lphiRestart
+      !real(8),dimension(:),pointer,intent(inout)::lphiRestart
       !type(p2pCommsRepartition),intent(inout):: comrp
       type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC

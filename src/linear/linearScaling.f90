@@ -237,7 +237,7 @@ type(wfn_metadata):: wfnmd
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
               wfnmd%bs%communicate_phi_for_lsumrho, ldiis, wfnmd%bs%nit_basis_optimization, lin%nItInnerLoop, &
               orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
-              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
+              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, wfnmd%bs%use_derivative_basis,  &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
       else
@@ -249,7 +249,7 @@ type(wfn_metadata):: wfnmd
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
               ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,& 
               wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-              wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+              wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -428,7 +428,7 @@ type(wfn_metadata):: wfnmd
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
               else
                   wfnmd%bs%use_derivative_basis=.true.
@@ -439,7 +439,7 @@ type(wfn_metadata):: wfnmd
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
               end if
           else
@@ -450,7 +450,7 @@ type(wfn_metadata):: wfnmd
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                   ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                   wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                  wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                  wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
           end if
 
