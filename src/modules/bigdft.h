@@ -183,6 +183,8 @@ void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, double h[3
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
                                                   BigDFT_Grid gridType);
+double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
+                                                  const double *psic);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -292,11 +294,28 @@ typedef struct BigDFT_wf_
   /* Private. */
   f90_pointer_double psi, hpsi, psit;
 } BigDFT_Wf;
+typedef enum
+  {
+    BIGDFT_SPIN_UP,
+    BIGDFT_SPIN_DOWN
+  } BigDFT_Spin;
+typedef enum
+  {
+    BIGDFT_REAL,
+    BIGDFT_IMAG,
+    BIGDFT_PARTIAL_DENSITY
+  } BigDFT_Spinor;
+
 BigDFT_Wf* bigdft_wf_new (BigDFT_Lzd *lzd, BigDFT_Inputs *in,
                           guint iproc, guint nproc, guint *nelec);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, guint iproc, guint nproc);
+const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                         BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                         guint *psiSize, guint iproc);
+double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                    BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */

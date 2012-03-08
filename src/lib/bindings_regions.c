@@ -164,6 +164,18 @@ gboolean* bigdft_locreg_get_grid(const BigDFT_LocReg *glr, BigDFT_Grid gridType)
 
   return grid;
 }
+double* bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psic)
+{
+  guint n;
+  double *psir;
+
+  n = glr->ni[0] * glr->ni[1] * glr->ni[2];
+  psir = g_malloc(sizeof(double) * n);
+  
+  FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(psir, psic, glr->data);
+  
+  return psir;
+}
 
 
 /********************************/
