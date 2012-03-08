@@ -74,6 +74,9 @@ module module_types
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
   integer,parameter:: BASIS_IS_STANDARD=10
   integer,parameter:: BASIS_IS_ENHANCED=11
+  integer,parameter:: DECREASE_LINEAR=0
+  integer,parameter:: DECREASE_ABRUPT=1
+  
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
@@ -127,6 +130,7 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
+    integer:: confinement_decrease_mode
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge
@@ -782,6 +786,7 @@ end type workarrays_quartic_convolutions
     logical:: update_phi, use_derivative_basis, communicate_phi_for_lsumrho
     real(8):: conv_crit, locreg_enlargement
     integer:: target_function, meth_transform_overlap, nit_precond, nit_basis_optimization, nit_unitary_loop
+    integer:: confinement_decrease_mode
   end type basis_specifications
 
   type,public:: basis_performance_options

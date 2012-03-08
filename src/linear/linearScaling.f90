@@ -378,7 +378,11 @@ type(wfn_metadata):: wfnmd
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
-      tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
+      if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+          tt=1.d0
+      else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+          tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
+      end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
       if(iproc==0) write(*,*) 'confdatarr(1)%prefac',confdatarr(1)%prefac
 
@@ -1081,6 +1085,7 @@ subroutine init_basis_specifications(input, bs)
   bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
   bs%nit_unitary_loop=input%lin%nItInnerLoop
+  bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
 
 end subroutine init_basis_specifications
 
