@@ -89,7 +89,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
 
   ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -113,7 +113,12 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
+      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  else
+      ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
+      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+  end if
 
   !---end of system definition routine
 end subroutine system_initialization
@@ -204,10 +209,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,1+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,4+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d,rhocore(1,1,1,1))
+     call to_zero(d%n1i*d%n2i*n3d*4,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -227,7 +232,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,i3s,n3d,rhocore)
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
            if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
@@ -235,6 +240,19 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      !calculate total core charge in the grid
      !In general this should be really bad
+
+!!$     do j3=1,n3d
+!!$        tt=0.0_wp
+!!$        do i2=1,d%n2i
+!!$           do i1=1,d%n1i
+!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+!!$              tt=tt+rhocore(i1,i2,j3,1)
+!!$           enddo
+!!$        enddo
+!!$        write(17+iproc,*)j3+i3s-1,tt
+!!$     enddo
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$stop
      tt=0.0_wp
      do j3=1,n3p
         do i2=1,d%n2i
@@ -248,7 +266,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+       'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 
@@ -549,7 +567,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   logical, intent(in) :: verb
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec
   type(orbitals_data), intent(inout) :: orbs
   !local variables
@@ -1514,6 +1532,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
 
 
+
   !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
   !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
   !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
@@ -1531,6 +1550,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
   ! Modify these values
   call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
+
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
@@ -1607,6 +1627,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   end do
   call MPI_Initialized(mpiflag,ierr)
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+
   
 
 END SUBROUTINE orbitals_descriptors_forLinear

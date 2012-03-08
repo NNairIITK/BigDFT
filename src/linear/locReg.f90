@@ -39,14 +39,15 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
   !!end if
 
 
-  !initialize out of zone and logicals
-  outofzone (:) = 0     
-  warningx = .false.
-  warningy = .false.
-  warningz = .false.  
 
   !determine the limits of the different localisation regions
   do ilr=1,nlr
+
+     !initialize out of zone and logicals
+     outofzone (:) = 0     
+     warningx = .false.
+     warningy = .false.
+     warningz = .false.  
 
      rx=cxyz(1,ilr)
      ry=cxyz(2,ilr)
@@ -223,21 +224,31 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
      Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
 
      !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-     Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-     Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-     Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     if(Llr(ilr)%geocode == 'F') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     else if(Llr(ilr)%geocode == 'S') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     else
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     end if
 
 !DEBUG
-!     if (iproc == 0) then
-!        write(*,*)'Description of zone:',ilr
-!        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-!        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-!        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-!        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-!        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-!        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-!        write(*,*)'outofzone',ilr,':',outofzone(:)
-!     end if
+!!     if (iproc == 0) then
+!!        write(*,*)'Description of zone:',ilr
+!!        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+!!        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+!!        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+!!        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+!!        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+!!        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+!!        write(*,*)'outofzone',ilr,':',outofzone(:)
+!!     end if
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
@@ -249,6 +260,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
         if(calculateBounds(ilr)) then
+!           print *,'===>ilr',ilr,Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,Llr(ilr)%outofzone
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                  Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
@@ -625,7 +637,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
   logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz,communicate_bounds
-  logical :: warningx,warningy,warningz
+  logical :: warningx,warningy,warningz,xperiodic,yperiodic,zperiodic
   integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
@@ -635,17 +647,20 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   real(gp) :: rx,ry,rz,cutoff
 
 
-  !initialize out of zone and logicals
-  outofzone (:) = 0     
-  warningx = .false.
-  warningy = .false.
-  warningz = .false.  
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
 
   !determine the limits of the different localisation regions
   do ilr=1,nlr
+     !initialize out of zone and logicals
+     outofzone (:) = 0     
+     warningx = .false.
+     warningy = .false.
+     warningz = .false. 
+     xperiodic = .false.
+     yperiodic = .false.
+     zperiodic = .false. 
 
      if(mod(ilr-1,nproc)==iproc) then
     
@@ -689,6 +704,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             if (iex - isx >= Glr%d%n1) then       
                isx=Glr%ns1
                iex=Glr%ns1 + Glr%d%n1
+               xperiodic = .true.
             else
                isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
                iex= ln1 + isx
@@ -706,6 +722,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             if (iez - isz >= Glr%d%n3) then
                isz=Glr%ns3 
                iez=Glr%ns3 + Glr%d%n3
+               zperiodic = .true.
             else
                isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
                iez= ln3 + isz
@@ -713,12 +730,17 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
             end if
-    
+
+            if(xperiodic .and. zperiodic) then
+              Llr(ilr)%geocode = 'S'
+            end if    
+
          case('P')
              ! Get starting and ending for x direction     
             if (iex - isx >= Glr%d%n1) then       
                isx=Glr%ns1
                iex=Glr%ns1 + Glr%d%n1
+               xperiodic = .true.
             else
                isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
                iex= ln1 + isx
@@ -731,6 +753,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             if (iey - isy >= Glr%d%n2) then       
                isy=Glr%ns2
                iey=Glr%ns2 + Glr%d%n2
+               yperiodic = .true.
              else
                isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
                iey= ln2 + isy
@@ -743,12 +766,16 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             if (iez - isz >= Glr%d%n3) then
                isz=Glr%ns3 
                iez=Glr%ns3 + Glr%d%n3
+               zperiodic = .true.
             else
                isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
                iez= ln3 + isz
                if (iez > Glr%ns3+Glr%d%n3) then
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
+            end if
+            if(xperiodic .and. yperiodic .and. zperiodic ) then
+              Llr(ilr)%geocode = 'P'
             end if
          end select
     
@@ -797,9 +824,19 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
     
          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-         Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-         Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         if(Llr(ilr)%geocode == 'F') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         else if(Llr(ilr)%geocode == 'S') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         else
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         end if
     
     !DEBUG
     !     if (iproc == 0) then
@@ -847,6 +884,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
         if(.not.calculateBounds(ilr)) then
+            !write(*,'(a,i0,a,i0)') 'process ',iproc,' deletes bounds for locreg ',ilr
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
         end if
     end if
@@ -3050,7 +3088,6 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 !call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
 
 ! Communicate op%noverlaps and comon%noverlaps
-
     if (nproc > 1) then
        call mpi_allgatherv(noverlapsarr, orbs%norbp, mpi_integer, op%noverlaps, orbs%norb_par, &
             orbs%isorb_par, mpi_integer, mpi_comm_world, ierr)
@@ -3067,7 +3104,6 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
     else
        comon%noverlaps=noverlaps
     end if
-
 
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
@@ -3147,11 +3183,15 @@ do iorb=1,orbs%norbp
                 .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_c, op%wfd_overlap(ioverlaporb,iorb)%nvctr_c,&
                 op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,1), op%wfd_overlap(ioverlaporb,iorb)%keyvglob(1))
            ! Determine the keyglob, keyvglob, nvctr of the fine grid
-           call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f, &
-                lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c),  &
-                .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_f, op%wfd_overlap(ioverlaporb,iorb)%nvctr_f,&
-                op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1), &
-                op%wfd_overlap(ioverlaporb,iorb)%keyvglob(op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1))
+           if(op%wfd_overlap(ioverlaporb,iorb)%nseg_f > 0) then
+              call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f, &
+                   lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c),  &
+                   .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_f, op%wfd_overlap(ioverlaporb,iorb)%nvctr_f,&
+                   op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1), &
+                   op%wfd_overlap(ioverlaporb,iorb)%keyvglob(op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1))
+           else
+              op%wfd_overlap(ioverlaporb,iorb)%nvctr_f = 0
+           end if
         end if
     end do 
 end do
@@ -3473,12 +3513,18 @@ n2_k=0
 n3_k=0
 nseg_k=0
 
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
+
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kxemax=0
 kyemax=0
 kzemax=0
+
+
 
 
 segment_loop: do
@@ -3720,11 +3766,14 @@ integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
 character(len=1):: increase
 
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kseg=0
 knvctr=0
 nvctr_k=0
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
 
 segment_loop: do
 

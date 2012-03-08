@@ -257,6 +257,7 @@ modules_source = modules/base.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
+	modules/yaml_output.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \
@@ -283,7 +284,8 @@ high_level = cluster.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
 	esatto.f90 \
-	tddft.f90
+	tddft.f90 \
+	output.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -339,9 +341,10 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
-	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
+	linear/communicatetypes.f90 \
 	linear/getLocBasis.f90 \
+	linear/convolutions.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
@@ -351,7 +354,6 @@ low_level = \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
-	linear/convolutions.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
@@ -364,6 +366,8 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg.f90 \
+	linear/unitaryTrans.f90 \
+	linear/communicatePotential.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

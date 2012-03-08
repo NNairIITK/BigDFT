@@ -6,7 +6,7 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-
+ 
 
 !> Routine to use BigDFT as a blackbox
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
@@ -193,6 +193,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use vdwcorrection
   use esatto
   use m_ab6_mixing
+  use yaml_output
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -220,7 +221,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: ncong,ncongt,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: i,npoints
-  integer :: n1_old,n2_old,n3_old,n1,n2,n3
+  integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
@@ -327,7 +328,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call correct_grid(atoms%alat3,hz_old,Lzd%Glr%d%n3)
      end if
      call copy_old_wavefunctions(nproc,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-          Lzd%Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
+          Lzd%Glr%wfd,psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+ 
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
 
@@ -364,10 +366,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   n2=Lzd%Glr%d%n2
   n3=Lzd%Glr%d%n3
 
-  d_old%n1 = n1_old
-  d_old%n2 = n2_old
-  d_old%n3 = n3_old
-
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
        eion,fion,in%dispersion,edisp,fdisp,ewaldstr,denspot%psoffset,&
@@ -385,10 +383,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call default_confinement_data(confdatarr,orbs%norbp)
 
   !yaml output
-  if (iproc==0) then
+!  if (iproc==0) then
      !      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
-     yaml_indent=yaml_indent+1 !hash table element
-  end if
+ !    yaml_indent=yaml_indent+1 !hash table element
+  !end if
 
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
@@ -427,7 +425,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      eexctX=0.0_gp   !Exact exchange is not calculated right now 
      ! This is the main routine that does everything related to the linear scaling version.
      call linearScaling(iproc,nproc,Lzd%Glr,&
-          orbs,comms,atoms,in,lin,&
+          orbs,comms,atoms,in,hx,hy,hz,lin,&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
@@ -534,8 +532,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      rhopot_loop: do itrp=1,in%itrpmax
         !yaml output 
         if (iproc==0) then
-           !         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
-           yaml_indent=yaml_indent+2 !list element
+           call yaml_sequence_element(advance='no')
+           call yaml_map("Hamiltonian Optimization",label='itrp'//adjustl(yaml_toa(itrp,fmt='(i4.4)')))
+!           !         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
+!           yaml_indent=yaml_indent+2 !list element
         end if
 
         !set the infocode to the value it would have in the case of no convergence
@@ -543,8 +543,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         subd_loop : do icycle=1,in%nrepmax
            !yaml output 
            if (iproc==0) then
+              call yaml_sequence_element(advance='no')
+              call yaml_map("Subspace Optimization",label='itrep'//adjustl(yaml_toa(icycle,fmt='(i4.4)')))
               !            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
-              yaml_indent=yaml_indent+3 !list element
+ !             yaml_indent=yaml_indent+3 !list element
            end if
 
            !if we are in the last_run case, validate the last_run only for the last cycle
@@ -552,8 +554,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            !yaml output
            if (iproc==0) then
-              !            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
-              yaml_indent=yaml_indent+1 !Hash table element
+              call yaml_indent_map("Wavefunctions Iterations")
+!              !            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
+!              yaml_indent=yaml_indent+1 !Hash table element
            end if
            wfn_loop: do iter=1,in%itermax
 
@@ -564,6 +567,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  write( *,'(1x,a,i0)') &
                       &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                  !test for yaml output
+                 call yaml_sequence_element(advance='no')
+                 call yaml_flow_map()
+                 call yaml_flow_newline()
                  if (endloop) then
                     !                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
                  else
@@ -761,6 +767,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               !flush all writings on standart output
               if (iproc==0) then
                  !yaml output
+                 call yaml_close_flow_map()
+                 call yaml_close_sequence_element()
                  !            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
                  call bigdft_utils_flush(unit=6)
               end if
@@ -780,9 +788,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  write(final_out, "(A5)") "final"
               end if
               call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
+
+              call yaml_close_flow_map()
+              call yaml_close_sequence_element()
+
               !yaml output
               !         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
-              yaml_indent=yaml_indent-1 !end hash table element
+!              yaml_indent=yaml_indent-1 !end hash table element
 
               !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
               if (in%itrpmax >1) then
@@ -806,9 +818,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
 
 
+           if (iproc==0) call yaml_close_indent_map() !wfn iterations
            !exit if the infocode is correct
            if (infocode == 0) then
-              yaml_indent=yaml_indent-3 !end list element
+              if (iproc==0)call yaml_close_sequence_element() !itrep
+!              yaml_indent=yaml_indent-3 !end list element
               exit subd_loop
            else
               if(iproc==0) then
@@ -830,8 +844,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            if (iproc==0) then
               !yaml output
+              call yaml_close_sequence_element() !itrep
               !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
-              yaml_indent=yaml_indent-3 !end list element
+!              yaml_indent=yaml_indent-3 !end list element
            end if
         end do subd_loop
 
@@ -839,6 +854,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            !stop the partial timing counter if necessary
            if (endlooprp .and. in%itrpmax >1) then
               call timing(iproc,'WFN_OPT','PR')
+              call yaml_close_sequence_element() !itrp
               exit rhopot_loop
            end if
 
@@ -852,15 +868,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
         if (iproc == 0) then
            !yaml output
-           yaml_indent=yaml_indent-2 !end list element
+           call yaml_close_sequence_element() !itrp
+!           yaml_indent=yaml_indent-2 !end list element
            !reassume the key elements in the itrp element
            !      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
            !      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
         end if
-
-     end do rhopot_loop
+ 
+     end do rhopot_loop 
+ 
      !yaml output
-     if (iproc==0) yaml_indent=yaml_indent-1 !end hash table element
+!     if (iproc==0) yaml_indent=yaml_indent-1 !end hash table element
 
      !!do i_all=1,size(rhopot)
      !!    write(10000+iproc,*) rhopot(i_all)
@@ -889,7 +907,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if !end of linear if
 
   !deallocate psit and hpsi since it is not anymore done
-  if (nproc > 1) then
+  if (nproc > 1 .or. inputpsi == INPUT_PSI_LINEAR) then
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
      call memocc(i_stat,i_all,'psit',subname)
