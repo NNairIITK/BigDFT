@@ -235,7 +235,7 @@ type(wfn_metadata):: wfnmd
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
-              ldiis, lin%nItInnerLoop, &
+              ldiis, &
               orthpar, confdatarr, wfnmd%bpo%blocksize_pdgemm, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, locrad, wfnmd)
@@ -246,7 +246,7 @@ type(wfn_metadata):: wfnmd
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
-              ldiis,lin%nItInnerLoop,orthpar,confdatarr,& 
+              ldiis,orthpar,confdatarr,& 
               wfnmd%bpo%blocksize_pdgemm,&
               lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, locrad, wfnmd)
@@ -425,7 +425,7 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                      ldiis,orthpar,confdatarr,&
                       wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, wfnmd)
@@ -436,7 +436,7 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                      ldiis,orthpar,confdatarr,&
                       wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, wfnmd)
@@ -447,7 +447,7 @@ type(wfn_metadata):: wfnmd
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
+                  ldiis,orthpar,confdatarr,&
                   wfnmd%bpo%blocksize_pdgemm,&
                   lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, locrad, wfnmd)
@@ -1076,6 +1076,7 @@ subroutine init_basis_specifications(input, bs)
   bs%nit_precond=input%lin%nitPrecond
   bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+  bs%nit_unitary_loop=input%lin%nItInnerLoop
 
 end subroutine init_basis_specifications
 

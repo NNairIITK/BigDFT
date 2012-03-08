@@ -2,7 +2,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,&
     infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-    ldiis,nItInnerLoop,orthpar,confdatarr,&
+    ldiis,orthpar,confdatarr,&
     blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,locrad,wfnmd)
@@ -63,7 +63,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, itSCC, nItInnerLoop
+integer,intent(in):: iproc, nproc, itSCC
 integer,intent(in):: blocksize_pdgemm
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
@@ -138,8 +138,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           denspot,GPU,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nItInnerLoop,&
-          orthpar,confdatarr,blocksize_pdgemm,wfnmd%bs%conv_crit,&
+          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
+          orthpar,confdatarr,blocksize_pdgemm,&
           hx,hy,hz,SIC,locrad,wfnmd)
 
   end if
@@ -433,8 +433,8 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,trH,&
-    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nItInnerLoop,orthpar,&
-    confdatarr,blocksize_pdgemm,convCrit,hx,hy,hz,SIC, &
+    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,orthpar,&
+    confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
     locrad,wfnmd)
 !
 ! Purpose:
@@ -490,7 +490,7 @@ use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A =
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nItInnerLoop, blocksize_pdgemm
+integer,intent(in):: iproc, nproc, blocksize_pdgemm
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
@@ -503,7 +503,7 @@ real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(8),intent(out):: trH
-real(8),intent(in):: convCrit, hx, hy, hz
+real(8),intent(in):: hx, hy, hz
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -563,7 +563,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
-  if(nItInnerLoop==-1 .and. wfnmd%bs%locreg_enlargement==1.d0) then
+  if(wfnmd%bs%nit_unitary_loop==-1 .and. wfnmd%bs%locreg_enlargement==1.d0) then
       variable_locregs=.false.
   else
       variable_locregs=.true.
@@ -759,13 +759,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge2, lphilarge, lphilarge2)
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
-                       comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
+                       comonlarge2, madlarge2, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
                        confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
               else
                   ! Optimize the locreg centers and potentially the shape of the basis functions.
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                       comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                       comonlarge, madlarge, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
                        confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
               end if
 
@@ -773,7 +773,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
 
               ! Update the kernel if required.
-              if(nItInnerLoop>0) then                          
+              if(wfnmd%bs%nit_unitary_loop>0) then                          
                   call update_kernel(lorbs%norb, Umat, kernel)
               end if
 
@@ -1082,7 +1082,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(fnrmMax<convCrit .or. it>=wfnmd%bs%nit_basis_optimization) then
+      if(fnrmMax<wfnmd%bs%conv_crit .or. it>=wfnmd%bs%nit_basis_optimization) then
           if(it>=wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -1153,7 +1153,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                ! Update confdatarr...
                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
               call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                   comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                   comonlarge, madlarge, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
                    confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
            end if
 
@@ -1161,13 +1161,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                ! Update confdatarr...
                call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
                call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
-                    comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
+                    comonlarge2, madlarge2, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
                     confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
           end if
 
           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
-          if(nItInnerLoop>0) then
+          if(wfnmd%bs%nit_unitary_loop>0) then
               call update_kernel(lorbs%norb, Umat, kernel)
           end if
 
