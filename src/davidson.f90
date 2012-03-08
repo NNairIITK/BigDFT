@@ -40,9 +40,9 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    logical :: msg,exctX,occorbs,endloop !extended output
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
    integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
-   real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC
-   real(gp) :: energy,energybs,evsum !n(c) energy_old
+   real(gp) :: gnrm,gnrm_zero
    type(diis_objects) :: diis
+   type(energy_terms) :: energs
    real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
 
@@ -89,9 +89,9 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    GPU%full_locham=.true.
    !verify whether the calculation of the exact exchange term
    !should be performed
-   eexctX=0.0_gp
+   energs%eexctX=0.0_gp
    exctX = xc_exctXfac() /= 0.0_gp
-   if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+   if (in%exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
    !check the size of the rhopot array related to NK SIC
    nrhodim=in%nspin
    i3rho_add=0
@@ -224,13 +224,13 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       &   orbsv%nkptsp,orbsv%nspinor,diis,subname)  
    !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
 
-   energy=1.d10
+   energs%eKS=1.d10
    gnrm=1.d10
    gnrm_zero=0.0_gp
-   ekin_sum=0.d0 
-   epot_sum=0.d0 
-   eproj_sum=0.d0
-   eSIC_DC=0.0_gp
+!!$   ekin_sum=0.d0 
+!!$   epot_sum=0.d0 
+!!$   eproj_sum=0.d0
+!!$   eSIC_DC=0.0_gp
 
    !number of switching betweed DIIS and SD during self-consistent loop
    ndiis_sd_sw=0
@@ -259,22 +259,12 @@ subroutine direct_minimization(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
-!!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-!!$           Lzd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
-!!$           ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-!!$           pkernel,orbs,psirocc) ! optional arguments
-!!$
-!!$      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-!!$           proj,Lzd,nlpspd,psivirt,hpsivirt,eproj_sum)
-!!$
-!!$      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-
-      energybs=ekin_sum+epot_sum+eproj_sum
+      energs%ebs=energs%ekin+energs%epot+energs%eproj
       !n(c) energy_old=energy
-      energy=energybs-eexctX
+      energs%eKS=energs%ebs-energs%eexctX
 
       !check for convergence or whether max. numb. of iterations exceeded
       if (endloop) then 
@@ -283,9 +273,9 @@ subroutine direct_minimization(iproc,nproc,in,at,&
             write( *,'(1x,a)') &
                &   '------------------------------------------- End of Virtual Wavefunction Optimisation'
             write( *,'(1x,a,3(1x,1pe18.11))') &
-               &   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+               &   'final  ekin,  epot,  eproj ',energs%ekin,energs%epot,energs%eproj
             write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-               &   'FINAL iter,total "energy",gnrm',iter,energy,gnrm
+               &   'FINAL iter,total "energy",gnrm',iter,energs%eKS,gnrm
             !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
             if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
                &   'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
@@ -296,8 +286,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
      call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,Lzd,hx,hy,hz,&
-          in%ncong,in%iscf,&
-          ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
+          in%ncong,in%iscf,energs,&
           psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
 
       !control the previous value of idsx_actual
@@ -333,7 +322,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
 
    !this deallocates also hpsivirt and psitvirt
    call last_orthon(iproc,nproc,orbsv,Lzd%Glr%wfd,in%nspin,&
-      &   commsv,psivirt,hpsivirt,psitvirt,evsum)
+      &   commsv,psivirt,hpsivirt,psitvirt,energs%evsum)
 
    !resize work array before final transposition
    if(nproc > 1)then

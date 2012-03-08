@@ -538,7 +538,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
             iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
             if (nlsc > 2) then
                write(*,*)'ERROR, atom:',iat,&
-                  &   ': cannot admit more than two semicore shells per channel'
+                  &   ': cannot admit more than two semicore shells per channel',nlsc
                stop
             end if
             do i=1,nlsc

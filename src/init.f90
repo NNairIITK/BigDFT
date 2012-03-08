@@ -285,6 +285,8 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    integer :: iat,i_stat,i_all,iseg
    logical, dimension(:,:,:), allocatable :: logrid
 
+   write(*,*) at%nat, iproc, radii_cf, cpmult, fpmult, hx, hy, hz
+
    !allocate the different localization regions of the projectors
    nlpspd%natoms=at%nat
    allocate(nlpspd%plr(at%nat),stat=i_stat)
@@ -2073,6 +2075,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   integer :: input_wf_format, i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
+
   norbv=abs(in%norbv)
   inputpsi=in%inputPsiId
   input_wf_format=WF_FORMAT_NONE !default value
@@ -2103,6 +2106,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
+
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
