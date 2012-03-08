@@ -138,7 +138,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           denspot,GPU,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,nItInnerLoop,&
+          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,wfnmd%bs%nit_basis_optimization,nItInnerLoop,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,wfnmd%bs%conv_crit,&
           hx,hy,hz,SIC,wfnmd%bs%nit_precond,wfnmd%bs%locreg_enlargement,locrad,wfnmd)
 
@@ -433,7 +433,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,trH,&
-    infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
+    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nit,nItInnerLoop,orthpar,&
     confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
     locrad,wfnmd)
 !
@@ -508,7 +508,6 @@ real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
@@ -558,8 +557,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   ! Calculate the kernel
   allocate(kernel(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
-  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, coeff(1,1), lorbs%norb, &
-       coeff(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
+  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, wfnmd%coeff_proj(1,1), lorbs%norb, &
+       wfnmd%coeff_proj(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
 
 
   

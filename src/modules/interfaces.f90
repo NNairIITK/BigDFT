@@ -1887,7 +1887,7 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,trH,&
-           infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
+           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nit,nItInnerLoop,orthpar,&
            confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
            locrad,wfnmd)
         use module_base
@@ -1920,7 +1920,6 @@ module module_interfaces
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-        real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
         type(localizedDIISParameters),intent(inout):: ldiis
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
