@@ -378,6 +378,10 @@ type(wfn_metadata):: wfnmd
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
+      tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
+      confdatarr(:)%prefac=tt*confdatarr(:)%prefac
+      if(iproc==0) write(*,*) 'confdatarr(1)%prefac',confdatarr(1)%prefac
+
       ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
           nit_highaccuracy=nit_highaccuracy+1
