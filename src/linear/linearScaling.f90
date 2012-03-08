@@ -236,7 +236,7 @@ type(wfn_metadata):: wfnmd
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
               ldiis, lin%nItInnerLoop, &
-              orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
+              orthpar, confdatarr, wfnmd%bpo%blocksize_pdgemm, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, locrad, wfnmd)
       else
@@ -247,7 +247,7 @@ type(wfn_metadata):: wfnmd
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
               ldiis,lin%nItInnerLoop,orthpar,confdatarr,& 
-              wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
+              wfnmd%bpo%blocksize_pdgemm,&
               lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, locrad, wfnmd)
       end if
@@ -426,7 +426,7 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
-                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
+                      wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, wfnmd)
               else
@@ -437,7 +437,7 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
-                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
+                      wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, wfnmd)
               end if
@@ -448,7 +448,7 @@ type(wfn_metadata):: wfnmd
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                   ldiis,lin%nItInnerLoop,orthpar,confdatarr,&
-                  wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,&
+                  wfnmd%bpo%blocksize_pdgemm,&
                   lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, locrad, wfnmd)
           end if

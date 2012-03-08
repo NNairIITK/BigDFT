@@ -1887,8 +1887,8 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,trH,&
-           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nit,nItInnerLoop,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
+           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nItInnerLoop,orthpar,&
+           confdatarr,blocksize_pdgemm,convCrit,hx,hy,hz,SIC, &
            locrad,wfnmd)
         use module_base
         use module_types
@@ -1896,8 +1896,7 @@ module module_interfaces
         implicit none
 
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
-        integer,intent(in):: nItPrecond
+        integer,intent(in):: iproc, nproc, nItInnerLoop, blocksize_pdgemm
         integer,intent(out):: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(local_zone_descriptors),intent(inout):: lzd
@@ -1916,7 +1915,7 @@ module module_interfaces
         !real(dp), dimension(:), pointer :: pkernelseq
         !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
         real(8),intent(out):: trH
-        real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
+        real(8),intent(in):: convCrit, hx, hy, hz
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -2100,7 +2099,7 @@ module module_interfaces
          GPU,&
          infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
          ldiis,nItInnerLoop,orthpar,confdatarr,&
-         methTransformOverlap,blocksize_pdgemm,&
+         blocksize_pdgemm,&
          comrp,blocksize_pdsyev,nproc_pdsyev,&
          hx,hy,hz,SIC,locrad,wfnmd)
       use module_base
@@ -2109,7 +2108,7 @@ module module_interfaces
 
       ! Calling arguments
       integer,intent(in):: iproc, nproc, itSCC, nItInnerLoop
-      integer,intent(in):: methTransformOverlap, blocksize_pdgemm
+      integer,intent(in):: blocksize_pdgemm
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs

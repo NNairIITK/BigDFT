@@ -3,7 +3,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     GPU,&
     infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
     ldiis,nItInnerLoop,orthpar,confdatarr,&
-    methTransformOverlap,blocksize_pdgemm,&
+    blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,locrad,wfnmd)
 !
@@ -64,7 +64,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, itSCC, nItInnerLoop
-integer,intent(in):: methTransformOverlap, blocksize_pdgemm
+integer,intent(in):: blocksize_pdgemm
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
@@ -138,9 +138,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           denspot,GPU,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,wfnmd%bs%nit_basis_optimization,nItInnerLoop,&
-          orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,wfnmd%bs%conv_crit,&
-          hx,hy,hz,SIC,wfnmd%bs%nit_precond,wfnmd%bs%locreg_enlargement,locrad,wfnmd)
+          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nItInnerLoop,&
+          orthpar,confdatarr,blocksize_pdgemm,wfnmd%bs%conv_crit,&
+          hx,hy,hz,SIC,locrad,wfnmd)
 
   end if
 
@@ -433,8 +433,8 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,trH,&
-    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nit,nItInnerLoop,orthpar,&
-    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
+    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,nItInnerLoop,orthpar,&
+    confdatarr,blocksize_pdgemm,convCrit,hx,hy,hz,SIC, &
     locrad,wfnmd)
 !
 ! Purpose:
@@ -490,8 +490,7 @@ use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A =
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
-integer,intent(in):: nItPrecond
+integer,intent(in):: iproc, nproc, nItInnerLoop, blocksize_pdgemm
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
@@ -504,7 +503,7 @@ real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(8),intent(out):: trH
-real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
+real(8),intent(in):: convCrit, hx, hy, hz
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -564,7 +563,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
-  if(nItInnerLoop==-1 .and. factor_enlarge==1.d0) then
+  if(nItInnerLoop==-1 .and. wfnmd%bs%locreg_enlargement==1.d0) then
       variable_locregs=.false.
   else
       variable_locregs=.true.
@@ -655,7 +654,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! ratio of large locreg and standard locreg
   !factor=1.5d0
-  factor=factor_enlarge
+  factor=wfnmd%bs%locreg_enlargement
   factor2=200.0d0
 
   ! always use the same inwhichlocreg
@@ -718,7 +717,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
 
-  iterLoop: do it=1,nit
+  iterLoop: do it=1,wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
       fnrm=0.d0
@@ -912,7 +911,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       !if(.not.newgradient) then
       if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
-               methTransformOverlap, blocksize_pdgemm, wfnmd%phi, lhphi, lagmat)
+               orthpar%methTransformOverlap, blocksize_pdgemm, wfnmd%phi, lhphi, lagmat)
       else
 
           call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, wfnmd%phi, lphilarge)
@@ -1059,13 +1058,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
              iiorb=lorbs%isorb+iorb
              ilr = lorbs%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, lorbs, lzd%llr(ilr), hx, hy, hz, &
-                 nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
+                 wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
          else
              iiorb=orbslarge%isorb+iorb
              ilr = orbslarge%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
-                 nItPrecond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
+                 wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
@@ -1083,8 +1082,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(fnrmMax<convCrit .or. it>=nit) then
-          if(it>=nit) then
+      if(fnrmMax<convCrit .or. it>=wfnmd%bs%nit_basis_optimization) then
+          if(it>=wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
