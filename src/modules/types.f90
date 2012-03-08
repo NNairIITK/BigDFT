@@ -624,6 +624,30 @@ module module_types
 
  end type paw_ij_objects
 
+!This is cprj_type in ABINIT,
+!this will be obsolete with the PAW Library
+ type cprj_objects
+
+!Integer scalars
+
+  integer :: ncpgr
+   ! Number of gradients of cp=<p_lmn|Cnk>
+
+  integer :: nlmn
+   ! Number of (l,m,n) non-local projectors
+
+!Real (real(dp)) arrays
+
+  real(wp), pointer :: cp (:,:)
+   ! cp(2,nlmn)
+   ! <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+  real(wp), pointer :: dcp (:,:,:)
+   ! dcp(2,ncpgr,nlmn)
+   ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+ end type cprj_objects
+!!***
 !> Contains the arguments needed for the PAW implementation:
   type, public :: paw_objects
     integer :: lmnmax
@@ -631,6 +655,7 @@ module module_types
     integer :: usepaw
     integer,dimension(:,:,:),pointer::indlmn
     type(paw_ij_objects),dimension(:),allocatable :: paw_ij
+    type(cprj_objects),dimension(:,:),allocatable :: cprj
   end type paw_objects
 
 contains
@@ -1464,6 +1489,77 @@ subroutine nullify_gaussian_basis(G)
   nullify(G%rxyz)
 
 END SUBROUTINE nullify_gaussian_basis
+
+!cprj_clean will be obsolete with the PAW library
+!this is cprj_free in abinit.
+ subroutine cprj_clean(cprj)
+
+ implicit none
+!Arguments ------------------------------------
+!scalars
+!arrays
+ type(cprj_objects),intent(inout) :: cprj(:,:)
+!Local variables-------------------------------
+ integer :: ii,jj,n1dim,n2dim
+
+! *************************************************************************
+
+ n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
+!write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
+ do jj=1,n2dim
+   do ii=1,n1dim
+     if (associated(cprj(ii,jj)%cp))  then
+       deallocate(cprj(ii,jj)%cp)
+     end if
+     if (associated(cprj(ii,jj)%dcp))  then
+       deallocate(cprj(ii,jj)%dcp)
+     end if
+   end do
+ end do
+end subroutine cprj_clean
+
+!this routine is cprj_alloc in abinit
+!with the PAW library this will be obsolet.
+ subroutine cprj_paw_alloc(cprj,ncpgr,nlmn)
+
+ implicit none
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: ncpgr
+!arrays
+ integer,intent(in) :: nlmn(:)
+ type(cprj_objects),intent(inout) :: cprj(:,:)
+!Local variables-------------------------------
+ integer :: ii,jj,n1dim,n2dim,nn
+
+! *************************************************************************
+
+ n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);nn=size(nlmn,dim=1)
+ if (nn/=n1dim) then
+   write(*,*)"Error in cprj_alloc: wrong sizes !",nn,n1dim
+   stop
+ end if
+!write(std_out,*) "cprj_alloc ndim = ", n1dim, n2dim
+ do jj=1,n2dim
+   do ii=1,n1dim
+     nullify (cprj(ii,jj)%cp)
+     nullify (cprj(ii,jj)%dcp)
+
+     nn=nlmn(ii)
+     cprj(ii,jj)%nlmn=nn
+     ALLOCATE(cprj(ii,jj)%cp(2,nn))
+!    XG 080820 Was needed to get rid of problems with test paral#R with four procs
+     cprj(ii,jj)%cp=0.0_dp
+!    END XG 080820
+
+     cprj(ii,jj)%ncpgr=ncpgr
+     if (ncpgr>0) then
+       ALLOCATE(cprj(ii,jj)%dcp(2,ncpgr,nn))
+       cprj(ii,jj)%dcp=0.0_dp
+     end if
+   end do
+ end do
+end subroutine cprj_paw_alloc
 
 
 end module module_types

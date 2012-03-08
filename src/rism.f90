@@ -892,7 +892,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
 
   !fake orbitals descriptor to calculate the wavelet expansion
   call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,1,&
-       (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf)
+       (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf,at%npspcode(1))
 
   !allocate the wavefunctions in wavelets and in gaussians
   allocate(psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncoeff_par(iproc,1)+ndebug),stat=i_stat)

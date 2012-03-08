@@ -264,12 +264,12 @@ module module_interfaces
        logical, intent(out) :: lcs
      END SUBROUTINE check_closed_shell
 
-     subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
+     subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,npspcode,basedist)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-       integer, intent(in) :: nspinor
+       integer, intent(in) :: nspinor,npspcode
        type(orbitals_data), intent(out) :: orbs
        real(gp), dimension(nkpt), intent(in) :: wkpt
        real(gp), dimension(3,nkpt), intent(in) :: kpt
@@ -1465,11 +1465,11 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE free_full_potential
 
-    subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+    subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as,npspcode)
       use module_base
       use module_types
       implicit none
-      integer, intent(in) :: iproc,nproc
+      integer, intent(in) :: iproc,nproc,npspcode
       type(orbitals_data), intent(in) :: orbs
       type(locreg_descriptors), intent(in) :: Glr
       type(communications_arrays), intent(in) :: comms

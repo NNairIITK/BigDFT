@@ -524,7 +524,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
 
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs,&
+&      atoms%npspcode(1))
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   call timing(iproc,'CrtProjectors ','ON')

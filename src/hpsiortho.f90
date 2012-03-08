@@ -201,7 +201,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (orbs%norbp == 0) then
      return
   end if
-  
+
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
@@ -707,12 +707,12 @@ END SUBROUTINE hpsitopsi
 !! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
 !! By hypothesis the work array is big enough to contain both wavefunctions
 !! This routine has to be tested
-subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as,npspcode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => select_active_space
   implicit none
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,npspcode
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
@@ -752,7 +752,8 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
 
   !allocate the descriptors of the active space
   call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
-       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,basedist=orbs%norb_par(0:,1))
+       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,npspcode,&
+       & basedist=orbs%norb_par(0:,1))
   !allocate communications arrays for virtual orbitals
   call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as,basedist=comms_as%nvctr_par(0:,1))  
   !allocate array of the eigenvalues

@@ -683,11 +683,12 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx_k)
 
-  if(proj_G%ncplx==2 .or. ncplx_k == 2) then
-     ncplx=2
-  else
-     ncplx=1
-  end if
+  !if(proj_G%ncplx==2 .or. ncplx_k == 2) then
+  !   ncplx=2
+  !else
+  !   ncplx=1
+  !end if
+  ncplx=ncplx_k
 
   istart_c_i=istart_c
   do ispinor=1,orbs%nspinor,ncplx
@@ -722,7 +723,8 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
              nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
              psi(1,ispinor),hpsi(1,ispinor),eproj_spinor,proj_G,paw%paw_ij(iat),&
-             paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax)
+             paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb))  
+             !Pending: check spinor case in new branch
         
         do i_shell=1,proj_G%nshltot
            l=proj_G%nam(i_shell)
@@ -738,10 +740,11 @@ subroutine applyprojector_paw(ncplx,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
      psi,hpsi,eproj,proj_G,paw_ij,&
-     indlmn,lmnmax)
+     indlmn,lmnmax,cprj_out)
   use module_base
   use module_types
   implicit none
+  integer,parameter::nspinor=1  !not yet implemented
   integer, intent(in) :: ncplx,lmnmax
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
@@ -753,34 +756,36 @@ subroutine applyprojector_paw(ncplx,&
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
   type(gaussian_basis),intent(in)::proj_G
   type(paw_ij_objects),intent(in)::paw_ij
+  !type(cprj_objects),dimension(1,nspinor),intent(out)::cprj_out
+  type(cprj_objects),intent(out)::cprj_out
   real(gp), intent(inout) :: eproj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
   !local variables
-  integer,parameter::nspinor=1
   integer :: i_shell,j_shell,ilmn,jlmn,klmn,i0lmn,j0lmn,ispinor
   integer :: i_l,j_l,klmnc,i_m,j_m
-  integer :: istart_i,istart_j,icplx
+  integer :: istart_i,istart_j,icplx,jspinor
   real(gp)::eproj_i
   real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
   real(gp) :: dij
-  real(wp), dimension(:,:), allocatable :: cproj_i
-  real(wp), dimension(:,:), allocatable :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(wp), dimension(:,:), allocatable :: cprj_i
+  real(wp), dimension(:,:), allocatable :: cprj,dprj !scalar products with the projectors (always assumed to be complex and spinorial)
   integer :: proj_count, i_proj
 
 !
   proj_count= paw_ij%lmn_size
-  allocate(cproj(nspinor*ncplx,proj_count))
-  allocate(dproj(nspinor*ncplx,proj_count))
-  cproj=0.0_wp
-  dproj=0.0_wp
-  !call to_zero(4*7*3*4,cproj(1,1,1,1))
+  allocate(cprj(nspinor*ncplx,proj_count))
+  allocate(dprj(nspinor*ncplx,proj_count))
+  !cprj_out(1,1:nspinor)%cp(1:ncplx,1:proj_count)=0.0_wp
+  cprj=0.0_wp
+  dprj=0.0_wp
+  !call to_zero(4*7*3*4,cprj(1,1,1,1))
 
   !Use special subroutines for these number of projectors
   !if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
   !    .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
   !    .or. proj_count.eq.20 .or. proj_count.eq.22) then
 
-  !  allocate(cproj_i(proj_count,ncplx))
+  !  allocate(cprj_i(proj_count,ncplx))
   !
   !  !loop over all the components of the wavefunction
   !  do ispinor=1,orbs%nspinor,ncplx
@@ -792,24 +797,24 @@ subroutine applyprojector_paw(ncplx,&
   !                    plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
   !                    plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
   !                    proj(istart_c),&
-  !                    cproj_i,proj_count)
+  !                    cprj_i,proj_count)
   !
   !    i_proj=1
   !    do i_shell=1,proj_G%nshltot
   !      i_l=proj_G%nam(i_shell)
   !      do i_m=1,2*i_l-1
   !        do icplx=1,ncplx
-  !         cproj(ispinor+icplx-1,m,i,l) = cproj_i(i_proj,icplx)
+  !         cprj(ispinor+icplx-1,m,i,l) = cprj_i(i_proj,icplx)
   !        enddo
   !        i_proj=i_proj+1
   !      end do
   !    end do
   !  end do
 
-  !  deallocate(cproj_i)
+  !  deallocate(cprj_i)
   !else !use standart subroutine for projector application
   istart_j=1
-! Get cproj:
+! Get cprj:
   jlmn=0
   do j_shell=1,proj_G%nshltot
      j_l=proj_G%nam(j_shell)
@@ -825,13 +830,23 @@ subroutine applyprojector_paw(ncplx,&
                 keyv,&!nlpspd%keyv_p(jseg_c),&
                 keyg,&!nlpspd%keyg_p(1,jseg_c),&
                 proj(istart_i),&
-                cproj(ispinor,jlmn))
+                cprj(ispinor,jlmn))
         end do !ispinor
         istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
      end do !i_m
   end do !j_shell
-
-  !apply the matrix of the coefficients on the cproj array
+  !
+  !copy cprj into cprj_out
+  !
+  !jspinor=0
+  !do ispinor=1,nspinor
+  !  do icplx=1,ncplx
+  !    jspinor=jspinor+1
+  !    cprj_out(1,ispinor)%cp(icplx,:)=cprj(jspinor,:) 
+  !  end do
+  !end do
+  cprj_out%cp(:,:)=cprj(:,:)
+  !apply the matrix of the coefficients on the cprj array
   jlmn=0
   do j_shell=1,proj_G%nshltot
      j_l=proj_G%nam(j_shell)
@@ -843,8 +858,8 @@ subroutine applyprojector_paw(ncplx,&
         klmn=j0lmn+jlmn;klmnc=paw_ij%cplex_dij*(klmn-1)
         dij=paw_ij%dij(klmnc,1)
         do ispinor=1,nspinor !real matrix
-           dproj(ispinor,jlmn)=dproj(ispinor,jlmn)+&
-           dij*cproj(ispinor,jlmn)
+           dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+           dij*cprj(ispinor,jlmn)
         end do
 
         !Off-diagonal components
@@ -857,10 +872,10 @@ subroutine applyprojector_paw(ncplx,&
               dij=paw_ij%dij(klmnc,1)
   
               do ispinor=1,nspinor !real matrix
-                  dproj(ispinor,jlmn)=dproj(ispinor,jlmn)+&
-                      dij*cproj(ispinor,ilmn)
-                  dproj(ispinor,ilmn)=dproj(ispinor,ilmn)+&
-                      dij*cproj(ispinor,jlmn)
+                  dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+                      dij*cprj(ispinor,ilmn)
+                  dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
+                      dij*cprj(ispinor,jlmn)
               end do
            end do
         end do
@@ -877,9 +892,9 @@ subroutine applyprojector_paw(ncplx,&
      do j_m=1,2*j_l-1
         do ispinor=1,nspinor,ncplx
            do icplx=1,ncplx
-              eproj_i=eproj_i+dproj(ispinor+icplx-1,jlmn)*cproj(ispinor+icplx-1,jlmn)
+              eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj(ispinor+icplx-1,jlmn)
            end do
-           call waxpy_wrap(ncplx,dproj(ispinor,jlmn),&
+           call waxpy_wrap(ncplx,dprj(ispinor,jlmn),&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 keyv,&!nlpspd%keyv_p(jseg_c),&
                 keyg,&!nlpspd%keyg_p(1,jseg_c),&
@@ -893,8 +908,8 @@ subroutine applyprojector_paw(ncplx,&
   end do
 
 
-  deallocate(cproj)
-  deallocate(dproj)
+  deallocate(cprj)
+  deallocate(dprj)
 
 END SUBROUTINE applyprojector_paw
 

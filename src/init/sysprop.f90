@@ -35,7 +35,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   end if
 
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
-       & in%nkpt,in%kpt,in%wkpt,orbs)
+       & in%nkpt,in%kpt,in%wkpt,orbs,atoms%npspcode(1))
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -976,12 +976,12 @@ END SUBROUTINE atomic_occupation_numbers
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,npspcode,basedist)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-  integer, intent(in) :: nspinor
+  integer, intent(in) :: nspinor,npspcode
   type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
@@ -1010,6 +1010,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   if (nspinor == 1) then
      if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
      !nspinor=2 !fake, used for testing with gamma
+     !if(npspcode==7) orbs%nspinor=2  !PAW complex wavefunctions
   end if
   orbs%nspin = nspin
 

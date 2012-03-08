@@ -111,11 +111,13 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    nvirtd = 0
    if (input%nspin==2) nvirtd=nvirtu
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,&
+       & atoms%npspcode(1))
 
    !Setup the description of the projectors (they are similar to orbitals)
    call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp) 
+        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp, &
+        atoms%npspcode(1)) 
 
    if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
 
@@ -416,7 +418,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
    !Setup the description of the new subspace (they are similar to orbitals)
    call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb)
+        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,atoms%npspcode(1))
 
    ! Initialise the arrays n_bands_par, isband_par
    call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)
