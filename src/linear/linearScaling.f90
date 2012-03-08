@@ -460,18 +460,18 @@ type(wfn_metadata):: wfnmd
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
-                       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                        lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-                       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                    lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
-                   wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
 
@@ -618,7 +618,7 @@ type(wfn_metadata):: wfnmd
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, wfnmd%phi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
@@ -990,7 +990,8 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
 
       wfnmd%nphi=nphi
       wfnmd%nlbphi=nlbphi
-      wfnmd%basis_is=BASIS_IS_ENHANCED ! since always it is allocated with wfnmd%nlbphi
+      wfnmd%basis_is=BASIS_IS_ENHANCED !since always it is allocated with wfnmd%nlbphi
+      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
       allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
       call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)

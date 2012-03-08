@@ -790,7 +790,7 @@ end type workarrays_quartic_convolutions
 
 
   type,public:: wfn_metadata
-    integer:: nphi, nlbphi, basis_is
+    integer:: nphi, nlbphi, basis_is, ld_coeff
     real(8),dimension(:),pointer:: phi, phiRestart
     real(8),dimension(:,:),pointer:: coeff, coeff_proj
     type(basis_specifications):: bs

@@ -308,15 +308,15 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   end if
   if(iproc==0) write(*,'(a)') 'done.'
 
-  ! ATTENTION: if we are in the mixed mode and are at the moment not using the derivatives, then the current
-  ! llborbs%norb is only one fourth of the actual first dimension of wfnmd%coeff. Here this is ignore and just
-  ! the first llborbs%norb*orbs%norb will be used, since in this way the array is conformable with the other 
-  ! subroutines that will use it.
-  ! So it will work, but be careful. Maybe this can be improved later
-  call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
-  !do iorb=1,orbs%norb
-  !    call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
-  !end do
+  !!!!$$! ATTENTION: if we are in the mixed mode and are at the moment not using the derivatives, then the current
+  !!!!$$! llborbs%norb is only one fourth of the actual first dimension of wfnmd%coeff. Here this is ignore and just
+  !!!!$$! the first llborbs%norb*orbs%norb will be used, since in this way the array is conformable with the other 
+  !!!!$$! subroutines that will use it.
+  !!!!$$! So it will work, but be careful. Maybe this can be improved later
+  !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
+  do iorb=1,orbs%norb
+      call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
+  end do
   infoCoeff=0
 
   ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -342,8 +342,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   do iorb=1,orbs%norb
       do jorb=1,llborbs%norb
           do korb=1,llborbs%norb
-              !ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
-              ebs = ebs + matrixElements(jorb,iorb,2)*matrixElements(korb,iorb,2)*matrixElements(korb,jorb,1)
+              ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              !ebs = ebs + matrixElements(jorb,iorb,2)*matrixElements(korb,iorb,2)*matrixElements(korb,jorb,1)
           end do
       end do
   end do
@@ -376,8 +376,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       do jorb=1,llborbs%norb,inc
           tt=0.d0
           do korb=1,llborbs%norb
-              !tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-              tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
+              tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+              !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
           wfnmd%coeff_proj(jjorb,iorb)=tt
           !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
