@@ -137,7 +137,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-          denspot,GPU,wfnmd%phi,trace,&
+          denspot,GPU,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,nItInnerLoop,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,wfnmd%bs%conv_crit,&
           hx,hy,hz,SIC,wfnmd%bs%nit_precond,wfnmd%bs%locreg_enlargement,locrad,wfnmd)
@@ -432,7 +432,7 @@ end subroutine getLinearPsi
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-    denspot,GPU,lphi,trH,&
+    denspot,GPU,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
     confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
     locrad,wfnmd)
@@ -503,7 +503,6 @@ type(matrixDescriptors),intent(inout):: mad
 real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
-real(8),dimension(:),pointer,intent(inout):: lphi
 real(8),intent(out):: trH
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
@@ -626,7 +625,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   end if
 
 
-  allocate(lphiold(size(lphi)), stat=istat)
+  allocate(lphiold(size(wfnmd%phi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
   allocate(lagmat(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
@@ -678,16 +677,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-      call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+      call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, wfnmd%phi, lphilarge)
       call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-           lphi, lhphi, lhphiold, lphiold)
+           wfnmd%phi, lhphi, lhphiold, lphiold)
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzd, lorbs, op, comon, mad, comgp, &
-           lphi, lhphi, lhphiold, lphiold)
+           wfnmd%phi, lhphi, lhphiold, lphiold)
       wfnmd%nphi=lorbs%npsidim_orbs
       wfnmd%basis_is=BASIS_IS_STANDARD
-      call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+      call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, wfnmd%phi(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
@@ -702,11 +701,11 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       !!! Create the new large locregs
       !!call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-      !!     lphi, lhphi, lhphiold, lphiold)
+      !!     wfnmd%phi, lhphi, lhphiold, lphiold)
       !!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
       !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
       !!     lzd, lorbs, op, comon, mad, comgp, &
-      !!     lphi, lhphi, lhphiold, lphiold)
+      !!     wfnmd%phi, lhphi, lhphiold, lphiold)
 
 
       if(secondLocreg) then
@@ -746,12 +745,12 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               call orthonormalizeLocalized(iproc, nproc, &
               orthpar%methTransformOverlap, orthpar%nItOrtho, &
               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
-              mad, lphi, ovrlp)
+              mad, wfnmd%phi, ovrlp)
 
           else newgradient_if_1
 
               ! Go to large localization region and do the orthonormalization there.
-              call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+              call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, wfnmd%phi, lphilarge)
               call orthonormalizeLocalized(iproc, nproc, &
                    orthpar%methTransformOverlap, orthpar%nItOrtho, &
                    orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
@@ -782,11 +781,11 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
               if(variable_locregs) then
                   call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-                       lphi, lhphi, lhphiold, lphiold)
+                       wfnmd%phi, lhphi, lhphiold, lphiold)
                   call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        lzd, lorbs, op, comon, mad, comgp, &
-                       lphi, lhphi, lhphiold, lphiold)
+                       wfnmd%phi, lhphi, lhphiold, lphiold)
                   wfnmd%nphi=lorbs%npsidim_orbs
                   wfnmd%basis_is=BASIS_IS_STANDARD 
                   call allocateCommunicationsBuffersPotential(comgp, subname)
@@ -797,10 +796,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
               if(secondLocreg) then
                   ! Transform back to small locreg
-                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, lphi)
+                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, wfnmd%phi)
               else
                   ! Transform back to small locreg
-                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
+                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, wfnmd%phi)
               end if
 
               ! Update confdatarr...
@@ -863,7 +862,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
            hx,hy,hz,rxyz,&
-           proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
+           proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 
@@ -888,9 +887,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call allocateRecvBufferOrtho(comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
       call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lorbs%inWhichLocreg, &
-           lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+           lzd, op, wfnmd%phi, comon%nsendBuf, comon%sendBuf)
       ! Post the send messages.
-      call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
+      call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, wfnmd%phi, comon, timecommunp2p, timeextract)
 
 
       time(2)=time(2)+t2-t1
@@ -914,10 +913,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       !if(.not.newgradient) then
       if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
-               methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+               methTransformOverlap, blocksize_pdgemm, wfnmd%phi, lhphi, lagmat)
       else
 
-          call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+          call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, wfnmd%phi, lphilarge)
           call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lhphi, lhphilarge)
 
           call allocateSendBufferOrtho(comonlarge, subname)
@@ -967,7 +966,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    !if(.not. newgradient) then
                    if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                       call dcopy(size(lphi), lphiold, 1, lphi, 1)
+                       call dcopy(size(wfnmd%phi), lphiold, 1, wfnmd%phi, 1)
                    else
                        ! It is not possible to use the old orbitals since the locregs might have changed.
                        if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
@@ -1177,20 +1176,20 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
           if(variable_locregs) then
               call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-                   lphi, lhphi, lhphiold, lphiold)
+                   wfnmd%phi, lhphi, lhphiold, lphiold)
               call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    lzd, lorbs, op, comon, mad, comgp, &
-                   lphi, lhphi, lhphiold, lphiold)
+                   wfnmd%phi, lhphi, lhphiold, lphiold)
               wfnmd%nphi=lorbs%npsidim_orbs
               wfnmd%basis_is=BASIS_IS_STANDARD
           end if
 
           if(secondLocreg) then
               ! Transform back to small locreg
-              call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, lphi)
+              call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, wfnmd%phi)
           else
-              call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
+              call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, wfnmd%phi)
           end if
 
           call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
@@ -1237,16 +1236,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       !!! Create new logrecs taking incto account the derivatives
       !!ii=lorbs%npsidim_orbs
-      !!call dcopy(ii, lphi(1), 1, lphilarge(1), 1)
+      !!call dcopy(ii, wfnmd%phi(1), 1, lphilarge(1), 1)
 
       !!call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-      !!     lphi, lhphi, lhphiold, lphiold)
+      !!     wfnmd%phi, lhphi, lhphiold, lphiold)
       !!call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenterTemp, &
       !!     lzdlarge%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
       !!     lzd, lorbs, op, comon, mad, comgp, &
-      !!     lphi, lhphi, lhphiold, lphiold)
+      !!     wfnmd%phi, lhphi, lhphiold, lphiold)
 
-      !!call dcopy(ii, lphilarge(1), 1, lphi(1), 1)
+      !!call dcopy(ii, lphilarge(1), 1, wfnmd%phi(1), 1)
 
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1493,7 +1492,7 @@ contains
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      !if(.not.newgradient) then
                      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphi(istdest), 1)
+                         call dcopy(ncount, ldiis%phiHist(istsource), 1, wfnmd%phi(istdest), 1)
                          call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
                      else
                          call dcopy(ncount, ldiis%phiHist(istsource), 1, lphilarge(istdest), 1)
@@ -1506,7 +1505,7 @@ contains
                  ! else copy the orbitals of the last iteration to lphiold
                  !if(.not.newgradient) then
                  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                     call dcopy(size(lphi), lphi(1), 1, lphiold(1), 1)
+                     call dcopy(size(wfnmd%phi), wfnmd%phi(1), 1, lphiold(1), 1)
                  else
                      call dcopy(size(lphilarge), lphilarge(1), 1, lphilargeold(1), 1)
                  end if
@@ -1549,7 +1548,7 @@ contains
                 iiorb=lorbs%isorb+iorb
                 ilr=lorbs%inWhichLocreg(iiorb)
                 ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-                call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
+                call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, wfnmd%phi(istart), 1)
             else
                 iiorb=orbslarge%isorb+iorb
                 ilr=orbslarge%inWhichLocreg(iiorb)
@@ -1571,7 +1570,7 @@ contains
         end if
         !if(.not.newgradient) then
         if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-            call optimizeDIIS(iproc, nproc, lorbs, lorbs, lzd, lhphi, lphi, ldiis, it)
+            call optimizeDIIS(iproc, nproc, lorbs, lorbs, lzd, lhphi, wfnmd%phi, ldiis, it)
         else
             call optimizeDIIS(iproc, nproc, orbslarge, orbslarge, lzdlarge, lhphilarge, lphilarge, ldiis, it)
         end if

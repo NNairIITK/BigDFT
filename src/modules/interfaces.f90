@@ -1886,7 +1886,7 @@ module module_interfaces
 !!$     end subroutine readmywaves
 
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-           denspot,GPU,lphi,trH,&
+           denspot,GPU,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
            confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
            locrad,wfnmd)
@@ -1915,7 +1915,6 @@ module module_interfaces
         type(GPU_pointers), intent(inout) :: GPU
         !real(dp), dimension(:), pointer :: pkernelseq
         !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
-        real(8),dimension(:),pointer,intent(inout):: lphi
         real(8),intent(out):: trH
         real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
