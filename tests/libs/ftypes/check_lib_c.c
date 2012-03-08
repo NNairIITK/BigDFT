@@ -377,6 +377,31 @@ static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
   /* Chain up with the input guess. */
   g_idle_add(calculate_psi_0, data);
 }
+static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
+{
+  const double *psic;
+  double *psir;
+  guint size, i;
+  double minDens, maxDens;
+
+  fprintf(stderr, "Callback for 'psi-ready' signal at iter %d.\n", iter);
+
+  psic = bigdft_wf_get_psi_compress(wf, 1, 4, BIGDFT_SPIN_UP, BIGDFT_REAL, &size, 0);
+  fprintf(stderr, " Band 4 has %d bytes.\n", size);
+  
+  minDens = G_MAXDOUBLE;
+  maxDens = 0.;
+  psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic);
+  for (i = 0; i < size; i++)
+    {
+      psir[i] *= psir[i];
+      minDens = MIN(minDens, psir[i]);
+      maxDens = MAX(maxDens, psir[i]);
+    }
+  fprintf(stderr, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
+
+  g_free(psir);
+}
 #endif
 
 static gpointer calculate_ionic_pot_thread(gpointer data)
@@ -425,6 +450,8 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
   ct->loop    = (GMainLoop*)data;
   g_signal_connect(G_OBJECT(ct->denspot), "v-ext-ready",
                    G_CALLBACK(onVExtReady), (gpointer)ct);
+  g_signal_connect(G_OBJECT(ct->wf), "psi-ready",
+                   G_CALLBACK(onPsiReady), (gpointer)ct);
   g_idle_add(calculate_ionic_pot, (gpointer)ct);
 #else
   calculate_ionic_pot((gpointer)ct);
