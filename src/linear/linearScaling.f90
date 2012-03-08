@@ -233,11 +233,11 @@ type(wfn_metadata):: wfnmd
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
-              denspot, GPU, wfnmd%bs%update_phi, &
+              denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
-              wfnmd%bs%communicate_phi_for_lsumrho, ldiis, wfnmd%bs%nit_basis_optimization, lin%nItInnerLoop, &
+              ldiis, wfnmd%bs%nit_basis_optimization, lin%nItInnerLoop, &
               orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
-              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, wfnmd%bs%use_derivative_basis,  &
+              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
       else
@@ -245,11 +245,11 @@ type(wfn_metadata):: wfnmd
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-              denspot,GPU,wfnmd%bs%update_phi,&
-              infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+              denspot,GPU,&
+              infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
               ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,& 
               wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-              wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+              lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -424,33 +424,33 @@ type(wfn_metadata):: wfnmd
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
-                      denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                      denspot,GPU,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                      wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
               else
                   wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-                      denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                      denspot,GPU,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                      wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-                  denspot,GPU,wfnmd%bs%update_phi,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                  denspot,GPU,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                   ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                   wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
-                  wfnmd%bs%use_derivative_basis,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                  lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, wfnmd%bs%locreg_enlargement, locrad, wfnmd)
           end if
 

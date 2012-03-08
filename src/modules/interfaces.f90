@@ -2099,11 +2099,11 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
          mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
-         GPU,updatePhi,&
-         infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,&
+         GPU,&
+         infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
          ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
-         useDerivativeBasisFunctions,comrp,blocksize_pdsyev,nproc_pdsyev,&
+         comrp,blocksize_pdsyev,nproc_pdsyev,&
          hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
       use module_base
       use module_types
@@ -2126,7 +2126,6 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
-      logical,intent(in):: updatePhi, useDerivativeBasisFunctions
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebs
       real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
@@ -2135,7 +2134,6 @@ module module_interfaces
       !real(8),dimension(:),pointer,intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      logical,intent(in):: communicate_lphi
       !real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar

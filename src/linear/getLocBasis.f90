@@ -1,10 +1,10 @@
 subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
-    GPU,updatePhi,&
-    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,&
+    GPU,&
+    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
     ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
-    useDerivativeBasisFunctions,comrp,blocksize_pdsyev,nproc_pdsyev,&
+    comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
 !
 ! Purpose:
@@ -78,7 +78,6 @@ type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
-logical,intent(in):: updatePhi, useDerivativeBasisFunctions
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
@@ -86,7 +85,6 @@ real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 !real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-logical,intent(in):: communicate_lphi
 !real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
@@ -122,7 +120,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! This is a flag whether the basis functions shall be updated.
-  if(updatePhi) then
+  if(wfnmd%bs%update_phi) then
 
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
@@ -132,7 +130,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     call mpi_barrier(mpi_comm_world, ierr)
       !!     stop
       !!end if
-      if(useDerivativeBasisFunctions) then
+      if(wfnmd%bs%use_derivative_basis) then
           !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
           call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
       end if
@@ -149,10 +147,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   !if(newgradient .and. (updatePhi .or. itSCC==0)) then
   !if(newgradient .and. updatePhi) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. updatePhi) then
-      !!call update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. wfnmd%bs%update_phi) then
+      !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      call update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+      call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
       !!deallocate(lphiRestart, stat=istat)
@@ -169,10 +167,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   ! Keep the value of lphi for the next iteration
   !if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, wfnmd%phi(1), 1, lphiRestart(1), 1)
-  if(updatePhi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
+  if(wfnmd%bs%update_phi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
 
   !if(updatePhi .and. newgradient) then
-  if(updatePhi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(wfnmd%bs%update_phi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
       ! Reallocate lphi, since it is now allocated without the derivatives
       iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
@@ -185,14 +183,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       wfnmd%nlbphi=llborbs%npsidim_orbs
       wfnmd%basis_is=BASIS_IS_ENHANCED
 
-      !if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
-      if(.not.useDerivativeBasisFunctions) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
+      !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
+      if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
   end if
       
   !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
 
 
-  if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
+  if(wfnmd%bs%use_derivative_basis .and. (wfnmd%bs%update_phi .or. itSCC==0)) then
       call deallocate_p2pComms(comrp, subname)
       call nullify_p2pComms(comrp)
       call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
@@ -208,14 +206,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   wfnmd%basis_is=BASIS_IS_ENHANCED
 
   ! Calculate the overlap matrix.
-  if(.not.useDerivativeBasisFunctions) then
+  if(.not.wfnmd%bs%use_derivative_basis) then
       call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, wfnmd%phi, mad, ovrlp)
   else
       call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, wfnmd%phi, lbmad, ovrlp)
   end if
 
 
-  if(communicate_lphi) then
+  if(wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, llborbs, wfnmd%phi, comsr)
   end if
   
@@ -226,14 +224,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
-  if(.not.updatePhi .or. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(.not.wfnmd%bs%update_phi .or. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lbcomgp)
+  if(wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
 
 
-  if(.not.useDerivativeBasisFunctions) then
+  if(.not.wfnmd%bs%use_derivative_basis) then
      call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   else
@@ -250,7 +248,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  if(.not.useDerivativeBasisFunctions) then
+  if(.not.wfnmd%bs%use_derivative_basis) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
@@ -286,13 +284,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(comgp, subname)
-  if(useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+  if(wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
-  if(.not. useDerivativeBasisFunctions) then
+  if(.not. wfnmd%bs%use_derivative_basis) then
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, wfnmd%phi, lhphi, mad, matrixElements)
       !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
@@ -378,7 +376,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! Project the lb coefficients on the smaller subset
-  if(useDerivativeBasisFunctions) then
+  if(wfnmd%bs%use_derivative_basis) then
       inc=4
   else
       inc=1
