@@ -231,8 +231,9 @@ module module_types
   end type input_variables
 
   type, public :: energy_terms
-     real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
-     real(gp) :: ebs,eKS,trH
+     real(gp) :: eh,exc,evxc,eion,edisp,ekin,epot,eproj,eexctX
+     real(gp) :: ebs,eKS,trH,evsum,evsic
+     !real(gp), dimension(:,:), pointer :: fion,f
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -463,22 +464,22 @@ module module_types
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
-!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  !> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: local_zone_descriptors
-    logical :: linear                         !< if true, use linear part of the code
-    integer :: nlr                            !< Number of localization regions 
-    integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
+     logical :: linear                         !< if true, use linear part of the code
+     integer :: nlr                            !< Number of localization regions 
+     integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
-    integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                       !< Total number of projector elements
-    real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-    logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    type(locreg_descriptors) :: Glr           !< Global region descriptors
+     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
+     integer :: Lnprojel                       !< Total number of projector elements
+     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
+     type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
     !!!real(8),dimension(:,:),pointer:: cutoffweight
-  end type
+  end type local_zone_descriptors
 
 !>  Used to restart a new DFT calculation or to save information 
 !!  for post-treatment
@@ -764,7 +765,7 @@ end type workarrays_quartic_convolutions
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
-    type(arraySizes):: as
+    !type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
@@ -783,23 +784,36 @@ end type workarrays_quartic_convolutions
   end type linearParameters
 
   type,public:: basis_specifications
-    logical:: update_phi, use_derivative_basis, communicate_phi_for_lsumrho
-    real(8):: conv_crit, locreg_enlargement
-    integer:: target_function, meth_transform_overlap, nit_precond, nit_basis_optimization, nit_unitary_loop
-    integer:: confinement_decrease_mode
+    logical:: update_phi !shall phi be optimized or not
+    logical:: use_derivative_basis !use derivatives or not
+    logical:: communicate_phi_for_lsumrho !communicate phi for the calculation of the charge density
+    real(8):: conv_crit !convergence criterion for the basis functions
+    real(8):: locreg_enlargement !enlargement factor for the second locreg (optimization of phi)
+    integer:: target_function !minimize trace or energy
+    integer:: meth_transform_overlap !exact or Taylor approximation
+    integer:: nit_precond !number of iterations for preconditioner
+    integer:: nit_basis_optimization !number of iterations for optimization of phi
+    integer:: nit_unitary_loop !number of iterations in inner unitary optimization loop
+    integer:: confinement_decrease_mode !decrase confining potential linearly or abrupt at the end
   end type basis_specifications
 
   type,public:: basis_performance_options
-    integer:: blocksize_pdgemm, blocksize_pdsyev, nproc_pdsyev
+    integer:: blocksize_pdgemm !block size for pdgemm (scalapck)
+    integer:: blocksize_pdsyev !block size for pdsyev (scalapck)
+    integer:: nproc_pdsyev !number of processors used for pdsyev (scalapck)
   end type basis_performance_options
 
-
   type,public:: wfn_metadata
-    integer:: nphi, nlbphi, basis_is, ld_coeff
-    real(8),dimension(:),pointer:: phi, phiRestart
-    real(8),dimension(:,:),pointer:: coeff, coeff_proj
-    type(basis_specifications):: bs
-    type(basis_performance_options):: bpo
+    integer:: nphi !size of phi without derivative
+    integer:: nlbphi !size of phi with derivatives
+    integer:: basis_is !indicates whether phi contains derivatives or not
+    integer:: ld_coeff !leading dimension of coeff
+    real(8),dimension(:),pointer:: phi !basis functions, with or without derivatives
+    real(8),dimension(:),pointer:: phiRestart !basis functions without derivatives
+    real(8),dimension(:,:),pointer:: coeff !expansion coefficients, with or without derivatives
+    real(8),dimension(:,:),pointer::  coeff_proj !expansion coefficients, without derivatives
+    type(basis_specifications):: bs !contains parameters describing the basis functions
+    type(basis_performance_options):: bpo !contains performance parameters
   end type wfn_metadata
 
 
@@ -1368,19 +1382,24 @@ END SUBROUTINE deallocate_orbs
   END SUBROUTINE deallocate_bounds
 
 
+  !> todo: remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
     integer :: i_all,i_stat
 
+    write(0,*) "TODO, remove me"
+    
     call deallocate_wfd(lr%wfd,subname)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
-    i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-    deallocate(lr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'lr%projflg',subname)
 
+    if (associated(lr%projflg)) then
+       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+       deallocate(lr%projflg,stat=i_stat)
+       call memocc(i_stat,i_all,'lr%projflg',subname)
+    end if
   END SUBROUTINE deallocate_lr
 
   subroutine deallocate_denspot_distribution(denspotd, subname)

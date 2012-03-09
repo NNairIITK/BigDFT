@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6.0],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -82,7 +82,7 @@ if test "$ar" = ":" ; then
 fi
 
 dnl Look for GLib and friends for bindings.
-PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0, [have_glib=yes], [have_glib=no])
+PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0, [have_glib=yes], [have_glib=no])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
 fi

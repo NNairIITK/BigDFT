@@ -709,10 +709,11 @@ type(wfn_metadata):: wfnmd
 
   call destroy_wfn_metadata(wfnmd)
 
-  call deallocateBasicArraysInput(at, input%lin)
+  !call deallocateBasicArraysInput(at, input%lin)
+  call deallocateBasicArraysInput(input%lin)
 
   deallocate(confdatarr)
-  call deallocateBasicArrays(at,lin)
+  call deallocateBasicArrays(lin)
 
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad, stat=istat)

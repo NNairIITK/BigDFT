@@ -425,12 +425,13 @@ subroutine write_input_parameters(in)!,atoms)
   stop
 end subroutine write_input_parameters
 
-subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,comment)
+subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   use module_base
+  use module_types
   use yaml_output
   implicit none
   integer, intent(in) :: iter,iscf
-  real(gp), intent(in) :: ekin,epot,eproj,ehart,exc,evxc,energyKS,trH
+  type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment
   !local variables
@@ -439,20 +440,20 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
   !call yaml_flow_map()
   !call yaml_indent_map('Energies')
   if (iscf < 1) then
-     call yaml_map('ekin',yaml_toa(ekin,fmt='(1pe18.11)'))
-     call yaml_map('epot',yaml_toa(epot,fmt='(1pe18.11)'))
-     call yaml_map('eproj',yaml_toa(eproj,fmt='(1pe18.11)'))
-     call yaml_map('eha',yaml_toa(ehart,fmt='(1pe18.11)'))
-     call yaml_map('exc',yaml_toa(exc,fmt='(1pe18.11)'))
-     call yaml_map('evxc',yaml_toa(evxc,fmt='(1pe18.11)'))
+     call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
+     call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
+     call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
+     call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
+     call yaml_map('exc',yaml_toa(energs%exc,fmt='(1pe18.11)'))
+     call yaml_map('vexc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
   end if
 
   call yaml_flow_newline()
   call yaml_map('iter',yaml_toa(iter,fmt='(i6)'))
   if (iscf > 1) then
-     call yaml_map('tr(H)',yaml_toa(trH,fmt='(1pe24.17)'))
+     call yaml_map('tr(H)',yaml_toa(energs%trH,fmt='(1pe24.17)'))
   else
-     call yaml_map('E_KS',yaml_toa(energyKS,fmt='(1pe24.17)'))
+     call yaml_map('E_KS',yaml_toa(energs%eKS,fmt='(1pe24.17)'))
   end if
   call yaml_map('gnrm',yaml_toa(gnrm,fmt='(1pe9.2)'))
   if (gnrm_zero > 0.0_gp) &
@@ -464,27 +465,25 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
   if (iscf<1) then
      if (verbose >0) then
         write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin,epot,eproj
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+             energs%ekin,energs%epot,energs%eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
      end if
   end if
 
   if (iscf > 1) then
      if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,energs%trH,gnrm
      else if (gnrm > 0.0_gp) then
-        write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+        write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,energs%trH,gnrm,gnrm_zero
      end if
   else
      if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
-        write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energyKS,gnrm
+        write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energs%eKS,gnrm
      else if (gnrm > 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),&
-             'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+             'iter,total energy,gnrm,gnrm_zero',iter,energs%eKS,gnrm,gnrm_zero
      end if
   end if
-
-
 
 !stop
 

@@ -12,7 +12,7 @@
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
      nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
-     ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+     energs,rpnrm,xcstr,hpsi)
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
@@ -30,13 +30,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   type(ab6_mixing_object), intent(in) :: mix
   type(DFT_local_fields), intent(inout) :: denspot
   type(SIC_data), intent(in) :: SIC
+  type(energy_terms), intent(inout) :: energs
   character(len=*), intent(in) :: exctxpar
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,rpnrm
+  real(gp), intent(out) :: rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   !local variables
@@ -105,7 +106,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-             proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+             proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
      end if
      !$OMP END PARALLEL
      !finalize the communication scheme
@@ -152,15 +153,15 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Lzd%Glr%d%n1i,&
              Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,denspot%dpcom%n3d,ixc,hxh,hyh,hzh,&
-             denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+             denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
         call XC_potential(atoms%geocode,'D',iproc,nproc,&
              Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-             denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+             denspot%rhov,energs%exc,energs%evxc,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
         denspot%rhov_is=CHARGE_DENSITY
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
-             denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,0.0_dp,.true.,&
+             denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
         denspot%rhov_is=HARTREE_POTENTIAL
 
@@ -198,7 +199,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   end if
 
   !temporary, to be corrected with comms structure
-  if (exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+  if (exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
 
   !initialize nested approach 
   !this has always to be done for using OMP parallelization in the 
@@ -235,7 +236,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+          proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
   end if
   !$OMP END PARALLEL
   !finalize the communication scheme
@@ -246,10 +247,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
 
   call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
        Lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-       ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel=denspot%pkernelseq)
+       energs%ekin,energs%epot,energs%eexctX,energs%evsic,SIC,GPU,pkernel=denspot%pkernelseq)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
-       ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_full,subname)
@@ -258,7 +259,7 @@ end subroutine psitohpsi
 
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,evsic,SIC,GPU,&
      pkernel,orbsocc,psirocc)
   use module_base
   use module_types
@@ -278,7 +279,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(lzd%ndimpotisf) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,evsic
   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(:), pointer, optional :: pkernel
@@ -298,15 +299,15 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU)
  else if (present(pkernel) .and. .not. present(orbsocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel=pkernel)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel=pkernel)
  else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
  else
     stop 'HamiltonianApplication, argument error'
  end if
@@ -315,7 +316,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
-       ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+       ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
 
 END SUBROUTINE FullHamiltonianApplication
 
@@ -324,7 +325,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
    use module_base
    use module_types
    use module_xc
@@ -341,7 +342,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
    !real(wp), dimension(:), pointer :: pot
    real(wp), dimension(*) :: pot
-   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
+   real(gp), intent(out) :: ekin_sum,epot_sum,evsic
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
    real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -352,7 +353,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
    integer :: i_stat,n3p,ispot,ipotmethod,iorb
-   real(gp) :: eSIC_DC_tmp
+   real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
 
 
@@ -373,8 +374,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !initialise exact exchange energy 
    op2p=(eexctX == UNINITIALIZED(1.0_gp))
    eexctX=0.0_gp
-   eSIC_DC=0.0_gp
-   eSIC_DC_tmp=0.0_gp
+   evsic=0.0_gp
+   evsic_tmp=0.0_gp
 
    exctX = xc_exctXfac() /= 0.0_gp
 
@@ -434,10 +435,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    else if (ipotmethod==3) then
       !put fref=1/2 for the moment
       if (present(orbsocc) .and. present(psirocc)) then
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp,&
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),evsic_tmp,&
               potandrho=psirocc)
       else
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp)
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),evsic_tmp)
       end if
    end if
 
@@ -473,9 +474,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
       call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-           SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
+           SIC%ixc,SIC%alpha,ekin_sum,epot_sum,evsic)
       !sum the external and the BS double counting terms
-      eSIC_DC=eSIC_DC-SIC%alpha*eSIC_DC_tmp
+      evsic=evsic-SIC%alpha*evsic_tmp
    end if
 
    if (ipotmethod == 2 .or. ipotmethod==3) then
@@ -653,7 +654,7 @@ END SUBROUTINE NonLocalHamiltonianApplication
 
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
-subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
    use module_base
    use module_types
    use module_xc
@@ -662,7 +663,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
    type(orbitals_data),  intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(GPU_pointers), intent(inout) :: GPU
-   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
+   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
    real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
@@ -692,14 +693,14 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
       wrkallred(1)=ekin_sum 
       wrkallred(2)=epot_sum 
       wrkallred(3)=eproj_sum
-      wrkallred(4)=eSIC_DC
+      wrkallred(4)=evsic
 
       call mpiallred(wrkallred(1),4,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       ekin_sum=wrkallred(1)
       epot_sum=wrkallred(2)
       eproj_sum=wrkallred(3) 
-      eSIC_DC=wrkallred(4) 
+      evsic=wrkallred(4) 
    endif
 
    !up to this point, the value of the potential energy is 
@@ -991,13 +992,14 @@ END SUBROUTINE free_full_potential
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+     energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
+  real(gp), intent(in) :: hx,hy,hz
+  type(energy_terms), intent(inout) :: energs
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -1008,11 +1010,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
   integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
-  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS,scpr
+  real(gp) :: rzeroorbs,tt,scpr
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
   !band structure energy calculated with occupation numbers
-  energybs=ekin+epot+eproj !the potential energy contains also exctX
+  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
 !!$  eTS=0.0_gp
@@ -1026,7 +1028,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
   !this is the Kohn-Sham energy
-  energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
+  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
   !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
@@ -1058,7 +1060,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
+  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,energs%trH) !n(m)
 
   !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
@@ -1066,15 +1068,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
   if (iscf >1) then
-     energy=trH
+     energy=energs%trH
   else
-     energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
+     energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
   !this can be done only if the occupation numbers are all equal
-  tt=(energybs-trH)/trH
+  tt=(energs%ebs-energs%trH)/energs%trH
 !print *,'tt,energybs,trH',tt,energybs,trH
   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
        &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
@@ -1082,7 +1084,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
      call check_closed_shell(orbs,lcs)
      if (lcs) then
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-             &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+             &   'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
   endif
 
@@ -1162,7 +1164,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 
   !write the energy information
   if (iproc == 0) then
-     call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+     call write_energies(iter,iscf,energs,gnrm,gnrm_zero,' ')
 !!$   if (verbose > 0 .and. iscf<1) then
 !!$      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
 !!$      ekin,epot,eproj

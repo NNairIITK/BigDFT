@@ -372,9 +372,11 @@ module yaml_output
             !itab=itab-1
             ish=linetab(itab)-index(towrite,':')
             !print *,'a',mapname,ish,ipos,icursor,linetab(1:itab_active),itab_active
-            !shift the string
-            call shiftstr(towrite,ish)
-            ipos=ipos+ish
+            !shift the string if it fits in the line
+            if (ipos+ish-1 < max_record_length) then
+               call shiftstr(towrite,ish)
+               ipos=ipos+ish
+            end if
          end if
          write(stdout,'(a)',advance='no')towrite(1:ipos-1)
          icursor=icursor+ipos-1

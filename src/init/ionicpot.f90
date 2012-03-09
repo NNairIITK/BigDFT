@@ -983,12 +983,14 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call read_atomic_file('posinp_ci',iproc,at,rxyz)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), at, in%ixc)
+  call read_atomic_variables(at, 'input.occup', in%nspin)
 
   allocate(radii_cf(at%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !read the specifications of the counter ions from pseudopotentials
-  call read_atomic_variables('input.occup',iproc,in,at,radii_cf)
+  call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
+  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)

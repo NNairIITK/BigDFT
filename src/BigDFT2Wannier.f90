@@ -521,7 +521,7 @@ program BigDFT2Wannier
       call timing(iproc,'CrtProjectors ','ON')
 
       npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-      allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsb%norbp*orbsb%nspinor),stat=i_stat)
+      allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,max(orbsb%norbp*orbsb%nspinor,1)),stat=i_stat)
       call memocc(i_stat,psi_etsf,'psi_etsf',subname)
 
       ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
