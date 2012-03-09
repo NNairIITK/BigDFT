@@ -892,7 +892,8 @@ end type workarrays_quartic_convolutions
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
-     real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if active
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions
