@@ -29,6 +29,7 @@ typedef struct BigDFT_AtomsClass_
 {
   GObjectClass parent;
 } BigDFT_AtomsClass;
+GType bigdft_atoms_get_type(void);
 #else
 #define BIGDFT_ATOMS_TYPE    (999)
 #define BIGDFT_ATOMS(obj)    ((BigDFT_Atoms*)obj)
@@ -70,6 +71,7 @@ BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
 void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
 void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
+gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
 void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc,
                                             guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
@@ -78,8 +80,6 @@ void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
                                             double frmult, double projrad);
-gboolean*     bigdft_atoms_get_grid        (const BigDFT_Atoms *atoms, double *radii,
-                                            double mult, guint n[3]);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -146,23 +146,22 @@ typedef struct BigDFT_LocRegClass_
 {
   GObjectClass parent;
 } BigDFT_LocRegClass;
+GType bigdft_locreg_get_type(void);
 #else
 #define BIGDFT_LOCREG_TYPE    (999)
 #define BIGDFT_LOCREG(obj)    ((BigDFT_LocReg*)obj)
 #endif
 typedef struct BigDFT_locReg_
 {
+  BigDFT_Atoms parent;
 #ifdef GLIB_MAJOR_VERSION
-  GObject parent;
   gboolean dispose_has_run;
 #endif
 
-  gchar geocode;
   double h[3];
   guint n[3], ni[3];
 
   /* Values that have been used to built this localisation region. */
-  const BigDFT_Atoms *atoms;
   double *radii;
   double crmult, frmult;
   
@@ -172,13 +171,22 @@ typedef struct BigDFT_locReg_
   void *d;
   void *data;
 } BigDFT_LocReg;
+typedef enum
+  {
+    GRID_COARSE,
+    GRID_FINE
+  } BigDFT_Grid;
 
-BigDFT_LocReg* bigdft_locreg_new                 (BigDFT_Atoms *atoms, double *radii,
-                                                  double h[3],double crmult, double frmult);
-BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
-                                                       double h[3], double crmult, double frmult);
+BigDFT_LocReg* bigdft_locreg_new                 ();
 void           bigdft_locreg_free                (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
+void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, double h[3],
+                                                  double crmult, double frmult);
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
+gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
+                                                  BigDFT_Grid gridType);
+double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
+                                                  const double *psic);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -191,6 +199,7 @@ typedef struct BigDFT_LzdClass_
 {
   GObjectClass parent;
 } BigDFT_LzdClass;
+GType bigdft_lzd_get_type(void);
 #else
 #define BIGDFT_LZD_TYPE    (999)
 #define BIGDFT_LZD(obj)    ((BigDFT_Lzd*)obj)
@@ -205,11 +214,9 @@ struct BigDFT_lzd_
   /* Private. */
   void *data;
 };
-BigDFT_Lzd* bigdft_lzd_new (BigDFT_Atoms *atoms, double *radii, double h[3],
-                            double crmult, double frmult);
+BigDFT_Lzd* bigdft_lzd_new ();
 void        bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
-                                    const BigDFT_Inputs *in, const BigDFT_Atoms *atoms,
-                                    guint iproc, guint nproc);
+                                    const BigDFT_Inputs *in, guint iproc, guint nproc);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
 
 
@@ -224,6 +231,7 @@ typedef struct BigDFT_OrbsClass_
 {
   GObjectClass parent;
 } BigDFT_OrbsClass;
+GType bigdft_orbs_get_type(void);
 #else
 #define BIGDFT_ORBS_TYPE    (999)
 #define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
@@ -273,6 +281,7 @@ typedef struct BigDFT_WfClass_
 {
   GObjectClass parent;
 } BigDFT_WfClass;
+GType bigdft_wf_get_type(void);
 #else
 #define BIGDFT_WF_TYPE    (999)
 #define BIGDFT_WF(obj)    ((BigDFT_Wf*)obj)
@@ -285,16 +294,33 @@ typedef struct BigDFT_wf_
 #endif
 
   /* Pointers on building objects. */
-  BigDFT_Lzd *lzd;
+  const BigDFT_Lzd *lzd;
 
   /* Private. */
   f90_pointer_double psi, hpsi, psit;
 } BigDFT_Wf;
+typedef enum
+  {
+    BIGDFT_SPIN_UP,
+    BIGDFT_SPIN_DOWN
+  } BigDFT_Spin;
+typedef enum
+  {
+    BIGDFT_REAL,
+    BIGDFT_IMAG,
+    BIGDFT_PARTIAL_DENSITY
+  } BigDFT_Spinor;
+
 BigDFT_Wf* bigdft_wf_new (BigDFT_Lzd *lzd, BigDFT_Inputs *in,
                           guint iproc, guint nproc, guint *nelec);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, guint iproc, guint nproc);
+const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                         BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                         guint *psiSize, guint iproc);
+double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                    BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
@@ -335,6 +361,7 @@ typedef struct BigDFT_LocalFieldsClass_
 {
   GObjectClass parent;
 } BigDFT_LocalFieldsClass;
+GType bigdft_localfields_get_type(void);
 #else
 #define BIGDFT_LOCALFIELDS_TYPE    (999)
 #define BIGDFT_LOCALFIELDS(obj)    ((BigDFT_LocalFields*)obj)

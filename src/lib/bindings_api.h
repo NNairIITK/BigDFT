@@ -3,7 +3,8 @@
 
 void FC_FUNC_(atoms_new, ATOMS_NEW)(void *atoms, void *sym);
 void FC_FUNC_(atoms_free, ATOMS_FREE)(void *atoms);
-void FC_FUNC_(atoms_new_from_file, ATOMS_NEW_FROM_FILE)(int *lstat, void *atoms,
+void FC_FUNC_(atoms_empty, ATOMS_EMPTY)(void *atoms);
+void FC_FUNC_(atoms_set_from_file, ATOMS_SET_FROM_FILE)(int *lstat, void *atoms,
                                                         f90_pointer_double_2D *rxyz,
                                                         const gchar *filename, int *ln);
 void FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(void *atoms,
@@ -52,9 +53,10 @@ void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(void *atoms, double *r
 void FC_FUNC_(atoms_write, ATOMS_WRITE)(void *atoms, const gchar *filename, int *ln2,
                                         double *rxyz, f90_pointer_double *forces,
                                         const double *energy, const gchar *comment, int *ln);
-void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, guint *n1, guint *n2, guint *n3,
-                                        guint *nl1, guint *nu1, guint *nl2, guint *nu2,
-                                        guint *nl3, guint *nu3, guint *orig,
+void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, const guint *n2,
+                                        const guint *n3, const guint *nl1, const guint *nu1,
+                                        const guint *nl2, const guint *nu2, const guint *nl3,
+                                        const guint *nu3, const guint *orig,
                                         const guint *nat, const guint *ntypes,
                                         const guint *iatype, const double *rxyz,
                                         const double *radii, const double *mult,
@@ -82,8 +84,7 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         void *glr, double *shift);
-void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
-                                                      int *n, int *ni);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, int *n, int *ni);
 void FC_FUNC_(glr_empty, GLR_EMPTY)(void *glr);
 void FC_FUNC_(glr_free, GLR_FREE)(void *glr);
 void FC_FUNC_(glr_set_wave_descriptors,
@@ -92,7 +93,8 @@ void FC_FUNC_(glr_set_wave_descriptors,
                                        double *crmult, double *frmult, void *glr);
 void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd, void *glr);
 void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-     (const guint *iproc, const guint *nproc, const void *in, void *lzd,
+     (const guint *iproc, const guint *nproc, const void *in, const double *hx,
+      const double *hy, const double *hz, void *lzd,
       const void *atoms, void *orbs, double *rxyz);
 
 

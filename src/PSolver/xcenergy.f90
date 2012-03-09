@@ -442,7 +442,7 @@ call to_zero(6,wbstr(1))
   end if
 
   !calculate gradient
-  if (xc_isgga()) then
+  if (xc_isgga() .and. nxc > 0) then
      !computation of the gradient
      allocate(gradient(m1,m3,nwb,2*nspin-1,0:3+ndebug),stat=i_stat)
      call memocc(i_stat,gradient,'gradient',subname)

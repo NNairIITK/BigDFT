@@ -130,6 +130,7 @@ module yaml_output
             yaml_indent=yaml_indent_previous
          else
             yaml_indent=1
+            flowrite=-1
          end if
          itab_active=0
          itab=0
@@ -188,16 +189,27 @@ module yaml_output
       end if
     end subroutine yaml_close_flow_sequence
 
-    subroutine yaml_sequence_element(advance)
+    subroutine yaml_sequence_element(label,advance)
       implicit none
-      character(len=*), optional, intent(in) :: advance
+      character(len=*), optional, intent(in) :: label,advance
       !needed only for indented writings
       if (flowrite==0) then
          if(present(advance)) then
-            write(stdout,'(a)',advance=advance)repeat(' ',yaml_indent)//'-'
-            if (advance=='no')icursor=icursor+yaml_indent
+            if (present(label)) then
+               write(stdout,'(a)',advance=advance)repeat(' ',yaml_indent)//'- &'//&
+                    trim(adjustl(label))
+               if (advance=='no')icursor=icursor+yaml_indent+1+len(trim(adjustl(label)))
+            else
+               write(stdout,'(a)',advance=advance)repeat(' ',yaml_indent)//'-'
+               if (advance=='no')icursor=icursor+yaml_indent+1
+            end if
          else
-            write(stdout,'(a)')repeat(' ',yaml_indent)//'-'
+            if (present(label)) then
+               write(stdout,'(a)')repeat(' ',yaml_indent)//'- &'//&
+                    trim(adjustl(label))
+            else
+               write(stdout,'(a)')repeat(' ',yaml_indent)//'-'
+            end if
          end if
          yaml_indent=yaml_indent+yaml_level
       end if

@@ -41,7 +41,7 @@ type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
 integer,dimension(:),pointer:: onwhichatom
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, ist, ncnt
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ist, ncnt
 integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -58,6 +58,7 @@ call memocc(istat, atomNames, 'atomNames', subname)
 !!allocate(norbsPerLocreg(at%nat), stat=istat)
 !!call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
 
+!!lin%lzdlarge%nlr=at%nat
 
 
 ! Read in all parameters related to the linear scaling version.
@@ -98,7 +99,7 @@ end do
 
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
-call allocateBasicArrays(lin,at%ntypes)
+call allocateBasicArrays(lin, at%ntypes)
 
 !call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, lin%lzd%nlr, input, lin)
@@ -997,7 +998,7 @@ real(8),dimension(:),pointer,intent(inout):: lphi
 real(8),dimension(:,:),pointer,intent(inout):: coeff
 
 ! Local variables
-integer:: istat, iall, iorb
+integer:: istat, iall
 character(len=*),parameter:: subname='deallocateLinear'
 
 
@@ -1452,19 +1453,42 @@ comsr%istarr=1
 comsr%istrarr=1
 comsr%nrecvBuf=0
 do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)
-    ie=is+nscatterarr(jproc,1)-1
-    ioverlap=0
-    do iorb=1,orbs%norb
-        ilr=orbs%inWhichLocreg(iorb)
-        i3s=lzd%Llr(ilr)%nsi3
-        i3e=i3s+lzd%Llr(ilr)%d%n3i-1
-        if(i3s<=ie .and. i3e>=is) then
+   is=nscatterarr(jproc,3)
+   ie=is+nscatterarr(jproc,1)-1
+   ioverlap=0
+   do iorb=1,orbs%norb
+      ilr=orbs%inWhichLocreg(iorb)
+      i3s=lzd%Llr(ilr)%nsi3
+      i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+      if(i3s<=ie .and. i3e>=is) then
+         ioverlap=ioverlap+1
+         tag=tag+1
+         is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+         n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+         is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+         if(jproc == iproc) then
+            comsr%startingindex(ioverlap,1) = max(is,i3s) 
+            comsr%startingindex(ioverlap,2) = min(ie,i3e)
+         end if
+         call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+              tag, lzd%nlr, lzd%Llr,&
+              orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+         if(iproc==jproc) then
+            comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+            comsr%overlaps(ioverlap)=iorb
+         end if
+         comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+      end if
+      !For periodicity
+      if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+         i3s = Lzd%Glr%nsi3
+         i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+            is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
             if(jproc == iproc) then
                comsr%startingindex(ioverlap,1) = max(is,i3s) 
                comsr%startingindex(ioverlap,2) = min(ie,i3e)
@@ -1473,36 +1497,37 @@ do jproc=0,nproc-1
                  tag, lzd%nlr, lzd%Llr,&
                  orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
-                comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
-                comsr%overlaps(ioverlap)=iorb
+               comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+               comsr%overlaps(ioverlap)=iorb
             end if
             comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
-        end if
-        !For periodicity
-        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
-          i3s = Lzd%Glr%nsi3
-          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
-          if(i3s<=ie .and. i3e>=is) then
-              ioverlap=ioverlap+1
-              tag=tag+1
-              is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
-              n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-              is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
-              if(jproc == iproc) then
-                 comsr%startingindex(ioverlap,1) = max(is,i3s) 
-                 comsr%startingindex(ioverlap,2) = min(ie,i3e)
-              end if
-              call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
-                   tag, lzd%nlr, lzd%Llr,&
-                   orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
-              if(iproc==jproc) then
+         end if
+         !For periodicity
+         if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+            i3s = Lzd%Glr%nsi3
+            i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+            if(i3s<=ie .and. i3e>=is) then
+               ioverlap=ioverlap+1
+               tag=tag+1
+               is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+               n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+               is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+               if(jproc == iproc) then
+                  comsr%startingindex(ioverlap,1) = max(is,i3s) 
+                  comsr%startingindex(ioverlap,2) = min(ie,i3e)
+               end if
+               call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+                    tag, lzd%nlr, lzd%Llr,&
+                    orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+               if(iproc==jproc) then
                   comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                   comsr%overlaps(ioverlap)=iorb
-              end if
-              comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
-          end if 
-        end if
-    end do
+               end if
+               comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+            end if
+         end if
+      end if
+   end do
 end do
 
 ! To avoid allocations with size 0.
@@ -1770,6 +1795,21 @@ subroutine deallocateBasicArraysInput(lin)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
+
+  if(associated(lin%locrad_lowaccuracy)) then
+    i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
+    deallocate(lin%locrad_lowaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_lowaccuracy',subname)
+    nullify(lin%locrad_lowaccuracy)
+  end if 
+
+  if(associated(lin%locrad_highaccuracy)) then
+    i_all = -product(shape(lin%locrad_highaccuracy))*kind(lin%locrad_highaccuracy)
+    deallocate(lin%locrad_highaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
+    nullify(lin%locrad_highaccuracy)
+  end if 
+
 
   if(associated(lin%locrad_lowaccuracy)) then
     i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
@@ -3632,6 +3672,8 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
 !!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
 !!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*hx,Lzd%Glr%d%n2*hy,Lzd%Glr%d%n3*hz
 !!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*hx*Lzd%Glr%d%n2*hy*Lzd%Glr%d%n3*hz
+!!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
 !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
 !!print *,'###################################################'
 !!print *,'##        Local boxes information:               ##'

@@ -367,7 +367,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3pi,&
        denspot%V_ext,denspot%pkernel)
   !calculate effective ionic potential, including counter ions if any.
-  call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Lzd%Glr,&
+  call createEffectiveIonicPotential(iproc,nproc, (iproc == 0), in,atoms,rxyz,shift,Lzd%Glr,&
        hxh,hyh,hzh,&
        denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
 
@@ -565,15 +565,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  write( *,'(1x,a,i0)') &
                       &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                  !test for yaml output
-                 call yaml_sequence_element(advance='no')
+
+                 if (endloop) then
+                    call yaml_sequence_element(label='last',advance='no')
+                    !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+                 else
+                    call yaml_sequence_element(advance='no')
+                    !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+                 end if
                  call yaml_flow_map()
                  call yaml_flow_newline()
-                 if (endloop) then
-                    !                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
-                 else
-                    !                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
-                 end if
-
               endif
 
               !control how many times the DIIS has switched into SD
@@ -653,7 +654,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  !yaml output
                  call yaml_close_flow_map()
                  call yaml_close_sequence_element()
-                 !            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
                  call bigdft_utils_flush(unit=6)
               end if
            end do wfn_loop

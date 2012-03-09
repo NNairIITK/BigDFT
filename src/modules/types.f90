@@ -12,7 +12,7 @@
 !!  and the routines of allocations and de-allocations
 module module_types
 
-  use module_base, only : gp,wp,dp,tp
+  use module_base, only : gp,wp,dp,tp,uninitialized
   implicit none
 
   !> Input wf parameters.
@@ -231,8 +231,20 @@ module module_types
   end type input_variables
 
   type, public :: energy_terms
-     real(gp) :: eh,exc,evxc,eion,edisp,ekin,epot,eproj,eexctX
-     real(gp) :: ebs,eKS,trH,evsum,evsic
+     real(gp) :: eh     =0.0_gp
+     real(gp) :: exc    =0.0_gp
+     real(gp) :: evxc   =0.0_gp
+     real(gp) :: eion   =0.0_gp
+     real(gp) :: edisp  =0.0_gp
+     real(gp) :: ekin   =0.0_gp
+     real(gp) :: epot   =0.0_gp
+     real(gp) :: eproj  =0.0_gp
+     real(gp) :: eexctX =0.0_gp
+     real(gp) :: ebs    =0.0_gp
+     real(gp) :: eKS    =0.0_gp
+     real(gp) :: trH    =0.0_gp
+     real(gp) :: evsum  =0.0_gp
+     real(gp) :: evsic  =0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
   end type energy_terms
 
@@ -477,7 +489,6 @@ module module_types
      type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-!    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
     !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
@@ -784,36 +795,36 @@ end type workarrays_quartic_convolutions
   end type linearParameters
 
   type,public:: basis_specifications
-    logical:: update_phi !shall phi be optimized or not
-    logical:: use_derivative_basis !use derivatives or not
-    logical:: communicate_phi_for_lsumrho !communicate phi for the calculation of the charge density
-    real(8):: conv_crit !convergence criterion for the basis functions
-    real(8):: locreg_enlargement !enlargement factor for the second locreg (optimization of phi)
-    integer:: target_function !minimize trace or energy
-    integer:: meth_transform_overlap !exact or Taylor approximation
-    integer:: nit_precond !number of iterations for preconditioner
-    integer:: nit_basis_optimization !number of iterations for optimization of phi
-    integer:: nit_unitary_loop !number of iterations in inner unitary optimization loop
-    integer:: confinement_decrease_mode !decrase confining potential linearly or abrupt at the end
+    logical:: update_phi !<shall phi be optimized or not
+    logical:: use_derivative_basis !<use derivatives or not
+    logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
+    real(8):: conv_crit !<convergence criterion for the basis functions
+    real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
+    integer:: target_function !<minimize trace or energy
+    integer:: meth_transform_overlap !<exact or Taylor approximation
+    integer:: nit_precond !<number of iterations for preconditioner
+    integer:: nit_basis_optimization !<number of iterations for optimization of phi
+    integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
+    integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
   end type basis_specifications
 
   type,public:: basis_performance_options
-    integer:: blocksize_pdgemm !block size for pdgemm (scalapck)
-    integer:: blocksize_pdsyev !block size for pdsyev (scalapck)
-    integer:: nproc_pdsyev !number of processors used for pdsyev (scalapck)
+    integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
+    integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
+    integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
   end type basis_performance_options
 
   type,public:: wfn_metadata
-    integer:: nphi !size of phi without derivative
-    integer:: nlbphi !size of phi with derivatives
-    integer:: basis_is !indicates whether phi contains derivatives or not
-    integer:: ld_coeff !leading dimension of coeff
-    real(8),dimension(:),pointer:: phi !basis functions, with or without derivatives
-    real(8),dimension(:),pointer:: phiRestart !basis functions without derivatives
-    real(8),dimension(:,:),pointer:: coeff !expansion coefficients, with or without derivatives
-    real(8),dimension(:,:),pointer::  coeff_proj !expansion coefficients, without derivatives
-    type(basis_specifications):: bs !contains parameters describing the basis functions
-    type(basis_performance_options):: bpo !contains performance parameters
+    integer:: nphi !<size of phi without derivative
+    integer:: nlbphi !<size of phi with derivatives
+    integer:: basis_is !<indicates whether phi contains derivatives or not
+    integer:: ld_coeff !<leading dimension of coeff
+    real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives
+    real(8),dimension(:),pointer:: phiRestart !<basis functions without derivatives
+    real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
+    real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    type(basis_specifications):: bs !<contains parameters describing the basis functions
+    type(basis_performance_options):: bpo !<contains performance parameters
   end type wfn_metadata
 
 
@@ -877,6 +888,22 @@ end type workarrays_quartic_convolutions
   integer, parameter, public :: CHARGE_DENSITY     = -1978
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
+
+  !> The wavefunction which have to be considered at the DFT level
+  type, public :: DFT_wavefunction
+     !coefficients
+     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
+     !basis sets
+     type(gaussian_basis) :: gbd !<gaussian basis description, if active
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions
+
+     !data properties
+     type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
+     type(communications_arrays) :: comms
+     type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
+     type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
+  end type DFT_wavefunction
 
 contains
 

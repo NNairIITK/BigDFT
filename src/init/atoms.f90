@@ -1182,14 +1182,25 @@ subroutine atoms_new(atoms, sym)
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
   sym => atoms%sym
+  nullify(atoms%nlccpar)
+  nullify(atoms%paw_l)
+  nullify(atoms%paw_NofL)
+  nullify(atoms%paw_nofchannels)
+  nullify(atoms%paw_nofgaussians)
+  nullify(atoms%paw_Greal)
+  nullify(atoms%paw_Gimag)
+  nullify(atoms%paw_Gcoeffs)
+  nullify(atoms%paw_H_matrices)
+  nullify(atoms%paw_S_matrices)
+  nullify(atoms%paw_Sm1_matrices)
 END SUBROUTINE atoms_new
-subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
+subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
    use module_types
    use module_interfaces
    implicit none
    logical, intent(out) :: lstat
-   type(atoms_data), pointer :: atoms
+   type(atoms_data), intent(inout) :: atoms
    integer, intent(in) :: ln
    character, intent(in) :: filename(ln)
    real(gp), dimension(:,:), pointer :: rxyz
@@ -1203,11 +1214,17 @@ subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    end do
 
    lstat = .true.
-   allocate(atoms)
    call read_atomic_file(trim(filename_), 0, atoms, rxyz, status)
    lstat = (status == 0)
-END SUBROUTINE atoms_new_from_file
+ END SUBROUTINE atoms_set_from_file
 !> Deallocate a new atoms_data type, for bindings.
+subroutine atoms_empty(atoms)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+
+  call deallocate_atoms(atoms, "atoms_free")
+END SUBROUTINE atoms_empty
 subroutine atoms_free(atoms)
   use module_types
   implicit none
