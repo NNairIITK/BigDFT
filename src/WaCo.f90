@@ -1650,7 +1650,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   end do loop_iter
 
   if(iproc == 0) then
-     write(*,'(A,x,i4,x,A)') 'Convergence reached in',iter,'iterations.'
+     write(*,'(A,1x,i4,1x,A)') 'Convergence reached in',iter,'iterations.'
      write(*,'(A,A,A,1x,i4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
      do i = 1, nbuf
         minold = huge(minold)

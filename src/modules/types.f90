@@ -12,7 +12,7 @@
 !!  and the routines of allocations and de-allocations
 module module_types
 
-  use module_base, only : gp,wp,dp,tp
+  use module_base, only : gp,wp,dp,tp,uninitialized
   implicit none
 
   !> Input wf parameters.

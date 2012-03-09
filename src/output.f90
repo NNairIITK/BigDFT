@@ -436,19 +436,30 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   character(len=*), intent(in) :: comment
   !local variables
 
-  !call yaml_flow_map('Energy terms')
+  call yaml_flow_map('Energy terms')
   !call yaml_flow_map()
   !call yaml_indent_map('Energies')
   if (iscf < 1) then
-     call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
-     call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
-     call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
-     call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
+     if (energs%ekin /= uninitialized(energs%ekin)) &
+          call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
+     if (energs%epot /= uninitialized(energs%epot)) &
+          call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
+     if (energs%eproj /= uninitialized(energs%eproj)) &
+          call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
+     if (energs%eh /= uninitialized(energs%eh)) &
+          call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
+     if (energs%exc /= uninitialized(energs%exc)) &
      call yaml_map('exc',yaml_toa(energs%exc,fmt='(1pe18.11)'))
-     call yaml_map('vexc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
+     if (energs%evxc /= uninitialized(energs%evxc)) &
+          call yaml_map('evxc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
+     if (energs%eexctX /= uninitialized(energs%eexctX)) &
+          call yaml_map('eexctX',yaml_toa(energs%eexctX,fmt='(1pe18.11)'))
+     if (energs%evsic /= uninitialized(energs%eexctX)) &
+          call yaml_map('evSIC',yaml_toa(energs%evsic,fmt='(1pe18.11)'))
   end if
+  call yaml_close_flow_map()
+  !call yaml_flow_newline()
 
-  call yaml_flow_newline()
   call yaml_map('iter',yaml_toa(iter,fmt='(i6)'))
   if (iscf > 1) then
      call yaml_map('tr(H)',yaml_toa(energs%trH,fmt='(1pe24.17)'))
@@ -459,14 +470,16 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   if (gnrm_zero > 0.0_gp) &
        call yaml_map('gnrm_0',yaml_toa(gnrm_zero,fmt='(1pe9.2)'))
 
-  !call yaml_close_flow_map()
+
   !call yaml_close_indent_map()
 
   if (iscf<1) then
      if (verbose >0) then
         write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              energs%ekin,energs%epot,energs%eproj
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
+         if (energs%eh /= uninitialized(energs%eh))& !only hartree decides since it should be removed
+              write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',&
+              energs%eh,energs%exc,energs%evxc
      end if
   end if
 
