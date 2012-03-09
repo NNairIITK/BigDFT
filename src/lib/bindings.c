@@ -168,8 +168,8 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs, 
   proj = bigdft_proj_init();
   FC_FUNC_(proj_new, PROJ_NEW)(&proj->nlpspd);
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (&iproc, glr->data, glr->atoms->rxyz.data,
-     glr->atoms->data, orbs->data, glr->radii, &frmult, &frmult,
+    (&iproc, glr->data, glr->parent.rxyz.data,
+     glr->parent.data, orbs->data, glr->radii, &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, &proj->nproj,
                                                      &proj->nprojel);

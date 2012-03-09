@@ -440,21 +440,21 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   !call yaml_flow_map()
   !call yaml_indent_map('Energies')
   if (iscf < 1) then
-     if (energs%ekin /= uninitialized(energs%ekin)) &
+     if (energs%ekin /= 0.0_gp)&
           call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
-     if (energs%epot /= uninitialized(energs%epot)) &
+     if (energs%epot /= 0.0_gp)&
           call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
-     if (energs%eproj /= uninitialized(energs%eproj)) &
+     if (energs%eproj /= 0.0_gp)&
           call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
-     if (energs%eh /= uninitialized(energs%eh)) &
+     if (energs%eh  /= 0.0_gp)&
           call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
-     if (energs%exc /= uninitialized(energs%exc)) &
+     if (energs%exc  /= 0.0_gp)&
      call yaml_map('exc',yaml_toa(energs%exc,fmt='(1pe18.11)'))
-     if (energs%evxc /= uninitialized(energs%evxc)) &
+     if (energs%evxc  /= 0.0_gp)&
           call yaml_map('evxc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
-     if (energs%eexctX /= uninitialized(energs%eexctX)) &
+     if (energs%eexctX  /= 0.0_gp)&
           call yaml_map('eexctX',yaml_toa(energs%eexctX,fmt='(1pe18.11)'))
-     if (energs%evsic /= uninitialized(energs%eexctX)) &
+     if (energs%evsic  /= 0.0_gp)&
           call yaml_map('evSIC',yaml_toa(energs%evsic,fmt='(1pe18.11)'))
   end if
   call yaml_close_flow_map()
@@ -477,7 +477,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
      if (verbose >0) then
         write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              energs%ekin,energs%epot,energs%eproj
-         if (energs%eh /= uninitialized(energs%eh))& !only hartree decides since it should be removed
+         if (energs%eh /= 0.0_gp)& !only hartree decides since it should be removed
               write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',&
               energs%eh,energs%exc,energs%evxc
      end if

@@ -392,13 +392,14 @@ module module_interfaces
          real(dp), dimension(*), intent(out) :: pot_ion
        END SUBROUTINE IonicEnergyandForces
 
-       subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
+       subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
          use module_base
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode
          integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+         logical, intent(in) :: verb
          real(gp), intent(in) :: hxh,hyh,hzh,psoffset
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3), intent(in) :: elecfield
