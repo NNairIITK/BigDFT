@@ -417,11 +417,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      scpot=.true.
      energs%eexctX=0.0_gp   !Exact exchange is not calculated right now 
      ! This is the main routine that does everything related to the linear scaling version.
+
+     allocate(orbs%eval(orbs%norb), stat=i_stat)
+     call memocc(i_stat, orbs%eval, 'orbs%eval', subname)
+     orbs%eval=-.5d0
      call linearScaling(iproc,nproc,Lzd%Glr,&
           orbs,comms,atoms,in,hx,hy,hz,lin,&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,psi,psit,&
           energy,fxyz)
+
+     ! debug
+
+     !!! debug: write psi to file
+     !!call writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
+     !!        orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Lzd%Glr%wfd,psi)
+     !!return
 
      !temporary allocation of the density
      allocate(denspot%rho_full(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin+ndebug),stat=i_stat)
@@ -854,7 +865,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !  write all the wavefunctions into files
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
-     if (in%gaussian_help) then
+     !if (in%gaussian_help) then
+     if (in%gaussian_help .and. .not.in%inputPsiId==100) then
 
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
 !!!

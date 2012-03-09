@@ -708,124 +708,124 @@ module deallocatePointers
 end module deallocatePointers
 
 
-!!module deallocationInterfaces
-!!  implicit none
-!!
-!!  interface
-!!
-!!
-!!    subroutine deallocate_local_zone_descriptors(lzd, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(local_zone_descriptors),intent(inout):: lzd
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_local_zone_descriptors
-!!    
-!!    subroutine deallocate_orbitals_data(orbs, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(orbitals_data),intent(inout):: orbs
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_orbitals_data
-!!    
-!!    subroutine deallocate_communications_arrays(comms, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(communications_arrays),intent(inout):: comms
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_communications_arrays
-!!    
-!!    subroutine deallocate_locreg_descriptors(lr, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(locreg_descriptors),intent(inout):: lr
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_locreg_descriptors
-!!    
-!!    subroutine deallocate_wavefunctions_descriptors(wfd, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(wavefunctions_descriptors),intent(inout):: wfd
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_wavefunctions_descriptors
-!!    
-!!    subroutine deallocate_convolutions_bounds(bounds, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(convolutions_bounds),intent(inout):: bounds
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_convolutions_bounds
-!!    
-!!    subroutine deallocate_kinetic_bounds(kb, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(kinetic_bounds),intent(inout):: kb
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_kinetic_bounds
-!!    
-!!    subroutine deallocate_shrink_bounds(sb, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(shrink_bounds),intent(inout):: sb
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_shrink_bounds
-!!    
-!!    subroutine deallocate_grow_bounds(gb, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(grow_bounds),intent(inout):: gb
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_grow_bounds
-!!    
-!!    subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(nonlocal_psp_descriptors),intent(inout):: nlpspd
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_nonlocal_psp_descriptors
-!!    
-!!    subroutine deallocate_matrixMinimization(matmin, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(matrixMinimization),intent(inout):: matmin
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_matrixMinimization
-!!    
-!!    subroutine deallocate_matrixLocalizationRegion(mlr, subname)
-!!      use module_base
-!!      use module_types
-!!      use deallocatePointers
-!!      implicit none
-!!      type(matrixLocalizationRegion),intent(inout):: mlr
-!!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_matrixLocalizationRegion
-!!
-!!
-!!  end interface
-!!
-!!end module deallocationInterfaces
+module deallocationInterfaces
+  implicit none
+
+  interface
+
+
+    subroutine deallocate_local_zone_descriptors(lzd, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(local_zone_descriptors),intent(inout):: lzd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_local_zone_descriptors
+    
+    subroutine deallocate_orbitals_data(orbs, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(orbitals_data),intent(inout):: orbs
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_orbitals_data
+    
+    subroutine deallocate_communications_arrays(comms, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(communications_arrays),intent(inout):: comms
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_communications_arrays
+    
+    subroutine deallocate_locreg_descriptors(lr, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(locreg_descriptors),intent(inout):: lr
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_locreg_descriptors
+    
+    subroutine deallocate_wavefunctions_descriptors(wfd, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(wavefunctions_descriptors),intent(inout):: wfd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_wavefunctions_descriptors
+    
+    subroutine deallocate_convolutions_bounds(bounds, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(convolutions_bounds),intent(inout):: bounds
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_convolutions_bounds
+    
+    subroutine deallocate_kinetic_bounds(kb, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(kinetic_bounds),intent(inout):: kb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_kinetic_bounds
+    
+    subroutine deallocate_shrink_bounds(sb, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(shrink_bounds),intent(inout):: sb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_shrink_bounds
+    
+    subroutine deallocate_grow_bounds(gb, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(grow_bounds),intent(inout):: gb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_grow_bounds
+    
+    subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(nonlocal_psp_descriptors),intent(inout):: nlpspd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_nonlocal_psp_descriptors
+    
+    subroutine deallocate_matrixMinimization(matmin, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(matrixMinimization),intent(inout):: matmin
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_matrixMinimization
+    
+    subroutine deallocate_matrixLocalizationRegion(mlr, subname)
+      use module_base
+      use module_types
+      use deallocatePointers
+      implicit none
+      type(matrixLocalizationRegion),intent(inout):: mlr
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_matrixLocalizationRegion
+
+
+  end interface
+
+end module deallocationInterfaces
 
 
 
@@ -846,7 +846,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call checkAndDeallocatePointer(lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
   call checkAndDeallocatePointer(lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
-  call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiRestart', subname)
+  !call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiRestart', subname)
   call checkAndDeallocatePointer(lin%locrad_lowaccuracy, 'lin%locrad_lowaccuracy', subname)
   call checkAndDeallocatePointer(lin%locrad_highaccuracy, 'lin%locrad_highaccuracy', subname)
   !call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
@@ -907,7 +907,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
      nullify(lzd%llr)
   end if
 
-  call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
+  !!call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
 
 end subroutine deallocate_local_zone_descriptors
 

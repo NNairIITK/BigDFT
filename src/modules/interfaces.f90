@@ -1887,9 +1887,9 @@ module module_interfaces
 !!$     end subroutine readmywaves
 
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-           denspot,GPU,lphi,trH,&
-           infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
+           denspot,GPU,trH,&
+           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,orthpar,&
+           confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
            locrad,wfnmd)
         use module_base
         use module_types
@@ -1897,8 +1897,7 @@ module module_interfaces
         implicit none
 
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
-        integer,intent(in):: nItPrecond
+        integer,intent(in):: iproc, nproc, blocksize_pdgemm
         integer,intent(out):: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(local_zone_descriptors),intent(inout):: lzd
@@ -1916,15 +1915,12 @@ module module_interfaces
         type(GPU_pointers), intent(inout) :: GPU
         !real(dp), dimension(:), pointer :: pkernelseq
         !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
-        real(8),dimension(:),pointer,intent(inout):: lphi
         real(8),intent(out):: trH
-        real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
+        real(8),intent(in):: hx, hy, hz
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-        real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
         type(localizedDIISParameters),intent(inout):: ldiis
-        logical,intent(in):: newgradient
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -1935,7 +1931,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-          input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
+          input, hx, hy, hz, rxyz, nscatterarr, tag, confdatarr, onwhichatom)
       use module_base
       use module_types
       implicit none
@@ -1951,8 +1947,6 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,intent(inout):: tag
-      real(8),dimension(:,:),pointer,intent(out):: coeff
-      real(8),dimension(:),pointer,intent(out):: lphi
       type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
       integer,dimension(:),pointer:: onwhichatom
     end subroutine allocateAndInitializeLinear
@@ -2103,19 +2097,19 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
          mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
-         GPU,updatePhi,&
-         infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
-         ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
-         methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
-         useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
+         GPU,&
+         infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
+         ldiis,orthpar,confdatarr,&
+         blocksize_pdgemm,&
+         comrp,blocksize_pdsyev,nproc_pdsyev,&
+         hx,hy,hz,SIC,locrad,wfnmd)
       use module_base
       use module_types
       implicit none
 
       ! Calling arguments
-      integer,intent(in):: iproc, nproc, itSCC, nit, nItInnerLoop
-      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+      integer,intent(in):: iproc, nproc, itSCC
+      integer,intent(in):: blocksize_pdgemm
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
@@ -2130,22 +2124,20 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
-      logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebs
-      real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
-      real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
+      real(8),intent(in):: hx, hy, hz
+      !real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
       !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
-      real(8),dimension(:),pointer,intent(inout):: lphi
+      !real(8),dimension(:),pointer,intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      logical,intent(in):: communicate_lphi
-      real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
+      !real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
       !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
-      real(8),dimension(:),pointer,intent(inout)::lphiRestart
+      !real(8),dimension(:),pointer,intent(inout)::lphiRestart
       !type(p2pCommsRepartition),intent(inout):: comrp
       type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
@@ -2960,12 +2952,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, ld_coeff, coeff, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
        implicit none
-       integer,intent(in):: iproc, nproc, nrho, norb
+       integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
        real(gp),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
        type(input_variables),intent(in):: input
@@ -6007,7 +5999,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-                    newgradient, confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
+                    confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
          use module_base
          use module_types
          implicit none
@@ -6020,7 +6012,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(in):: mad
          real(8),dimension(3,at%nat),intent(in):: rxyz
          real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-         logical,intent(in):: newgradient
+         !logical,intent(in):: newgradient
          real(8),intent(in):: hx, maxDispl
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
          real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
@@ -6204,17 +6196,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfnmd)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: nphi, nlbphi
+         character(len=1),intent(in):: mode
+         integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+         type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
 
        subroutine destroy_wfn_metadata(wfnmd)
          use module_base
          use module_types
+         !use deallocatePointers
          implicit none
          type(wfn_metadata),intent(inout):: wfnmd
        end subroutine destroy_wfn_metadata

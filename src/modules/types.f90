@@ -69,6 +69,15 @@ module module_types
        "Cold (mono)",   &
        "Meth.-Pax. " /)
 
+  !> Target function for the optimization of the basis functions (linear scaling version)
+  integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
+  integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+  integer,parameter:: BASIS_IS_STANDARD=10
+  integer,parameter:: BASIS_IS_ENHANCED=11
+  integer,parameter:: DECREASE_LINEAR=0
+  integer,parameter:: DECREASE_ABRUPT=1
+  
+
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
      !> directDiag decides which input guess is chosen:
@@ -121,6 +130,7 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
+    integer:: confinement_decrease_mode
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge
@@ -468,7 +478,7 @@ module module_types
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-     real(8),dimension(:,:),pointer:: cutoffweight
+    !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
 !>  Used to restart a new DFT calculation or to save information 
@@ -750,7 +760,7 @@ end type workarrays_quartic_convolutions
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
     real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
-    real(8),dimension(:),pointer:: lphiRestart, lphiold
+    real(8),dimension(:),pointer:: lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
@@ -773,9 +783,37 @@ end type workarrays_quartic_convolutions
     type(collectiveComms):: collComms
   end type linearParameters
 
+  type,public:: basis_specifications
+    logical:: update_phi !shall phi be optimized or not
+    logical:: use_derivative_basis !use derivatives or not
+    logical:: communicate_phi_for_lsumrho !communicate phi for the calculation of the charge density
+    real(8):: conv_crit !convergence criterion for the basis functions
+    real(8):: locreg_enlargement !enlargement factor for the second locreg (optimization of phi)
+    integer:: target_function !minimize trace or energy
+    integer:: meth_transform_overlap !exact or Taylor approximation
+    integer:: nit_precond !number of iterations for preconditioner
+    integer:: nit_basis_optimization !number of iterations for optimization of phi
+    integer:: nit_unitary_loop !number of iterations in inner unitary optimization loop
+    integer:: confinement_decrease_mode !decrase confining potential linearly or abrupt at the end
+  end type basis_specifications
+
+  type,public:: basis_performance_options
+    integer:: blocksize_pdgemm !block size for pdgemm (scalapck)
+    integer:: blocksize_pdsyev !block size for pdsyev (scalapck)
+    integer:: nproc_pdsyev !number of processors used for pdsyev (scalapck)
+  end type basis_performance_options
+
   type,public:: wfn_metadata
-    integer:: nphi, nlbphi
-    real(8),dimension(:),pointer:: phi
+    integer:: nphi !size of phi without derivative
+    integer:: nlbphi !size of phi with derivatives
+    integer:: basis_is !indicates whether phi contains derivatives or not
+    integer:: ld_coeff !leading dimension of coeff
+    real(8),dimension(:),pointer:: phi !basis functions, with or without derivatives
+    real(8),dimension(:),pointer:: phiRestart !basis functions without derivatives
+    real(8),dimension(:,:),pointer:: coeff !expansion coefficients, with or without derivatives
+    real(8),dimension(:,:),pointer::  coeff_proj !expansion coefficients, without derivatives
+    type(basis_specifications):: bs !contains parameters describing the basis functions
+    type(basis_performance_options):: bpo !contains performance parameters
   end type wfn_metadata
 
 

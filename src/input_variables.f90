@@ -730,6 +730,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !number of orbitals per process for trace minimization during input guess.
   call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
 
+  ! how the confining potential shall be decreased
+  comments='confinement_decrease_mode: 0=linear, 1=abrupt'
+  call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
+
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

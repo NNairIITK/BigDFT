@@ -1,7 +1,5 @@
-
-
 subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-           newgradient, confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
+           confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => MLWFnew
@@ -17,7 +15,7 @@ type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-logical,intent(in):: newgradient
+!logical,intent(in):: newgradient
 real(8),intent(in):: hx, maxDispl
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
 real(8),dimension(3,lzd%nlr),intent(in):: locregCenters

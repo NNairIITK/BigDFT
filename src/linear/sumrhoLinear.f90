@@ -279,7 +279,7 @@ END SUBROUTINE partial_density_linear
 
 
 
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, ld_coeff, coeff, nrho, rho, at, nscatterarr)
 !
 use module_base
 use module_types
@@ -288,14 +288,15 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb
+integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
 real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 !type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
-real(8),dimension(orbs%norb,norb),intent(in):: coeff
+!real(8),dimension(orbs%norb,norb),intent(in):: coeff
+real(8),dimension(ld_coeff,norb),intent(in):: coeff
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -330,8 +331,10 @@ call memocc(istat, densKern, 'densKern', subname)
 ! Calculate the density kernel.
 if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
 call timing(iproc,'sumrho_TMB    ','ON')
-call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
-     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
+!!call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
+!!     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
+call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), ld_coeff, &
+     coeff(1,1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
 call timing(iproc,'sumrho_TMB    ','OF')
 if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
