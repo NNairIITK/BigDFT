@@ -382,7 +382,7 @@ type(wfn_metadata):: wfnmd
           tt=1.d0
       else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
-          if(iproc==0) write(*,'(1x,a,f6.2)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
+          if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
       if(iproc==0) write(*,*) 'confdatarr(1)%prefac',confdatarr(1)%prefac
@@ -424,6 +424,8 @@ type(wfn_metadata):: wfnmd
           else
               wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
+          !!write(*,*) 'ATTENTION DEBUG'
+          !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           if(lin%mixedmode) then
@@ -578,6 +580,8 @@ type(wfn_metadata):: wfnmd
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
+          write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+              ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
           if(trim(lin%mixingMethod)=='dens') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, energy-energyoldout

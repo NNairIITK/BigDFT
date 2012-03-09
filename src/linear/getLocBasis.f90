@@ -202,6 +202,17 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
+  !!!! Debug: modify phi
+  !!!ist=1
+  !!!do iorb=1,llborbs%norbp
+  !!!    iiorb=llborbs%isorb+iorb
+  !!!    ilr=llborbs%inwhichlocreg(iiorb)
+  !!!    ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+  !!!    tt=dble(iiorb)
+  !!!    call dscal(ncnt, 1/tt, wfnmd%phi(ist), 1)
+  !!!    ist=ist+ncnt
+  !!!end do
+
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
   wfnmd%basis_is=BASIS_IS_ENHANCED
 
@@ -307,6 +318,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
+  !!write(*,'(a,2es16.8)') 'matrixElements(1,1,1), ovrlp(1,1)', matrixElements(1,1,1), ovrlp(1,1)
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
@@ -317,6 +329,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            matrixElements(1,1,2), llborbs%norb, ovrlp, llborbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
+  !!write(*,'(a,2es16.8)') 'matrixElements(1,1,2)', matrixElements(1,1,2)
 
   !!!!$$! ATTENTION: if we are in the mixed mode and are at the moment not using the derivatives, then the current
   !!!!$$! llborbs%norb is only one fourth of the actual first dimension of wfnmd%coeff. Here this is ignore and just
@@ -344,6 +357,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end do
       write(*,'(1x,a)') '-------------------------------------------------'
   end if
+
+  ! debug
+  call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
 
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
@@ -394,6 +410,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           jjorb=jjorb+1
       end do
   end do
+  !!write(*,*) 'ATTENTION DEBUG'
+  !!wfnmd%coeff_proj=wfnmd%coeff
 
   
 
