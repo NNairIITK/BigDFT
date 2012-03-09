@@ -460,7 +460,7 @@ module module_interfaces
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
@@ -570,7 +570,7 @@ module module_interfaces
         type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
         !type(gaussian_basis),intent(in)::G !projectors in gaussian basis (for PAW)
         type(paw_objects),intent(in)::paw
-        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
         real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
@@ -762,7 +762,7 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
        real(dp), dimension(:), pointer :: pkernel
        real(dp), dimension(*), intent(in) :: rhopot
        type(orbitals_data), intent(inout) :: orbsv

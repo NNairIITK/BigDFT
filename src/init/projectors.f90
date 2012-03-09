@@ -363,8 +363,6 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   ncplx=ncplx_k
 
 
-
-
   ityp=at%iatype(iat)
   mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
   mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
@@ -373,12 +371,6 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
   jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
-
-  !number of terms for every projector:
-  nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx
-  if(any(at%npspcode(:)==7)) then !PAW:
-    allocate(proj_tmp(nc))
-  end if
 
 !HGH or GTH case:
   if(.not. any(at%npspcode(:)==7)) then 
@@ -400,13 +392,16 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
      enddo
 ! PAW case
   else
+     !number of terms for every projector:
+     nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx
+     allocate(proj_tmp(nc))
+
      !decide the loop bounds
      i_g=0
      do i_shell=1,proj_G%nshltot
         l=proj_G%nam(i_shell)
-!       Set to zero:
         nc=(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-        proj(istart_c:istart_c+nc-1)=0.0_gp
+        
         do j=1,proj_G%ndoc(i_shell)
            i=1 !Use only i=1 for PAW
 !           i_g=i_g+1
@@ -423,11 +418,10 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
         !print *,'PAW, iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx, kx, ky, kz, ikpt
         if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
      enddo
+    
+     deallocate(proj_tmp)
   end if
 
-  if(any(at%npspcode(:)==7)) then !PAW:
-    deallocate(proj_tmp)
-  end if
 
 
 END SUBROUTINE atom_projector
@@ -621,7 +615,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,factor,gau_a,rxyz,n1,n2,n
         end do
      end if
 
-     call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,ncplx_k,ncplx_g,&
+     call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,ncplx_g,ncplx_k,&
           gau_a,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
 

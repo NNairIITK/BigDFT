@@ -186,7 +186,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
   type(paw_objects),intent(in)::paw
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
@@ -207,6 +207,10 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   nwarnings=0
 
+  if(any(at%npspcode==7)) then  
+  !initialize to zero in PAW case
+     proj(:)=0.0_wp
+  end if
   !here the localisation region should be changed, temporary only for cubic approach
 
   !apply the projectors following the strategy (On-the-fly calculation or not)
@@ -239,8 +243,8 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
            end do
 
         end do
-        if (iproj /= nlpspd%nproj) &
-             stop 'NonLocal HamiltonianApplication: incorrect number of projectors created'           
+       ! if (iproj /= nlpspd%nproj) &
+       !      stop 'NonLocal HamiltonianApplication: incorrect number of projectors created'           
      else
 
         ! loop over all my orbitals, and apply all the projectors over all orbitals

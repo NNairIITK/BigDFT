@@ -1173,7 +1173,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
@@ -1302,6 +1302,22 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
 ! IF PAW: return
   if(any(at%npspcode(:)==7)) then
+
+     !for testing
+     !application of the hamiltonian for gaussian based treatment
+     !call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
+     !     nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+     !   
+     !!-- if spectra calculation uses a energy dependent potential
+     !!    input_wf_diag will write (to be used in abscalc)
+     !!    the density to the file electronic_density.cube
+     !!  The writing is activated if  5th bit of  in%potshortcut is on.
+     !   call plot_density_cube_old(at%geocode,'electronic_density',&
+     !        iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
+     !        nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
+     !---
+
+
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)

@@ -1,4 +1,5 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -30,7 +31,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp), dimension(:), pointer :: pkernel
   real(dp), dimension(*), intent(in), target :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
@@ -430,7 +431,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp), dimension(:), pointer :: pkernel
   real(dp), dimension(*), intent(in) :: rhopot
   type(orbitals_data), intent(inout) :: orbsv

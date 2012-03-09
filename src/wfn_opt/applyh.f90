@@ -724,7 +724,13 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
              nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
              psi(1,ispinor),hpsi(1,ispinor),eproj_spinor,proj_G,paw%paw_ij(iat),&
              paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb))  
-             !Pending: check spinor case in new branch
+        !old version:
+        !call applyprojector_paw_old(ncplx,&
+        !     wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+        !     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+        !     nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
+        !     psi(1,ispinor),hpsi(1,ispinor),eproj_spinor,proj_G,paw%paw_ij(iat),&
+        !     paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax)  
         
         do i_shell=1,proj_G%nshltot
            l=proj_G%nam(i_shell)
@@ -829,7 +835,7 @@ subroutine applyprojector_paw(ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 keyv,&!nlpspd%keyv_p(jseg_c),&
                 keyg,&!nlpspd%keyg_p(1,jseg_c),&
-                proj(istart_i),&
+                proj(istart_j),&
                 cprj(ispinor,jlmn))
         end do !ispinor
         istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -862,23 +868,23 @@ subroutine applyprojector_paw(ncplx,&
            dij*cprj(ispinor,jlmn)
         end do
 
-        !Off-diagonal components
-        ilmn=0
-        do i_shell=1,j_shell-1
-           i_l=proj_G%nam(i_shell)
-           do i_m=1,2*i_l-1
-              ilmn=ilmn+1
-              klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-              dij=paw_ij%dij(klmnc,1)
+        !!Off-diagonal components
+        !ilmn=0
+        !do i_shell=1,j_shell-1
+        !   i_l=proj_G%nam(i_shell)
+        !   do i_m=1,2*i_l-1
+        !      ilmn=ilmn+1
+        !      klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+        !      dij=paw_ij%dij(klmnc,1)
   
-              do ispinor=1,nspinor !real matrix
-                  dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
-                      dij*cprj(ispinor,ilmn)
-                  dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
-                      dij*cprj(ispinor,jlmn)
-              end do
-           end do
-        end do
+        !      do ispinor=1,nspinor !real matrix
+        !          dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+        !              dij*cprj(ispinor,ilmn)
+        !          dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
+        !              dij*cprj(ispinor,jlmn)
+        !      end do
+        !   end do
+        !end do
      end do
   end do
 
@@ -906,6 +912,11 @@ subroutine applyprojector_paw(ncplx,&
         end do
      end do
   end do
+
+  eproj=eproj+eproj_i
+
+  !eproj=eproj+&
+  !      orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 
 
   deallocate(cprj)
@@ -974,53 +985,53 @@ subroutine applyprojector_paw_old(ncplx,&
   enddo
 
 
-! Off diagonal projectors:
-  jlmn=0
-  istart_j=1
-  do j_shell=1,proj_G%nshltot
-     j_l=proj_G%nam(j_shell)
-     do j_m=1,2*j_l-1
-        jlmn=jlmn+1
-        j0lmn=jlmn*(jlmn-1)/2
-        istart_i=1
-        ilmn=0
-        do i_shell=1,j_shell-1
-           i_l=proj_G%nam(i_shell)
-           do i_m=1,2*i_l-1
-              ilmn=ilmn+1
-              klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-              dij=paw_ij%dij(klmnc,1)
-              !
-              call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_j),scpr_j)
-
-              call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_i),scpr_i)
-
-              do icplx=1,ncplx
-                 scprp_j(icplx)=scpr_j(icplx)*dij
-                 scprp_i(icplx)=scpr_i(icplx)*dij
-                 !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i
-                 eproj=eproj+2._gp*dij*real(scpr_j(icplx),gp)*real(scpr_i(icplx),gp)
-              end do
-
-              !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
-              call waxpy_wrap(ncplx,scprp_j,&
-                  mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
-                  proj(istart_i),&
-                  nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
-
-              call waxpy_wrap(ncplx,scprp_i,&
-                  mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                  keyv_p,keyg_p,proj(istart_j),&
-                  nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
-              !
-              istart_i=istart_i+(mbvctr_c+7*mbvctr_f)*ncplx
-           end do
-        end do
-        istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
-     end do 
-  end do
+!! Off diagonal projectors:
+!  jlmn=0
+!  istart_j=1
+!  do j_shell=1,proj_G%nshltot
+!     j_l=proj_G%nam(j_shell)
+!     do j_m=1,2*j_l-1
+!        jlmn=jlmn+1
+!        j0lmn=jlmn*(jlmn-1)/2
+!        istart_i=1
+!        ilmn=0
+!        do i_shell=1,j_shell-1
+!           i_l=proj_G%nam(i_shell)
+!           do i_m=1,2*i_l-1
+!              ilmn=ilmn+1
+!              klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+!              dij=paw_ij%dij(klmnc,1)
+!              !
+!              call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_j),scpr_j)
+!
+!              call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_i),scpr_i)
+!
+!              do icplx=1,ncplx
+!                 scprp_j(icplx)=scpr_j(icplx)*dij
+!                 scprp_i(icplx)=scpr_i(icplx)*dij
+!                 !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i
+!                 eproj=eproj+2._gp*dij*real(scpr_j(icplx),gp)*real(scpr_i(icplx),gp)
+!              end do
+!
+!              !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
+!              call waxpy_wrap(ncplx,scprp_j,&
+!                  mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
+!                  proj(istart_i),&
+!                  nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+!
+!              call waxpy_wrap(ncplx,scprp_i,&
+!                  mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!                  keyv_p,keyg_p,proj(istart_j),&
+!                  nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+!              !
+!              istart_i=istart_i+(mbvctr_c+7*mbvctr_f)*ncplx
+!           end do
+!        end do
+!        istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
+!     end do 
+!  end do
 END SUBROUTINE applyprojector_paw_old
 
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
@@ -1125,6 +1136,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
         enddo
      end do loop_j
   end if
+
 END SUBROUTINE applyprojector
 
 
