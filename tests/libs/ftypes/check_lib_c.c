@@ -380,27 +380,36 @@ static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
 static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
 {
   const double *psic;
-  double *psir;
-  guint size, i;
+  double *psir, *psii;
+  guint size, i, n;
   double minDens, maxDens;
 
   fprintf(stdout, "Callback for 'psi-ready' signal at iter %d.\n", iter);
 
   psic = bigdft_wf_get_psi_compress(wf, 1, 4, BIGDFT_SPIN_UP, BIGDFT_REAL, &size, 0);
-  fprintf(stdout, " Band 4 has %d bytes.\n", size);
+  fprintf(stdout, " Band 4 has %ld bytes.\n", size * sizeof(double));
   
   minDens = G_MAXDOUBLE;
   maxDens = 0.;
+  n = BIGDFT_LOCREG(wf->lzd)->ni[0] * 
+    BIGDFT_LOCREG(wf->lzd)->ni[1] * 
+    BIGDFT_LOCREG(wf->lzd)->ni[2];
   psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic);
-  for (i = 0; i < size; i++)
+  if (BIGDFT_ORBS(wf)->nspinor == 2)
+    psii = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic + size);
+  for (i = 0; i < n; i++)
     {
       psir[i] *= psir[i];
+      if (BIGDFT_ORBS(wf)->nspinor == 2)
+        psir[i] += psii[i] * psii[i];
       minDens = MIN(minDens, psir[i]);
       maxDens = MAX(maxDens, psir[i]);
     }
   fprintf(stdout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
   g_free(psir);
+  if (BIGDFT_ORBS(wf)->nspinor == 2)
+    g_free(psii);
 }
 #endif
 
