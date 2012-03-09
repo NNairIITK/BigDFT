@@ -1,6 +1,8 @@
 #include <config.h>
 
+#ifdef HAVE_GLIB
 #include <glib-object.h>
+#endif
 
 #include <bigdft.h>
 
@@ -206,6 +208,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
+  fprintf(stdout, " Add linear zone description.\n");
   bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, 0, 1);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
@@ -227,7 +230,6 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
-  fprintf(stdout, " Add linear zone description.\n");
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB

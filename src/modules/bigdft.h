@@ -29,6 +29,7 @@ typedef struct BigDFT_AtomsClass_
 {
   GObjectClass parent;
 } BigDFT_AtomsClass;
+GType bigdft_atoms_get_type(void);
 #else
 #define BIGDFT_ATOMS_TYPE    (999)
 #define BIGDFT_ATOMS(obj)    ((BigDFT_Atoms*)obj)
@@ -145,14 +146,15 @@ typedef struct BigDFT_LocRegClass_
 {
   GObjectClass parent;
 } BigDFT_LocRegClass;
+GType bigdft_locreg_get_type(void);
 #else
 #define BIGDFT_LOCREG_TYPE    (999)
 #define BIGDFT_LOCREG(obj)    ((BigDFT_LocReg*)obj)
 #endif
 typedef struct BigDFT_locReg_
 {
-#ifdef GLIB_MAJOR_VERSION
   BigDFT_Atoms parent;
+#ifdef GLIB_MAJOR_VERSION
   gboolean dispose_has_run;
 #endif
 
@@ -197,6 +199,7 @@ typedef struct BigDFT_LzdClass_
 {
   GObjectClass parent;
 } BigDFT_LzdClass;
+GType bigdft_lzd_get_type(void);
 #else
 #define BIGDFT_LZD_TYPE    (999)
 #define BIGDFT_LZD(obj)    ((BigDFT_Lzd*)obj)
@@ -228,6 +231,7 @@ typedef struct BigDFT_OrbsClass_
 {
   GObjectClass parent;
 } BigDFT_OrbsClass;
+GType bigdft_orbs_get_type(void);
 #else
 #define BIGDFT_ORBS_TYPE    (999)
 #define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
@@ -277,6 +281,7 @@ typedef struct BigDFT_WfClass_
 {
   GObjectClass parent;
 } BigDFT_WfClass;
+GType bigdft_wf_get_type(void);
 #else
 #define BIGDFT_WF_TYPE    (999)
 #define BIGDFT_WF(obj)    ((BigDFT_Wf*)obj)
@@ -356,6 +361,7 @@ typedef struct BigDFT_LocalFieldsClass_
 {
   GObjectClass parent;
 } BigDFT_LocalFieldsClass;
+GType bigdft_localfields_get_type(void);
 #else
 #define BIGDFT_LOCALFIELDS_TYPE    (999)
 #define BIGDFT_LOCALFIELDS(obj)    ((BigDFT_LocalFields*)obj)
