@@ -138,10 +138,13 @@ type(DFT_wavefunction):: tmbder
   !!     hx,hy,hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
-  orthpar%methTransformOverlap = wfnmd%bs%meth_transform_overlap
+  !!orthpar%methTransformOverlap = wfnmd%bs%meth_transform_overlap
+  orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
   orthpar%nItOrtho = lin%nItOrtho
-  orthpar%blocksize_pdsyev = wfnmd%bpo%blocksize_pdsyev
-  orthpar%blocksize_pdgemm = wfnmd%bpo%blocksize_pdgemm
+  !!orthpar%blocksize_pdsyev = wfnmd%bpo%blocksize_pdsyev
+  orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+  !!orthpar%blocksize_pdgemm = wfnmd%bpo%blocksize_pdgemm
+  orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -208,6 +211,7 @@ type(DFT_wavefunction):: tmbder
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
       if(wfnmd%bs%use_derivative_basis) then
+      !!if(tmb%wfnmd%bs%use_derivative_basis) then
           call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
       end if
@@ -218,9 +222,11 @@ type(DFT_wavefunction):: tmbder
       ! of the charge density.
       !wfnmd%bs%communicate_phi_for_lsumrho=.true.
       wfnmd%bs%communicate_phi_for_lsumrho=.true.
+      tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
       lin%newgradient=.false.
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+      tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       if(lin%newgradient) then
           do ilr=1,lin%lzd%nlr
@@ -237,6 +243,7 @@ type(DFT_wavefunction):: tmbder
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           wfnmd%bs%use_derivative_basis=.false.
+          tmb%wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
@@ -327,7 +334,8 @@ type(DFT_wavefunction):: tmbder
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  if(wfnmd%bs%use_derivative_basis) then
+  !!if(wfnmd%bs%use_derivative_basis) then
+  if(tmb%wfnmd%bs%use_derivative_basis) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
   end if
@@ -339,6 +347,7 @@ type(DFT_wavefunction):: tmbder
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   wfnmd%bs%update_phi=.true.
+  tmb%wfnmd%bs%update_phi=.true.
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
@@ -346,6 +355,7 @@ type(DFT_wavefunction):: tmbder
   reduceConvergenceTolerance=.false.
   lin%newgradient=.false.
   wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+  tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
@@ -361,6 +371,7 @@ type(DFT_wavefunction):: tmbder
 
       ! The basis functions shall be optimized
       wfnmd%bs%update_phi=.true.
+      tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency looo
       selfConsistent=lin%convCritMix
@@ -384,10 +395,14 @@ type(DFT_wavefunction):: tmbder
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+      call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
+           locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+      !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
       else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
@@ -404,6 +419,7 @@ type(DFT_wavefunction):: tmbder
           end if
           ! only use steepest descent if the localization regions may change
           if(input%lin%nItInnerLoop/=-1 .or. wfnmd%bs%locreg_enlargement/=1.d0) then
+          !!if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
               ldiis%isx=0
           end if
 
@@ -426,10 +442,13 @@ type(DFT_wavefunction):: tmbder
       ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
+          !!if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
               wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           !!write(*,*) 'ATTENTION DEBUG'
           !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
@@ -438,6 +457,7 @@ type(DFT_wavefunction):: tmbder
           if(lin%mixedmode) then
               if(.not.withder) then
                   wfnmd%bs%use_derivative_basis=.false.
+                  tmb%wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
@@ -567,6 +587,7 @@ type(DFT_wavefunction):: tmbder
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
           if(wfnmd%bs%use_derivative_basis) then
+          !!if(tmb%wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
           end if
@@ -609,6 +630,7 @@ type(DFT_wavefunction):: tmbder
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
   if(wfnmd%bs%use_derivative_basis) then
+  !!if(tmb%wfnmd%bs%use_derivative_basis) then
       call cancelCommunicationPotential(iproc, nproc, lin%lb%comgp)
       call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
   end if
