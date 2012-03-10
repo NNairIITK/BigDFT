@@ -252,7 +252,7 @@ type(DFT_wavefunction):: tmbder
               ldiis, &
               orthpar, confdatarr, wfnmd%bpo%blocksize_pdgemm, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
-              hx, hy, hz, input%SIC, locrad, wfnmd)
+              hx, hy, hz, input%SIC, locrad, wfnmd, tmb, tmbder)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -263,7 +263,7 @@ type(DFT_wavefunction):: tmbder
               ldiis,orthpar,confdatarr,& 
               wfnmd%bpo%blocksize_pdgemm,&
               lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, locrad, wfnmd)
+              hx,hy,hz,input%SIC, locrad, wfnmd, tmb, tmbder)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -466,7 +466,7 @@ type(DFT_wavefunction):: tmbder
                       ldiis,orthpar,confdatarr,&
                       wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, wfnmd)
+                      hx,hy,hz,input%SIC, locrad, wfnmd, tmb, tmbder)
               else
                   wfnmd%bs%use_derivative_basis=.true.
                   tmb%wfnmd%bs%use_derivative_basis=.true.
@@ -478,7 +478,7 @@ type(DFT_wavefunction):: tmbder
                       ldiis,orthpar,confdatarr,&
                       wfnmd%bpo%blocksize_pdgemm,&
                       lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, wfnmd)
+                      hx,hy,hz,input%SIC, locrad, wfnmd, tmb, tmbder)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -489,7 +489,7 @@ type(DFT_wavefunction):: tmbder
                   ldiis,orthpar,confdatarr,&
                   wfnmd%bpo%blocksize_pdgemm,&
                   lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, locrad, wfnmd)
+                  hx,hy,hz,input%SIC, locrad, wfnmd, tmb, tmbder)
           end if
 
 

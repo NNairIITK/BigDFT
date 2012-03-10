@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,orthpar,confdatarr,&
     blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,locrad,wfnmd)
+    hx,hy,hz,SIC,locrad,wfnmd,tmb,tmbder)
 !
 ! Purpose:
 ! ========
@@ -94,6 +94,7 @@ type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 real(8),dimension(lzd%nlr),intent(in):: locrad
 type(wfn_metadata),intent(inout):: wfnmd
+type(DFT_wavefunction),intent(inout):: tmb, tmbder
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
