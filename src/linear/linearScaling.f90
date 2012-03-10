@@ -469,6 +469,7 @@ type(DFT_wavefunction):: tmbder
                       hx,hy,hz,input%SIC, locrad, wfnmd)
               else
                   wfnmd%bs%use_derivative_basis=.true.
+                  tmb%wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
@@ -586,8 +587,8 @@ type(DFT_wavefunction):: tmbder
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
-          if(wfnmd%bs%use_derivative_basis) then
-          !if(tmb%wfnmd%bs%use_derivative_basis) then
+          !if(wfnmd%bs%use_derivative_basis) then
+          if(tmb%wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
           end if
