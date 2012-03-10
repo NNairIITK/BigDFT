@@ -210,8 +210,8 @@ type(DFT_wavefunction):: tmbder
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
-      if(wfnmd%bs%use_derivative_basis) then
-      !!if(tmb%wfnmd%bs%use_derivative_basis) then
+      !!if(wfnmd%bs%use_derivative_basis) then
+      if(tmb%wfnmd%bs%use_derivative_basis) then
           call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
       end if
@@ -334,8 +334,8 @@ type(DFT_wavefunction):: tmbder
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  !!if(wfnmd%bs%use_derivative_basis) then
-  if(tmb%wfnmd%bs%use_derivative_basis) then
+  if(wfnmd%bs%use_derivative_basis) then
+  !!if(tmb%wfnmd%bs%use_derivative_basis) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
   end if
@@ -398,11 +398,11 @@ type(DFT_wavefunction):: tmbder
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
-      if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-      !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+      !!if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+      if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
-      else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      !!else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
@@ -442,7 +442,7 @@ type(DFT_wavefunction):: tmbder
       ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
-          !!if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
+          if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               wfnmd%bs%communicate_phi_for_lsumrho=.true.
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
