@@ -418,8 +418,8 @@ type(DFT_wavefunction):: tmbder
               exit outerLoop
           end if
           ! only use steepest descent if the localization regions may change
-          if(input%lin%nItInnerLoop/=-1 .or. wfnmd%bs%locreg_enlargement/=1.d0) then
-          !!if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
+          !!if(input%lin%nItInnerLoop/=-1 .or. wfnmd%bs%locreg_enlargement/=1.d0) then
+          if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
               ldiis%isx=0
           end if
 
@@ -587,7 +587,7 @@ type(DFT_wavefunction):: tmbder
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
           if(wfnmd%bs%use_derivative_basis) then
-          !!if(tmb%wfnmd%bs%use_derivative_basis) then
+          !if(tmb%wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
           end if
