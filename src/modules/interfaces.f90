@@ -2953,7 +2953,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, ld_coeff, coeff, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr,  &
+                ld_coeff, coeff, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
@@ -6214,6 +6215,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          implicit none
          type(wfn_metadata),intent(inout):: wfnmd
        end subroutine destroy_wfn_metadata
+
+       subroutine create_DFT_wavefunction(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfn)
+         use module_base
+         use module_types
+         implicit none
+         character(len=1),intent(in):: mode
+         integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+         type(input_variables),intent(in):: input
+         type(DFT_wavefunction),intent(out):: wfn
+       end subroutine create_DFT_wavefunction
+       
+       subroutine destroy_DFT_wavefunction(wfn)
+         use module_base
+         use module_types
+         implicit none
+         type(DFT_wavefunction),intent(inout):: wfn
+       end subroutine destroy_DFT_wavefunction
 
    end interface
 

@@ -102,6 +102,8 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
 type(wfn_metadata):: wfnmd
+type(DFT_wavefunction):: tmb
+type(DFT_wavefunction):: tmbder
 
 
   if(iproc==0) then
@@ -122,6 +124,10 @@ type(wfn_metadata):: wfnmd
   call create_wfn_metadata('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
        max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
+
+  call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
+       lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, tmb)
 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -173,13 +179,14 @@ type(wfn_metadata):: wfnmd
   call inputguessConfinement(iproc, nproc, at, &
        input, hx, hy, hz, lin%lzd, lin%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
-       wfnmd%phi)
+       tmb%psi)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
   !lphi=wfnmd%phi
   !call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
+  call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
 
 
   ! Initialize the DIIS mixing of the potential if required.
@@ -708,6 +715,7 @@ type(wfn_metadata):: wfnmd
   call deallocate_linearParameters(lin, subname)
 
   call destroy_wfn_metadata(wfnmd)
+  call destroy_DFT_wavefunction(tmb)
 
   !call deallocateBasicArraysInput(at, input%lin)
   call deallocateBasicArraysInput(input%lin)
@@ -1180,3 +1188,51 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
   end if
 
 end subroutine set_optimization_variables
+
+
+
+subroutine create_DFT_wavefunction(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfn)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  character(len=1),intent(in):: mode
+  integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+  type(input_variables),intent(in):: input
+  type(DFT_wavefunction),intent(out):: wfn
+
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='create_DFT_wavefunction'
+
+  call create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfn%wfnmd)
+
+  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
+  call memocc(istat, wfn%psi, 'wfn%psi', subname)
+
+end subroutine create_DFT_wavefunction
+
+
+
+subroutine destroy_DFT_wavefunction(wfn)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(DFT_wavefunction),intent(inout):: wfn
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_DFT_wavefunction'
+
+  iall=-product(shape(wfn%psi))*kind(wfn%psi)
+  deallocate(wfn%psi, stat=istat)
+  call memocc(istat, iall, 'wfn%psi', subname)
+
+  call destroy_wfn_metadata(wfn%wfnmd)
+
+end subroutine destroy_DFT_wavefunction
+
