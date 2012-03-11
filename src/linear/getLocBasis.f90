@@ -121,7 +121,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! This is a flag whether the basis functions shall be updated.
-  if(wfnmd%bs%update_phi) then
+  !!if(wfnmd%bs%update_phi) then
+  if(tmb%wfnmd%bs%update_phi) then
 
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
@@ -134,6 +135,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       if(wfnmd%bs%use_derivative_basis) then
           !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
           call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
+          call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
       end if
 
       ! Improve the trace minimizing orbitals.
@@ -148,7 +150,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   !if(newgradient .and. (updatePhi .or. itSCC==0)) then
   !if(newgradient .and. updatePhi) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. wfnmd%bs%update_phi) then
+  !if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. wfnmd%bs%update_phi) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
       !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
@@ -169,6 +172,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Keep the value of lphi for the next iteration
   !if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, wfnmd%phi(1), 1, lphiRestart(1), 1)
   if(wfnmd%bs%update_phi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
+  if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmb%wfnmd%phi(1), 1, tmb%wfnmd%phiRestart(1), 1)
 
   !if(updatePhi .and. newgradient) then
   if(wfnmd%bs%update_phi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -181,8 +185,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
       wfnmd%nphi=lorbs%npsidim_orbs
+      tmb%wfnmd%nphi=lorbs%npsidim_orbs
       wfnmd%nlbphi=llborbs%npsidim_orbs
+      tmb%wfnmd%nlbphi=llborbs%npsidim_orbs
       wfnmd%basis_is=BASIS_IS_ENHANCED
+      tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
       if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
@@ -703,7 +710,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            lzd, lorbs, op, comon, mad, comgp, &
            wfnmd%phi, lhphi, lhphiold, lphiold)
       wfnmd%nphi=lorbs%npsidim_orbs
+      tmb%wfnmd%nphi=lorbs%npsidim_orbs
       wfnmd%basis_is=BASIS_IS_STANDARD
+      tmb%wfnmd%basis_is=BASIS_IS_STANDARD
       call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, wfnmd%phi(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -805,7 +814,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                        lzd, lorbs, op, comon, mad, comgp, &
                        wfnmd%phi, lhphi, lhphiold, lphiold)
                   wfnmd%nphi=lorbs%npsidim_orbs
+                  tmb%wfnmd%nphi=lorbs%npsidim_orbs
                   wfnmd%basis_is=BASIS_IS_STANDARD 
+                  tmb%wfnmd%basis_is=BASIS_IS_STANDARD 
                   call allocateCommunicationsBuffersPotential(comgp, subname)
               end if
 
@@ -1200,8 +1211,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    lzd, lorbs, op, comon, mad, comgp, &
                    wfnmd%phi, lhphi, lhphiold, lphiold)
+              tmb%wfnmd%nphi=lorbs%npsidim_orbs
               wfnmd%nphi=lorbs%npsidim_orbs
-              wfnmd%basis_is=BASIS_IS_STANDARD
+              tmb%wfnmd%basis_is=BASIS_IS_STANDARD
           end if
 
           if(secondLocreg) then
