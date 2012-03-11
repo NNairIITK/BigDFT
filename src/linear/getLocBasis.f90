@@ -141,7 +141,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           denspot,GPU,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
           orthpar,confdatarr,blocksize_pdgemm,&
-          hx,hy,hz,SIC,locrad,wfnmd)
+          hx,hy,hz,SIC,locrad,wfnmd,tmb)
 
   end if
 
@@ -406,7 +406,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
               tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
-          wfnmd%coeff_proj(jjorb,iorb)=tt
+          tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
           !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
           jjorb=jjorb+1
       end do
@@ -454,7 +454,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
     denspot,GPU,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,orthpar,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
-    locrad,wfnmd)
+    locrad,wfnmd,tmb)
 !
 ! Purpose:
 ! ========
@@ -532,6 +532,7 @@ type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(lzd%nlr),intent(in):: locrad
 type(wfn_metadata),intent(inout):: wfnmd
+type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -575,8 +576,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   ! Calculate the kernel
   allocate(kernel(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
-  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, wfnmd%coeff_proj(1,1), lorbs%norb, &
-       wfnmd%coeff_proj(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
+  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff_proj(1,1), lorbs%norb, &
+       tmb%wfnmd%coeff_proj(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
 
 
   
