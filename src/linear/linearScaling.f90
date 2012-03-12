@@ -153,6 +153,14 @@ type(DFT_wavefunction):: tmbder
   call nullify_p2pcomms(tmbder%comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, lin%lb%orbs, tag, tmbder%comsr)
 
+  call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+  call initCompressedMatmul3(lin%orbs%norb, tmb%mad)
+  call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
+       tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
+  call initCompressedMatmul3(lin%lb%orbs%norb, tmbder%mad)
+
+
+
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
   !!!use a temporary array onwhichatom instead of inwhichlocreg
@@ -270,7 +278,7 @@ type(DFT_wavefunction):: tmbder
           !!wfnmd%bs%use_derivative_basis=.false.
           tmbder%wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, tmb%comsr, &
-              lin%mad, lin%mad, lin%op, lin%op, tmb%comon, tmb%comon, &
+              tmb%mad, tmb%mad, lin%op, lin%op, tmb%comon, tmb%comon, &
               tmb%comgp, tmb%comgp, at, rxyz, &
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
@@ -281,7 +289,7 @@ type(DFT_wavefunction):: tmbder
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-              lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
+              tmb%mad,tmbder%mad,lin%op,lin%lb%op,tmb%comon,&
               tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
@@ -484,7 +492,7 @@ type(DFT_wavefunction):: tmbder
                   !!wfnmd%bs%use_derivative_basis=.false.
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,tmb%comsr,&
-                      lin%mad,lin%mad,lin%op,lin%op,tmb%comon,&
+                      tmb%mad,tmb%mad,lin%op,lin%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
@@ -502,7 +510,7 @@ type(DFT_wavefunction):: tmbder
                   end if
 
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-                      lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
+                      tmb%mad,tmbder%mad,lin%op,lin%lb%op,&
                       tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
@@ -513,7 +521,7 @@ type(DFT_wavefunction):: tmbder
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-                  lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
+                  tmb%mad,tmbder%mad,lin%op,lin%lb%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
@@ -1294,6 +1302,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comgp, subname)
   if(wfn%wfnmd%bs%use_derivative_basis) call deallocate_p2pComms(wfn%comrp, subname)
   call deallocate_p2pComms(wfn%comsr, subname)
+  call deallocate_matrixDescriptors(wfn%mad, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
 
 end subroutine destroy_DFT_wavefunction

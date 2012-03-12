@@ -908,6 +908,7 @@ end type workarrays_quartic_convolutions
      type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
+     type(matrixDescriptors):: mad !<describes the structure of the matrices
   end type DFT_wavefunction
 
 contains
