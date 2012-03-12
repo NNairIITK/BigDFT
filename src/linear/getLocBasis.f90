@@ -132,7 +132,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     call mpi_barrier(mpi_comm_world, ierr)
       !!     stop
       !!end if
-      if(tmb%wfnmd%bs%use_derivative_basis) then
+      if(tmbder%wfnmd%bs%use_derivative_basis) then
           !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
           !call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
           !call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
@@ -161,7 +161,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
       !!     lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      call update_locreg(iproc, nproc, tmb%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+      call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
       !!deallocate(lphiRestart, stat=istat)
@@ -218,7 +218,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
       !!if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
-      if(.not.tmb%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+      if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
   end if
       
   !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
@@ -226,7 +226,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
-      if(tmb%wfnmd%bs%use_derivative_basis) then
+      if(tmbder%wfnmd%bs%use_derivative_basis) then
           call deallocate_p2pComms(comrp, subname)
           call nullify_p2pComms(comrp)
           call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
@@ -258,7 +258,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
   ! Calculate the overlap matrix.
-  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
+  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
       call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
   else
       call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
@@ -280,10 +280,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(tmb%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
+  if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
 
 
-  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
+  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
      call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   else
@@ -300,7 +300,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
+  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
@@ -336,13 +336,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(comgp, subname)
-  if(tmb%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+  if(tmbder%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
-  if(.not. tmb%wfnmd%bs%use_derivative_basis) then
+  if(.not. tmbder%wfnmd%bs%use_derivative_basis) then
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
       !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
@@ -435,7 +435,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! Project the lb coefficients on the smaller subset
-  if(tmb%wfnmd%bs%use_derivative_basis) then
+  if(tmbder%wfnmd%bs%use_derivative_basis) then
       inc=4
   else
       inc=1
@@ -6016,10 +6016,9 @@ character(len=*),parameter:: subname='update_locreg'
           if(useDerivativeBasisFunctions) then
               call cancelCommunicationPotential(iproc, nproc, lbcomgp)
               call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
-          else
-              call cancelCommunicationPotential(iproc, nproc, comgp)
-              call deallocateCommunicationsBuffersPotential(comgp, subname)
           end if
+          call cancelCommunicationPotential(iproc, nproc, comgp)
+          call deallocateCommunicationsBuffersPotential(comgp, subname)
 
           !!! Reallocate lphiRestart, since its size might have changed
           !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
@@ -6139,10 +6138,9 @@ character(len=*),parameter:: subname='update_locreg'
           if(useDerivativeBasisFunctions) then
               call allocateCommunicationsBuffersPotential(lbcomgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
-          else
-              call allocateCommunicationsBuffersPotential(comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
           end if
+          call allocateCommunicationsBuffersPotential(comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
 
 
           tag=1

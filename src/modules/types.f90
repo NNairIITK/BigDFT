@@ -906,6 +906,7 @@ end type workarrays_quartic_convolutions
      type(p2pComms):: comon !<describing p2p communications for orthonormality
      type(overlapParameters):: op !<describing the overlaps
      type(p2pComms):: comgp !<describing p2p communications for distributing the potential
+     type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
   end type DFT_wavefunction
 
 contains
