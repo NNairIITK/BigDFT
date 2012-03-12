@@ -126,11 +126,9 @@ type(DFT_wavefunction):: tmbder
        lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
 
   call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%orbs%norb, orbs%norb, input, tmb)
 
-  call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
+  call create_DFT_wavefunction('l', max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%lb%orbs%norb, orbs%norb, input, tmbder)
 
 
@@ -1219,14 +1217,15 @@ end subroutine set_optimization_variables
 
 
 
-subroutine create_DFT_wavefunction(mode, nphi, nlbphi, lnorb, norb, input, wfn)
+subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => create_DFT_wavefunction
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, nlbphi, lnorb, norb
+  integer,intent(in):: nphi, lnorb, norb
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(out):: wfn
 
@@ -1234,7 +1233,7 @@ subroutine create_DFT_wavefunction(mode, nphi, nlbphi, lnorb, norb, input, wfn)
   integer:: istat
   character(len=*),parameter:: subname='create_DFT_wavefunction'
 
-  call create_wfn_metadata(mode, nphi, nlbphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+  call create_wfn_metadata(mode, nphi, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
 
   allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
   call memocc(istat, wfn%psi, 'wfn%psi', subname)
