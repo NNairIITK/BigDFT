@@ -236,10 +236,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           !!call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
           !!     max(lorbs%npsidim_orbs,lorbs%npsidim_comp),wfnmd%phiRestart,wfnmd%phi)
           call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-               max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,wfnmd%phi)
+               max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,tmbder%psi)
           if(iproc==0) write(*,'(a)') 'done.'
       else
-          call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
+          call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
       end if
   end if
 
@@ -259,14 +259,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Calculate the overlap matrix.
   if(.not.wfnmd%bs%use_derivative_basis) then
-      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, wfnmd%phi, mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
   else
-      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, wfnmd%phi, lbmad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
   end if
 
 
   if(wfnmd%bs%communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, wfnmd%phi, comsr)
+      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
   end if
   
 
@@ -305,7 +305,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
@@ -316,7 +316,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      call default_confinement_data(confdatarrtmp,llborbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
@@ -343,10 +343,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
   if(.not. wfnmd%bs%use_derivative_basis) then
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, wfnmd%phi, lhphi, mad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
       !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, wfnmd%phi, lhphi, lbmad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
   end if
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
 

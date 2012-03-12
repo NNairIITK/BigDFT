@@ -660,7 +660,7 @@ type(DFT_wavefunction):: tmbder
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, wfnmd%phi, lin%lb%comsr)
+  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, tmbder%psi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
        wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
@@ -670,7 +670,7 @@ type(DFT_wavefunction):: tmbder
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, tmbder%wfnmd%coeff, wfnmd%phi, psi, psit)
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
   end if
 
 
