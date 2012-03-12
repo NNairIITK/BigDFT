@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,orthpar,confdatarr,&
     blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,locrad,wfnmd,tmb,tmbder)
+    hx,hy,hz,SIC,locrad,tmb,tmbder)
 !
 ! Purpose:
 ! ========
@@ -93,7 +93,7 @@ type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 real(8),dimension(lzd%nlr),intent(in):: locrad
-type(wfn_metadata),intent(inout):: wfnmd
+!!type(wfn_metadata),intent(inout):: wfnmd
 type(DFT_wavefunction),intent(inout):: tmb, tmbder
 
 ! Local variables 
@@ -199,11 +199,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       !!!allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
       !!!call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
-      wfnmd%nphi=lorbs%npsidim_orbs
+      !!wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
-      wfnmd%nlbphi=llborbs%npsidim_orbs
+      !!wfnmd%nlbphi=llborbs%npsidim_orbs
       tmb%wfnmd%nlbphi=llborbs%npsidim_orbs
-      wfnmd%basis_is=BASIS_IS_ENHANCED
+      !!wfnmd%basis_is=BASIS_IS_ENHANCED
       tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
 
@@ -379,7 +379,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   !!!!$$! So it will work, but be careful. Maybe this can be improved later
   !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
-      call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
+      !!call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
       call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
