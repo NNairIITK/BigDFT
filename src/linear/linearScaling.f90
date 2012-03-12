@@ -148,6 +148,11 @@ type(DFT_wavefunction):: tmbder
  tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
  tmb%wfnmd%bs%use_derivative_basis=.false.
 
+  call nullify_p2pcomms(tmb%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, lin%orbs, tag, tmb%comsr)
+  call nullify_p2pcomms(tmbder%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, lin%lb%orbs, tag, tmbder%comsr)
+
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
   !!!use a temporary array onwhichatom instead of inwhichlocreg
@@ -261,10 +266,10 @@ type(DFT_wavefunction):: tmbder
       end if
 
       if(lin%mixedmode) then
-          call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+          call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
           !!wfnmd%bs%use_derivative_basis=.false.
           tmbder%wfnmd%bs%use_derivative_basis=.false.
-          call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
+          call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, tmb%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, tmb%comon, tmb%comon, &
               tmb%comgp, tmb%comgp, at, rxyz, &
               denspot, GPU, &
@@ -274,8 +279,8 @@ type(DFT_wavefunction):: tmbder
               lin%lb%comrp, tmbder%wfnmd%bpo%blocksize_pdsyev, tmbder%wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, locrad, tmb, tmbder)
       else
-          call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
-          call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+          call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
+          call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
               tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
               denspot,GPU,&
@@ -285,7 +290,7 @@ type(DFT_wavefunction):: tmbder
               lin%lb%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, locrad, tmb, tmbder)
       end if
-      !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+      !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, tmbder%comsr, &
       !!    lin%op, lin%lb%op, tmb%comon, tmbder%comon, comms, at, lin, rxyz, rxyz, &
       !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
       !!    infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
@@ -294,9 +299,9 @@ type(DFT_wavefunction):: tmbder
       ! Calculate the charge density.
       !!call cpu_time(t1)
       if(lin%mixedmode) then
-          call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+          call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
       else
-          call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
+          call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
       end if
       !!call cpu_time(t2)
       !!time=t2-t1
@@ -452,8 +457,8 @@ type(DFT_wavefunction):: tmbder
 
       ! Allocate the communication arrays for the calculation of the charge density.
       with_auxarray=.false.
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
 
       ! Now all initializations are done...
 
@@ -478,7 +483,7 @@ type(DFT_wavefunction):: tmbder
               if(.not.withder) then
                   !!wfnmd%bs%use_derivative_basis=.false.
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
-                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
+                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,tmb%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
                       denspot,GPU,&
@@ -496,7 +501,7 @@ type(DFT_wavefunction):: tmbder
                       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
                   end if
 
-                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                       denspot,GPU,&
@@ -507,7 +512,7 @@ type(DFT_wavefunction):: tmbder
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               end if
           else
-              call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+              call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
@@ -523,18 +528,18 @@ type(DFT_wavefunction):: tmbder
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-                       lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
+                       lin%lzd, input, hx, hy, hz, lin%orbs, tmb%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
+                       lin%lzd, input, hx, hy, hz, lin%lb%orbs, tmbder%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
+                   lin%lzd, input, hx, hy ,hz, lin%lb%orbs, tmbder%comsr, &
                    tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
@@ -630,8 +635,8 @@ type(DFT_wavefunction):: tmbder
           end if
       end do
 
-      call deallocateCommunicationbufferSumrho(lin%comsr, subname)
-      call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
+      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -683,12 +688,12 @@ type(DFT_wavefunction):: tmbder
 
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
-  call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, tmbder%psi, lin%lb%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
+  call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
+  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, tmbder%psi, tmbder%comsr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, tmbder%comsr, &
        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
-  call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
+  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1force=mpi_wtime()
@@ -1288,6 +1293,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comon, subname)
   call deallocate_p2pComms(wfn%comgp, subname)
   if(wfn%wfnmd%bs%use_derivative_basis) call deallocate_p2pComms(wfn%comrp, subname)
+  call deallocate_p2pComms(wfn%comsr, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
 
 end subroutine destroy_DFT_wavefunction
