@@ -416,7 +416,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
               tt = tt + tmbder%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
-          tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
+          !tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
           tmb%wfnmd%coeff(jjorb,iorb)=tt
           !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
           jjorb=jjorb+1

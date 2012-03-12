@@ -1051,8 +1051,8 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
 
-      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
+      !!allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
+      !!call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
@@ -1101,9 +1101,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeff, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeff', subname)
 
-  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
-  deallocate(wfnmd%coeff_proj, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+  !!iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
+  !!deallocate(wfnmd%coeff_proj, stat=istat)
+  !!call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
 
 end subroutine destroy_wfn_metadata
 
