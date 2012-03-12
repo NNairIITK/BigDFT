@@ -278,7 +278,7 @@ type(DFT_wavefunction):: tmbder
           !!wfnmd%bs%use_derivative_basis=.false.
           tmbder%wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, tmb%comsr, &
-              tmb%mad, tmb%mad, lin%op, lin%op, tmb%comon, tmb%comon, &
+              tmb%mad, tmb%mad, tmb%op, tmb%op, tmb%comon, tmb%comon, &
               tmb%comgp, tmb%comgp, at, rxyz, &
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
@@ -289,7 +289,7 @@ type(DFT_wavefunction):: tmbder
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-              tmb%mad,tmbder%mad,lin%op,lin%lb%op,tmb%comon,&
+              tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
               tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
@@ -299,7 +299,7 @@ type(DFT_wavefunction):: tmbder
               hx,hy,hz,input%SIC, locrad, tmb, tmbder)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, tmbder%comsr, &
-      !!    lin%op, lin%lb%op, tmb%comon, tmbder%comon, comms, at, lin, rxyz, rxyz, &
+      !!    tmb%op, tmbder%op, tmb%comon, tmbder%comon, comms, at, lin, rxyz, rxyz, &
       !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
       !!    infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
       !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, wfnmd%bs%communicate_phi_for_lsumrho, coeff_proj)
@@ -492,7 +492,7 @@ type(DFT_wavefunction):: tmbder
                   !!wfnmd%bs%use_derivative_basis=.false.
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,tmb%comsr,&
-                      tmb%mad,tmb%mad,lin%op,lin%op,tmb%comon,&
+                      tmb%mad,tmb%mad,tmb%op,tmb%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
@@ -510,7 +510,7 @@ type(DFT_wavefunction):: tmbder
                   end if
 
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-                      tmb%mad,tmbder%mad,lin%op,lin%lb%op,&
+                      tmb%mad,tmbder%mad,tmb%op,tmbder%op,&
                       tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
@@ -521,7 +521,7 @@ type(DFT_wavefunction):: tmbder
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,tmbder%comsr,&
-                  tmb%mad,tmbder%mad,lin%op,lin%lb%op,tmb%comon,&
+                  tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
