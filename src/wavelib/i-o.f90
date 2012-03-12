@@ -253,8 +253,10 @@ subroutine ext_buffers_coarse(periodic,nb)
   end if
 END SUBROUTINE ext_buffers_coarse
 
+
 module internal_io
   implicit none
+
 contains
   subroutine io_error(error)
     use module_defs

@@ -1,5 +1,5 @@
 !> @file
-!!  Routines to handel projectors
+!!  Routines to handle projectors
 !! @author
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -383,7 +383,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   integer, intent(inout) :: istart_c,iproj,nwarnings
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
-  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,ncplx
   real(gp) :: kx,ky,kz
 
   !features of the k-point ikpt
@@ -440,7 +440,8 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   character(len=*), intent(in) :: subname
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   !local variables
-  integer :: i_all, i_stat,iat
+  integer :: iat
+!!$  integer :: i_stat
 
   do iat=1,nlpspd%natoms
      call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
@@ -654,7 +655,7 @@ subroutine crtproj(geocode,nterm,lr, &
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ns1,ns2,ns3,n1,n2,n3
   integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
-  integer :: counter !test
+  !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
