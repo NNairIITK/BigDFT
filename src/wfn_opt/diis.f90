@@ -593,7 +593,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      if (iproc == 0) then
         if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
         !yaml output
-        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
+!        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
 
@@ -978,11 +978,11 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
      if (ngroup==1) then
         if (verbose >0) write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,itdiis+1)!,&
         !yaml output
-        write(70,'(1x,a,1pe9.2)',advance='no')'DIIS wgts: [ ',rds(1:ncplx,1,1,1)
+!        write(70,'(1x,a,1pe9.2)',advance='no')'DIIS wgts: [ ',rds(1:ncplx,1,1,1)
         do j=2,itdiis+1
-           write(70,'(a,1pe9.2)',advance='no')', ',rds(1:ncplx,j,1,1)
+!           write(70,'(a,1pe9.2)',advance='no')', ',rds(1:ncplx,j,1,1)
         end do
-        write(70,'(a)')']'
+!        write(70,'(a)')']'
         !'(',ttr,tti,')'
      else if (verbose >0) then
         do igroup=1,ngroup

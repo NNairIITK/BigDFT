@@ -15,9 +15,12 @@ check: bindings.report
 
 #check_lib_c: $(top_builddir)/src/libbigdft.a
 
-bindings.report: $(srcdir)/bindings.out.ref bindings.out
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+$(EXTRA_DIST):
+	@cp -p $(srcdir)/$@ .
 
-bindings.out: check_lib_c $(srcdir)/posinp.ascii $(srcdir)/test.dft
+bindings.report: $(srcdir)/bindings.out.ref bindings.out
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
+
+bindings.out: check_lib_c posinp.ascii $(srcdir)/test.dft
 	./check_lib_c $(srcdir) > $@
 	cat output.ascii >> $@

@@ -113,6 +113,11 @@ report:
 	$(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
+%.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 

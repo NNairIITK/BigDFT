@@ -542,7 +542,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in,hx,hy,hz,Lzd,atoms,orbs,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -1683,7 +1683,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
           &   '------------------------------------------------------- Input Wavefunctions Creation'
      !yaml_output
      !      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-     yaml_indent=yaml_indent+2 !list element
+!     yaml_indent=yaml_indent+2 !list element
   end if
   !spin for inputguess orbitals
   if (nspin == 4) then
@@ -1709,7 +1709,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,input,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd

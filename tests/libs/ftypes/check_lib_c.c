@@ -1,6 +1,8 @@
 #include <config.h>
 
+#ifdef HAVE_GLIB
 #include <glib-object.h>
+#endif
 
 #include <bigdft.h>
 
@@ -206,6 +208,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
+  fprintf(stdout, " Add linear zone description.\n");
   bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, 0, 1);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
@@ -227,7 +230,6 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
-  fprintf(stdout, " Add linear zone description.\n");
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
@@ -380,27 +382,36 @@ static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
 static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
 {
   const double *psic;
-  double *psir;
-  guint size, i;
+  double *psir, *psii;
+  guint size, i, n;
   double minDens, maxDens;
 
-  fprintf(stderr, "Callback for 'psi-ready' signal at iter %d.\n", iter);
+  fprintf(stdout, "Callback for 'psi-ready' signal at iter %d.\n", iter);
 
   psic = bigdft_wf_get_psi_compress(wf, 1, 4, BIGDFT_SPIN_UP, BIGDFT_REAL, &size, 0);
-  fprintf(stderr, " Band 4 has %d bytes.\n", size);
+  fprintf(stdout, " Band 4 has %ld bytes.\n", size * sizeof(double));
   
   minDens = G_MAXDOUBLE;
   maxDens = 0.;
+  n = BIGDFT_LOCREG(wf->lzd)->ni[0] * 
+    BIGDFT_LOCREG(wf->lzd)->ni[1] * 
+    BIGDFT_LOCREG(wf->lzd)->ni[2];
   psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic);
-  for (i = 0; i < size; i++)
+  if (BIGDFT_ORBS(wf)->nspinor == 2)
+    psii = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic + size);
+  for (i = 0; i < n; i++)
     {
       psir[i] *= psir[i];
+      if (BIGDFT_ORBS(wf)->nspinor == 2)
+        psir[i] += psii[i] * psii[i];
       minDens = MIN(minDens, psir[i]);
       maxDens = MAX(maxDens, psir[i]);
     }
-  fprintf(stderr, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
+  fprintf(stdout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
   g_free(psir);
+  if (BIGDFT_ORBS(wf)->nspinor == 2)
+    g_free(psii);
 }
 #endif
 

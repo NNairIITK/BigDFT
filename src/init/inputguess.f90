@@ -243,7 +243,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   deallocate(orbse%inWhichLocreg,stat=istat)
   call memocc(istat,iall,'orbse%inWhichLocreg',subname)
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse)
+  call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
 
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
@@ -538,7 +538,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
             iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
             if (nlsc > 2) then
                write(*,*)'ERROR, atom:',iat,&
-                  &   ': cannot admit more than two semicore shells per channel'
+                  &   ': cannot admit more than two semicore shells per channel',nlsc
                stop
             end if
             do i=1,nlsc

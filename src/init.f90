@@ -1544,7 +1544,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    if (iproc == 0) then
       !yaml_output
 !      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-      yaml_indent=yaml_indent+2 !list element
+!      yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
    if (nspin == 4) then
@@ -1586,7 +1586,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 ! ###################################################################
    if(potshortcut<=0) then
        call nullify_local_zone_descriptors(Lzde)
-       call create_LzdLIG(iproc,nproc,input,Lzd%Glr,at,orbse,rxyz,Lzde)
+       call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
    else
        call nullify_local_zone_descriptors(Lzde)
        Lzde = Lzd
@@ -1855,6 +1855,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpcom,denspot%rhov,denspot%pot_full)
    orbse%nspin=nspin_ig
 
+   !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPUe,&
@@ -2072,6 +2073,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   integer :: input_wf_format, i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
+
   norbv=abs(in%norbv)
   inputpsi=in%inputPsiId
   input_wf_format=WF_FORMAT_NONE !default value
@@ -2102,6 +2104,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
+
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)

@@ -123,7 +123,7 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
    call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
-   call communicate_convolutions_bounds(iproc, root, llr%bounds)
+   if (llr%geocode == 'F') call communicate_convolutions_bounds(iproc, root, llr%bounds)
 
 END SUBROUTINE communicate_locreg_descriptors
 

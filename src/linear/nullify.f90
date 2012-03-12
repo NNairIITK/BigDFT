@@ -27,7 +27,6 @@ subroutine nullify_linearParameters(lin)
   !call nullify_p2pCommsOrthonormality(lin%comon)
   call nullify_p2pComms(lin%comon)
   call nullify_overlapParameters(lin%op)
-  call nullify_linearInputGuess(lin%lig)
   call nullify_matrixDescriptors(lin%mad)
 
 end subroutine nullify_linearParameters
@@ -128,7 +127,8 @@ subroutine nullify_largeBasis(lb)
   call nullify_communications_arrays(lb%gcomms)
   call nullify_orbitals_data(lb%orbs)
   call nullify_orbitals_data(lb%gorbs)
-  call nullify_p2pCommsRepartition(lb%comrp)
+  !call nullify_p2pCommsRepartition(lb%comrp)
+  call nullify_p2pComms(lb%comrp)
   !call nullify_p2pCommsOrthonormality(lb%comon)
   call nullify_p2pComms(lb%comon)
   call nullify_overlapParameters(lb%op)
@@ -138,19 +138,20 @@ subroutine nullify_largeBasis(lb)
 end subroutine nullify_largeBasis
 
 
-subroutine nullify_p2pCommsRepartition(comrp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
-  implicit none
-
-  ! Calling arguments
-  type(p2pCommsRepartition),intent(out):: comrp
-
-  nullify(comrp%comarr)
-  nullify(comrp%communComplete)
-
-end subroutine nullify_p2pCommsRepartition
+!!!subroutine nullify_p2pCommsRepartition(comrp)
+!!!  use module_base
+!!!  use module_types
+!!!  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  type(p2pCommsRepartition),intent(out):: comrp
+!!!
+!!!  nullify(comrp%comarr)
+!!!  nullify(comrp%communComplete)
+!!!  nullify(comrp%requests)
+!!!
+!!!end subroutine nullify_p2pCommsRepartition
 
 
 !!subroutine nullify_p2pCommsOrthonormality(comon)
@@ -262,10 +263,12 @@ subroutine nullify_local_zone_descriptors(lzd)
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
  
+  nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
   nullify(lzd%cutoffweight) 
+  nullify(lzd%cutoffweight)
  
 end subroutine nullify_local_zone_descriptors
 
