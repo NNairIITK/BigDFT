@@ -502,18 +502,18 @@ type(DFT_wavefunction):: tmbder
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
-                       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                        lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-                       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                    lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
-                   wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
 
@@ -664,7 +664,7 @@ type(DFT_wavefunction):: tmbder
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, wfnmd%phi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-       wfnmd%ld_coeff, wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
@@ -672,7 +672,7 @@ type(DFT_wavefunction):: tmbder
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, wfnmd%coeff, wfnmd%phi, psi, psit)
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, tmbder%wfnmd%coeff, wfnmd%phi, psi, psit)
   end if
 
 
