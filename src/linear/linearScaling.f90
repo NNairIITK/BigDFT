@@ -130,9 +130,9 @@ type(DFT_wavefunction):: tmbder
  tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
  tmb%wfnmd%bs%use_derivative_basis=.false.
 
-  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, &
+  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs, tmb%comms)
-  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, &
+  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs, tmbder%comms)
  
   call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
