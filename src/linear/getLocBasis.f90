@@ -347,6 +347,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
       call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
+      call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
 
@@ -376,7 +377,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   do iorb=1,orbs%norb
       do jorb=1,llborbs%norb
           do korb=1,llborbs%norb
-              ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              !ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              ebs = ebs + tmbder%wfnmd%coeff(jorb,iorb)*tmbder%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
               !ebs = ebs + matrixElements(jorb,iorb,2)*matrixElements(korb,iorb,2)*matrixElements(korb,jorb,1)
           end do
       end do
@@ -410,7 +412,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       do jorb=1,llborbs%norb,inc
           tt=0.d0
           do korb=1,llborbs%norb
-              tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+              !tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+              tt = tt + tmbder%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
           tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
