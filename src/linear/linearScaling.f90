@@ -1063,7 +1063,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       nullify(wfnmd%phi)
       nullify(wfnmd%phiRestart)
       nullify(wfnmd%coeff)
-      nullify(wfnmd%coeff_proj)
+      !!nullify(wfnmd%coeff_proj)
   else
       stop 'wrong mode'
   end if

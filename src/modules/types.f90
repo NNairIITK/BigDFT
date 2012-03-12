@@ -822,7 +822,7 @@ end type workarrays_quartic_convolutions
     real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives
     real(8),dimension(:),pointer:: phiRestart !<basis functions without derivatives
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
-    real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    !!real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
   end type wfn_metadata
