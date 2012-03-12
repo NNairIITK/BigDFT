@@ -129,6 +129,10 @@ type(DFT_wavefunction):: tmbder
        max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, tmb)
 
+  call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
+       lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, tmbder)
+
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
@@ -739,6 +743,7 @@ type(DFT_wavefunction):: tmbder
 
   call destroy_wfn_metadata(wfnmd)
   call destroy_DFT_wavefunction(tmb)
+  call destroy_DFT_wavefunction(tmbder)
 
   !call deallocateBasicArraysInput(at, input%lin)
   call deallocateBasicArraysInput(input%lin)
