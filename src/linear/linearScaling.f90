@@ -137,6 +137,11 @@ type(DFT_wavefunction):: tmbder
  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
       lin%locregShape, tmbder%op, tmbder%comon, tag)
  
+ call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+      lin%orbs, lin%lzd, tmb%comgp, lin%orbs%inWhichLocreg, tag)
+ call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+      lin%lb%orbs, lin%lzd, tmbder%comgp, lin%lb%orbs%inWhichLocreg, tag)
+
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
@@ -217,12 +222,12 @@ type(DFT_wavefunction):: tmbder
       ! Post communications for gathering the potential.
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       if(lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
-      call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
+      call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
       !!if(wfnmd%bs%use_derivative_basis) then
       if(tmb%wfnmd%bs%use_derivative_basis) then
-          call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
+          call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
       end if
 
       ! Calculate the Hamiltonian in the basis of the trace minimizing orbitals. Do not improve
@@ -255,7 +260,7 @@ type(DFT_wavefunction):: tmbder
           tmb%wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, tmb%comon, tmb%comon, &
-              lin%comgp, lin%comgp, at, rxyz, &
+              tmb%comgp, tmb%comgp, at, rxyz, &
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
               ldiis, &
@@ -266,7 +271,7 @@ type(DFT_wavefunction):: tmbder
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
-              tmbder%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+              tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
               ldiis,orthpar,confdatarr,& 
@@ -339,14 +344,14 @@ type(DFT_wavefunction):: tmbder
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
+  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(tmbder%wfnmd%bs%use_derivative_basis) then
   !!if(tmb%wfnmd%bs%use_derivative_basis) then
-      call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
+      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
   end if
 
 
@@ -469,7 +474,7 @@ type(DFT_wavefunction):: tmbder
                   tmb%wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,tmb%comon,&
-                      tmb%comon,lin%comgp,lin%comgp,at,rxyz,&
+                      tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,orthpar,confdatarr,&
@@ -481,7 +486,7 @@ type(DFT_wavefunction):: tmbder
                   tmb%wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
-                      tmb%comon,tmbder%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+                      tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,orthpar,confdatarr,&
@@ -492,7 +497,7 @@ type(DFT_wavefunction):: tmbder
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,tmb%comon,&
-                  tmbder%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+                  tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                   ldiis,orthpar,confdatarr,&
@@ -594,12 +599,12 @@ type(DFT_wavefunction):: tmbder
           end if
 
           ! Post communications for gathering the potential
-          call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
+          call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
           !if(wfnmd%bs%use_derivative_basis) then
           if(tmb%wfnmd%bs%use_derivative_basis) then
-              call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
+              call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
           end if
 
           ! Write some informations.
@@ -637,12 +642,12 @@ type(DFT_wavefunction):: tmbder
   end do outerLoop
 
 
-  call cancelCommunicationPotential(iproc, nproc, lin%comgp)
-  call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
+  call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   !!if(wfnmd%bs%use_derivative_basis) then
   if(tmb%wfnmd%bs%use_derivative_basis) then
-      call cancelCommunicationPotential(iproc, nproc, lin%lb%comgp)
-      call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+      call cancelCommunicationPotential(iproc, nproc, tmbder%comgp)
+      call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
 
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
@@ -1270,6 +1275,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call destroy_wfn_metadata(wfn%wfnmd)
   call deallocate_overlapParameters(wfn%op, subname)
   call deallocate_p2pComms(wfn%comon, subname)
+  call deallocate_p2pComms(wfn%comgp, subname)
 
 end subroutine destroy_DFT_wavefunction
 
