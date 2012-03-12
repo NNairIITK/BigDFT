@@ -417,6 +417,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
               !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
           tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
+          tmb%wfnmd%coeff(jjorb,iorb)=tt
           !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
           jjorb=jjorb+1
       end do
@@ -586,8 +587,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   ! Calculate the kernel
   allocate(kernel(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
-  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff_proj(1,1), lorbs%norb, &
-       tmb%wfnmd%coeff_proj(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
+  !!call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff_proj(1,1), lorbs%norb, &
+  !!     tmb%wfnmd%coeff_proj(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
+  call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), lorbs%norb, &
+       tmb%wfnmd%coeff(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
 
 
   
