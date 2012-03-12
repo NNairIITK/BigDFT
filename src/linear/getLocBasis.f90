@@ -132,7 +132,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     call mpi_barrier(mpi_comm_world, ierr)
       !!     stop
       !!end if
-      if(wfnmd%bs%use_derivative_basis) then
+      if(tmb%wfnmd%bs%use_derivative_basis) then
           !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
           !call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
           !call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
@@ -148,7 +148,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           denspot,GPU,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
           orthpar,confdatarr,blocksize_pdgemm,&
-          hx,hy,hz,SIC,locrad,wfnmd,tmb)
+          hx,hy,hz,SIC,locrad,tmb%wfnmd,tmb)
 
   end if
 
@@ -161,7 +161,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
       !!     lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+      call update_locreg(iproc, nproc, tmb%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
       !!deallocate(lphiRestart, stat=istat)
@@ -190,7 +190,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, wfnmd%phi(1), 1, tmb%psi(1), 1)
 
   !if(updatePhi .and. newgradient) then
-  if(wfnmd%bs%update_phi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
       !!!! Reallocate lphi, since it is now allocated without the derivatives
       !!!iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
@@ -218,15 +218,15 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
       !!if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
-      if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+      if(.not.tmb%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
   end if
       
   !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
 
 
 
-  if(wfnmd%bs%update_phi .or. itSCC==0) then
-      if(wfnmd%bs%use_derivative_basis) then
+  if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
+      if(tmb%wfnmd%bs%use_derivative_basis) then
           call deallocate_p2pComms(comrp, subname)
           call nullify_p2pComms(comrp)
           call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
@@ -255,17 +255,17 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   !!!end do
 
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
-  wfnmd%basis_is=BASIS_IS_ENHANCED
+  tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
   ! Calculate the overlap matrix.
-  if(.not.wfnmd%bs%use_derivative_basis) then
+  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
       call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
   else
       call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
   end if
 
 
-  if(wfnmd%bs%communicate_phi_for_lsumrho) then
+  if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
   end if
   
@@ -276,14 +276,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
-  if(.not.wfnmd%bs%update_phi .or. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(.not.tmb%wfnmd%bs%update_phi .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
+  if(tmb%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
 
 
-  if(.not.wfnmd%bs%use_derivative_basis) then
+  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
      call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   else
@@ -300,7 +300,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  if(.not.wfnmd%bs%use_derivative_basis) then
+  if(.not.tmb%wfnmd%bs%use_derivative_basis) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
@@ -336,13 +336,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(comgp, subname)
-  if(wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+  if(tmb%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
-  if(.not. wfnmd%bs%use_derivative_basis) then
+  if(.not. tmb%wfnmd%bs%use_derivative_basis) then
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
       !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
@@ -435,7 +435,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! Project the lb coefficients on the smaller subset
-  if(wfnmd%bs%use_derivative_basis) then
+  if(tmb%wfnmd%bs%use_derivative_basis) then
       inc=4
   else
       inc=1
