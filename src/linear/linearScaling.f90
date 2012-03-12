@@ -101,7 +101,7 @@ real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
-type(wfn_metadata):: wfnmd
+!type(wfn_metadata):: wfnmd
 type(DFT_wavefunction):: tmb
 type(DFT_wavefunction):: tmbder
 
@@ -121,9 +121,9 @@ type(DFT_wavefunction):: tmbder
        input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
 
 
-  call create_wfn_metadata('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
-       lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
+  !!call create_wfn_metadata('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+  !!     max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
+  !!     lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
 
   call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
        lin%orbs%norb, orbs%norb, input, tmb)
@@ -210,6 +210,7 @@ type(DFT_wavefunction):: tmbder
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+      if(lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
       !!if(wfnmd%bs%use_derivative_basis) then
@@ -223,11 +224,11 @@ type(DFT_wavefunction):: tmbder
       ! This subroutine will also post the point to point messages needed for the calculation
       ! of the charge density.
       !wfnmd%bs%communicate_phi_for_lsumrho=.true.
-      wfnmd%bs%communicate_phi_for_lsumrho=.true.
+      !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
       lin%newgradient=.false.
-      wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+      !!wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       if(lin%newgradient) then
@@ -244,7 +245,7 @@ type(DFT_wavefunction):: tmbder
 
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-          wfnmd%bs%use_derivative_basis=.false.
+          !!wfnmd%bs%use_derivative_basis=.false.
           tmb%wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
@@ -252,8 +253,8 @@ type(DFT_wavefunction):: tmbder
               denspot, GPU, &
               infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
               ldiis, &
-              orthpar, confdatarr, wfnmd%bpo%blocksize_pdgemm, &
-              lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
+              orthpar, confdatarr, tmbder%wfnmd%bpo%blocksize_pdgemm, &
+              lin%lb%comrp, tmbder%wfnmd%bpo%blocksize_pdsyev, tmbder%wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, locrad, tmb, tmbder)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
@@ -263,8 +264,8 @@ type(DFT_wavefunction):: tmbder
               denspot,GPU,&
               infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
               ldiis,orthpar,confdatarr,& 
-              wfnmd%bpo%blocksize_pdgemm,&
-              lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+              tmbder%wfnmd%bpo%blocksize_pdgemm,&
+              lin%lb%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, locrad, tmb, tmbder)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -336,7 +337,7 @@ type(DFT_wavefunction):: tmbder
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  if(wfnmd%bs%use_derivative_basis) then
+  if(tmbder%wfnmd%bs%use_derivative_basis) then
   !!if(tmb%wfnmd%bs%use_derivative_basis) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
@@ -348,7 +349,7 @@ type(DFT_wavefunction):: tmbder
   !if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
-  wfnmd%bs%update_phi=.true.
+  !!wfnmd%bs%update_phi=.true.
   tmb%wfnmd%bs%update_phi=.true.
   pnrm=1.d100
   pnrm_out=1.d100
@@ -356,7 +357,7 @@ type(DFT_wavefunction):: tmbder
   energyoldout=0.d0
   reduceConvergenceTolerance=.false.
   lin%newgradient=.false.
-  wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+  !!wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
@@ -372,7 +373,7 @@ type(DFT_wavefunction):: tmbder
       ldiis%alphaDIIS=lin%alphaDIIS
 
       ! The basis functions shall be optimized
-      wfnmd%bs%update_phi=.true.
+      !!wfnmd%bs%update_phi=.true.
       tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency looo
@@ -395,8 +396,8 @@ type(DFT_wavefunction):: tmbder
       end if 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
-           locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+      !!call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
+      !!     locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
@@ -443,13 +444,13 @@ type(DFT_wavefunction):: tmbder
       ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
-          if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
+          !!if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
           if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
-              wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
-              wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              !!wfnmd%bs%communicate_phi_for_lsumrho=.false.
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           !!write(*,*) 'ATTENTION DEBUG'
@@ -458,7 +459,7 @@ type(DFT_wavefunction):: tmbder
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           if(lin%mixedmode) then
               if(.not.withder) then
-                  wfnmd%bs%use_derivative_basis=.false.
+                  !!wfnmd%bs%use_derivative_basis=.false.
                   tmb%wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
@@ -466,11 +467,11 @@ type(DFT_wavefunction):: tmbder
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,orthpar,confdatarr,&
-                      wfnmd%bpo%blocksize_pdgemm,&
-                      lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      tmbder%wfnmd%bpo%blocksize_pdgemm,&
+                      lin%lb%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               else
-                  wfnmd%bs%use_derivative_basis=.true.
+                  !!wfnmd%bs%use_derivative_basis=.true.
                   tmb%wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
@@ -478,8 +479,8 @@ type(DFT_wavefunction):: tmbder
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                       ldiis,orthpar,confdatarr,&
-                      wfnmd%bpo%blocksize_pdgemm,&
-                      lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                      tmbder%wfnmd%bpo%blocksize_pdgemm,&
+                      lin%lb%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               end if
           else
@@ -489,8 +490,8 @@ type(DFT_wavefunction):: tmbder
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
                   ldiis,orthpar,confdatarr,&
-                  wfnmd%bpo%blocksize_pdgemm,&
-                  lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
+                  tmbder%wfnmd%bpo%blocksize_pdgemm,&
+                  lin%lb%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, locrad, tmb, tmbder)
           end if
 
@@ -500,18 +501,18 @@ type(DFT_wavefunction):: tmbder
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
-                       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                        lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-                       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                    lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
-                   wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
 
@@ -632,8 +633,8 @@ type(DFT_wavefunction):: tmbder
 
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
-  if(wfnmd%bs%use_derivative_basis) then
-  !!if(tmb%wfnmd%bs%use_derivative_basis) then
+  !!if(wfnmd%bs%use_derivative_basis) then
+  if(tmb%wfnmd%bs%use_derivative_basis) then
       call cancelCommunicationPotential(iproc, nproc, lin%lb%comgp)
       call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
   end if
@@ -662,7 +663,7 @@ type(DFT_wavefunction):: tmbder
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, tmbder%psi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-       wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
@@ -739,7 +740,7 @@ type(DFT_wavefunction):: tmbder
   !!call deallocateLinear(iproc, lin, lphi, coeff)
   call deallocate_linearParameters(lin, subname)
 
-  call destroy_wfn_metadata(wfnmd)
+  !!call destroy_wfn_metadata(wfnmd)
   call destroy_DFT_wavefunction(tmb)
   call destroy_DFT_wavefunction(tmbder)
 
@@ -1016,14 +1017,14 @@ character(len=*),parameter:: subname='transformToGlobal'
 end subroutine transformToGlobal
 
 
-subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+  integer,intent(in):: nphi, lnorb, llbnorb, norb
   type(input_variables),intent(in):: input
   type(wfn_metadata),intent(out):: wfnmd
 
@@ -1036,7 +1037,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       ! linear scaling mode
 
       wfnmd%nphi=nphi
-      wfnmd%nlbphi=nlbphi
+      !!wfnmd%nlbphi=nlbphi
       wfnmd%basis_is=BASIS_IS_ENHANCED !since always it is allocated with wfnmd%nlbphi
       wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
@@ -1233,7 +1234,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   integer:: istat
   character(len=*),parameter:: subname='create_DFT_wavefunction'
 
-  call create_wfn_metadata(mode, nphi, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
 
   allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
   call memocc(istat, wfn%psi, 'wfn%psi', subname)

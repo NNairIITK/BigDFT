@@ -816,7 +816,7 @@ end type workarrays_quartic_convolutions
 
   type,public:: wfn_metadata
     integer:: nphi !<size of phi without derivative
-    integer:: nlbphi !<size of phi with derivatives
+    !!integer:: nlbphi !<size of phi with derivatives
     integer:: basis_is !<indicates whether phi contains derivatives or not
     integer:: ld_coeff !<leading dimension of coeff
     !!real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives

@@ -202,7 +202,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
       !!wfnmd%nlbphi=llborbs%npsidim_orbs
-      tmb%wfnmd%nlbphi=llborbs%npsidim_orbs
+      tmbder%wfnmd%nphi=llborbs%npsidim_orbs
       !!wfnmd%basis_is=BASIS_IS_ENHANCED
       tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
