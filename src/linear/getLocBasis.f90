@@ -192,13 +192,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   !if(updatePhi .and. newgradient) then
   if(wfnmd%bs%update_phi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
-      ! Reallocate lphi, since it is now allocated without the derivatives
-      iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
-      deallocate(wfnmd%phi, stat=istat)
-      call memocc(istat, iall, 'wfnmd%phi', subname)
+      !!!! Reallocate lphi, since it is now allocated without the derivatives
+      !!!iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
+      !!!deallocate(wfnmd%phi, stat=istat)
+      !!!call memocc(istat, iall, 'wfnmd%phi', subname)
 
-      allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
-      call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
+      !!!allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
+      !!!call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
       wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
       wfnmd%nlbphi=llborbs%npsidim_orbs
@@ -217,7 +217,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
-      if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
+      !!if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
       if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
   end if
       

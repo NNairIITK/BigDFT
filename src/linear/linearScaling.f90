@@ -191,7 +191,7 @@ type(DFT_wavefunction):: tmbder
   t1scc=mpi_wtime()
   !lphi=wfnmd%phi
   !call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
-  call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
+  !!call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
 
 
   ! Initialize the DIIS mixing of the potential if required.
@@ -1040,8 +1040,8 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       wfnmd%basis_is=BASIS_IS_ENHANCED !since always it is allocated with wfnmd%nlbphi
       wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
-      allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
-      call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
+      !!allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
+      !!call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
 
       !!allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
       !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
@@ -1058,7 +1058,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
   else if(mode=='c') then
       ! cubic scaling mode
 
-      nullify(wfnmd%phi)
+      !!nullify(wfnmd%phi)
       !!nullify(wfnmd%phiRestart)
       nullify(wfnmd%coeff)
       !!nullify(wfnmd%coeff_proj)
@@ -1087,9 +1087,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   !!call checkAndDeallocatePointer(wfnmd%coeff)
   !!call checkAndDeallocatePointer(wfnmd%coeff_proj)
 
-  iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
-  deallocate(wfnmd%phi, stat=istat)
-  call memocc(istat, iall, 'wfnmd%phi', subname)
+  !!iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
+  !!deallocate(wfnmd%phi, stat=istat)
+  !!call memocc(istat, iall, 'wfnmd%phi', subname)
 
   !!iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
   !!deallocate(wfnmd%phiRestart, stat=istat)

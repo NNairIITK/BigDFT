@@ -819,7 +819,7 @@ end type workarrays_quartic_convolutions
     integer:: nlbphi !<size of phi with derivatives
     integer:: basis_is !<indicates whether phi contains derivatives or not
     integer:: ld_coeff !<leading dimension of coeff
-    real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives
+    !!real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives
     !!real(8),dimension(:),pointer:: phiRestart !<basis functions without derivatives
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     !!real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
