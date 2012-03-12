@@ -134,9 +134,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!end if
       if(wfnmd%bs%use_derivative_basis) then
           !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
-          call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
-          call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
+          !call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
+          !call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
+          !!do istat=1,tmb%wfnmd%nphi
+          !!    write(200+iproc,*) tmb%psi(istat), tmb%wfnmd%phi(istat)
+          !!end do
           call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,tmbder%psi(1),1)
+          call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,wfnmd%phi(1),1)
       end if
 
       ! Improve the trace minimizing orbitals.
@@ -157,16 +161,18 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+      !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+      !!     lorbs, lzd, tmb%psi, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
       !!deallocate(lphiRestart, stat=istat)
       !!call memocc(istat, iall, 'lphiRestart', subname)
       !!allocate(lphiRestart(lorbs%npsidim_orbs), stat=istat)
       !!call memocc(istat, lphiRestart, 'lphiRestart',  subname)
-      iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
-      deallocate(wfnmd%phiRestart, stat=istat)
-      call memocc(istat, iall, 'wfnmd%phiRestart', subname)
-      allocate(wfnmd%phiRestart(lorbs%npsidim_orbs), stat=istat)
-      call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart',  subname)
+      !!iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
+      !!deallocate(wfnmd%phiRestart, stat=istat)
+      !!call memocc(istat, iall, 'wfnmd%phiRestart', subname)
+      !!allocate(wfnmd%phiRestart(lorbs%npsidim_orbs), stat=istat)
+      !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart',  subname)
 
       iall=-product(shape(tmb%psi))*kind(tmb%psi)
       deallocate(tmb%psi, stat=istat)
@@ -178,9 +184,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   ! Keep the value of lphi for the next iteration
   !if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, wfnmd%phi(1), 1, lphiRestart(1), 1)
-  if(wfnmd%bs%update_phi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
-  if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmb%wfnmd%phi(1), 1, tmb%wfnmd%phiRestart(1), 1)
+  !!if(wfnmd%bs%update_phi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
+  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmb%wfnmd%phi(1), 1, tmb%wfnmd%phiRestart(1), 1)
   if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmbder%psi(1), 1, tmb%psi(1), 1)
+  if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, wfnmd%phi(1), 1, tmb%psi(1), 1)
 
   !if(updatePhi .and. newgradient) then
   if(wfnmd%bs%update_phi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -200,11 +207,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
       !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
-      if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
+      !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
+      if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
       if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
   end if
       
   !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
+
 
 
   if(wfnmd%bs%use_derivative_basis .and. (wfnmd%bs%update_phi .or. itSCC==0)) then
@@ -214,8 +223,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       !call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
       !     max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,wfnmd%phi)
+      !!call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
+      !!     max(lorbs%npsidim_orbs,lorbs%npsidim_comp),wfnmd%phiRestart,wfnmd%phi)
       call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),wfnmd%phiRestart,wfnmd%phi)
+           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,wfnmd%phi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
