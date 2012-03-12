@@ -903,6 +903,8 @@ end type workarrays_quartic_convolutions
      type(communications_arrays) :: comms
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
+     type(p2pComms):: comon !<describing p2p communications for orthonormality
+     type(overlapParameters):: op !<describing the overlaps
   end type DFT_wavefunction
 
 contains

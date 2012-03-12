@@ -131,6 +131,12 @@ type(DFT_wavefunction):: tmbder
   call create_DFT_wavefunction('l', max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%lb%orbs%norb, orbs%norb, input, tmbder)
 
+ ! This should go into the create_DFT_wavefunction 
+ call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+      lin%locregShape, tmb%op, tmb%comon, tag)
+ call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+      lin%locregShape, tmbder%op, tmbder%comon, tag)
+ 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
@@ -1246,6 +1252,7 @@ end subroutine create_DFT_wavefunction
 subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use deallocatePointers
   implicit none
   
@@ -1261,6 +1268,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   call memocc(istat, iall, 'wfn%psi', subname)
 
   call destroy_wfn_metadata(wfn%wfnmd)
+  call deallocate_overlapParameters(wfn%op, subname)
+  call deallocate_p2pComms(wfn%comon, subname)
 
 end subroutine destroy_DFT_wavefunction
 
