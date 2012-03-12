@@ -159,10 +159,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
       !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
       !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-           lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-      !!     lorbs, lzd, tmb%psi, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+      !!     lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+      call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+           lorbs, lzd, tmb%psi, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
       !!deallocate(lphiRestart, stat=istat)
       !!call memocc(istat, iall, 'lphiRestart', subname)
@@ -174,11 +174,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!allocate(wfnmd%phiRestart(lorbs%npsidim_orbs), stat=istat)
       !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart',  subname)
 
-      iall=-product(shape(tmb%psi))*kind(tmb%psi)
-      deallocate(tmb%psi, stat=istat)
-      call memocc(istat, iall, 'tmb%psi', subname)
-      allocate(tmb%psi(lorbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmb%psi, 'tmb%psi',  subname)
+      !!iall=-product(shape(tmb%psi))*kind(tmb%psi)
+      !!deallocate(tmb%psi, stat=istat)
+      !!call memocc(istat, iall, 'tmb%psi', subname)
+      !!allocate(tmb%psi(lorbs%npsidim_orbs), stat=istat)
+      !!call memocc(istat, tmb%psi, 'tmb%psi',  subname)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.

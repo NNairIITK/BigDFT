@@ -1043,8 +1043,8 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
       call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
 
-      allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
-      call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
+      !!allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
+      !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
 
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
@@ -1059,7 +1059,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
       ! cubic scaling mode
 
       nullify(wfnmd%phi)
-      nullify(wfnmd%phiRestart)
+      !!nullify(wfnmd%phiRestart)
       nullify(wfnmd%coeff)
       !!nullify(wfnmd%coeff_proj)
   else
@@ -1091,9 +1091,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%phi, stat=istat)
   call memocc(istat, iall, 'wfnmd%phi', subname)
 
-  iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
-  deallocate(wfnmd%phiRestart, stat=istat)
-  call memocc(istat, iall, 'wfnmd%phiRestart', subname)
+  !!iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
+  !!deallocate(wfnmd%phiRestart, stat=istat)
+  !!call memocc(istat, iall, 'wfnmd%phiRestart', subname)
 
   iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
   deallocate(wfnmd%coeff, stat=istat)
