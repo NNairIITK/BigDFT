@@ -125,11 +125,20 @@ type(DFT_wavefunction):: tmbder
   !!     max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
   !!     lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
 
+  !!! INITIALIZATION PART ################################################################################
   call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
        lin%orbs%norb, orbs%norb, input, tmb)
 
   call create_DFT_wavefunction('l', max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%lb%orbs%norb, orbs%norb, input, tmbder)
+
+ tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
+ tmb%wfnmd%bs%use_derivative_basis=.false.
+
+ call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, &
+      tmb%orbs, tmb%comms)
+ call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, &
+      tmbder%orbs, tmbder%comms)
 
  ! This should go into the create_DFT_wavefunction 
  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
@@ -145,8 +154,6 @@ type(DFT_wavefunction):: tmbder
  if(lin%useDerivativeBasisFunctions) &
       call initializeRepartitionOrbitals(iproc, nproc, tag, lin%orbs, lin%lb%orbs, lin%lzd, tmbder%comrp)
 
- tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
- tmb%wfnmd%bs%use_derivative_basis=.false.
 
   call nullify_p2pcomms(tmb%comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, lin%orbs, tag, tmb%comsr)
@@ -159,6 +166,7 @@ type(DFT_wavefunction):: tmbder
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(lin%lb%orbs%norb, tmbder%mad)
 
+  !!! END INITIALIZATION PART ################################################################################
 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -1303,6 +1311,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   if(wfn%wfnmd%bs%use_derivative_basis) call deallocate_p2pComms(wfn%comrp, subname)
   call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors(wfn%mad, subname)
+  call deallocate_orbitals_data(wfn%orbs, subname)
+  call deallocate_communications_arrays(wfn%comms, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
 
 end subroutine destroy_DFT_wavefunction

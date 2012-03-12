@@ -4306,3 +4306,55 @@ write(*,'(1x,a)') '-------------------------------------------------------------
 
 
 end subroutine print_orbital_distribution
+
+
+
+
+
+
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, &
+           lorbs, lcomms)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => init_orbitals_data_for_linear
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, nspinor
+  type(input_variables),intent(in):: input
+  type(atoms_data),intent(in):: at
+  type(locreg_descriptors),intent(in):: glr
+  logical,intent(in):: use_derivative_basis
+  type(orbitals_data),intent(out):: lorbs
+  type(communications_arrays),intent(out):: lcomms
+  
+  ! Local variables
+  integer:: norb, norbu, norbd, ii, ityp, iat
+  
+  
+  ! Count the number of basis functions.
+  norb=0
+  if(use_derivative_basis) then
+      ii=4
+  else
+      ii=1
+  end if
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      norb=norb+ii*input%lin%norbsPerType(ityp)
+  end do
+  
+  
+  ! Distribute the basis functions among the processors.
+  norbu=norb
+  norbd=0
+  call nullify_orbitals_data(lorbs)
+  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+       input%nkpt, input%kpt, input%wkpt, lorbs)
+  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
+       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
+  call orbitals_communicators(iproc,nproc,Glr,lorbs,lcomms)
+  
+  
+
+end subroutine init_orbitals_data_for_linear
