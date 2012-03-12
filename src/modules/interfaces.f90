@@ -6167,7 +6167,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
-                  lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+                  lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
          use module_base
          use module_types
          implicit none
@@ -6179,7 +6179,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(in):: hx, hy, hz
          type(orbitals_data),intent(inout):: lorbs
          type(local_zone_descriptors),intent(inout):: lzd
-         real(8),dimension(:),pointer,intent(inout):: lphiRestart
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
          type(p2pComms),intent(inout):: lbcomon
