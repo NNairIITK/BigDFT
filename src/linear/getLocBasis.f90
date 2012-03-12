@@ -1076,13 +1076,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
              iiorb=lorbs%isorb+iorb
              ilr = lorbs%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, lorbs, lzd%llr(ilr), hx, hy, hz, &
-                 wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
+                 wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder,&
+                 confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
          else
              iiorb=orbslarge%isorb+iorb
              ilr = orbslarge%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
-                 wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
+                  wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at,&
+                  confdatarr(iorb)%potorder, &
                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
@@ -1141,7 +1143,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       if(.not.ldiis%switchSD) then
           call improveOrbitals()
       else
-          if(iproc==0) write(*,'(x,a)') 'no improvement of the orbitals, recalculate gradient'
+          if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
       end if
 
       
@@ -1726,7 +1728,7 @@ integer,dimension(:),allocatable:: orbsperlocreg
 character(len=*),parameter:: subname='create_new_locregs'
 
 
-   if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
+   if(iproc==0) write(*,'(1x,a)') 'creating new locregs...'
    call nullify_local_zone_descriptors(lzdlarge)
    call nullify_orbitals_data(orbslarge)
    call nullify_overlapParameters(oplarge)

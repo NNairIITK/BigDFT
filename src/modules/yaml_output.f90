@@ -18,6 +18,7 @@ module yaml_output
   integer :: itab=0 !> tabbing to have a look on
   integer :: icomma=0 !> comma has been already written
   integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
+  integer :: icommentline=0 !> Active if the line being written is a comment
   integer, dimension(max_record_length/tab), save :: linetab !>value of the tabbing in the line
   interface yaml_toa
      module procedure yaml_itoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa
@@ -25,9 +26,23 @@ module yaml_output
 
   public :: yaml_toa,yaml_map,yaml_indent_map,yaml_close_indent_map
   public :: yaml_flow_map,yaml_close_flow_map,yaml_flow_newline,yaml_flow_sequence,yaml_close_flow_sequence
-  public :: yaml_sequence_element,yaml_close_sequence_element
-
+  public :: yaml_sequence_element,yaml_close_sequence_element,yaml_comment
+ 
   contains
+    !> Reset the line control quantities
+    subroutine carriage_return()
+      implicit none
+      !if a yaml_comment is called put the has in front
+      icommentline=0
+      !beginining of the line
+      icursor=1
+      !no tabbing decided yet
+      itab_active=0
+      itab=0
+      !all needed commas are placed in the previous line
+      icomma=0
+    end subroutine carriage_return
+      
 
     subroutine yaml_new_document()
       implicit none
@@ -55,6 +70,40 @@ module yaml_output
       end if
     end subroutine yaml_warning
 
+    subroutine yaml_comment(comment,advance)
+      implicit none
+      character(len=*), intent(in) :: comment
+      character(len=*), intent(in), optional :: advance
+      if (icommentline == 0) then !no comment active
+         if (present(advance)) then
+            write(stdout,'(a)',advance=advance)' #'//trim(comment)
+            if (advance=='no') then
+               icursor=icursor+len(trim(comment))+2
+               icommentline=1
+            else
+               call carriage_return()
+            end if
+         else
+            write(stdout,'(a)')' #'//trim(comment)
+            call carriage_return()
+         end if
+      else
+         if (present(advance)) then
+            write(stdout,'(a)',advance=advance)trim(comment)
+            if (advance=='no') then
+2               icursor=icursor+len(trim(comment))
+               icommentline=1
+            else
+               call carriage_return()
+            end if
+         else
+            write(stdout,'(a)')trim(comment)
+            call carriage_return()
+         end if
+      end if
+    end subroutine yaml_comment
+
+    !> Open a indented map
     subroutine yaml_indent_map(mapname,label)
       implicit none
       character(len=*), intent(in) :: mapname
@@ -71,6 +120,7 @@ module yaml_output
 
     end subroutine yaml_indent_map
 
+    !Adjust the indentation for a indented map
     subroutine yaml_close_indent_map()
       yaml_indent=max(yaml_indent-yaml_level,0)
     end subroutine yaml_close_indent_map
@@ -106,35 +156,20 @@ module yaml_output
       implicit none
       character(len=*), optional, intent(in) :: advance
       !terminate mapping
-      if (present(advance)) then
-         write(stdout,'(a)',advance=advance)'}'
-         icursor=icursor+1
-         if (advance=='yes') then
-            icursor=1
-            flowrite=0
-            iflowlevel=iflowlevel-1
-            if (iflowlevel==0) then
-               yaml_indent=yaml_indent_previous
-            else
-               yaml_indent=1
-            end if
-            itab_active=0
-            itab=0
-         end if
-      else
-         write(stdout,'(a)')'}'
-         icursor=1
+      write(stdout,'(a)',advance='no')'}'
+      icursor=icursor+1
+      !lower the flowlevel
+      iflowlevel=iflowlevel-1
+      if (iflowlevel==0) then
+         write(stdout,'(a)')' '
          flowrite=0
-         iflowlevel=iflowlevel-1
-         if (iflowlevel==0) then
-            yaml_indent=yaml_indent_previous
-         else
-            yaml_indent=1
-            flowrite=-1
-         end if
-         itab_active=0
-         itab=0
       end if
+      if (present(advance)) then
+         if (advance=='yes') call yaml_flow_newline()
+      else
+         call yaml_flow_newline()
+      end if
+      !write(stdout,*)'debug',iflowlevel,flowrite
     end subroutine yaml_close_flow_map
 
     !> Open a sequence written in flow format
@@ -145,13 +180,11 @@ module yaml_output
 
       write(stdout,'(a)',advance='no')' ['
       icursor=icursor+2
-
       if (flowrite ==0) then
          if (iflowlevel==0) yaml_indent_previous=yaml_indent
-         iflowlevel=iflowlevel+1
          yaml_indent=1
       end if
-
+      iflowlevel=iflowlevel+1
       flowrite=-1 !start to write
     end subroutine yaml_flow_sequence
 
@@ -162,21 +195,6 @@ module yaml_output
       if (present(advance)) then
          write(stdout,'(a)',advance=advance)']'
          icursor=icursor+1
-         if (advance=='yes') then
-            icursor=1
-            flowrite=0
-            iflowlevel=iflowlevel-1
-            if (iflowlevel==0) then
-               yaml_indent=yaml_indent_previous
-            else
-               yaml_indent=1
-            end if
-            itab_active=0
-            itab=0
-         end if
-      else
-         write(stdout,'(a)')']'
-         icursor=1
          flowrite=0
          iflowlevel=iflowlevel-1
          if (iflowlevel==0) then
@@ -184,8 +202,19 @@ module yaml_output
          else
             yaml_indent=1
          end if
-         itab_active=0
-         itab=0
+         if (advance=='yes') then
+            call carriage_return()
+         end if
+      else
+         write(stdout,'(a)')']'
+         flowrite=0
+         iflowlevel=iflowlevel-1
+         if (iflowlevel==0) then
+            yaml_indent=yaml_indent_previous
+         else
+            yaml_indent=1
+         end if
+         call carriage_return()
       end if
     end subroutine yaml_close_flow_sequence
 
@@ -258,9 +287,7 @@ module yaml_output
          icomma=0
       end if
       !reset tabbing
-      itab_active=0
-      itab=0
-      icursor=1
+      call carriage_return()
     end subroutine yaml_flow_newline
 
     !> fill the hash table value, if present.

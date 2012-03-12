@@ -2953,7 +2953,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, ld_coeff, coeff, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,comsr,&
+          ld_coeff,coeff,nrho,rho,at,nscatterarr)
        use module_base
        use module_types
        use libxc_functionals

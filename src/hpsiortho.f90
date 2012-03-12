@@ -986,6 +986,20 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+!> Calculate total energies from the energy terms
+subroutine total_energies(energs)
+  use module_types
+  implicit none
+  type(energy_terms), intent(inout) :: energs
+  
+  !band structure energy calculated with occupation numbers
+  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+  !this is the Kohn-Sham energy
+  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
+       energs%eexctX-energs%evsic+energs%eion+energs%edisp
+  
+end subroutine total_energies
+
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
@@ -1013,8 +1027,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   real(gp) :: rzeroorbs,tt,scpr
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
-  !band structure energy calculated with occupation numbers
-  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
 !!$  eTS=0.0_gp
@@ -1027,8 +1039,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 !!$  energy=energy-eTS
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-  !this is the Kohn-Sham energy
-  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
+  call total_energies(energs)
+!!$  !band structure energy calculated with occupation numbers
+!!$  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+!!$  !this is the Kohn-Sham energy
+!!$  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
   !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
@@ -1430,7 +1445,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    integer :: i_all,i_stat
    real(wp), dimension(:,:,:), pointer :: mom_vec
 
-
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
    else
@@ -1481,10 +1495,9 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
    !print the found eigenvalues
    if (iproc == 0) then
-if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
+      if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
       call write_eigenvalues_data(nproc,orbs,mom_vec)
-if (orbs%nspinor /= 4) deallocate(mom_vec)
-
+      if (orbs%nspinor /= 4) deallocate(mom_vec)
    end if
 
    if (orbs%nspinor ==4) then

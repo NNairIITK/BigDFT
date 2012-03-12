@@ -1496,7 +1496,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use module_interfaces, except_this_one => input_wf_diag
    use module_types
    use Poisson_Solver
-  use libxc_functionals
+   use libxc_functionals
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1521,15 +1522,17 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    logical :: switchGPUconv,switchOCLconv
    integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
    real(kind=4) :: tt,builtin_rand
-   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
+   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
+   type(energy_terms) :: energs
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
    real(wp), dimension(:,:,:), pointer :: psigau
+   real(gp), dimension(:,:,:), pointer :: mom_vec_fake
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
@@ -1543,8 +1546,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    if (iproc == 0) then
       !yaml_output
-!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-!      yaml_indent=yaml_indent+2 !list element
+      call yaml_flow_map("Input Hamiltonian")
+      call yaml_flow_newline()
    end if
    !spin for inputguess orbitals
    if (nspin == 4) then
@@ -1683,52 +1686,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    end if
 
    call updatePotential(iproc,nproc,at%geocode,ixc,nspin,&
-        hxh,hyh,hzh,Lzde%Glr,denspot,ehart,eexcu,vexcu)
-     
-   
-
-!!$     if(orbs%nspinor==4) then
-!!$        !this wrapper can be inserted inside the poisson solver 
-!!$        call PSolverNC(at%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
-!!$             nscatterarr(iproc,1),& !this is n3d
-!!$             ixc,hxh,hyh,hzh,&
-!!$             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-!!$     else
-!!$        !Allocate XC potential
-!!$        if (nscatterarr(iproc,2) >0) then
-!!$           allocate(potxc(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
-!!$           call memocc(i_stat,potxc,'potxc',subname)
-!!$        else
-!!$           allocate(potxc(1+ndebug),stat=i_stat)
-!!$           call memocc(i_stat,potxc,'potxc',subname)
-!!$        end if
-!!$ 
-!!$        call XC_potential(at%geocode,'D',iproc,nproc,&
-!!$             Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-!!$             rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
-!!$        if( iand(potshortcut,4)==0) then
-!!$           call H_potential(at%geocode,'D',iproc,nproc,&
-!!$                Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,hxh,hyh,hzh,&
-!!$                rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
-!!$        endif
-!!$   
-!!$        !sum the two potentials in rhopot array
-!!$        !fill the other part, for spin, polarised
-!!$        if (nspin == 2) then
-!!$           call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
-!!$                rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)+1),1)
-!!$        end if
-!!$        !spin up and down together with the XC part
-!!$        call axpy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
-!!$             rhopot(1),1)
-!!$   
-!!$   
-!!$        i_all=-product(shape(potxc))*kind(potxc)
-!!$        deallocate(potxc,stat=i_stat)
-!!$        call memocc(i_stat,i_all,'potxc',subname)
-!!$   
-!!$     end if
-   
+        hxh,hyh,hzh,Lzde%Glr,denspot,energs%eh,energs%exc,energs%evxc)
+        
 !!$   !!!  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
 !!$     !in view of complete gaussian calculation
@@ -1839,9 +1798,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    
      !call dcopy(orbse%npsidim,psi,1,hpsi,1)
    if (input%exctxpar == 'OP2P') then
-      eexctX = UNINITIALIZED(1.0_gp)
+      energs%eexctX = UNINITIALIZED(1.0_gp)
    else
-      eexctX=0.0_gp
+      energs%eexctX=0.0_gp
    end if
    
    !change temporarily value of Lzd%npotddim
@@ -1858,7 +1817,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPUe,&
+        energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
@@ -1889,23 +1848,19 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!  deallocate(thetaphi,stat=i_stat)
    !!!  call memocc(i_stat,i_all,'thetaphi',subname)
    
-     accurex=abs(eks-ekin_sum)
+     accurex=abs(eks-energs%ekin)
      !tolerance for comparing the eigenvalues in the case of degeneracies
      etol=accurex/real(orbse%norbu,gp)
-     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-!!$   if (iproc == 0) then
-!!$      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!!$      ekin_sum,epot_sum,eproj_sum
-!!$      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-!!$   endif
+     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
+
+     call total_energies(energs)
 
    if (iproc==0) then
-      !call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
       !yaml output
-        write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin_sum,epot_sum,eproj_sum
-!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
-        write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+      call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
+      !write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+      !energs%ekin,energs%epot,energs%eproj
+      !  write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
      endif
   
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
@@ -1951,6 +1906,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
        call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzde%Glr%wfd,comms,&
           psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
     end if
+
+     if (iproc==0) call yaml_flow_newline()
 
    !test merging of Linear and cubic
      call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,Lzde,comms,&
@@ -2036,7 +1993,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    deallocate(orbse%eval,stat=i_stat)
    call memocc(i_stat,i_all,'orbse%eval',subname)
 
-
+   if (iproc==0) call yaml_close_flow_map() !input hamiltonian
 
 END SUBROUTINE input_wf_diag
 

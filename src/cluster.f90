@@ -375,12 +375,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   allocate(confdatarr(orbs%norbp))
   call default_confinement_data(confdatarr,orbs%norbp)
 
-  !yaml output
-!  if (iproc==0) then
-     !      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
- !    yaml_indent=yaml_indent+1 !hash table element
-  !end if
-
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,Lzd,hx,hy,hz,&
@@ -390,21 +384,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      inputpsi = in%inputPsiId
      !call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
      !this does not work with ndebug activated
-!!$     lin%as%size_rhopot=size(denspot%rhov)
-!!$     lin%as%size_potxc(1)=size(denspot%V_XC,1)
-!!$     lin%as%size_potxc(2)=size(denspot%V_XC,2)
-!!$     lin%as%size_potxc(3)=size(denspot%V_XC,3)
-!!$     lin%as%size_potxc(4)=size(denspot%V_XC,4)
-!!$     lin%as%size_rhocore=size(denspot%rho_C)
-!!$     lin%as%size_pot_ion=size(denspot%V_ext)
-!!$     lin%as%size_pkernel=size(denspot%pkernel)
-!!$     lin%as%size_pkernelseq=size(denspot%pkernelseq)
-!!$     lin%as%size_phnons(1)=size(atoms%sym%phnons,1)
-!!$     lin%as%size_phnons(2)=size(atoms%sym%phnons,2)
-!!$     lin%as%size_phnons(3)=size(atoms%sym%phnons,3)
-!!$     lin%as%size_irrzon(1)=size(atoms%sym%irrzon,1)
-!!$     lin%as%size_irrzon(2)=size(atoms%sym%irrzon,2)
-!!$     lin%as%size_irrzon(3)=size(atoms%sym%irrzon,3)
 
      !!if(.not.lin%transformToGlobal) then
      !!    ! psi and psit will not be calculated, so only allocate them with size 1
@@ -533,6 +512,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !normal infocode, if everything go through smoothly we should keep this
      infocode=0
+     !yaml output
+     if (iproc==0) then
+        call yaml_indent_map('Ground State Optimization')
+     end if
+     
      rhopot_loop: do itrp=1,in%itrpmax
         !yaml output 
         if (iproc==0) then
@@ -603,9 +587,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
 
-           energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
-           energy=energs%ebs-energs%eh+energs%exc&
-                -energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
+           !energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+           !energy=energs%ebs-energs%eh+energs%exc&
+           !     -energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
+           call total_energies(energs)
+           energy=energs%eKS
 
               !check for convergence or whether max. numb. of iterations exceeded
               if (endloop) then
@@ -671,7 +657,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               else
                  write(final_out, "(A5)") "final"
               end if
-              call write_energies(iter,0,energs,0.0_gp,gnrm,gnrm_zero,final_out)
+              call write_energies(iter,0,energs,gnrm,gnrm_zero,final_out)
 
               call yaml_close_flow_map()
               call yaml_close_sequence_element()
@@ -762,7 +748,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end do rhopot_loop 
  
      !yaml output
-!     if (iproc==0) yaml_indent=yaml_indent-1 !end hash table element
+     if (iproc==0) call yaml_close_indent_map() !Ground State Optimization
 
      !!do i_all=1,size(rhopot)
      !!    write(10000+iproc,*) rhopot(i_all)

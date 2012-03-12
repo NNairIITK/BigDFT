@@ -900,8 +900,11 @@ end type workarrays_quartic_convolutions
 
      !data properties
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communication_arrays) :: comms
+     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
+     type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
+     type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
   end type DFT_wavefunction
 
