@@ -148,7 +148,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           denspot,GPU,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
           orthpar,confdatarr,blocksize_pdgemm,&
-          hx,hy,hz,SIC,locrad,tmb%wfnmd,tmb)
+          hx,hy,hz,SIC,locrad,tmb)
 
   end if
 
@@ -498,7 +498,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
     denspot,GPU,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,orthpar,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
-    locrad,wfnmd,tmb)
+    locrad,tmb)
 !
 ! Purpose:
 ! ========
@@ -575,7 +575,7 @@ type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(lzd%nlr),intent(in):: locrad
-type(wfn_metadata),intent(inout):: wfnmd
+!!type(wfn_metadata),intent(inout):: wfnmd
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
@@ -629,7 +629,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
-  if(wfnmd%bs%nit_unitary_loop==-1 .and. wfnmd%bs%locreg_enlargement==1.d0) then
+  if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
       variable_locregs=.false.
   else
       variable_locregs=.true.
@@ -637,7 +637,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! Initialize the arrays and variable needed for DIIS.
   !if(newgradient .and. ldiis%isx>0) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. ldiis%isx>0) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. ldiis%isx>0) then
       if(variable_locregs) then
           if(iproc==0) write(*,'(1x,a)') 'ERROR: if the target function is the energy, only steepest descent is &
                                           &allowed since the locreg shapes may change!'
@@ -677,7 +677,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   !if(.not.newgradient) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
       ! The messages for this point ', to point communication have been posted in the subroutine linearScaling.
       call gatherPotential(iproc, nproc, comgp)
@@ -720,7 +720,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! ratio of large locreg and standard locreg
   !factor=1.5d0
-  factor=wfnmd%bs%locreg_enlargement
+  factor=tmb%wfnmd%bs%locreg_enlargement
   factor2=200.0d0
 
   ! always use the same inwhichlocreg
@@ -729,7 +729,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! Initialize largestructures if required
   !if(newgradient) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       do iorb=1,lorbs%norb
           ilr=lorbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
@@ -748,9 +748,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzd, lorbs, op, comon, mad, comgp, &
            tmb%psi, lhphi, lhphiold, lphiold)
-      wfnmd%nphi=lorbs%npsidim_orbs
+      !!wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
-      wfnmd%basis_is=BASIS_IS_STANDARD
+      !!wfnmd%basis_is=BASIS_IS_STANDARD
       tmb%wfnmd%basis_is=BASIS_IS_STANDARD
       call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
@@ -785,7 +785,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
 
-  iterLoop: do it=1,wfnmd%bs%nit_basis_optimization
+  iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
       fnrm=0.d0
@@ -805,7 +805,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       do_ortho_if: if(.not.ldiis%switchSD) then
 
           !newgradient_if_1: if(.not.newgradient) then
-          newgradient_if_1: if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          newgradient_if_1: if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
 
               ! Do a standard orthonormalization
               call orthonormalizeLocalized(iproc, nproc, &
@@ -827,13 +827,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge2, lphilarge, lphilarge2)
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
-                       comonlarge2, madlarge2, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
+                       comonlarge2, madlarge2, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
                        confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
               else
                   ! Optimize the locreg centers and potentially the shape of the basis functions.
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                       comonlarge, madlarge, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
+                       comonlarge, madlarge, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
                        confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
               end if
 
@@ -841,7 +841,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
 
               ! Update the kernel if required.
-              if(wfnmd%bs%nit_unitary_loop>0) then                          
+              if(tmb%wfnmd%bs%nit_unitary_loop>0) then                          
                   call update_kernel(lorbs%norb, Umat, kernel)
               end if
 
@@ -852,9 +852,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        lzd, lorbs, op, comon, mad, comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
-                  wfnmd%nphi=lorbs%npsidim_orbs
+                  !!wfnmd%nphi=lorbs%npsidim_orbs
                   tmb%wfnmd%nphi=lorbs%npsidim_orbs
-                  wfnmd%basis_is=BASIS_IS_STANDARD 
+                  !!wfnmd%basis_is=BASIS_IS_STANDARD 
                   tmb%wfnmd%basis_is=BASIS_IS_STANDARD 
                   call allocateCommunicationsBuffersPotential(comgp, subname)
               end if
@@ -918,7 +918,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       lzd%doHamAppl=.true.
 
       !if(newgradient) then
-      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
           ! The messages for this point to point communication have been posted in the subroutine linearScaling.
           call gatherPotential(iproc, nproc, comgp)
@@ -940,7 +940,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
    
       !if(newgradient) then
-      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Deallocate potential
           iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
           deallocate(denspot%pot_full, stat=istat)
@@ -979,7 +979,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       t1=mpi_wtime()
       !if(.not.newgradient) then
-      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
                orthpar%methTransformOverlap, blocksize_pdgemm, tmb%psi, lhphi, lagmat)
       else
@@ -1008,7 +1008,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       ! Calculate trace (or band structure energy, resp.)
       !if(newgradient) then
-      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           trH=0.d0
           do jorb=1,lorbs%norb
               do korb=1,lorbs%norb
@@ -1032,7 +1032,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
                    alpha=alpha*.6d0
                    !if(.not. newgradient) then
-                   if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                        call dcopy(size(tmb%psi), lphiold, 1, tmb%psi, 1)
                    else
@@ -1058,7 +1058,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       istart=1
       do iorb=1,lorbs%norbp
           !if(.not.newgradient) then
-          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
               iiorb=lorbs%isorb+iorb
               ilr=lorbs%inWhichLocreg(iiorb)
               ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
@@ -1109,7 +1109,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       !call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lhphi, 1, lhphiold, 1)
       call dcopy(lorbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
       !if(newgradient) call dcopy(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
-      if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           call dcopy(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
       trHold=trH
   
@@ -1124,18 +1124,18 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       ind2=1
       do iorb=1,lorbs%norbp
           !if(.not.newgradient) then
-          if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
              iiorb=lorbs%isorb+iorb
              ilr = lorbs%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, lorbs, lzd%llr(ilr), hx, hy, hz, &
-                  wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, &
+                  tmb%wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, &
                   confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
          else
              iiorb=orbslarge%isorb+iorb
              ilr = orbslarge%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
-                  wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
+                  tmb%wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
                   confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
@@ -1153,8 +1153,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(fnrmMax<wfnmd%bs%conv_crit .or. it>=wfnmd%bs%nit_basis_optimization) then
-          if(it>=wfnmd%bs%nit_basis_optimization) then
+      if(fnrmMax<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
+          if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
@@ -1199,7 +1199,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       
       !newgradient_if_2: if(newgradient) then
-      newgradient_if_2: if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      newgradient_if_2: if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
           ! Normalize lphilarge
           if(variable_locregs) then
@@ -1224,7 +1224,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                ! Update confdatarr...
                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
               call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                   comonlarge, madlarge, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
+                   comonlarge, madlarge, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
                    confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
            end if
 
@@ -1232,13 +1232,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                ! Update confdatarr...
                call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
                call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
-                    comonlarge2, madlarge2, rxyz, wfnmd%bs%nit_unitary_loop, kernel, &
+                    comonlarge2, madlarge2, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
                     confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
           end if
 
           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
-          if(wfnmd%bs%nit_unitary_loop>0) then
+          if(tmb%wfnmd%bs%nit_unitary_loop>0) then
               call update_kernel(lorbs%norb, Umat, kernel)
           end if
 
@@ -1251,7 +1251,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    lzd, lorbs, op, comon, mad, comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
               tmb%wfnmd%nphi=lorbs%npsidim_orbs
-              wfnmd%nphi=lorbs%npsidim_orbs
+              !!wfnmd%nphi=lorbs%npsidim_orbs
               tmb%wfnmd%basis_is=BASIS_IS_STANDARD
           end if
 
@@ -1303,7 +1303,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   !if(newgradient) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       !!! Create new logrecs taking incto account the derivatives
       !!ii=lorbs%npsidim_orbs
       !!call dcopy(ii, tmb%psi(1), 1, lphilarge(1), 1)
@@ -1370,7 +1370,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   !!deallocate(denspot%pot_full, stat=istat)
   !!call memocc(istat, iall, 'denspot%pot_full', subname)
   !if(.not. newgradient) then
-  if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Deallocate potential
       iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
       deallocate(denspot%pot_full, stat=istat)
@@ -1549,7 +1549,7 @@ contains
                  do iorb=1,lorbs%norbp
                      !ilr=lorbs%inWhichLocregp(iorb)
                      !if(.not.newgradient) then
-                     if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                     if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                          iiorb=lorbs%isorb+iorb
                          ilr=lorbs%inWhichLocreg(iiorb)
                          ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
@@ -1561,7 +1561,7 @@ contains
                      istsource=offset+ii*ncount+1
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      !if(.not.newgradient) then
-                     if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                     if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                          call dcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
                          call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
                      else
@@ -1574,7 +1574,7 @@ contains
              else
                  ! else copy the orbitals of the last iteration to lphiold
                  !if(.not.newgradient) then
-                 if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                 if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                      call dcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
                  else
                      call dcopy(size(lphilarge), lphilarge(1), 1, lphilargeold(1), 1)
@@ -1614,7 +1614,7 @@ contains
         do iorb=1,lorbs%norbp
             !ilr=lorbs%inWhichLocregp(iorb)
             !if(.not.newgradient) then
-            if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+            if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                 iiorb=lorbs%isorb+iorb
                 ilr=lorbs%inWhichLocreg(iiorb)
                 ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
@@ -1632,14 +1632,14 @@ contains
         ! DIIS
         if(ldiis%alphaDIIS/=1.d0) then
             !if(.not.newgradient) then
-            if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+            if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                 call dscal(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
             else
                 call dscal(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
             end if
         end if
         !if(.not.newgradient) then
-        if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
             call optimizeDIIS(iproc, nproc, lorbs, lorbs, lzd, lhphi, tmb%psi, ldiis, it)
         else
             call optimizeDIIS(iproc, nproc, orbslarge, orbslarge, lzdlarge, lhphilarge, lphilarge, ldiis, it)
