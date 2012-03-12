@@ -121,37 +121,41 @@ type(DFT_wavefunction):: tmbder
        input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
 
 
-  !!call create_wfn_metadata('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-  !!     max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
-  !!     lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
+  !!call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
+  !!     max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), &
+  !!     tmb%orbs%norb, tmbder%orbs%norb, orbs%norb, input, wfnmd)
 
   !!! INITIALIZATION PART ################################################################################
+
+ tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
+ tmb%wfnmd%bs%use_derivative_basis=.false.
+
+  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, &
+       tmb%orbs, tmb%comms)
+  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, &
+       tmbder%orbs, tmbder%comms)
+ 
   call create_DFT_wavefunction('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
        lin%orbs%norb, orbs%norb, input, tmb)
 
   call create_DFT_wavefunction('l', max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
        lin%lb%orbs%norb, orbs%norb, input, tmbder)
 
- tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
- tmb%wfnmd%bs%use_derivative_basis=.false.
+  tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
+  tmb%wfnmd%bs%use_derivative_basis=.false.
 
- call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, &
-      tmb%orbs, tmb%comms)
- call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, &
-      tmbder%orbs, tmbder%comms)
+  ! This should go into the create_DFT_wavefunction 
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+       lin%locregShape, tmb%op, tmb%comon, tag)
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+       lin%locregShape, tmbder%op, tmbder%comon, tag)
+  
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+       lin%orbs, lin%lzd, tmb%comgp, lin%orbs%inWhichLocreg, tag)
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+       lin%lb%orbs, lin%lzd, tmbder%comgp, lin%lb%orbs%inWhichLocreg, tag)
 
- ! This should go into the create_DFT_wavefunction 
- call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
-      lin%locregShape, tmb%op, tmb%comon, tag)
- call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
-      lin%locregShape, tmbder%op, tmbder%comon, tag)
- 
- call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-      lin%orbs, lin%lzd, tmb%comgp, lin%orbs%inWhichLocreg, tag)
- call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-      lin%lb%orbs, lin%lzd, tmbder%comgp, lin%lb%orbs%inWhichLocreg, tag)
-
- if(lin%useDerivativeBasisFunctions) &
+  if(lin%useDerivativeBasisFunctions) &
       call initializeRepartitionOrbitals(iproc, nproc, tag, lin%orbs, lin%lb%orbs, lin%lzd, tmbder%comrp)
 
 
