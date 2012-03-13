@@ -827,63 +827,71 @@ if(associated(orbsout%norb_par)) then
     deallocate(orbsout%norb_par, stat=istat)
     call memocc(istat, iall, 'orbsout%norb_par', subname)
 end if
-iis1=lbound(orbsin%norb_par,1)
-iie1=ubound(orbsin%norb_par,1)
-iis2=lbound(orbsin%norb_par,2)
-iie2=ubound(orbsin%norb_par,2)
-allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
-call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
-do i1=iis1,iie1
-   do i2 = iis2,iie2
-    orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
-   end do
-end do
+if(associated(orbsin%norb_par)) then
+    iis1=lbound(orbsin%norb_par,1)
+    iie1=ubound(orbsin%norb_par,1)
+    iis2=lbound(orbsin%norb_par,2)
+    iie2=ubound(orbsin%norb_par,2)
+    allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
+    call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
+    do i1=iis1,iie1
+       do i2 = iis2,iie2
+        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+       end do
+    end do
+end if
 
 if(associated(orbsout%iokpt)) then
     iall=-product(shape(orbsout%iokpt))*kind(orbsout%iokpt)
     deallocate(orbsout%iokpt, stat=istat)
     call memocc(istat, iall, 'orbsout%iokpt', subname)
 end if
-iis1=lbound(orbsin%iokpt,1)
-iie1=ubound(orbsin%iokpt,1)
-allocate(orbsout%iokpt(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
-do i1=iis1,iie1
-    orbsout%iokpt(i1) = orbsin%iokpt(i1)
-end do
+if(associated(orbsin%iokpt)) then
+    iis1=lbound(orbsin%iokpt,1)
+    iie1=ubound(orbsin%iokpt,1)
+    allocate(orbsout%iokpt(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
+    do i1=iis1,iie1
+        orbsout%iokpt(i1) = orbsin%iokpt(i1)
+    end do
+end if
 
 if(associated(orbsout%ikptproc)) then
     iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
     deallocate(orbsout%ikptproc, stat=istat)
     call memocc(istat, iall, 'orbsout%ikptproc', subname)
 end if
-iis1=lbound(orbsin%ikptproc,1)
-iie1=ubound(orbsin%ikptproc,1)
-allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
-do i1=iis1,iie1
-    orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
-end do
+if(associated(orbsin%ikptproc)) then
+    iis1=lbound(orbsin%ikptproc,1)
+    iie1=ubound(orbsin%ikptproc,1)
+    allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
+    do i1=iis1,iie1
+        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
+    end do
+end if
 
 if(associated(orbsout%inwhichlocreg)) then
     iall=-product(shape(orbsout%inwhichlocreg))*kind(orbsout%inwhichlocreg)
     deallocate(orbsout%inwhichlocreg, stat=istat)
     call memocc(istat, iall, 'orbsout%inwhichlocreg', subname)
 end if
-iis1=lbound(orbsin%inwhichlocreg,1)
-iie1=ubound(orbsin%inwhichlocreg,1)
-allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
-do i1=iis1,iie1
-    orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
-end do
+if(associated(orbsin%inwhichlocreg)) then
+    iis1=lbound(orbsin%inwhichlocreg,1)
+    iie1=ubound(orbsin%inwhichlocreg,1)
+    allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
+    do i1=iis1,iie1
+        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
+    end do
+end if
 
 if(associated(orbsout%onwhichatom)) then
     iall=-product(shape(orbsout%onwhichatom))*kind(orbsout%onwhichatom)
     deallocate(orbsout%onwhichatom, stat=istat)
     call memocc(istat, iall, 'orbsout%onwhichatom', subname)
 end if
-if(associated(orbsout%onwhichatom)) then
+if(associated(orbsin%onwhichatom)) then
     iis1=lbound(orbsin%onwhichatom,1)
     iie1=ubound(orbsin%onwhichatom,1)
     allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
@@ -913,40 +921,46 @@ if(associated(orbsout%onWhichMPI)) then
     deallocate(orbsout%onWhichMPI, stat=istat)
     call memocc(istat, iall, 'orbsout%onWhichMPI', subname)
 end if
-iis1=lbound(orbsin%onWhichMPI,1)
-iie1=ubound(orbsin%onWhichMPI,1)
-allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
-do i1=iis1,iie1
-    orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
-end do
+if(associated(orbsin%onWhichMPI)) then
+    iis1=lbound(orbsin%onWhichMPI,1)
+    iie1=ubound(orbsin%onWhichMPI,1)
+    allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
+    do i1=iis1,iie1
+        orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
+    end do
+end if
 
 if(associated(orbsout%isorb_par)) then
     iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
     deallocate(orbsout%isorb_par, stat=istat)
     call memocc(istat, iall, 'orbsout%isorb_par', subname)
 end if
-   iis1=lbound(orbsin%isorb_par,1)
-   iie1=ubound(orbsin%isorb_par,1)
-   allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
-   call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
-   do i1=iis1,iie1
-       orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
-   end do
+if(associated(orbsin%isorb_par)) then
+    iis1=lbound(orbsin%isorb_par,1)
+    iie1=ubound(orbsin%isorb_par,1)
+    allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
+    do i1=iis1,iie1
+        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+    end do
+end if
 
 if(associated(orbsout%eval)) then
     iall=-product(shape(orbsout%eval))*kind(orbsout%eval)
     deallocate(orbsout%eval, stat=istat)
     call memocc(istat, iall, 'orbsout%eval', subname)
 end if
-iis1=lbound(orbsin%eval,1)
-iie1=ubound(orbsin%eval,1)
-if(iie1 /= iis1 ) then
-   allocate(orbsout%eval(iis1:iie1), stat=istat)
-   call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
-   do i1=iis1,iie1
-       orbsout%eval(i1) = orbsin%eval(i1)
-   end do
+if(associated(orbsin%eval)) then
+    iis1=lbound(orbsin%eval,1)
+    iie1=ubound(orbsin%eval,1)
+    if(iie1 /= iis1 ) then
+       allocate(orbsout%eval(iis1:iie1), stat=istat)
+       call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
+       do i1=iis1,iie1
+           orbsout%eval(i1) = orbsin%eval(i1)
+       end do
+    end if
 end if
 
 if(associated(orbsout%occup)) then
@@ -954,26 +968,30 @@ if(associated(orbsout%occup)) then
     deallocate(orbsout%occup, stat=istat)
     call memocc(istat, iall, 'orbsout%occup', subname)
 end if
-iis1=lbound(orbsin%occup,1)
-iie1=ubound(orbsin%occup,1)
-allocate(orbsout%occup(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
-do i1=iis1,iie1
-    orbsout%occup(i1) = orbsin%occup(i1)
-end do
+if(associated(orbsin%occup)) then
+    iis1=lbound(orbsin%occup,1)
+    iie1=ubound(orbsin%occup,1)
+    allocate(orbsout%occup(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
+    do i1=iis1,iie1
+        orbsout%occup(i1) = orbsin%occup(i1)
+    end do
+end if
 
 if(associated(orbsout%spinsgn)) then
     iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
     deallocate(orbsout%spinsgn, stat=istat)
     call memocc(istat, iall, 'orbsout%spinsgn', subname)
 end if
-iis1=lbound(orbsin%spinsgn,1)
-iie1=ubound(orbsin%spinsgn,1)
-allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
-do i1=iis1,iie1
-    orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
-end do
+if(associated(orbsin%spinsgn)) then
+    iis1=lbound(orbsin%spinsgn,1)
+    iie1=ubound(orbsin%spinsgn,1)
+    allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
+    do i1=iis1,iie1
+        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
+    end do
+end if
 
 
 if(associated(orbsout%kwgts)) then
@@ -981,13 +999,15 @@ if(associated(orbsout%kwgts)) then
     deallocate(orbsout%kwgts, stat=istat)
     call memocc(istat, iall, 'orbsout%kwgts', subname)
 end if
-iis1=lbound(orbsin%kwgts,1)
-iie1=ubound(orbsin%kwgts,1)
-allocate(orbsout%kwgts(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
-do i1=iis1,iie1
-    orbsout%kwgts(i1) = orbsin%kwgts(i1)
-end do
+if(associated(orbsin%kwgts)) then
+    iis1=lbound(orbsin%kwgts,1)
+    iie1=ubound(orbsin%kwgts,1)
+    allocate(orbsout%kwgts(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
+    do i1=iis1,iie1
+        orbsout%kwgts(i1) = orbsin%kwgts(i1)
+    end do
+end if
 
 
 if(associated(orbsout%kpts)) then
@@ -995,17 +1015,19 @@ if(associated(orbsout%kpts)) then
     deallocate(orbsout%kpts, stat=istat)
     call memocc(istat, iall, 'orbsout%kpts', subname)
 end if
-iis1=lbound(orbsin%kpts,1)
-iie1=ubound(orbsin%kpts,1)
-iis2=lbound(orbsin%kpts,2)
-iie2=ubound(orbsin%kpts,2)
-allocate(orbsout%kpts(iis1:iie1,iis2:iie2), stat=istat)
-call memocc(istat, orbsout%kpts, 'orbsout%kpts', subname)
-do i2=iis2,iie2
-    do i1=iis1,iie1
-        orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+if(associated(orbsin%kpts)) then
+    iis1=lbound(orbsin%kpts,1)
+    iie1=ubound(orbsin%kpts,1)
+    iis2=lbound(orbsin%kpts,2)
+    iie2=ubound(orbsin%kpts,2)
+    allocate(orbsout%kpts(iis1:iie1,iis2:iie2), stat=istat)
+    call memocc(istat, orbsout%kpts, 'orbsout%kpts', subname)
+    do i2=iis2,iie2
+        do i1=iis1,iie1
+            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+        end do
     end do
-end do
+end if
 
 
 end subroutine copy_orbitals_data
