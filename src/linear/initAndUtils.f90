@@ -2241,6 +2241,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
   character(len=*),parameter:: subname='initMatrixCompressionForInguess'
   
+  call nullify_matrixDescriptors(mad)
   
   mad%nseg=0
   mad%nvctr=0
@@ -4313,7 +4314,7 @@ end subroutine print_orbital_distribution
 
 
 subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
-           lorbs, lcomms)
+           lorbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
@@ -4327,7 +4328,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   logical,intent(in):: use_derivative_basis
   real(8),dimension(3,at%nat),intent(in):: rxyz
   type(orbitals_data),intent(out):: lorbs
-  type(communications_arrays),intent(out):: lcomms
   
   ! Local variables
   integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
@@ -4335,6 +4335,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
   
+  call nullify_orbitals_data(lorbs)
   
   ! Count the number of basis functions.
   allocate(norbsPerAtom(at%nat), stat=istat)
@@ -4362,7 +4363,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
        input%nkpt, input%kpt, input%wkpt, lorbs)
   call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
        lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
-  call orbitals_communicators(iproc,nproc,Glr,lorbs,lcomms)
   
 
   allocate(locregCenter(3,nlr), stat=istat)
@@ -4432,6 +4432,7 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_local_zone_descriptors'
   
+  call nullify_local_zone_descriptors(lzd)
   
   ! Count the number of localization regions
   lzd%nlr=0

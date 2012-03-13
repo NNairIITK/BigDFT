@@ -883,13 +883,15 @@ if(associated(orbsout%onwhichatom)) then
     deallocate(orbsout%onwhichatom, stat=istat)
     call memocc(istat, iall, 'orbsout%onwhichatom', subname)
 end if
-iis1=lbound(orbsin%onwhichatom,1)
-iie1=ubound(orbsin%onwhichatom,1)
-allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
-do i1=iis1,iie1
-    orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
-end do
+if(associated(orbsout%onwhichatom)) then
+    iis1=lbound(orbsin%onwhichatom,1)
+    iie1=ubound(orbsin%onwhichatom,1)
+    allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
+    do i1=iis1,iie1
+        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
+    end do
+end if
 
 !!if(associated(orbsout%inWhichLocregP)) then
 !!    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)

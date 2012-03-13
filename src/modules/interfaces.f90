@@ -6234,7 +6234,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine destroy_DFT_wavefunction
 
        subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
-                  lorbs, lcomms)
+                  lorbs)
          use module_base
          use module_types
          implicit none
@@ -6245,7 +6245,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(in):: use_derivative_basis
          real(8),dimension(3,at%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
-         type(communications_arrays),intent(out):: lcomms
        end subroutine init_orbitals_data_for_linear
 
        subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
