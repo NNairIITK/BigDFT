@@ -154,21 +154,21 @@ type(local_zone_descriptors):: lzd
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
 
-  allocate(norbsPerAtom(at%nat), stat=istat)
-  call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
-  ! Count the number of basis functions.
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
-      norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-  end do
+  !!allocate(norbsPerAtom(at%nat), stat=istat)
+  !!call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+  !!! Count the number of basis functions.
+  !!do iat=1,at%nat
+  !!    ityp=at%iatype(iat)
+  !!    norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
+  !!end do
 
 
-  call assignToLocreg2(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, at%nat, at%nat, &
-     input%nspin, norbsPerAtom, rxyz, onwhichatom)
+  !!call assignToLocreg2(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, at%nat, at%nat, &
+  !!   input%nspin, norbsPerAtom, rxyz, onwhichatom)
 
   allocate(confdatarr(tmb%orbs%norbp))
   call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,onwhichatom)
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmb%orbs%onwhichatom)
 
 
 
@@ -469,7 +469,7 @@ type(local_zone_descriptors):: lzd
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       !!call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, onwhichatom, confdatarr, wfnmd, &
       !!     locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
-      call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
+      call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, tmb%orbs%onwhichatom, confdatarr, tmb%wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       !!if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -722,12 +722,12 @@ type(local_zone_descriptors):: lzd
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
-  iall=-product(shape(onwhichatom))*kind(onwhichatom)
-  deallocate(onwhichatom, stat=istat)
-  call memocc(istat, iall, 'onwhichatom', subname)
-  iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
-  deallocate(norbsPerAtom, stat=istat)
-  call memocc(istat, iall, 'norbsPerAtom', subname)
+  !!iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  !!deallocate(onwhichatom, stat=istat)
+  !!call memocc(istat, iall, 'onwhichatom', subname)
+  !!iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
+  !!deallocate(norbsPerAtom, stat=istat)
+  !!call memocc(istat, iall, 'norbsPerAtom', subname)
 
   if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
