@@ -102,8 +102,9 @@ type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
 integer,dimension(:),allocatable:: norbsPerAtom
 !type(wfn_metadata):: wfnmd
-type(DFT_wavefunction):: tmb
-type(DFT_wavefunction):: tmbder
+type(DFT_wavefunction),target:: tmb
+type(DFT_wavefunction),target:: tmbder
+type(DFT_wavefunction),pointer:: tmbmix
 type(local_zone_descriptors):: lzd
 
 
@@ -163,8 +164,14 @@ type(local_zone_descriptors):: lzd
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
        tmbder%orbs, lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
 
-  if(input%lin%useDerivativeBasisFunctions) &
+  if(input%lin%useDerivativeBasisFunctions) then
       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmbder%comrp)
+      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmb%comrp)
+  else
+      call nullify_p2pComms(tmbder%comrp)
+      call nullify_p2pComms(tmb%comrp)
+  end if
+
 
   call nullify_p2pcomms(tmb%comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmb%orbs, tag, tmb%comsr)
@@ -445,6 +452,7 @@ type(local_zone_descriptors):: lzd
                   infoBasisFunctions,nlpspd,proj,ldiis,&
                   orthpar,confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
                   hx,hy,hz,input%SIC,locrad,tmb)
+              tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
           !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
           !!    call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
@@ -453,6 +461,7 @@ type(local_zone_descriptors):: lzd
           if(input%lin%mixedmode) then
               if(.not.withder) then
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
+                  tmbmix => tmb
                   call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmb%orbs,tmb%comsr,&
                       tmb%mad,tmb%mad,tmb%op,tmb%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
@@ -469,6 +478,7 @@ type(local_zone_descriptors):: lzd
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
                       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
                   end if
+                  tmbmix => tmbder
 
                   call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
                       tmb%mad,tmbder%mad,tmb%op,tmbder%op,&
@@ -481,6 +491,7 @@ type(local_zone_descriptors):: lzd
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               end if
           else
+              tmbmix => tmbder
               call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
                   tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
@@ -491,6 +502,15 @@ type(local_zone_descriptors):: lzd
                   tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, locrad, tmb, tmbder)
           end if
+          !!call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbmix%orbs,tmbmix%comsr,&
+          !!    tmb%mad,tmbmix%mad,tmb%op,tmbmix%op,tmb%comon,&
+          !!    tmbmix%comon,tmb%comgp,tmbmix%comgp,at,rxyz,&
+          !!    denspot,GPU,&
+          !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
+          !!    ldiis,orthpar,confdatarr,&
+          !!    tmbmix%wfnmd%bpo%blocksize_pdgemm,&
+          !!    tmbmix%comrp,tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbmix%wfnmd%bpo%nproc_pdsyev,&
+          !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder)
 
 
           ! Calculate the charge density.
@@ -1272,7 +1292,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_overlapParameters(wfn%op, subname)
   call deallocate_p2pComms(wfn%comon, subname)
   call deallocate_p2pComms(wfn%comgp, subname)
-  if(wfn%wfnmd%bs%use_derivative_basis) call deallocate_p2pComms(wfn%comrp, subname)
+  call deallocate_p2pComms(wfn%comrp, subname)
   call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors(wfn%mad, subname)
   call deallocate_orbitals_data(wfn%orbs, subname)

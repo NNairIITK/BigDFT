@@ -143,7 +143,6 @@ type(orbitals_data):: orbs_tmp
   ! Keep the value of lphi for the next iteration
   if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
-      tmb%wfnmd%nphi=lorbs%npsidim_orbs
       tmbder%wfnmd%nphi=llborbs%npsidim_orbs
       tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
