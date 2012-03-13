@@ -304,16 +304,16 @@ type(local_zone_descriptors):: lzd
 
 
       if(trim(input%lin%mixingMethod)=='pot') then
-          if(input%lin%mixHist_lowaccuracy==0) then
-              call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
-                   input%lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
-          else 
-              ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-              mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
-                   input%lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
-          end if
+          !!if(input%lin%mixHist_lowaccuracy==0) then
+          !!    call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
+          !!         input%lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
+          !!else 
+          !!    ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+          !!    mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+          !!    mixdiis%is=mixdiis%is+1
+          !!    call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
+          !!         input%lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
+          !!end if
           rhopotold_out=denspot%rhov
       end if
 

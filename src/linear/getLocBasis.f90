@@ -139,7 +139,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           !!do istat=1,tmb%wfnmd%nphi
           !!    write(200+iproc,*) tmb%psi(istat), tmb%wfnmd%phi(istat)
           !!end do
-          call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,tmbder%psi(1),1)
+          !!call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,tmbder%psi(1),1)
           !!call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,wfnmd%phi(1),1)
       end if
 
