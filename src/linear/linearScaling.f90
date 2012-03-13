@@ -140,20 +140,8 @@ type(local_zone_descriptors):: lzd
 
   call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, lzd)
 
-  npsidim = 0
-  do iorb=1,tmb%orbs%norbp
-   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  tmb%orbs%npsidim_orbs=max(npsidim,1)
-  
-  ! The same for the lb type, i.e. with the derivatives.
-  npsidim = 0
-  do iorb=1,tmbder%orbs%norbp
-   ilr=tmbder%orbs%inwhichlocreg(iorb+tmbder%orbs%isorb)
-   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  tmbder%orbs%npsidim_orbs=max(npsidim,1)
+  call update_wavefunctions_size(lzd,tmb%orbs)
+  call update_wavefunctions_size(lzd,tmbder%orbs)
 
  
   call create_DFT_wavefunction('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
@@ -1376,3 +1364,24 @@ subroutine destroy_DFT_wavefunction(wfn)
 
 end subroutine destroy_DFT_wavefunction
 
+
+subroutine update_wavefunctions_size(lzd,orbs)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(inout):: orbs
+
+! Local variables
+integer:: npsidim, ilr, iorb
+
+  npsidim = 0
+  do iorb=1,orbs%norbp
+   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  orbs%npsidim_orbs=max(npsidim,1)
+
+end subroutine update_wavefunctions_size
