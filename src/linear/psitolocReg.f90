@@ -11,152 +11,152 @@
 !> Tranform wavefunction between Global region and localisation region
 !! @warning 
 !!     Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
-
-  use module_base
-  use module_types
- 
- implicit none
-
-  ! Subroutine Scalar Arguments
-  integer, intent(in) :: nlr                  ! number of localization regions
-  integer :: ilr           ! index of the localization region we are considering
-  integer :: ldim          ! dimension of lpsi 
-  type(orbitals_data),intent(in) :: orbs      ! orbital descriptor
-  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  
-  !Subroutine Array Arguments
-  type(locreg_descriptors), dimension(nlr), intent(in) :: Olr  ! Localization grid descriptors 
-  real(wp),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norbp*orbs%nspinor),intent(in) :: psi       !Wavefunction (compressed format)
-  real(wp),dimension(ldim),intent(inout) :: lpsi !Wavefunction in localization region
-  
-  !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
-  integer :: lmin,lmax,Gmin,Gmax
-  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
-  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
-  integer :: length      ! Length of the overlap between Lseg and Gseg
-  integer :: lincrement  ! Increment for writing orbitals in loc_psi
-  integer :: Gincrement  ! Increment for reading orbitals in psi
-  integer :: nseg        ! total number of segments in Llr
-  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
-  character(len=*), parameter :: subname='psi_to_locreg'
-  integer :: i_stat,i_all
-  integer :: start,Gstart
-  integer :: lfinc,Gfinc
-
-! Define integers
-  nseg = Olr(ilr)%wfd%nseg_c + Olr(ilr)%wfd%nseg_f
-  lincrement = Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f
-  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-  icheck = 0
-
-! Initialize loc_psi
-  if (ldim > 0) call to_zero(lincrement*orbs%norbp*orbs%nspinor,lpsi(1))
-
-! Get the keymask: shift for every segment of Llr (with respect to Glr)
-  allocate(keymask(2,nseg),stat=i_stat)
-  call memocc(i_stat,keymask,'keymask',subname)
-
-  call shift_locreg_indexes(Glr,Olr(ilr),keymask,nseg)
-
-!####################################################
-! Do coarse region
-!####################################################
-  do isegloc = 1,Olr(ilr)%wfd%nseg_c
-     lmin = keymask(1,isegloc)
-     lmax = keymask(2,isegloc)
- 
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keygloc(1,isegG)
-        Gmax = Glr%wfd%keygloc(2,isegG)
-
-        ! For each segment in Llr check if there is a collision with the segment in Glr
-        ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
-        
-        ! Define the offset between the two segments
-        offset = lmin - Gmin
-        if(offset < 0) then
-           offset = 0
-        end if
-    
-        ! Define the length of the two segments
-        length = min(lmax,Gmax)-max(lmin,Gmin)
- 
-        !Find the common elements and write them to the new localized wavefunction
-        ! WARNING: index goes from 0 to length because it is the offset of the element
-        do ix = 0,length
-           icheck = icheck + 1
-           ! loop over the orbitals
-           do iorbs=1,orbs%norbp*orbs%nspinor
-              lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1))
-           end do
-        end do
-     end do
-  end do
-
-! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Olr(ilr)%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
-    write(*,*)'is not equal to the number of coarse points in the region',Olr(ilr)%wfd%nvctr_c
-  end if
-
-!##############################################################
-! Now do fine region
-!##############################################################
-
-  icheck = 0
-  start = Olr(ilr)%wfd%nvctr_c
-  Gstart = Glr%wfd%nvctr_c
-  lfinc  = Olr(ilr)%wfd%nvctr_f
-  Gfinc = Glr%wfd%nvctr_f
-
-  do isegloc = Olr(ilr)%wfd%nseg_c+1,nseg
-     lmin = keymask(1,isegloc)
-     lmax = keymask(2,isegloc)
- 
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
-
-        Gmin = Glr%wfd%keygloc(1,isegG)
-        Gmax = Glr%wfd%keygloc(2,isegG)
-
-        ! For each segment in Llr check if there is a collision with the segment in Glr
-        ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
-
-        offset = lmin - Gmin
-        if(offset < 0) offset = 0
-
-        length = min(lmax,Gmax)-max(lmin,Gmin)
-
-        !Find the common elements and write them to the new localized wavefunction
-        ! WARNING: index goes from 0 to length because it is the offset of the element
-        do ix = 0,length
-           icheck = icheck + 1
-           do igrid=0,6
-              do iorbs=1,orbs%norbp*orbs%nspinor
-                 lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
-&                psi(Gstart+Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
-              end do
-           end do
-        end do
-     end do
-  end do
-  
- ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Olr(ilr)%wfd%nvctr_f) then
-    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Olr(ilr)%wfd%nvctr_f
-  end if
-
-  i_all=-product(shape(keymask))*kind(keymask)
-  deallocate(keymask,stat=i_stat)
-  call memocc(i_stat,i_all,'keymask',subname)
-
-END SUBROUTINE psi_to_locreg
+!!subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
+!!
+!!  use module_base
+!!  use module_types
+!! 
+!! implicit none
+!!
+!!  ! Subroutine Scalar Arguments
+!!  integer, intent(in) :: nlr                  ! number of localization regions
+!!  integer :: ilr           ! index of the localization region we are considering
+!!  integer :: ldim          ! dimension of lpsi 
+!!  type(orbitals_data),intent(in) :: orbs      ! orbital descriptor
+!!  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+!!  
+!!  !Subroutine Array Arguments
+!!  type(locreg_descriptors), dimension(nlr), intent(in) :: Olr  ! Localization grid descriptors 
+!!  real(wp),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norbp*orbs%nspinor),intent(in) :: psi       !Wavefunction (compressed format)
+!!  real(wp),dimension(ldim),intent(inout) :: lpsi !Wavefunction in localization region
+!!  
+!!  !local variables
+!!  integer :: igrid,isegloc,isegG,ix,iorbs
+!!  integer :: lmin,lmax,Gmin,Gmax
+!!  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
+!!  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
+!!  integer :: length      ! Length of the overlap between Lseg and Gseg
+!!  integer :: lincrement  ! Increment for writing orbitals in loc_psi
+!!  integer :: Gincrement  ! Increment for reading orbitals in psi
+!!  integer :: nseg        ! total number of segments in Llr
+!!  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
+!!  character(len=*), parameter :: subname='psi_to_locreg'
+!!  integer :: i_stat,i_all
+!!  integer :: start,Gstart
+!!  integer :: lfinc,Gfinc
+!!
+!!! Define integers
+!!  nseg = Olr(ilr)%wfd%nseg_c + Olr(ilr)%wfd%nseg_f
+!!  lincrement = Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f
+!!  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+!!  icheck = 0
+!!
+!!! Initialize loc_psi
+!!  if (ldim > 0) call to_zero(lincrement*orbs%norbp*orbs%nspinor,lpsi(1))
+!!
+!!! Get the keymask: shift for every segment of Llr (with respect to Glr)
+!!  allocate(keymask(2,nseg),stat=i_stat)
+!!  call memocc(i_stat,keymask,'keymask',subname)
+!!
+!!  call shift_locreg_indexes(Glr,Olr(ilr),keymask,nseg)
+!!
+!!!####################################################
+!!! Do coarse region
+!!!####################################################
+!!  do isegloc = 1,Olr(ilr)%wfd%nseg_c
+!!     lmin = keymask(1,isegloc)
+!!     lmax = keymask(2,isegloc)
+!! 
+!!! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+!!     do isegG = 1,Glr%wfd%nseg_c
+!!        Gmin = Glr%wfd%keygloc(1,isegG)
+!!        Gmax = Glr%wfd%keygloc(2,isegG)
+!!
+!!        ! For each segment in Llr check if there is a collision with the segment in Glr
+!!        ! if not, cycle
+!!        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+!!        
+!!        ! Define the offset between the two segments
+!!        offset = lmin - Gmin
+!!        if(offset < 0) then
+!!           offset = 0
+!!        end if
+!!    
+!!        ! Define the length of the two segments
+!!        length = min(lmax,Gmax)-max(lmin,Gmin)
+!! 
+!!        !Find the common elements and write them to the new localized wavefunction
+!!        ! WARNING: index goes from 0 to length because it is the offset of the element
+!!        do ix = 0,length
+!!           icheck = icheck + 1
+!!           ! loop over the orbitals
+!!           do iorbs=1,orbs%norbp*orbs%nspinor
+!!              lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1))
+!!           end do
+!!        end do
+!!     end do
+!!  end do
+!!
+!!! Check if the number of elements in loc_psi is valid
+!!  if(icheck .ne. Olr(ilr)%wfd%nvctr_c) then
+!!    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
+!!    write(*,*)'is not equal to the number of coarse points in the region',Olr(ilr)%wfd%nvctr_c
+!!  end if
+!!
+!!!##############################################################
+!!! Now do fine region
+!!!##############################################################
+!!
+!!  icheck = 0
+!!  start = Olr(ilr)%wfd%nvctr_c
+!!  Gstart = Glr%wfd%nvctr_c
+!!  lfinc  = Olr(ilr)%wfd%nvctr_f
+!!  Gfinc = Glr%wfd%nvctr_f
+!!
+!!  do isegloc = Olr(ilr)%wfd%nseg_c+1,nseg
+!!     lmin = keymask(1,isegloc)
+!!     lmax = keymask(2,isegloc)
+!! 
+!!! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+!!     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+!!
+!!        Gmin = Glr%wfd%keygloc(1,isegG)
+!!        Gmax = Glr%wfd%keygloc(2,isegG)
+!!
+!!        ! For each segment in Llr check if there is a collision with the segment in Glr
+!!        ! if not, cycle
+!!        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+!!
+!!        offset = lmin - Gmin
+!!        if(offset < 0) offset = 0
+!!
+!!        length = min(lmax,Gmax)-max(lmin,Gmin)
+!!
+!!        !Find the common elements and write them to the new localized wavefunction
+!!        ! WARNING: index goes from 0 to length because it is the offset of the element
+!!        do ix = 0,length
+!!           icheck = icheck + 1
+!!           do igrid=0,6
+!!              do iorbs=1,orbs%norbp*orbs%nspinor
+!!                 lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
+!!&                psi(Gstart+Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
+!!              end do
+!!           end do
+!!        end do
+!!     end do
+!!  end do
+!!  
+!! ! Check if the number of elements in loc_psi is valid
+!!  if(icheck .ne. Olr(ilr)%wfd%nvctr_f) then
+!!    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
+!!    write(*,*)'is not equal to the number of fine points in the region',Olr(ilr)%wfd%nvctr_f
+!!  end if
+!!
+!!  i_all=-product(shape(keymask))*kind(keymask)
+!!  deallocate(keymask,stat=i_stat)
+!!  call memocc(i_stat,i_all,'keymask',subname)
+!!
+!!END SUBROUTINE psi_to_locreg
 
 
 !> Find the shift necessary for the indexes of every segment of Blr

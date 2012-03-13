@@ -742,7 +742,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
    logical :: odp,newvalue !orbital dependent potential
    integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
    integer:: istl, ist, size_Lpot, i3s, i3e
-   integer,dimension(:,:),allocatable:: ilrtable
+   integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
    call timing(iproc,'Pot_commun    ','ON')
@@ -828,7 +828,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
 !!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
    if(Lzd%nlr > 1) then
-      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
+      allocate(ilrtable(orbs%norbp),stat=i_stat)
       call memocc(i_stat,ilrtable,'ilrtable',subname)
       !call to_zero(orbs%norbp*2,ilrtable(1,1))
       ilrtable=0
@@ -845,21 +845,20 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
          end if
          !check if the orbitals already visited have the same conditions
          loop_iorb2: do iorb2=1,orbs%norbp
-            if(ilrtable(iorb2,1) == ilr .and. ilrtable(iorb2,2)==ispin) then
+            if(ilrtable(iorb2) == ilr) then
                newvalue=.false.
                exit loop_iorb2
             end if
          end do loop_iorb2
          if (newvalue) then
             ii = ii + 1
-            ilrtable(ii,1)=ilr
-            ilrtable(ii,2)=ispin    !SOMETHING IS NOT WORKING IN THE CONCEPT HERE... ispin is not a property of the locregs, but of the orbitals
+            ilrtable(ii)=ilr
          end if
       end do
       !number of inequivalent potential regions
       nilr = ii
    else 
-      allocate(ilrtable(1,2),stat=i_stat)
+      allocate(ilrtable(1),stat=i_stat)
       call memocc(i_stat,ilrtable,'ilrtable',subname)
       nilr = 1
       ilrtable=1
@@ -903,7 +902,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
       ! Cut potential
       istl=1
       do iorb=1,nilr
-         ilr = ilrtable(iorb,1)
+         ilr = ilrtable(iorb)
 
          ! Cut the potential into locreg pieces
          call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
@@ -914,7 +913,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
       call memocc(i_stat,pot,'pot',subname)
       ist=1
       do iorb=1,nilr
-         ilr = ilrtable(iorb,1)
+         ilr = ilrtable(iorb)
          !determine the dimension of the potential array (copied from full_local_potential)
          if (xc_exctXfac() /= 0.0_gp) then
             stop 'exctX not yet implemented!'

@@ -781,12 +781,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
 !DEBUG
-!!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-!!             if (iproc==0) then
-!!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!!                 ekin_sum,epot_sum,eproj_sum
-!!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-!!             endif
+!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+!             if (iproc==0) then
+!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!                 ekin_sum,epot_sum,eproj_sum
+!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!             endif
 !END DEBUG
       !!!! DEBUG #####################################
       !!istat=1

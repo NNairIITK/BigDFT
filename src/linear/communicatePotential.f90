@@ -90,6 +90,10 @@ do jproc=0,nproc-1
         if(is3j<=ie3k .and. ie3j>=is3k) then
             ioverlap=ioverlap+1
             !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
+        !TAKE INTO ACCOUNT THE PERIODICITY HERE
+        else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+            ie3j = istartEnd(6,jproc) - lzd%Glr%d%n3i
+            if(ie3j>=is3k .or. is3j <= ie3k) ioverlap=ioverlap+1
         end if
     end do
     comgp%noverlaps(jproc)=ioverlap
@@ -115,6 +119,8 @@ do jproc=0,nproc-1
     do kproc=0,nproc-1
         is3k=nscatterarr(kproc,3)+1
         ie3k=is3k+nscatterarr(kproc,2)-1
+!SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
+!Need to split the region
         if(is3j<=ie3k .and. ie3j>=is3k) then
             is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent

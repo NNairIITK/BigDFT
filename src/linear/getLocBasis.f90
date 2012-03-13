@@ -283,6 +283,12 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
+!DEBUG
+!if (iproc==0) then
+!   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!   ekin_sum,epot_sum,eproj_sum
+!endif                                                                                                                                                                       
+!END DEBUG
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
