@@ -5145,20 +5145,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine free_lnlpspd
 
 
-     subroutine transformToGlobal(iproc, nproc, lzd, lin, orbs, comms, input, coeff, lphi, psi, psit)
+     subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,ld_coeff,coeff,lphi,psi,psit)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
+       integer,intent(in):: iproc, nproc, ld_coeff
        type(local_zone_descriptors),intent(in):: lzd
-       type(linearParameters),intent(in):: lin
-       type(orbitals_data),intent(in):: orbs
+       type(orbitals_data),intent(in):: lorbs, orbs
        type(communications_arrays):: comms
        type(input_variables),intent(in):: input
-       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-       real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
-       !real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
-       real(8),dimension(:),pointer,intent(out):: psi, psit
+       real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+       real(8),dimension(lorbs%npsidim_orbs),intent(inout):: lphi
+       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
+       real(8),dimension(:),pointer,intent(out):: psit
      end subroutine transformToGlobal
 
 
