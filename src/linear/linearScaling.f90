@@ -84,7 +84,7 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
-integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim
+integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
@@ -101,6 +101,7 @@ real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
+integer,dimension(:),allocatable:: norbsPerAtom
 !type(wfn_metadata):: wfnmd
 type(DFT_wavefunction):: tmb
 type(DFT_wavefunction):: tmbder
@@ -118,8 +119,8 @@ type(local_zone_descriptors):: lzd
   tag=0
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
+  !!call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
+  !!     input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
 
 
   !!call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
@@ -127,6 +128,8 @@ type(local_zone_descriptors):: lzd
   !!     tmb%orbs%norb, tmbder%orbs%norb, orbs%norb, input, wfnmd)
 
   !!! INITIALIZATION PART ################################################################################
+
+ call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 
  tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
  tmb%wfnmd%bs%use_derivative_basis=.false.
@@ -162,6 +165,25 @@ type(local_zone_descriptors):: lzd
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
+
+
+  allocate(norbsPerAtom(at%nat), stat=istat)
+  call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+  ! Count the number of basis functions.
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
+  end do
+
+
+  call assignToLocreg2(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, at%nat, at%nat, &
+     input%nspin, norbsPerAtom, rxyz, onwhichatom)
+
+  allocate(confdatarr(tmb%orbs%norbp))
+  call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,onwhichatom)
+
+
 
   ! This should go into the create_DFT_wavefunction 
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
@@ -300,7 +322,7 @@ type(local_zone_descriptors):: lzd
       !!else
       do ilr=1,lzd%nlr
           !locrad(ilr)=lin%locrad_highaccuracy(ilr)
-          locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
       !!end if
 
@@ -716,6 +738,9 @@ type(local_zone_descriptors):: lzd
   iall=-product(shape(onwhichatom))*kind(onwhichatom)
   deallocate(onwhichatom, stat=istat)
   call memocc(istat, iall, 'onwhichatom', subname)
+  iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
+  deallocate(norbsPerAtom, stat=istat)
+  call memocc(istat, iall, 'norbsPerAtom', subname)
 
   if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -805,9 +830,9 @@ type(local_zone_descriptors):: lzd
 
 
 
-  ! Deallocate all arrays related to the linear scaling version.
-  !!call deallocateLinear(iproc, lin, lphi, coeff)
-  call deallocate_linearParameters(lin, subname)
+  !!! Deallocate all arrays related to the linear scaling version.
+  !!!!call deallocateLinear(iproc, lin, lphi, coeff)
+  !!call deallocate_linearParameters(lin, subname)
 
   !!call destroy_wfn_metadata(wfnmd)
   call destroy_DFT_wavefunction(tmb)
@@ -818,7 +843,7 @@ type(local_zone_descriptors):: lzd
   call deallocateBasicArraysInput(input%lin)
 
   deallocate(confdatarr)
-  call deallocateBasicArrays(lin)
+  !!call deallocateBasicArrays(lin)
 
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad, stat=istat)
