@@ -438,7 +438,7 @@ module module_types
      integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI!,inwhichlocregP
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts

@@ -4331,12 +4331,14 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   
   ! Local variables
   integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
-  integer,dimension(:),allocatable:: norbsPerLocreg
+  integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
   
   
   ! Count the number of basis functions.
+  allocate(norbsPerAtom(at%nat), stat=istat)
+  call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
   norb=0
   nlr=0
   if(use_derivative_basis) then
@@ -4346,6 +4348,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   end if
   do iat=1,at%nat
       ityp=at%iatype(iat)
+      norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
       norb=norb+ii*input%lin%norbsPerType(ityp)
       nlr=nlr+input%lin%norbsPerType(ityp)
   end do
@@ -4384,6 +4387,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
+
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, at%nat, &
+       input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
   allocate(lorbs%eval(lorbs%norb), stat=istat)
   call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
@@ -4397,6 +4403,10 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
+
+  iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
+  deallocate(norbsPerAtom, stat=istat)
+  call memocc(istat, iall, 'norbsPerAtom', subname)
 
 end subroutine init_orbitals_data_for_linear
 
@@ -4450,6 +4460,7 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
+
 
   call nullify_locreg_descriptors(lzd%Glr)
   call copy_locreg_descriptors(Glr, lzd%Glr, subname)
