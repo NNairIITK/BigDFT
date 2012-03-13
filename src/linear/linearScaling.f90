@@ -144,31 +144,25 @@ type(local_zone_descriptors):: lzd
   call update_wavefunctions_size(lzd,tmbder%orbs)
 
  
-  call create_DFT_wavefunction('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
-       tmb%orbs%norb, orbs%norb, input, tmb)
+  !!call create_DFT_wavefunction('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
+  !!     tmb%orbs%norb, orbs%norb, input, tmb)
 
-  call create_DFT_wavefunction('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), &
-       tmbder%orbs%norb, orbs%norb, input, tmbder)
+  !!call create_DFT_wavefunction('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), &
+  !!     tmbder%orbs%norb, orbs%norb, input, tmbder)
+
+  call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
+       tmb%orbs%norb, orbs%norb, input, tmb%wfnmd)
+  allocate(tmb%psi(tmb%wfnmd%nphi), stat=istat)
+  call memocc(istat, tmb%psi, 'tmb%psi', subname)
+
+  call create_wfn_metadata('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), tmbder%orbs%norb, &
+       tmbder%orbs%norb, orbs%norb, input, tmbder%wfnmd)
+  allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=istat)
+  call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
-
-
-  !!allocate(norbsPerAtom(at%nat), stat=istat)
-  !!call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
-  !!! Count the number of basis functions.
-  !!do iat=1,at%nat
-  !!    ityp=at%iatype(iat)
-  !!    norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-  !!end do
-
-
-  !!call assignToLocreg2(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, at%nat, at%nat, &
-  !!   input%nspin, norbsPerAtom, rxyz, onwhichatom)
-
-  allocate(confdatarr(tmb%orbs%norbp))
-  call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmb%orbs%onwhichatom)
 
 
 
@@ -197,6 +191,10 @@ type(local_zone_descriptors):: lzd
   call initMatrixCompression(iproc, nproc, lzd%nlr, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
+
+  allocate(confdatarr(tmb%orbs%norbp))
+  call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmb%orbs%onwhichatom)
 
   !!! END INITIALIZATION PART ################################################################################
 
