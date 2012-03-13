@@ -4255,11 +4255,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(3,nlr),intent(in):: rxyz
       real(8),intent(in):: hx, hy, hz
       type(local_zone_descriptors),intent(inout):: lzd
-      type(orbitals_data),intent(inout):: orbs
+      type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
-      type(orbitals_data),optional,intent(inout):: lborbs
+      type(orbitals_data),optional,intent(in):: lborbs
     end subroutine initLocregs
 
     subroutine deallocate_linearParameters(lin, subname)
@@ -5145,11 +5145,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine free_lnlpspd
 
 
-     subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+     subroutine transformToGlobal(iproc, nproc, lzd, lin, orbs, comms, input, coeff, lphi, psi, psit)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
+       type(local_zone_descriptors),intent(in):: lzd
        type(linearParameters),intent(in):: lin
        type(orbitals_data),intent(in):: orbs
        type(communications_arrays):: comms
@@ -6248,6 +6249,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(orbitals_data),intent(out):: lorbs
          type(communications_arrays),intent(out):: lcomms
        end subroutine init_orbitals_data_for_linear
+
+       subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(input_variables),intent(in):: input
+         type(locreg_descriptors),intent(in):: glr
+         type(atoms_data),intent(in):: at
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         type(orbitals_data),intent(in):: orbs, derorbs
+         type(local_zone_descriptors),intent(out):: lzd
+       end subroutine init_local_zone_descriptors
 
    end interface
 

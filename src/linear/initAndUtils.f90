@@ -1845,11 +1845,11 @@ integer,intent(in):: iproc, nproc, nlr
 real(8),dimension(3,nlr),intent(in):: rxyz
 real(8),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(inout):: lzd
-type(orbitals_data),intent(inout):: orbs
+type(orbitals_data),intent(in):: orbs
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
 character(len=1),intent(in):: locregShape
-type(orbitals_data),optional,intent(inout):: lborbs
+type(orbitals_data),optional,intent(in):: lborbs
 
 !real(8),dimension(:),pointer:: phi, lphi
 
@@ -1918,17 +1918,17 @@ end do
 
 lzd%linear=.true.
 
-! Calculate the dimension of the wave function for each process.
-! Do it for both the compressed ('npsidim') and for the uncompressed real space
-! ('npsidimr') case.
-npsidim=0
-do iorb=1,orbs%norbp
-    !ilr=orbs%inWhichLocregp(iorb)
-    ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
-    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-end do
-!! WARNING: CHECHK THIS
-orbs%npsidim_orbs=max(npsidim,1)
+!!!! Calculate the dimension of the wave function for each process.
+!!!! Do it for both the compressed ('npsidim') and for the uncompressed real space
+!!!! ('npsidimr') case.
+!!!npsidim=0
+!!!do iorb=1,orbs%norbp
+!!!    !ilr=orbs%inWhichLocregp(iorb)
+!!!    ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
+!!!    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+!!!end do
+!!!!! WARNING: CHECHK THIS
+!!!orbs%npsidim_orbs=max(npsidim,1)
 
 
 end subroutine initLocregs
@@ -4399,3 +4399,59 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   call memocc(istat, iall, 'locregCenter', subname)
 
 end subroutine init_orbitals_data_for_linear
+
+
+
+subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => init_local_zone_descriptors
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(input_variables),intent(in):: input
+  type(locreg_descriptors),intent(in):: glr
+  type(atoms_data),intent(in):: at
+  real(8),dimension(3,at%nat),intent(in):: rxyz
+  type(orbitals_data),intent(in):: orbs, derorbs
+  type(local_zone_descriptors),intent(out):: lzd
+  
+  ! Local variables
+  integer:: iat, ityp, ilr, istat, iorb, iall
+  real(8),dimension(:,:),allocatable:: locregCenter
+  character(len=*),parameter:: subname='init_local_zone_descriptors'
+  
+  
+  ! Count the number of localization regions
+  lzd%nlr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      lzd%nlr=lzd%nlr+input%lin%norbsPerType(ityp)
+  end do
+  
+  
+  allocate(locregCenter(3,lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+  
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      do iorb=1,input%lin%norbsPerType(ityp)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
+      end do
+  end do
+  
+  
+  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, input%hx, input%hy, input%hz, lzd, orbs, &
+       glr, input%lin%locrad, input%lin%locregShape, derorbs)
+
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
+
+  call nullify_locreg_descriptors(lzd%Glr)
+  call copy_locreg_descriptors(Glr, lzd%Glr, subname)
+
+end subroutine init_local_zone_descriptors

@@ -104,6 +104,7 @@ integer,dimension(:),pointer:: onwhichatom
 !type(wfn_metadata):: wfnmd
 type(DFT_wavefunction):: tmb
 type(DFT_wavefunction):: tmbder
+type(local_zone_descriptors):: lzd
 
 
   if(iproc==0) then
@@ -135,10 +136,12 @@ type(DFT_wavefunction):: tmbder
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs, tmbder%comms)
 
+  call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, lzd)
+
   npsidim = 0
   do iorb=1,tmb%orbs%norbp
    ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-   npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
+   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   tmb%orbs%npsidim_orbs=max(npsidim,1)
   
@@ -146,7 +149,7 @@ type(DFT_wavefunction):: tmbder
   npsidim = 0
   do iorb=1,tmbder%orbs%norbp
    ilr=tmbder%orbs%inwhichlocreg(iorb+tmbder%orbs%isorb)
-   npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
+   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   tmbder%orbs%npsidim_orbs=max(npsidim,1)
 
@@ -161,28 +164,28 @@ type(DFT_wavefunction):: tmbder
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
   ! This should go into the create_DFT_wavefunction 
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
        lin%locregShape, tmb%op, tmb%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        lin%locregShape, tmbder%op, tmbder%comon, tag)
   
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmb%orbs, lin%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
+       tmb%orbs, lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmbder%orbs, lin%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
+       tmbder%orbs, lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
 
   if(lin%useDerivativeBasisFunctions) &
-      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lin%lzd, tmbder%comrp)
+      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmbder%comrp)
 
 
   call nullify_p2pcomms(tmb%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, tmb%orbs, tag, tmb%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmb%orbs, tag, tmb%comsr)
   call nullify_p2pcomms(tmbder%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lin%lzd, tmbder%orbs, tag, tmbder%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbder%orbs, tag, tmbder%comsr)
 
-  call initMatrixCompression(iproc, nproc, lin%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+  call initMatrixCompression(iproc, nproc, lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, lin%lzd%nlr, tmbder%orbs, &
+  call initMatrixCompression(iproc, nproc, lzd%nlr, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
@@ -194,7 +197,7 @@ type(DFT_wavefunction):: tmbder
   !!!use a temporary array onwhichatom instead of inwhichlocreg
   !!
   !!call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
-  !!     hx,hy,hz,lin,lin%lzd,tmb%orbs%inWhichLocreg)
+  !!     hx,hy,hz,lin,lzd,tmb%orbs%inWhichLocreg)
 
 
   !!orthpar%methTransformOverlap = wfnmd%bs%meth_transform_overlap
@@ -239,7 +242,7 @@ type(DFT_wavefunction):: tmbder
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       input, hx, hy, hz, lin%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
+       input, hx, hy, hz, lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
        tmb%psi)
   call mpi_barrier(mpi_comm_world, ierr)
@@ -253,20 +256,20 @@ type(DFT_wavefunction):: tmbder
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
-     !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+     !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
   end if
 
   !end of the initialization part, will later be moved to cluster
   call timing(iproc,'INIT','PR')
 
-  allocate(locrad(lin%lzd%nlr), stat=istat)
+  allocate(locrad(lzd%nlr), stat=istat)
   call memocc(istat, locrad, 'locrad', subname)
 
 
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
-     !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+     !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       if(lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
       if(lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
       call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -290,12 +293,12 @@ type(DFT_wavefunction):: tmbder
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       if(lin%newgradient) then
-          do ilr=1,lin%lzd%nlr
+          do ilr=1,lzd%nlr
               !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
               locrad(ilr)=lin%locrad_highaccuracy(ilr)
           end do
       else
-          do ilr=1,lin%lzd%nlr
+          do ilr=1,lzd%nlr
               !locrad(ilr)=lin%locrad_highaccuracy(ilr)
               locrad(ilr)=lin%locrad_lowaccuracy(ilr)
           end do
@@ -305,7 +308,7 @@ type(DFT_wavefunction):: tmbder
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
           !!wfnmd%bs%use_derivative_basis=.false.
           tmbder%wfnmd%bs%use_derivative_basis=.false.
-          call getLinearPsi(iproc, nproc, lin%lzd, orbs, tmb%orbs, tmb%orbs, tmb%comsr, &
+          call getLinearPsi(iproc, nproc, lzd, orbs, tmb%orbs, tmb%orbs, tmb%comsr, &
               tmb%mad, tmb%mad, tmb%op, tmb%op, tmb%comon, tmb%comon, &
               tmb%comgp, tmb%comgp, at, rxyz, &
               denspot, GPU, &
@@ -316,7 +319,7 @@ type(DFT_wavefunction):: tmbder
               hx, hy, hz, input%SIC, locrad, tmb, tmbder)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
-          call getLinearPsi(iproc,nproc,lin%lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
+          call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
               tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
               tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
               denspot,GPU,&
@@ -326,7 +329,7 @@ type(DFT_wavefunction):: tmbder
               tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, locrad, tmb, tmbder)
       end if
-      !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, tmb%orbs, tmbder%orbs, tmbder%comsr, &
+      !!call getLinearPsi(iproc, nproc, input%nspin, lzd, orbs, tmb%orbs, tmbder%orbs, tmbder%comsr, &
       !!    tmb%op, tmbder%op, tmb%comon, tmbder%comon, comms, at, lin, rxyz, rxyz, &
       !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
       !!    infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
@@ -350,8 +353,8 @@ type(DFT_wavefunction):: tmbder
           !    !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           !    call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
           !else 
-          !    ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-          !    ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+          !    ndimpot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          !    ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
           !    mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
           !    mixdiis%is=mixdiis%is+1
           !    call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
@@ -366,8 +369,8 @@ type(DFT_wavefunction):: tmbder
               call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
                    lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
           else 
-              !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
-              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              !ndimpot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+              ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
               call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
@@ -390,7 +393,7 @@ type(DFT_wavefunction):: tmbder
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
-  !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
@@ -424,7 +427,7 @@ type(DFT_wavefunction):: tmbder
       ! First to some initialization and determine the value of some control parameters.
 
       ! Initialize DIIS...
-      call initializeDIIS(lin%DIISHistMax, lin%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+      call initializeDIIS(lin%DIISHistMax, lzd, tmb%orbs, tmb%orbs%norb, ldiis)
       ldiis%DIISHistMin=lin%DIISHistMin
       ldiis%DIISHistMax=lin%DIISHistMax
       ldiis%alphaSD=lin%alphaSD
@@ -454,9 +457,9 @@ type(DFT_wavefunction):: tmbder
       end if 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      !!call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
+      !!call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, onwhichatom, confdatarr, wfnmd, &
       !!     locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
-      call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lin%lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
+      call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, onwhichatom, confdatarr, tmb%wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       !!if(wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -519,7 +522,7 @@ type(DFT_wavefunction):: tmbder
               if(.not.withder) then
                   !!wfnmd%bs%use_derivative_basis=.false.
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
-                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,tmb%orbs,tmb%orbs,tmb%comsr,&
+                  call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmb%orbs,tmb%comsr,&
                       tmb%mad,tmb%mad,tmb%op,tmb%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
                       denspot,GPU,&
@@ -537,7 +540,7 @@ type(DFT_wavefunction):: tmbder
                       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
                   end if
 
-                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
+                  call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
                       tmb%mad,tmbder%mad,tmb%op,tmbder%op,&
                       tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                       denspot,GPU,&
@@ -548,7 +551,7 @@ type(DFT_wavefunction):: tmbder
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               end if
           else
-              call getLinearPsi(iproc,nproc,lin%lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
+              call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
                   tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
@@ -564,18 +567,18 @@ type(DFT_wavefunction):: tmbder
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-                       lin%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
+                       lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lin%lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
+                       lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lin%lzd, input, hx, hy ,hz, tmbder%orbs, tmbder%comsr, &
+                   lzd, input, hx, hy ,hz, tmbder%orbs, tmbder%comsr, &
                    tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
@@ -585,8 +588,8 @@ type(DFT_wavefunction):: tmbder
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
-                 !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                 !ndimpot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                  ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
                   mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
                   mixdiis%is=mixdiis%is+1
                   call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
@@ -625,8 +628,8 @@ type(DFT_wavefunction):: tmbder
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
-                 !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                 !ndimpot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                  ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
                   mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
                   mixdiis%is=mixdiis%is+1
                   call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
@@ -725,8 +728,8 @@ type(DFT_wavefunction):: tmbder
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, lin%lzd, tmbder%orbs, tmbder%psi, tmbder%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
+  call communicate_basis_for_density(iproc, nproc, lzd, tmbder%orbs, tmbder%psi, tmbder%comsr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
@@ -735,7 +738,7 @@ type(DFT_wavefunction):: tmbder
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
+      call transformToGlobal(iproc, nproc, lzd, lin, orbs, comms, input, tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
   end if
 
 
@@ -764,7 +767,7 @@ type(DFT_wavefunction):: tmbder
   !!!rho => rhopot
 
   !!!!add an if statement which says whether the charge density has already been calculated
-  !!!call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
+  !!!call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lzd,&
   !!!     0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
   !!!     pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
 
@@ -807,6 +810,7 @@ type(DFT_wavefunction):: tmbder
   !!call destroy_wfn_metadata(wfnmd)
   call destroy_DFT_wavefunction(tmb)
   call destroy_DFT_wavefunction(tmbder)
+  call deallocate_local_zone_descriptors(lzd, subname)
 
   !call deallocateBasicArraysInput(at, input%lin)
   call deallocateBasicArraysInput(input%lin)
@@ -968,7 +972,7 @@ end do
 end subroutine cancelCommunicationPotential
 
 
-subroutine transformToGlobal(iproc,nproc,lin,orbs,comms,input,coeff,lphi,psi,psit)
+subroutine transformToGlobal(iproc,nproc,lzd,lin,orbs,comms,input,coeff,lphi,psi,psit)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformToGlobal
@@ -976,6 +980,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
+type(local_zone_descriptors),intent(in):: lzd
 type(linearParameters),intent(in):: lin
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays):: comms
@@ -1010,12 +1015,12 @@ character(len=*),parameter:: subname='transformToGlobal'
   do iorb=1,lin%lb%orbs%norbp
       !ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ilr = lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
-      ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-      gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lin%lzd%Glr,&
-           lin%lzd%Llr(ilr),lphi(ind2),phi(ind1))
-      ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
-      ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+      ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
+      gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
+      call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lzd%Glr,&
+           lzd%Llr(ilr),lphi(ind2),phi(ind1))
+      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
+      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   !if(ind1/=lin%gorbs%npsidim+1) then
   !    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ind1/=lin%gorbs%npsidim',ind1,lin%gorbs%npsidim
@@ -1026,7 +1031,7 @@ character(len=*),parameter:: subname='transformToGlobal'
   !do iall=0,nproc-1
   !    write(*,'(a,i5,4i12)') 'after loop: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do
-  call transpose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  call transpose_v(iproc, nproc, lin%lb%orbs, lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
   !do iall=0,nproc-1
   !    write(*,'(a,i5,4i12)') 'after transpose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do
@@ -1055,7 +1060,7 @@ character(len=*),parameter:: subname='transformToGlobal'
       psit => psi
   end if
 
-  call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  call untranspose_v(iproc, nproc, lin%lb%orbs, lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
 !  do iall=0,nproc-1
 !      write(*,'(a,i5,4i12)') 'after untranspose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
 !  end do
@@ -1066,7 +1071,7 @@ character(len=*),parameter:: subname='transformToGlobal'
   !call mpi_barrier(mpi_comm_world, iall)
   !flush(6)
   !stop
-  call untranspose_v(iproc, nproc, orbs, lin%lzd%Glr%wfd, comms, psi, work=phiWork)
+  call untranspose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, psi, work=phiWork)
 
   if(iproc==0) write(*,'(a)') 'done.'
 
