@@ -106,6 +106,7 @@ character(len=*),parameter:: subname='getLinearPsi'
 logical:: withConfinement
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb, ii
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+type(orbitals_data):: orbs_tmp
 
 
 
@@ -132,8 +133,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
+      call copy_orbitals_data(lorbs, orbs_tmp, subname)
+      if(iproc==0) write(*,'(a,100i5)') '1:lorbs%norb_par(:,0)', lorbs%norb_par(:,0)
+      if(iproc==0) write(*,'(a,100i5)') '1:llborbs%norb_par(:,0)', llborbs%norb_par(:,0)
       call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-           lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+      call deallocate_orbitals_data(orbs_tmp, subname)
+      if(iproc==0) write(*,'(a,100i5)') '2:lorbs%norb_par(:,0)', lorbs%norb_par(:,0)
+      if(iproc==0) write(*,'(a,100i5)') '2:llborbs%norb_par(:,0)', llborbs%norb_par(:,0)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -5952,7 +5959,7 @@ end subroutine check_locregCenters
 
 
 subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
-           lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
 use module_base
 use module_types
 use module_interfaces, except_this_one => update_locreg
@@ -5963,7 +5970,7 @@ integer,intent(in):: iproc, nproc
 logical,intent(in):: useDerivativeBasisFunctions
 type(DFT_local_fields), intent(in) :: denspot
 real(8),intent(in):: hx, hy, hz
-type(orbitals_data),intent(inout):: lorbs
+type(orbitals_data),intent(inout):: orbs_tmp
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: llborbs
 type(overlapParameters),intent(inout):: lbop
@@ -6016,15 +6023,15 @@ character(len=*),parameter:: subname='update_locreg'
           call nullify_p2pComms(lbcomgp)
           tag=1
           if(.not.useDerivativeBasisFunctions) then
-              norbu=lorbs%norb
+              norbu=orbs_tmp%norb
           else
-              norbu=4*lorbs%norb
+              norbu=4*orbs_tmp%norb
           end if
           norb=norbu
           norbd=0
           nspin=1
-          call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-               lorbs%nkpts, lorbs%kpts, lorbs%kwgts, llborbs)
+          call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+               orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs)
           call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
                llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
 
@@ -6058,10 +6065,10 @@ character(len=*),parameter:: subname='update_locreg'
               norb=1
           end if
           ii=0
-          do iorb=1,lorbs%norb
+          do iorb=1,orbs_tmp%norb
               do i=1,norb
                   ii=ii+1
-                  llborbs%inwhichlocreg(ii)=lorbs%inwhichlocreg(iorb)
+                  llborbs%inwhichlocreg(ii)=orbs_tmp%inwhichlocreg(iorb)
               end do
           end do
 
@@ -6080,7 +6087,7 @@ character(len=*),parameter:: subname='update_locreg'
           locrad=lzd%llr(:)%locrad
           call deallocate_local_zone_descriptors(lzd, subname)
           call nullify_local_zone_descriptors(lzd)
-          call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, lorbs, glr_tmp, locrad, 's', llborbs)
+          call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
           call nullify_locreg_descriptors(lzd%glr)
           call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
           call deallocate_locreg_descriptors(glr_tmp, subname)
@@ -6132,6 +6139,7 @@ character(len=*),parameter:: subname='update_locreg'
           iall=-product(shape(onwhichatom))*kind(onwhichatom)
           deallocate(onwhichatom, stat=istat)
           call memocc(istat, iall, 'onwhichatom', subname)
+
 
 end subroutine update_locreg
 

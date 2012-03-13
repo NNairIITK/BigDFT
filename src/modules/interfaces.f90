@@ -6166,7 +6166,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
-                  lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
          use module_base
          use module_types
          implicit none
@@ -6176,7 +6176,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(in):: useDerivativeBasisFunctions
          type(DFT_local_fields), intent(in) :: denspot
          real(8),intent(in):: hx, hy, hz
-         type(orbitals_data),intent(inout):: lorbs
+         type(orbitals_data),intent(inout):: orbs_tmp
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
