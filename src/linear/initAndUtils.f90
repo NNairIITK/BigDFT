@@ -4330,7 +4330,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   type(communications_arrays),intent(out):: lcomms
   
   ! Local variables
-  integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb
+  integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
   integer,dimension(:),allocatable:: norbsPerLocreg
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
@@ -4338,6 +4338,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   
   ! Count the number of basis functions.
   norb=0
+  nlr=0
   if(use_derivative_basis) then
       ii=4
   else
@@ -4346,6 +4347,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   do iat=1,at%nat
       ityp=at%iatype(iat)
       norb=norb+ii*input%lin%norbsPerType(ityp)
+      nlr=nlr+input%lin%norbsPerType(ityp)
   end do
   
   
@@ -4360,35 +4362,40 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   call orbitals_communicators(iproc,nproc,Glr,lorbs,lcomms)
   
 
-allocate(locregCenter(3,norb), stat=istat)
-call memocc(istat, locregCenter, 'locregCenter', subname)
-
-ilr=0
-do iat=1,at%nat
-    ityp=at%iatype(iat)
-    do iorb=1,input%lin%norbsPerType(ityp)
-        ilr=ilr+1
-        locregCenter(:,ilr)=rxyz(:,iat)
-    end do
-end do
-
-allocate(norbsPerLocreg(norb), stat=istat)
-call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
-norbsPerLocreg=1 !should be norbsPerLocreg
+  allocate(locregCenter(3,nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
   
-iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
-deallocate(lorbs%inWhichLocreg, stat=istat)
-call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
-
-call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, norb, &
-     input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
-
-iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
-deallocate(norbsPerLocreg, stat=istat)
-call memocc(istat, iall, 'norbsPerLocreg', subname)
-
-iall=-product(shape(locregCenter))*kind(locregCenter)
-deallocate(locregCenter, stat=istat)
-call memocc(istat, iall, 'locregCenter', subname)
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      do iorb=1,input%lin%norbsPerType(ityp)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
+      end do
+  end do
+  
+  allocate(norbsPerLocreg(nlr), stat=istat)
+  call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+  norbsPerLocreg=ii !should be norbsPerLocreg
+    
+  iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
+  deallocate(lorbs%inWhichLocreg, stat=istat)
+  call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
+  
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, nlr, &
+       input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
+  
+  allocate(lorbs%eval(lorbs%norb), stat=istat)
+  call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
+  lorbs%eval=-.5d0
+  
+  
+  iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+  deallocate(norbsPerLocreg, stat=istat)
+  call memocc(istat, iall, 'norbsPerLocreg', subname)
+  
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
 
 end subroutine init_orbitals_data_for_linear
