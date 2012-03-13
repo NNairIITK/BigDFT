@@ -27,6 +27,10 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
      deallocate(atoms%atomnames,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%atomnames',subname)
+     ! Parameters for Linear input guess
+     i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+     deallocate(atoms%rloc,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%rloc',subname)
   end if
 
   ! Deallocations related to pseudos.
@@ -196,6 +200,9 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
+  ! Parameters for Linear input guess
+  allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+  call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 !> Calculate symmetries and update
@@ -1175,14 +1182,25 @@ subroutine atoms_new(atoms, sym)
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
   sym => atoms%sym
+  nullify(atoms%nlccpar)
+  nullify(atoms%paw_l)
+  nullify(atoms%paw_NofL)
+  nullify(atoms%paw_nofchannels)
+  nullify(atoms%paw_nofgaussians)
+  nullify(atoms%paw_Greal)
+  nullify(atoms%paw_Gimag)
+  nullify(atoms%paw_Gcoeffs)
+  nullify(atoms%paw_H_matrices)
+  nullify(atoms%paw_S_matrices)
+  nullify(atoms%paw_Sm1_matrices)
 END SUBROUTINE atoms_new
-subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
+subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
    use module_types
    use module_interfaces
    implicit none
    logical, intent(out) :: lstat
-   type(atoms_data), pointer :: atoms
+   type(atoms_data), intent(inout) :: atoms
    integer, intent(in) :: ln
    character, intent(in) :: filename(ln)
    real(gp), dimension(:,:), pointer :: rxyz
@@ -1196,11 +1214,17 @@ subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    end do
 
    lstat = .true.
-   allocate(atoms)
    call read_atomic_file(trim(filename_), 0, atoms, rxyz, status)
    lstat = (status == 0)
-END SUBROUTINE atoms_new_from_file
+ END SUBROUTINE atoms_set_from_file
 !> Deallocate a new atoms_data type, for bindings.
+subroutine atoms_empty(atoms)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+
+  call deallocate_atoms(atoms, "atoms_free")
+END SUBROUTINE atoms_empty
 subroutine atoms_free(atoms)
   use module_types
   implicit none
@@ -1211,6 +1235,24 @@ subroutine atoms_free(atoms)
 END SUBROUTINE atoms_free
 
 ! Set routines for bindings
+subroutine atoms_read_variables(atoms, nspin, occup, ln)
+  use module_types
+  use m_profiling
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  integer, intent(in) :: nspin, ln
+  character, intent(in) :: occup(ln)
+
+  integer :: i
+  character(len = 1024) :: filename_
+
+  write(filename_, "(A)") " "
+  do i = 1, ln
+     write(filename_(i:i), "(A1)") occup(i)
+  end do
+
+  call read_atomic_variables(atoms, trim(filename_), nspin)
+END SUBROUTINE atoms_read_variables
 subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
   use m_profiling

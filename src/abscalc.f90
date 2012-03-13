@@ -643,7 +643,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
         psoffset,n1,n2,n3,n1i,n2i,n3i,dpcom%i3s+dpcom%i3xcsh,dpcom%n3pi,pot_ion,pkernel)
 
-   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
+   call createIonicPotential(atoms%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
         in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
 
@@ -1683,7 +1683,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
           &   '------------------------------------------------------- Input Wavefunctions Creation'
      !yaml_output
      !      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-     yaml_indent=yaml_indent+2 !list element
+!     yaml_indent=yaml_indent+2 !list element
   end if
   !spin for inputguess orbitals
   if (nspin == 4) then

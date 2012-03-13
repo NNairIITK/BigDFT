@@ -48,7 +48,7 @@ static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
 static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 {
 #ifdef HAVE_GLIB
-  memset(obj + sizeof(GObject), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_LocalFields));
 #endif
@@ -103,10 +103,10 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
   hh[2] = glr->h[2] * 0.5;
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
     (&iproc, &nproc, glr->d, hh, hh + 1, hh + 2, in->data,
-     glr->atoms->data, glr->atoms->rxyz.data, glr->radii, localfields->dpcom, localfields->rhod);
+     glr->parent.data, glr->parent.rxyz.data, glr->radii, localfields->dpcom, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, glr->data,
                                           hh, hh + 1, hh + 2, in->data,
-                                          glr->atoms->data, glr->atoms->rxyz.data,
+                                          glr->parent.data, glr->parent.rxyz.data,
                                           localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
     (localfields->data, &localfields->rhov_is, localfields->h,
@@ -116,7 +116,7 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
   GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,  V_XC);
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &glr->geocode, glr->d, hh,
+    (&iproc, &nproc, &verb, &glr->parent.geocode, glr->d, glr->h,
      in->data, localfields->data);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
@@ -137,14 +137,15 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    guint iproc, guint nproc)
 {
   double hh[3];
+  int verb = 0;
   
   hh[0] = denspot->glr->h[0] * 0.5;
   hh[1] = denspot->glr->h[1] * 0.5;
   hh[2] = denspot->glr->h[2] * 0.5;
 
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
-    (&iproc, &nproc, in->data, denspot->glr->atoms->data, denspot->glr->atoms->rxyz.data,
-     denspot->glr->atoms->shift, denspot->glr->data, hh, hh + 1, hh + 2,
+    (&iproc, &nproc, &verb, in->data, denspot->glr->parent.data, denspot->glr->parent.rxyz.data,
+     denspot->glr->parent.shift, denspot->glr->data, hh, hh + 1, hh + 2,
      denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
 

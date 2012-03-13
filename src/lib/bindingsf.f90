@@ -133,32 +133,42 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
-subroutine glr_new(glr, d)
+subroutine glr_new(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
-  type(grid_dimensions), pointer :: d
 
   allocate(glr)
+end subroutine glr_new
+subroutine glr_init(glr, d)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout), target :: glr
+  type(grid_dimensions), pointer :: d
+
   call nullify_locreg_descriptors(glr)
   d => glr%d
-end subroutine glr_new
+end subroutine glr_init
 subroutine glr_free(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
 
-  call deallocate_lr(glr, "glr_free")
   deallocate(glr)
 end subroutine glr_free
-subroutine glr_get_dimensions(glr, geocode, n, ni)
+subroutine glr_empty(glr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+
+  call deallocate_locreg_descriptors(glr, "glr_empty")
+end subroutine glr_empty
+subroutine glr_get_dimensions(glr , n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  character, intent(out) :: geocode(1)
   integer, dimension(3), intent(out) :: n, ni
 
-  write(geocode, "(A1)") glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
@@ -183,6 +193,24 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine lzd_new(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  allocate(lzd)
+  glr => lzd%glr
+  call nullify_local_zone_descriptors(lzd)
+end subroutine lzd_new
+subroutine lzd_free(lzd)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+
+  call deallocate_local_zone_descriptors(lzd, "lzd_free")
+  deallocate(lzd)
+end subroutine lzd_free
 
 subroutine inputs_new(in)
   use module_types
@@ -352,13 +380,22 @@ subroutine orbs_new(orbs)
   type(orbitals_data), pointer :: orbs
 
   allocate(orbs)
+  call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_new
 subroutine orbs_free(orbs)
   use module_types
+  use m_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
+  integer :: i_all, i_stat
+
   call deallocate_orbs(orbs,"orbs_free")
+  if (associated(orbs%eval)) then
+     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+     deallocate(orbs%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbs%eval',"orbs_free")
+  end if
   deallocate(orbs)
 END SUBROUTINE orbs_free
 subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
@@ -549,3 +586,77 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+
+subroutine gpu_new(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  allocate(GPU)
+END SUBROUTINE gpu_new
+subroutine gpu_free(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  deallocate(GPU)
+END SUBROUTINE gpu_free
+
+subroutine wf_iorbp_to_psi(psir, psi, lr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(out) :: psir
+  
+  character(len=*), parameter :: subname='wf_orb_to_psi'
+  type(workarr_sumrho) :: w
+
+  call initialize_work_arrays_sumrho(lr,w)
+
+  !initialisation
+  if (lr%geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+  end if
+
+  call daub_to_isf(lr,w,psi,psir)
+
+  call deallocate_work_arrays_sumrho(w)
+
+END SUBROUTINE wf_iorbp_to_psi
+
+subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
+  use module_types
+  implicit none
+
+  integer, intent(out) :: iorbp, iproc
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: ikpt, iorb, ispin, ispinor
+
+  integer :: iorbtot
+
+  iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
+  if (ispin == 0) iorbp = iorbp + (iorb - 1) * orbs%nspinor
+  if (ispin == 1) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
+  iorbp = iorbp + ispinor
+
+  iorbtot = 0
+  do iproc = 0, size(orbs%norb_par, 1), 1
+     if (iorbp >= iorbtot .and. iorbp < orbs%norb_par(iproc, 0)) then
+        iorbp = iorbp - iorbtot
+        return
+     end if
+     iorbtot = iorbtot + orbs%norb_par(iproc, 0)
+  end do
+
+  iorbp = -1;
+  iproc = -1;
+END SUBROUTINE orbs_get_iorbp
+subroutine glr_get_psi_size(glr, psisize)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: glr
+  integer, intent(out) :: psisize
+  
+  psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
+END SUBROUTINE glr_get_psi_size

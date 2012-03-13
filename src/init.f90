@@ -148,7 +148,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat, i_all, i,j
+   integer :: i_stat, i_all
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -1496,7 +1496,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use module_interfaces, except_this_one => input_wf_diag
    use module_types
    use Poisson_Solver
-  use libxc_functionals
+   use libxc_functionals
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1508,8 +1509,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(DFT_local_fields), intent(inout) :: denspot
-   type(GPU_pointers), intent(inout) :: GPU
-   type(input_variables):: input
+   type(GPU_pointers), intent(in) :: GPU
+   type(input_variables), intent(in) :: input
    type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -1519,25 +1520,24 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,irhotot_add,irho_add,ispin
+   integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
    real(kind=4) :: tt,builtin_rand
-   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
+   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
+   type(energy_terms) :: energs
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(wp), dimension(:), allocatable :: potxc,passmat
+   real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
-   real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
+   real(gp), dimension(:,:,:), pointer :: mom_vec_fake
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
+   type(GPU_pointers) :: GPUe
 !yk
-  real(dp),dimension(6) :: xcstr
-  integer :: i!,iorb,jorb,icplx
-  real(gp), dimension(:), allocatable :: ovrlp
-  real(gp), dimension(:,:), allocatable :: smat,tmp
+!  integer :: i!,iorb,jorb,icplx
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1546,8 +1546,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    if (iproc == 0) then
       !yaml_output
-!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-      yaml_indent=yaml_indent+2 !list element
+      call yaml_flow_map("Input Hamiltonian")
+      call yaml_flow_newline()
    end if
    !spin for inputguess orbitals
    if (nspin == 4) then
@@ -1605,14 +1605,15 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      call memocc(i_stat,psi,'psi',subname)
 
      !allocate arrays for the GPU if a card is present
+     GPUe = GPU
      switchGPUconv=.false.
      switchOCLconv=.false.
      if (GPUconv .and. potshortcut ==0 ) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-             hx,hy,hz,Lzde%Glr%wfd,orbse,GPU)
+             hx,hy,hz,Lzde%Glr%wfd,orbse,GPUe)
      else if (OCLconv .and. potshortcut ==0) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
-             nspin_ig,Lzde%Glr%wfd,orbse,GPU)
+             nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
         if (iproc == 0) write(*,*)&
              'GPU data allocated'
      else if (GPUconv .and. potshortcut >0 ) then
@@ -1652,7 +1653,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
    call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
-        GPU,symObj,denspot%rhod,psi,denspot%rho_psi)
+        GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
         denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
    orbse%nspin=nspin_ig
@@ -1685,52 +1686,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    end if
 
    call updatePotential(iproc,nproc,at%geocode,ixc,nspin,&
-        hxh,hyh,hzh,Lzde%Glr,denspot,ehart,eexcu,vexcu)
-     
-   
-
-!!$     if(orbs%nspinor==4) then
-!!$        !this wrapper can be inserted inside the poisson solver 
-!!$        call PSolverNC(at%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
-!!$             nscatterarr(iproc,1),& !this is n3d
-!!$             ixc,hxh,hyh,hzh,&
-!!$             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-!!$     else
-!!$        !Allocate XC potential
-!!$        if (nscatterarr(iproc,2) >0) then
-!!$           allocate(potxc(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
-!!$           call memocc(i_stat,potxc,'potxc',subname)
-!!$        else
-!!$           allocate(potxc(1+ndebug),stat=i_stat)
-!!$           call memocc(i_stat,potxc,'potxc',subname)
-!!$        end if
-!!$ 
-!!$        call XC_potential(at%geocode,'D',iproc,nproc,&
-!!$             Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-!!$             rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
-!!$        if( iand(potshortcut,4)==0) then
-!!$           call H_potential(at%geocode,'D',iproc,nproc,&
-!!$                Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,hxh,hyh,hzh,&
-!!$                rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
-!!$        endif
-!!$   
-!!$        !sum the two potentials in rhopot array
-!!$        !fill the other part, for spin, polarised
-!!$        if (nspin == 2) then
-!!$           call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
-!!$                rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)+1),1)
-!!$        end if
-!!$        !spin up and down together with the XC part
-!!$        call axpy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
-!!$             rhopot(1),1)
-!!$   
-!!$   
-!!$        i_all=-product(shape(potxc))*kind(potxc)
-!!$        deallocate(potxc,stat=i_stat)
-!!$        call memocc(i_stat,i_all,'potxc',subname)
-!!$   
-!!$     end if
-   
+        hxh,hyh,hzh,Lzde%Glr,denspot,energs%eh,energs%exc,energs%evxc)
+        
 !!$   !!!  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
 !!$     !in view of complete gaussian calculation
@@ -1841,9 +1798,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    
      !call dcopy(orbse%npsidim,psi,1,hpsi,1)
    if (input%exctxpar == 'OP2P') then
-      eexctX = UNINITIALIZED(1.0_gp)
+      energs%eexctX = UNINITIALIZED(1.0_gp)
    else
-      eexctX=0.0_gp
+      energs%eexctX=0.0_gp
    end if
    
    !change temporarily value of Lzd%npotddim
@@ -1860,7 +1817,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+        energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
@@ -1891,23 +1848,19 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!  deallocate(thetaphi,stat=i_stat)
    !!!  call memocc(i_stat,i_all,'thetaphi',subname)
    
-     accurex=abs(eks-ekin_sum)
+     accurex=abs(eks-energs%ekin)
      !tolerance for comparing the eigenvalues in the case of degeneracies
      etol=accurex/real(orbse%norbu,gp)
-     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-!!$   if (iproc == 0) then
-!!$      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!!$      ekin_sum,epot_sum,eproj_sum
-!!$      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-!!$   endif
+     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
+
+     call total_energies(energs)
 
    if (iproc==0) then
-      !call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
       !yaml output
-        write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin_sum,epot_sum,eproj_sum
-!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
-        write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+      call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
+      !write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+      !energs%ekin,energs%epot,energs%eproj
+      !  write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
      endif
   
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
@@ -1924,9 +1877,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    
      !free GPU if it is the case
      if (GPUconv) then
-        call free_gpu(GPU,orbse%norbp)
+        call free_gpu(GPUe,orbse%norbp)
      else if (OCLconv) then
-        call free_gpu_OCL(GPU,orbse,nspin_ig)
+        call free_gpu_OCL(GPUe,orbse,nspin_ig)
      end if
 
      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
@@ -1953,6 +1906,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
        call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzde%Glr%wfd,comms,&
           psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
     end if
+
+     if (iproc==0) call yaml_flow_newline()
 
    !test merging of Linear and cubic
      call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,Lzde,comms,&
@@ -2038,13 +1993,13 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    deallocate(orbse%eval,stat=i_stat)
    call memocc(i_stat,i_all,'orbse%eval',subname)
 
-
+   if (iproc==0) call yaml_close_flow_map() !input hamiltonian
 
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
-     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
-     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, norbv, &
+     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -2052,8 +2007,8 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
 
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: in
-  type(local_zone_descriptors), intent(inout) :: Lzd
-  type(GPU_pointers), intent(inout) :: GPU
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
@@ -2072,8 +2027,9 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
 
   character(len = *), parameter :: subname = "input_wf"
   logical :: onefile
-  integer :: input_wf_format, i_stat, i_all, nspin
+  integer :: input_wf_format, i_stat, nspin
   type(gaussian_basis) :: Gvirt
+
 
   norbv=abs(in%norbv)
   inputpsi=in%inputPsiId
@@ -2105,6 +2061,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
+
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
