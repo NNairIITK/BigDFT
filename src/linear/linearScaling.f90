@@ -128,7 +128,7 @@ type(local_zone_descriptors):: lzd
 
   !!! INITIALIZATION PART ################################################################################
 
- tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
+ tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
  tmb%wfnmd%bs%use_derivative_basis=.false.
 
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
@@ -160,21 +160,21 @@ type(local_zone_descriptors):: lzd
   call create_DFT_wavefunction('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), &
        tmbder%orbs%norb, orbs%norb, input, tmbder)
 
-  tmbder%wfnmd%bs%use_derivative_basis=lin%useDerivativeBasisFunctions
+  tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
   ! This should go into the create_DFT_wavefunction 
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
-       lin%locregShape, tmb%op, tmb%comon, tag)
+       input%lin%locregShape, tmb%op, tmb%comon, tag)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       lin%locregShape, tmbder%op, tmbder%comon, tag)
+       input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
        tmb%orbs, lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
        tmbder%orbs, lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
 
-  if(lin%useDerivativeBasisFunctions) &
+  if(input%lin%useDerivativeBasisFunctions) &
       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmbder%comrp)
 
 
@@ -202,7 +202,7 @@ type(local_zone_descriptors):: lzd
 
   !!orthpar%methTransformOverlap = wfnmd%bs%meth_transform_overlap
   orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  orthpar%nItOrtho = lin%nItOrtho
+  orthpar%nItOrtho = input%lin%nItOrtho
   !!orthpar%blocksize_pdsyev = wfnmd%bpo%blocksize_pdsyev
   orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
   !!orthpar%blocksize_pdgemm = wfnmd%bpo%blocksize_pdgemm
@@ -213,7 +213,7 @@ type(local_zone_descriptors):: lzd
   t2init=mpi_wtime()
   timeinit=t2init-t1init
 
-  if(.not.lin%transformToGlobal) then
+  if(.not.input%lin%transformToGlobal) then
       ! psi and psit will not be calculated, so only allocate them with size 1
       orbs%npsidim_orbs=1
       orbs%npsidim_comp=1
@@ -255,9 +255,9 @@ type(local_zone_descriptors):: lzd
 
 
   ! Initialize the DIIS mixing of the potential if required.
-  if(lin%mixHist_lowaccuracy>0) then
+  if(input%lin%mixHist_lowaccuracy>0) then
      !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
-      call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
+      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
   end if
 
   !end of the initialization part, will later be moved to cluster
@@ -267,11 +267,11 @@ type(local_zone_descriptors):: lzd
   call memocc(istat, locrad, 'locrad', subname)
 
 
-  if(lin%nItInguess>0) then
+  if(input%lin%nItInguess>0) then
       ! Post communications for gathering the potential.
      !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
-      if(lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
-      if(lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
+      if(input%lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
+      if(input%lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
       call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
       !!if(wfnmd%bs%use_derivative_basis) then
@@ -288,23 +288,23 @@ type(local_zone_descriptors):: lzd
       !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
-      lin%newgradient=.false.
+      !!lin%newgradient=.false.
       !!wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
-      if(lin%newgradient) then
-          do ilr=1,lzd%nlr
-              !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
-              locrad(ilr)=lin%locrad_highaccuracy(ilr)
-          end do
-      else
-          do ilr=1,lzd%nlr
-              !locrad(ilr)=lin%locrad_highaccuracy(ilr)
-              locrad(ilr)=lin%locrad_lowaccuracy(ilr)
-          end do
-      end if
+      !!if(lin%newgradient) then
+      !!    do ilr=1,lzd%nlr
+      !!        !locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+      !!        locrad(ilr)=lin%locrad_highaccuracy(ilr)
+      !!    end do
+      !!else
+      do ilr=1,lzd%nlr
+          !locrad(ilr)=lin%locrad_highaccuracy(ilr)
+          locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+      end do
+      !!end if
 
-      if(lin%mixedmode) then
+      if(input%lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
           !!wfnmd%bs%use_derivative_basis=.false.
           tmbder%wfnmd%bs%use_derivative_basis=.false.
@@ -337,7 +337,7 @@ type(local_zone_descriptors):: lzd
 
       ! Calculate the charge density.
       !!call cpu_time(t1)
-      if(lin%mixedmode) then
+      if(input%lin%mixedmode) then
           call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
       else
           call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
@@ -348,7 +348,7 @@ type(local_zone_descriptors):: lzd
       !!time=time/dble(nproc)
       !!if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
-      if(trim(lin%mixingMethod)=='dens') then
+      if(trim(input%lin%mixingMethod)=='dens') then
           !if(lin%mixHist==0) then
           !    !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           !    call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
@@ -364,23 +364,23 @@ type(local_zone_descriptors):: lzd
       end if
 
 
-      if(trim(lin%mixingMethod)=='pot') then
-          if(lin%mixHist_lowaccuracy==0) then
+      if(trim(input%lin%mixingMethod)=='pot') then
+          if(input%lin%mixHist_lowaccuracy==0) then
               call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
-                   lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
+                   input%lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
           else 
               !ndimpot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
               ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
               call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
-                   lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
+                   input%lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
           end if
           rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
-      if(trim(lin%mixingMethod)=='pot') then
+      if(trim(input%lin%mixingMethod)=='pot') then
            call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
@@ -408,7 +408,7 @@ type(local_zone_descriptors):: lzd
 
 
   !if(nproc==1) allocate(psit(size(psi)))
-  nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
+  !nitSCC=input%lin%nitSCCWhenOptimizing+input%lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   !!wfnmd%bs%update_phi=.true.
   tmb%wfnmd%bs%update_phi=.true.
@@ -417,32 +417,33 @@ type(local_zone_descriptors):: lzd
   energyold=0.d0
   energyoldout=0.d0
   reduceConvergenceTolerance=.false.
-  lin%newgradient=.false.
+  !!lin%newgradient=.false.
   !!wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
-  outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
+  outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
 
       ! Initialize DIIS...
-      call initializeDIIS(lin%DIISHistMax, lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-      ldiis%DIISHistMin=lin%DIISHistMin
-      ldiis%DIISHistMax=lin%DIISHistMax
-      ldiis%alphaSD=lin%alphaSD
-      ldiis%alphaDIIS=lin%alphaDIIS
+      call initializeDIIS(input%lin%DIISHistMax, lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+      ldiis%DIISHistMin=input%lin%DIISHistMin
+      ldiis%DIISHistMax=input%lin%DIISHistMax
+      ldiis%alphaSD=input%lin%alphaSD
+      ldiis%alphaDIIS=input%lin%alphaDIIS
 
       ! The basis functions shall be optimized
       !!wfnmd%bs%update_phi=.true.
       tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency looo
-      selfConsistent=lin%convCritMix
+      selfConsistent=input%lin%convCritMix
 
       ! Check whether the derivatives shall be used or not.
-      if(lin%mixedmode) then
-          if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) ) &
+      if(input%lin%mixedmode) then
+          if( (.not.lowaccur_converged .and. &
+               (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
               .or. lowaccur_converged ) then
               withder=.true.
           else
@@ -451,7 +452,7 @@ type(local_zone_descriptors):: lzd
       end if
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
+      if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
@@ -467,7 +468,7 @@ type(local_zone_descriptors):: lzd
           tt=1.d0
       !!else if(wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-          tt=1.d0-(dble(itout-1))/dble(lin%nit_lowaccuracy)
+          tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
@@ -518,7 +519,7 @@ type(local_zone_descriptors):: lzd
           !!wfnmd%bs%communicate_phi_for_lsumrho=.true.
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
-          if(lin%mixedmode) then
+          if(input%lin%mixedmode) then
               if(.not.withder) then
                   !!wfnmd%bs%use_derivative_basis=.false.
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
@@ -564,7 +565,7 @@ type(local_zone_descriptors):: lzd
 
 
           ! Calculate the charge density.
-          if(lin%mixedmode) then
+          if(input%lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
@@ -584,7 +585,7 @@ type(local_zone_descriptors):: lzd
           end if
 
           ! Mix the density.
-          if(trim(lin%mixingMethod)=='dens') then
+          if(trim(input%lin%mixingMethod)=='dens') then
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
@@ -608,7 +609,7 @@ type(local_zone_descriptors):: lzd
           end if
 
           ! Copy the current charge density.
-          if(trim(lin%mixingMethod)=='dens') then
+          if(trim(input%lin%mixingMethod)=='dens') then
               call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
           end if
 
@@ -624,7 +625,7 @@ type(local_zone_descriptors):: lzd
 
 
           ! Mix the potential
-          if(trim(lin%mixingMethod)=='pot') then
+          if(trim(input%lin%mixingMethod)=='pot') then
               if(mixHist==0) then
                   call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
@@ -650,7 +651,7 @@ type(local_zone_descriptors):: lzd
           end if
 
           ! Copy the current potential
-          if(trim(lin%mixingMethod)=='pot') then
+          if(trim(input%lin%mixingMethod)=='pot') then
                call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
           end if
 
@@ -665,7 +666,7 @@ type(local_zone_descriptors):: lzd
 
           ! Write some informations.
           call printSummary(iproc, itSCC, infoBasisFunctions, &
-               infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
+               infoCoeff, pnrm, energy, energyDiff, input%lin%mixingMethod)
           if(pnrm<selfConsistent) then
               reduceConvergenceTolerance=.true.
               exit
@@ -681,10 +682,10 @@ type(local_zone_descriptors):: lzd
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
-          if(trim(lin%mixingMethod)=='dens') then
+          if(trim(input%lin%mixingMethod)=='dens') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, energy-energyoldout
-          else if(trim(lin%mixingMethod)=='pot') then
+          else if(trim(input%lin%mixingMethod)=='pot') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
@@ -716,7 +717,7 @@ type(local_zone_descriptors):: lzd
   deallocate(onwhichatom, stat=istat)
   call memocc(istat, iall, 'onwhichatom', subname)
 
-  if(lin%mixHist_highaccuracy>0) then
+  if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
@@ -737,7 +738,7 @@ type(local_zone_descriptors):: lzd
   call mpi_barrier(mpi_comm_world, ierr)
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
-  if(lin%transformToGlobal) then
+  if(input%lin%transformToGlobal) then
       call transformToGlobal(iproc, nproc, lzd, tmbder%orbs, orbs, comms, input, tmbder%wfnmd%ld_coeff, &
            tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
   end if
