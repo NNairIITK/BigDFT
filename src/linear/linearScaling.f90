@@ -84,7 +84,7 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
 integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp
-real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
+real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
@@ -437,6 +437,19 @@ type(local_zone_descriptors):: lzd
           end if
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
+          ! This is a flag whether the basis functions shall be updated.
+          if(tmb%wfnmd%bs%update_phi) then
+              ! Improve the trace minimizing orbitals.
+              call getLocalizedBasis(iproc,nproc,at,lzd,tmb%orbs,orbs,tmb%comon,tmb%op,tmb%comgp,tmb%mad,rxyz,&
+                  denspot,GPU,trace,&
+                  infoBasisFunctions,nlpspd,proj,ldiis,&
+                  orthpar,confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
+                  hx,hy,hz,input%SIC,locrad,tmb)
+          end if
+          !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
+          !!    call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+          !!         tmb%orbs, lzd, tmbder%orbs, tmbder%op, tmbder%comon, tmb%comgp, tmbder%comgp, tmb%comsr, tmbder%mad)
+          !!end if
           if(input%lin%mixedmode) then
               if(.not.withder) then
                   tmbder%wfnmd%bs%use_derivative_basis=.false.

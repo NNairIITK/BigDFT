@@ -120,90 +120,28 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
-  ! This is a flag whether the basis functions shall be updated.
-  !!if(wfnmd%bs%update_phi) then
-  if(tmb%wfnmd%bs%update_phi) then
-
-      ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
-      ! stored in lin%lphiRestart.
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !!if(newgradient) then
-      !!     deallocate(lphi)
-      !!     call mpi_barrier(mpi_comm_world, ierr)
-      !!     stop
-      !!end if
-      if(tmbder%wfnmd%bs%use_derivative_basis) then
-          !call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
-          !call dcopy(wfnmd%nphi,wfnmd%phiRestart(1),1,wfnmd%phi(1),1)
-          !call dcopy(tmb%wfnmd%nphi,tmb%wfnmd%phiRestart(1),1,tmb%wfnmd%phi(1),1)
-          !!do istat=1,tmb%wfnmd%nphi
-          !!    write(200+iproc,*) tmb%psi(istat), tmb%wfnmd%phi(istat)
-          !!end do
-          !!call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,tmbder%psi(1),1)
-          !!call dcopy(tmb%wfnmd%nphi,tmb%psi(1),1,wfnmd%phi(1),1)
-      end if
-
-      ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-          denspot,GPU,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
-          orthpar,confdatarr,blocksize_pdgemm,&
-          hx,hy,hz,SIC,locrad,tmb)
-
-  end if
+  !!! This is a flag whether the basis functions shall be updated.
+  !!if(tmb%wfnmd%bs%update_phi) then
+  !!    ! Improve the trace minimizing orbitals.
+  !!    call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
+  !!        denspot,GPU,trace,&
+  !!        infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
+  !!        orthpar,confdatarr,blocksize_pdgemm,&
+  !!        hx,hy,hz,SIC,locrad,tmb)
+  !!end if
 
 
-  !if(newgradient .and. (updatePhi .or. itSCC==0)) then
-  !if(newgradient .and. updatePhi) then
-  !if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. wfnmd%bs%update_phi) then
   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-      !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-      !!     lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      !!call update_locreg(iproc, nproc, wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-      !!     lorbs, lzd, wfnmd%phiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            lorbs, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
-      !!deallocate(lphiRestart, stat=istat)
-      !!call memocc(istat, iall, 'lphiRestart', subname)
-      !!allocate(lphiRestart(lorbs%npsidim_orbs), stat=istat)
-      !!call memocc(istat, lphiRestart, 'lphiRestart',  subname)
-      !!iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
-      !!deallocate(wfnmd%phiRestart, stat=istat)
-      !!call memocc(istat, iall, 'wfnmd%phiRestart', subname)
-      !!allocate(wfnmd%phiRestart(lorbs%npsidim_orbs), stat=istat)
-      !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart',  subname)
-
-      !!iall=-product(shape(tmb%psi))*kind(tmb%psi)
-      !!deallocate(tmb%psi, stat=istat)
-      !!call memocc(istat, iall, 'tmb%psi', subname)
-      !!allocate(tmb%psi(lorbs%npsidim_orbs), stat=istat)
-      !!call memocc(istat, tmb%psi, 'tmb%psi',  subname)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   ! Keep the value of lphi for the next iteration
-  !if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, wfnmd%phi(1), 1, lphiRestart(1), 1)
-  !!if(wfnmd%bs%update_phi .or. itSCC==0) call dcopy(wfnmd%nphi, wfnmd%phi(1), 1, wfnmd%phiRestart(1), 1)
-  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmb%wfnmd%phi(1), 1, tmb%wfnmd%phiRestart(1), 1)
-  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, tmbder%psi(1), 1, tmb%psi(1), 1)
-  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) call dcopy(tmb%wfnmd%nphi, wfnmd%phi(1), 1, tmb%psi(1), 1)
-
-  !if(updatePhi .and. newgradient) then
   if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
-      !!!! Reallocate lphi, since it is now allocated without the derivatives
-      !!!iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
-      !!!deallocate(wfnmd%phi, stat=istat)
-      !!!call memocc(istat, iall, 'wfnmd%phi', subname)
-
-      !!!allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
-      !!!call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
-      !!wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
-      !!wfnmd%nlbphi=llborbs%npsidim_orbs
       tmbder%wfnmd%nphi=llborbs%npsidim_orbs
-      !!wfnmd%basis_is=BASIS_IS_ENHANCED
       tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
 
@@ -215,13 +153,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       allocate(tmbder%psi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
-      !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
-      !if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, wfnmd%phiRestart(1), 1, wfnmd%phi(1), 1)
-      !!if(.not.wfnmd%bs%use_derivative_basis) call dcopy(wfnmd%nphi, tmb%psi(1), 1, wfnmd%phi(1), 1)
       if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
   end if
       
-  !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
 
 
 
@@ -231,10 +165,6 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           call nullify_p2pComms(comrp)
           call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
           if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-          !call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-          !     max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,wfnmd%phi)
-          !!call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-          !!     max(lorbs%npsidim_orbs,lorbs%npsidim_comp),wfnmd%phiRestart,wfnmd%phi)
           call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
                max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,tmbder%psi)
           if(iproc==0) write(*,'(a)') 'done.'
@@ -243,16 +173,6 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end if
   end if
 
-  !!!! Debug: modify phi
-  !!!ist=1
-  !!!do iorb=1,llborbs%norbp
-  !!!    iiorb=llborbs%isorb+iorb
-  !!!    ilr=llborbs%inwhichlocreg(iiorb)
-  !!!    ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-  !!!    tt=dble(iiorb)
-  !!!    call dscal(ncnt, 1/tt, wfnmd%phi(ist), 1)
-  !!!    ist=ist+ncnt
-  !!!end do
 
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
@@ -296,7 +216,6 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   allocate(lhphi(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
-  !if(iproc==0) write(*,'(1x,a)',advance='no') 'Hamiltonian application...'
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
@@ -344,7 +263,6 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
   if(.not. tmbder%wfnmd%bs%use_derivative_basis) then
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
-      !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
   end if
@@ -359,7 +277,6 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
-  !!write(*,'(a,2es16.8)') 'matrixElements(1,1,1), ovrlp(1,1)', matrixElements(1,1,1), ovrlp(1,1)
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
@@ -496,7 +413,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,trH,&
-    infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,orthpar,&
+    infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
     locrad,tmb)
 !
@@ -567,7 +484,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(8),intent(out):: trH
 real(8),intent(in):: hx, hy, hz
-real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
+!!real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -591,7 +508,7 @@ integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat
-real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter
+real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
@@ -616,6 +533,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   allocate(onwhichatom(lorbs%norb), stat=istat)
   call memocc(istat, onwhichatom, 'onwhichatom', subname)
+  allocate(ovrlp(lorbs%norb,lorbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
@@ -1407,6 +1326,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   deallocate(onwhichatom, stat=istat)
   call memocc(istat, iall, 'onwhichatom', subname)
 
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
 
 !!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)
 !!$  deallocate(lorbs%ispot, stat=istat)
