@@ -133,6 +133,8 @@ type(local_zone_descriptors):: lzd
        tmbder%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmbder%orbs, tmbder%comms)
 
+  if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
+
   call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, lzd)
 
   call update_wavefunctions_size(lzd,tmb%orbs)
@@ -245,12 +247,12 @@ type(local_zone_descriptors):: lzd
       ! Post communications for gathering the potential.
       if(input%lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
       if(input%lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
-      call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-      if(tmbder%wfnmd%bs%use_derivative_basis) then
-          call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-      end if
+      !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+      !!if(tmbder%wfnmd%bs%use_derivative_basis) then
+      !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+      !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+      !!end if
 
       ! Calculate the Hamiltonian in the basis of the trace minimizing orbitals. Do not improve
       ! the basis functions (therefore update is set to false).
@@ -264,37 +266,37 @@ type(local_zone_descriptors):: lzd
           locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
 
-      if(input%lin%mixedmode) then
-          call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
-          tmbder%wfnmd%bs%use_derivative_basis=.false.
-          call getLinearPsi(iproc, nproc, lzd, orbs, tmb%orbs, tmb%orbs, tmb%comsr, &
-              tmb%mad, tmb%mad, tmb%op, tmb%op, tmb%comon, tmb%comon, &
-              tmb%comgp, tmb%comgp, at, rxyz, &
-              denspot, GPU, &
-              infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
-              ldiis, &
-              orthpar, confdatarr, tmbder%wfnmd%bpo%blocksize_pdgemm, &
-              tmbder%comrp, tmbder%wfnmd%bpo%blocksize_pdsyev, tmbder%wfnmd%bpo%nproc_pdsyev, &
-              hx, hy, hz, input%SIC, locrad, tmb, tmbder)
-      else
-          call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
-          call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
-              tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
-              tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
-              denspot,GPU,&
-              infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
-              ldiis,orthpar,confdatarr,& 
-              tmbder%wfnmd%bpo%blocksize_pdgemm,&
-              tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, locrad, tmb, tmbder)
-      end if
+      !!if(input%lin%mixedmode) then
+      !!    call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
+      !!    tmbder%wfnmd%bs%use_derivative_basis=.false.
+      !!    call getLinearPsi(iproc, nproc, lzd, orbs, tmb%orbs, tmb%orbs, tmb%comsr, &
+      !!        tmb%mad, tmb%mad, tmb%op, tmb%op, tmb%comon, tmb%comon, &
+      !!        tmb%comgp, tmb%comgp, at, rxyz, &
+      !!        denspot, GPU, &
+      !!        infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
+      !!        ldiis, &
+      !!        orthpar, confdatarr, tmbder%wfnmd%bpo%blocksize_pdgemm, &
+      !!        tmbder%comrp, tmbder%wfnmd%bpo%blocksize_pdsyev, tmbder%wfnmd%bpo%nproc_pdsyev, &
+      !!        hx, hy, hz, input%SIC, locrad, tmb, tmbder)
+      !!else
+      !!    call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
+      !!    call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
+      !!        tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
+      !!        tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
+      !!        denspot,GPU,&
+      !!        infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
+      !!        ldiis,orthpar,confdatarr,& 
+      !!        tmbder%wfnmd%bpo%blocksize_pdgemm,&
+      !!        tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+      !!        hx,hy,hz,input%SIC, locrad, tmb, tmbder)
+      !!end if
 
-      ! Calculate the charge density.
-      if(input%lin%mixedmode) then
-          call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      else
-          call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
-      end if
+      !!! Calculate the charge density.
+      !!if(input%lin%mixedmode) then
+      !!    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      !!else
+      !!    call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+      !!end if
 
       if(trim(input%lin%mixingMethod)=='dens') then
           rhopotold_out=rhopotold

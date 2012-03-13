@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                     (Ver 1.6.0)
+                           ggggg       i         BBBB                 (Ver 1.7-dev.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -220,11 +220,6 @@
  >>>> Partition of the basis functions including the derivatives among the processes.
     | Processes from 0 to 7 treat 7 orbitals. |
  ------------------------------------------------------------------------------------
- Initializing localization regions... done in 1.737E-02s.
- Initializing communications sumrho... done in 4.601E-05s.
- Initializing communications potential... done in 2.694E-05s.
- Initializing communications orthonormalization... done in 1.754E-02s.
- Initializing matrix compression... done in 3.350E-04s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -311,31 +306,6 @@ max deviation from unity, position:  4.837396E-04  14  14
  ====================================================================================
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
- Posting sends / receives for communicating the potential... done.
- Posting sends / receives for the calculation of the charge density... done.
- ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done.
- Gathering the potential... done.
- Hamiltonian application... done.
- Diagonalizing the Hamiltonian, sequential version... done.
- -------------------------------------------------
- some selected eigenvalues:
-   eval(1)=-7.03334E-01
-   eval(2)=-5.74280E-01
-   eval(3)=-4.11846E-01
-   eval(4)=-4.08826E-01
-   eval(5)=-4.06602E-01
-   eval(6)=-3.14377E-01
-   eval(7)=-3.11740E-01  <-- last occupied orbital
-   eval(8)= 3.02678E-01  <-- first virtual orbital
-   eval(9)= 3.53283E-01
-   eval(10)= 3.55626E-01
-   eval(11)= 4.81877E-01
-   eval(12)= 4.86330E-01
-   eval(13)= 5.91021E-01
-   eval(14)= 6.03308E-01
- -------------------------------------------------
- Posting sends / receives for communicating the potential... done.
  confdatarr(1)%prefac  3.000000000000000E-002
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
@@ -367,13 +337,13 @@ max deviation from unity, position:  4.837396E-04  14  14
  Final values for fnrm, fnrmMax, trace:   4.1689383E-02  4.9032461E-02   1.1076877
  ============================= Basis functions created. =============================
  timings:
-   -total time: 6.939E-01
-     - orthonormalization: 9.051E-02=13.0%
-     - Hamiltonian application: 2.138E-01=30.8%
-     - orthoconstraint: 4.310E-02= 6.2%
-     - preconditioning: 3.185E-01=45.9%
+   -total time: 6.945E-01
+     - orthonormalization: 9.082E-02=13.1%
+     - Hamiltonian application: 2.122E-01=30.6%
+     - orthoconstraint: 4.263E-02= 6.1%
+     - preconditioning: 3.209E-01=46.2%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 2.791E-02= 4.0%
+     - other: 2.797E-02= 4.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -722,13 +692,13 @@ max deviation from unity, position:  4.837396E-04  14  14
  Final values for fnrm, fnrmMax, trace:   2.2317963E-02  3.4329532E-02   2.9821481
  ============================= Basis functions created. =============================
  timings:
-   -total time: 6.956E-01
-     - orthonormalization: 9.011E-02=13.0%
-     - Hamiltonian application: 2.145E-01=30.8%
-     - orthoconstraint: 4.277E-02= 6.1%
-     - preconditioning: 3.203E-01=46.0%
+   -total time: 6.986E-01
+     - orthonormalization: 9.278E-02=13.3%
+     - Hamiltonian application: 2.139E-01=30.6%
+     - orthoconstraint: 4.231E-02= 6.1%
+     - preconditioning: 3.216E-01=46.0%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 2.787E-02= 4.0%
+     - other: 2.806E-02= 4.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1077,13 +1047,13 @@ max deviation from unity, position:  4.837396E-04  14  14
  Final values for fnrm, fnrmMax, trace:   1.9852718E-02  2.9860059E-02   2.9230429
  ============================= Basis functions created. =============================
  timings:
-   -total time: 6.934E-01
-     - orthonormalization: 8.971E-02=12.9%
-     - Hamiltonian application: 2.144E-01=30.9%
-     - orthoconstraint: 4.261E-02= 6.1%
-     - preconditioning: 3.190E-01=46.0%
+   -total time: 7.004E-01
+     - orthonormalization: 9.322E-02=13.3%
+     - Hamiltonian application: 2.152E-01=30.7%
+     - orthoconstraint: 4.237E-02= 6.0%
+     - preconditioning: 3.216E-01=45.9%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 2.774E-02= 4.0%
+     - other: 2.805E-02= 4.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1432,13 +1402,13 @@ max deviation from unity, position:  4.837396E-04  14  14
  Final values for fnrm, fnrmMax, trace:   2.0074205E-02  3.4190809E-02   2.9279375
  ============================= Basis functions created. =============================
  timings:
-   -total time: 6.935E-01
-     - orthonormalization: 9.007E-02=13.0%
-     - Hamiltonian application: 2.142E-01=30.9%
-     - orthoconstraint: 4.284E-02= 6.2%
-     - preconditioning: 3.186E-01=45.9%
+   -total time: 7.004E-01
+     - orthonormalization: 9.256E-02=13.2%
+     - Hamiltonian application: 2.153E-01=30.7%
+     - orthoconstraint: 4.234E-02= 6.0%
+     - preconditioning: 3.221E-01=46.0%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 2.784E-02= 4.0%
+     - other: 2.820E-02= 4.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1787,13 +1757,13 @@ max deviation from unity, position:  4.837396E-04  14  14
  Final values for fnrm, fnrmMax, trace:   1.9974636E-02  3.1651617E-02   2.9286601
  ============================= Basis functions created. =============================
  timings:
-   -total time: 6.930E-01
-     - orthonormalization: 8.904E-02=12.8%
-     - Hamiltonian application: 2.140E-01=30.9%
-     - orthoconstraint: 4.290E-02= 6.2%
-     - preconditioning: 3.191E-01=46.0%
+   -total time: 6.992E-01
+     - orthonormalization: 9.218E-02=13.2%
+     - Hamiltonian application: 2.148E-01=30.7%
+     - orthoconstraint: 4.237E-02= 6.1%
+     - preconditioning: 3.217E-01=46.0%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 2.790E-02= 4.0%
+     - other: 2.808E-02= 4.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -2112,6 +2082,7 @@ max deviation from unity, position:  4.837396E-04  14  14
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.1821329681E+00  3.8538772033E+01 -5.9003362960E+00 -7.7192904467E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
    itout, Delta DENSOUT, energy, energyDiff   5   7.92E-09   -1.43385652988433847E+01    4.1726E-04
  confdatarr(1)%prefac  2.000000000000000E-004
+ Posting sends / receives for communicating the potential... done.
  ======================== Creation of the basis functions... ========================
  creating new locregs...
  creating new locregs...
@@ -2207,13 +2178,14 @@ max deviation from unity, position:  4.837396E-04  14  14
         13      1.140297880571E+01      7.354928692388E+00      1.084745992502E+01
         14      1.301128618043E+01      9.683151573448E+00      9.059531831589E+00
  timings:
-   -total time: 1.407E+00
-     - orthonormalization: 1.442E-01=10.3%
-     - Hamiltonian application: 4.990E-01=35.5%
-     - orthoconstraint: 1.171E-01= 8.3%
-     - preconditioning: 5.327E-01=37.9%
+   -total time: 1.433E+00
+     - orthonormalization: 1.514E-01=10.6%
+     - Hamiltonian application: 5.090E-01=35.5%
+     - orthoconstraint: 1.149E-01= 8.0%
+     - preconditioning: 5.370E-01=37.5%
      - unitary optimization: 0.000E+00= 0.0%
-     - other: 1.135E-01= 8.1%
+     - other: 1.211E-01= 8.4%
+ Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
@@ -2559,11 +2531,11 @@ max deviation from unity, position:  4.837396E-04  14  14
    Calculation finished. TOTAL CHARGE =   1.399999918051E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 2.371E+01s
+ total time for linear scaling version: 2.364E+01s
    of which:
-             - initialization: 3.741E-02s ( 0.2%)
-             - input guess: 1.098E+00s ( 4.6%)
-             - self consistency cycle: 2.179E+01s (91.9%)
+             - initialization: 3.571E-02s ( 0.2%)
+             - input guess: 1.079E+00s ( 4.6%)
+             - self consistency cycle: 2.175E+01s (92.0%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  ---------------------------------------------------------- Gaussian Basis Projection
@@ -2584,7 +2556,7 @@ max deviation from unity, position:  4.837396E-04  14  14
  total average noise            :   6.30511673E-02
  clean forces norm (Ha/Bohr): maxval=  9.563076297370E-02  fnrm2=  1.311734682598E-02
  raw forces:                  maxval=  1.182649983558E-01  fnrm2=  1.713861728461E-02
- CPU time/ELAPSED time for root process     0        24.31        24.23
+ CPU time/ELAPSED time for root process     0        24.26        24.19
  Final values of the Forces for each atom
      1      C -2.52542E-02  2.17354E-02 -3.92722E-03
      2      C  6.52109E-02 -6.98276E-02  4.10829E-03
@@ -2595,6 +2567,6 @@ max deviation from unity, position:  4.837396E-04  14  14
      7      H  1.53842E-02 -4.10672E-03 -7.57941E-03
      8      H -6.76674E-03  4.73330E-03  1.55300E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 50063 allocations and 50063 deallocations, remaining memory(B): 0
- memory occupation peak: 74 MB
+ 49943 allocations and 49943 deallocations, remaining memory(B): 0
+ memory occupation peak: 72 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
