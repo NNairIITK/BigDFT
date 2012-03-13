@@ -441,6 +441,38 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   isorb = orbs%isorb
   iskpts = orbs%iskpts
 END SUBROUTINE orbs_get_dimensions
+subroutine orbs_get_eval(orbs, eval)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(wp), dimension(:), pointer :: eval
+  
+  eval => orbs%eval
+END SUBROUTINE orbs_get_eval
+subroutine orbs_get_occup(orbs, occup)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:), pointer :: occup
+  
+  occup => orbs%occup
+END SUBROUTINE orbs_get_occup
+subroutine orbs_get_kpts(orbs, kpts)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:,:), pointer :: kpts
+  
+  kpts => orbs%kpts
+END SUBROUTINE orbs_get_kpts
+subroutine orbs_get_kwgts(orbs, kwgts)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:), pointer :: kwgts
+  
+  kwgts => orbs%kwgts
+END SUBROUTINE orbs_get_kwgts
 
 subroutine proj_new(nlpspd)
   use module_types

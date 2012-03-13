@@ -244,18 +244,17 @@ struct BigDFT_orbs_
 #endif
 
   /* TODO: bindings to values... */
-  int norb, norbp, norbu, norbd;
-  int nspin, nspinor, npsidim;
-  int nkpts, nkptsp;
-  int isorb, iskpts;
+  guint norb, norbp, norbu, norbd;
+  guint nspin, nspinor, npsidim;
+  guint nkpts, nkptsp;
+  guint isorb, iskpts;
 
   double efermi, HLgap, eTS;
 
      /* integer, dimension(:), pointer :: iokpt,ikptproc */
      /* integer, dimension(:,:), pointer :: norb_par */
-     /* real(wp), dimension(:), pointer :: eval */
-     /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
-     /* real(gp), dimension(:,:), pointer :: kpts */
+  double *eval, *occup;
+  double *kwgts, *kpts;
 
   /* Pointers on building objects. */
   const BigDFT_Inputs *in;
@@ -321,6 +320,9 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                          guint *psiSize, guint iproc);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
+void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
+                            const BigDFT_Inputs *in,
+                            gboolean threaded, guint iproc, guint nproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */

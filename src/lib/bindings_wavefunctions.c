@@ -120,6 +120,9 @@ static guint bigdft_orbs_define(BigDFT_Orbs *orbs,
                                                      &orbs->nspinor, &orbs->npsidim,
                                                      &orbs->nkpts, &orbs->nkptsp,
                                                      &orbs->isorb, &orbs->iskpts);
+  GET_ATTR_DBL   (orbs, ORBS, occup, OCCUP);
+  GET_ATTR_DBL   (orbs, ORBS, kwgts, KWGTS);
+  GET_ATTR_DBL_2D(orbs, ORBS, kpts,  KPTS);
   
   return nelec_;
 }
@@ -289,6 +292,7 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT
 {
   int inputpsi, norbv;
   void *GPU;
+  BigDFT_Orbs *orbs;
 
   FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
   FC_FUNC_(input_wf, INPUT_WF)(&iproc, &nproc, wf->parent.in->data, GPU,
@@ -304,6 +308,8 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT
                                (void*)0, (void*)0, (void*)0, (void*)0
                                );
   FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
+  orbs = &wf->parent;
+  GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 
 #ifdef HAVE_GLIB
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[PSI_READY_SIGNAL],
@@ -360,4 +366,57 @@ double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
     }
 
   return psir;
+}
+typedef struct bigdft_data
+{
+  guint                iproc, nproc;
+  const BigDFT_Inputs *in;
+  BigDFT_Proj         *proj;
+  BigDFT_LocalFields  *denspot;
+  BigDFT_Wf           *wf;
+} BigDFT_Data;
+static gpointer wf_optimization_thread(gpointer data)
+{
+  BigDFT_Data *ct = (BigDFT_Data*)data;
+  
+  bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->in, ct->iproc, ct->nproc);
+  bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->iproc, ct->nproc);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(ct->wf));
+  g_object_unref(G_OBJECT(ct->denspot));
+  /* g_object_unref(G_OBJECT(ct->proj)); */
+#endif
+  g_free(ct);
+  
+  return (gpointer)0;
+}
+void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
+                            const BigDFT_Inputs *in,
+                            gboolean threaded, guint iproc, guint nproc)
+{
+  BigDFT_Data *ct;
+#ifdef HAVE_GLIB
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+
+  ct = g_malloc(sizeof(BigDFT_Data));
+  ct->iproc   = iproc;
+  ct->nproc   = nproc;
+  ct->denspot = denspot;
+  ct->in      = in;
+  ct->proj    = proj;
+  ct->wf      = wf;
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(wf));
+  g_object_ref(G_OBJECT(denspot));
+#endif
+#ifdef G_THREADS_ENABLED
+  if (threaded)
+    ld_thread = g_thread_create(wf_optimization_thread, ct, FALSE, &error);
+  else
+    wf_optimization_thread(ct);
+#else
+  wf_optimization_thread(ct);
+#endif
 }
