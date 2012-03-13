@@ -256,10 +256,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: nkptv, nvirtu, nvirtd, linflag
   real(gp), dimension(:), allocatable :: wkptv
   !type(rho_descriptors) :: rhodsc
-  type(linearParameters) :: lin
   type(confpot_data), dimension(:), allocatable :: confdatarr
-  !debug
-  integer:: iorb, ist, iall
 
   ! ----------------------------------
 
@@ -422,7 +419,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, orbs%eval, 'orbs%eval', subname)
      orbs%eval=-.5d0
      call linearScaling(iproc,nproc,Lzd%Glr,&
-          orbs,comms,atoms,in,hx,hy,hz,lin,&
+          orbs,comms,atoms,in,hx,hy,hz,&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,psi,psit,&
           energy,fxyz)
