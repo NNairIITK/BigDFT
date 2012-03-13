@@ -134,13 +134,9 @@ type(orbitals_data):: orbs_tmp
 
   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
       call copy_orbitals_data(lorbs, orbs_tmp, subname)
-      if(iproc==0) write(*,'(a,100i5)') '1:lorbs%norb_par(:,0)', lorbs%norb_par(:,0)
-      if(iproc==0) write(*,'(a,100i5)') '1:llborbs%norb_par(:,0)', llborbs%norb_par(:,0)
       call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
       call deallocate_orbitals_data(orbs_tmp, subname)
-      if(iproc==0) write(*,'(a,100i5)') '2:lorbs%norb_par(:,0)', lorbs%norb_par(:,0)
-      if(iproc==0) write(*,'(a,100i5)') '2:llborbs%norb_par(:,0)', llborbs%norb_par(:,0)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -274,6 +270,15 @@ type(orbitals_data):: orbs_tmp
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
   end if
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
+
+
+  ! Symmetrize the Hamiltonian
+  call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  do iorb=1,llborbs%norb
+      do jorb=1,llborbs%norb
+          matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
+      end do
+  end do
 
 
   allocate(overlapmatrix(llborbs%norb,llborbs%norb), stat=istat)
