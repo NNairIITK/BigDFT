@@ -486,7 +486,37 @@ type(orbitals_data):: orbs_tmp
               call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
                    orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
               call deallocate_orbitals_data(orbs_tmp, subname)
+
+              tmbder%wfnmd%nphi=tmbder%orbs%npsidim_orbs
+              tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
+
+
+              ! Reallocate tmbder%psi, since it might have a new shape
+              iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
+              deallocate(tmbder%psi, stat=istat)
+              call memocc(istat, iall, 'tmbder%psi', subname)
+
+              allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)
+              call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+
+              if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
           end if
+
+
+          if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
+              if(tmbder%wfnmd%bs%use_derivative_basis) then
+                  call deallocate_p2pComms(tmbder%comrp, subname)
+                  call nullify_p2pComms(tmbder%comrp)
+                  call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmbder%comrp)
+                  if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
+                  call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,tmb%orbs,tmbder%orbs,tmbder%comrp,&
+                       max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbder%psi)
+                  if(iproc==0) write(*,'(a)') 'done.'
+              else
+                  call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+              end if
+          end if
+
 
           if(input%lin%mixedmode) then
               if(.not.withder) then

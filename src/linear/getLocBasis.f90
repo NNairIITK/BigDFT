@@ -140,41 +140,41 @@ type(orbitals_data):: orbs_tmp
   !!    call deallocate_orbitals_data(orbs_tmp, subname)
   !!end if
 
-  ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
-  ! Keep the value of lphi for the next iteration
-  if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
+  !!! Keep the value of lphi for the next iteration
+  !!if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
-      tmbder%wfnmd%nphi=llborbs%npsidim_orbs
-      tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
+  !!    tmbder%wfnmd%nphi=llborbs%npsidim_orbs
+  !!    tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
 
-      ! Reallocate tmbder%psi, since it might have a new shape
-      iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
-      deallocate(tmbder%psi, stat=istat)
-      call memocc(istat, iall, 'tmbder%psi', subname)
+  !!    ! Reallocate tmbder%psi, since it might have a new shape
+  !!    iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
+  !!    deallocate(tmbder%psi, stat=istat)
+  !!    call memocc(istat, iall, 'tmbder%psi', subname)
 
-      allocate(tmbder%psi(llborbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+  !!    allocate(tmbder%psi(llborbs%npsidim_orbs), stat=istat)
+  !!    call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
-      if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
-  end if
+  !!    if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+  !!end if
       
 
 
 
-  if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
-      if(tmbder%wfnmd%bs%use_derivative_basis) then
-          call deallocate_p2pComms(comrp, subname)
-          call nullify_p2pComms(comrp)
-          call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-          call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-               max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,tmbder%psi)
-          if(iproc==0) write(*,'(a)') 'done.'
-      else
-          call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
-      end if
-  end if
+  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
+  !!    if(tmbder%wfnmd%bs%use_derivative_basis) then
+  !!        call deallocate_p2pComms(comrp, subname)
+  !!        call nullify_p2pComms(comrp)
+  !!        call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
+  !!        if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
+  !!        call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
+  !!             max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,tmbder%psi)
+  !!        if(iproc==0) write(*,'(a)') 'done.'
+  !!    else
+  !!        call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+  !!    end if
+  !!end if
 
 
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
