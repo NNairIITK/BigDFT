@@ -254,7 +254,7 @@ type(orbitals_data):: orbs_tmp
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
        hx,hy,hz,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
+       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
