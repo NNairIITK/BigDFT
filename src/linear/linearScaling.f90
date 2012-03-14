@@ -618,28 +618,20 @@ type(orbitals_data):: orbs_tmp
           ! Calculate the charge density.
           if(input%lin%mixedmode) then
               if(.not.withder) then
-                  if(iproc==0) then
-                      do istat=1,tmbder%wfnmd%ld_coeff
-                          write(200,* ) istat, tmbder%wfnmd%coeff(istat,1)
-                      end do
-                      do istat=1,tmbmix%wfnmd%ld_coeff
-                          write(300,* ) istat, tmbmix%wfnmd%coeff(istat,1)
-                      end do
-                  end if
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
-                       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lzd, input, hx, hy, hz, tmbder%orbs, tmbmix%comsr, &
-                       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
+                       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lzd, input, hx, hy ,hz, tmbder%orbs, tmbmix%comsr, &
-                   tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
+                   tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
 
@@ -790,7 +782,7 @@ type(orbitals_data):: orbs_tmp
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-       tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
@@ -798,8 +790,8 @@ type(orbitals_data):: orbs_tmp
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(input%lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lzd, tmbmix%orbs, orbs, comms, input, tmbder%wfnmd%ld_coeff, &
-           tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
+      call transformToGlobal(iproc, nproc, lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
+           tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
   end if
 
 
