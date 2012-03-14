@@ -210,14 +210,14 @@ type(orbitals_data):: orbs_tmp
 
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-     !!call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-     call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-  else
-     !!call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
-     call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
-  end if
-  !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
+  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
+  !!   !!call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
+  !!   call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
+  !!else
+  !!   !!call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
+  !!   call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
+  !!end if
+  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -228,35 +228,35 @@ type(orbitals_data):: orbs_tmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-     allocate(confdatarrtmp(lorbs%norbp))
-     call default_confinement_data(confdatarrtmp,lorbs%norbp)
-     call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
-          hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-          pkernel=denspot%pkernelseq)
-     deallocate(confdatarrtmp)
+  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
+  !!   allocate(confdatarrtmp(lorbs%norbp))
+  !!   call default_confinement_data(confdatarrtmp,lorbs%norbp)
+  !!   call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
+  !!        hx,hy,hz,rxyz,&
+  !!        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
+  !!        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+  !!        pkernel=denspot%pkernelseq)
+  !!   deallocate(confdatarrtmp)
 
-  else
+  !!else
 
-     allocate(confdatarrtmp(llborbs%norbp))
-     call default_confinement_data(confdatarrtmp,llborbs%norbp)
-     call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
-          hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-          pkernel=denspot%pkernelseq)
-     deallocate(confdatarrtmp)
-  end if
-  !!allocate(confdatarrtmp(tmbmix%orbs%norbp))
-  !!call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
-  !!call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
-  !!     hx,hy,hz,rxyz,&
-  !!     proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
-  !!     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-  !!     pkernel=denspot%pkernelseq)
-  !!deallocate(confdatarrtmp)
+  !!   allocate(confdatarrtmp(llborbs%norbp))
+  !!   call default_confinement_data(confdatarrtmp,llborbs%norbp)
+  !!   call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
+  !!        hx,hy,hz,rxyz,&
+  !!        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
+  !!        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+  !!        pkernel=denspot%pkernelseq)
+  !!   deallocate(confdatarrtmp)
+  !!end if
+  allocate(confdatarrtmp(tmbmix%orbs%norbp))
+  call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
+  call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+       hx,hy,hz,rxyz,&
+       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
+       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+       pkernel=denspot%pkernelseq)
+  deallocate(confdatarrtmp)
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
@@ -277,13 +277,14 @@ type(orbitals_data):: orbs_tmp
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  call allocateCommuncationBuffersOrtho(lbcomon, subname)
-  if(.not. tmbder%wfnmd%bs%use_derivative_basis) then
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
-  else
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
-  end if
-  call deallocateCommuncationBuffersOrtho(lbcomon, subname)
+  call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+  !!if(.not. tmbder%wfnmd%bs%use_derivative_basis) then
+  !!    call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
+  !!else
+  !!    call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
+  !!end if
+  call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbder%psi, lhphi, tmbmix%mad, matrixElements)
+  call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
 
 
   ! Symmetrize the Hamiltonian

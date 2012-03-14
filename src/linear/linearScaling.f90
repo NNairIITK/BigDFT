@@ -478,28 +478,42 @@ type(orbitals_data):: orbs_tmp
                   tmbmix => tmbder
               end if
           else
-              tmbmix => tmbder
+              !tmbmix => tmbder
+              if(tmbder%wfnmd%bs%use_derivative_basis) then
+                  tmbmix => tmbder
+              else
+                  tmbmix => tmb
+              end if
           end if
           if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-              call nullify_orbitals_data(orbs_tmp)
-              call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-              call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-                   orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
-              call deallocate_orbitals_data(orbs_tmp, subname)
+              if(tmbder%wfnmd%bs%use_derivative_basis) then
+                  call nullify_orbitals_data(orbs_tmp)
+                  call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
+                  call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+                       orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
+                  call deallocate_orbitals_data(orbs_tmp, subname)
 
-              tmbder%wfnmd%nphi=tmbder%orbs%npsidim_orbs
-              tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
+                  tmbder%wfnmd%nphi=tmbder%orbs%npsidim_orbs
+                  tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
 
-              ! Reallocate tmbder%psi, since it might have a new shape
-              iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
-              deallocate(tmbder%psi, stat=istat)
-              call memocc(istat, iall, 'tmbder%psi', subname)
+                  ! Reallocate tmbder%psi, since it might have a new shape
+                  iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
+                  deallocate(tmbder%psi, stat=istat)
+                  call memocc(istat, iall, 'tmbder%psi', subname)
 
-              allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)
-              call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+                  allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)
+                  call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
-              if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+                  if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+              else
+                  tag=1
+                  call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
+                  call deallocate_p2pComms(tmbmix%comsr, subname)
+                  call nullify_p2pComms(tmbmix%comsr)
+                  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
+                  call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
+              end if
           end if
 
 
@@ -551,8 +565,12 @@ type(orbitals_data):: orbs_tmp
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               end if
           else
-              tmbmix => tmbder
-              call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
+              if(tmbder%wfnmd%bs%use_derivative_basis) then
+                  tmbmix => tmbder
+              else
+                  tmbmix => tmb
+              end if
+              call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbmix%comsr,&
                   tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
                   denspot,GPU,&
@@ -577,18 +595,18 @@ type(orbitals_data):: orbs_tmp
           if(input%lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-                       lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
+                       lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
+                       lzd, input, hx, hy, hz, tmbder%orbs, tmbmix%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lzd, input, hx, hy ,hz, tmbder%orbs, tmbder%comsr, &
+                   lzd, input, hx, hy ,hz, tmbder%orbs, tmbmix%comsr, &
                    tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
@@ -737,18 +755,18 @@ type(orbitals_data):: orbs_tmp
 
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
-  call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, lzd, tmbder%orbs, tmbder%psi, tmbder%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lzd, input, hx, hy, hz, tmbder%orbs, tmbder%comsr, &
+  call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbmix%comsr, subname)
+  call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
-  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+  call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(input%lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lzd, tmbder%orbs, orbs, comms, input, tmbder%wfnmd%ld_coeff, &
+      call transformToGlobal(iproc, nproc, lzd, tmbmix%orbs, orbs, comms, input, tmbder%wfnmd%ld_coeff, &
            tmbder%wfnmd%coeff, tmbder%psi, psi, psit)
   end if
 
