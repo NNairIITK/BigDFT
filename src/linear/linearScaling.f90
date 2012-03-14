@@ -453,6 +453,11 @@ type(orbitals_data):: orbs_tmp
           ! This is a flag whether the basis functions shall be updated.
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
+              if(itout>1) then
+                  do iorb=1,orbs%norb
+                      call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
+                  end do
+              end if
               call getLocalizedBasis(iproc,nproc,at,lzd,tmb%orbs,orbs,tmb%comon,tmb%op,tmb%comgp,tmb%mad,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
@@ -613,6 +618,14 @@ type(orbitals_data):: orbs_tmp
           ! Calculate the charge density.
           if(input%lin%mixedmode) then
               if(.not.withder) then
+                  if(iproc==0) then
+                      do istat=1,tmbder%wfnmd%ld_coeff
+                          write(200,* ) istat, tmbder%wfnmd%coeff(istat,1)
+                      end do
+                      do istat=1,tmbmix%wfnmd%ld_coeff
+                          write(300,* ) istat, tmbmix%wfnmd%coeff(istat,1)
+                      end do
+                  end if
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
                        tmbder%wfnmd%ld_coeff, tmbder%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
@@ -1176,8 +1189,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
 
-      !!allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
-      !!call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
+      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
@@ -1226,9 +1239,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeff, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeff', subname)
 
-  !!iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
-  !!deallocate(wfnmd%coeff_proj, stat=istat)
-  !!call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
+  deallocate(wfnmd%coeff_proj, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
 
 end subroutine destroy_wfn_metadata
 

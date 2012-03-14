@@ -324,8 +324,8 @@ type(orbitals_data):: orbs_tmp
   !!!!$$! So it will work, but be careful. Maybe this can be improved later
   !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
-      !!call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
       call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
+      call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
 
@@ -355,9 +355,8 @@ type(orbitals_data):: orbs_tmp
   do iorb=1,orbs%norb
       do jorb=1,llborbs%norb
           do korb=1,llborbs%norb
-              !ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
-              ebs = ebs + tmbder%wfnmd%coeff(jorb,iorb)*tmbder%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
-              !ebs = ebs + matrixElements(jorb,iorb,2)*matrixElements(korb,iorb,2)*matrixElements(korb,jorb,1)
+              !ebs = ebs + tmbder%wfnmd%coeff(jorb,iorb)*tmbder%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              ebs = ebs + tmbmix%wfnmd%coeff(jorb,iorb)*tmbmix%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
           end do
       end do
   end do
@@ -380,26 +379,25 @@ type(orbitals_data):: orbs_tmp
 
 
   ! Project the lb coefficients on the smaller subset
-  if(tmbder%wfnmd%bs%use_derivative_basis) then
-      inc=4
-  else
-      inc=1
-  end if
-  do iorb=1,orbs%norb
-      jjorb=1
-      do jorb=1,llborbs%norb,inc
-          tt=0.d0
-          do korb=1,llborbs%norb
-              !tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-              tt = tt + tmbder%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-              !tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
+  !if(tmbder%wfnmd%bs%use_derivative_basis) then
+      if(tmbder%wfnmd%bs%use_derivative_basis) then
+          inc=4
+      else
+          inc=1
+      end if
+      do iorb=1,orbs%norb
+          jjorb=1
+          do jorb=1,llborbs%norb,inc
+              tt=0.d0
+              do korb=1,llborbs%norb
+                  tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+                  !!tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
+              end do
+              tmbmix%wfnmd%coeff_proj(jjorb,iorb)=tt
+              jjorb=jjorb+1
           end do
-          !tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
-          tmb%wfnmd%coeff(jjorb,iorb)=tt
-          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
-          jjorb=jjorb+1
       end do
-  end do
+  !end if
   !!write(*,*) 'ATTENTION DEBUG'
   !!wfnmd%coeff_proj=wfnmd%coeff
 
