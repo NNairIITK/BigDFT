@@ -308,11 +308,11 @@ type(orbitals_data):: orbs_tmp
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-      call diagonalizeHamiltonian2(iproc, nproc, llborbs, lbop%nsubmax, matrixElements(1,1,2), ovrlp, eval)
+      call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
   else
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-      call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', llborbs%norb,&
-           matrixElements(1,1,2), llborbs%norb, ovrlp, llborbs%norb, eval, info)
+      call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
+           matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
   !!write(*,'(a,2es16.8)') 'matrixElements(1,1,2)', matrixElements(1,1,2)
@@ -325,7 +325,7 @@ type(orbitals_data):: orbs_tmp
   !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
       !!call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
-      call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
+      call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
 
