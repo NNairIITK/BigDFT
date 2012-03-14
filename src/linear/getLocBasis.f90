@@ -186,12 +186,12 @@ type(orbitals_data):: orbs_tmp
   !!else
   !!    call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
   !!end if
-  call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbder%psi, tmbmix%mad, ovrlp)
+  call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
 
 
   if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
       !call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
-      call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbder%psi, tmbmix%comsr)
+      call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   
 
@@ -284,7 +284,7 @@ type(orbitals_data):: orbs_tmp
   !!else
   !!    call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
   !!end if
-  call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbder%psi, lhphi, tmbmix%mad, matrixElements)
+  call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
   call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
 
 
