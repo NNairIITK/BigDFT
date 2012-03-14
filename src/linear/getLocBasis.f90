@@ -205,7 +205,8 @@ type(orbitals_data):: orbs_tmp
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
+  !!if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
+  if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, tmbmix%comgp)
 
 
   if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
@@ -215,10 +216,13 @@ type(orbitals_data):: orbs_tmp
      call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
   end if
+  !!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
+  !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
-  allocate(lhphi(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)), stat=istat)
+  !allocate(lhphi(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)), stat=istat)
+  allocate(lhphi(max(tmbmix%orbs%npsidim_orbs,tmbmix%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
@@ -245,6 +249,14 @@ type(orbitals_data):: orbs_tmp
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
+  !!allocate(confdatarrtmp(tmbmix%orbs%norbp))
+  !!call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
+  !!call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+  !!     hx,hy,hz,rxyz,&
+  !!     proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
+  !!     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+  !!     pkernel=denspot%pkernelseq)
+  !!deallocate(confdatarrtmp)
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
