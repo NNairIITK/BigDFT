@@ -496,8 +496,8 @@ type(orbitals_data):: orbs_tmp
               !!    tmbmix => tmb
               !!end if
           end if
-          if(tmbmix%wfnmd%bs%use_derivative_basis .and. &
-             (.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
+          if(tmbmix%wfnmd%bs%use_derivative_basis) then ! .and. &
+             !!(.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
@@ -532,8 +532,8 @@ type(orbitals_data):: orbs_tmp
                   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
                   call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
               end if
-              call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+              !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+              !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
               call deallocate_p2pComms(tmbmix%comgp, subname)
               call nullify_p2pComms(tmbmix%comgp)
               call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
