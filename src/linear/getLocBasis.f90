@@ -1,100 +1,28 @@
-subroutine getLinearPsi(iproc,nproc,lzd,orbs,&
-    at,rxyz,denspot,&
-    GPU,&
-    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-    ldiis,orthpar,&
-    blocksize_pdgemm,&
-    comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,locrad,tmb,tmbder,tmbmix)
-!
-! Purpose:
-! ========
-!   This subroutine creates the orbitals psi out of a linear combination of localized basis functions
-!   phi. To do so, it proceeds as follows:
-!    1. Create the basis functions (with subroutine 'getLocalizedBasis')
-!    2. Write the Hamiltonian in this new basis.
-!    3. Diagonalize this Hamiltonian matrix.
-!    4. Build the new linear combinations. 
-!   The basis functions are localized by adding a confining quartic potential to the ordinary DFT 
-!   Hamiltonian. There is no self consistency cycle for the potential, i.e. the basis functionsi
-!   are optimized with a fixed potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc           process ID
-!     nproc           total number of processes
-!     Glr             type describing the localization region
-!     orbs            type describing the physical orbitals psi
-!     at              type containing the paraneters for the atoms
-!     lin             type containing parameters for the linear version
-!     rxyz            the atomic positions
-!     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
-!     nscatterarr     ???
-!     ngatherarr      ???
-!     nlpsp           ???
-!     rhopot          the charge density
-!     GPU             parameters for GPUs
-!     input           type containing some very general parameters
-!     pkernelseq      ???
-!     n3p             ???
-!     itSCC           iteration in the self consistency cycle
-!  Input/Output arguments
-!  ---------------------
-!     phi             the localized basis functions. It is assumed that they have been initialized
-!                     somewhere else
-!   Output arguments
-!   ----------------
-!     psi             the physical orbitals, which will be a linear combinations of the localized
-!                     basis functions phi
-!     psit            psi transposed
-!     infoBasisFunctions  indicated wheter the basis functions converged to the specified limit (value is the
-!                         number of iterations it took to converge) or whether the iteration stopped due to 
-!                         the iteration limit (value is -1). This info is returned by 'getLocalizedBasis'
-!     infoCoeff           the same as infoBasisFunctions, just for the coefficients. This value is returned
-!                         by 'optimizeCoefficients'
-!
+subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
+    GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
+    hx,hy,hz,SIC,tmbmix)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => getLinearPsi
+use module_interfaces, exceptThisOne => get_coeff
 use Poisson_Solver
-!use deallocatePointers
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, itSCC
-integer,intent(in):: blocksize_pdgemm
+integer,intent(in):: iproc, nproc
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
-!!type(orbitals_data),intent(inout):: lorbs, llborbs
-!!type(p2pComms),intent(inout):: comsr
-!!type(matrixDescriptors),intent(inout):: mad, lbmad
-!!type(overlapParameters),intent(inout):: op, lbop
-!!type(p2pComms),intent(inout):: comon, lbcomon
-!!type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
-integer,intent(out):: infoBasisFunctions, infoCoeff
+integer,intent(out):: infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: hx, hy, hz
-!real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
-!real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-!real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
-type(localizedDIISParameters),intent(inout):: ldiis
-type(orthon_data),intent(in):: orthpar
-!type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
-!real(8),dimension(:),pointer,intent(inout)::lphiRestart
-type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
-real(8),dimension(lzd%nlr),intent(in):: locrad
-!!type(wfn_metadata),intent(inout):: wfnmd
-type(DFT_wavefunction),intent(inout):: tmb, tmbder, tmbmix
+type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
@@ -123,12 +51,12 @@ type(orbitals_data):: orbs_tmp
 
 
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
-  tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
+  tmbmix%wfnmd%basis_is=BASIS_IS_ENHANCED
 
   call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
 
 
-  if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+  if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   
@@ -139,7 +67,7 @@ type(orbitals_data):: orbs_tmp
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
-  if(.not.tmb%wfnmd%bs%update_phi .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+  if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
       .or. tmbmix%wfnmd%bs%use_derivative_basis) then
       call gatherPotential(iproc, nproc, tmbmix%comgp)
   end if
@@ -299,7 +227,7 @@ type(orbitals_data):: orbs_tmp
   deallocate(overlapmatrix, stat=istat)
   call memocc(istat, iall, 'overlapmatrix', subname)
 
-end subroutine getLinearPsi
+end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&

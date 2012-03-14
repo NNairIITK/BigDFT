@@ -451,8 +451,10 @@ type(orbitals_data):: orbs_tmp
           if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
@@ -601,14 +603,9 @@ type(orbitals_data):: orbs_tmp
               !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
               !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
           end if
-          call getLinearPsi(iproc,nproc,lzd,orbs,&
-              at,rxyz,&
-              denspot,GPU,&
-              infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-              ldiis,orthpar,&
-              tmbder%wfnmd%bpo%blocksize_pdgemm,&
-              tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
+          call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+               tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+               hx,hy,hz,input%SIC,tmbmix)
 
 
           ! Calculate the charge density.
