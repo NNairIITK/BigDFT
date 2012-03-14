@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,orthpar,confdatarr,&
     blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,locrad,tmb,tmbder)
+    hx,hy,hz,SIC,locrad,tmb,tmbder,tmbmix)
 !
 ! Purpose:
 ! ========
@@ -94,7 +94,7 @@ type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 real(8),dimension(lzd%nlr),intent(in):: locrad
 !!type(wfn_metadata),intent(inout):: wfnmd
-type(DFT_wavefunction),intent(inout):: tmb, tmbder
+type(DFT_wavefunction),intent(inout):: tmb, tmbder, tmbmix
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
@@ -181,15 +181,17 @@ type(orbitals_data):: orbs_tmp
   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
   ! Calculate the overlap matrix.
-  if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
-  else
-      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
-  end if
+  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
+  !!    call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
+  !!else
+  !!    call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
+  !!end if
+  call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbder%psi, tmbmix%mad, ovrlp)
 
 
   if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
+      !call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
+      call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbder%psi, tmbmix%comsr)
   end if
   
 

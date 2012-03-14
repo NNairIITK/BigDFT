@@ -2104,7 +2104,7 @@ module module_interfaces
          ldiis,orthpar,confdatarr,&
          blocksize_pdgemm,&
          comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,locrad,tmb, tmbder)
+         hx,hy,hz,SIC,locrad,tmb, tmbder, tmbmix)
       use module_base
       use module_types
       implicit none
@@ -2145,7 +2145,7 @@ module module_interfaces
       type(SIC_data),intent(in):: SIC
       real(8),dimension(lzd%nlr),intent(in):: locrad
       !!type(wfn_metadata),intent(inout):: wfnmd
-      type(DFT_wavefunction),intent(inout):: tmb, tmbder
+      type(DFT_wavefunction),intent(inout):: tmb, tmbder, tmbmix
     end subroutine getLinearPsi
 
 

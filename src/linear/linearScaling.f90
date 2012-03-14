@@ -530,7 +530,7 @@ type(orbitals_data):: orbs_tmp
                       ldiis,orthpar,confdatarr,&
                       tmbder%wfnmd%bpo%blocksize_pdgemm,&
                       tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, tmb, tmbder)
+                      hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               else
                   tmbder%wfnmd%bs%use_derivative_basis=.true.
                   !!! We have to communicate the potential in the first iteration
@@ -548,7 +548,7 @@ type(orbitals_data):: orbs_tmp
                       ldiis,orthpar,confdatarr,&
                       tmbder%wfnmd%bpo%blocksize_pdgemm,&
                       tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, tmb, tmbder)
+                      hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               end if
           else
               tmbmix => tmbder
@@ -560,7 +560,7 @@ type(orbitals_data):: orbs_tmp
                   ldiis,orthpar,confdatarr,&
                   tmbder%wfnmd%bpo%blocksize_pdgemm,&
                   tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, locrad, tmb, tmbder)
+                  hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
           end if
           !!call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbmix%orbs,tmbmix%comsr,&
           !!    tmb%mad,tmbmix%mad,tmb%op,tmbmix%op,tmb%comon,&
