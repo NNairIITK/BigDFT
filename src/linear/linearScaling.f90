@@ -509,19 +509,19 @@ type(orbitals_data):: orbs_tmp
                        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
                   call deallocate_orbitals_data(orbs_tmp, subname)
 
-                  tmbder%wfnmd%nphi=tmbder%orbs%npsidim_orbs
+                  tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
                   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
 
-                  ! Reallocate tmbder%psi, since it might have a new shape
-                  iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
-                  deallocate(tmbder%psi, stat=istat)
-                  call memocc(istat, iall, 'tmbder%psi', subname)
+                  ! Reallocate tmbmix%psi, since it might have a new shape
+                  iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+                  deallocate(tmbmix%psi, stat=istat)
+                  call memocc(istat, iall, 'tmbmix%psi', subname)
 
-                  allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)
-                  call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+                  allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+                  call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
 
-                  if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+                  if(.not.tmbmix%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
                   call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
                   call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               else
@@ -548,16 +548,16 @@ type(orbitals_data):: orbs_tmp
 
 
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
-              if(tmbder%wfnmd%bs%use_derivative_basis) then
-                  call deallocate_p2pComms(tmbder%comrp, subname)
-                  call nullify_p2pComms(tmbder%comrp)
-                  call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, lzd, tmbder%comrp)
+              if(tmbmix%wfnmd%bs%use_derivative_basis) then
+                  call deallocate_p2pComms(tmbmix%comrp, subname)
+                  call nullify_p2pComms(tmbmix%comrp)
+                  call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, lzd, tmbmix%comrp)
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-                  call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,tmb%orbs,tmbder%orbs,tmbder%comrp,&
-                       max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbder%psi)
+                  call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
+                       max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
               else
-                  call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+                  call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
           end if
 
