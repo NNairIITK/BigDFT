@@ -560,14 +560,14 @@ type(orbitals_data):: orbs_tmp
               if(.not.withder) then
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
                   tmbmix => tmb
-                  call getLinearPsi(iproc,nproc,lzd,orbs,&
-                      at,rxyz,&
-                      denspot,GPU,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,orthpar,&
-                      tmbder%wfnmd%bpo%blocksize_pdgemm,&
-                      tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
+                  !!call getLinearPsi(iproc,nproc,lzd,orbs,&
+                  !!    at,rxyz,&
+                  !!    denspot,GPU,&
+                  !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
+                  !!    ldiis,orthpar,&
+                  !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
+                  !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+                  !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               else
                   tmbder%wfnmd%bs%use_derivative_basis=.true.
                   !!! We have to communicate the potential in the first iteration
@@ -577,14 +577,14 @@ type(orbitals_data):: orbs_tmp
                   !!end if
                   tmbmix => tmbder
 
-                  call getLinearPsi(iproc,nproc,lzd,orbs,&
-                      at,rxyz,&
-                      denspot,GPU,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,orthpar,&
-                      tmbder%wfnmd%bpo%blocksize_pdgemm,&
-                      tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
+                  !!call getLinearPsi(iproc,nproc,lzd,orbs,&
+                  !!    at,rxyz,&
+                  !!    denspot,GPU,&
+                  !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
+                  !!    ldiis,orthpar,&
+                  !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
+                  !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+                  !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               end if
           else
               !!if(tmbder%wfnmd%bs%use_derivative_basis) then
@@ -592,24 +592,23 @@ type(orbitals_data):: orbs_tmp
               !!else
               !!    tmbmix => tmb
               !!end if
-              call getLinearPsi(iproc,nproc,lzd,orbs,&
-                  at,rxyz,&
-                  denspot,GPU,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  ldiis,orthpar,&
-                  tmbder%wfnmd%bpo%blocksize_pdgemm,&
-                  tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
+              !!call getLinearPsi(iproc,nproc,lzd,orbs,&
+              !!    at,rxyz,&
+              !!    denspot,GPU,&
+              !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
+              !!    ldiis,orthpar,&
+              !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
+              !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+              !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
           end if
-          !!call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbmix%orbs,tmbmix%comsr,&
-          !!    tmb%mad,tmbmix%mad,tmb%op,tmbmix%op,tmb%comon,&
-          !!    tmbmix%comon,tmb%comgp,tmbmix%comgp,at,rxyz,&
-          !!    denspot,GPU,&
-          !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-          !!    ldiis,orthpar,confdatarr,&
-          !!    tmbmix%wfnmd%bpo%blocksize_pdgemm,&
-          !!    tmbmix%comrp,tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbmix%wfnmd%bpo%nproc_pdsyev,&
-          !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder)
+          call getLinearPsi(iproc,nproc,lzd,orbs,&
+              at,rxyz,&
+              denspot,GPU,&
+              infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
+              ldiis,orthpar,&
+              tmbder%wfnmd%bpo%blocksize_pdgemm,&
+              tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
+              hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
 
 
           ! Calculate the charge density.
