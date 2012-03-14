@@ -506,6 +506,8 @@ type(orbitals_data):: orbs_tmp
                   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
                   if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
+                  call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+                  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               else
                   tag=1
                   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
@@ -514,6 +516,18 @@ type(orbitals_data):: orbs_tmp
                   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
                   call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
               end if
+              call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+              call deallocate_p2pComms(tmbmix%comgp, subname)
+              call nullify_p2pComms(tmbmix%comgp)
+              call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
+                   lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
+              if(tmbder%wfnmd%bs%use_derivative_basis) then
+                  call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+                  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+              end if
+              call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
           end if
 
 

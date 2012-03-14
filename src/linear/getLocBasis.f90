@@ -6008,13 +6008,13 @@ type(locreg_descriptors):: glr_tmp
 character(len=*),parameter:: subname='update_locreg'
 
 
-          ! Cancel the communication of the potential
-          if(useDerivativeBasisFunctions) then
-              call cancelCommunicationPotential(iproc, nproc, lbcomgp)
-              call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
-          end if
-          call cancelCommunicationPotential(iproc, nproc, comgp)
-          call deallocateCommunicationsBuffersPotential(comgp, subname)
+          !!! Cancel the communication of the potential
+          !!if(useDerivativeBasisFunctions) then
+          !!    call cancelCommunicationPotential(iproc, nproc, lbcomgp)
+          !!    call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+          !!end if
+          !!call cancelCommunicationPotential(iproc, nproc, comgp)
+          !!call deallocateCommunicationsBuffersPotential(comgp, subname)
 
           !!! Reallocate lphiRestart, since its size might have changed
           !!iall=-product(shape(lphiRestart))*kind(lphiRestart)
@@ -6033,14 +6033,14 @@ character(len=*),parameter:: subname='update_locreg'
           call deallocate_overlapParameters(lbop, subname)
           call deallocate_p2pComms(lbcomon, subname)
           call deallocate_matrixDescriptors(lbmad, subname)
-          call deallocate_p2pComms(lbcomgp, subname)
+          !!call deallocate_p2pComms(lbcomgp, subname)
 
 
           call nullify_orbitals_data(llborbs)
           call nullify_overlapParameters(lbop)
           call nullify_p2pComms(lbcomon)
           call nullify_matrixDescriptors(lbmad)
-          call nullify_p2pComms(lbcomgp)
+          !!call nullify_p2pComms(lbcomgp)
           tag=1
           if(.not.useDerivativeBasisFunctions) then
               norbu=orbs_tmp%norb
@@ -6137,16 +6137,16 @@ character(len=*),parameter:: subname='update_locreg'
                lbop%noverlaps, lbop%overlaps, lbmad)
           call initCompressedMatmul3(llborbs%norb, lbmad)
 
-          call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
-               lzd, lbcomgp, llborbs%inWhichLocreg, tag)
+          !!call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
+          !!     lzd, lbcomgp, llborbs%inWhichLocreg, tag)
 
-          ! Communicate the potential
-          if(useDerivativeBasisFunctions) then
-              call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
-          end if
-          call allocateCommunicationsBuffersPotential(comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
+          !!! Communicate the potential
+          !!if(useDerivativeBasisFunctions) then
+          !!    call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+          !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+          !!end if
+          !!call allocateCommunicationsBuffersPotential(comgp, subname)
+          !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
 
 
           tag=1
