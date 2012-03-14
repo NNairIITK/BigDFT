@@ -496,8 +496,9 @@ type(orbitals_data):: orbs_tmp
               !!    tmbmix => tmb
               !!end if
           end if
-          if(tmbmix%wfnmd%bs%use_derivative_basis) then ! .and. &
-             !!(.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
+          if(tmbmix%wfnmd%bs%use_derivative_basis) then
+              ! Cancel the communication of the potential for the TMB, since we need in the following
+              ! only the potential for the TMB including the derivatives.
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if

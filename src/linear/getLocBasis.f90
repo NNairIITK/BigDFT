@@ -202,7 +202,7 @@ type(orbitals_data):: orbs_tmp
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
   if(.not.tmb%wfnmd%bs%update_phi .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-      .or. tmbder%wfnmd%bs%use_derivative_basis) then
+      .or. tmbmix%wfnmd%bs%use_derivative_basis) then
       call gatherPotential(iproc, nproc, tmbmix%comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
@@ -324,7 +324,7 @@ type(orbitals_data):: orbs_tmp
   !!!!$$! So it will work, but be careful. Maybe this can be improved later
   !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
-      call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
+      !call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
       call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
@@ -380,7 +380,7 @@ type(orbitals_data):: orbs_tmp
 
   ! Project the lb coefficients on the smaller subset
   !if(tmbder%wfnmd%bs%use_derivative_basis) then
-      if(tmbder%wfnmd%bs%use_derivative_basis) then
+      if(tmbmix%wfnmd%bs%use_derivative_basis) then
           inc=4
       else
           inc=1
