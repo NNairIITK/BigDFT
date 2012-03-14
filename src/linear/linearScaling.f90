@@ -104,7 +104,7 @@ integer,dimension(:),allocatable:: norbsPerAtom
 !type(wfn_metadata):: wfnmd
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
-type(DFT_wavefunction),pointer:: tmbmix
+type(DFT_wavefunction),pointer:: tmbmix, tmbopt
 type(local_zone_descriptors):: lzd
 type(orbitals_data):: orbs_tmp
 
@@ -362,6 +362,12 @@ type(orbitals_data):: orbs_tmp
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
+  if(input%lin%useDerivativeBasisFunctions) then
+      tmbmix => tmbder
+  else
+      tmbmix => tmb
+  end if
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -483,12 +489,12 @@ type(orbitals_data):: orbs_tmp
                   tmbmix => tmbder
               end if
           else
-              !tmbmix => tmbder
-              if(tmbder%wfnmd%bs%use_derivative_basis) then
-                  tmbmix => tmbder
-              else
-                  tmbmix => tmb
-              end if
+              !!!tmbmix => tmbder
+              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
+              !!    tmbmix => tmbder
+              !!else
+              !!    tmbmix => tmb
+              !!end if
           end if
           if(tmbder%wfnmd%bs%use_derivative_basis .and. &
              (.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
@@ -589,11 +595,11 @@ type(orbitals_data):: orbs_tmp
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
               end if
           else
-              if(tmbder%wfnmd%bs%use_derivative_basis) then
-                  tmbmix => tmbder
-              else
-                  tmbmix => tmb
-              end if
+              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
+              !!    tmbmix => tmbder
+              !!else
+              !!    tmbmix => tmb
+              !!end if
               call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbmix%comsr,&
                   tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
                   tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
