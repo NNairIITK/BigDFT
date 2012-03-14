@@ -209,14 +209,14 @@ type(orbitals_data):: orbs_tmp
   if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, tmbmix%comgp)
 
 
+  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-     call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
+     !!call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   else
-     call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
+     !!call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
      call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
   end if
-  !!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
