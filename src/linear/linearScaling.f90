@@ -496,16 +496,16 @@ type(orbitals_data):: orbs_tmp
               !!    tmbmix => tmb
               !!end if
           end if
-          if(tmbder%wfnmd%bs%use_derivative_basis .and. &
+          if(tmbmix%wfnmd%bs%use_derivative_basis .and. &
              (.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
           if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-              if(tmbder%wfnmd%bs%use_derivative_basis) then
+              if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   call nullify_orbitals_data(orbs_tmp)
                   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-                  call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+                  call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
                        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
                   call deallocate_orbitals_data(orbs_tmp, subname)
 
@@ -713,9 +713,9 @@ type(orbitals_data):: orbs_tmp
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-          if(tmbder%wfnmd%bs%use_derivative_basis) then
-              call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+          if(tmbmix%wfnmd%bs%use_derivative_basis) then
+              call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
 
           ! Write some informations.
