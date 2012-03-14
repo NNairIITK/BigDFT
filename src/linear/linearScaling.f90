@@ -558,75 +558,34 @@ type(orbitals_data):: orbs_tmp
           end if
 
 
-          if(input%lin%mixedmode) then
-              if(.not.withder) then
-                  tmbder%wfnmd%bs%use_derivative_basis=.false.
-                  tmbmix => tmb
-                  !!call getLinearPsi(iproc,nproc,lzd,orbs,&
-                  !!    at,rxyz,&
-                  !!    denspot,GPU,&
-                  !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  !!    ldiis,orthpar,&
-                  !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
-                  !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                  !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
-              else
-                  tmbder%wfnmd%bs%use_derivative_basis=.true.
-                  !!! We have to communicate the potential in the first iteration
-                  !!if(itSCC==1) then
-                  !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-                  !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-                  !!end if
-                  tmbmix => tmbder
-
-                  !!call getLinearPsi(iproc,nproc,lzd,orbs,&
-                  !!    at,rxyz,&
-                  !!    denspot,GPU,&
-                  !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  !!    ldiis,orthpar,&
-                  !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
-                  !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                  !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
-              end if
-          else
-              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
-              !!    tmbmix => tmbder
-              !!else
-              !!    tmbmix => tmb
-              !!end if
-              !!call getLinearPsi(iproc,nproc,lzd,orbs,&
-              !!    at,rxyz,&
-              !!    denspot,GPU,&
-              !!    infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-              !!    ldiis,orthpar,&
-              !!    tmbder%wfnmd%bpo%blocksize_pdgemm,&
-              !!    tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-              !!    hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
-          end if
           call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
 
 
-          ! Calculate the charge density.
-          if(input%lin%mixedmode) then
-              if(.not.withder) then
-                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-                       lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
-                       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
-                       denspot%rhov, at, denspot%dpcom%nscatterarr)
-               else
-                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-                       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
-                       denspot%rhov, at, denspot%dpcom%nscatterarr)
-               end if
-          else
-              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-                   tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
-                   denspot%rhov, at, denspot%dpcom%nscatterarr)
-          end if
+          !!! Calculate the charge density.
+          !!if(input%lin%mixedmode) then
+          !!    if(.not.withder) then
+          !!        call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
+          !!             lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
+          !!             tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+          !!             denspot%rhov, at, denspot%dpcom%nscatterarr)
+          !!     else
+          !!        call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+          !!             lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
+          !!             tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+          !!             denspot%rhov, at, denspot%dpcom%nscatterarr)
+          !!     end if
+          !!else
+          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+          !!         lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
+          !!         tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+          !!         denspot%rhov, at, denspot%dpcom%nscatterarr)
+          !!end if
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+               lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
+               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+               denspot%rhov, at, denspot%dpcom%nscatterarr)
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then

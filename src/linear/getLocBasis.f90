@@ -41,8 +41,6 @@ type(orbitals_data):: orbs_tmp
   ! Allocate the local arrays.  
   allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
-  !!allocate(HamSmall(llborbs%norb,llborbs%norb), stat=istat)
-  !!call memocc(istat, HamSmall, 'HamSmall', subname)
   allocate(eval(tmbmix%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   allocate(ovrlp(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
