@@ -1,8 +1,8 @@
-subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
-    mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
+subroutine getLinearPsi(iproc,nproc,lzd,orbs,&
+    at,rxyz,denspot,&
     GPU,&
     infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-    ldiis,orthpar,confdatarr,&
+    ldiis,orthpar,&
     blocksize_pdgemm,&
     comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,locrad,tmb,tmbder,tmbmix)
@@ -68,12 +68,12 @@ integer,intent(in):: blocksize_pdgemm
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
-type(orbitals_data),intent(inout):: lorbs, llborbs
-type(p2pComms),intent(inout):: comsr
-type(matrixDescriptors),intent(inout):: mad, lbmad
-type(overlapParameters),intent(inout):: op, lbop
-type(p2pComms),intent(inout):: comon, lbcomon
-type(p2pComms):: comgp, lbcomgp
+!!type(orbitals_data),intent(inout):: lorbs, llborbs
+!!type(p2pComms),intent(inout):: comsr
+!!type(matrixDescriptors),intent(inout):: mad, lbmad
+!!type(overlapParameters),intent(inout):: op, lbop
+!!type(p2pComms),intent(inout):: comon, lbcomon
+!!type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
@@ -88,7 +88,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 !real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
-type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
+!type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 !real(8),dimension(:),pointer,intent(inout)::lphiRestart
 type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
@@ -111,86 +111,24 @@ type(orbitals_data):: orbs_tmp
 
 
   ! Allocate the local arrays.  
-  allocate(matrixElements(llborbs%norb,llborbs%norb,2), stat=istat)
+  allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
-  allocate(HamSmall(llborbs%norb,llborbs%norb), stat=istat)
-  call memocc(istat, HamSmall, 'HamSmall', subname)
-  allocate(eval(llborbs%norb), stat=istat)
+  !!allocate(HamSmall(llborbs%norb,llborbs%norb), stat=istat)
+  !!call memocc(istat, HamSmall, 'HamSmall', subname)
+  allocate(eval(tmbmix%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-  allocate(ovrlp(llborbs%norb,llborbs%norb), stat=istat)
+  allocate(ovrlp(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
-
-  !!! This is a flag whether the basis functions shall be updated.
-  !!if(tmb%wfnmd%bs%update_phi) then
-  !!    ! Improve the trace minimizing orbitals.
-  !!    call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-  !!        denspot,GPU,trace,&
-  !!        infoBasisFunctions,ovrlp,nlpspd,proj,ldiis,&
-  !!        orthpar,confdatarr,blocksize_pdgemm,&
-  !!        hx,hy,hz,SIC,locrad,tmb)
-  !!end if
-
-
-  !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-  !!    call nullify_orbitals_data(orbs_tmp)
-  !!    call copy_orbitals_data(lorbs, orbs_tmp, subname)
-  !!    call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-  !!         orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-  !!    call deallocate_orbitals_data(orbs_tmp, subname)
-  !!end if
-
-  !!! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
-  !!! Keep the value of lphi for the next iteration
-  !!if(tmb%wfnmd%bs%update_phi .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-
-  !!    tmbder%wfnmd%nphi=llborbs%npsidim_orbs
-  !!    tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
-
-
-  !!    ! Reallocate tmbder%psi, since it might have a new shape
-  !!    iall=-product(shape(tmbder%psi))*kind(tmbder%psi)
-  !!    deallocate(tmbder%psi, stat=istat)
-  !!    call memocc(istat, iall, 'tmbder%psi', subname)
-
-  !!    allocate(tmbder%psi(llborbs%npsidim_orbs), stat=istat)
-  !!    call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
-
-  !!    if(.not.tmbder%wfnmd%bs%use_derivative_basis) call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
-  !!end if
-      
-
-
-
-  !!if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
-  !!    if(tmbder%wfnmd%bs%use_derivative_basis) then
-  !!        call deallocate_p2pComms(comrp, subname)
-  !!        call nullify_p2pComms(comrp)
-  !!        call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-  !!        if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-  !!        call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-  !!             max(lorbs%npsidim_orbs,lorbs%npsidim_comp),tmb%psi,tmbder%psi)
-  !!        if(iproc==0) write(*,'(a)') 'done.'
-  !!    else
-  !!        call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbder%psi(1), 1)
-  !!    end if
-  !!end if
 
 
   ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
-  ! Calculate the overlap matrix.
-  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-  !!    call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, tmbder%psi, mad, ovrlp)
-  !!else
-  !!    call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, tmbder%psi, lbmad, ovrlp)
-  !!end if
   call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
 
 
   if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
-      !call communicate_basis_for_density(iproc, nproc, lzd, llborbs, tmbder%psi, comsr)
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   
@@ -205,19 +143,8 @@ type(orbitals_data):: orbs_tmp
       .or. tmbmix%wfnmd%bs%use_derivative_basis) then
       call gatherPotential(iproc, nproc, tmbmix%comgp)
   end if
-  ! If we use the derivative basis functions the potential has to be gathered anyway.
-  !!if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
-  !!if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, tmbmix%comgp)
-
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-  !!   !!call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-  !!   call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-  !!else
-  !!   !!call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
-  !!   call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
-  !!end if
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
@@ -229,27 +156,6 @@ type(orbitals_data):: orbs_tmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  !!if(.not.tmbder%wfnmd%bs%use_derivative_basis) then
-  !!   allocate(confdatarrtmp(lorbs%norbp))
-  !!   call default_confinement_data(confdatarrtmp,lorbs%norbp)
-  !!   call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
-  !!        hx,hy,hz,rxyz,&
-  !!        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
-  !!        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-  !!        pkernel=denspot%pkernelseq)
-  !!   deallocate(confdatarrtmp)
-
-  !!else
-
-  !!   allocate(confdatarrtmp(llborbs%norbp))
-  !!   call default_confinement_data(confdatarrtmp,llborbs%norbp)
-  !!   call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
-  !!        hx,hy,hz,rxyz,&
-  !!        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbder%psi,lhphi,&
-  !!        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-  !!        pkernel=denspot%pkernelseq)
-  !!   deallocate(confdatarrtmp)
-  !!end if
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
@@ -273,31 +179,25 @@ type(orbitals_data):: orbs_tmp
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  !!if(tmbder%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
-  !!if(.not. tmbder%wfnmd%bs%use_derivative_basis) then
-  !!    call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, mad, matrixElements)
-  !!else
-  !!    call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, tmbder%psi, lhphi, lbmad, matrixElements)
-  !!end if
   call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
   call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
 
 
   ! Symmetrize the Hamiltonian
-  call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  do iorb=1,llborbs%norb
-      do jorb=1,llborbs%norb
+  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  do iorb=1,tmbmix%orbs%norb
+      do jorb=1,tmbmix%orbs%norb
           matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
       end do
   end do
 
 
-  allocate(overlapmatrix(llborbs%norb,llborbs%norb), stat=istat)
+  allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
   overlapmatrix=ovrlp
   
@@ -305,7 +205,7 @@ type(orbitals_data):: orbs_tmp
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
-  call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
       call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
@@ -315,16 +215,7 @@ type(orbitals_data):: orbs_tmp
            matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
-  !!write(*,'(a,2es16.8)') 'matrixElements(1,1,2)', matrixElements(1,1,2)
-
-  !!!!$$! ATTENTION: if we are in the mixed mode and are at the moment not using the derivatives, then the current
-  !!!!$$! llborbs%norb is only one fourth of the actual first dimension of wfnmd%coeff. Here this is ignore and just
-  !!!!$$! the first llborbs%norb*orbs%norb will be used, since in this way the array is conformable with the other 
-  !!!!$$! subroutines that will use it.
-  !!!!$$! So it will work, but be careful. Maybe this can be improved later
-  !call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
   do iorb=1,orbs%norb
-      !call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbder%wfnmd%coeff(1,iorb), 1)
       call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
@@ -333,7 +224,7 @@ type(orbitals_data):: orbs_tmp
   if(iproc==0) then
       write(*,'(1x,a)') '-------------------------------------------------'
       write(*,'(1x,a)') 'some selected eigenvalues:'
-      do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lorbs%norb)
+      do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmbmix%orbs%norb)
           if(iorb==orbs%norb) then
               write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
           else if(iorb==orbs%norb+1) then
@@ -353,29 +244,14 @@ type(orbitals_data):: orbs_tmp
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do iorb=1,orbs%norb
-      do jorb=1,llborbs%norb
-          do korb=1,llborbs%norb
-              !ebs = ebs + tmbder%wfnmd%coeff(jorb,iorb)*tmbder%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+      do jorb=1,tmbmix%orbs%norb
+          do korb=1,tmbmix%orbs%norb
               ebs = ebs + tmbmix%wfnmd%coeff(jorb,iorb)*tmbmix%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
           end do
       end do
   end do
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
-  !!if(iproc==0) then
-  !!    write(*,*) 'ebs',ebs
-  !!    do iorb=1,orbs%norb
-  !!        do jorb=1,llborbs%norb
-  !!            write(200,*) iorb, jorb, wfnmd%coeff(jorb,iorb)
-  !!        end do
-  !!    end do
-  !!    do iorb=1,llborbs%norb
-  !!        do jorb=1,llborbs%norb
-  !!            write(210,*) iorb, jorb, matrixElements(jorb,iorb,1)
-  !!        end do
-  !!    end do
-  !!end if
-
 
 
   ! Project the lb coefficients on the smaller subset
@@ -387,32 +263,21 @@ type(orbitals_data):: orbs_tmp
       end if
       do iorb=1,orbs%norb
           jjorb=1
-          do jorb=1,llborbs%norb,inc
+          do jorb=1,tmbmix%orbs%norb,inc
               tt=0.d0
-              do korb=1,llborbs%norb
+              do korb=1,tmbmix%orbs%norb
                   tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-                  !!tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
               end do
               tmbmix%wfnmd%coeff_proj(jjorb,iorb)=tt
               jjorb=jjorb+1
           end do
       end do
   end if
-  !!write(*,*) 'ATTENTION DEBUG'
-  !!wfnmd%coeff_proj=wfnmd%coeff
-
-  
-
-  !!! Copy the basis functions for the next iterations
-  !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lin%lphiold(1), 1)
-
-  !!! Copy the Hamiltonian matrix for the next iteration
-  !!call dcopy(lorbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
   ! Deallocate all local arrays.
-  iall=-product(shape(HamSmall))*kind(HamSmall)
-  deallocate(HamSmall, stat=istat)
-  call memocc(istat, iall, 'HamSmall', subname)
+  !!iall=-product(shape(HamSmall))*kind(HamSmall)
+  !!deallocate(HamSmall, stat=istat)
+  !!call memocc(istat, iall, 'HamSmall', subname)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)

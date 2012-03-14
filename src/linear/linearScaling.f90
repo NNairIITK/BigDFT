@@ -488,13 +488,6 @@ type(orbitals_data):: orbs_tmp
                   end if
                   tmbmix => tmbder
               end if
-          else
-              !!!tmbmix => tmbder
-              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
-              !!    tmbmix => tmbder
-              !!else
-              !!    tmbmix => tmb
-              !!end if
           end if
           if(tmbmix%wfnmd%bs%use_derivative_basis) then
               ! Cancel the communication of the potential for the TMB, since we need in the following
@@ -567,12 +560,11 @@ type(orbitals_data):: orbs_tmp
               if(.not.withder) then
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
                   tmbmix => tmb
-                  call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmb%orbs,tmb%comsr,&
-                      tmb%mad,tmb%mad,tmb%op,tmb%op,tmb%comon,&
-                      tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
+                  call getLinearPsi(iproc,nproc,lzd,orbs,&
+                      at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,orthpar,confdatarr,&
+                      ldiis,orthpar,&
                       tmbder%wfnmd%bpo%blocksize_pdgemm,&
                       tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
@@ -585,12 +577,11 @@ type(orbitals_data):: orbs_tmp
                   !!end if
                   tmbmix => tmbder
 
-                  call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
-                      tmb%mad,tmbder%mad,tmb%op,tmbder%op,&
-                      tmb%comon,tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
+                  call getLinearPsi(iproc,nproc,lzd,orbs,&
+                      at,rxyz,&
                       denspot,GPU,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                      ldiis,orthpar,confdatarr,&
+                      ldiis,orthpar,&
                       tmbder%wfnmd%bpo%blocksize_pdgemm,&
                       tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)
@@ -601,12 +592,11 @@ type(orbitals_data):: orbs_tmp
               !!else
               !!    tmbmix => tmb
               !!end if
-              call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbmix%comsr,&
-                  tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
-                  tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
+              call getLinearPsi(iproc,nproc,lzd,orbs,&
+                  at,rxyz,&
                   denspot,GPU,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,nlpspd,proj,&
-                  ldiis,orthpar,confdatarr,&
+                  ldiis,orthpar,&
                   tmbder%wfnmd%bpo%blocksize_pdgemm,&
                   tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, locrad, tmb, tmbder, tmbmix)

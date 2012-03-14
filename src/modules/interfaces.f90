@@ -2097,11 +2097,11 @@ module module_interfaces
       real(8):: hxh, hyh, hzh, potentialPrefac
     end subroutine apply_potentialConfinement
 
-    subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
-         mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
+    subroutine getLinearPsi(iproc,nproc,lzd,orbs,&
+         at,rxyz,denspot,&
          GPU,&
          infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,&
-         ldiis,orthpar,confdatarr,&
+         ldiis,orthpar,&
          blocksize_pdgemm,&
          comrp,blocksize_pdsyev,nproc_pdsyev,&
          hx,hy,hz,SIC,locrad,tmb, tmbder, tmbmix)
@@ -2114,14 +2114,14 @@ module module_interfaces
       integer,intent(in):: blocksize_pdgemm
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
-      type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
+      type(orbitals_data),intent(in) :: orbs
       !type(p2pCommsSumrho),intent(inout):: comsr
-      type(p2pComms),intent(inout):: comsr
-      type(matrixDescriptors),intent(in):: mad, lbmad
-      type(overlapParameters),intent(inout):: op, lbop
-      type(p2pComms),intent(inout):: comon, lbcomon
+      !!type(p2pComms),intent(inout):: comsr
+      !!type(matrixDescriptors),intent(in):: mad, lbmad
+      !!type(overlapParameters),intent(inout):: op, lbop
+      !!type(p2pComms),intent(inout):: comon, lbcomon
       !type(p2pCommsGatherPot):: comgp, lbcomgp
-      type(p2pComms):: comgp, lbcomgp
+      !!!!type(p2pComms):: comgp, lbcomgp
       type(atoms_data),intent(in):: at
       real(8),dimension(3,at%nat),intent(in):: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
@@ -2137,7 +2137,7 @@ module module_interfaces
       !real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar
-      type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
+      !!type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
       !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
       !real(8),dimension(:),pointer,intent(inout)::lphiRestart
       !type(p2pCommsRepartition),intent(inout):: comrp
