@@ -87,7 +87,7 @@ integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, np
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
-logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
+logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 integer:: iorb, ndimtot, iiat
@@ -368,6 +368,13 @@ type(orbitals_data):: orbs_tmp
       tmbmix => tmb
   end if
 
+  ! Check whether it is possible to have variable localization regions or not.
+  if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
+      variable_locregs=.false.
+  else
+      variable_locregs=.true.
+  end if
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -497,7 +504,14 @@ type(orbitals_data):: orbs_tmp
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
-          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
+          !!!if(iproc==0) then
+          !!    do ilr=1,lzd%nlr
+          !!        write(*,'(a,2i6,l5)') 'before: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
+          !!    end do
+          !!!end if
+          if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+          !if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+              .and. tmb%wfnmd%bs%update_phi) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   call nullify_orbitals_data(orbs_tmp)
                   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
@@ -541,13 +555,21 @@ type(orbitals_data):: orbs_tmp
               call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
+          !!!if(iproc==0) then
+          !!    do ilr=1,lzd%nlr
+          !!        write(*,'(a,2i6,l5)') 'after: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
+          !!    end do
+          !!!end if
 
 
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  call deallocate_p2pComms(tmbmix%comrp, subname)
-                  call nullify_p2pComms(tmbmix%comrp)
-                  call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, lzd, tmbmix%comrp)
+                  if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+                      .and. tmb%wfnmd%bs%update_phi) then
+                      call deallocate_p2pComms(tmbmix%comrp, subname)
+                      call nullify_p2pComms(tmbmix%comrp)
+                      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, lzd, tmbmix%comrp)
+                  end if
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
                   call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
@@ -558,30 +580,13 @@ type(orbitals_data):: orbs_tmp
           end if
 
 
+          ! Calculate the coefficients
           call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
 
 
-          !!! Calculate the charge density.
-          !!if(input%lin%mixedmode) then
-          !!    if(.not.withder) then
-          !!        call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-          !!             lzd, input, hx, hy, hz, tmb%orbs, tmbmix%comsr, &
-          !!             tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
-          !!             denspot%rhov, at, denspot%dpcom%nscatterarr)
-          !!     else
-          !!        call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-          !!             lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-          !!             tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
-          !!             denspot%rhov, at, denspot%dpcom%nscatterarr)
-          !!     end if
-          !!else
-          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-          !!         lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-          !!         tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
-          !!         denspot%rhov, at, denspot%dpcom%nscatterarr)
-          !!end if
+          ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
                tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
