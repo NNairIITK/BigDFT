@@ -876,12 +876,12 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
               fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
           end if
-          !!! DEBUG ###############
-          write(*,*) 'warning debug'
-          if(.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-              if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
-          end if 
-          !!! END DEBUG ###############
+          !!!!! DEBUG ###############
+          !!write(*,*) 'warning debug'
+          !!if(.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          !!    if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
+          !!end if 
+          !!!!! END DEBUG ###############
           istart=istart+ncount
       end do
 
