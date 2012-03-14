@@ -459,7 +459,7 @@ type(orbitals_data):: orbs_tmp
           ! This is a flag whether the basis functions shall be updated.
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
-              if(itout>1) then
+              if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
                   do iorb=1,orbs%norb
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do

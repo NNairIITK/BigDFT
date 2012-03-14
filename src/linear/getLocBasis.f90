@@ -379,7 +379,7 @@ type(orbitals_data):: orbs_tmp
 
 
   ! Project the lb coefficients on the smaller subset
-  !if(tmbder%wfnmd%bs%use_derivative_basis) then
+  if(tmbmix%wfnmd%bs%use_derivative_basis) then
       if(tmbmix%wfnmd%bs%use_derivative_basis) then
           inc=4
       else
@@ -397,7 +397,7 @@ type(orbitals_data):: orbs_tmp
               jjorb=jjorb+1
           end do
       end do
-  !end if
+  end if
   !!write(*,*) 'ATTENTION DEBUG'
   !!wfnmd%coeff_proj=wfnmd%coeff
 
