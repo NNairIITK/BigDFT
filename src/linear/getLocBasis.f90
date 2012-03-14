@@ -55,12 +55,6 @@ type(orbitals_data):: orbs_tmp
 
 
   if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
-      !!if(iproc==0) then
-      !!    do ilr=1,lzd%nlr
-      !!        write(*,'(a,i6,l5)') 'in sub: ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
-      !!    end do
-      !!    write(*,'(a,200i5)') 'in sub: tmbmix%orbs%inwhichlocreg(:)', tmbmix%orbs%inwhichlocreg(:)
-      !!end if
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   

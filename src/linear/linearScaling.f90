@@ -256,8 +256,8 @@ type(orbitals_data):: orbs_tmp
 
   if(input%lin%nItInguess>0) then
       ! Post communications for gathering the potential.
-      if(input%lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
-      if(input%lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
+      !if(input%lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
+      !if(input%lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
       !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
       !!if(tmbder%wfnmd%bs%use_derivative_basis) then
@@ -342,7 +342,7 @@ type(orbitals_data):: orbs_tmp
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  if(tmbder%wfnmd%bs%use_derivative_basis) then
+  if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
   end if
@@ -480,16 +480,14 @@ type(orbitals_data):: orbs_tmp
                   hx,hy,hz,input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
-          !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-          !!    call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-          !!         tmb%orbs, lzd, tmbder%orbs, tmbder%op, tmbder%comon, tmb%comgp, tmbder%comgp, tmb%comsr, tmbder%mad)
-          !!end if
+
+          ! Decide whether we have to use the derivatives or not.
           if(input%lin%mixedmode) then
               if(.not.withder) then
-                  tmbder%wfnmd%bs%use_derivative_basis=.false.
+                  !tmbder%wfnmd%bs%use_derivative_basis=.false.
                   tmbmix => tmb
               else
-                  tmbder%wfnmd%bs%use_derivative_basis=.true.
+                  !tmbder%wfnmd%bs%use_derivative_basis=.true.
                   ! We have to communicate the potential in the first iteration
                   if(itSCC==1) then
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
@@ -504,14 +502,9 @@ type(orbitals_data):: orbs_tmp
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
-          !!!if(iproc==0) then
-          !!    do ilr=1,lzd%nlr
-          !!        write(*,'(a,2i6,l5)') 'before: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
-          !!    end do
-          !!!end if
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-          !if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
               .and. tmb%wfnmd%bs%update_phi) then
+              ! Redefine some quantities if the localization region has changed.
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   call nullify_orbitals_data(orbs_tmp)
                   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
@@ -521,7 +514,6 @@ type(orbitals_data):: orbs_tmp
 
                   tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
                   tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
-
 
                   ! Reallocate tmbmix%psi, since it might have a new shape
                   iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
@@ -542,26 +534,16 @@ type(orbitals_data):: orbs_tmp
                   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
                   call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
               end if
-              !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-              !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
               call deallocate_p2pComms(tmbmix%comgp, subname)
               call nullify_p2pComms(tmbmix%comgp)
               call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
                    lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
-              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
-              !!    call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-              !!end if
               call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
-          !!!if(iproc==0) then
-          !!    do ilr=1,lzd%nlr
-          !!        write(*,'(a,2i6,l5)') 'after: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
-          !!    end do
-          !!!end if
 
 
+          ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
