@@ -201,12 +201,13 @@ type(orbitals_data):: orbs_tmp
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
-  if(.not.tmb%wfnmd%bs%update_phi .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      call gatherPotential(iproc, nproc, comgp)
+  if(.not.tmb%wfnmd%bs%update_phi .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+      .or. tmbder%wfnmd%bs%use_derivative_basis) then
+      call gatherPotential(iproc, nproc, tmbmix%comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
   !!if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, lbcomgp)
-  if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, tmbmix%comgp)
+  !!if(tmbder%wfnmd%bs%use_derivative_basis) call gatherPotential(iproc, nproc, tmbmix%comgp)
 
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
@@ -271,8 +272,8 @@ type(orbitals_data):: orbs_tmp
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(comgp, subname)
-  if(tmbder%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  !!if(tmbder%wfnmd%bs%use_derivative_basis) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 

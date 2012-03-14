@@ -485,6 +485,11 @@ type(orbitals_data):: orbs_tmp
                   tmbmix => tmb
               end if
           end if
+          if(tmbder%wfnmd%bs%use_derivative_basis .and. &
+             (.not.tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. .not.tmb%wfnmd%bs%update_phi)) then
+              call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          end if
           if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
               if(tmbder%wfnmd%bs%use_derivative_basis) then
                   call nullify_orbitals_data(orbs_tmp)
@@ -522,12 +527,12 @@ type(orbitals_data):: orbs_tmp
               call nullify_p2pComms(tmbmix%comgp)
               call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
                    lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
-              if(tmbder%wfnmd%bs%use_derivative_basis) then
-                  call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-                  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-              end if
-              call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+              !!if(tmbder%wfnmd%bs%use_derivative_basis) then
+              !!    call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+              !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+              !!end if
+              call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
 
 
