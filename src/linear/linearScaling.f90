@@ -95,7 +95,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 !real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
-type(confpot_data), dimension(:),pointer :: confdatarr
+type(confpot_data), dimension(:),pointer :: confdatarr, confdatarrder
 real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
@@ -106,6 +106,7 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 type(local_zone_descriptors):: lzd
+type(orbitals_data):: orbs_tmp
 
 
   if(iproc==0) then
@@ -188,6 +189,9 @@ type(local_zone_descriptors):: lzd
   call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmb%orbs%onwhichatom)
 
+  allocate(confdatarrder(tmbder%orbs%norbp))
+  call define_confinement_data(confdatarrder,tmbder%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmbder%orbs%onwhichatom)
   ! Now all initializations are done ######################################################################################
 
 
@@ -395,6 +399,8 @@ type(local_zone_descriptors):: lzd
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, tmb%orbs%onwhichatom, &
            confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+      call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, lzd%nlr, tmbder%orbs%onwhichatom, &
+           confdatarrder, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
@@ -462,6 +468,30 @@ type(local_zone_descriptors):: lzd
               if(.not.withder) then
                   tmbder%wfnmd%bs%use_derivative_basis=.false.
                   tmbmix => tmb
+              else
+                  tmbder%wfnmd%bs%use_derivative_basis=.true.
+                  ! We have to communicate the potential in the first iteration
+                  if(itSCC==1) then
+                      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+                      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+                  end if
+                  tmbmix => tmbder
+              end if
+          else
+              tmbmix => tmbder
+          end if
+          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
+              call nullify_orbitals_data(orbs_tmp)
+              call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
+              call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+                   orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
+              call deallocate_orbitals_data(orbs_tmp, subname)
+          end if
+
+          if(input%lin%mixedmode) then
+              if(.not.withder) then
+                  tmbder%wfnmd%bs%use_derivative_basis=.false.
+                  tmbmix => tmb
                   call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmb%orbs,tmb%comsr,&
                       tmb%mad,tmb%mad,tmb%op,tmb%op,tmb%comon,&
                       tmb%comon,tmb%comgp,tmb%comgp,at,rxyz,&
@@ -473,11 +503,11 @@ type(local_zone_descriptors):: lzd
                       hx,hy,hz,input%SIC, locrad, tmb, tmbder)
               else
                   tmbder%wfnmd%bs%use_derivative_basis=.true.
-                  ! We have to communicate the potential in the first iteration
-                  if(itSCC==1) then
-                      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-                      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-                  end if
+                  !!! We have to communicate the potential in the first iteration
+                  !!if(itSCC==1) then
+                  !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+                  !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+                  !!end if
                   tmbmix => tmbder
 
                   call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
@@ -767,6 +797,7 @@ type(local_zone_descriptors):: lzd
   call deallocateBasicArraysInput(input%lin)
 
   deallocate(confdatarr)
+  deallocate(confdatarrder)
   !!call deallocateBasicArrays(lin)
 
   iall=-product(shape(locrad))*kind(locrad)

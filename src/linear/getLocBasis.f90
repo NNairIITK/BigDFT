@@ -132,13 +132,13 @@ type(orbitals_data):: orbs_tmp
   !!end if
 
 
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
-      call nullify_orbitals_data(orbs_tmp)
-      call copy_orbitals_data(lorbs, orbs_tmp, subname)
-      call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
-      call deallocate_orbitals_data(orbs_tmp, subname)
-  end if
+  !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. tmb%wfnmd%bs%update_phi) then
+  !!    call nullify_orbitals_data(orbs_tmp)
+  !!    call copy_orbitals_data(lorbs, orbs_tmp, subname)
+  !!    call update_locreg(iproc, nproc, tmbder%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+  !!         orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+  !!    call deallocate_orbitals_data(orbs_tmp, subname)
+  !!end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   ! Keep the value of lphi for the next iteration
