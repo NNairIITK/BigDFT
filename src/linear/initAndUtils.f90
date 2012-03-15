@@ -2175,7 +2175,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call deallocate_orbitals_data(orbs_tmp, subname)
 
       tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
-      tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
       ! Reallocate tmbmix%psi, since it might have a new shape
       iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)

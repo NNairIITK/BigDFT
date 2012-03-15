@@ -330,11 +330,13 @@ type(local_zone_descriptors):: lzd
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
-              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-              tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              !!tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              !!tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
-              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
-              tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              !!tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              !!tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
@@ -807,17 +809,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
   ! Determine which variables we need, depending on the mode we are in.
   if(mode=='l') then
       ! linear scaling mode
-
       wfnmd%nphi=nphi
-      !!wfnmd%nlbphi=nlbphi
-      wfnmd%basis_is=BASIS_IS_ENHANCED !since always it is allocated with wfnmd%nlbphi
       wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
-
-      !!allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
-      !!call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
-
-      !!allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
-      !!call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
 
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
@@ -831,10 +824,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
   else if(mode=='c') then
       ! cubic scaling mode
 
-      !!nullify(wfnmd%phi)
-      !!nullify(wfnmd%phiRestart)
       nullify(wfnmd%coeff)
-      !!nullify(wfnmd%coeff_proj)
+      nullify(wfnmd%coeff_proj)
   else
       stop 'wrong mode'
   end if

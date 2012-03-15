@@ -48,8 +48,6 @@ type(orbitals_data):: orbs_tmp
 
 
 
-  ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
-  tmbmix%wfnmd%basis_is=BASIS_IS_ENHANCED
 
   call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
 
@@ -75,7 +73,6 @@ type(orbitals_data):: orbs_tmp
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
-  !allocate(lhphi(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)), stat=istat)
   allocate(lhphi(max(tmbmix%orbs%npsidim_orbs,tmbmix%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
@@ -200,10 +197,6 @@ type(orbitals_data):: orbs_tmp
       end do
   end if
 
-  ! Deallocate all local arrays.
-  !!iall=-product(shape(HamSmall))*kind(HamSmall)
-  !!deallocate(HamSmall, stat=istat)
-  !!call memocc(istat, iall, 'HamSmall', subname)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)
@@ -239,46 +232,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
 !   Calculates the localized basis functions phi. These basis functions are obtained by adding a
 !   quartic potential centered on the atoms to the ordinary Hamiltonian. The eigenfunctions are then
 !   determined by minimizing the trace until the gradient norm is below the convergence criterion.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc           process ID
-!     nproc           total number of processes
-!     at              type containing the paraneters for the atoms
-!     orbs            type describing the physical orbitals psi
-!     Glr             type describing the localization region
-!     input           type containing some very general parameters
-!     lin             type containing parameters for the linear version
-!     rxyz            the atomic positions
-!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
-!     nlpsp           ???
-!     nscatterarr     ???
-!     ngatherarr      ???
-!     rhopot          the charge density
-!     GPU             parameters for GPUs
-!     pkernelseq      ???
-!     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
-!     n3p             ???
-!     itSCC           iteration in the self consistency cycle
-!  Input/Output arguments
-!  ---------------------
-!     phi             the localized basis functions. It is assumed that they have been initialized
-!                     somewhere else
-!   Output arguments
-!   ----------------
-!     hphi            the modified Hamiltonian applied to phi
-!     trH             the trace of the Hamiltonian
-!     infoBasisFunctions  indicates wheter the basis functions converged to the specified limit (value is 0)
-!                         or whether the iteration stopped due to the iteration limit (value is -1). This info
-!                         is returned by 'getLocalizedBasis'
-!
-! Calling arguments:
-!   Input arguments
-!   Output arguments
-!    phi   the localized basis functions
-!
 use module_base
 use module_types
 use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
@@ -301,7 +254,6 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(8),intent(out):: trH
 real(8),intent(in):: hx, hy, hz
-!!real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -309,7 +261,6 @@ type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(lzd%nlr),intent(in):: locrad
-!!type(wfn_metadata),intent(inout):: wfnmd
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
@@ -324,14 +275,12 @@ integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
 integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat
+real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
-character(len=3):: orbname, comment
-real(8),dimension(:),allocatable:: lvphiovrlp, locrad_tmp
-real(8),dimension(:),pointer:: phiWork
+real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old
 integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge, icenter, nl1, nl2, nl3
@@ -344,14 +293,14 @@ type(matrixDescriptors):: madlarge, madlarge2
 type(localizedDIISParameters):: ldiis2
 logical,parameter:: secondLocreg=.false.
 
-! automatic array, for debugging
-real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   allocate(onwhichatom(lorbs%norb), stat=istat)
   call memocc(istat, onwhichatom, 'onwhichatom', subname)
   allocate(ovrlp(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
+  allocate(locregCenterTemp(3,lzd%nlr), stat=istat)
+  call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
@@ -482,7 +431,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
       allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
       call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
-      call vcopy(lorbs%norb, onwhichatom(1), 1, orbslarge%onwhichatom(1), 1)
       call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, tmb%psi, lphilarge)
       call vcopy(lorbs%norb, lorbs%onwhichatom(1), 1, onwhichatom(1), 1)
       call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
@@ -494,10 +442,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
       call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
       call vcopy(lorbs%norb, onwhichatom(1), 1, lorbs%onwhichatom(1), 1)
-      !!wfnmd%nphi=lorbs%npsidim_orbs
       tmb%wfnmd%nphi=lorbs%npsidim_orbs
-      !!wfnmd%basis_is=BASIS_IS_STANDARD
-      tmb%wfnmd%basis_is=BASIS_IS_STANDARD
       call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
       call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
@@ -515,13 +460,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
       call vcopy(lorbs%norb, onwhichatom(1), 1, orbslarge%onwhichatom(1), 1)
 
-      !!! Create the new large locregs
-      !!call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-      !!     tmb%psi, lhphi, lhphiold, lphiold)
-      !!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-      !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-      !!     lzd, lorbs, op, comon, mad, comgp, &
-      !!     tmb%psi, lhphi, lhphiold, lphiold)
 
 
       if(secondLocreg) then
@@ -534,14 +472,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           call memocc(istat, orbslarge2%onwhichatom, 'orbslarge2%onwhichatom', subname)
           call vcopy(lorbs%norb, onwhichatom(1), 1, orbslarge2%onwhichatom(1), 1)
       end if
-  !!else
-  !!    ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
-  !!    ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-  !!    call gatherPotential(iproc, nproc, comgp)
-
-  !!    ! Build the required potential
-  !!    call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-  !!    call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   end if
 
 
@@ -617,10 +547,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
                   call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
                   call vcopy(lorbs%norb, onwhichatom(1), 1, lorbs%onwhichatom(1), 1)
-                  !!wfnmd%nphi=lorbs%npsidim_orbs
                   tmb%wfnmd%nphi=lorbs%npsidim_orbs
-                  !!wfnmd%basis_is=BASIS_IS_STANDARD 
-                  tmb%wfnmd%basis_is=BASIS_IS_STANDARD 
                   call allocateCommunicationsBuffersPotential(comgp, subname)
               end if
 
@@ -1058,8 +985,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
               call vcopy(lorbs%norb, onwhichatom(1), 1, lorbs%onwhichatom(1), 1)
               tmb%wfnmd%nphi=lorbs%npsidim_orbs
-              !!wfnmd%nphi=lorbs%npsidim_orbs
-              tmb%wfnmd%basis_is=BASIS_IS_STANDARD
           end if
 
           if(secondLocreg) then
@@ -1117,21 +1042,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
 
-  !if(newgradient) then
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!! Create new logrecs taking incto account the derivatives
-      !!ii=lorbs%npsidim_orbs
-      !!call dcopy(ii, tmb%psi(1), 1, lphilarge(1), 1)
-
-      !!call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-      !!     tmb%psi, lhphi, lhphiold, lphiold)
-      !!call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenterTemp, &
-      !!     lzdlarge%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
-      !!     lzd, lorbs, op, comon, mad, comgp, &
-      !!     tmb%psi, lhphi, lhphiold, lphiold)
-
-      !!call dcopy(ii, lphilarge(1), 1, tmb%psi(1), 1)
-
       call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1184,16 +1095,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
   call memocc(istat, iall, 'ovrlp', subname)
+  iall=-product(shape(locregCenterTemp))*kind(locregCenterTemp)
+  deallocate(locregCenterTemp, stat=istat)
+  call memocc(istat, iall, 'locregCenterTemp', subname)
 
-!!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)
-!!$  deallocate(lorbs%ispot, stat=istat)
-!!$  call memocc(istat, iall, 'lorbs%ispot', subname)
-
-  !!! Deallocate potential
-  !!iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  !!deallocate(denspot%pot_full, stat=istat)
-  !!call memocc(istat, iall, 'denspot%pot_full', subname)
-  !if(.not. newgradient) then
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Deallocate potential
       iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
@@ -1201,9 +1106,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call memocc(istat, iall, 'denspot%pot_full', subname)
   end if
 
-
-  ! Deallocate PSP stuff
-  !call free_lnlpspd(lorbs, lzd)
 
   t2tot=mpi_wtime()
   timetot=t2tot-t1tot
@@ -1227,8 +1129,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   end if
 
 
-  ! Deallocate all quantities related to DIIS,
-  !!!!if(ldiis%isx>0) call deallocateDIIS(ldiis)
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()

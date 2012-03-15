@@ -72,8 +72,6 @@ module module_types
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
-  integer,parameter:: BASIS_IS_STANDARD=10
-  integer,parameter:: BASIS_IS_ENHANCED=11
   integer,parameter:: DECREASE_LINEAR=0
   integer,parameter:: DECREASE_ABRUPT=1
   
@@ -816,11 +814,7 @@ end type workarrays_quartic_convolutions
 
   type,public:: wfn_metadata
     integer:: nphi !<size of phi without derivative
-    !!integer:: nlbphi !<size of phi with derivatives
-    integer:: basis_is !<indicates whether phi contains derivatives or not
     integer:: ld_coeff !<leading dimension of coeff
-    !!real(8),dimension(:),pointer:: phi !<basis functions, with or without derivatives
-    !!real(8),dimension(:),pointer:: phiRestart !<basis functions without derivatives
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     type(basis_specifications):: bs !<contains parameters describing the basis functions
