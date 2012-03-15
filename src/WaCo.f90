@@ -2482,6 +2482,7 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    character(len=10), dimension(nproj) :: label
    integer :: np, np2, iwann,iiwann, ntype, ii, i_stat
    real(gp), dimension(:,:), allocatable :: Wpweight
+   real(gp), dimension(:), allocatable :: norm 
    character(len=10),dimension(:), allocatable :: Wplabel
    integer, dimension(nproj) :: l_used, mr_used
 
@@ -2580,23 +2581,27 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
       ii=ii+1
       l_used(ii) = l(np)
       mr_used(ii) = mr(np)
-      do iwann = 1, nwann
-         do np2 = 1, nproj
-            if(l(np2) == l(np) .and. mr(np2) == mr(np)) then
+      do np2 = 1, nproj
+         if(l(np2) == l(np) .and. mr(np2) == mr(np)) then
+            do iwann = 1, nwann
               Wpweight(iwann,ii) = Wpweight(iwann,ii) + tmatrix(iwann,np2)**2
               Wplabel(ii) = label(np)
-            end if
-         end do
+            end do
+         end if
       end do
    end do loop_np
 
+   allocate(norm(nwann), stat=i_stat)
+   call memocc(i_stat,norm,'norm',subname)
+
    !calcualte norm
-!   norm = 0.0d0
-!   do iwann=1,nwann
-!      do np=1,ntype
-!         norm(iwann) = norm(iwann) + Wpweight(iwann,np)
-!      end do
-!   end do
+   norm = 0.0d0
+   do iwann=1,nwann
+      do np=1,ntype
+         norm(iwann) = norm(iwann) + Wpweight(iwann,np)**2
+      end do
+      norm(iwann) = sqrt(norm(iwann))
+   end do
 
    ! Print the information
 !   if(iproc==0) then
@@ -2606,7 +2611,7 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
      write(*,trim(forma))(Wplabel(ii),ii=1,ntype)
      do iwann = 1, plotwann
         iiwann = wann_list(iwann)
-        write(*,*) iiwann, iwann, (Wpweight(iiwann,ii)/norm2(Wpweight(iiwann,:),1), ii=1,ntype)
+        write(*,*) iiwann, iwann, (Wpweight(iiwann,ii)/norm(iiwann), ii=1,ntype)
      end do
 !   end if
 
