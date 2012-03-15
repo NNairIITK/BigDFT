@@ -1,59 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
      eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
-!
-! Purpose:
-! ========
-!   Top-level subroutine for the linear scaling version.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc       process ID
-!     nproc       total number of processes
-!     n3d         ??
-!     n3p         ??
-!     i3s         ??
-!     i3xcsh      ??
-!     Glr         type describing the localization region
-!     orbs        type describing the physical orbitals psi
-!     comms       type containing the communication parameters for the physical orbitals psi
-!     at          type containing the parameters for the atoms
-!     input       type  containing some very general parameters
-!     lin         type containing parameters for the linear version
-!     rxyz        atomic positions
-!     nscatterarr ??
-!     ngatherarr  ??
-!     nlpspd      ??
-!     proj        ??
-!     pkernelseq  ??
-!     radii_cf    coarse and fine radii around the atoms
-!     irrzon      ??
-!     phnons      ??
-!     pkernel     ??
-!     pot_ion     the ionic potential
-!     rhocore     ??
-!     potxc       ??
-!     PSquiet     flag to control the output from the Poisson solver
-!     eion        ionic energy
-!     edisp       dispersion energy
-!     eexctX      ??
-!     scpot       flag indicating whether we have a self consistent calculation
-!     fion        ionic forces
-!     fdisp       dispersion forces
-!   Input / Output arguments
-!   ------------------------
-!     GPU         parameters for GPUs?
-!     rhopot      the charge density
-!   Output arguments:
-!   -----------------
-!     psi         the physical orbitals
-!     psit        psi transposed
-!     fxyz        the forces acting on the atom
-!     energy
-!     
-
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -74,12 +21,10 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
 real(gp),intent(in):: eion, edisp, eexctX,hx,hy,hz
 logical,intent(in):: scpot
-!real(8),dimension(orbs),intent(out):: psi
 real(8),dimension(:),pointer,intent(out):: psi, psit
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
-!real(8),intent(out):: fnoise
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
@@ -91,23 +36,15 @@ logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_
 logical:: compare_outer_loop
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
-integer:: iorb, ndimtot, iiat
+integer:: iorb
 type(mixrhopotDIISParameters):: mixdiis
-type(workarr_sumrho):: w
-!real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
 type(confpot_data), dimension(:),pointer :: confdatarr, confdatarrder
-real(8):: fnoise,pressure
-real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
-integer,dimension(:),pointer:: onwhichatom
-integer,dimension(:),allocatable:: norbsPerAtom
-!type(wfn_metadata):: wfnmd
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
-type(DFT_wavefunction),pointer:: tmbmix, tmbopt
+type(DFT_wavefunction),pointer:: tmbmix
 type(local_zone_descriptors):: lzd
-type(orbitals_data):: orbs_tmp
 
 
   if(iproc==0) then
@@ -253,11 +190,9 @@ type(orbitals_data):: orbs_tmp
           locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
 
-
       if(trim(input%lin%mixingMethod)=='dens') then
           rhopotold_out=rhopotold
       end if
-
 
       if(trim(input%lin%mixingMethod)=='pot') then
           rhopotold_out=denspot%rhov
@@ -387,6 +322,7 @@ type(orbitals_data):: orbs_tmp
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
 
       ! Now all initializations are done...
+
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
@@ -585,29 +521,11 @@ type(orbitals_data):: orbs_tmp
   end if
 
 
-
-  !!! Put the timings here since there is a crash in the forces.
-  !!call mpi_barrier(mpi_comm_world, ierr)
-  !!t2tot=mpi_wtime()
-  !!timetot=t2tot-t1tot
-  !!timeforce=0.d0
-  !!if(iproc==0) write(*,'(1x,a)') '================================================'
-  !!if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
-  !!if(iproc==0) write(*,'(3x,a)') 'of which:'
-  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
-  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
-  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
-  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
-  !!if(iproc==0) write(*,'(1x,a)') '================================================'
-
-
   nullify(rho,pot)
-
   call destroy_DFT_wavefunction(tmb)
   call destroy_DFT_wavefunction(tmbder)
   call deallocate_local_zone_descriptors(lzd, subname)
   call deallocateBasicArraysInput(input%lin)
-
   deallocate(confdatarr)
   deallocate(confdatarrder)
 
