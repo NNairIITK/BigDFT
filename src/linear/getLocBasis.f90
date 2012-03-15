@@ -258,26 +258,25 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
-real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
-real(8) :: t2tot,timetot,tt1,tt2,tt3,tt4,tt5
-real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrm_zero,gnrmMax,t1,t2, dnrm2
-real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
+real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
+real(8):: t2tot,timetot,tt1,tt2,tt3,tt4,tt5
+real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrmMax,t1,t2,dnrm2
+real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, factor2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
-integer :: icountDIISFailureCons,itBest, ncnt, lorb, ilrlarge2
-integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
-integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
+integer:: icountDIISFailureCons,itBest, ncnt, lorb, ilrlarge2, ilrlarge
+integer:: istat,istart,ierr,ii,it,iall,ind2,jorb,ist,iiorb
+integer:: ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat, locregCenterTemp
-real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter, ovrlp
+real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old
-integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge, icenter, nl1, nl2, nl3
 type(local_zone_descriptors):: lzdlarge, lzdlarge2
 type(orbitals_data):: orbslarge, orbslarge2
 type(overlapParameters):: oplarge, oplarge2
@@ -377,8 +376,6 @@ logical,parameter:: secondLocreg=.false.
   call memocc(istat, lagmat, 'lagmat', subname)
   allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, Umat, 'Umat', subname)
-  allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
-  call memocc(istat, kernelold, 'kernelold', subname)
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   allocate(locrad_tmp(lzd%nlr), stat=istat)
@@ -842,7 +839,7 @@ logical,parameter:: secondLocreg=.false.
           !write(*,'(a)', advance='no') 'Preconditioning... '
           write(*,'(a)') 'Preconditioning.'
       end if
-      gnrm=1.d3 ; gnrm_zero=1.d3
+      gnrm=1.d3
       t1=mpi_wtime()
 
       ind2=1
@@ -1068,9 +1065,6 @@ logical,parameter:: secondLocreg=.false.
   iall=-product(shape(Umat))*kind(Umat)
   deallocate(Umat, stat=istat)
   call memocc(istat, iall, 'Umat', subname)
-  iall=-product(shape(kernelold))*kind(kernelold)
-  deallocate(kernelold, stat=istat)
-  call memocc(istat, iall, 'kernelold', subname)
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
