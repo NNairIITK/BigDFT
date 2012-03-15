@@ -88,6 +88,7 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
+logical:: compare_outer_loop
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 integer:: iorb, ndimtot, iiat
@@ -576,31 +577,15 @@ type(orbitals_data):: orbs_tmp
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then
-              if(mixHist==0) then
-                  call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
-              else 
-                  ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                  mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
-                       denspot%rhov, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
-              end if
-              ! Determine the change in the density between this iteration and the last iteration in the outer loop.
-              if(pnrm<selfConsistent .or. itSCC==nitSCC) then
-                  pnrm_out=0.d0
-                  do i=1,Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
-                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-                  end do
-                  call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
-                  pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
-              end if
+           compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
+           call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
+                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
           end if
 
-          ! Copy the current charge density.
-          if(trim(input%lin%mixingMethod)=='dens') then
-              call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-          end if
+          !!! Copy the current charge density.
+          !!if(trim(input%lin%mixingMethod)=='dens') then
+          !!    call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+          !!end if
 
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
@@ -615,33 +600,15 @@ type(orbitals_data):: orbs_tmp
 
           ! Mix the potential
           if(trim(input%lin%mixingMethod)=='pot') then
-              if(mixHist==0) then
-                  call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
-              else 
-                  ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                  mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
-                       denspot%rhov, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
-              end if
-
-              ! Determine the change in the density between this iteration and the last iteration 
-              ! of the previous iteration in the outer loop.
-              if(pnrm<selfConsistent .or. itSCC==nitSCC) then
-                  pnrm_out=0.d0
-                  do i=1,Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
-                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-                  end do
-                  call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
-                  pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
-              end if
+           compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
+           call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
+                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
           end if
 
-          ! Copy the current potential
-          if(trim(input%lin%mixingMethod)=='pot') then
-               call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-          end if
+          !!! Copy the current potential
+          !!if(trim(input%lin%mixingMethod)=='pot') then
+          !!     call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+          !!end if
 
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -1364,3 +1331,52 @@ integer:: npsidim, ilr, iorb
   orbs%npsidim_orbs=max(npsidim,1)
 
 end subroutine update_wavefunctions_size
+
+
+
+subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
+           denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => mix_main
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, mixHist
+  logical,intent(in):: compare_outer_loop
+  type(input_variables),intent(in):: input
+  type(locreg_descriptors),intent(in):: glr
+  real(8),intent(in):: alpha_mix
+  type(DFT_local_fields),intent(inout):: denspot
+  type(mixrhopotDIISParameters),intent(inout):: mixdiis
+  real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
+  real(8),intent(out):: pnrm, pnrm_out
+  
+  ! Local variables
+  integer:: ndimtot, i, ierr
+
+  ! Mix the density.
+  if(mixHist==0) then
+      call mixPotential(iproc, denspot%dpcom%n3p, glr, input, alpha_mix, rhopotOld, denspot%rhov, pnrm)
+  else 
+      ndimtot=glr%d%n1i*glr%d%n2i*glr%d%n3i
+      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+      mixdiis%is=mixdiis%is+1
+      call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
+           denspot%rhov, rhopotold, mixdiis, ndimtot, alpha_mix, 1, pnrm)
+  end if
+  ! Determine the change in the density between this iteration and the last iteration in the outer loop.
+  if(compare_outer_loop) then
+      pnrm_out=0.d0
+      do i=1,glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p
+          pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+      end do
+      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+      call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
+  end if
+
+  ! Copy the current charge density.
+  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+
+end subroutine mix_main

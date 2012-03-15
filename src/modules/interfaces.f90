@@ -6283,6 +6283,22 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(local_zone_descriptors),intent(out):: lzd
        end subroutine init_local_zone_descriptors
 
+       subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
+                  denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, mixHist
+         logical,intent(in):: compare_outer_loop
+         type(input_variables),intent(in):: input
+         type(locreg_descriptors),intent(in):: glr
+         real(8),intent(in):: alpha_mix
+         type(DFT_local_fields),intent(inout):: denspot
+         type(mixrhopotDIISParameters),intent(inout):: mixdiis
+         real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
+         real(8),intent(out):: pnrm, pnrm_out
+       end subroutine mix_main
+
    end interface
 
 END MODULE module_interfaces
