@@ -656,9 +656,9 @@ module module_interfaces
         type(orbitals_data), intent(in) :: orbs
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
-        real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+        real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
         real(gp), intent(out) :: fnoise,pressure
@@ -5767,6 +5767,72 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(6), intent(out) :: xcstr
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
        end subroutine psitohpsi
+
+       subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+         use module_base
+         use module_types
+         implicit none
+         character(len=*), intent(in) :: subname
+         integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
+         real(gp), intent(in) :: alphadiis
+         type(diis_objects), intent(inout) :: diis
+       end subroutine allocate_diis_objects
+
+       subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+            orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
+         use module_base
+         use module_types
+         implicit none
+         !Arguments-------------
+         type(atoms_data), intent(in) :: at
+         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+         logical, intent(in) :: refill
+         integer, intent(in) :: iproc
+         real(gp), intent(in) :: hx,hy,hz
+         type(locreg_descriptors) :: lr
+         type(orbitals_data), intent(in) :: orbs
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(inout) :: psi
+         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+         real(gp), dimension(3,at%nat), intent(inout) :: fsep
+         real(gp), dimension(6), intent(out) :: strten
+       end subroutine nonlocal_forces
+
+       !> Calculates the local forces acting on the atoms belonging to iproc
+       subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
+            n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
+         use module_base
+         use module_types
+         implicit none
+         !Arguments---------
+         type(atoms_data), intent(in) :: at
+         integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
+         real(gp), intent(in) :: hxh,hyh,hzh 
+         real(gp),intent(out) :: charge
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(dp), dimension(*), intent(in) :: rho,pot
+         real(gp), dimension(3,at%nat), intent(out) :: floc
+         real(gp), dimension(6), intent(out) :: locstrten
+       end subroutine local_forces
+
+       subroutine initialize_DFT_local_fields(denspot)
+         use module_base
+         use module_types
+         implicit none
+         type(DFT_local_fields), intent(out) :: denspot
+       end subroutine initialize_DFT_local_fields
+
+       subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+         use module_base, only: ndebug
+         implicit none
+        ! include 'mpif.h'
+         character(len=1), intent(in) :: geocode
+         integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+         real(kind=8), intent(in) :: hx,hy,hz
+         real(kind=8), pointer :: kernel(:)
+         logical, intent(in) :: wrtmsg
+       end subroutine createKernel
 
    end interface
 
