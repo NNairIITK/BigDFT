@@ -224,16 +224,16 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
    loop_cluster: do icycle=1,in%nrepmax
 
-      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
-         i_all=-product(shape(rst%psi))*kind(rst%psi)
-         deallocate(rst%psi,stat=i_stat)
+      if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
+         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
+         deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-         deallocate(rst%orbs%eval,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
+         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
          call memocc(i_stat,i_all,'eval',subname)
-         nullify(rst%orbs%eval)
+         nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
       end if
 
       if(.not. in%c_absorbtion) then 
@@ -242,8 +242,8 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
       else
 
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%psi,rst%Lzd,rst%orbs,&
-            &   rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn%psi,rst%KSwfn%Lzd,rst%KSwfn%orbs,&
+             rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -273,15 +273,15 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          end if 
 
-         i_all=-product(shape(rst%psi))*kind(rst%psi)
-         deallocate(rst%psi,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
+         deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-         deallocate(rst%orbs%eval,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
+         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
          call memocc(i_stat,i_all,'eval',subname)
-         nullify(rst%orbs%eval)
+         nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
          !finalize memory counting (there are still the positions and the forces allocated)
          call memocc(0,0,'count','stop')
 
@@ -542,7 +542,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,hx,hy,hz,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -1709,7 +1709,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd
@@ -1743,7 +1743,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
   i_all=-product(shape(locrad))*kind(locrad)

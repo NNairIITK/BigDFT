@@ -194,6 +194,9 @@ type(wfn_metadata):: wfnmd
   allocate(locrad(lin%lzd%nlr), stat=istat)
   call memocc(istat, locrad, 'locrad', subname)
 
+  lin%lzd%hgrids(1)=hx
+  lin%lzd%hgrids(2)=hy
+  lin%lzd%hgrids(3)=hz
 
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.

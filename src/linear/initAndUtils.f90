@@ -3417,14 +3417,13 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 end subroutine repartitionOrbitals2
 
 
-subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs,rxyz)
+subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
   use module_xc
   implicit none
 
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in):: hx, hy, hz
   type(input_variables), intent(in) :: input
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
@@ -3459,7 +3458,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,&
+          Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
           Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
@@ -3498,7 +3498,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
         calculateBounds=.true.
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
-             hx,hy,hz,Lzd%Glr,Lzd%Llr,&
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
@@ -3552,18 +3552,18 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
 
 end subroutine check_linear_and_create_Lzd
 
-subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
+subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   use module_base
   use module_types
   use module_xc
   implicit none
 
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
-  type(input_variables), intent(in) :: input
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
+  character(len=*), intent(in) :: linearmode
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(out) :: Lzd
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -3578,14 +3578,18 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   !default variables
   Lzd%nlr = 1
 
-  if (input%nspin == 4) then
+  Lzd%hgrids(1)=hx
+  Lzd%hgrids(2)=hy
+  Lzd%hgrids(3)=hz
+
+  if (nspin == 4) then
      nspin_ig=1
   else
-     nspin_ig=input%nspin
+     nspin_ig=nspin
   end if
 
   linear  = .true.
-  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+  if (linearmode == 'LIG' .or. linearmode == 'FUL') then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -3598,11 +3602,11 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
           Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
-     if(input%nspin >= 4) linear = .false. 
+     if(nspin >= 4) linear = .false. 
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
-  if (input%linear =='OFF' .or. .not. linear) then
+  if (linearmode =='OFF' .or. .not. linear) then
      linear = .false.
      Lzd%nlr = 1
   end if
@@ -3614,7 +3618,7 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   call nullify_locreg_descriptors(Lzd%Glr)
   call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
 
-  if(input%linear /= 'TMO') then
+  if(linearmode /= 'TMO') then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)

@@ -262,8 +262,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(.not.wfnmd%bs%use_derivative_basis) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
-     call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
-          hx,hy,hz,rxyz,&
+     call FullHamiltonianApplication(iproc,nproc,at,lorbs,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
@@ -273,8 +272,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
      allocate(confdatarrtmp(llborbs%norbp))
      call default_confinement_data(confdatarrtmp,llborbs%norbp)
-     call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
-          hx,hy,hz,rxyz,&
+     call FullHamiltonianApplication(iproc,nproc,at,llborbs,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
@@ -876,8 +874,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
       end if
 
-      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
-           hx,hy,hz,rxyz,&
+      call FullHamiltonianApplication(iproc,nproc,at,lorbs,rxyz,&
            proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
            pkernel=denspot%pkernelseq)

@@ -29,6 +29,7 @@ module yaml_output
   public :: yaml_sequence_element,yaml_close_sequence_element,yaml_comment
  
   contains
+
     !> Reset the line control quantities
     subroutine carriage_return()
       implicit none
@@ -43,7 +44,6 @@ module yaml_output
       icomma=0
     end subroutine carriage_return
       
-
     subroutine yaml_new_document()
       implicit none
       !check all indentation
@@ -125,6 +125,31 @@ module yaml_output
       yaml_indent=max(yaml_indent-yaml_level,0)
     end subroutine yaml_close_indent_map
       
+    subroutine open_flow_level()
+      implicit none
+      if (flowrite ==0) then
+         if (iflowlevel==0) yaml_indent_previous=yaml_indent
+         yaml_indent=1
+      end if
+      iflowlevel=iflowlevel+1
+      flowrite=-1 !start to write
+    end subroutine open_flow_level
+
+    subroutine close_flow_level()
+      implicit none
+      
+      !lower the flowlevel
+      iflowlevel=iflowlevel-1
+      if (iflowlevel==0) then
+         yaml_indent=yaml_indent_previous
+         flowrite=0
+      else
+         yaml_indent=1
+         flowrite=-1
+      end if
+
+    end subroutine close_flow_level
+
     !> Open a hash table written in flow format
     subroutine yaml_flow_map(mapname,label)
       implicit none
@@ -132,7 +157,6 @@ module yaml_output
       character(len=*), optional, intent(in) :: label
       !local variables
       character(len=500) :: line
-
 
       if (present(mapname))then
          if (present(label)) then
@@ -144,11 +168,12 @@ module yaml_output
       write(stdout,'(a)',advance='no')' {'
       icursor=icursor+2
 
-      flowrite=-1 !start to write
-      if (iflowlevel==0) yaml_indent_previous=yaml_indent
-      iflowlevel=iflowlevel+1
-
-      yaml_indent=1
+      call open_flow_level()
+!!$      flowrite=-1 !start to write
+!!$      if (iflowlevel==0) yaml_indent_previous=yaml_indent
+!!$      iflowlevel=iflowlevel+1
+!!$
+!!$      yaml_indent=1
 
     end subroutine yaml_flow_map
 
@@ -158,12 +183,8 @@ module yaml_output
       !terminate mapping
       write(stdout,'(a)',advance='no')'}'
       icursor=icursor+1
-      !lower the flowlevel
-      iflowlevel=iflowlevel-1
-      if (iflowlevel==0) then
-         write(stdout,'(a)')' '
-         flowrite=0
-      end if
+      call close_flow_level()
+      if (iflowlevel==0) write(stdout,'(a)')' '
       if (present(advance)) then
          if (advance=='yes') call yaml_flow_newline()
       else
@@ -180,12 +201,13 @@ module yaml_output
 
       write(stdout,'(a)',advance='no')' ['
       icursor=icursor+2
-      if (flowrite ==0) then
-         if (iflowlevel==0) yaml_indent_previous=yaml_indent
-         yaml_indent=1
-      end if
-      iflowlevel=iflowlevel+1
-      flowrite=-1 !start to write
+!!$      if (flowrite ==0) then
+!!$         if (iflowlevel==0) yaml_indent_previous=yaml_indent
+!!$         yaml_indent=1
+!!$      end if
+!!$      iflowlevel=iflowlevel+1
+!!$      flowrite=-1 !start to write
+      call open_flow_level()
     end subroutine yaml_flow_sequence
 
     subroutine yaml_close_flow_sequence(advance)
@@ -195,28 +217,36 @@ module yaml_output
       if (present(advance)) then
          write(stdout,'(a)',advance=advance)']'
          icursor=icursor+1
-         flowrite=0
-         iflowlevel=iflowlevel-1
-         if (iflowlevel==0) then
-            yaml_indent=yaml_indent_previous
-         else
-            yaml_indent=1
-         end if
+         call close_flow_level()
          if (advance=='yes') then
             call carriage_return()
          end if
       else
          write(stdout,'(a)')']'
-         flowrite=0
-         iflowlevel=iflowlevel-1
-         if (iflowlevel==0) then
-            yaml_indent=yaml_indent_previous
-         else
-            yaml_indent=1
-         end if
+         call close_flow_level()
          call carriage_return()
       end if
     end subroutine yaml_close_flow_sequence
+
+    !> Add a new line in the flow 
+    !! this routine has a effect only if flowrite is active
+    subroutine yaml_flow_newline()
+      implicit none
+      if (flowrite ==-1) then !flowrite had just been opened
+         write(stdout,'(a)')' '
+      else if (flowrite==1) then !just close the last field
+         if (icomma==0) then
+            write(stdout,'(a)')', '
+         else
+            write(stdout,'(a)')' '
+         end if
+         flowrite=-1 !restart from line
+         icomma=0
+      end if
+      !reset tabbing
+      call carriage_return()
+    end subroutine yaml_flow_newline
+
 
     subroutine yaml_sequence_element(label,advance)
       implicit none
@@ -271,25 +301,6 @@ module yaml_output
     end subroutine yaml_close_sequence_element
     
     
-    !> Add a new line in the flow 
-    !! this routine has a effect only if flowrite is active
-    subroutine yaml_flow_newline()
-      implicit none
-      if (flowrite ==-1) then !flowrite had just been opened
-         write(stdout,'(a)')' '
-      else if (flowrite==1) then !just close the last field
-         if (icomma==0) then
-            write(stdout,'(a)')', '
-         else
-            write(stdout,'(a)')' '
-         end if
-         flowrite=-1 !restart from line
-         icomma=0
-      end if
-      !reset tabbing
-      call carriage_return()
-    end subroutine yaml_flow_newline
-
     !> fill the hash table value, if present.
     !! This should be the only routine which writes hash table elements 
     subroutine yaml_map(mapname,mapvalue,label,advance)
