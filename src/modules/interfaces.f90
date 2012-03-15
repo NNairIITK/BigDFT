@@ -6299,6 +6299,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         real(8),intent(in):: hx, hy, hz
+         type(local_zone_descriptors),intent(inout):: lzd
+         type(DFT_wavefunction),intent(inout):: tmb
+         type(DFT_wavefunction),intent(inout):: tmbmix
+         type(DFT_local_fields),intent(inout):: denspot
+       end subroutine redefine_locregs_quantities
+
    end interface
 
 END MODULE module_interfaces
