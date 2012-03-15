@@ -25,16 +25,14 @@ type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
-integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
+integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi
-real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix, locregCenter
+real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
-character(len=*),parameter:: subname='getLinearPsi' 
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
 logical:: withConfinement
-integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb, ii
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-type(orbitals_data):: orbs_tmp
+character(len=*),parameter:: subname='get_coeff'
 
 
 
@@ -179,11 +177,7 @@ type(orbitals_data):: orbs_tmp
 
   ! Project the lb coefficients on the smaller subset
   if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      if(tmbmix%wfnmd%bs%use_derivative_basis) then
-          inc=4
-      else
-          inc=1
-      end if
+      inc=4
       do iorb=1,orbs%norb
           jjorb=1
           do jorb=1,tmbmix%orbs%norb,inc
