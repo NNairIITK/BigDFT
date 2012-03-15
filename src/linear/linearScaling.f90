@@ -203,10 +203,6 @@ type(orbitals_data):: orbs_tmp
   orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
 
-  call mpi_barrier(mpi_comm_world, ierr)
-  t2init=mpi_wtime()
-  timeinit=t2init-t1init
-
   ! Allocate the global orbitals psi and psit
   if(.not.input%lin%transformToGlobal) then
       ! psi and psit will not be calculated, so only allocate them with size 1
@@ -231,15 +227,8 @@ type(orbitals_data):: orbs_tmp
 
   ! Generate the input guess for the TMB
   potshortcut=0 ! What is this?
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1ig=mpi_wtime()
-  call inputguessConfinement(iproc, nproc, at, &
-       input, hx, hy, hz, lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
-       nlpspd, proj, GPU, &
-       tmb%psi)
-  call mpi_barrier(mpi_comm_world, ierr)
-  t2ig=mpi_wtime()
-  timeig=t2ig-t1ig
+  call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
+       nlpspd, proj, GPU,  tmb%psi)
   t1scc=mpi_wtime()
 
 
@@ -256,20 +245,6 @@ type(orbitals_data):: orbs_tmp
 
 
   if(input%lin%nItInguess>0) then
-      ! Post communications for gathering the potential.
-      !if(input%lin%mixedmode) tmb%wfnmd%bs%use_derivative_basis=.false.
-      !if(input%lin%mixedmode) tmbder%wfnmd%bs%use_derivative_basis=.false.
-      !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-      !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-      !!if(tmbder%wfnmd%bs%use_derivative_basis) then
-      !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-      !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-      !!end if
-
-      ! Calculate the Hamiltonian in the basis of the trace minimizing orbitals. Do not improve
-      ! the basis functions (therefore update is set to false).
-      ! This subroutine will also post the point to point messages needed for the calculation
-      ! of the charge density.
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
@@ -278,37 +253,6 @@ type(orbitals_data):: orbs_tmp
           locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
 
-      !!if(input%lin%mixedmode) then
-      !!    call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
-      !!    tmbder%wfnmd%bs%use_derivative_basis=.false.
-      !!    call getLinearPsi(iproc, nproc, lzd, orbs, tmb%orbs, tmb%orbs, tmb%comsr, &
-      !!        tmb%mad, tmb%mad, tmb%op, tmb%op, tmb%comon, tmb%comon, &
-      !!        tmb%comgp, tmb%comgp, at, rxyz, &
-      !!        denspot, GPU, &
-      !!        infoBasisFunctions, infoCoeff, 0, ebs, nlpspd, proj, &
-      !!        ldiis, &
-      !!        orthpar, confdatarr, tmbder%wfnmd%bpo%blocksize_pdgemm, &
-      !!        tmbder%comrp, tmbder%wfnmd%bpo%blocksize_pdsyev, tmbder%wfnmd%bpo%nproc_pdsyev, &
-      !!        hx, hy, hz, input%SIC, locrad, tmb, tmbder)
-      !!else
-      !!    call allocateCommunicationbufferSumrho(iproc,with_auxarray,tmbder%comsr,subname)
-      !!    call getLinearPsi(iproc,nproc,lzd,orbs,tmb%orbs,tmbder%orbs,tmbder%comsr,&
-      !!        tmb%mad,tmbder%mad,tmb%op,tmbder%op,tmb%comon,&
-      !!        tmbder%comon,tmb%comgp,tmbder%comgp,at,rxyz,&
-      !!        denspot,GPU,&
-      !!        infoBasisFunctions,infoCoeff,0, ebs,nlpspd,proj,&
-      !!        ldiis,orthpar,confdatarr,& 
-      !!        tmbder%wfnmd%bpo%blocksize_pdgemm,&
-      !!        tmbder%comrp,tmbder%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-      !!        hx,hy,hz,input%SIC, locrad, tmb, tmbder)
-      !!end if
-
-      !!! Calculate the charge density.
-      !!if(input%lin%mixedmode) then
-      !!    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      !!else
-      !!    call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
-      !!end if
 
       if(trim(input%lin%mixingMethod)=='dens') then
           rhopotold_out=rhopotold
@@ -316,16 +260,6 @@ type(orbitals_data):: orbs_tmp
 
 
       if(trim(input%lin%mixingMethod)=='pot') then
-          !!if(input%lin%mixHist_lowaccuracy==0) then
-          !!    call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
-          !!         input%lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
-          !!else 
-          !!    ndimtot=lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-          !!    mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-          !!    mixdiis%is=mixdiis%is+1
-          !!    call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
-          !!         input%lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
-          !!end if
           rhopotold_out=denspot%rhov
       end if
 
@@ -351,8 +285,6 @@ type(orbitals_data):: orbs_tmp
 
 
 
-  !if(nproc==1) allocate(psit(size(psi)))
-  !nitSCC=input%lin%nitSCCWhenOptimizing+input%lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   tmb%wfnmd%bs%update_phi=.true.
   pnrm=1.d100
@@ -363,6 +295,8 @@ type(orbitals_data):: orbs_tmp
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
+  ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
+  ! ot to tmbder if we use the derivatives.
   if(input%lin%useDerivativeBasisFunctions) then
       tmbmix => tmbder
   else
@@ -376,6 +310,8 @@ type(orbitals_data):: orbs_tmp
       variable_locregs=.true.
   end if
 
+  ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
+  ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -416,6 +352,7 @@ type(orbitals_data):: orbs_tmp
       call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, lzd%nlr, tmbder%orbs%onwhichatom, &
            confdatarrder, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
+      ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
@@ -423,7 +360,6 @@ type(orbitals_data):: orbs_tmp
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
-      if(iproc==0) write(*,*) 'confdatarr(1)%prefac',confdatarr(1)%prefac
 
       ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
@@ -485,10 +421,8 @@ type(orbitals_data):: orbs_tmp
           ! Decide whether we have to use the derivatives or not.
           if(input%lin%mixedmode) then
               if(.not.withder) then
-                  !tmbder%wfnmd%bs%use_derivative_basis=.false.
                   tmbmix => tmb
               else
-                  !tmbder%wfnmd%bs%use_derivative_basis=.true.
                   ! We have to communicate the potential in the first iteration
                   if(itSCC==1) then
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
@@ -507,39 +441,6 @@ type(orbitals_data):: orbs_tmp
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
-              !!!if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              !!!    call nullify_orbitals_data(orbs_tmp)
-              !!!    call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-              !!!    call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-              !!!         orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
-              !!!    call deallocate_orbitals_data(orbs_tmp, subname)
-
-              !!!    tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
-              !!!    tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
-
-              !!!    ! Reallocate tmbmix%psi, since it might have a new shape
-              !!!    iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-              !!!    deallocate(tmbmix%psi, stat=istat)
-              !!!    call memocc(istat, iall, 'tmbmix%psi', subname)
-              !!!    allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-              !!!    call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-
-              !!!    call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
-              !!!    call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              !!!else
-              !!!    tag=1
-              !!!    call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
-              !!!    call deallocate_p2pComms(tmbmix%comsr, subname)
-              !!!    call nullify_p2pComms(tmbmix%comsr)
-              !!!    call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-              !!!    call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
-              !!!end if
-              !!!call deallocate_p2pComms(tmbmix%comgp, subname)
-              !!!call nullify_p2pComms(tmbmix%comgp)
-              !!!call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
-              !!!     lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
-              !!!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              !!!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
 
 
@@ -600,10 +501,6 @@ type(orbitals_data):: orbs_tmp
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
           end if
 
-          !!! Copy the current potential
-          !!if(trim(input%lin%mixingMethod)=='pot') then
-          !!     call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-          !!end if
 
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -639,7 +536,6 @@ type(orbitals_data):: orbs_tmp
                    'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
       end if
-      !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
 
       ! Deallocate DIIS structures.
@@ -650,7 +546,6 @@ type(orbitals_data):: orbs_tmp
 
   call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  !!if(wfnmd%bs%use_derivative_basis) then
   if(tmbder%wfnmd%bs%use_derivative_basis) then
       call cancelCommunicationPotential(iproc, nproc, tmbder%comgp)
       call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
@@ -662,12 +557,6 @@ type(orbitals_data):: orbs_tmp
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
-  !!iall=-product(shape(onwhichatom))*kind(onwhichatom)
-  !!deallocate(onwhichatom, stat=istat)
-  !!call memocc(istat, iall, 'onwhichatom', subname)
-  !!iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
-  !!deallocate(norbsPerAtom, stat=istat)
-  !!call memocc(istat, iall, 'norbsPerAtom', subname)
 
   if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -697,97 +586,11 @@ type(orbitals_data):: orbs_tmp
 
 
 
-  ! Put the timings here since there is a crash in the forces.
-  call mpi_barrier(mpi_comm_world, ierr)
-  t2tot=mpi_wtime()
-  timetot=t2tot-t1tot
-  timeforce=0.d0
-  if(iproc==0) write(*,'(1x,a)') '================================================'
-  if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
-  if(iproc==0) write(*,'(3x,a)') 'of which:'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(1x,a)') '================================================'
-
-
-  ! Calculate the forces we get with psi.
-  !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, hx, hy, hz, &
-  !! comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp,&
-  !! lphi, coeff, rhopot, fxyz, fnoise,radii_cf)
-
-  !!!!associate the density
-  !!!rho => rhopot
-
-  !!!!add an if statement which says whether the charge density has already been calculated
-  !!!call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lzd,&
-  !!!     0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
-  !!!     pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
-
-  !!!!fake ewald stress tensor
-  !!!ewaldstr=0.0_gp
-  !!!xcstr=0.0_gp
-  !!!call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
-  !!!     input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
-  !!!     input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-  !!!     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
-
-!  iall=-product(shape(pot))*kind(pot)
-!  deallocate(pot,stat=istat)
-!  call memocc(istat,iall,'pot',subname)
-  !no need of deallocating rho
-  nullify(rho,pot)
-
-  !!if(iproc==0) then
-  !!   write(*,'(1x,a)') 'Force values for all atoms in x, y, z direction.'
-  !!   do iat=1,at%nat
-  !!      write(*,'(3x,i0,1x,a6,1x,3(1x,es17.10))') &
-  !!           iat,trim(at%atomnames(at%iatype(iat))),(fxyz(j,iat),j=1,3)
-  !!   end do
-  !!end if
-
-
-!!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, hx, hy, hz,&
-!!$   comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp,&
-!!$   rhopot, psi, fxyz, fnoise)
+  !!! Put the timings here since there is a crash in the forces.
   !!call mpi_barrier(mpi_comm_world, ierr)
-  t2force=mpi_wtime()
-  timeforce=t2force-t1force
-
-
-
-  !!! Deallocate all arrays related to the linear scaling version.
-  !!!!call deallocateLinear(iproc, lin, lphi, coeff)
-  !!call deallocate_linearParameters(lin, subname)
-
-  !!call destroy_wfn_metadata(wfnmd)
-  call destroy_DFT_wavefunction(tmb)
-  call destroy_DFT_wavefunction(tmbder)
-  call deallocate_local_zone_descriptors(lzd, subname)
-
-  !call deallocateBasicArraysInput(at, input%lin)
-  call deallocateBasicArraysInput(input%lin)
-
-  deallocate(confdatarr)
-  deallocate(confdatarrder)
-  !!call deallocateBasicArrays(lin)
-
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad, stat=istat)
-  call memocc(istat, iall, 'locrad', subname)
-
-  !!iall=-product(shape(coeff_proj))*kind(coeff_proj)
-  !!deallocate(coeff_proj, stat=istat)
-  !!call memocc(istat, iall, 'coeff_proj', subname)
-
-  ! End of linear scaling part, except of the forces.
-  call timing(iproc,'WFN_OPT','PR')
-
-
-  !!!!call mpi_barrier(mpi_comm_world, ierr)
   !!t2tot=mpi_wtime()
   !!timetot=t2tot-t1tot
+  !!timeforce=0.d0
   !!if(iproc==0) write(*,'(1x,a)') '================================================'
   !!if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
   !!if(iproc==0) write(*,'(3x,a)') 'of which:'
@@ -796,6 +599,25 @@ type(orbitals_data):: orbs_tmp
   !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
   !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
   !!if(iproc==0) write(*,'(1x,a)') '================================================'
+
+
+  nullify(rho,pot)
+
+  call destroy_DFT_wavefunction(tmb)
+  call destroy_DFT_wavefunction(tmbder)
+  call deallocate_local_zone_descriptors(lzd, subname)
+  call deallocateBasicArraysInput(input%lin)
+
+  deallocate(confdatarr)
+  deallocate(confdatarrder)
+
+  iall=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad, stat=istat)
+  call memocc(istat, iall, 'locrad', subname)
+
+  call timing(iproc,'WFN_OPT','PR')
+
+
 
 end subroutine linearScaling
 
@@ -1379,57 +1201,3 @@ end subroutine mix_main
 
 
 
-subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
-use module_base
-use module_types
-use module_interfaces, except_this_one => redefine_locregs_quantities
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-real(8),intent(in):: hx, hy, hz
-type(local_zone_descriptors),intent(inout):: lzd
-type(DFT_wavefunction),intent(inout):: tmb
-type(DFT_wavefunction),intent(inout):: tmbmix
-type(DFT_local_fields),intent(inout):: denspot
-
-! Local variables
-integer:: iall, istat, tag
-type(orbitals_data):: orbs_tmp
-character(len=*),parameter:: subname='redefine_locregs_quantities'
-
-
-              if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  call nullify_orbitals_data(orbs_tmp)
-                  call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-                  call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-                       orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
-                  call deallocate_orbitals_data(orbs_tmp, subname)
-
-                  tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
-                  tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
-
-                  ! Reallocate tmbmix%psi, since it might have a new shape
-                  iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-                  deallocate(tmbmix%psi, stat=istat)
-                  call memocc(istat, iall, 'tmbmix%psi', subname)
-                  allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-                  call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-
-                  call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
-                  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              else
-                  tag=1
-                  call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
-                  call deallocate_p2pComms(tmbmix%comsr, subname)
-                  call nullify_p2pComms(tmbmix%comsr)
-                  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-                  call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
-              end if
-              call deallocate_p2pComms(tmbmix%comgp, subname)
-              call nullify_p2pComms(tmbmix%comgp)
-              call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
-                   lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
-              call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-end subroutine redefine_locregs_quantities
