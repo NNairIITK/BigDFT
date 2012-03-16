@@ -22,6 +22,7 @@ integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, i
 integer,dimension(:,:),allocatable:: iStartEnd
 character(len=*),parameter:: subname='setCommunicationPotential'
 
+call nullify_p2pComms(comgp)
 
 ! Determine the bounds of the potential that we need for
 ! the orbitals on this process.

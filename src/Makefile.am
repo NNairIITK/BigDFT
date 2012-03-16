@@ -343,7 +343,9 @@ low_level = \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
 	linear/communicatetypes.f90 \
+	linear/misc.f90 \
 	linear/getLocBasis.f90 \
+	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
