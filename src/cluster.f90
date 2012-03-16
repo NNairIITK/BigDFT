@@ -1224,19 +1224,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(denspot%pot_full,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%pot_full',subname)
 
-     !if (iproc==0) then
-     !   open(61)
-     !   write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
-     !        hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-     !end if
-
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp
-
-     !if (iproc==0) then
-     !   write(61,'(1pe19.11)')energy
-     !   close(61)
-     !end if
 
      if (iproc == 0) then
         write( *,'(1x,a,3(1x,1pe18.11))')&
