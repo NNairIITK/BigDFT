@@ -299,7 +299,7 @@ type(local_zone_descriptors):: lzd
       !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
       !!    tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-          if(infoBasisFunctions==0) then
+          if(infoBasisFunctions>0) then
               idecrease=idecrease+1
           end if
           tt=1.d0-(dble(idecrease))/dble(ndecrease)
