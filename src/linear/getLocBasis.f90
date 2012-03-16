@@ -802,18 +802,19 @@ logical,parameter:: secondLocreg=.false.
           if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
              iiorb=lorbs%isorb+iorb
              ilr = lorbs%inWhichLocreg(iiorb)
+             ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
              call choosePreconditioner2(iproc, nproc, lorbs, lzd%llr(ilr), hx, hy, hz, &
-                  tmb%wfnmd%bs%nit_precond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, &
+                  tmb%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
                   confdatarr(iorb)%prefac, it, iorb, eval_zero)
-             ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+             ind2=ind2+ncnt
          else
              iiorb=orbslarge%isorb+iorb
              ilr = orbslarge%inWhichLocreg(iiorb)
+             ncnt=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
-                  tmb%wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, locregCenter, at, confdatarr(iorb)%potorder, &
-                  confdatarr(iorb)%potorder, &
+                  tmb%wfnmd%bs%nit_precond, lhphilarge(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
                   confdatarr(iorb)%prefac, it, iorb, eval_zero)
-             ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+             ind2=ind2+ncnt
          end if
       end do
 
@@ -846,6 +847,7 @@ logical,parameter:: secondLocreg=.false.
   
       ! Determine whether the basis functions shall be further optimized using DIIS or steepest descent.
       call DIISorSD()
+      write(*,*) 'after DIISorSD'
       if(iproc==0) then
           if(ldiis%isx>0) then
               write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &

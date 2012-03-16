@@ -2148,6 +2148,10 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   call nullify_locreg_descriptors(lzd%Glr)
   call copy_locreg_descriptors(Glr, lzd%Glr, subname)
 
+  lzd%hgrids(1)=input%hx
+  lzd%hgrids(2)=input%hy
+  lzd%hgrids(3)=input%hz
+
 end subroutine init_local_zone_descriptors
 
 
@@ -2476,6 +2480,10 @@ character(len=*),parameter:: subname='create_new_locregs'
    lhphilarge=0.d0
    lhphilargeold=0.d0
    lphilargeold=0.d0
+
+   lzdlarge%hgrids(1)=hx
+   lzdlarge%hgrids(2)=hy
+   lzdlarge%hgrids(3)=hz
 
 end subroutine create_new_locregs
 

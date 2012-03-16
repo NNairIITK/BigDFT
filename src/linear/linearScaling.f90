@@ -130,6 +130,7 @@ type(local_zone_descriptors):: lzd
   allocate(confdatarrder(tmbder%orbs%norbp))
   call define_confinement_data(confdatarrder,tmbder%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,lzd,tmbder%orbs%onwhichatom)
+
   ! Now all initializations are done ######################################################################################
 
 
@@ -180,9 +181,6 @@ type(local_zone_descriptors):: lzd
   allocate(locrad(lzd%nlr), stat=istat)
   call memocc(istat, locrad, 'locrad', subname)
 
-  !!lin%lzd%hgrids(1)=hx
-  !!lin%lzd%hgrids(2)=hy
-  !!lin%lzd%hgrids(3)=hz
 
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.

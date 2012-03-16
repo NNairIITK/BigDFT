@@ -4992,6 +4992,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine local_hamiltonian3
 
+
+     subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
+                confpotorder, potentialprefac, it, iorb, eval_zero)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
+       real(gp), intent(in) :: hx,hy,hz
+       type(locreg_descriptors), intent(in) :: lr
+       type(orbitals_data), intent(in) :: orbs
+       real(8),intent(in):: potentialprefac
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
+       integer,intent(in):: it
+       real(8),intent(in):: eval_zero
+     end subroutine choosePreconditioner2
+
+
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
