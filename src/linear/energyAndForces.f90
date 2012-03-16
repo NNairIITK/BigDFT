@@ -71,6 +71,8 @@ real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
 ! Local variables
 integer:: jproc, i_stat, i_all, iat, ierr, j
 real(8):: hxh, hyh, hzh, ehart_fake
+real(gp) :: charge
+real(gp), dimension(6) :: locstrten
 real(kind=8), dimension(:), allocatable :: rho
 real(gp), dimension(:,:), allocatable :: gxyz, fxyzConf
 real(kind=8), dimension(:,:,:,:), allocatable :: pot
@@ -138,8 +140,9 @@ real(wp) :: sum_psi
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,rhopot,pot,gxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,rhopot,pot,gxyz,locstrten,charge)
   !call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+  !Note: here locstrten and charge are not used.
 
   !!i_all=-product(shape(rho))*kind(rho)
   !!deallocate(rho,stat=i_stat)
@@ -1638,6 +1641,9 @@ real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
 ! Local variables
 integer:: jproc, i_stat, i_all, iat, ierr, j
 real(8):: hxh, hyh, hzh, ehart_fake
+real(gp) :: charge
+real(gp), dimension(6) :: locstrten
+real(gp), dimension(6) :: strten
 real(gp), dimension(:,:), allocatable :: gxyz, fxyzConf
 real(kind=8), dimension(:,:,:,:), allocatable :: pot
 character(len=*),parameter:: subname='calculateForcesSub'
@@ -1702,7 +1708,8 @@ logical:: refill_proj
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,rho,pot,gxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,&
+       Glr%d%n1i,Glr%d%n2i,rho,pot,gxyz,locstrten,charge)
 
   !i_all=-product(shape(rho))*kind(rho)
   !deallocate(rho,stat=i_stat)
@@ -1718,7 +1725,8 @@ logical:: refill_proj
   refill_proj=.false.  !! IS THIS CORRECT??
 
   call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
-       orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
+       orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj,strten)
+  !Note: here strten is unused.
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
 
