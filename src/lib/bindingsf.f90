@@ -668,12 +668,12 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
   integer :: iorbtot
 
   iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
-  if (ispin == 0) iorbp = iorbp + (iorb - 1) * orbs%nspinor
-  if (ispin == 1) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
-  iorbp = iorbp + ispinor
+  if (ispin == 1) iorbp = iorbp + (iorb - 1) * orbs%nspinor
+  if (ispin == 2) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
+  iorbp = iorbp + ispinor - 1
 
   iorbtot = 0
-  do iproc = 0, size(orbs%norb_par, 1), 1
+  do iproc = 0, size(orbs%norb_par, 1) - 1, 1
      if (iorbp >= iorbtot .and. iorbp < orbs%norb_par(iproc, 0)) then
         iorbp = iorbp - iorbtot
         return

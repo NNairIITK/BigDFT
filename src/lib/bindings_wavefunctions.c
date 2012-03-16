@@ -330,7 +330,9 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
     return (double*)0;
 
   /* Get the shift to apply on wf->psi to get the right orbital. */
-  ispinor_ = (ispinor != BIGDFT_PARTIAL_DENSITY)?ispinor:BIGDFT_REAL;
+  ispinor_  = (ispinor != BIGDFT_PARTIAL_DENSITY)?ispinor:BIGDFT_REAL;
+  ispinor_ += 1;
+  ispin    += 1;
   FC_FUNC_(orbs_get_iorbp, ORBS_GET_IORBP)(wf->parent.data, &iorbp, &jproc,
                                            &ikpt, &iorb, &ispin, &ispinor_);
   if (iorbp < 0 || iproc != jproc)
