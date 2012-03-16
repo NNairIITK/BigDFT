@@ -229,7 +229,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi, ld_coeff, norb, coeff)
+     nlpspd, proj, GPU, lphi,orbs,tmb)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -239,20 +239,21 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   use Poisson_Solver
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,ld_coeff,norb
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(inout):: input
-  type(local_zone_descriptors),intent(in):: lzd
+  type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
-  real(8),dimension(ld_coeff,norb),intent(out):: coeff
+  type(orbitals_data),intent(in):: orbs
+  type(DFT_wavefunction),intent(inout):: tmb
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -276,12 +277,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp
   integer :: ldim,gdim,ierr,jlr,kk,iiorb,ndim_lhchi,ii_orbs,ii_comp
   integer :: is1,ie1,is2,ie2,is3,ie3,js1,je1,js2,je2,js3,je3,nlocregPerMPI,jproc,jlrold
-  integer:: norbTarget,norbpTemp,isorbTemp, nprocTemp, ncount
+  integer:: norbTarget,norbpTemp,isorbTemp, nprocTemp, ncount, infoCoeff
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
   real(dp),dimension(6) :: xcstr
   type(linearInputGuess):: lig
-  real(8):: ehart, eexcu, vexcu
+  real(8):: ehart, eexcu, vexcu, ebs
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -819,6 +820,7 @@ lig%lzdGauss%hgrids(3)=hz
 
 
 
+
       !!do istat=1,size(lchi)
       !!    write(1500*(iproc+1)+ii,'(2es25.14,i6,l4)') lchi(istat), lhchi(istat,ii), onWhichAtomTemp(1), lig%lzdig%doHamAppl(1)
       !!end do
@@ -841,6 +843,12 @@ lig%lzdGauss%hgrids(3)=hz
   end do
 
 
+  ! Deallocate the buffers needed for communication the potential.
+  call deallocateCommunicationsBuffersPotential(lig%comgp, subname)
+  ! Deallocate the parameters needed for the communication of the potential.
+  !call deallocate_p2pCommsGatherPot(lig%comgp, subname)
+  call deallocate_p2pComms(lig%comgp, subname)
+
   iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
   deallocate(denspot%pot_full, stat=istat)
   call memocc(istat, iall, 'denspot%pot_full', subname)
@@ -855,11 +863,6 @@ lig%lzdGauss%hgrids(3)=hz
      if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
   end if
 
-  ! Deallocate the buffers needed for communication the potential.
-  call deallocateCommunicationsBuffersPotential(lig%comgp, subname)
-  ! Deallocate the parameters needed for the communication of the potential.
-  !call deallocate_p2pCommsGatherPot(lig%comgp, subname)
-  call deallocate_p2pComms(lig%comgp, subname)
 
 
 
@@ -944,6 +947,14 @@ lig%lzdGauss%hgrids(3)=hz
   !!time=t2-t1
   !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
   !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
+
+  ! Calculate the coefficients
+  ! Calculate the coefficients
+  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+       tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
+       hx,hy,hz,input%SIC,tmb)
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
 
