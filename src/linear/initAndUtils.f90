@@ -2421,26 +2421,6 @@ character(len=*),parameter:: subname='create_new_locregs'
    call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
         orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
 
-   !!!!allocate(orbsperlocreg(lzdlarge%nlr), stat=istat)
-   !!!!call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
-   !!!!!!orbsperlocreg=0
-   !!!!!!do iorb=1,lorbs%norbp
-   !!!!!!    iiorb=lorbs%isorb+iorb
-   !!!!!!    ilr=iiorb
-   !!!!!!    orbsperlocreg(ilr)=orbsperlocreg(ilr)+1
-   !!!!!!end do
-   !!!!!!call mpiallred(orbsperlocreg(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
-   !!!!do iorb=1,lzdlarge%nlr
-   !!!!    orbsperlocreg(iorb)=1
-   !!!!end do
-   !!!!iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
-   !!!!deallocate(orbslarge%inWhichLocreg, stat=istat)
-   !!!!call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
-   !!!!call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, 0, lzdlarge%nlr, &
-   !!!!     nspin, orbsperlocreg, locregCenter, orbslarge%inwhichlocreg)
-   !!!iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
-   !!!deallocate(orbsperlocreg, stat=istat)
-   !!!call memocc(istat, iall, 'orbsperlocreg', subname)
    orbslarge%inwhichlocreg = inwhichlocreg_reference
 
    call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, Glr, locrad, 's')
