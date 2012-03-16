@@ -28,7 +28,7 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
-integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp
+integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp, idecrease, ndecrease
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
@@ -230,6 +230,9 @@ type(local_zone_descriptors):: lzd
   reduceConvergenceTolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
+  infoBasisFunctions=-1
+  idecrease=0
+  ndecrease=10
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! ot to tmbder if we use the derivatives.
@@ -277,7 +280,9 @@ type(local_zone_descriptors):: lzd
       end if
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
+      !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
+      if(.not.lowaccur_converged .and. &
+         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
@@ -291,8 +296,13 @@ type(local_zone_descriptors):: lzd
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
+      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      !!    tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-          tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
+          if(infoBasisFunctions==0) then
+              idecrease=idecrease+1
+          end if
+          tt=1.d0-(dble(idecrease))/dble(ndecrease)
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
