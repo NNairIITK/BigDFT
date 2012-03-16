@@ -7,6 +7,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
   use module_xc
+  use Poisson_Solver
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: iproc,nproc
@@ -23,15 +24,16 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   character(len=*), parameter :: subname='local_partial_densityLinear'
   integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
-  integer :: nspincomp,i3s,i3e
+  integer :: nspincomp,i3s,i3e,ii1,ii2,ii3
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
   real(8):: dnrm2
   integer, dimension(:,:), allocatable :: Lnscatterarr
-  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp
-
+  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp,jproc 
+  character(len=8) :: filename
+  character(len=3) :: numb
  !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
   if (orbs%nspinor ==4) then
@@ -61,9 +63,11 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
 
      iorb = ii + orbs%isorb
      ilr = orbs%inwhichLocreg(iorb)
-     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i
-     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i
-     
+
+     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i 
+     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
+
+
      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
      allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
      call memocc(i_stat,rho_p,'rho_p',subname)
@@ -83,6 +87,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
      spinval=orbs%spinsgn(iorb)
 
 
+
      if (hfac /= 0.d0) then
 
         !sum for complex function case, npsir=1 in that case
@@ -100,18 +105,17 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
               call partial_density_free((rsflag .and. .not. Lzd%linear),nproc,Lzd%Llr(ilr)%d%n1i,&
                    Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                    hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
-
            case('P')
 
-              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+              call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                   hfac,Lnscatterarr,spinval,psir,rho_p)
+                   hfac,nscatterarr,spinval,psir,rho_p)
 
            case('S')
 
-              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+              call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                   hfac,Lnscatterarr,spinval,psir,rho_p)
+                   hfac,nscatterarr,spinval,psir,rho_p)
 
            end select
 
@@ -119,19 +123,22 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
            indSmall=0
            do ispin=1,nspinn
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
-                   if(Lzd%Llr(ilr)%nsi3 + i3 - 1 < 0) cycle   !throwing away the extra buffer of the locreg, related to the change of boundary conditions
-                   if(Lzd%Llr(ilr)%nsi3 + i3  > Lzd%Glr%d%n3i) cycle
+                   ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
+                   if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
-                       if(Lzd%Llr(ilr)%nsi2+ i2 - 1 < 0) cycle !same
-                       if(Lzd%Llr(ilr)%nsi2 + i2  > Lzd%Glr%d%n2i) cycle
+                       ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
+                       if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
-                           if(Lzd%Llr(ilr)%nsi1+ i1 - 1 < 0) cycle ! same
-                           if(Lzd%Llr(ilr)%nsi1 + i1  > Lzd%Glr%d%n1i) cycle
+                           ii1=i1 + Lzd%Llr(ilr)%nsi1-1
+                           if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
-                           indLarge=(Lzd%Llr(ilr)%nsi3+i3-1)*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
-                               (Lzd%Llr(ilr)%nsi2+i2-1)*Lzd%Glr%d%n1i + Lzd%Llr(ilr)%nsi1+i1
+                           indLarge=ii3*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
+                               ii2*Lzd%Glr%d%n1i + ii1 + 1
                            rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                        end do
                    end do
@@ -270,9 +277,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-
-
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,&
+     comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
 !
 use module_base
 use module_types
@@ -281,13 +287,15 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb
+integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
+real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 !type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
-real(8),dimension(orbs%norb,norb),intent(in):: coeff
+!real(8),dimension(orbs%norb,norb),intent(in):: coeff
+real(8),dimension(ld_coeff,norb),intent(in):: coeff
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -298,6 +306,8 @@ integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, ind
 integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, jjorb
 integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
+integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
+integer,allocatable :: astart(:,:), aend(:,:), bstart(:,:),bend(:,:)
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
@@ -320,8 +330,10 @@ call memocc(istat, densKern, 'densKern', subname)
 ! Calculate the density kernel.
 if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
 call timing(iproc,'sumrho_TMB    ','ON')
-call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
-     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
+!!call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
+!!     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
+call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), ld_coeff, &
+     coeff(1,1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
 call timing(iproc,'sumrho_TMB    ','OF')
 if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
@@ -331,9 +343,9 @@ if(iproc==0) write(*,'(a)') 'done.'
 
 
 ! Define some constant factors.
-hxh=.5d0*input%hx
-hyh=.5d0*input%hy
-hzh=.5d0*input%hz
+hxh=.5d0*hx
+hyh=.5d0*hy
+hzh=.5d0*hz
 if(input%nspin==1) then
     factor=2.d0/(hxh*hyh*hzh)
 else
@@ -450,7 +462,7 @@ call timing(iproc,'p2pSumrho_wait','OF')
 call timing(iproc,'sumrho_TMB    ','ON')
 
 ! Bounds of the slice in global coordinates.
-is=nscatterarr(iproc,3)-14
+is=nscatterarr(iproc,3) 
 ie=is+nscatterarr(iproc,1)-1
 
 totalCharge=0.d0
@@ -462,104 +474,147 @@ do iorb=1,comsr%noverlaps(iproc)
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
         istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
-        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
-        i1s=max(2*lzd%llr(ilr)%ns1-14,2*lzd%llr(jlr)%ns1-14)
-        i1e=min(2*lzd%llr(ilr)%ns1-14+lzd%llr(ilr)%d%n1i-1,2*lzd%llr(jlr)%ns1-14+lzd%llr(jlr)%d%n1i-1)
-        i2s=max(2*lzd%llr(ilr)%ns2-14,2*lzd%llr(jlr)%ns2-14)
-        i2e=min(2*lzd%llr(ilr)%ns2-14+lzd%llr(ilr)%d%n2i-1,2*lzd%llr(jlr)%ns2-14+lzd%llr(jlr)%d%n2i-1)
-        i3s=max(2*lzd%llr(ilr)%ns3-14,2*lzd%llr(jlr)%ns3-14,is)
-        i3e=min(2*lzd%llr(ilr)%ns3-14+lzd%llr(ilr)%d%n3i-1,2*lzd%llr(jlr)%ns3-14+lzd%llr(jlr)%d%n3i-1,ie)
-        factorTimesDensKern = factor*densKern(iiorb,jjorb)
-        ! Now loop over all points in the box in which the orbitals overlap.
-        do i3=i3s,i3e !bounds in z direction
-            !!i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
-            !!j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
-            i3d=i3-max(is,2*lzd%llr(ilr)%ns3-14)+1 !z coordinate of orbital iorb with respect to the overlap box
-            j3d=i3-max(is,2*lzd%llr(jlr)%ns3-14)+1 !z coordinate of orbital jorb with respect to the overlap box
-            indi3=(i3d-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
-            indj3=(j3d-1)*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
-            indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-            do i2=i2s,i2e !bounds in y direction
-                i2d=i2-2*lzd%llr(ilr)%ns2 !y coordinate of orbital iorb with respect to the overlap box
-                j2d=i2-2*lzd%llr(jlr)%ns2 !y coordinate of orbital jorb with respect to the overlap box
-                indi2=(i2d+15-1)*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
-                indj2=(j2d+15-1)*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
-                indl2=(i2+15-1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                !!!! This is the old version.
-                !!do i1=i1s,i1e
-                !!    i1d=i1-2*lin%lzd%llr(ilr)%ns1
-                !!    j1d=i1-2*lin%lzd%llr(jlr)%ns1
-                !!    ! Now calculate the index in the boxes.
-                !!    indri = indi3 + indi2 + i1d+15 + istri
-                !!    indrj = indj3 + indj2 + j1d+15 + istrj
-                !!    indLarge = indl3 + indl2 + i1+15
-                !!    tt = factor*densKern(iiorb,jjorb)*lin%comsr%recvBuf(indri)*lin%comsr%recvBuf(indrj)
-                !!    rho(indLarge) = rho(indLarge) + tt
-                !!    totalCharge = totalCharge + tt
-                !!end do
-                ! #####################################################################
-                ! This is the new version.
-                m=mod(i1e-i1s+1,4)
-                if(m/=0) then
-                    ! The following five variables hold some intermediate results to speed up the code.
-                    i1d0=-2*lzd%llr(ilr)%ns1 
-                    j1d0=-2*lzd%llr(jlr)%ns1
-                    indri0 = indi3 + indi2 + 15 + istri
-                    indrj0 = indj3 + indj2 + 15 + istrj
-                    indLarge0 = indl3 + indl2 + 15
-                    do i1=i1s,i1s+m-1
-                        i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
-                        j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box
-                        indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
-                        indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
-                        indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
-                        tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
-                        rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
-                        totalCharge = totalCharge + tt !add the contribution to the total charge
-                    end do
-                end if
-                ! This is the same again, this time with unrolled loops.
-                if(i1e-i1s+1>4) then
-                    i1d0=-2*lzd%llr(ilr)%ns1
-                    j1d0=-2*lzd%llr(jlr)%ns1
-                    indri0 = indi3 + indi2 + 15 + istri
-                    indrj0 = indj3 + indj2 + 15 + istrj
-                    indLarge0 = indl3 + indl2 + 15
-                    do i1=i1s+m,i1e,4
-                        i1d=i1d0+i1
-                        j1d=j1d0+i1
-                        indri = indri0 + i1d
-                        indrj = indrj0 + j1d
-                        indLarge = indLarge0 + i1
-                        tt0 = factorTimesDensKern*comsr%recvBuf(indri  )*comsr%recvBuf(indrj  )
-                        tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
-                        tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
-                        tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
-                        rho(indLarge  ) = rho(indLarge  ) + tt0
-                        rho(indLarge+1) = rho(indLarge+1) + tt1
-                        rho(indLarge+2) = rho(indLarge+2) + tt2
-                        rho(indLarge+3) = rho(indLarge+3) + tt3
-                        totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
-                    end do
-                end if
-            end do
+
+        azones = 1
+        bzones = 1
+        !Calculate the number of regions to cut alr and blr
+        do ii=1,2
+           if(lzd%llr(ilr)%outofzone(ii) > 0) azones = azones * 2
+           if(lzd%llr(jlr)%outofzone(ii) > 0) bzones = bzones * 2
         end do
+      
+        !allocate astart and aend
+        allocate(astart(3,azones),stat=istat)
+        call memocc(istat,astart,'astart',subname)
+        allocate(aend(3,azones),stat=istat)
+        call memocc(istat,aend,'aend',subname)
+       
+        !FRACTURE THE FIRST LOCALIZATION REGION
+        call fracture_periodic_zone_ISF(azones,lzd%Glr,lzd%Llr(ilr),lzd%Llr(ilr)%outofzone(:),astart,aend)
+       
+        !allocate bstart and bend
+        allocate(bstart(3,bzones),stat=istat)
+        call memocc(istat,bstart,'bstart',subname)
+        allocate(bend(3,bzones),stat=istat)
+        call memocc(istat,bend,'bend',subname)
+       
+        !FRACTURE SECOND LOCREG
+        call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
+
+        do izones=1,azones
+           do jzones=1,bzones
+              ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
+              i1s=max(astart(1,izones),bstart(1,jzones))
+              i1e=min(aend(1,izones)-1,bend(1,jzones)-1)
+              i2s=max(astart(2,izones),bstart(2,jzones))
+              i2e=min(aend(2,izones)-1,bend(2,jzones)-1)
+              i3s=max(comsr%startingindex(iorb,1),comsr%startingindex(jorb,1))
+              i3e=min(comsr%startingindex(iorb,2),comsr%startingindex(jorb,2))
+              call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
+              call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
+              factorTimesDensKern = factor*densKern(iiorb,jjorb)
+              ! Now loop over all points in the box in which the orbitals overlap.
+              do i3=i3s,i3e !bounds in z direction
+                  i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
+                  j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box
+                  indi3=i3d*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
+                  indj3=j3d*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
+                  indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  if(i3 < 0 .and. Lzd%Glr%geocode /='F') indl3=(i3-is+lzd%Glr%d%n3i)*lzd%Glr%d%n2i*lzd%Glr%d%n1i
+                  if(i3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') indl3 = (modulo(i3+1,Lzd%Glr%d%n3i+1)-is)&
+                                                                               *lzd%Glr%d%n2i*lzd%Glr%d%n1i         
+                  do i2=i2s,i2e !bounds in y direction
+                      i2d=i2 + ishift2 !y coordinate of orbital iorb with respect to the overlap box
+                      j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
+                      indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
+                      indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
+                      indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      if(i2 < 0 .and. Lzd%Glr%geocode =='P') indl2=(i2+lzd%Glr%d%n3i)*lzd%Glr%d%n1i
+                      if(i2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') indl2=modulo(i2+1,Lzd%Glr%d%n2i+1)*lzd%Glr%d%n1i
+                      m=mod(i1e-i1s+1,4)
+                      if(m/=0) then
+                          ! The following five variables hold some intermediate results to speed up the code.
+                          i1d0= ishift1 
+                          j1d0= jshift1
+                          indri0 = indi3 + indi2 + istri + 1
+                          indrj0 = indj3 + indj2 + istrj + 1
+                          indLarge0 = indl3 + indl2 + 1 
+                          do i1=i1s,i1s+m-1
+                              i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
+                              j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box
+                              indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
+                              indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
+                              indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
+                              if(i1 < 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 + lzd%Glr%d%n1i
+                              if(i1+1 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+1,Lzd%Glr%d%n1i+1)
+                              tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
+                              rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
+                              totalCharge = totalCharge + tt !add the contribution to the total charge
+                          end do
+                      end if
+                      ! This is the same again, this time with unrolled loops.
+                      if(i1e-i1s+1>4) then
+                          i1d0= ishift1 
+                          j1d0= jshift1
+                          indri0 = indi3 + indi2 + istri + 1
+                          indrj0 = indj3 + indj2 + istrj + 1
+                          indLarge0 = indl3 + indl2 + 1
+                          do i1=i1s+m,i1e,4
+                              i1d=i1d0+i1
+                              j1d=j1d0+i1
+                              indri = indri0 + i1d
+                              indrj = indrj0 + j1d
+                              indLarge = indLarge0 + i1
+                              tt0 = factorTimesDensKern*comsr%recvBuf(indri  )*comsr%recvBuf(indrj  )
+                              tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
+                              tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
+                              tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
+                              if(i1 < 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 + lzd%Glr%d%n1i
+                              if(i1+1 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+1,Lzd%Glr%d%n1i+1)
+                              rho(indLarge  ) = rho(indLarge  ) + tt0
+                              if(i1+1 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+2 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+2,Lzd%Glr%d%n1i+1)
+                              rho(indLarge+1) = rho(indLarge+1) + tt1
+                              if(i1+2 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+3 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+3,Lzd%Glr%d%n1i+1)
+                              rho(indLarge+2) = rho(indLarge+2) + tt2
+                              if(i1+3 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+4 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+4,Lzd%Glr%d%n1i+1)
+                              rho(indLarge+3) = rho(indLarge+3) + tt3
+                              totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
+                          end do
+                      end if
+                  end do
+              end do
+          end do !jzones
+       end do !izones
+       iall=-product(shape(astart))*kind(astart)
+       deallocate(astart, stat=istat)
+       call memocc(istat, iall, 'astart', subname)
+       iall=-product(shape(bstart))*kind(bstart)
+       deallocate(bstart, stat=istat)
+       call memocc(istat, iall, 'bstart', subname)
+       iall=-product(shape(aend))*kind(aend)
+       deallocate(aend, stat=istat)
+       call memocc(istat, iall, 'aend', subname)
+       iall=-product(shape(bend))*kind(bend)
+       deallocate(bend, stat=istat)
+       call memocc(istat, iall, 'bend', subname)
     end do
 end do
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
-!if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
+
 iall=-product(shape(densKern))*kind(densKern)
 deallocate(densKern, stat=istat)
 call memocc(istat, iall, 'densKern', subname)
-
 
 end subroutine sumrhoForLocalizedBasis2
 
@@ -1349,3 +1404,101 @@ end subroutine setCommunicationInformation2
 !!  nscatterarr(iproc,4)=i3xcsh
 !!
 !!end subroutine setNscatterarr
+
+
+
+subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
+real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
+real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
+
+! Local variables
+integer:: jproc, nreceives, nsends, iorb, mpisource, istsource, ncount, lrsource, mpidest, istdest, tag, ierr
+integer:: ist, istr, ilr
+
+
+! Communicate the orbitals for the calculation of the charge density.
+! Since we use non blocking point to point communication, only post the message
+! and continues with other calculations.
+! Be aware that you must not modify the send buffer without checking whether
+! the communications has completed.
+if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
+nreceives=0
+nsends=0
+comsr%communComplete=.false.
+procLoop1: do jproc=0,nproc-1
+    orbsLoop1: do iorb=1,comsr%noverlaps(jproc)
+        mpisource=comsr%comarr(1,iorb,jproc)
+        istsource=comsr%comarr(2,iorb,jproc)
+        ncount=comsr%comarr(3,iorb,jproc)
+        lrsource=comsr%comarr(4,iorb,jproc)
+        mpidest=comsr%comarr(5,iorb,jproc)
+        istdest=comsr%comarr(6,iorb,jproc)
+        tag=comsr%comarr(7,iorb,jproc)
+        if(ncount==0) then
+            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+            ! with 0 elements should be removed from comgp%noverlaps etc.
+            comsr%comarr(8,iorb,jproc)=mpi_request_null
+            comsr%comarr(9,iorb,jproc)=mpi_request_null
+            comsr%communComplete(iorb,jproc)=.true.
+            if(iproc==mpidest) then
+                ! This is just to make the check at the end happy.
+                nreceives=nreceives+1
+            end if
+        else
+            if(mpisource/=mpidest) then
+                ! The orbitals are on different processes, so we need a point to point communication.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comsr%comarr(8,iorb,jproc), ierr)
+                    call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                         comsr%comarr(8,iorb,jproc), ierr)
+                    comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
+                    nsends=nsends+1
+                else if(iproc==mpidest) then
+                   !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, &
+                   !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                    call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                         comsr%comarr(9,iorb,jproc), ierr)
+                    comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+                    nreceives=nreceives+1
+                else
+                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+                end if
+            else
+                ! The orbitals are on the same process, so simply copy them.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
+                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    nsends=nsends+1
+                    nreceives=nreceives+1
+                    comsr%communComplete(iorb,mpisource)=.true.
+                else
+                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    comsr%communComplete(iorb,mpisource)=.true.
+                end if
+            end if
+        end if
+    end do orbsLoop1
+end do procLoop1
+if(iproc==0) write(*,'(a)') 'done.'
+
+if(nreceives/=comsr%noverlaps(iproc)) then
+    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comsr%noverlaps(iproc)', nreceives,&
+         comsr%noverlaps(iproc)
+    stop
+end if
+call mpi_barrier(mpi_comm_world, ierr)
+
+end subroutine postCommunicationSumrho2

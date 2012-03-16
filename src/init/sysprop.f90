@@ -9,11 +9,10 @@
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+     orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
-  use Poisson_Solver
   use module_xc
   use vdwcorrection
   implicit none
@@ -21,8 +20,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  integer, intent(out) :: inputpsi !<strategy for wavefunction input guess
-  integer, intent(out) :: input_wf_format !< format of input wavefunctions
   type(orbitals_data), intent(out) :: orbs
   type(local_zone_descriptors), intent(out) :: Lzd
   type(DFT_local_fields), intent(out) :: denspot
@@ -33,58 +30,25 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
-  logical :: onefile
-  integer :: nelec,ndegree_ip
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
 
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
-
-  !character string for quieting the Poisson solver
-
+  ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
-
-  call initialize_DFT_local_fields(denspot)
 
   if (iproc==0) then
      write( *,'(1x,a)')&
           &   '------------------------------------------------------------------ System Properties'
   end if
-
-  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
-
-  inputpsi=in%inputPsiId
-
-  input_wf_format=WF_FORMAT_NONE !default value
-
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
+  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+  if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
   !initial values
   hgrids(1)=in%hx
   hgrids(2)=in%hy
-  hgrids(3)=in%hz
-  
+  hgrids(3)=in%hz  
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -95,42 +59,37 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
-  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16 !default value 
-  call createKernel(iproc,nproc,atoms%geocode,&
-       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       ndegree_ip,denspot%pkernel,(verbose > 1))
-
-  !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
-       .and. nproc > 1) then
-     call createKernel(0,1,atoms%geocode,&
-          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-          ndegree_ip,denspot%pkernelseq,.false.)
-  else 
-     denspot%pkernelseq => denspot%pkernel
-  end if
+  call initialize_DFT_local_fields(denspot)
+  ! Create the Poisson solver kernels.
+  call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
+       & Lzd%Glr%d, hgrids, in, denspot)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
+  ! Create orbs data structure.
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  if (iproc == 0) then
+     nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
+     nMB=nB/1024/1024
+     nKB=(nB-nMB*1024*1024)/1024
+     nB=modulo(nB,1024)
+     write(*,'(1x,a,3(i5,a))') &
+       'Wavefunctions memory occupation for root MPI process: ',&
+       nMB,' MB ',nKB,' KB ',nB,' B'
+  end if
+  ! Done orbs
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+
   ! See if linear scaling should be activated and build the correct Lzd 
-  ! There is a copy of this inside the LCAO input guess because the norbs changes
-  ! and so the inwhichlocreg also ==> different distribution for the locregs
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LCAO_GAUSS) then
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-  else
-     Lzd%nlr = 1
-     Lzd%linear = .false.
-  end if
+  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -146,20 +105,54 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
 
   !allocate the arrays.
-  call allocateRhoPot(iproc,nproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot)
-
-  call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
-
-  !check the communication distribution
-  call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,denspot)
 
   !calculate the irreductible zone for this region, if necessary.
-  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
+  call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode, &
+       & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
+
+  !check the communication distribution
+  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
+      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  else
+      ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
+      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+  end if
 
   !---end of system definition routine
 end subroutine system_initialization
 
+subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, denspot)
+  use module_types
+  use module_xc
+  use Poisson_Solver
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  logical, intent(in) :: verb
+  character, intent(in) :: geocode
+  type(grid_dimensions), intent(in) :: d
+  real(gp), intent(in) :: hgrids(3)
+  type(input_variables), intent(in) :: in
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  integer, parameter :: ndegree_ip = 16
+
+  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
+  call createKernel(iproc,nproc,geocode,&
+       d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       ndegree_ip,denspot%pkernel,verb)
+
+  !create the sequential kernel if the exctX parallelisation scheme requires it
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+       .and. nproc > 1) then
+     call createKernel(0,1,geocode,&
+          d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          ndegree_ip,denspot%pkernelseq,.false.)
+  else 
+     denspot%pkernelseq => denspot%pkernel
+  end if
+END SUBROUTINE system_createKernels
 
 !>  Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
@@ -176,7 +169,9 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
 
-  call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
+  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+!!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
+  if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 END SUBROUTINE system_properties
 
@@ -214,17 +209,18 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,1+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,4+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d,rhocore(1,1,1,1))
+     call to_zero(d%n1i*d%n2i*n3d*4,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
 !!$        filename = 'nlcc.'//at%atomnames(ityp)
 !!$        inquire(file=filename,exist=exists)
 !!$        if (exists) then
-        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or. at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
+        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
+             at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
            if (iproc == 0) write(*,'(1x,a)',advance='no')&
                 'NLCC: calculate core density for atom: '//&
                 trim(at%atomnames(ityp))//';'
@@ -236,7 +232,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,i3s,n3d,rhocore)
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
            if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
@@ -244,19 +240,33 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      !calculate total core charge in the grid
      !In general this should be really bad
+
+!!$     do j3=1,n3d
+!!$        tt=0.0_wp
+!!$        do i2=1,d%n2i
+!!$           do i1=1,d%n1i
+!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+!!$              tt=tt+rhocore(i1,i2,j3,1)
+!!$           enddo
+!!$        enddo
+!!$        write(17+iproc,*)j3+i3s-1,tt
+!!$     enddo
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$stop
      tt=0.0_wp
      do j3=1,n3p
         do i2=1,d%n2i
            do i1=1,d%n1i
               !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(i1,i2,j3+i3xcsh-1,1)
+              tt=tt+rhocore(i1,i2,j3+i3xcsh,1)
            enddo
         enddo
      enddo
+
      call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+       'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 
@@ -320,7 +330,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      end if
      filename ='nlcc.'//atoms%atomnames(ityp)
      call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
-          & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
+          atoms%nlcc_ngc(ityp), nlcc_dim, exists)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
@@ -344,7 +354,6 @@ subroutine init_atomic_values(verb, atoms, ixc)
      nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
      nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
   end if
-
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
   allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
@@ -472,18 +481,25 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      !associate the number of gaussians
      open(unit=79,file=filename,status='unknown')
      read(79,*)ngv
-     if (ngv==0) ngv=UNINITIALIZED(1)
-     dim=dim+(ngv*(ngv+1)/2)
-     do ig=1,(ngv*(ngv+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngv==0) then 
+        ngv=UNINITIALIZED(1)
+     else
+        dim=dim+(ngv*(ngv+1)/2)
+        do ig=1,(ngv*(ngv+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      read(79,*)ngc
-     if (ngc==0) ngc=UNINITIALIZED(1)
-     dim=dim+(ngc*(ngc+1))/2
-     !better to read values in a fake array
-     do ig=1,(ngc*(ngc+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngc==0) then
+        ngc=UNINITIALIZED(1)
+     else
+        dim=dim+(ngc*(ngc+1))/2
+
+        !better to read values in a fake array
+        do ig=1,(ngc*(ngc+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      !no need to go further for the moment
      close(unit=79)
   else
@@ -492,17 +508,18 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
   end if
 end subroutine nlcc_dim_from_file
 
-subroutine read_radii_variables(atoms, radii_cf)
+subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
 
   integer, parameter :: nelecmax=32,nmax=6,lmax=4
   character(len=2) :: symbol
   integer :: i,ityp,mxpl,mxchg,nsccode
-  real(gp) :: rcov,rprb,ehomo,radfine,amu
+  real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   ! Update radii_cf and occupation.
@@ -525,6 +542,20 @@ subroutine read_radii_variables(atoms, radii_cf)
      else
         radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
      end if
+
+     ! Correct radii_cf(:,3) for the projectors.
+     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+     do i=1,4
+        !the maximum radii is useful only for projectors
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+     if (maxrad == 0.0_gp) then
+        radii_cf(ityp,3)=0.0_gp
+     else
+        radii_cf(ityp,3)=max(min(crmult*radii_cf(ityp,1),projrad*maxrad)/frmult,radii_cf(ityp,2))
+     end if
   enddo
 END SUBROUTINE read_radii_variables
 
@@ -536,7 +567,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   logical, intent(in) :: verb
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec
   type(orbitals_data), intent(inout) :: orbs
   !local variables
@@ -545,12 +576,10 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
-  integer :: nt,ntu,ntd,ityp,ierror,ispinsum,i_stat
+  integer :: nt,ntu,ntd,ityp,ierror,ispinsum
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  type(linearParameters) :: lin
-  character(len=20),dimension(atoms%ntypes):: atomNames
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -784,207 +813,43 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   end do
 end subroutine read_orbital_variables
 
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
-subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
+subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
   use module_types
   use module_xc
   use m_ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
-  type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+  integer, intent(in) :: nspin
   !local variables
-  character(len=*), parameter :: subname='read_system_variables'
+  character(len=*), parameter :: subname='read_atomic_variables'
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   character(len=2) :: symbol
-  character(len=24) :: message
-  character(len=50) :: format
-  integer :: i,j,k,l,ityp,iat,ierror,mxpl
-  integer :: mxchg,nsccode,i_stat
-  real(gp) :: rcov,rprb,ehomo,minrad,maxrad
-  real(gp), dimension(3,3) :: hij
-  real(gp), dimension(2,2,3) :: offdiagarr
-  !integer, dimension(nmax,0:lmax-1) :: neleconf
+  integer :: ityp,iat,ierror,mxpl
+  integer :: mxchg,nsccode
+  real(gp) :: rcov,rprb,ehomo
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
-  character(len=500) :: name_xc1, name_xc2
-
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
-  end if
-  call read_radii_variables(atoms, radii_cf)
-
-  ! in case of linear scaling, allocate the localization radii
-  if(in%linear == 'LIG') then
-     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
-     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
-  end if
-
+  
   do ityp=1,atoms%ntypes
-     !control the hardest and the softest gaussian
-     minrad=1.e10_gp
-     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-     do i=0,4
-        !the maximum radii is useful only for projectors
-        if (i==1) maxrad=0.0_gp
-        if (atoms%psppar(i,0,ityp)/=0._gp) then
-           minrad=min(minrad,atoms%psppar(i,0,ityp))
-           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
-        end if
-     end do
-     !control whether the grid spacing is too high
-     if (max(in%hx,in%hy,in%hz) > 2.5_gp*minrad .and. iproc == 0) then
-        write(*,'(1x,a)')&
-             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-        write(*,'(1x,a,f5.2,a)')&
-             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-             '. At your own risk!'
-     end if
-     !correct the coarse radius for projectors
-     !it is always multiplied by frmult
-     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
-     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
-     !     and not for the gaussian decaying of the pseudopotential projector
-     !     add a proper variable in input.perf
-     if (maxrad == 0.0_gp) then
-        radii_cf(ityp,3)=0.0_gp
-     else
-        radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
-     end if
-
-     if (iproc==0) then
-        if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-           message='         X              '
-        else
-           message='                   X ' 
-        end if
-        write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
-             trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
-             radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
-     end if
-
      ! We calculate atoms%aocc and atoms%amu here.
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
-     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+     call atomic_occupation_numbers(fileocc,ityp,nspin,atoms,nmax,lmax,nelecmax,&
           neleconf,nsccode,mxpl,mxchg)
 
      !define the localization radius for the Linear input guess
-     if(in%linear == 'LIG') then
-        atoms%rloc(ityp,:) = rcov * 10.0
-     end if
-
+     atoms%rloc(ityp,:) = rcov * 10.0
   end do
   !print *,'iatsctype',atOMS%iasctype(:)
-
-  !print the pseudopotential matrices
-  if (iproc == 0) then
-     do l=1,3
-        do i=1,2
-           do j=i+1,3
-              offdiagarr(i,j-i,l)=0._gp
-              if (l==1) then
-                 if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(3._gp/5._gp)
-                    if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(5._gp/21._gp)
-                 else
-                    offdiagarr(i,j-i,l)=-0.5_gp*sqrt(100._gp/63._gp)
-                 end if
-              else if (l==2) then
-                 if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(5._gp/7._gp)
-                    if (j==3)   offdiagarr(i,j-i,l)=1._gp/6._gp*sqrt(35._gp/11._gp)
-                 else
-                    offdiagarr(i,j-i,l)=-7._gp/3._gp*sqrt(1._gp/11._gp)
-                 end if
-              else if (l==3) then
-                 if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(7._gp/9._gp)
-                    if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(63._gp/143._gp)
-                 else
-                    offdiagarr(i,j-i,l)=-9._gp*sqrt(1._gp/143._gp)
-                 end if
-              end if
-           end do
-        end do
-     end do
-
-     write(*,'(1x,a)')&
-          '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
-     do ityp=1,atoms%ntypes
-        write(*,'(1x,a)')&
-             'Atom Name    rloc      C1        C2        C3        C4  '
-        do l=0,4
-           if (l==0) then
-              do i=4,0,-1
-                 j=i
-                 if (atoms%psppar(l,i,ityp) /= 0._gp) exit
-              end do
-              write(*,'(3x,a6,5(1x,f9.5))')&
-                   trim(atoms%atomnames(ityp)),(atoms%psppar(l,i,ityp),i=0,j)
-           else
-              do i=3,0,-1
-                 j=i
-                 if (atoms%psppar(l,i,ityp) /= 0._gp) exit
-              end do
-              if (j /=0) then
-                 write(*,'(1x,a,i0,a)')&
-                      '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
-                 hij=0._gp
-                 do i=1,j
-                    hij(i,i)=atoms%psppar(l,i,ityp)
-                 end do
-                 if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
-                    hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
-                    hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
-                    hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-                 else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
-                    hij(1,2)=atoms%psppar(l,4,ityp)
-                    hij(1,3)=atoms%psppar(l,5,ityp)
-                    hij(2,3)=atoms%psppar(l,6,ityp)
-                 end if
-                 do i=1,j
-                    if (i==1) then
-                       write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
-                       write(*,format)atoms%psppar(l,0,ityp),(hij(i,k),k=i,j)
-                    else
-                       write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
-                       write(*,format)(hij(i,k),k=i,j)
-                    end if
-
-                 end do
-              end if
-           end if
-        end do
-        !control if the PSP is calculated with the same XC value
-        if (atoms%ixcpsp(ityp) < 0) then
-           call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
-        else
-           call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_ABINIT)
-        end if
-        if (in%ixc < 0) then
-           call xc_get_name(name_xc2, in%ixc, XC_MIXED)
-        else
-           call xc_get_name(name_xc2, in%ixc, XC_ABINIT)
-        end if
-        if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
-           write(*,'(1x,a)')&
-                'WARNING: The pseudopotential file psppar."'//trim(atoms%atomnames(ityp))//'"'
-           write(*,'(1x,a,i0,a,i0)')&
-                '         contains a PSP generated with an XC id=',&
-                atoms%ixcpsp(ityp),' while for this run ixc=',in%ixc
-        end if
-     end do
-  end if
+  atoms%natsc = 0
+  do iat=1,atoms%nat
+     if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
+  enddo
 
   ! We modify the symmetry object with respect to the spin.
   if (atoms%sym%symObj >= 0) then
-     if (in%nspin == 2) then
+     if (nspin == 2) then
         call symmetry_set_collinear_spin(atoms%sym%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
@@ -992,26 +857,172 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
 !!$             & atoms%natpol, ierror)
      end if
   end if
+end subroutine read_atomic_variables
 
-  atoms%natsc = 0
-  do iat=1,atoms%nat
-     if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
-  enddo
+!>   Assign some of the physical system variables
+!!   Performs also some cross-checks with other variables
+!!   The pointer in atoms structure have to be associated or nullified.
+subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
+  use module_base
+  use module_types
+  use module_xc
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), intent(in) :: hmax
+  integer, intent(in) :: ixc
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  !local variables
+  character(len=*), parameter :: subname='print_atomic_variables'
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  character(len=24) :: message
+  character(len=50) :: format
+  integer :: i,j,k,l,ityp
+  real(gp) :: minrad
+  real(gp), dimension(3,3) :: hij
+  real(gp), dimension(2,2,3) :: offdiagarr
+  character(len=500) :: name_xc1, name_xc2
+
+  write(*,'(1x,a)')&
+       ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
+
+  do ityp=1,atoms%ntypes
+     !control the hardest gaussian
+     minrad=1.e10_gp
+     do i=0,4
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+     !control whether the grid spacing is too high
+     if (hmax > 2.5_gp*minrad) then
+        write(*,'(1x,a)')&
+             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+        write(*,'(1x,a,f5.2,a)')&
+             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
+             '. At your own risk!'
+     end if
+
+     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+        message='         X              '
+     else
+        message='                   X ' 
+     end if
+     write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
+          trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
+          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
+  end do
+  !print *,'iatsctype',atOMS%iasctype(:)
+
+  !print the pseudopotential matrices
+  do l=1,3
+     do i=1,2
+        do j=i+1,3
+           offdiagarr(i,j-i,l)=0._gp
+           if (l==1) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(3._gp/5._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(5._gp/21._gp)
+              else
+                 offdiagarr(i,j-i,l)=-0.5_gp*sqrt(100._gp/63._gp)
+              end if
+           else if (l==2) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(5._gp/7._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=1._gp/6._gp*sqrt(35._gp/11._gp)
+              else
+                 offdiagarr(i,j-i,l)=-7._gp/3._gp*sqrt(1._gp/11._gp)
+              end if
+           else if (l==3) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(7._gp/9._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(63._gp/143._gp)
+              else
+                 offdiagarr(i,j-i,l)=-9._gp*sqrt(1._gp/143._gp)
+              end if
+           end if
+        end do
+     end do
+  end do
+
+  write(*,'(1x,a)')&
+       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+  do ityp=1,atoms%ntypes
+     write(*,'(1x,a)')&
+          'Atom Name    rloc      C1        C2        C3        C4  '
+     do l=0,4
+        if (l==0) then
+           do i=4,0,-1
+              j=i
+              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+           end do
+           write(*,'(3x,a6,5(1x,f9.5))')&
+                trim(atoms%atomnames(ityp)),(atoms%psppar(l,i,ityp),i=0,j)
+        else
+           do i=3,0,-1
+              j=i
+              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+           end do
+           if (j /=0) then
+              write(*,'(1x,a,i0,a)')&
+                   '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+              hij=0._gp
+              do i=1,j
+                 hij(i,i)=atoms%psppar(l,i,ityp)
+              end do
+              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+                 hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
+                 hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
+                 hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
+              else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
+                 hij(1,2)=atoms%psppar(l,4,ityp)
+                 hij(1,3)=atoms%psppar(l,5,ityp)
+                 hij(2,3)=atoms%psppar(l,6,ityp)
+              end if
+              do i=1,j
+                 if (i==1) then
+                    write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
+                    write(*,format)atoms%psppar(l,0,ityp),(hij(i,k),k=i,j)
+                 else
+                    write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
+                    write(*,format)(hij(i,k),k=i,j)
+                 end if
+
+              end do
+           end if
+        end if
+     end do
+     !control if the PSP is calculated with the same XC value
+     if (atoms%ixcpsp(ityp) < 0) then
+        call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
+     else
+        call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_ABINIT)
+     end if
+     if (ixc < 0) then
+        call xc_get_name(name_xc2, ixc, XC_MIXED)
+     else
+        call xc_get_name(name_xc2, ixc, XC_ABINIT)
+     end if
+     if (trim(name_xc1) /= trim(name_xc2)) then
+        write(*,'(1x,a)')&
+             'WARNING: The pseudopotential file psppar."'//trim(atoms%atomnames(ityp))//'"'
+        write(*,'(1x,a,i0,a,i0)')&
+             '         contains a PSP generated with an XC id=',&
+             atoms%ixcpsp(ityp),' while for this run ixc=',ixc
+     end if
+  end do
 
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
-!!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+!!!  !if (verb.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 
   ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
   !  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
   !     lin%nlr=atoms%nat
   !     call allocateBasicArrays(atoms, lin)
-  !     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
+  !     call readLinearParameters(verb, nproc, lin, atoms, atomNames)
   !  end if
-
-
-END SUBROUTINE read_atomic_variables
+END SUBROUTINE print_atomic_variables
 
 !>find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -1359,7 +1370,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! allocate inwhichlocreg
   allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg (any orbital is sit on the same function)
+  ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)
@@ -1521,6 +1532,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
 
 
+
   !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
   !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
   !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
@@ -1538,6 +1550,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
   ! Modify these values
   call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
+
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
@@ -1614,6 +1627,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   end do
   call MPI_Initialized(mpiflag,ierr)
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+
   
 
 END SUBROUTINE orbitals_descriptors_forLinear

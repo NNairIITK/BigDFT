@@ -343,6 +343,19 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
+  !add to the forces the ionic and dispersion contribution 
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     do iat=1,atoms%nat
+        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+     enddo
+  else
+     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
+  end if
+  !clean the center mass shift and the torque in isolated directions
+  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
   strtens(1:3,1)=strtens(1:3,1)+charge*psoffset&
@@ -387,18 +400,6 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
 !!$  endif
 
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
-  end if
-  !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
   if (atoms%sym%symObj >= 0) call symmetrize_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
@@ -902,11 +903,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              do m=1,2*l-1
                                 call wpdot_wrap(ncplx,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keygloc,psi(ispsi),&
+                                     wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
@@ -975,11 +976,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                 iproj=iproj+1
                                 call wpdot_wrap(ncplx,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keygloc,psi(ispsi),  &
+                                     wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx

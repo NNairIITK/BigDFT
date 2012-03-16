@@ -1,7 +1,7 @@
 !> @file
 !!  Test of convolutions
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group 
+!!    Copyright (C) 2008-2012 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -364,7 +364,7 @@ program conv_check_cuda
            !**************************************************wavelet transformations
            if (modulo(n1,2) == 0) then
 
-              write(*,'(a,i6,i6)')'CPU Analisys, dimensions:',n1,ndat
+              write(*,'(a,i6,i6)')'CPU Analysis, dimensions:',n1,ndat
 
               !take timings
               !call system_clock(it0,count_rate,count_max)

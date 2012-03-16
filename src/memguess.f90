@@ -426,7 +426,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in,hx,hy,hz,Lzd,atoms,orbstst,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
@@ -1307,7 +1307,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       pery=(at%geocode == 'P')
       perz=(at%geocode /= 'F')
 
-      !buffers realted to periodicity
+      !buffers related to periodicity
       !WARNING: the boundary conditions are not assumed to change between new and old
       call ext_buffers_coarse(perx,nb1)
       call ext_buffers_coarse(pery,nb2)

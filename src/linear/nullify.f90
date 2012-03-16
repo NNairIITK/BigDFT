@@ -9,7 +9,7 @@ subroutine nullify_linearParameters(lin)
 
   nullify(lin%potentialPrefac)
   nullify(lin%locrad)
-  nullify(lin%lphiRestart)
+  !nullify(lin%lphiRestart)
   !nullify(lin%lphiold)
   !nullify(lin%lhphiold)
   !nullify(lin%hamold)
@@ -27,7 +27,6 @@ subroutine nullify_linearParameters(lin)
   !call nullify_p2pCommsOrthonormality(lin%comon)
   call nullify_p2pComms(lin%comon)
   call nullify_overlapParameters(lin%op)
-  call nullify_linearInputGuess(lin%lig)
   call nullify_matrixDescriptors(lin%mad)
 
 end subroutine nullify_linearParameters
@@ -128,7 +127,8 @@ subroutine nullify_largeBasis(lb)
   call nullify_communications_arrays(lb%gcomms)
   call nullify_orbitals_data(lb%orbs)
   call nullify_orbitals_data(lb%gorbs)
-  call nullify_p2pCommsRepartition(lb%comrp)
+  !call nullify_p2pCommsRepartition(lb%comrp)
+  call nullify_p2pComms(lb%comrp)
   !call nullify_p2pCommsOrthonormality(lb%comon)
   call nullify_p2pComms(lb%comon)
   call nullify_overlapParameters(lb%op)
@@ -138,19 +138,20 @@ subroutine nullify_largeBasis(lb)
 end subroutine nullify_largeBasis
 
 
-subroutine nullify_p2pCommsRepartition(comrp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
-  implicit none
-
-  ! Calling arguments
-  type(p2pCommsRepartition),intent(out):: comrp
-
-  nullify(comrp%comarr)
-  nullify(comrp%communComplete)
-
-end subroutine nullify_p2pCommsRepartition
+!!!subroutine nullify_p2pCommsRepartition(comrp)
+!!!  use module_base
+!!!  use module_types
+!!!  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  type(p2pCommsRepartition),intent(out):: comrp
+!!!
+!!!  nullify(comrp%comarr)
+!!!  nullify(comrp%communComplete)
+!!!  nullify(comrp%requests)
+!!!
+!!!end subroutine nullify_p2pCommsRepartition
 
 
 !!subroutine nullify_p2pCommsOrthonormality(comon)
@@ -183,29 +184,30 @@ subroutine nullify_overlapParameters(op)
   type(overlapParameters),intent(out):: op
 
   nullify(op%noverlaps)
-  nullify(op%indexExpand)
-  nullify(op%indexExtract)
+!  nullify(op%indexExpand)
+!  nullify(op%indexExtract)
   nullify(op%overlaps)
   nullify(op%indexInRecvBuf)
   nullify(op%indexInSendBuf)
-  nullify(op%olr)
-  nullify(op%expseg)
+  !nullify(op%olr)
+  nullify(op%wfd_overlap)
+!  nullify(op%expseg)
 
 end subroutine nullify_overlapParameters
 
 
-subroutine nullify_expansionSegments(expseg)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_expansionSegments
-  implicit none
-
-  ! Calling argument
-  type(expansionSegments),intent(out):: expseg
-
-  nullify(expseg%segborders)
-
-end subroutine nullify_expansionSegments
+!!subroutine nullify_expansionSegments(expseg)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_expansionSegments
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(expansionSegments),intent(out):: expseg
+!!
+!!  nullify(expseg%segborders)
+!!
+!!end subroutine nullify_expansionSegments
 
 
 
@@ -260,17 +262,14 @@ subroutine nullify_local_zone_descriptors(lzd)
 
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
-  
-  !call nullify_orbitals_data(lzd%orbs)
-  !nullify(lzd%lorbs)
-  !call nullify_communications_arrays(lzd%comms)
+ 
+  nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
-!  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
-!  nullify(lzd%lnlpspd)
   nullify(lzd%doHamAppl)
-  !call nullify_matrixMinimization(lzd%matmin)
-  
+  !!nullify(lzd%cutoffweight) 
+  !!nullify(lzd%cutoffweight)
+ 
 end subroutine nullify_local_zone_descriptors
 
 
@@ -350,7 +349,8 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   !if(associated(wfd%keyg)) then
      nullify(wfd%keygloc)
      nullify(wfd%keyglob)
-     nullify(wfd%keyv)
+     nullify(wfd%keyvloc)
+     nullify(wfd%keyvglob)
   !end if
 end subroutine nullify_wavefunctions_descriptors
 

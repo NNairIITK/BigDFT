@@ -210,7 +210,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
-AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@
 
 if USE_MPI
 mpi_source =
@@ -251,11 +251,13 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/private_api.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
+	modules/yaml_output.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \
@@ -282,7 +284,8 @@ high_level = cluster.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
 	esatto.f90 \
-	tddft.f90
+	tddft.f90 \
+	output.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -317,7 +320,12 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
-	lib/bindings.c \
+	lib/bindings_api.h \
+	lib/bindings.c lib/bindings.h \
+	lib/bindings_atoms.c \
+	lib/bindings_regions.c \
+	lib/bindings_wavefunctions.c \
+	lib/bindings_localfields.c \
 	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
@@ -333,9 +341,10 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
-	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
+	linear/communicatetypes.f90 \
 	linear/getLocBasis.f90 \
+	linear/convolutions.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
@@ -345,7 +354,6 @@ low_level = \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
-	linear/convolutions.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
@@ -358,6 +366,8 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg.f90 \
+	linear/unitaryTrans.f90 \
+	linear/communicatePotential.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -366,6 +376,8 @@ low_level = \
 # C objects
 c_level = posfiles.c \
 	$(CUDA_SOURCES)
+
+#	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
 
 libdft_common_a_SOURCES = \
 	utils.c

@@ -66,12 +66,6 @@
  ------------------------------------ Pseudopotential coefficients (Upper Triangular)
  Atom Name    rloc      C1        C2        C3        C4  
         H   0.20000  -4.06633   0.67783
- Total Number of Electrons        1
- Spin-polarized calculation
- Processes from 0 to 0 treat 1 orbitals 
- Processes from 1 to 1 treat 0 orbitals 
- Total Number of Orbitals         1
- occup(1)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  7.00000E+00  7.00000E+00  7.00000E+00       16.000    16.000    16.000
     Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4375  0.4375  0.4375
@@ -88,6 +82,12 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        757 points=     15659
    Fine resolution grid: Number of segments=         21 points=        81
+ Total Number of Electrons        1
+ Spin-polarized calculation
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 1 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 1.0000
  Wavefunctions memory occupation for root processor (Bytes): 129808
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors

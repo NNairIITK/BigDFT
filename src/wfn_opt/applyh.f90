@@ -472,6 +472,10 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
 
+
+  !write(*,*) 'present(confdata)', present(confdata)
+  !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
+  !write(*,*) 'n1ip*n2ip*n3ip', n1ip*n2ip*n3ip
   epot=0.0_wp
 
   !loop on wavefunction
@@ -642,6 +646,10 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
+                 !!if(i1>n1ip) stop 'i1>n1ip'
+                 !!if(i2>n2ip) stop 'i2>n2ip'
+                 !!if(i3>n3ip) stop 'i3>n3ip'
+                 !write(200,*) pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1), cp(i1,i2,i3)
                  pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
 !print *,'cp',i1,i2,i3,cp(i1,i2,i3)
                  tt11=pot1*psir1
@@ -1197,6 +1205,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
+  real(wp), dimension(:,:), allocatable :: cproj_i
+  integer :: proj_count, i_proj
+ 
+  integer count1,count2,count_rate,count_max
+  real*8 :: tela
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -1227,33 +1240,90 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
   !calculate the scalar product with all the projectors of the atom
   call to_zero(4*7*3*4,cproj(1,1,1,1))
-  !index for performing the calculation with all the projectors
-  istart_c_i=istart_c
-  !loop over all the channels (from s to f)
+  
+  proj_count = 0
+  !count over all the channels
   do l=1,4
      !loop over all the projectors of the channel
      do i=1,3
         !loop over all the components of the projector
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
            do m=1,2*l-1
-              !loop over all the components of the wavefunction
-              do ispinor=1,orbs%nspinor,ncplx
-                 call wpdot_wrap(ncplx,  &
-                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyglob,&
-                      psi(1,ispinor), &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
-                      proj(istart_c_i),&
-                      cproj(ispinor,m,i,l))
-                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
-              end do
-              istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+              proj_count=proj_count+1
            end do
         end if
      end do
   end do
+
+  !Use special subroutines for these number of projectors
+  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
+      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
+      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+
+    allocate(cproj_i(proj_count,ncplx))
+
+    !loop over all the components of the wavefunction
+    do ispinor=1,orbs%nspinor,ncplx
+                 call wpdot_wrap1(ncplx,  &
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                      wfd%keyvglob,wfd%keyglob,&
+                      psi(1,ispinor), &
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
+                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+                      proj(istart_c),&
+                      cproj_i,proj_count)
+
+      i_proj=1
+      do l=1,4
+       !loop over all the projectors of the channel
+       do i=1,3
+        !loop over all the components of the projector
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           do m=1,2*l-1
+             do icplx=1,ncplx
+              cproj(ispinor+icplx-1,m,i,l) = cproj_i(i_proj,icplx)
+             enddo
+              i_proj=i_proj+1
+           end do
+        end if
+       end do
+      end do
+
+    end do
+
+    deallocate(cproj_i)
+
+  else  ! use standart subroutine for projector application
+
+    !index for performing the calculation with all the projectors
+    istart_c_i=istart_c
+    !loop over all the channels (from s to f)
+    do l=1,4
+       !loop over all the projectors of the channel
+       do i=1,3
+          !loop over all the components of the projector
+          if (at%psppar(l,i,ityp) /= 0.0_gp) then
+             do m=1,2*l-1
+              !loop over all the components of the wavefunction
+                do ispinor=1,orbs%nspinor,ncplx
+                   call wpdot_wrap(ncplx,  &
+                        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                        wfd%keyvglob,wfd%keyglob,&
+                        psi(1,ispinor), &
+                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                        plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
+                        plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+                        proj(istart_c_i),&
+                        cproj(ispinor,m,i,l))
+                end do
+                istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+             end do
+          end if
+       end do
+    end do
+
+  endif
 
   !apply the matrix of the coefficients on the cproj array
   call to_zero(4*7*3*4,dproj(1,1,1,1))
@@ -1290,11 +1360,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
                  call waxpy_wrap(ncplx,dproj(ispinor,m,i,l),&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyglob,&
+                      wfd%keyvglob,wfd%keyglob,&
                       hpsi(1,ispinor))
               end do
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx

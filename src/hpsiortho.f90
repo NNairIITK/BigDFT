@@ -12,7 +12,7 @@
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
      nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
-     ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+     energs,rpnrm,xcstr,hpsi)
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
@@ -30,13 +30,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   type(ab6_mixing_object), intent(in) :: mix
   type(DFT_local_fields), intent(inout) :: denspot
   type(SIC_data), intent(in) :: SIC
+  type(energy_terms), intent(inout) :: energs
   character(len=*), intent(in) :: exctxpar
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,rpnrm
+  real(gp), intent(out) :: rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   !local variables
@@ -101,11 +102,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !$ end if
 
         !nonlocal hamiltonian
-        !$ if (verbose > 2 .and. iproc==0)&
+        !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-             proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+             proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
      end if
      !$OMP END PARALLEL
      !finalize the communication scheme
@@ -152,15 +153,15 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Lzd%Glr%d%n1i,&
              Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,denspot%dpcom%n3d,ixc,hxh,hyh,hzh,&
-             denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+             denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
         call XC_potential(atoms%geocode,'D',iproc,nproc,&
              Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-             denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+             denspot%rhov,energs%exc,energs%evxc,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
         denspot%rhov_is=CHARGE_DENSITY
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
-             denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,0.0_dp,.true.,&
+             denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
         denspot%rhov_is=HARTREE_POTENTIAL
 
@@ -198,7 +199,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   end if
 
   !temporary, to be corrected with comms structure
-  if (exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+  if (exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
 
   !initialize nested approach 
   !this has always to be done for using OMP parallelization in the 
@@ -231,11 +232,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ end if
 
      !nonlocal hamiltonian
-     !$ if (verbose > 2 .and. iproc==0)&
+     !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+          proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
   end if
   !$OMP END PARALLEL
   !finalize the communication scheme
@@ -246,10 +247,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
 
   call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
        Lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-       ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel=denspot%pkernelseq)
+       energs%ekin,energs%epot,energs%eexctX,energs%evsic,SIC,GPU,pkernel=denspot%pkernelseq)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
-       ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_full,subname)
@@ -258,7 +259,7 @@ end subroutine psitohpsi
 
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,evsic,SIC,GPU,&
      pkernel,orbsocc,psirocc)
   use module_base
   use module_types
@@ -278,28 +279,35 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(lzd%ndimpotisf) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,evsic
   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
 
+  integer:: i
+
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
+
+  !write(*,*) 'lzd%ndimpotisf', lzd%ndimpotisf
+  !do i=1,lzd%ndimpotisf
+  !    write(210,*) pot(i)
+  !end do
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU)
  else if (present(pkernel) .and. .not. present(orbsocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel=pkernel)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel=pkernel)
  else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
  else
     stop 'HamiltonianApplication, argument error'
  end if
@@ -308,7 +316,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
-       ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+       ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
 
 END SUBROUTINE FullHamiltonianApplication
 
@@ -317,7 +325,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
    use module_base
    use module_types
    use module_xc
@@ -334,7 +342,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
    !real(wp), dimension(:), pointer :: pot
    real(wp), dimension(*) :: pot
-   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
+   real(gp), intent(out) :: ekin_sum,epot_sum,evsic
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
    real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -345,7 +353,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
    integer :: i_stat,n3p,ispot,ipotmethod,iorb
-   real(gp) :: eSIC_DC_tmp
+   real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
 
 
@@ -366,8 +374,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !initialise exact exchange energy 
    op2p=(eexctX == UNINITIALIZED(1.0_gp))
    eexctX=0.0_gp
-   eSIC_DC=0.0_gp
-   eSIC_DC_tmp=0.0_gp
+   evsic=0.0_gp
+   evsic_tmp=0.0_gp
 
    exctX = xc_exctXfac() /= 0.0_gp
 
@@ -427,10 +435,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    else if (ipotmethod==3) then
       !put fref=1/2 for the moment
       if (present(orbsocc) .and. present(psirocc)) then
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp,&
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),evsic_tmp,&
               potandrho=psirocc)
       else
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp)
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),evsic_tmp)
       end if
    end if
 
@@ -466,9 +474,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
       call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-           SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
+           SIC%ixc,SIC%alpha,ekin_sum,epot_sum,evsic)
       !sum the external and the BS double counting terms
-      eSIC_DC=eSIC_DC-SIC%alpha*eSIC_DC_tmp
+      evsic=evsic-SIC%alpha*evsic_tmp
    end if
 
    if (ipotmethod == 2 .or. ipotmethod==3) then
@@ -531,7 +539,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
          !do something only if at least one of the orbitals lives in the ilr
          dosome=.false.
          do iorb=isorb,ieorb
-            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+            !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
             if (dosome) exit
          end do
          if (.not. dosome) cycle loop_lr
@@ -645,7 +654,7 @@ END SUBROUTINE NonLocalHamiltonianApplication
 
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
-subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
    use module_base
    use module_types
    use module_xc
@@ -654,7 +663,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
    type(orbitals_data),  intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(GPU_pointers), intent(inout) :: GPU
-   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
+   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
    real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
@@ -684,14 +693,14 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
       wrkallred(1)=ekin_sum 
       wrkallred(2)=epot_sum 
       wrkallred(3)=eproj_sum
-      wrkallred(4)=eSIC_DC
+      wrkallred(4)=evsic
 
       call mpiallred(wrkallred(1),4,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       ekin_sum=wrkallred(1)
       epot_sum=wrkallred(2)
       eproj_sum=wrkallred(3) 
-      eSIC_DC=wrkallred(4) 
+      evsic=wrkallred(4) 
    endif
 
    !up to this point, the value of the potential energy is 
@@ -760,6 +769,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
       else
          npot=dpcom%ndimgrid*orbs%nspin
       end if
+      !write(*,*) 'dpcom%ndimgrid, orbs%norbp, npot, odp', dpcom%ndimgrid, orbs%norbp, npot, odp
 
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region
@@ -976,19 +986,34 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+!> Calculate total energies from the energy terms
+subroutine total_energies(energs)
+  use module_types
+  implicit none
+  type(energy_terms), intent(inout) :: energs
+  
+  !band structure energy calculated with occupation numbers
+  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+  !this is the Kohn-Sham energy
+  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
+       energs%eexctX-energs%evsic+energs%eion+energs%edisp
+  
+end subroutine total_energies
+
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+     energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
+  real(gp), intent(in) :: hx,hy,hz
+  type(energy_terms), intent(inout) :: energs
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -999,11 +1024,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
   integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
-  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS,scpr
+  real(gp) :: rzeroorbs,tt,scpr
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
-  !band structure energy calculated with occupation numbers
-  energybs=ekin+epot+eproj !the potential energy contains also exctX
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
 !!$  eTS=0.0_gp
@@ -1016,8 +1039,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 !!$  energy=energy-eTS
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-  !this is the Kohn-Sham energy
-  energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
+  call total_energies(energs)
+!!$  !band structure energy calculated with occupation numbers
+!!$  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+!!$  !this is the Kohn-Sham energy
+!!$  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
   !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
@@ -1049,7 +1075,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
+  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,energs%trH) !n(m)
 
   !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
@@ -1057,15 +1083,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
   if (iscf >1) then
-     energy=trH
+     energy=energs%trH
   else
-     energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
+     energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
   !this can be done only if the occupation numbers are all equal
-  tt=(energybs-trH)/trH
+  tt=(energs%ebs-energs%trH)/energs%trH
 !print *,'tt,energybs,trH',tt,energybs,trH
   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
        &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
@@ -1073,7 +1099,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
      call check_closed_shell(orbs,lcs)
      if (lcs) then
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-             &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+             &   'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
   endif
 
@@ -1153,7 +1179,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 
   !write the energy information
   if (iproc == 0) then
-     call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+     call write_energies(iter,iscf,energs,gnrm,gnrm_zero,' ')
 !!$   if (verbose > 0 .and. iscf<1) then
 !!$      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
 !!$      ekin,epot,eproj
@@ -1175,66 +1201,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 endif
 
 END SUBROUTINE calculate_energy_and_gradient
-
-
-subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,comment)
-  use module_base
-  implicit none
-  integer, intent(in) :: iter,iscf
-  real(gp), intent(in) :: ekin,epot,eproj,ehart,exc,evxc,energyKS,trH
-  real(gp), intent(in) :: gnrm,gnrm_zero
-  character(len=*), intent(in) :: comment
-  !local variables
-  character(len=1) :: lastsep
-
-  if(len(trim(comment))==0) then
-     lastsep=','
-  else
-     lastsep=' '
-  end if
-
-  if (iscf<1) then
-     if (verbose >0) then
-        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin,epot,eproj
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
-     end if
-     !yaml output
-!     write(70,'(3(1x,a,1pe18.11,a))') 'ekin: ',ekin,',','epot: ',epot,',','eproj: ',eproj,','
-!     write(70,'(3(a,1pe18.11))',advance='no') '  eha: ',ehart,',   exc: ',exc,',  evxc: ',evxc
-!     if (gnrm > 0.0_gp) write(70,'(a)')',' !something else will be written
-  end if
-  if (iscf > 1) then
-     if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
-        !yaml output
-!       write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'tr(H): ',trH,&
-!             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     else if (gnrm > 0.0_gp) then
-        write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
-        !yaml output
-!       write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'tr(H): ',trH,&
-!             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
-!             trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     end if
-  else
-     if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
-        write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energyKS,gnrm
-        !yaml output
-!       write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'total energy: ',energyKS,&
-!             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     else if (gnrm > 0.0_gp) then
-        write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),&
-             'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
-        !yaml output
-!       write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'total energy: ',energyKS,&
-!             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
-!             trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     end if
-  end if
-
-end subroutine write_energies
-
 
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
@@ -1479,7 +1445,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    integer :: i_all,i_stat
    real(wp), dimension(:,:,:), pointer :: mom_vec
 
-
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
    else
@@ -1530,10 +1495,9 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
    !print the found eigenvalues
    if (iproc == 0) then
-if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
+      if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
       call write_eigenvalues_data(nproc,orbs,mom_vec)
-if (orbs%nspinor /= 4) deallocate(mom_vec)
-
+      if (orbs%nspinor /= 4) deallocate(mom_vec)
    end if
 
    if (orbs%nspinor ==4) then
@@ -1544,175 +1508,6 @@ if (orbs%nspinor /= 4) deallocate(mom_vec)
 
 
 END SUBROUTINE last_orthon
-
-!> Write the eigenvalues-related information
-subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: nproc
-  type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(:,:,:), pointer :: mom_vec
-  !local variables
-  logical :: dowrite
-  integer :: ikptw,iorb,ikpt,jorb,isorb,md
-  real(gp) :: spinsignw,mx,my,mz,mpol
-  
-  write(*,'(1x,a)')&
-       &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-  ! Calculate and print the magnetisation
-  if (orbs%nspin == 2) then
-     mpol = 0._gp
-     do ikpt=1,orbs%nkpts
-        isorb = (ikpt - 1) * orbs%norb
-        do iorb = 1, orbs%norbu
-           mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-        end do
-        do iorb = orbs%norbu + 1, orbs%norb, 1
-           mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-        end do
-     end do
-!    write(70,"(A,f9.6)")repeat(' ',yaml_indent)//"Total magnetisation: ", mpol
-     write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
-  end if
-  if (orbs%nspinor ==4) then
-     write(*,'(1x,a)')&
-          &   '           Eigenvalue                                      m_x       m_y       m_z'
-  end if
-
-! write(70,'(a)')repeat(' ',yaml_indent)//'Orbitals: ['
-  do ikpt=1,orbs%nkpts
-     if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
-        write(*,"(1x,A,I4.4,A,3F12.6)") &
-             &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
-!       write(70,"(1x,A,I4.4,A,3F12.6)") &
-!             &   "# Kpt No.", ikpt-1, " BZ coord. = ", orbs%kpts(:, ikpt)
-
-        ikptw=ikpt
-     else
-        ikptw=UNINITIALIZED(1)
-     end if
-     isorb = (ikpt - 1) * orbs%norb
-     if (orbs%nspin==1.or.orbs%nspinor==4) then
-        spinsignw=UNINITIALIZED(1.0_gp)
-        do iorb=1,orbs%norb
-           dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4 .and. associated(mom_vec)) then
-              mx=(mom_vec(2,iorb,1)/mom_vec(1,iorb,1))
-              my=(mom_vec(3,iorb,1)/mom_vec(1,iorb,1))
-              mz=(mom_vec(4,iorb,1)/mom_vec(1,iorb,1))
-              if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,16x,(1x,3(0pf10.5)))') &
-                   'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                   (mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-           else
-              mx=UNINITIALIZED(1.0_gp)
-              my=UNINITIALIZED(1.0_gp)
-              mz=UNINITIALIZED(1.0_gp)
-              if (dowrite) then 
-                 write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
-              end if
-           end if
-           call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                spinsignw,ikptw,mx,my,mz)
-           !yaml output (carriage return)
-           if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
-!             write(70,'(a)')']'
-           else
-!             write(70,'(a)')','
-           end if
-
-        end do
-     else
-        mx=UNINITIALIZED(1.0_gp)
-        my=UNINITIALIZED(1.0_gp)
-        mz=UNINITIALIZED(1.0_gp)
-        
-        do iorb=1,min(orbs%norbu,orbs%norbd)
-           jorb=orbs%norbu+iorb
-           dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
-           if (dowrite) & 
-                write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,6x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') &
-                &   'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb + iorb),&
-                orbs%occup(isorb + jorb),'e(',iorb,',d)=',orbs%eval(isorb + jorb)
-           call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                1.0_gp,ikptw,mx,my,mz)
-!          write(70,'(a)',advance='no')', '
-           call write_orbital_data(orbs%eval(isorb + jorb),orbs%occup(isorb+jorb),&
-                -1.0_gp,ikptw,mx,my,mz)
-           !yaml output (carriage return)
-           if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
-!             write(70,'(a)')']'
-           else
-!             write(70,'(a)')','
-           end if
-
-        end do
-        if (orbs%norbu > orbs%norbd) then
-           do iorb=orbs%norbd+1,orbs%norbu
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
-              if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
-              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                   1.0_gp,ikptw,mx,my,mz)
-              !yaml output (carriage return)
-              if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
-!                write(70,'(a)')']'
-              else
-!                write(70,'(a)')','
-              end if
-           end do
-        else if (orbs%norbd > orbs%norbu) then
-           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
-              if (dowrite) & 
-                   write(*,'(46x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') orbs%occup(isorb + iorb),&
-                   &   'e(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
-!             write(70,'(a)',advance='no')repeat(' ',46)
-              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                   -1.0_gp,ikptw,mx,my,mz)
-              !yaml output (carriage return)
-              if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
-!                write(70,'(a)')']'
-              else
-!                write(70,'(a)')','
-              end if
-           end do
-        end if
-     end if
-  end do
-end subroutine write_eigenvalues_data
-
-!> Write orbital information with NO advance
-subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
-  use module_base
-  implicit none
-  integer, intent(in) :: ikpt !< k-point id 
-  real(gp), intent(in) :: eval !< orbital energy
-  real(gp), intent(in) :: occup !< orbital occupation number
-  real(gp), intent(in) :: spinsign !< orbital spin (collinear and averaged)
-  real(gp), intent(in) :: mx,my,mz !< spin magnetisation directions
-  !local variables
-
-  !the energy value is the only one which is compulsory
-! write(70,'(a,1pe21.14)',advance='no')'{ e: ',eval
-
-  !genearlly always defined
-  if (occup /= UNINITIALIZED(occup)) then 
-!    write(70,'(a,f6.4)',advance='no')', occ: ',occup
-  end if
-  if (spinsign /= UNINITIALIZED(spinsign)) then
-!    write(70,'(a,i2)',advance='no')', s: ',int(spinsign)
-  end if
-  if (ikpt /= UNINITIALIZED(ikpt)) then
-!    write(70,'(a,i5)',advance='no')', kpt: ',ikpt-1
-  end if
-  if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) then
-!    write(70,'(3(a,f8.5),a)',advance='no')', M: [',mx,', ',my,', ',mz,']'
-  end if
-! write(70,'(a)',advance='no')' }'
- 
-end subroutine write_orbital_data
 
 
 !> Finds the fermi level ef for an error function distribution with a width wf
@@ -2090,6 +1885,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    call memocc(i_stat,psi,'psi',subname)
    allocate(pwork(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,pwork,'pwork',subname)
+
 
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
