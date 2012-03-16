@@ -127,15 +127,13 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
 
 end subroutine denspot_communications
 
-subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
+subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
   use module_interfaces, except_this_one => allocateRhoPot
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nspin
   type(locreg_descriptors), intent(in) :: Glr
-  real(gp), intent(in) :: hxh, hyh, hzh
-  type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
@@ -155,10 +153,10 @@ subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
   end if
   !Allocate XC potential
   if (denspot%dpcom%n3p >0) then
-     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3p,in%nspin+ndebug),stat=i_stat)
+     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3p,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_XC,'V_XC',subname)
   else
-     allocate(denspot%V_XC(1,1,1,in%nspin+ndebug),stat=i_stat)
+     allocate(denspot%V_XC(1,1,1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_XC,'V_XC',subname)
   end if
 
@@ -173,7 +171,8 @@ subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpcom%i3s,denspot%dpcom%i3xcsh,denspot%dpcom%n3d
-  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh, &
+  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,&
+       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
        denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
   

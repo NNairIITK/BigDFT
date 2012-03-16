@@ -482,6 +482,7 @@ module module_types
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
      integer :: Lnprojel                       !< Total number of projector elements
+     real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
      real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
      logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
@@ -489,22 +490,6 @@ module module_types
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
     !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
-
-!>  Used to restart a new DFT calculation or to save information 
-!!  for post-treatment
-  type, public :: restart_objects
-     integer :: n1,n2,n3
-     real(gp) :: hx_old,hy_old,hz_old
-     real(wp), dimension(:), pointer :: psi 
-     real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
-!     type(locreg_descriptors) :: Glr
-     type(local_zone_descriptors) :: Lzd
-     type(gaussian_basis) :: gbd
-     type(orbitals_data) :: orbs
-     type(GPU_pointers) :: GPU
-  end type restart_objects
-
 
 !> Contains the work arrays needed for expressing wavefunction in real space
 !!  with all the BC
@@ -862,7 +847,7 @@ end type workarrays_quartic_convolutions
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
-     !temoprary arrays
+     !temporary arrays
      real(wp), dimension(:), pointer :: rho_full,pot_full !<full grid arrays
      !metadata
      integer :: rhov_is
@@ -870,7 +855,7 @@ end type workarrays_quartic_convolutions
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpcom !< parallel distribution of density and potential
      character(len=3) :: PSquiet
-     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid
+     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
@@ -887,15 +872,20 @@ end type workarrays_quartic_convolutions
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
-     type(gaussian_basis) :: gbd !<gaussian basis description, if active
-     type(local_zone_descriptors) :: Lzd !< data on the localisation regions
+     type(gaussian_basis) :: gbd !<gaussian basis description, if associated
+     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
 
      !data properties
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communications_arrays) :: comms
+     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
+     type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
+     type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
+     character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
      type(p2pComms):: comon !<describing p2p communications for orthonormality
      type(overlapParameters):: op !<describing the overlaps
@@ -904,6 +894,23 @@ end type workarrays_quartic_convolutions
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
   end type DFT_wavefunction
+
+  !>  Used to restart a new DFT calculation or to save information 
+  !!  for post-treatment
+  type, public :: restart_objects
+     integer :: n1,n2,n3
+     real(gp) :: hx_old,hy_old,hz_old
+     !real(wp), dimension(:), pointer :: psi 
+     !real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
+     type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
+     !type(locreg_descriptors) :: Glr
+     !type(local_zone_descriptors), target :: Lzd
+     !type(gaussian_basis), target :: gbd
+     !type(orbitals_data) :: orbs
+     type(GPU_pointers) :: GPU 
+  end type restart_objects
+
 
 contains
 
@@ -1009,11 +1016,6 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-!    if (associated(orbs%inwhichlocregP)) then
-!       i_all=-product(shape(orbs%inwhichlocregP))*kind(orbs%inwhichlocregP)
-!       deallocate(orbs%inwhichlocregP,stat=i_stat)
-!       call memocc(i_stat,i_all,'orbs%inwhichlocregP',subname)
-!    end if
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
@@ -1048,23 +1050,22 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    nullify(rst%psi)
-    nullify(rst%orbs%eval)
+    nullify(rst%KSwfn%psi)
+    nullify(rst%KSwfn%orbs%eval)
 
-    nullify(rst%gaucoeffs)
+    nullify(rst%KSwfn%gaucoeffs)
 
-    nullify(rst%Lzd%Glr%wfd%keyglob)
-    nullify(rst%Lzd%Glr%wfd%keygloc)
-!    nullify(rst%Lzd%Glr%wfd%keyv)
-    nullify(rst%Lzd%Glr%wfd%keyvloc)
-    nullify(rst%Lzd%Glr%wfd%keyvglob)
-
-    nullify(rst%gbd%nshell)
-    nullify(rst%gbd%ndoc)
-    nullify(rst%gbd%nam)
-    nullify(rst%gbd%xp)
-    nullify(rst%gbd%psiat)
-    nullify(rst%gbd%rxyz)
+    nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
+    nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
+    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)
+    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvglob)
+                
+    nullify(rst%KSwfn%gbd%nshell)
+    nullify(rst%KSwfn%gbd%ndoc)
+    nullify(rst%KSwfn%gbd%nam)
+    nullify(rst%KSwfn%gbd%xp)
+    nullify(rst%KSwfn%gbd%psiat)
+    nullify(rst%KSwfn%gbd%rxyz)
 
     !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,iacceleration,rst%GPU)
@@ -1081,18 +1082,17 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    !call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
-    call deallocate_locreg_descriptors(rst%Lzd%Glr,subname)
+    call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 
-    if (associated(rst%psi)) then
-       i_all=-product(shape(rst%psi))*kind(rst%psi)
-       deallocate(rst%psi,stat=i_stat)
+    if (associated(rst%KSwfn%psi)) then
+       i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
+       deallocate(rst%KSwfn%psi,stat=i_stat)
        call memocc(i_stat,i_all,'psi',subname)
     end if
 
-    if (associated(rst%orbs%eval)) then
-       i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-       deallocate(rst%orbs%eval,stat=i_stat)
+    if (associated(rst%KSwfn%orbs%eval)) then
+       i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
+       deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
        call memocc(i_stat,i_all,'eval',subname)
     end if
 
@@ -1110,14 +1110,14 @@ END SUBROUTINE deallocate_orbs
 
     !The gaussian basis descriptors are always allocated together
     !with the gaussian coefficients
-    if (associated(rst%gbd%rxyz)) then
-       nullify(rst%gbd%rxyz)
-       call deallocate_gwf(rst%gbd,subname)
+    if (associated(rst%KSwfn%gbd%rxyz)) then
+       nullify(rst%KSwfn%gbd%rxyz)
+       call deallocate_gwf(rst%KSwfn%gbd,subname)
     end if
 
-    if (associated(rst%gaucoeffs)) then
-       i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
-       deallocate(rst%gaucoeffs,stat=i_stat)
+    if (associated(rst%KSwfn%gaucoeffs)) then
+       i_all=-product(shape(rst%KSwfn%gaucoeffs))*kind(rst%KSwfn%gaucoeffs)
+       deallocate(rst%KSwfn%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
     end if
 
@@ -1140,8 +1140,6 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
     allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
- !!   allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
- !!   call memocc(i_stat,wfd%keyv,'keyv',subname)
     allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
     allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
@@ -1178,11 +1176,6 @@ END SUBROUTINE deallocate_orbs
           nullify(wfd%keygloc)
        end if
     end if
-!    if (associated(wfd%keyv)) then
-!       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-!       deallocate(wfd%keyv,stat=i_stat)
-!       call memocc(i_stat,i_all,'wfd%keyv',subname)
-!    end if
     if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
        i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
        deallocate(wfd%keyvloc,stat=i_stat)

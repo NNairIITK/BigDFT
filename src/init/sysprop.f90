@@ -9,7 +9,7 @@
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+     orbs,Lzd,denspot,nlpspd,comms,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -25,7 +25,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   type(communications_arrays), intent(out) :: comms
-  real(gp), dimension(3), intent(out) :: hgrids !< grid spacings of the daubechies grid
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
@@ -46,13 +45,14 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call nullify_locreg_descriptors(Lzd%Glr)
 
   !initial values
-  hgrids(1)=in%hx
-  hgrids(2)=in%hy
-  hgrids(3)=in%hz  
+  Lzd%hgrids(1)=in%hx
+  Lzd%hgrids(2)=in%hy
+  Lzd%hgrids(3)=in%hz  
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),&
+  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,&
+       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
        Lzd%Glr,shift)
 
   ! A message about dispersion forces.
@@ -60,12 +60,17 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
   call initialize_DFT_local_fields(denspot)
+
+  !grid spacings of the DFT_local fields
+  denspot%hgrids(1)=0.5_gp*Lzd%hgrids(1)
+  denspot%hgrids(2)=0.5_gp*Lzd%hgrids(2)
+  denspot%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
-       & Lzd%Glr%d, hgrids, in, denspot)
+  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-  call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
+  call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
   ! Create orbs data structure.
@@ -73,6 +78,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+
   if (iproc == 0) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
      nMB=nB/1024/1024
@@ -86,10 +92,10 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
 
   ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -99,14 +105,14 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
 
+  
   !calculate the descriptors for rho and the potentials.
   call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-       0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
        in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
 
   !allocate the arrays.
-  call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,denspot)
+  call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
 
   !calculate the irreductible zone for this region, if necessary.
   call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode, &
@@ -123,7 +129,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, denspot)
+subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
@@ -132,7 +138,6 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, dens
   logical, intent(in) :: verb
   character, intent(in) :: geocode
   type(grid_dimensions), intent(in) :: d
-  real(gp), intent(in) :: hgrids(3)
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
@@ -140,14 +145,14 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, dens
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   call createKernel(iproc,nproc,geocode,&
-       d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
        ndegree_ip,denspot%pkernel,verb)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      call createKernel(0,1,geocode,&
-          d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
           ndegree_ip,denspot%pkernelseq,.false.)
   else 
      denspot%pkernelseq => denspot%pkernel

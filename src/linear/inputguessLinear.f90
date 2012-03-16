@@ -48,6 +48,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
   allocate(norbsPerLocreg(lzd%nlr), stat=istat)
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
 
+  lig%lzdig%hgrids(:)=lzd%hgrids(:)
+  lig%lzdgauss%hgrids(:)=lzd%hgrids(:)
+
   ! Number of localization regions
   !!lig%lzdig%nlr=at%nat
   !!lig%lzdGauss%nlr=at%nat
@@ -460,11 +463,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Assign the size of the orbitals to the new variable lpsidimtot.
   !lig%lzdig%lpsidimtot=lig%orbsig%npsidim
   !lig%lzdGauss%lpsidimtot=lig%orbsGauss%npsidim
-
+lig%lzdGauss%hgrids(1)=hx
+lig%lzdGauss%hgrids(2)=hy
+lig%lzdGauss%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
   lchi2=0.d0
-  call gaussians_to_wavelets_new(iproc, nproc, lig%lzdGauss, lig%orbsGauss, hx, hy, hz, G, &
-       psigau(1,1,min(lig%orbsGauss%isorb+1, lig%orbsGauss%norb)), lchi2)
+  call gaussians_to_wavelets_new(iproc,nproc,lig%lzdGauss,lig%orbsGauss,G,&
+       psigau(1,1,min(lig%orbsGauss%isorb+1,lig%orbsGauss%norb)),lchi2)
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -717,6 +722,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
 !!$       lig%orbsig,lig%lzdig,2,ngatherarr,rhopot,lpot,lig%comgp)
 
+  lig%lzdig%hgrids(1)=hx
+  lig%lzdig%hgrids(2)=hy
+  lig%lzdig%hgrids(3)=hz
+
 
   allocate(lig%lzdig%doHamAppl(lig%lzdig%nlr), stat=istat)
   call memocc(istat, lig%lzdig%doHamAppl, 'lig%lzdig%doHamAppl', subname)
@@ -771,13 +780,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
              !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
              call to_zero(lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lig%orbsig,&
-                  hx,hy,hz,&
                   lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
                   ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
                   pkernel=denspot%pkernelseq)
              !!write(333,*) 'debug: following line is commented!'
              call NonLocalHamiltonianApplication(iproc,at,lig%orbsig,&
-                  hx,hy,hz,rxyz,&
+                  rxyz,&
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
 !DEBUG

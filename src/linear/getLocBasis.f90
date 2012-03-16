@@ -79,8 +79,7 @@ character(len=*),parameter:: subname='get_coeff'
   lzd%doHamAppl=.true.
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
-  call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
-       hx,hy,hz,rxyz,&
+  call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
        pkernel=denspot%pkernelseq)
@@ -593,8 +592,7 @@ logical,parameter:: secondLocreg=.false.
           call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
       end if
 
-      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
-           hx,hy,hz,rxyz,&
+      call FullHamiltonianApplication(iproc,nproc,at,lorbs,rxyz,&
            proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
            pkernel=denspot%pkernelseq)
@@ -813,6 +811,7 @@ logical,parameter:: secondLocreg=.false.
              ilr = orbslarge%inWhichLocreg(iiorb)
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
                   tmb%wfnmd%bs%nit_precond, lhphilarge(ind2), lzdlarge%nlr, locregCenter, at, confdatarr(iorb)%potorder, &
+                  confdatarr(iorb)%potorder, &
                   confdatarr(iorb)%prefac, it, iorb, eval_zero)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
@@ -862,7 +861,7 @@ logical,parameter:: secondLocreg=.false.
       if(.not.ldiis%switchSD) then
           call improveOrbitals()
       else
-          if(iproc==0) write(*,'(x,a)') 'no improvement of the orbitals, recalculate gradient'
+          if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
       end if
 
       
