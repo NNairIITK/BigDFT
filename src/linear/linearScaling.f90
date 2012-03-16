@@ -239,7 +239,7 @@ type(local_zone_descriptors):: lzd
   lowaccur_converged=.false.
   infoBasisFunctions=-1
   idecrease=0
-  ndecrease=20
+  ndecrease=15
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! ot to tmbder if we use the derivatives.
@@ -305,16 +305,16 @@ type(local_zone_descriptors):: lzd
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           tt=1.d0
-      else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-          tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
       !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      !!    if(infoBasisFunctions>0) then
-      !!        idecrease=idecrease+1
-      !!    end if
-      !!    tt=1.d0-(dble(idecrease))/dble(ndecrease)
-      !!    tt=max(tt,0.d0)
+      !!    tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
+      else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+          if(infoBasisFunctions>0) then
+              idecrease=idecrease+1
+          end if
+          tt=1.d0-(dble(idecrease))/dble(ndecrease)
+          tt=max(tt,0.d0)
       end if
-      !!if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) tt=0.d0
+      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) tt=0.d0
       if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
 
