@@ -168,7 +168,13 @@ type(local_zone_descriptors):: lzd
   tmb%wfnmd%bs%update_phi=.false.
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
-  t1scc=mpi_wtime()
+  !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
+  !! the potential from the input guess.     
+  !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
+  !call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
+  !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
+  !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+  !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
 
   ! Initialize the DIIS mixing of the potential if required.
