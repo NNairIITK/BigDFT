@@ -268,6 +268,15 @@ type(local_zone_descriptors):: lzd
       ! Convergence criterion for the self consistency looo
       selfConsistent=input%lin%convCritMix
 
+
+      ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
+      !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
+      if(.not.lowaccur_converged .and. &
+         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
+          lowaccur_converged=.true.
+          nit_highaccuracy=0
+      end if 
+
       ! Check whether the derivatives shall be used or not.
       if(input%lin%mixedmode) then
           if( (.not.lowaccur_converged .and. &
@@ -279,13 +288,6 @@ type(local_zone_descriptors):: lzd
           end if
       end if
 
-      ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
-      if(.not.lowaccur_converged .and. &
-         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
-          lowaccur_converged=.true.
-          nit_highaccuracy=0
-      end if 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, lzd%nlr, tmb%orbs%onwhichatom, &
@@ -303,6 +305,7 @@ type(local_zone_descriptors):: lzd
               idecrease=idecrease+1
           end if
           tt=1.d0-(dble(idecrease))/dble(ndecrease)
+          tt=max(tt,0.d0)
           if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
       end if
       confdatarr(:)%prefac=tt*confdatarr(:)%prefac
