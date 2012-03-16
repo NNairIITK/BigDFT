@@ -166,7 +166,7 @@ type(local_zone_descriptors):: lzd
   ! Generate the input guess for the TMB
   potshortcut=0 ! What is this?
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
-       nlpspd, proj, GPU,  tmb%psi)
+       nlpspd, proj, GPU,  tmb%psi, tmb%wfnmd%ld_coeff, orbs%norb, tmb%wfnmd%coeff)
   t1scc=mpi_wtime()
 
 

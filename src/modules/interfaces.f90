@@ -2570,12 +2570,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     subroutine inputguessConfinement(iproc, nproc, at, &
          input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
-         lphi)
+         lphi, ld_coeff, norb, coeff)
       use module_base
       use module_types
       implicit none
       !Arguments
-      integer, intent(in) :: iproc,nproc
+      integer, intent(in) :: iproc,nproc,ld_coeff,norb
       real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -2588,6 +2588,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
+      real(8),dimension(ld_coeff,norb),intent(out):: coeff
     end subroutine inputguessConfinement
 
     !subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
