@@ -5823,17 +5823,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields), intent(out) :: denspot
        end subroutine initialize_DFT_local_fields
 
-       subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-         use module_base, only: ndebug
-         implicit none
-        ! include 'mpif.h'
-         character(len=1), intent(in) :: geocode
-         integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-         real(kind=8), intent(in) :: hx,hy,hz
-         real(kind=8), pointer :: kernel(:)
-         logical, intent(in) :: wrtmsg
-       end subroutine createKernel
-
    end interface
 
 END MODULE module_interfaces
