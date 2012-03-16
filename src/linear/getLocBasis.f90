@@ -257,9 +257,9 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
-real(8):: t2tot,timetot,tt1,tt2,tt3,tt4,tt5
-real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrmMax,t1,t2,dnrm2
+real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
+real(8):: tt1,tt2,tt3,tt4,tt5
+real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrmMax,dnrm2
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, factor2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
@@ -272,7 +272,6 @@ real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat, locreg
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
-real(8),dimension(5):: time
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old
@@ -347,7 +346,6 @@ logical,parameter:: secondLocreg=.false.
 
 
 
-  !if(.not.newgradient) then
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
       ! The messages for this point ', to point communication have been posted in the subroutine linearScaling.
@@ -355,28 +353,20 @@ logical,parameter:: secondLocreg=.false.
 
       ! Build the required potential
       call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-
       call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
   end if
 
 
 
-  time=0.d0
   resetDIIS=.false.
   immediateSwitchToSD=.false.
-  t1tot=mpi_wtime()
   consecutive_rejections=0
   trHold=1.d100
  
-  do ilr=1,lzd%nlr
-      !locrad(ilr)=lzd%llr(ilr)%locrad
-      !locrad(ilr)=13.d0
-  end do
 
 
 
   ! ratio of large locreg and standard locreg
-  !factor=1.5d0
   factor=tmb%wfnmd%bs%locreg_enlargement
   factor2=200.0d0
 
@@ -459,7 +449,6 @@ logical,parameter:: secondLocreg=.false.
       if(iproc==0) then
           write(*,'(1x,a)',advance='no') 'Orthonormalization...'
       end if
-      t1=mpi_wtime()
 
       do_ortho_if: if(.not.ldiis%switchSD) then
 
@@ -533,7 +522,7 @@ logical,parameter:: secondLocreg=.false.
               ! Update confdatarr...
               call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
  
-              ! Update the localization resgion if required.
+              ! Update the localization region if required.
               if(variable_locregs) then
                   call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
@@ -570,13 +559,10 @@ logical,parameter:: secondLocreg=.false.
 
 
 
-      t2=mpi_wtime()
-      time(1)=time(1)+t2-t1
 
 
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      t1=mpi_wtime()
       withConfinement=.true.
       allocate(lzd%doHamAppl(lorbs%norb), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -603,7 +589,6 @@ logical,parameter:: secondLocreg=.false.
       call memocc(istat,iall,'lzd%doHamAppl',subname)
 
    
-      !if(newgradient) then
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Deallocate potential
           iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
@@ -612,7 +597,6 @@ logical,parameter:: secondLocreg=.false.
       end if
 
 
-      t2=mpi_wtime()
 
       ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
       call allocateSendBufferOrtho(comon, subname)
@@ -624,7 +608,6 @@ logical,parameter:: secondLocreg=.false.
       call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, tmb%psi, comon, timecommunp2p, timeextract)
 
 
-      time(2)=time(2)+t2-t1
 
 
   
@@ -641,8 +624,6 @@ logical,parameter:: secondLocreg=.false.
       call deallocateRecvBufferOrtho(comon, subname)
       call deallocateSendBufferOrtho(comon, subname)
 
-      t1=mpi_wtime()
-      !if(.not.newgradient) then
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
               call allocateSendBufferOrtho(comon, subname)
@@ -688,7 +669,6 @@ logical,parameter:: secondLocreg=.false.
 
 
       ! Calculate trace (or band structure energy, resp.)
-      !if(newgradient) then
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           trH=0.d0
           do jorb=1,lorbs%norb
@@ -712,7 +692,6 @@ logical,parameter:: secondLocreg=.false.
                if(consecutive_rejections<=3) then
                    ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
                    alpha=alpha*.6d0
-                   !if(.not. newgradient) then
                    if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                        call dcopy(size(tmb%psi), lphiold, 1, tmb%psi, 1)
@@ -729,8 +708,6 @@ logical,parameter:: secondLocreg=.false.
       end if
 
 
-      t2=mpi_wtime()
-      time(3)=time(3)+t2-t1
 
 
   
@@ -795,7 +772,6 @@ logical,parameter:: secondLocreg=.false.
           write(*,'(a)') 'Preconditioning.'
       end if
       gnrm=1.d3
-      t1=mpi_wtime()
 
       ind2=1
       do iorb=1,lorbs%norbp
@@ -818,8 +794,6 @@ logical,parameter:: secondLocreg=.false.
          end if
       end do
 
-      t2=mpi_wtime()
-      time(4)=time(4)+t2-t1
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -847,7 +821,6 @@ logical,parameter:: secondLocreg=.false.
   
       ! Determine whether the basis functions shall be further optimized using DIIS or steepest descent.
       call DIISorSD()
-      write(*,*) 'after DIISorSD'
       if(iproc==0) then
           if(ldiis%isx>0) then
               write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
@@ -1004,27 +977,6 @@ logical,parameter:: secondLocreg=.false.
       call memocc(istat, iall, 'denspot%pot_full', subname)
   end if
 
-
-  t2tot=mpi_wtime()
-  timetot=t2tot-t1tot
-
-  ! Sum up the timings.
-  call mpiallred(time(1), 5, mpi_sum, mpi_comm_world, ierr)
-  call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
-  time=time/dble(nproc)
-  timetot=timetot/dble(nproc)
-  if(iproc==0) then
-      write(*,'(1x,a)') 'timings:'
-      write(*,'(3x,a,es10.3)') '-total time:', timetot
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- orthonormalization:', time(1), '=', 100.d0*time(1)/timetot, '%'
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- Hamiltonian application:', time(2),  '=', 100.d0*time(2)/timetot, '%'
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- orthoconstraint:', time(3),  '=', 100.d0*time(3)/timetot, '%'
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- preconditioning:', time(4),  '=', 100.d0*time(4)/timetot, '%'
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- unitary optimization:', time(5),  '=', 100.d0*time(5)/timetot, '%'
-      tt=time(1)+time(2)+time(3)+time(4)+time(5)
-      tt=timetot-tt
-      write(*,'(5x,a,es10.3,a,f4.1,a)') '- other:', tt,  '=', 100.d0*tt/timetot, '%'
-  end if
 
 
   ! Deallocate all local arrays.
