@@ -279,7 +279,8 @@ type(local_zone_descriptors):: lzd
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
       if(.not.lowaccur_converged .and. &
-         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
+         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==nint(.6d0*dble(ndecrease)))) then
+         !!(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
