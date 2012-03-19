@@ -304,6 +304,7 @@ low_level = \
 	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
+	init/wavefunctions.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
@@ -343,7 +344,9 @@ low_level = \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
 	linear/communicatetypes.f90 \
+	linear/misc.f90 \
 	linear/getLocBasis.f90 \
+	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \

@@ -1318,7 +1318,8 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
 
    !allocate the descriptors of the active space
    call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
-      &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,basedist=orbs%norb_par(0:,1))
+        orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,&
+        .false.,basedist=orbs%norb_par(0:,1))
    !allocate communications arrays for virtual orbitals
    call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as,basedist=comms_as%nvctr_par(0:,1))  
    !allocate array of the eigenvalues

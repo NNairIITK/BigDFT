@@ -573,7 +573,7 @@ END SUBROUTINE applyOperator
 
 
 
-subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, nlr, rxyz, at, &
+subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
            confpotorder, potentialprefac, it, iorb, eval_zero)
 !
 ! Purpose:
@@ -607,12 +607,10 @@ integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
 real(gp), intent(in) :: hx,hy,hz
 type(locreg_descriptors), intent(in) :: lr
 type(orbitals_data), intent(in) :: orbs
-type(atoms_data), intent(in) :: at
 real(8),intent(in):: potentialprefac
 !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-integer,intent(in):: nlr, it
-real(8),dimension(3,nlr),intent(in):: rxyz
+integer,intent(in):: it
 real(8),intent(in):: eval_zero
 !local variables
 integer :: inds, ncplx, ikpt, ierr, iiAt

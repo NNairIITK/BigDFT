@@ -244,9 +244,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd, linflag
   real(gp), dimension(:), allocatable :: wkptv
-  type(linearParameters) :: lin
-  !debug
-  integer:: iorb, ist, iall
 
   ! ----------------------------------
 
@@ -382,7 +379,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, KSwfn%orbs%eval, 'orbs%eval', subname)
      KSwfn%orbs%eval=-.5d0
      call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-          KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),lin,&
+          KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
           energy,fxyz)
@@ -968,7 +965,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                &   KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs)
+                KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs,.false.)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 
@@ -992,7 +989,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,basedist=KSwfn%orbs%norb_par(0:,1:))
+                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,basedist=KSwfn%orbs%norb_par(0:,1:))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
                 basedist=KSwfn%comms%nvctr_par(0:,1:))  
