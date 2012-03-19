@@ -36,6 +36,7 @@ logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_
 logical:: compare_outer_loop
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
+real(8):: decrease_factor_total
 integer:: iorb
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
@@ -240,6 +241,7 @@ type(local_zone_descriptors):: lzd
   infoBasisFunctions=-1
   idecrease=0
   ndecrease=15
+  decrease_factor_total=1.d10 !initialize to some lareg value
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! ot to tmbder if we use the derivatives.
@@ -279,7 +281,8 @@ type(local_zone_descriptors):: lzd
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
       if(.not.lowaccur_converged .and. &
-         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==nint(.6d0*dble(ndecrease)))) then
+         !(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==nint(.6d0*dble(ndecrease)))) then
+         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. decrease_factor_total<1.d0-input%lin%decrease_amount)) then
          !!(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
@@ -305,19 +308,21 @@ type(local_zone_descriptors):: lzd
 
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-          tt=1.d0
+          decrease_factor_total=1.d0
       !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
       !!    tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           if(infoBasisFunctions>0) then
               idecrease=idecrease+1
           end if
-          tt=1.d0-(dble(idecrease))/dble(ndecrease)
-          tt=max(tt,0.d0)
+          decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
+          !tt=1.d0-(dble(idecrease))/dble(ndecrease)
+          !tt=max(tt,0.d0)
       end if
-      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) tt=0.d0
-      if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ',100.d0*tt,'% of its initial value.'
-      confdatarr(:)%prefac=tt*confdatarr(:)%prefac
+      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=0.d0
+      if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
+          100.d0*decrease_factor_total,'% of its initial value.'
+      confdatarr(:)%prefac=decrease_factor_total*confdatarr(:)%prefac
 
       ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
