@@ -1447,12 +1447,13 @@ subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_
 
    ! now read the spreads (the additionnal last value is total sprd)
    if(readsprd) then
+   print *,'plotwann',plotwann
       do iiwann = 1, plotwann+1
          read(11, *) char1, sprd(iiwann)
       end do
    end if
    close(11)
-end subroutine
+end subroutine read_centers
 
 subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
    implicit none
@@ -2040,7 +2041,7 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
    integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters)-1)/2,3),intent(in) :: vertex
    real(gp), dimension(3), intent(in) :: normal
    ! Local variables
-   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly
+   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly, num_poly_tot
    character(len=14) :: surfname
    character(len=20) :: forma
    logical :: condition
@@ -2056,14 +2057,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
 
    nsurftot = 0
    npts = 0
-   num_poly = 0
+   num_poly_tot = 0
    do isurf = 1, nsurf
+      num_poly = 0
       !MUST eliminate the wanniers that are less then 3 centers
       if(ncenters(isurf) < 3) cycle
       ! or the 3 centers containing the neglected point
       condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint )
       if(ncenters(isurf) == 3 .and. condition) cycle
-      nsurftot = nsurftot + 1
       ! Must eliminate the neglected point from other surfaces
       do ipts = 1, npoly(isurf)
          condition = .false.
@@ -2071,12 +2072,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
             condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
          end do
          if(.not. condition) num_poly = num_poly + 1
+         if(.not. condition) num_poly_tot = num_poly_tot + 1
       end do
-      npts = npts + ncenters(isurf) + 1
+      if(num_poly > 0)nsurftot = nsurftot + 1
+      if(num_poly > 0)npts = npts + ncenters(isurf) + 1
    end do
 
    !Fourth line: number of surfaces, total num_polys, total num_points
-   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly, npts
+   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly_tot, npts
 
    do isurf = 1, nsurf
       !MUST eliminate the wanniers that are less then 3 centers
@@ -2095,11 +2098,9 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
       end do
       write(forma,'(I1)') ndecimal
       forma = '(I'//trim(forma)//')'
-
       !Name of the surface
       write(surfname,forma) ncenters(isurf)
       surfname = '2e - '//trim(surfname)//'centers'
-      write(23,'(A)') trim(surfname)
 
       !num_polys and num_points (Must eliminate the neglected point from other surfaces)
       condition = .false.
@@ -2111,42 +2112,48 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
          end do
          if(.not. condition)num_poly = num_poly + 1
       end do
-      if(condition) then
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf)
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      else
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf) + 1
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      end if
 
-      do ipts = 1, ncenters(isurf)
-      !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
-         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-         write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
-              (normal(i), i=1,3)
-      end do
-      write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
-              (normal(i), i=1,3)
+      if(num_poly > 0) then
+         !Write the surface only if there is some polygones
+         write(23,'(A)') trim(surfname)
+
+         if(condition) then
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf)
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         else
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf) + 1
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         end if
+
+         do ipts = 1, ncenters(isurf)
+         !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
+            !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
+            write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
+                 (normal(i), i=1,3)
+         end do
+         write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
+                 (normal(i), i=1,3)
+      end if !on num_poly
    end do
    close(23)
 
