@@ -27,13 +27,13 @@ real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 
 ! Local variables
-integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
+integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout, ifail
 integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp, idecrease, ndecrease
-real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace
+real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace, increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop
+logical:: compare_outer_loop, locreg_increased
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
@@ -241,7 +241,9 @@ type(local_zone_descriptors):: lzd
   infoBasisFunctions=-1
   idecrease=0
   ndecrease=15
-  decrease_factor_total=1.d10 !initialize to some lareg value
+  increase_locreg=0.d0
+  decrease_factor_total=1.d10 !initialize to some large value
+  ifail=0
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! ot to tmbder if we use the derivatives.
@@ -282,7 +284,8 @@ type(local_zone_descriptors):: lzd
       !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
       if(.not.lowaccur_converged .and. &
          !(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==nint(.6d0*dble(ndecrease)))) then
-         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
+          decrease_factor_total<1.d0-input%lin%decrease_amount)) then
          !!(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
@@ -314,15 +317,42 @@ type(local_zone_descriptors):: lzd
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           if(infoBasisFunctions>0) then
               idecrease=idecrease+1
+              ifail=0
+          else
+              ifail=ifail+1
           end if
           decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
           !tt=1.d0-(dble(idecrease))/dble(ndecrease)
           !tt=max(tt,0.d0)
       end if
-      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=0.d0
+      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
       if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
           100.d0*decrease_factor_total,'% of its initial value.'
       confdatarr(:)%prefac=decrease_factor_total*confdatarr(:)%prefac
+      if(ifail>=3) then
+          increase_locreg=increase_locreg+1.d0
+          if(iproc==0) then
+              write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
+              write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',increase_locreg
+          end if
+          ifail=0
+          locrad=locrad+increase_locreg
+          call enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%mad, &
+               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi)
+          ! Fake allocation
+          allocate(tmbmix%comsr%sendbuf(1), stat=istat)
+          call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
+          allocate(tmbmix%comsr%recvbuf(1), stat=istat)
+          call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
+          allocate(tmbmix%comsr%auxarray(1), stat=istat)
+          call memocc(istat, tmbmix%comsr%auxarray, 'tmbmix%comsr%auxarray', subname)
+          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
+          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+          locreg_increased=.true.
+      else
+          locreg_increased=.false.
+      end if
 
       ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
@@ -346,7 +376,7 @@ type(local_zone_descriptors):: lzd
 
       ! Allocate the communication arrays for the calculation of the charge density.
       with_auxarray=.false.
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
+      if(.not. locreg_increased) call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
 
       ! Now all initializations are done...
@@ -530,7 +560,7 @@ type(local_zone_descriptors):: lzd
 
   call mpi_barrier(mpi_comm_world, ierr)
   t2scc=mpi_wtime()
-  timescc=t2scc-t1scc
+  !timescc=t2scc-t1scc
 
 
   ! Allocate the communication buffers for the calculation of the charge density.

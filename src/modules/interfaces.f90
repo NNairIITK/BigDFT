@@ -6197,6 +6197,25 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields),intent(inout):: denspot
        end subroutine redefine_locregs_quantities
 
+       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
+                  ldiis, denspot, nphi, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       real(8),intent(in):: hx, hy, hz
+       type(local_zone_descriptors),intent(inout):: lzd
+       real(8),dimension(lzd%nlr),intent(in):: locrad
+       type(orbitals_data),intent(inout):: lorbs
+       type(p2pComms),intent(inout):: comon, comgp
+       type(overlapParameters),intent(inout):: op
+       type(matrixDescriptors),intent(inout):: mad
+       type(localizedDIISParameters),intent(inout):: ldiis
+       type(DFT_local_fields),intent(inout):: denspot
+       integer,intent(inout):: nphi
+       real(8),dimension(:),pointer:: lphi
+       end subroutine enlarge_locreg
+
    end interface
 
 END MODULE module_interfaces
