@@ -406,7 +406,7 @@ type(local_zone_descriptors):: lzd
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-              call getLocalizedBasis(iproc,nproc,at,lzd,tmb%orbs,orbs,tmb%comon,tmb%op,tmb%comgp,tmb%mad,rxyz,&
+              call getLocalizedBasis(iproc,nproc,at,lzd,orbs,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
                   orthpar,confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&

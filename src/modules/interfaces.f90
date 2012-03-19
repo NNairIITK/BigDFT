@@ -1841,7 +1841,7 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
 
-      subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
+      subroutine getLocalizedBasis(iproc,nproc,at,lzd,orbs,rxyz,&
            denspot,GPU,trH,&
            infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
            confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
@@ -1856,32 +1856,20 @@ module module_interfaces
         integer,intent(out):: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(local_zone_descriptors),intent(inout):: lzd
-        type(orbitals_data):: lorbs, orbs
-        type(p2pComms):: comon
-        type(overlapParameters):: op
-        !type(p2pCommsGatherPot):: comgp
-        type(p2pComms):: comgp
-        type(matrixDescriptors),intent(in):: mad
+        type(orbitals_data):: orbs
         real(8),dimension(3,at%nat):: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
-        !integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-        !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-        !real(dp), dimension(*), intent(inout) :: rhopot
         type(GPU_pointers), intent(inout) :: GPU
-        !real(dp), dimension(:), pointer :: pkernelseq
-        !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
         real(8),intent(out):: trH
         real(8),intent(in):: hx, hy, hz
-        !!real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
         type(localizedDIISParameters),intent(inout):: ldiis
         type(orthon_data),intent(in):: orthpar
-        type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
+        type(DFT_wavefunction),intent(inout):: tmb
+        type(confpot_data), dimension(tmb%orbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
         real(8),dimension(lzd%nlr),intent(in):: locrad
-        !!type(wfn_metadata),intent(inout):: wfnmd
-        type(DFT_wavefunction),intent(inout):: tmb
       end subroutine getLocalizedBasis
 
 

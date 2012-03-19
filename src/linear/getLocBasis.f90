@@ -214,7 +214,7 @@ character(len=*),parameter:: subname='get_coeff'
 end subroutine get_coeff
 
 
-subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
+subroutine getLocalizedBasis(iproc,nproc,at,lzd,orbs,rxyz,&
     denspot,GPU,trH,&
     infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
@@ -237,11 +237,7 @@ integer,intent(in):: iproc, nproc, blocksize_pdgemm
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
-type(orbitals_data):: lorbs, orbs
-type(p2pComms):: comon
-type(overlapParameters):: op
-type(p2pComms):: comgp
-type(matrixDescriptors),intent(inout):: mad
+type(orbitals_data):: orbs
 real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
