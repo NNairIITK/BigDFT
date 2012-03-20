@@ -214,7 +214,7 @@ character(len=*),parameter:: subname='get_coeff'
 end subroutine get_coeff
 
 
-subroutine getLocalizedBasis(iproc,nproc,at,lzd,orbs,rxyz,&
+subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,&
     infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
@@ -236,7 +236,6 @@ implicit none
 integer,intent(in):: iproc, nproc, blocksize_pdgemm
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
-type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: orbs
 real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
@@ -279,6 +278,7 @@ type(p2pComms):: comgplarge2
 type(matrixDescriptors):: madlarge2
 type(localizedDIISParameters):: ldiis2
 type(DFT_wavefunction),target:: tmblarge
+type(DFT_wavefunction),pointer:: tmbopt
 logical,parameter:: secondLocreg=.false.
 
 
@@ -350,7 +350,7 @@ logical,parameter:: secondLocreg=.false.
 
       ! Build the required potential
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-      call full_local_potential(iproc,nproc,tmb%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
   end if
 
 
@@ -456,22 +456,23 @@ logical,parameter:: secondLocreg=.false.
       do_ortho_if: if(.not.ldiis%switchSD) then
 
           !newgradient_if_1: if(.not.newgradient) then
-          newgradient_if_1: if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-
+          if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
               ! Do a standard orthonormalization
-              call orthonormalizeLocalized(iproc, nproc, &
-              orthpar%methTransformOverlap, orthpar%nItOrtho, &
-              orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-              tmb%mad, tmb%psi, ovrlp)
-
-          else newgradient_if_1
-
+              tmbopt => tmb
+              !!call orthonormalizeLocalized(iproc, nproc, &
+              !!orthpar%methTransformOverlap, orthpar%nItOrtho, &
+              !!orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+              !!tmbopt%mad, tmbopt%psi, ovrlp)
+          else
               ! Go to large localization region and do the orthonormalization there.
               call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-              call orthonormalizeLocalized(iproc, nproc, &
-                   orthpar%methTransformOverlap, orthpar%nItOrtho, &
-                   orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%lzd, &
-                   tmblarge%mad, tmblarge%psi, ovrlp)
+              tmbopt => tmblarge
+          end if
+          call orthonormalizeLocalized(iproc, nproc, orthpar%methTransformOverlap, orthpar%nItOrtho, &
+               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+               tmbopt%mad, tmbopt%psi, ovrlp)
+
+          if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
               if(secondLocreg) then
                   ! Go to even larger region and optimize the locreg centers and potentially the shape of the basis functions.
@@ -556,7 +557,7 @@ logical,parameter:: secondLocreg=.false.
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
               end if
 
-          end if newgradient_if_1
+          end if
 
       end if do_ortho_if
 
@@ -578,7 +579,7 @@ logical,parameter:: secondLocreg=.false.
 
           ! Build the required potential
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-          call full_local_potential(iproc,nproc,tmb%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
       end if
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&

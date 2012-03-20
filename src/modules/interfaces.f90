@@ -1841,7 +1841,7 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
 
-      subroutine getLocalizedBasis(iproc,nproc,at,lzd,orbs,rxyz,&
+      subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
            denspot,GPU,trH,&
            infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
            confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
@@ -1855,7 +1855,6 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, blocksize_pdgemm
         integer,intent(out):: infoBasisFunctions
         type(atoms_data), intent(in) :: at
-        type(local_zone_descriptors),intent(inout):: lzd
         type(orbitals_data):: orbs
         real(8),dimension(3,at%nat):: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
@@ -1869,7 +1868,7 @@ module module_interfaces
         type(DFT_wavefunction),intent(inout):: tmb
         type(confpot_data), dimension(tmb%orbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
-        real(8),dimension(lzd%nlr),intent(in):: locrad
+        real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
       end subroutine getLocalizedBasis
 
 
