@@ -217,7 +217,7 @@ end subroutine get_coeff
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,&
     infoBasisFunctions,nlpspd,proj,ldiis,&
-    confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
+    confdatarr,hx,hy,hz,SIC, &
     locrad,tmb)
 !
 ! Purpose:
@@ -233,7 +233,7 @@ use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A =
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize_pdgemm
+integer,intent(in):: iproc, nproc
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
@@ -609,7 +609,7 @@ logical,parameter:: secondLocreg=.false.
 
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      call calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdgemm, &
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
@@ -631,7 +631,7 @@ logical,parameter:: secondLocreg=.false.
 !!          call deallocateSendBufferOrtho(tmbopt%comon, subname)
 !!      end if
 !!      call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-!!           tmb%orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+!!           tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
 !!
 !!
 !!      ! Calculate trace (or band structure energy, resp.)

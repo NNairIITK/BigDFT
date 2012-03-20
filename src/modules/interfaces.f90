@@ -1844,7 +1844,7 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
            denspot,GPU,trH,&
            infoBasisFunctions,nlpspd,proj,ldiis,&
-           confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
+           confdatarr,hx,hy,hz,SIC, &
            locrad,tmb)
         use module_base
         use module_types
@@ -1852,7 +1852,7 @@ module module_interfaces
         implicit none
 
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, blocksize_pdgemm
+        integer,intent(in):: iproc, nproc
         integer,intent(out):: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(orbitals_data):: orbs
@@ -6202,14 +6202,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(:),pointer:: lphi
        end subroutine enlarge_locreg
 
-       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdgemm, &
+       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
                   confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
+         integer,intent(in):: iproc, nproc, it
          logical,intent(in):: variable_locregs
          type(DFT_wavefunction),intent(inout):: tmbopt
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel

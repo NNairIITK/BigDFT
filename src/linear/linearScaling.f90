@@ -419,7 +419,7 @@ type(local_zone_descriptors):: lzd
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
-                  tmb%confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
+                  tmb%confdatarr,&
                   hx,hy,hz,input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
