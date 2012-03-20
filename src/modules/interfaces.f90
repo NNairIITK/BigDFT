@@ -1844,7 +1844,7 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
            denspot,GPU,trH,&
            infoBasisFunctions,nlpspd,proj,ldiis,&
-           confdatarr,hx,hy,hz,SIC, &
+           SIC, &
            locrad,tmb)
         use module_base
         use module_types
@@ -1860,12 +1860,10 @@ module module_interfaces
         type(DFT_local_fields), intent(inout) :: denspot
         type(GPU_pointers), intent(inout) :: GPU
         real(8),intent(out):: trH
-        real(8),intent(in):: hx, hy, hz
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
         type(localizedDIISParameters),intent(inout):: ldiis
         type(DFT_wavefunction),intent(inout):: tmb
-        type(confpot_data), dimension(tmb%orbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
         real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
       end subroutine getLocalizedBasis

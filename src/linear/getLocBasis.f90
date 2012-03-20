@@ -217,7 +217,7 @@ end subroutine get_coeff
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,&
     infoBasisFunctions,nlpspd,proj,ldiis,&
-    confdatarr,hx,hy,hz,SIC, &
+    SIC, &
     locrad,tmb)
 !
 ! Purpose:
@@ -241,12 +241,10 @@ real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(8),intent(out):: trH
-real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(DFT_wavefunction),target,intent(inout):: tmb
-type(confpot_data), dimension(tmb%orbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
@@ -379,11 +377,11 @@ logical,parameter:: secondLocreg=.false.
       locregCenterTemp=locregCenter
 
       ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
-      !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+      !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
       !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
       !!     tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
       !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -393,7 +391,7 @@ logical,parameter:: secondLocreg=.false.
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
            tmb%psi, lhphi, lhphiold, lphiold)
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
            tmb%psi, lhphi, lhphiold, lphiold)
@@ -412,7 +410,7 @@ logical,parameter:: secondLocreg=.false.
 
 
       locrad_tmp=factor*locrad
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -424,7 +422,7 @@ logical,parameter:: secondLocreg=.false.
 
       if(secondLocreg) then
           locrad_tmp=factor2*locrad
-          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
                lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
@@ -469,13 +467,13 @@ logical,parameter:: secondLocreg=.false.
 
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
               ! Optimize the locreg centers and potentially the shape of the basis functions.
-              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, confdatarr)
+              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
               call MLWFnew(iproc, nproc, tmbopt%lzd, tmbopt%orbs, at, tmbopt%op, &
                    tmbopt%comon, tmbopt%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                   confdatarr, hx, locregCenterTemp, 3.d0, tmbopt%psi, Umat, locregCenter)
+                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmbopt%psi, Umat, locregCenter)
 
               ! Check whether the new locreg centers are ok.
-              call check_locregCenters(iproc, tmb%lzd, locregCenter, hx, hy, hz)
+              call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
 
               ! Update the kernel if required.
               if(tmb%wfnmd%bs%nit_unitary_loop>0) then                          
@@ -486,7 +484,7 @@ logical,parameter:: secondLocreg=.false.
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
-                  call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, hx, hy, hz, tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
@@ -503,8 +501,8 @@ logical,parameter:: secondLocreg=.false.
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, tmb%lzd, tmbopt%lzd, tmb%orbs, tmbopt%orbs, tmbopt%psi, tmb%psi)
 
-              ! Update confdatarr...
-              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenter, confdatarr)
+              ! Update tmb%confdatarr...
+              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenter, tmb%confdatarr)
  
               ! Update the localization region if required.
               if(variable_locregs) then
@@ -512,7 +510,7 @@ logical,parameter:: secondLocreg=.false.
                   call destroy_new_locregs(tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
                        tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
-                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
                        tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -548,7 +546,7 @@ logical,parameter:: secondLocreg=.false.
       end if
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
+           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 
@@ -611,7 +609,7 @@ logical,parameter:: secondLocreg=.false.
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
-           confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           tmb%confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 
 
@@ -750,9 +748,9 @@ logical,parameter:: secondLocreg=.false.
 !!          iiorb=tmbopt%orbs%isorb+iorb
 !!          ilr = tmbopt%orbs%inWhichLocreg(iiorb)
 !!          ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-!!          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), hx, hy, hz, &
-!!               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
-!!               confdatarr(iorb)%prefac, it, iorb, eval_zero)
+!!          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+!!               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+!!               tmb%confdatarr(iorb)%prefac, it, iorb, eval_zero)
 !!          ind2=ind2+ncnt
 !!      end do
 !!
@@ -806,7 +804,7 @@ logical,parameter:: secondLocreg=.false.
 
       
       newgradient_if_2: if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, confdatarr)
+          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
           ! Normalize tmblarge%psi
           if(variable_locregs) then
               ist=1
@@ -827,22 +825,22 @@ logical,parameter:: secondLocreg=.false.
            end if
 
           if(.not.secondLocreg) then
-               ! Update confdatarr...
-               call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, confdatarr)
+               ! Update tmb%confdatarr...
+               call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
               call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
                    tmblarge%comon, tmblarge%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                   confdatarr, hx, locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
+                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
            end if
 
            if(secondLocreg) then
-               ! Update confdatarr...
-               call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
+               ! Update tmb%confdatarr...
+               call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, tmb%confdatarr)
                call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                     comonlarge2, madlarge2, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                    confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+                    tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
           end if
 
-          call check_locregCenters(iproc, tmb%lzd, locregCenter, hx, hy, hz)
+          call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
           if(tmb%wfnmd%bs%nit_unitary_loop>0) then
               call update_kernel(tmb%orbs%norb, Umat, kernel)
           end if
@@ -852,7 +850,7 @@ logical,parameter:: secondLocreg=.false.
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
-              call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
@@ -869,14 +867,14 @@ logical,parameter:: secondLocreg=.false.
               call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
           end if
 
-          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenter, confdatarr)
+          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenter, tmb%confdatarr)
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
                    tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
-              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
                    tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -891,7 +889,7 @@ logical,parameter:: secondLocreg=.false.
               call destroy_new_locregs(lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                    lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
               locrad_tmp=factor2*locrad
-              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, hx, hy, hz, tmb%orbs, tmb%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
                    lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                    lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
