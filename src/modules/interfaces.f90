@@ -6203,6 +6203,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(:),pointer:: lphi
        end subroutine enlarge_locreg
 
+       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
+                  variable_locregs, tmb, tmbopt, orthpar, kernel, &
+                  confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
+         logical,intent(in):: variable_locregs
+         real(8),intent(in):: hx, hy, hz
+         type(DFT_wavefunction),intent(inout):: tmb, tmbopt
+         type(orthon_data),intent(in):: orthpar
+         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
+         type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
+         type(localizedDIISParameters),intent(inout):: ldiis
+         real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lhphiopt
+         real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lphioldopt, lhphioldopt
+         integer,intent(inout):: consecutive_rejections
+         real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
+         real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
+         real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
+         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+       end subroutine calculate_energy_and_gradient_linear
+
    end interface
 
 END MODULE module_interfaces

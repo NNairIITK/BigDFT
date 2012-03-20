@@ -370,6 +370,7 @@ low_level = \
 	linear/locReg.f90 \
 	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
+	linear/hpsiortho_linear.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

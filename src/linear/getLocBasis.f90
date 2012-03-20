@@ -268,7 +268,7 @@ real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
-real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
+real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt, lhphioldopt
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old, lhphiopt
 type(local_zone_descriptors):: lzdlarge, lzdlarge2
 type(orbitals_data):: orbslarge2
@@ -597,11 +597,15 @@ logical,parameter:: secondLocreg=.false.
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
+          lphioldopt => lphiold
+          lhphioldopt => lhphiold
       else
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
           lhphiopt => lhphilarge
+          lphioldopt => lphilargeold
+          lhphioldopt => lhphilargeold
       end if
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           call allocateSendBufferOrtho(tmbopt%comon, subname)
@@ -648,7 +652,7 @@ logical,parameter:: secondLocreg=.false.
                    alpha=alpha*.6d0
                    if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                       call dcopy(size(tmb%psi), lphiold, 1, tmb%psi, 1)
+                       call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
                    else
                        ! It is not possible to use the old orbitals since the locregs might have changed.
                        if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
@@ -718,7 +722,7 @@ logical,parameter:: secondLocreg=.false.
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
+          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
       trHold=trH
   
       ! Precondition the gradient.
