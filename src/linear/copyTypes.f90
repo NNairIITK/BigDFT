@@ -1058,7 +1058,7 @@ subroutine copy_basis_specifications(bsin, bsout, subname)
 
 end subroutine copy_basis_specifications
 
-subroutine orthon_data(odin, odout, subname)
+subroutine copy_orthon_data(odin, odout, subname)
   use module_base
   use module_types
   implicit none
@@ -1079,4 +1079,4 @@ subroutine orthon_data(odin, odout, subname)
   odout%blocksize_pdsyev=odin%blocksize_pdsyev
   odout%blocksize_pdgemm=odin%blocksize_pdgemm
 
-end subroutine orthon_data
+end subroutine copy_orthon_data

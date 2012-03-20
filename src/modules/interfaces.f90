@@ -6235,14 +6235,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          character(len=*),intent(in):: subname
        end subroutine copy_basis_specifications
 
-       subroutine orthon_data(odin, odout, subname)
+       subroutine copy_orthon_data(odin, odout, subname)
          use module_base
          use module_types
          implicit none
          type(orthon_data),intent(in):: odin
          type(orthon_data),intent(out):: odout
          character(len=*),intent(in):: subname
-       end subroutine orthon_data
+       end subroutine copy_orthon_data
 
    end interface
 
