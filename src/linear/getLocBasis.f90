@@ -607,152 +607,159 @@ logical,parameter:: secondLocreg=.false.
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
       end if
-      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call allocateSendBufferOrtho(tmbopt%comon, subname)
-          call allocateRecvBufferOrtho(tmbopt%comon, subname)
-          ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-          call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-               tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
-               lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-          call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
-          call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-               tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-               tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
-          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-          call deallocateSendBufferOrtho(tmbopt%comon, subname)
-      end if
-      call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-           orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
+           variable_locregs, tmb, tmbopt, orthpar, kernel, &
+           confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 
 
-      ! Calculate trace (or band structure energy, resp.)
-      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          trH=0.d0
-          do jorb=1,tmb%orbs%norb
-              do korb=1,tmb%orbs%norb
-                  trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
-              end do
-          end do
-      else
-          trH=0.d0
-          do jorb=1,tmb%orbs%norb
-              trH = trH + lagmat(jorb,jorb)
-          end do
-      end if
-
-
-      ! Cycle if the trace increased (steepest descent only)
-      if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-           if(trH > trHold + 1.d-8*abs(trHold)) then
-               consecutive_rejections=consecutive_rejections+1
-               if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-               if(consecutive_rejections<=3) then
-                   ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
-                   alpha=alpha*.6d0
-                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                       if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                       call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
-                   else
-                       ! It is not possible to use the old orbitals since the locregs might have changed.
-                       if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
-                   end if
-               else
-                   consecutive_rejections=0
-               end if
-           else
-               consecutive_rejections=0
-           end if
-      end if
-
-
-
-
-  
-      ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
-      ! of the previous iteration (fnrmOvrlpArr).
-      istart=1
-      do iorb=1,tmb%orbs%norbp
-          if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-              iiorb=tmb%orbs%isorb+iorb
-              ilr=tmb%orbs%inWhichLocreg(iiorb)
-              ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
-              fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
-          else
-              ! Here the angle between the current and the old gradient cannot be determined since
-              ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
-              iiorb=tmblarge%orbs%isorb+iorb
-              ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-              ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-              if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
-              fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
-          end if
-          istart=istart+ncount
-      end do
-
-      ! Keep the gradient for the next iteration.
-      if(it>1) then
-          call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
-      end if
-  
-      ! Determine the gradient norm and its maximal component. In addition, adapt the
-      ! step size for the steepest descent minimization (depending on the angle 
-      ! between the current gradient and the one from the previous iteration).
-      ! This is of course only necessary if we are using steepest descent and not DIIS.
-      ! if newgradient is true, the angle criterion cannot be used and the choice whether to
-      ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-      do iorb=1,tmb%orbs%norbp
-          fnrm=fnrm+fnrmArr(iorb,1)
-          if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-          if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-          ! Adapt step size for the steepest descent minimization.
-              tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-              if(tt>.9d0 .and. trH<trHold) then
-                  alpha(iorb)=alpha(iorb)*1.1d0
-              else
-                  alpha(iorb)=alpha(iorb)*.6d0
-              end if
-          end if
-      end do
-      call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
-      fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-      fnrmMax=sqrt(fnrmMax)
-      ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
-      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
-      trHold=trH
-  
-      ! Precondition the gradient.
-      if(iproc==0) then
-          write(*,'(a)') 'Preconditioning.'
-      end if
-
-      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          tmbopt => tmb
-          lhphiopt => lhphi
-      else
-          tmbopt => tmblarge
-          lhphiopt => lhphilarge
-      end if
-      ind2=1
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmbopt%orbs%isorb+iorb
-          ilr = tmbopt%orbs%inWhichLocreg(iiorb)
-          ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), hx, hy, hz, &
-               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
-               confdatarr(iorb)%prefac, it, iorb, eval_zero)
-          ind2=ind2+ncnt
-      end do
-
-
-
-      ! Determine the mean step size for steepest descent iterations.
-      tt=sum(alpha)
-      meanAlpha=tt/dble(tmb%orbs%norb)
+!!      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+!!          call allocateSendBufferOrtho(tmbopt%comon, subname)
+!!          call allocateRecvBufferOrtho(tmbopt%comon, subname)
+!!          ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
+!!          call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+!!               tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
+!!               lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
+!!          call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
+!!          call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
+!!               tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
+!!          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
+!!               tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
+!!          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
+!!          call deallocateSendBufferOrtho(tmbopt%comon, subname)
+!!      end if
+!!      call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
+!!           orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+!!
+!!
+!!      ! Calculate trace (or band structure energy, resp.)
+!!      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+!!          trH=0.d0
+!!          do jorb=1,tmb%orbs%norb
+!!              do korb=1,tmb%orbs%norb
+!!                  trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
+!!              end do
+!!          end do
+!!      else
+!!          trH=0.d0
+!!          do jorb=1,tmb%orbs%norb
+!!              trH = trH + lagmat(jorb,jorb)
+!!          end do
+!!      end if
+!!
+!!
+!!      ! Cycle if the trace increased (steepest descent only)
+!!      if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+!!           if(trH > trHold + 1.d-8*abs(trHold)) then
+!!               consecutive_rejections=consecutive_rejections+1
+!!               if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
+!!               if(consecutive_rejections<=3) then
+!!                   ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
+!!                   alpha=alpha*.6d0
+!!                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!                       if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+!!                       call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
+!!                   else
+!!                       ! It is not possible to use the old orbitals since the locregs might have changed.
+!!                       if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+!!                   end if
+!!               else
+!!                   consecutive_rejections=0
+!!               end if
+!!           else
+!!               consecutive_rejections=0
+!!           end if
+!!      end if
+!!
+!!
+!!
+!!
+!!  
+!!      ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
+!!      ! of the previous iteration (fnrmOvrlpArr).
+!!      istart=1
+!!      do iorb=1,tmb%orbs%norbp
+!!          if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!              iiorb=tmb%orbs%isorb+iorb
+!!              ilr=tmb%orbs%inWhichLocreg(iiorb)
+!!              ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
+!!              fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
+!!          else
+!!              ! Here the angle between the current and the old gradient cannot be determined since
+!!              ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
+!!              iiorb=tmblarge%orbs%isorb+iorb
+!!              ilr=tmblarge%orbs%inWhichLocreg(iiorb)
+!!              ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+!!              if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
+!!              fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
+!!          end if
+!!          istart=istart+ncount
+!!      end do
+!!
+!!      ! Keep the gradient for the next iteration.
+!!      if(it>1) then
+!!          call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+!!      end if
+!!  
+!!      ! Determine the gradient norm and its maximal component. In addition, adapt the
+!!      ! step size for the steepest descent minimization (depending on the angle 
+!!      ! between the current gradient and the one from the previous iteration).
+!!      ! This is of course only necessary if we are using steepest descent and not DIIS.
+!!      ! if newgradient is true, the angle criterion cannot be used and the choice whether to
+!!      ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+!!      do iorb=1,tmb%orbs%norbp
+!!          fnrm=fnrm+fnrmArr(iorb,1)
+!!          if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+!!          if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+!!          ! Adapt step size for the steepest descent minimization.
+!!              tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+!!              if(tt>.9d0 .and. trH<trHold) then
+!!                  alpha(iorb)=alpha(iorb)*1.1d0
+!!              else
+!!                  alpha(iorb)=alpha(iorb)*.6d0
+!!              end if
+!!          end if
+!!      end do
+!!      call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+!!      call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
+!!      fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+!!      fnrmMax=sqrt(fnrmMax)
+!!      ! Copy the gradient (will be used in the next iteration to adapt the step size).
+!!      call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
+!!      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+!!          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
+!!      trHold=trH
+!!  
+!!      ! Precondition the gradient.
+!!      if(iproc==0) then
+!!          write(*,'(a)') 'Preconditioning.'
+!!      end if
+!!
+!!      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!          tmbopt => tmb
+!!          lhphiopt => lhphi
+!!      else
+!!          tmbopt => tmblarge
+!!          lhphiopt => lhphilarge
+!!      end if
+!!      ind2=1
+!!      do iorb=1,tmb%orbs%norbp
+!!          iiorb=tmbopt%orbs%isorb+iorb
+!!          ilr = tmbopt%orbs%inWhichLocreg(iiorb)
+!!          ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+!!          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), hx, hy, hz, &
+!!               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
+!!               confdatarr(iorb)%prefac, it, iorb, eval_zero)
+!!          ind2=ind2+ncnt
+!!      end do
+!!
+!!
+!!
+!!      ! Determine the mean step size for steepest descent iterations.
+!!      tt=sum(alpha)
+!!      meanAlpha=tt/dble(tmb%orbs%norb)
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH

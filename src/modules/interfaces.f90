@@ -6206,7 +6206,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
                   variable_locregs, tmb, tmbopt, orthpar, kernel, &
                   confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
          use module_base
          use module_types
          implicit none
@@ -6225,6 +6225,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
 
    end interface
