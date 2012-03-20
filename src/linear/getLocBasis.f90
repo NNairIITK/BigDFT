@@ -604,12 +604,13 @@ logical,parameter:: secondLocreg=.false.
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
       end if
+      tmbopt%confdatarr => tmb%confdatarr
 
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
-           tmb%confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 
 

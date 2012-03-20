@@ -1,6 +1,6 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
-           confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
   use module_base
   use module_types
@@ -12,7 +12,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   logical,intent(in):: variable_locregs
   type(DFT_wavefunction),intent(inout):: tmbopt
   real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
-  type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
   type(localizedDIISParameters),intent(inout):: ldiis
   real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lhphiopt
   real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lphioldopt, lhphioldopt
@@ -165,8 +164,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
       call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
            tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
-           tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
-           confdatarr(iorb)%prefac, it, iorb, eval_zero)
+           tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+           tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
       ind2=ind2+ncnt
   end do
 
