@@ -614,152 +614,6 @@ logical,parameter:: secondLocreg=.false.
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 
 
-!!      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-!!          call allocateSendBufferOrtho(tmbopt%comon, subname)
-!!          call allocateRecvBufferOrtho(tmbopt%comon, subname)
-!!          ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-!!          call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-!!               tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
-!!               lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-!!          call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
-!!          call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-!!               tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-!!          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-!!               tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
-!!          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-!!          call deallocateSendBufferOrtho(tmbopt%comon, subname)
-!!      end if
-!!      call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-!!           tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
-!!
-!!
-!!      ! Calculate trace (or band structure energy, resp.)
-!!      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-!!          trH=0.d0
-!!          do jorb=1,tmb%orbs%norb
-!!              do korb=1,tmb%orbs%norb
-!!                  trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
-!!              end do
-!!          end do
-!!      else
-!!          trH=0.d0
-!!          do jorb=1,tmb%orbs%norb
-!!              trH = trH + lagmat(jorb,jorb)
-!!          end do
-!!      end if
-!!
-!!
-!!      ! Cycle if the trace increased (steepest descent only)
-!!      if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-!!           if(trH > trHold + 1.d-8*abs(trHold)) then
-!!               consecutive_rejections=consecutive_rejections+1
-!!               if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-!!               if(consecutive_rejections<=3) then
-!!                   ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
-!!                   alpha=alpha*.6d0
-!!                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-!!                       if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-!!                       call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
-!!                   else
-!!                       ! It is not possible to use the old orbitals since the locregs might have changed.
-!!                       if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
-!!                   end if
-!!               else
-!!                   consecutive_rejections=0
-!!               end if
-!!           else
-!!               consecutive_rejections=0
-!!           end if
-!!      end if
-!!
-!!
-!!
-!!
-!!  
-!!      ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
-!!      ! of the previous iteration (fnrmOvrlpArr).
-!!      istart=1
-!!      do iorb=1,tmb%orbs%norbp
-!!          if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-!!              iiorb=tmb%orbs%isorb+iorb
-!!              ilr=tmb%orbs%inWhichLocreg(iiorb)
-!!              ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-!!              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
-!!              fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
-!!          else
-!!              ! Here the angle between the current and the old gradient cannot be determined since
-!!              ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
-!!              iiorb=tmblarge%orbs%isorb+iorb
-!!              ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-!!              ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-!!              if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
-!!              fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
-!!          end if
-!!          istart=istart+ncount
-!!      end do
-!!
-!!      ! Keep the gradient for the next iteration.
-!!      if(it>1) then
-!!          call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
-!!      end if
-!!  
-!!      ! Determine the gradient norm and its maximal component. In addition, adapt the
-!!      ! step size for the steepest descent minimization (depending on the angle 
-!!      ! between the current gradient and the one from the previous iteration).
-!!      ! This is of course only necessary if we are using steepest descent and not DIIS.
-!!      ! if newgradient is true, the angle criterion cannot be used and the choice whether to
-!!      ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-!!      do iorb=1,tmb%orbs%norbp
-!!          fnrm=fnrm+fnrmArr(iorb,1)
-!!          if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-!!          if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-!!          ! Adapt step size for the steepest descent minimization.
-!!              tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-!!              if(tt>.9d0 .and. trH<trHold) then
-!!                  alpha(iorb)=alpha(iorb)*1.1d0
-!!              else
-!!                  alpha(iorb)=alpha(iorb)*.6d0
-!!              end if
-!!          end if
-!!      end do
-!!      call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-!!      call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
-!!      fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-!!      fnrmMax=sqrt(fnrmMax)
-!!      ! Copy the gradient (will be used in the next iteration to adapt the step size).
-!!      call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
-!!      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-!!          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
-!!      trHold=trH
-!!  
-!!      ! Precondition the gradient.
-!!      if(iproc==0) then
-!!          write(*,'(a)') 'Preconditioning.'
-!!      end if
-!!
-!!      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-!!          tmbopt => tmb
-!!          lhphiopt => lhphi
-!!      else
-!!          tmbopt => tmblarge
-!!          lhphiopt => lhphilarge
-!!      end if
-!!      ind2=1
-!!      do iorb=1,tmb%orbs%norbp
-!!          iiorb=tmbopt%orbs%isorb+iorb
-!!          ilr = tmbopt%orbs%inWhichLocreg(iiorb)
-!!          ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-!!          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-!!               tmb%confdatarr(iorb)%prefac, it, iorb, eval_zero)
-!!          ind2=ind2+ncnt
-!!      end do
-!!
-!!
-!!
-!!      ! Determine the mean step size for steepest descent iterations.
-!!      tt=sum(alpha)
-!!      meanAlpha=tt/dble(tmb%orbs%norb)
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
@@ -805,16 +659,16 @@ logical,parameter:: secondLocreg=.false.
 
       
       newgradient_if_2: if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
+          call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
           ! Normalize tmblarge%psi
           if(variable_locregs) then
               ist=1
-              do iorb=1,tmblarge%orbs%norbp
-                  iiorb=tmblarge%orbs%isorb+iorb
-                  ilrlarge=tmblarge%orbs%inwhichlocreg(iiorb)
-                  ncnt=tmblarge%lzd%llr(ilrlarge)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilrlarge)%wfd%nvctr_f
-                  tt=dnrm2(ncnt, tmblarge%psi(ist), 1)
-                  call dscal(ncnt, 1/tt, tmblarge%psi(ist), 1)
+              do iorb=1,tmbopt%orbs%norbp
+                  iiorb=tmbopt%orbs%isorb+iorb
+                  ilrlarge=tmbopt%orbs%inwhichlocreg(iiorb)
+                  ncnt=tmbopt%lzd%llr(ilrlarge)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilrlarge)%wfd%nvctr_f
+                  tt=dnrm2(ncnt, tmbopt%psi(ist), 1)
+                  call dscal(ncnt, 1/tt, tmbopt%psi(ist), 1)
                   ist=ist+ncnt
               end do
           end if
@@ -822,15 +676,15 @@ logical,parameter:: secondLocreg=.false.
 
           if(secondLocreg) then
                ! Go to even larger region
-               call small_to_large_locreg(iproc, nproc, tmblarge%lzd, lzdlarge2, tmblarge%orbs, tmblarge%orbs, tmblarge%psi, lphilarge2)
+               call small_to_large_locreg(iproc, nproc, tmbopt%lzd, lzdlarge2, tmbopt%orbs, tmbopt%orbs, tmbopt%psi, lphilarge2)
            end if
 
           if(.not.secondLocreg) then
                ! Update tmb%confdatarr...
-               call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
-              call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
-                   tmblarge%comon, tmblarge%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
+               call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
+              call MLWFnew(iproc, nproc, tmbopt%lzd, tmbopt%orbs, at, tmbopt%op, &
+                   tmbopt%comon, tmbopt%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
+                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmbopt%psi, Umat, locregCenter)
            end if
 
            if(secondLocreg) then
@@ -851,7 +705,7 @@ logical,parameter:: secondLocreg=.false.
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
-              call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
@@ -865,23 +719,23 @@ logical,parameter:: secondLocreg=.false.
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, tmb%lzd, lzdlarge2, tmb%orbs, orbslarge2, lphilarge2, tmb%psi)
           else
-              call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
+              call large_to_small_locreg(iproc, nproc, tmb%lzd, tmbopt%lzd, tmb%orbs, tmbopt%orbs, tmbopt%psi, tmb%psi)
           end if
 
-          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenter, tmb%confdatarr)
+          call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenter, tmb%confdatarr)
 
           if(variable_locregs) then
-              call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+              call vcopy(tmb%orbs%norb, tmbopt%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              call destroy_new_locregs(tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
+                   tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                   tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-              allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
-              call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
-              call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+                   tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
+                   tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
+              allocate(tmbopt%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
+              call memocc(istat, tmbopt%orbs%onwhichatom, 'tmbopt%orbs%onwhichatom', subname)
+              call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmbopt%orbs%onwhichatom(1), 1)
               locregCenterTemp=locregCenter
           end if
 
