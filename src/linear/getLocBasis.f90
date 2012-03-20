@@ -620,54 +620,6 @@ logical,parameter:: secondLocreg=.false.
       end if
       call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
            orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
-      !!if(iproc==0) write(*,'(a,3l4)') 'variable_locregs, tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE, tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY', &
-      !!    variable_locregs, tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE, tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY
-      !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      !!    !!tmbopt => tmb
-      !!    if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!        call allocateSendBufferOrtho(tmbopt%comon, subname)
-      !!        call allocateRecvBufferOrtho(tmbopt%comon, subname)
-      !!        ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-      !!        call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-      !!             tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
-      !!             lhphi, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-      !!        call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphi, tmbopt%comon, tt1, tt2)
-      !!        call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-      !!             tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-      !!        call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-      !!             tmbopt%comon%recvbuf, kernel, .true., lhphi)
-      !!        call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-      !!        call deallocateSendBufferOrtho(tmbopt%comon, subname)
-      !!    end if
-
-      !!    !!call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-      !!    !!     orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphi, lagmat)
-      !!else
-
-      !!    !!tmbopt => tmblarge
-      !!    !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-      !!    !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
-
-      !!    call allocateSendBufferOrtho(tmbopt%comon, subname)
-      !!    call allocateRecvBufferOrtho(tmbopt%comon, subname)
-      !!    ! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-      !!    call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-      !!         tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
-      !!         lhphilarge, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-      !!    call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphilarge, tmbopt%comon, tt1, tt2)
-      !!    call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-      !!         tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-      !!    call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-      !!         tmbopt%comon%recvbuf, kernel, .true., lhphilarge)
-      !!    call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-      !!    call deallocateSendBufferOrtho(tmbopt%comon, subname)
-
-      !!    !!call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, &
-      !!    !!     tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-      !!    !!     orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, tmbopt%psi, lhphilarge, lagmat)
-      !!end if
-      !!call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-      !!     orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
 
 
       ! Calculate trace (or band structure energy, resp.)
@@ -774,26 +726,24 @@ logical,parameter:: secondLocreg=.false.
           write(*,'(a)') 'Preconditioning.'
       end if
 
+      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          tmbopt => tmb
+          lhphiopt => lhphi
+      else
+          tmbopt => tmblarge
+          lhphiopt => lhphilarge
+      end if
       ind2=1
       do iorb=1,tmb%orbs%norbp
-          if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-             iiorb=tmb%orbs%isorb+iorb
-             ilr = tmb%orbs%inWhichLocreg(iiorb)
-             ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-             call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), hx, hy, hz, &
-                  tmb%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
-                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
-             ind2=ind2+ncnt
-         else
-             iiorb=tmblarge%orbs%isorb+iorb
-             ilr = tmblarge%orbs%inWhichLocreg(iiorb)
-             ncnt=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-             call choosePreconditioner2(iproc, nproc, tmblarge%orbs, tmblarge%lzd%llr(ilr), hx, hy, hz, &
-                  tmb%wfnmd%bs%nit_precond, lhphilarge(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
-                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
-             ind2=ind2+ncnt
-         end if
+          iiorb=tmbopt%orbs%isorb+iorb
+          ilr = tmbopt%orbs%inWhichLocreg(iiorb)
+          ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), hx, hy, hz, &
+               tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
+               confdatarr(iorb)%prefac, it, iorb, eval_zero)
+          ind2=ind2+ncnt
       end do
+
 
 
       ! Determine the mean step size for steepest descent iterations.
