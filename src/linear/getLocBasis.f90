@@ -652,7 +652,8 @@ logical,parameter:: secondLocreg=.false.
 
       ! Improve the orbitals, depending on the choice made above.
       if(.not.ldiis%switchSD) then
-          call improveOrbitals()
+          !call improveOrbitals()
+          call improveOrbitals(iproc, nproc, it, variable_locregs, tmbopt, ldiis, lhphiopt, alpha)
       else
           if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
       end if
@@ -1052,63 +1053,63 @@ contains
     end subroutine DIISorSD
 
 
-    subroutine improveOrbitals()
-    !
-    ! Purpose:
-    ! ========
-    !   This subroutine improves the basis functions by following the gradient 
-    ! For DIIS 
-    !!if (diisLIN%idsx > 0) then
-    !!   diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
-    !!   diisLIN%ids=diisLIN%ids+1
+    !!subroutine improveOrbitals()
+    !!!
+    !!! Purpose:
+    !!! ========
+    !!!   This subroutine improves the basis functions by following the gradient 
+    !!! For DIIS 
+    !!!!if (diisLIN%idsx > 0) then
+    !!!!   diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
+    !!!!   diisLIN%ids=diisLIN%ids+1
+    !!!!end if
+    !!if (ldiis%isx > 0) then
+    !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
+    !!    ldiis%is=ldiis%is+1
     !!end if
-    if (ldiis%isx > 0) then
-        ldiis%mis=mod(ldiis%is,ldiis%isx)+1
-        ldiis%is=ldiis%is+1
-    end if
 
-    ! Follow the gradient using steepest descent.
-    ! The same, but transposed
-    
-    ! steepest descent
-    if(ldiis%isx==0) then
-        call timing(iproc,'optimize_SD   ','ON')
-        istart=1
-        do iorb=1,tmb%orbs%norbp
-            !ilr=tmb%orbs%inWhichLocregp(iorb)
-            !if(.not.newgradient) then
-            if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                iiorb=tmb%orbs%isorb+iorb
-                ilr=tmb%orbs%inWhichLocreg(iiorb)
-                ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-                call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
-            else
-                iiorb=tmblarge%orbs%isorb+iorb
-                ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-                ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, tmblarge%psi(istart), 1)
-            end if
-            istart=istart+ncount
-        end do
-        call timing(iproc,'optimize_SD   ','OF')
-    else
-        ! DIIS
-        if(ldiis%alphaDIIS/=1.d0) then
-            !if(.not.newgradient) then
-            if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
-            else
-                call dscal(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
-            end if
-        end if
-        !if(.not.newgradient) then
-        if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-            call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
-        else
-            call optimizeDIIS(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%lzd, lhphilarge, tmblarge%psi, ldiis, it)
-        end if
-    end if
-    end subroutine improveOrbitals
+    !!! Follow the gradient using steepest descent.
+    !!! The same, but transposed
+    !!
+    !!! steepest descent
+    !!if(ldiis%isx==0) then
+    !!    call timing(iproc,'optimize_SD   ','ON')
+    !!    istart=1
+    !!    do iorb=1,tmb%orbs%norbp
+    !!        !ilr=tmb%orbs%inWhichLocregp(iorb)
+    !!        !if(.not.newgradient) then
+    !!        if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+    !!            iiorb=tmb%orbs%isorb+iorb
+    !!            ilr=tmb%orbs%inWhichLocreg(iiorb)
+    !!            ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+    !!            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
+    !!        else
+    !!            iiorb=tmblarge%orbs%isorb+iorb
+    !!            ilr=tmblarge%orbs%inWhichLocreg(iiorb)
+    !!            ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+    !!            call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, tmblarge%psi(istart), 1)
+    !!        end if
+    !!        istart=istart+ncount
+    !!    end do
+    !!    call timing(iproc,'optimize_SD   ','OF')
+    !!else
+    !!    ! DIIS
+    !!    if(ldiis%alphaDIIS/=1.d0) then
+    !!        !if(.not.newgradient) then
+    !!        if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+    !!            call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
+    !!        else
+    !!            call dscal(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
+    !!        end if
+    !!    end if
+    !!    !if(.not.newgradient) then
+    !!    if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+    !!        call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
+    !!    else
+    !!        call optimizeDIIS(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%lzd, lhphilarge, tmblarge%psi, ldiis, it)
+    !!    end if
+    !!end if
+    !!end subroutine improveOrbitals
 
 
 
@@ -1253,6 +1254,67 @@ contains
 
 
 end subroutine getLocalizedBasis
+
+
+
+subroutine improveOrbitals(iproc, nproc, it, variable_locregs, tmb, ldiis, lhphi, alpha)
+use module_base
+use module_types
+use module_interfaces, except_this_one => improveOrbitals
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, it
+logical,intent(in):: variable_locregs
+type(DFT_wavefunction),intent(inout):: tmb
+type(localizedDIISParameters),intent(inout):: ldiis
+real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
+real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
+
+! Local variables
+integer:: istart, iorb, iiorb, ilr, ncount
+
+if (ldiis%isx > 0) then
+    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
+    ldiis%is=ldiis%is+1
+end if
+
+
+! steepest descent
+if(ldiis%isx==0) then
+    call timing(iproc,'optimize_SD   ','ON')
+    istart=1
+    do iorb=1,tmb%orbs%norbp
+        !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+            iiorb=tmb%orbs%isorb+iorb
+            ilr=tmb%orbs%inWhichLocreg(iiorb)
+            ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
+        !!else
+        !!    iiorb=tmblarge%orbs%isorb+iorb
+        !!    ilr=tmblarge%orbs%inWhichLocreg(iiorb)
+        !!    ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+        !!    call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, tmblarge%psi(istart), 1)
+        !!end if
+        istart=istart+ncount
+    end do
+    call timing(iproc,'optimize_SD   ','OF')
+else
+    ! DIIS
+    if(ldiis%alphaDIIS/=1.d0) then
+        !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+            call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
+        !!else
+        !!    call dscal(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
+        !!end if
+    end if
+    !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+        call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
+    !!else
+    !!    call optimizeDIIS(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%lzd, lhphilarge, tmblarge%psi, ldiis, it)
+    !!end if
+end if
+end subroutine improveOrbitals
 
 
 

@@ -6240,6 +6240,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
+       subroutine improveOrbitals(iproc, nproc, it, variable_locregs, tmb, ldiis, lhphi, alpha)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, it
+         logical,intent(in):: variable_locregs
+         type(DFT_wavefunction),intent(inout):: tmb
+         type(localizedDIISParameters),intent(inout):: ldiis
+         real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
+         real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
+       end subroutine improveOrbitals
+
    end interface
 
 END MODULE module_interfaces
