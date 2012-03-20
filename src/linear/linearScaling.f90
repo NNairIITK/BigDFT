@@ -40,7 +40,7 @@ real(8):: decrease_factor_total
 integer:: iorb
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
-type(confpot_data), dimension(:),pointer :: confdatarr, confdatarrder
+!type(confpot_data), dimension(:),pointer :: tmb%confdatarr, tmbder%confdatarr
 type(orthon_data):: orthpar
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
@@ -124,12 +124,12 @@ type(local_zone_descriptors):: lzd
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
-  allocate(confdatarr(tmb%orbs%norbp))
-  call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,&
+  allocate(tmb%confdatarr(tmb%orbs%norbp))
+  call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
 
-  allocate(confdatarrder(tmbder%orbs%norbp))
-  call define_confinement_data(confdatarrder,tmbder%orbs,rxyz,at,&
+  allocate(tmbder%confdatarr(tmbder%orbs%norbp))
+  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
 
   ! Now all initializations are done ######################################################################################
@@ -305,9 +305,9 @@ type(local_zone_descriptors):: lzd
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-           confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+           tmb%confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
       call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
-           confdatarrder, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+           tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -328,7 +328,7 @@ type(local_zone_descriptors):: lzd
       if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
       if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
           100.d0*decrease_factor_total,'% of its initial value.'
-      confdatarr(:)%prefac=decrease_factor_total*confdatarr(:)%prefac
+      tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
       if(ifail>=3) then
           increase_locreg=increase_locreg+1.d0
           if(iproc==0) then
@@ -409,7 +409,7 @@ type(local_zone_descriptors):: lzd
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
-                  orthpar,confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
+                  orthpar,tmb%confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
                   hx,hy,hz,input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
@@ -586,8 +586,8 @@ type(local_zone_descriptors):: lzd
   call destroy_DFT_wavefunction(tmbder)
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocateBasicArraysInput(input%lin)
-  deallocate(confdatarr)
-  deallocate(confdatarrder)
+  deallocate(tmb%confdatarr)
+  deallocate(tmbder%confdatarr)
 
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad, stat=istat)
