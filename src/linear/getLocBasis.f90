@@ -608,8 +608,9 @@ logical,parameter:: secondLocreg=.false.
           lhphioldopt => lhphilargeold
       end if
 
+      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
-           variable_locregs, tmb, tmbopt, orthpar, kernel, &
+           variable_locregs, tmbopt, orthpar, kernel, &
            confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 

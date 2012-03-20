@@ -1,5 +1,5 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
-           variable_locregs, tmb, tmbopt, orthpar, kernel, &
+           variable_locregs, tmbopt, orthpar, kernel, &
            confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
   use module_base
@@ -11,7 +11,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
   integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
   logical,intent(in):: variable_locregs
   real(8),intent(in):: hx, hy, hz
-  type(DFT_wavefunction),intent(inout):: tmb, tmbopt
+  type(DFT_wavefunction),intent(inout):: tmbopt
   type(orthon_data),intent(in):: orthpar
   real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
   type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
@@ -36,7 +36,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
 
 
 
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call allocateSendBufferOrtho(tmbopt%comon, subname)
       call allocateRecvBufferOrtho(tmbopt%comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
@@ -56,7 +56,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
 
 
   ! Calculate trace (or band structure energy, resp.)
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
           do korb=1,tmbopt%orbs%norb
@@ -79,7 +79,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
            if(consecutive_rejections<=3) then
                ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
                alpha=alpha*.6d0
-               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+               if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                    if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                    call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
                else
@@ -102,7 +102,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
   ! of the previous iteration (fnrmOvrlpArr).
   istart=1
   do iorb=1,tmbopt%orbs%norbp
-      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      if(.not.variable_locregs .or. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           iiorb=tmbopt%orbs%isorb+iorb
           ilr=tmbopt%orbs%inWhichLocreg(iiorb)
           ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
@@ -150,7 +150,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmbopt%orbs%npsidim_orbs, lhphiopt, 1, lhphioldopt, 1)
-  if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+  if(variable_locregs .and. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
       call dcopy(max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
   trHold=trH
 
@@ -159,20 +159,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
       write(*,'(a)') 'Preconditioning.'
   end if
 
-  !!if(.not.variable_locregs .or. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-  !!    tmbopt => tmbopt
-  !!    lhphiopt => lhphiopt
-  !!else
-  !!    tmbopt => tmbopt
-  !!    lhphiopt => lhphiopt
-  !!end if
+
   ind2=1
   do iorb=1,tmbopt%orbs%norbp
       iiorb=tmbopt%orbs%isorb+iorb
       ilr = tmbopt%orbs%inWhichLocreg(iiorb)
       ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
       call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), hx, hy, hz, &
-           tmb%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
+           tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), confdatarr(iorb)%potorder, &
            confdatarr(iorb)%prefac, it, iorb, eval_zero)
       ind2=ind2+ncnt
   end do
@@ -180,7 +174,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, bl
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  meanAlpha=tt/dble(tmb%orbs%norb)
+  meanAlpha=tt/dble(tmbopt%orbs%norb)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

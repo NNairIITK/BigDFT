@@ -6204,7 +6204,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine enlarge_locreg
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, hx, hy, hz, blocksize_pdgemm, &
-                  variable_locregs, tmb, tmbopt, orthpar, kernel, &
+                  variable_locregs, tmbopt, orthpar, kernel, &
                   confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
          use module_base
@@ -6213,7 +6213,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
          logical,intent(in):: variable_locregs
          real(8),intent(in):: hx, hy, hz
-         type(DFT_wavefunction),intent(inout):: tmb, tmbopt
+         type(DFT_wavefunction),intent(inout):: tmbopt
          type(orthon_data),intent(in):: orthpar
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
          type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
@@ -6227,6 +6227,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
+
+       subroutine copy_basis_specifications(bsin, bsout, subname)
+         use module_base
+         use module_types
+         implicit none
+         type(basis_specifications),intent(in):: bsin
+         type(basis_specifications),intent(out):: bsout
+         character(len=*),intent(in):: subname
+       end subroutine copy_basis_specifications
 
    end interface
 
