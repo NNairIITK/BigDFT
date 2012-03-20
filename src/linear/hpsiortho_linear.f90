@@ -1,5 +1,5 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdgemm, &
-           variable_locregs, tmbopt, orthpar, kernel, &
+           variable_locregs, tmbopt, kernel, &
            confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
   use module_base
@@ -11,7 +11,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdge
   integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
   logical,intent(in):: variable_locregs
   type(DFT_wavefunction),intent(inout):: tmbopt
-  type(orthon_data),intent(in):: orthpar
   real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
   type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
   type(localizedDIISParameters),intent(inout):: ldiis
@@ -51,7 +50,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdge
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-       orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+       tmbopt%orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
 
 
   ! Calculate trace (or band structure energy, resp.)

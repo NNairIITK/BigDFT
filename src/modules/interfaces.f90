@@ -6203,7 +6203,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine enlarge_locreg
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdgemm, &
-                  variable_locregs, tmbopt, orthpar, kernel, &
+                  variable_locregs, tmbopt, kernel, &
                   confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
          use module_base
@@ -6212,7 +6212,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,intent(in):: iproc, nproc, it, blocksize_pdgemm
          logical,intent(in):: variable_locregs
          type(DFT_wavefunction),intent(inout):: tmbopt
-         type(orthon_data),intent(in):: orthpar
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
          type(confpot_data), dimension(tmbopt%orbs%norbp),intent(in):: confdatarr
          type(localizedDIISParameters),intent(inout):: ldiis
