@@ -595,46 +595,48 @@ logical,parameter:: secondLocreg=.false.
       call deallocateSendBufferOrtho(tmb%comon, subname)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-              call allocateSendBufferOrtho(tmb%comon, subname)
-              call allocateRecvBufferOrtho(tmb%comon, subname)
-              ! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-              call extractOrbital3(iproc, nproc, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
-                   tmb%orbs%inWhichLocreg, tmb%lzd, tmb%op, &
-                   lhphi, tmb%comon%nsendBuf, tmb%comon%sendBuf)
-              call postCommsOverlapNew(iproc, nproc, tmb%orbs, tmb%op, tmb%lzd, lhphi, tmb%comon, tt1, tt2)
-              call collectnew(iproc, nproc, tmb%comon, tmb%mad, tmb%op, tmb%orbs, tmb%lzd, tmb%comon%nsendbuf, &
-                   tmb%comon%sendbuf, tmb%comon%nrecvbuf, tmb%comon%recvbuf, tt3, tt4, tt5)
-              call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, &
-                   tmb%comon%recvbuf, kernel, .true., lhphi)
-              call deallocateRecvBufferOrtho(tmb%comon, subname)
-              call deallocateSendBufferOrtho(tmb%comon, subname)
+          tmbopt => tmb
+          if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+              call allocateSendBufferOrtho(tmbopt%comon, subname)
+              call allocateRecvBufferOrtho(tmbopt%comon, subname)
+              ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
+              call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+                   tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
+                   lhphi, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
+              call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphi, tmbopt%comon, tt1, tt2)
+              call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
+                   tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
+              call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
+                   tmbopt%comon%recvbuf, kernel, .true., lhphi)
+              call deallocateRecvBufferOrtho(tmbopt%comon, subname)
+              call deallocateSendBufferOrtho(tmbopt%comon, subname)
           end if
 
-          call orthoconstraintNonorthogonal(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, ovrlp, &
-               orthpar%methTransformOverlap, blocksize_pdgemm, tmb%psi, lhphi, lagmat)
+          call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
+               orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphi, lagmat)
       else
 
+          tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
 
-          call allocateSendBufferOrtho(tmblarge%comon, subname)
-          call allocateRecvBufferOrtho(tmblarge%comon, subname)
+          call allocateSendBufferOrtho(tmbopt%comon, subname)
+          call allocateRecvBufferOrtho(tmbopt%comon, subname)
           ! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-          call extractOrbital3(iproc, nproc, tmblarge%orbs, max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), &
-               tmblarge%orbs%inWhichLocreg, tmblarge%lzd, tmblarge%op, &
-               lhphilarge, tmblarge%comon%nsendBuf, tmblarge%comon%sendBuf)
-          call postCommsOverlapNew(iproc, nproc, tmblarge%orbs, tmblarge%op, tmblarge%lzd, lhphilarge, tmblarge%comon, tt1, tt2)
-          call collectnew(iproc, nproc, tmblarge%comon, tmblarge%mad, tmblarge%op, tmblarge%orbs, tmblarge%lzd, tmblarge%comon%nsendbuf, &
-               tmblarge%comon%sendbuf, tmblarge%comon%nrecvbuf, tmblarge%comon%recvbuf, tt3, tt4, tt5)
-          call build_new_linear_combinations(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon%nrecvbuf, &
-               tmblarge%comon%recvbuf, kernel, .true., lhphilarge)
-          call deallocateRecvBufferOrtho(tmblarge%comon, subname)
-          call deallocateSendBufferOrtho(tmblarge%comon, subname)
+          call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+               tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
+               lhphilarge, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
+          call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphilarge, tmbopt%comon, tt1, tt2)
+          call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
+               tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
+          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
+               tmbopt%comon%recvbuf, kernel, .true., lhphilarge)
+          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
+          call deallocateSendBufferOrtho(tmbopt%comon, subname)
 
-          call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, &
-               tmblarge%op, tmblarge%comon, tmblarge%mad, ovrlp, &
-               orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, tmblarge%psi, lhphilarge, lagmat)
+          call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, &
+               tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
+               orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, tmbopt%psi, lhphilarge, lagmat)
       end if
 
 
