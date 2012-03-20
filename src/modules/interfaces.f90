@@ -1843,7 +1843,7 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
            denspot,GPU,trH,&
-           infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
+           infoBasisFunctions,nlpspd,proj,ldiis,&
            confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
            locrad,tmb)
         use module_base
@@ -1864,7 +1864,6 @@ module module_interfaces
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
         type(localizedDIISParameters),intent(inout):: ldiis
-        type(orthon_data),intent(in):: orthpar
         type(DFT_wavefunction),intent(inout):: tmb
         type(confpot_data), dimension(tmb%orbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -6235,6 +6234,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(basis_specifications),intent(out):: bsout
          character(len=*),intent(in):: subname
        end subroutine copy_basis_specifications
+
+       subroutine orthon_data(odin, odout, subname)
+         use module_base
+         use module_types
+         implicit none
+         type(orthon_data),intent(in):: odin
+         type(orthon_data),intent(out):: odout
+         character(len=*),intent(in):: subname
+       end subroutine orthon_data
 
    end interface
 

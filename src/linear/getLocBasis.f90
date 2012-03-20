@@ -216,7 +216,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,&
-    infoBasisFunctions,nlpspd,proj,ldiis,orthpar,&
+    infoBasisFunctions,nlpspd,proj,ldiis,&
     confdatarr,blocksize_pdgemm,hx,hy,hz,SIC, &
     locrad,tmb)
 !
@@ -245,7 +245,6 @@ real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
-type(orthon_data),intent(in):: orthpar
 type(DFT_wavefunction),target,intent(inout):: tmb
 type(confpot_data), dimension(tmb%orbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -464,8 +463,8 @@ logical,parameter:: secondLocreg=.false.
               call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
               tmbopt => tmblarge
           end if
-          call orthonormalizeLocalized(iproc, nproc, orthpar%methTransformOverlap, orthpar%nItOrtho, &
-               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+          call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+               tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
                tmbopt%mad, tmbopt%psi, ovrlp)
 
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -610,7 +609,7 @@ logical,parameter:: secondLocreg=.false.
 
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, blocksize_pdgemm, &
-           variable_locregs, tmbopt, orthpar, kernel, &
+           variable_locregs, tmbopt, tmb%orthpar, kernel, &
            confdatarr, ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
 
@@ -631,7 +630,7 @@ logical,parameter:: secondLocreg=.false.
 !!          call deallocateSendBufferOrtho(tmbopt%comon, subname)
 !!      end if
 !!      call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-!!           orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+!!           tmb%orthpar%methTransformOverlap, blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
 !!
 !!
 !!      ! Calculate trace (or band structure energy, resp.)

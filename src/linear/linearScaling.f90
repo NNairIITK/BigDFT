@@ -141,6 +141,16 @@ type(local_zone_descriptors):: lzd
   orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
   orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
+  tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+  tmb%orthpar%nItOrtho = input%lin%nItOrtho
+  tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+  tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
+  tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+  tmbder%orthpar%nItOrtho = input%lin%nItOrtho
+  tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+  tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
 
   ! Allocate the global orbitals psi and psit
   if(.not.input%lin%transformToGlobal) then
@@ -409,7 +419,7 @@ type(local_zone_descriptors):: lzd
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
-                  orthpar,tmb%confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
+                  tmb%confdatarr,tmb%wfnmd%bpo%blocksize_pdgemm,&
                   hx,hy,hz,input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
