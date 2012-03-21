@@ -233,12 +233,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
       ! Improve the orbitals, depending on the choice made above.
       if(.not.ldiis%switchSD) then
-          !call improveOrbitals()
-          !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          !!    call improveOrbitals(iproc, nproc, it, variable_locregs, tmb, ldiis, lhphi, alpha)
-          !!else
-          !!    call improveOrbitals(iproc, nproc, it, variable_locregs, tmblarge, ldiis, lhphilarge, alpha)
-          !!end if
           call improveOrbitals(iproc, nproc, it, variable_locregs, tmbopt, ldiis, lhphiopt, alpha)
       else
           if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
@@ -326,15 +320,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
               !!tmblarge => tmblarge
           end if
-          !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-          !!         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-          !!         tmb%mad, tmb%psi, ovrlp)
-          !!else
-          !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-          !!         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%lzd, &
-          !!         tmblarge%mad, tmblarge%psi, ovrlp)
-          !!end if
           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
                tmbopt%mad, tmbopt%psi, ovrlp)
