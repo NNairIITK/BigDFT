@@ -664,7 +664,7 @@ logical,parameter:: secondLocreg=.false.
       tmbopt%confdatarr => tmb%confdatarr
 
       write(*,'(a,i7,i10)') 'BEFORE: iproc, size(lhphilarge)', iproc, size(lhphilarge)
-      call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
+      call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmb, tmbopt, at, rxyz, kernel, &
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor)
       write(*,'(a,i7,i10)') 'AFTER: iproc, size(lhphilarge)', iproc, size(lhphilarge)
