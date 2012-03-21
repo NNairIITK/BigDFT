@@ -454,9 +454,13 @@ type(local_zone_descriptors):: lzd
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
                       .and. tmb%wfnmd%bs%update_phi) then
-                      call deallocate_p2pComms(tmbmix%comrp, subname)
-                      call nullify_p2pComms(tmbmix%comrp)
-                      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, tmb%lzd, tmbmix%comrp)
+                      !!call deallocate_p2pComms(tmbmix%comrp, subname)
+                      !!call nullify_p2pComms(tmbmix%comrp)
+                      !!call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, tmb%lzd, tmbmix%comrp)
+                      call deallocate_p2pComms(tmbder%comrp, subname)
+                      call nullify_p2pComms(tmbder%comrp)
+                      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+                      tmbmix => tmbder
                   end if
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
                   call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
