@@ -445,7 +445,24 @@ type(local_zone_descriptors):: lzd
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
-              call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
+              !call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
+              if(.not. input%lin%mixedmode) then
+                  if(input%lin%useDerivativeBasisFunctions) then
+                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+                      tmbmix => tmbder
+                  else
+                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+                      tmbmix => tmb
+                  end if
+              else
+                  if(withder) then
+                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+                      tmbmix => tmbder
+                  else
+                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+                      tmbmix => tmb
+                  end if
+              end if
           end if
 
 
