@@ -1387,99 +1387,6 @@ call memocc(istat, iall, 'mat3', subname)
 
 end subroutine initCompressedMatmul3
 
-
-
-
-
-
-subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp, isorb_par, isorb, onWhichMPI)
-  use module_base
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  integer,dimension(0:nproc-1),intent(out):: norb_par, isorb_par
-  integer,dimension(norb),intent(out):: onWhichMPI
-  integer,intent(out):: norbp, isorb
-
-  ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
-  real(8):: tt
-
-  ! Determine norb_par
-  norb_par=0
-  tt=dble(norb)/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  norb_par(0:nproc-1)=ii
-  kk=norb-nproc*ii
-  norb_par(0:kk-1)=ii+1
-
-  ! Determine norbp
-  norbp=norb_par(iproc)
-
-  ! Determine isorb
-  isorb=0
-  do jproc=0,iproc-1
-      isorb=isorb+norb_par(jproc)
-  end do
-
-  ! Determine onWhichMPI and isorb_par
-  iiorb=0
-  isorb_par=0
-  do jproc=0,nproc-1
-      do iorb=1,norb_par(jproc)
-          iiorb=iiorb+1
-          onWhichMPI(iiorb)=jproc
-      end do
-      if(iproc==jproc) then
-          isorb_par(jproc)=isorb
-      end if
-  end do
-  call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0) call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
-
-
-end subroutine repartitionOrbitals
-
-
-
-
-subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
-  use module_base
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  integer,dimension(0:nproc-1),intent(out):: norb_par
-  integer,intent(out):: norbp, isorb
-
-  ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
-  real(8):: tt
-
-  ! Determine norb_par
-  norb_par=0
-  tt=dble(norb)/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  norb_par(0:nproc-1)=ii
-  kk=norb-nproc*ii
-  norb_par(0:kk-1)=ii+1
-
-  ! Determine norbp
-  norbp=norb_par(iproc)
-
-  ! Determine isorb
-  isorb=0
-  do jproc=0,iproc-1
-      isorb=isorb+norb_par(jproc)
-  end do
-
-
-end subroutine repartitionOrbitals2
-
-
 subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
@@ -2041,11 +1948,14 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   norbu=norb
   norbd=0
   call nullify_orbitals_data(lorbs)
-  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-       input%nkpt, input%kpt, input%wkpt, lorbs)
-  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
-       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
-  
+!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+!!$       input%nkpt, input%kpt, input%wkpt, lorbs)
+!!$  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
+!!$       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
+ 
+  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+       input%nkpt, input%kpt, input%wkpt, lorbs,.true.) !simple repartition
+ 
 
   allocate(locregCenter(3,nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -2268,10 +2178,12 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   norb=norbu
   norbd=0
   nspin=1
-  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs)
-  call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
-       llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
+!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+!!$       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs)
+!!$  call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
+!!$       llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
+  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
 
   allocate(orbsperlocreg(lzd%nlr), stat=istat)
   call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
@@ -2424,10 +2336,12 @@ character(len=*),parameter:: subname='create_new_locregs'
    norb=norbu
    norbd=0
    nspin=1
-   call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
-   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
-        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+!!$   call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
+!!$        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
+!!$   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
+!!$        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
+        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge,.true.) !simple repartition
 
    orbslarge%inwhichlocreg = inwhichlocreg_reference
 

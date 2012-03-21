@@ -144,11 +144,11 @@ program BigDFT2Wannier
       nvirtd = 0
       if (input%nspin==2) nvirtd=nvirtu
       call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+         &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
       !Setup the description of the projectors (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-         &   orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp) 
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp,.false.) 
 
       if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
 
@@ -501,7 +501,7 @@ program BigDFT2Wannier
 
       !Setup the description of the new subspace (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-         &   orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb)
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,.false.)
 
       ! Initialise the arrays n_bands_par, isband_par
       call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)

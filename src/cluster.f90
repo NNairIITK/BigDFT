@@ -965,7 +965,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                &   KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs)
+                KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs,.false.)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 
@@ -989,7 +989,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,basedist=KSwfn%orbs%norb_par(0:,1:))
+                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,basedist=KSwfn%orbs%norb_par(0:,1:))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
                 basedist=KSwfn%comms%nvctr_par(0:,1:))  
@@ -1221,19 +1221,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(denspot%pot_full,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%pot_full',subname)
 
-     !if (iproc==0) then
-     !   open(61)
-     !   write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
-     !        hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-     !end if
-
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp
-
-     !if (iproc==0) then
-     !   write(61,'(1pe19.11)')energy
-     !   close(61)
-     !end if
 
      if (iproc == 0) then
         write( *,'(1x,a,3(1x,1pe18.11))')&

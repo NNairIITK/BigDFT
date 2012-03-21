@@ -229,10 +229,11 @@ module module_interfaces
          logical, intent(out) :: lcs
       END SUBROUTINE check_closed_shell
 
-      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
+      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,simple,basedist)
          !n(c) use module_base
          use module_types
          implicit none
+         logical, intent(in) :: simple !< simple calculation of the repartition
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
          type(orbitals_data), intent(out) :: orbs

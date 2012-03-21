@@ -1558,11 +1558,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    end if
 
    call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-      &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+        orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
    !allocate communications arrays for inputguess orbitals
    !call allocate_comms(nproc,orbse,commse,subname)
-  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
+   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
 
    !use the eval array of orbse structure to save the original values
    allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)

@@ -304,6 +304,7 @@ low_level = \
 	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
+	init/wavefunctions.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \

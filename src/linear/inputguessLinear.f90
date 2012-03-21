@@ -112,10 +112,13 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
   call nullify_orbitals_data(lig%orbsig)
   !call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
   !     input%nspin, orbs%nspinor, orbs%nkpts, orbs%kpts, orbs%kwgts, lig%orbsig)
-  call orbitals_descriptors_forLinear(iproc, nproc, norbtot, norbtot, 0, &
-       input%nspin, orbs%nspinor, orbs%nkpts, orbs%kpts, orbs%kwgts, lig%orbsig)
-  call repartitionOrbitals(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, &
-       lig%orbsig%norbp, lig%orbsig%isorb_par, lig%orbsig%isorb, lig%orbsig%onWhichMPI)
+!!$  call orbitals_descriptors_forLinear(iproc, nproc, norbtot, norbtot, 0, &
+!!$       input%nspin, orbs%nspinor, orbs%nkpts, orbs%kpts, orbs%kwgts, lig%orbsig)
+!!$  call repartitionOrbitals(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, &
+!!$       lig%orbsig%norbp, lig%orbsig%isorb_par, lig%orbsig%isorb, lig%orbsig%onWhichMPI)
+
+  call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
+       input%nspin, orbs%nspinor, orbs%nkpts, orbs%kpts, orbs%kwgts, lig%orbsig,.true.) !simple repartition
 
 
   allocate(locregCenter(3,lig%orbsig%norb), stat=istat)
@@ -428,6 +431,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        !write(*,'(a,i5,4x,100i5)') 'iproc, lig%orbsGauss%inwhichlocreg', iproc, lig%orbsGauss%inwhichlocreg
   ! Since inputguess_gaussian_orbitals overwrites lig%orbsig,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
+  !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,lig%orbsGauss%norb,lig%orbsGauss%norb_par,&
        lig%orbsGauss%norbp,lig%orbsGauss%isorb_par,lig%orbsGauss%isorb,lig%orbsGauss%onWhichMPI)
 
