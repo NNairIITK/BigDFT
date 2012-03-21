@@ -417,6 +417,7 @@ logical,parameter:: secondLocreg=.false.
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
       call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
@@ -520,6 +521,7 @@ logical,parameter:: secondLocreg=.false.
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
                        tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  tmbopt%wfnmd%nphi=tmbopt%orbs%npsidim_orbs
                   allocate(tmbopt%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   call memocc(istat, tmbopt%orbs%onwhichatom, 'tmbopt%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmbopt%orbs%onwhichatom(1), 1)
