@@ -903,38 +903,6 @@ contains
 
       ! First there are some checks whether the force is small enough to allow DIIS.
 
-      ! Decide whether the force is small eneough to allow DIIS
-      !if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
-      !    allowDIIS=.true.
-      !    if(iproc==0) write(*,'(1x,a)') 'The force is small enough to allow DIIS.'
-      !    ! This is to get the correct DIIS history 
-      !    ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
-      !    icountSwitch=icountSwitch-1
-      !else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
-      !    allowDIIS=.false.
-      !    if(iproc==0) write(*,'(1x,a)') 'The force is too large to allow DIIS.'
-      !end if    
-
-      !! Switch to SD if the flag indicating that we should start with SD is true.
-      !! If this is the case, this flag is set to false, since this flag concerns only the beginning.
-      !if(startWithSD .and. ldiis%isx>0) then
-      !    call deallocateDIIS(ldiis)
-      !    ldiis%isx=0
-      !    ldiis%switchSD=.false.
-      !    startWithSD=.false.
-      !end if
-
-      ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
-      ! is not allowed.
-      !if(.not.startWithSD .and. .not.allowDIIS .and. ldiis%isx>0) then
-      !if(.not.startWithSD .and. ldiis%isx>0) then
-      !if(ldiis%isx>0) then
-      !    if(iproc==0) write(*,'(1x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
-      !    call deallocateDIIS(ldiis)
-      !    ldiis%isx=0
-      !    ldiis%switchSD=.true.
-      !end if
-
       ! If we swicthed to SD in the previous iteration, reset this flag.
       if(ldiis%switchSD) ldiis%switchSD=.false.
 

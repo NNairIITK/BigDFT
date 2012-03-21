@@ -6252,6 +6252,28 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
+       subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmbopt, tmb, at, rxyz, kernel, &
+                  lhphiopt, lphioldopt, lhphioldopt, lhphi, lphiold, lhphiold, alpha, locregCenter, locregCenterTemp, &
+                  denspot, locrad, inwhichlocreg_reference)
+         use module_base
+         use module_types
+         integer,intent(in):: iproc, nproc, it
+         logical,intent(in):: variable_locregs
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(DFT_wavefunction),intent(inout):: tmbopt, tmb
+         type(atoms_data),intent(in):: at
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
+         real(8),dimension(:),pointer,intent(inout):: lhphiopt, lphioldopt, lhphioldopt
+         real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
+         real(8),dimension(tmbopt%orbs%norbp),intent(in):: alpha
+         real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenter
+         real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenterTemp
+         type(DFT_local_fields),intent(inout):: denspot
+         real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+         integer,dimension(tmbopt%orbs%norb),intent(in):: inwhichlocreg_reference
+       end subroutine hpsitopsi_linear
+
    end interface
 
 END MODULE module_interfaces
