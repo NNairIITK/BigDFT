@@ -313,12 +313,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
           !newgradient_if_1: if(.not.newgradient) then
           if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-              ! Do a standard orthonormalization
-              !!tmblarge => tmb
           else
-              ! Go to large localization region and do the orthonormalization there.
               call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-              !!tmblarge => tmblarge
           end if
           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
