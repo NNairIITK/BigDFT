@@ -6252,26 +6252,29 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
-       subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmbopt, tmb, at, rxyz, kernel, &
-                  lhphiopt, lphioldopt, lhphioldopt, lhphi, lphiold, lhphiold, alpha, locregCenter, locregCenterTemp, &
-                  denspot, locrad, inwhichlocreg_reference)
-         use module_base
-         use module_types
-         integer,intent(in):: iproc, nproc, it
-         logical,intent(in):: variable_locregs
-         type(localizedDIISParameters),intent(inout):: ldiis
-         type(DFT_wavefunction),intent(inout):: tmbopt, tmb
-         type(atoms_data),intent(in):: at
-         real(8),dimension(3,at%nat),intent(in):: rxyz
-         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
-         real(8),dimension(:),pointer,intent(inout):: lhphiopt, lphioldopt, lhphioldopt
-         real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
-         real(8),dimension(tmbopt%orbs%norbp),intent(in):: alpha
-         real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenter
-         real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenterTemp
-         type(DFT_local_fields),intent(inout):: denspot
-         real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-         integer,dimension(tmbopt%orbs%norb),intent(in):: inwhichlocreg_reference
+       subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
+                   lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
+                   denspot, locrad, inwhichlocreg_reference, factor)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, it
+        logical,intent(in):: variable_locregs
+        type(localizedDIISParameters),intent(inout):: ldiis
+        type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
+        type(atoms_data),intent(in):: at
+        real(8),dimension(3,at%nat),intent(in):: rxyz
+        real(8),dimension(tmblarge%orbs%norb,tmblarge%orbs%norb),intent(inout):: kernel
+        real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
+        real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
+        real(8),dimension(:),pointer,intent(inout):: lhphiopt
+        real(8),dimension(tmblarge%orbs%norbp),intent(in):: alpha
+        real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
+        real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
+        type(DFT_local_fields),intent(inout):: denspot
+        real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+        integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
+        real(8),intent(in):: factor
        end subroutine hpsitopsi_linear
 
    end interface
