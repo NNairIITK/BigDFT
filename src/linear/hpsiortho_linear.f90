@@ -183,7 +183,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmb, tmbopt, at, rxyz, kernel, &
+subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor)
 use module_base
@@ -195,19 +195,19 @@ implicit none
 integer,intent(in):: iproc, nproc, it
 logical,intent(in):: variable_locregs
 type(localizedDIISParameters),intent(inout):: ldiis
-type(DFT_wavefunction),intent(inout):: tmb, tmbopt
+type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
+real(8),dimension(tmblarge%orbs%norb,tmblarge%orbs%norb),intent(inout):: kernel
 real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
 real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
 real(8),dimension(:),pointer,intent(inout):: lhphiopt
-real(8),dimension(tmbopt%orbs%norbp),intent(in):: alpha
-real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenter
-real(8),dimension(3,tmbopt%lzd%nlr),intent(inout):: locregCenterTemp
+real(8),dimension(tmblarge%orbs%norbp),intent(in):: alpha
+real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
+real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
 type(DFT_local_fields),intent(inout):: denspot
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-integer,dimension(tmbopt%orbs%norb),intent(in):: inwhichlocreg_reference
+integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
 real(8),intent(in):: factor
 
 ! Local variables
@@ -246,16 +246,16 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
       
       newgradient_if_2: if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
-          ! Normalize tmbopt%psi
+          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
+          ! Normalize tmblarge%psi
           if(variable_locregs) then
               ist=1
-              do iorb=1,tmbopt%orbs%norbp
-                  iiorb=tmbopt%orbs%isorb+iorb
-                  ilrlarge=tmbopt%orbs%inwhichlocreg(iiorb)
-                  ncnt=tmbopt%lzd%llr(ilrlarge)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilrlarge)%wfd%nvctr_f
-                  tt=dnrm2(ncnt, tmbopt%psi(ist), 1)
-                  call dscal(ncnt, 1/tt, tmbopt%psi(ist), 1)
+              do iorb=1,tmblarge%orbs%norbp
+                  iiorb=tmblarge%orbs%isorb+iorb
+                  ilrlarge=tmblarge%orbs%inwhichlocreg(iiorb)
+                  ncnt=tmblarge%lzd%llr(ilrlarge)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilrlarge)%wfd%nvctr_f
+                  tt=dnrm2(ncnt, tmblarge%psi(ist), 1)
+                  call dscal(ncnt, 1/tt, tmblarge%psi(ist), 1)
                   ist=ist+ncnt
               end do
           end if
@@ -263,10 +263,10 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
 
                ! Update tmb%confdatarr...
-               call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
-               call MLWFnew(iproc, nproc, tmbopt%lzd, tmbopt%orbs, at, tmbopt%op, &
-                   tmbopt%comon, tmbopt%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmbopt%psi, Umat, locregCenter)
+               call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
+               call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
+                   tmblarge%comon, tmblarge%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
+                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
 
 
           call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
@@ -279,7 +279,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
-              call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
+                   tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold)
@@ -289,22 +290,23 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
 
-          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmbopt%lzd, tmb%orbs, tmbopt%orbs, tmbopt%psi, tmb%psi)
+          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
 
-          call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenter, tmb%confdatarr)
+          call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenter, tmb%confdatarr)
 
           if(variable_locregs) then
-              call vcopy(tmb%orbs%norb, tmbopt%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
-                   tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
+              call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
+                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
-              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+              call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+                   tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                   tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
-                   tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
-              allocate(tmbopt%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
-              call memocc(istat, tmbopt%orbs%onwhichatom, 'tmbopt%orbs%onwhichatom', subname)
-              call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmbopt%orbs%onwhichatom(1), 1)
+                   tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
+                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+              allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
+              call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
+              call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
               locregCenterTemp=locregCenter
           end if
 
@@ -320,19 +322,28 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               !!tmblarge => tmb
           else
               ! Go to large localization region and do the orthonormalization there.
-              call small_to_large_locreg(iproc, nproc, tmb%lzd, tmbopt%lzd, tmb%orbs, tmbopt%orbs, tmb%psi, tmbopt%psi)
+              call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
               !!tmblarge => tmblarge
           end if
+          !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+          !!         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+          !!         tmb%mad, tmb%psi, ovrlp)
+          !!else
+          !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+          !!         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%lzd, &
+          !!         tmblarge%mad, tmblarge%psi, ovrlp)
+          !!end if
           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
                tmbopt%mad, tmbopt%psi, ovrlp)
 
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
               ! Optimize the locreg centers and potentially the shape of the basis functions.
-              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenterTemp, tmb%confdatarr)
-              call MLWFnew(iproc, nproc, tmbopt%lzd, tmbopt%orbs, at, tmbopt%op, &
-                   tmbopt%comon, tmbopt%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
-                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmbopt%psi, Umat, locregCenter)
+              call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
+              call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
+                   tmblarge%comon, tmblarge%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
+                   tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
 
               ! Check whether the new locreg centers are ok.
               call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
@@ -346,7 +357,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
-                  call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
+                       tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
@@ -361,24 +373,25 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
 
               ! Transform back to small locreg
-              call large_to_small_locreg(iproc, nproc, tmb%lzd, tmbopt%lzd, tmb%orbs, tmbopt%orbs, tmbopt%psi, tmb%psi)
+              call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
 
               ! Update tmb%confdatarr...
-              call update_confdatarr(tmbopt%lzd, tmbopt%orbs, locregCenter, tmb%confdatarr)
+              call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenter, tmb%confdatarr)
  
               ! Update the localization region if required.
               if(variable_locregs) then
-                  call vcopy(tmb%orbs%norb, tmbopt%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-                  call destroy_new_locregs(tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
-                       tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+                  call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
+                       tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
-                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+                       tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                       tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
-                       tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
-                  allocate(tmbopt%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
-                  call memocc(istat, tmbopt%orbs%onwhichatom, 'tmbopt%orbs%onwhichatom', subname)
-                  call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmbopt%orbs%onwhichatom(1), 1)
+                       tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
+                       tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
+                  call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
+                  call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
                   locregCenterTemp=locregCenter
               end if
 

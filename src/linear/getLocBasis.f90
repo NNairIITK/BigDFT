@@ -381,7 +381,8 @@ logical,parameter:: secondLocreg=.false.
       !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
       !!     tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
       !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -391,7 +392,8 @@ logical,parameter:: secondLocreg=.false.
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
            tmb%psi, lhphi, lhphiold, lphiold)
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
            tmb%psi, lhphi, lhphiold, lphiold)
@@ -410,7 +412,8 @@ logical,parameter:: secondLocreg=.false.
 
 
       locrad_tmp=factor*locrad
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -422,7 +425,8 @@ logical,parameter:: secondLocreg=.false.
 
       if(secondLocreg) then
           locrad_tmp=factor2*locrad
-          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
                lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
@@ -484,7 +488,8 @@ logical,parameter:: secondLocreg=.false.
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
-                  call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmbopt%lzd%nlr, &
+                       tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmbopt%orbs, tmbopt%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold)
@@ -510,7 +515,8 @@ logical,parameter:: secondLocreg=.false.
                   call destroy_new_locregs(tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
                        tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
-                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+                  call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+                       tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, tmbopt%comgp, &
                        tmbopt%psi, lhphilarge, lhphilargeold, lphilargeold)
@@ -664,7 +670,7 @@ logical,parameter:: secondLocreg=.false.
       tmbopt%confdatarr => tmb%confdatarr
 
       write(*,'(a,i7,i10)') 'BEFORE: iproc, size(lhphilarge)', iproc, size(lhphilarge)
-      call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmb, tmbopt, at, rxyz, kernel, &
+      call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor)
       write(*,'(a,i7,i10)') 'AFTER: iproc, size(lhphilarge)', iproc, size(lhphilarge)
