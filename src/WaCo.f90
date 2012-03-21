@@ -685,7 +685,7 @@ program WaCo
      end if
 
   end if
-  if (HamilAna) then
+  if (hamilAna) then
      if(iproc==0) then
         write(*,*) '!==================================!'
         write(*,*) '!     Hamiltonian Analysis :       !' 
@@ -768,6 +768,7 @@ program WaCo
            end do
         end do
 
+     !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
      i_all=-product(shape(buf))*kind(buf)
      deallocate(buf,stat=i_stat)
      call memocc(i_stat,i_all,'buf',subname)
@@ -1081,9 +1082,11 @@ program WaCo
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
-  i_all = -product(shape(buf))*kind(buf)
-  deallocate(buf,stat=i_stat)
-  call memocc(i_stat,i_all,'buf',subname)
+  if(bondana .or. hamilana) then
+     i_all = -product(shape(buf))*kind(buf)
+     deallocate(buf,stat=i_stat)
+     call memocc(i_stat,i_all,'buf',subname)
+  end if
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
   call memocc(i_stat,i_all,'wann_list',subname)
