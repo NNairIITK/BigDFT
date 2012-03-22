@@ -6279,6 +6279,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),intent(in):: factor
        end subroutine hpsitopsi_linear
 
+       subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, icountSDSatur, icountDIISFailureCons, icountSwitch, &
+                  icountDIISFailureTot, itBest, immediateSwitchToSD, resetDIIS, alpha, alphaDIIS, lphioldopt)
+         use module_base
+         use module_types
+         implicit none
+
+         ! Calling arguments
+         integer,intent(in):: iproc, nproc, it
+         real(8),intent(in):: trH
+         type(DFT_wavefunction),intent(inout):: tmbopt
+         type(localizedDIISParameters),intent(inout):: ldiis
+         integer,intent(inout):: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
+         logical,intent(inout):: immediateSwitchToSD, resetDIIS
+         real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
+         real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
+       end subroutine DIISorSD
+
    end interface
 
 END MODULE module_interfaces
