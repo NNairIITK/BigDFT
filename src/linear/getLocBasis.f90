@@ -253,15 +253,15 @@ real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, factor2
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
-integer:: icountDIISFailureCons,itBest, ncnt, lorb, ilrlarge
+integer:: iorb, idsx, consecutive_rejections
+integer:: ncnt, lorb, ilrlarge
 integer:: istat,istart,ierr,ii,it,iall,ind2,jorb,ist,iiorb
 integer:: ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
+logical:: withConfinement, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt, lhphioldopt
@@ -302,10 +302,10 @@ type(DFT_wavefunction),pointer:: tmbopt
           stop
       end if
   end if
-  icountSDSatur=0
-  icountSwitch=0
-  icountDIISFailureTot=0
-  icountDIISFailureCons=0
+  ldiis%icountSDSatur=0
+  ldiis%icountSwitch=0
+  ldiis%icountDIISFailureTot=0
+  ldiis%icountDIISFailureCons=0
   ldiis%is=0
   ldiis%switchSD=.false.
   ldiis%trmin=1.d100
@@ -327,8 +327,8 @@ type(DFT_wavefunction),pointer:: tmbopt
 
 
 
-  resetDIIS=.false.
-  immediateSwitchToSD=.false.
+  ldiis%resetDIIS=.false.
+  ldiis%immediateSwitchToSD=.false.
   consecutive_rejections=0
   trHold=1.d100
  
@@ -599,15 +599,14 @@ type(DFT_wavefunction),pointer:: tmbopt
   
       ! Determine whether the basis functions shall be further optimized using DIIS or steepest descent.
       !call DIISorSD()
-      call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, icountSDSatur, icountDIISFailureCons, icountSwitch, &
-               icountDIISFailureTot, itBest, immediateSwitchToSD, resetDIIS, alpha, alphaDIIS, lphioldopt)
+      call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
       if(iproc==0) then
           if(ldiis%isx>0) then
               write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
-                  icountDIISFailureCons, ', total failures=', icountDIISFailureTot
+                  ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
           else
               write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
-              ', consecutive successes=', icountSDSatur, ', DIIS=y'
+              ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
           end if
       end if
 
@@ -703,66 +702,66 @@ contains
 !!      ! Determine wheter the trace is decreasing (as it should) or increasing.
 !!      ! This is done by comparing the current value with diisLIN%energy_min, which is
 !!      ! the minimal value of the trace so far.
-!!      if(trH<=ldiis%trmin .and. .not.resetDIIS) then
+!!      if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
 !!          ! Everything ok
 !!          ldiis%trmin=trH
 !!          ldiis%switchSD=.false.
-!!          itBest=it
-!!          icountSDSatur=icountSDSatur+1
-!!          icountDIISFailureCons=0
+!!          ldiis%itBest=it
+!!          ldiis%icountSDSatur=ldiis%icountSDSatur+1
+!!          ldiis%icountDIISFailureCons=0
 !!
 !!          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
 !!          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-!!          if(icountSDSatur>=10 .and. ldiis%isx==0 .or. immediateSwitchToSD) then
-!!              icountSwitch=icountSwitch+1
-!!              idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-icountSwitch)
+!!          if(ldiis%icountSDSatur>=10 .and. ldiis%isx==0 .or. ldiis%immediateSwitchToSD) then
+!!              ldiis%icountSwitch=ldiis%icountSwitch+1
+!!              idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-ldiis%icountSwitch)
 !!              if(idsx>0) then
 !!                  if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-!!                  icountSDSatur=0
-!!                  icountSwitch=0
-!!                  icountDIISFailureTot=0
-!!                  icountDIISFailureCons=0
+!!                  ldiis%icountSDSatur=0
+!!                  ldiis%icountSwitch=0
+!!                  ldiis%icountDIISFailureTot=0
+!!                  ldiis%icountDIISFailureCons=0
 !!                  ldiis%is=0
 !!                  ldiis%switchSD=.false.
 !!                  ldiis%trmin=1.d100
 !!                  ldiis%trold=1.d100
 !!                  alpha=ldiis%alphaSD
 !!                  alphaDIIS=ldiis%alphaDIIS
-!!                  icountDIISFailureTot=0
-!!                  icountDIISFailureCons=0
-!!                  immediateSwitchToSD=.false.
+!!                  ldiis%icountDIISFailureTot=0
+!!                  ldiis%icountDIISFailureCons=0
+!!                  ldiis%immediateSwitchToSD=.false.
 !!              end if
 !!          end if
 !!      else
 !!          ! The trace is growing.
 !!          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
 !!          ! total failures or after 2 consecutive failures.
-!!          icountDIISFailureCons=icountDIISFailureCons+1
-!!          icountDIISFailureTot=icountDIISFailureTot+1
-!!          icountSDSatur=0
-!!          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+!!          ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
+!!          ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
+!!          ldiis%icountSDSatur=0
+!!          if((ldiis%icountDIISFailureCons>=2 .or. ldiis%icountDIISFailureTot>=3 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
 !!              ! Switch back to SD.
 !!              alpha=ldiis%alphaSD
 !!              if(iproc==0) then
-!!                  if(icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-!!                      icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-!!                  if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-!!                      icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-!!                  if(resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
+!!                  if(ldiis%icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+!!                      ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
+!!                  if(ldiis%icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+!!                      ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+!!                  if(ldiis%resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
 !!              end if
-!!              if(resetDIIS) then
-!!                  resetDIIS=.false.
-!!                  immediateSwitchToSD=.true.
+!!              if(ldiis%resetDIIS) then
+!!                  ldiis%resetDIIS=.false.
+!!                  ldiis%immediateSwitchToSD=.true.
 !!                  ldiis%trmin=1.d100
 !!              end if
 !!              ! Try to get back the orbitals of the best iteration. This is possible if
 !!              ! these orbitals are still present in the DIIS history.
-!!              if(it-itBest<ldiis%isx) then
+!!              if(it-ldiis%itBest<ldiis%isx) then
 !!                 if(iproc==0) then
 !!                     if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-!!                         itBest, ' which are the best so far.'
+!!                         ldiis%itBest, ' which are the best so far.'
 !!                 end if
-!!                 ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
+!!                 ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
 !!                 offset=0
 !!                 istdest=1
 !!                 do iorb=1,tmb%orbs%norbp
@@ -3145,8 +3144,7 @@ end subroutine update_kernel
 
 
 
-subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, icountSDSatur, icountDIISFailureCons, icountSwitch, &
-           icountDIISFailureTot, itBest, immediateSwitchToSD, resetDIIS, alpha, alphaDIIS, lphioldopt)
+subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   use module_base
   use module_types
   implicit none
@@ -3156,8 +3154,6 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, icountSDSatur, icountD
   real(8),intent(in):: trH
   type(DFT_wavefunction),intent(inout):: tmbopt
   type(localizedDIISParameters),intent(inout):: ldiis
-  integer,intent(inout):: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-  logical,intent(inout):: immediateSwitchToSD, resetDIIS
   real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
   real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
   
@@ -3186,66 +3182,66 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, icountSDSatur, icountD
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
-  if(trH<=ldiis%trmin .and. .not.resetDIIS) then
+  if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
       ldiis%switchSD=.false.
-      itBest=it
-      icountSDSatur=icountSDSatur+1
-      icountDIISFailureCons=0
+      ldiis%itBest=it
+      ldiis%icountSDSatur=ldiis%icountSDSatur+1
+      ldiis%icountDIISFailureCons=0
 
       ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
       ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-      if(icountSDSatur>=10 .and. ldiis%isx==0 .or. immediateSwitchToSD) then
-          icountSwitch=icountSwitch+1
-          idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-icountSwitch)
+      if(ldiis%icountSDSatur>=10 .and. ldiis%isx==0 .or. ldiis%immediateSwitchToSD) then
+          ldiis%icountSwitch=ldiis%icountSwitch+1
+          idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-ldiis%icountSwitch)
           if(idsx>0) then
               if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-              icountSDSatur=0
-              icountSwitch=0
-              icountDIISFailureTot=0
-              icountDIISFailureCons=0
+              ldiis%icountSDSatur=0
+              ldiis%icountSwitch=0
+              ldiis%icountDIISFailureTot=0
+              ldiis%icountDIISFailureCons=0
               ldiis%is=0
               ldiis%switchSD=.false.
               ldiis%trmin=1.d100
               ldiis%trold=1.d100
               alpha=ldiis%alphaSD
               alphaDIIS=ldiis%alphaDIIS
-              icountDIISFailureTot=0
-              icountDIISFailureCons=0
-              immediateSwitchToSD=.false.
+              ldiis%icountDIISFailureTot=0
+              ldiis%icountDIISFailureCons=0
+              ldiis%immediateSwitchToSD=.false.
           end if
       end if
   else
       ! The trace is growing.
       ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
       ! total failures or after 2 consecutive failures.
-      icountDIISFailureCons=icountDIISFailureCons+1
-      icountDIISFailureTot=icountDIISFailureTot+1
-      icountSDSatur=0
-      if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+      ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
+      ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
+      ldiis%icountSDSatur=0
+      if((ldiis%icountDIISFailureCons>=2 .or. ldiis%icountDIISFailureTot>=3 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
           ! Switch back to SD.
           alpha=ldiis%alphaSD
           if(iproc==0) then
-              if(icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-                  icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-              if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-                  icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-              if(resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
+              if(ldiis%icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+                  ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
+              if(ldiis%icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+                  ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+              if(ldiis%resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
           end if
-          if(resetDIIS) then
-              resetDIIS=.false.
-              immediateSwitchToSD=.true.
+          if(ldiis%resetDIIS) then
+              ldiis%resetDIIS=.false.
+              ldiis%immediateSwitchToSD=.true.
               ldiis%trmin=1.d100
           end if
           ! Try to get back the orbitals of the best iteration. This is possible if
           ! these orbitals are still present in the DIIS history.
-          if(it-itBest<ldiis%isx) then
+          if(it-ldiis%itBest<ldiis%isx) then
              if(iproc==0) then
                  if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                     itBest, ' which are the best so far.'
+                     ldiis%itBest, ' which are the best so far.'
              end if
-             ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
+             ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
              offset=0
              istdest=1
              do iorb=1,tmbopt%orbs%norbp

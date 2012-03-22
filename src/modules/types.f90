@@ -717,10 +717,11 @@ end type workarrays_quartic_convolutions
 
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
+    integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
     real(8):: trmin, trold, alphaSD, alphaDIIS
-    logical:: switchSD
+    logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
   type,public:: mixrhopotDIISParameters
