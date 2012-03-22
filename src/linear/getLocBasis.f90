@@ -313,24 +313,6 @@ type(DFT_wavefunction),pointer:: tmbopt
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
-  !!! Copy parameters to ldiis2 (needed for debugging)
-  !!if(secondLocreg) then
-  !!    ldiis2%is=ldiis%is
-  !!    ldiis2%isx=ldiis%isx
-  !!    ldiis2%mis=ldiis%mis
-  !!    ldiis2%DIISHistMax=ldiis%DIISHistMax
-  !!    ldiis2%DIISHistMin=ldiis%DIISHistMin
-  !!    ldiis2%trmin=ldiis%trmin
-  !!    ldiis2%trold=ldiis%trold
-  !!    ldiis2%alphaSD=ldiis%alphaSD
-  !!    ldiis2%alphaDIIS=ldiis%alphaDIIS
-  !!    ldiis2%switchSD=ldiis%switchSD
-  !!    allocate(ldiis2%phiHist(1), stat=istat)
-  !!    call memocc(istat, ldiis2%phiHist, 'ldiis2%phiHist', subname)
-  !!    allocate(ldiis2%hphiHist(1), stat=istat)
-  !!    call memocc(istat, ldiis2%hphiHist, 'ldiis2%hphiHist', subname)
-  !!end if
-
 
 
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -370,10 +352,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       locregCenterTemp=locregCenter
 
       ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
-      !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-      !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-      !!     tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-      !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -396,8 +374,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
       call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      !!call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-      !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
@@ -415,19 +391,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
 
-
-
-      !!if(secondLocreg) then
-      !!    locrad_tmp=factor2*locrad
-      !!    call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-      !!         tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-      !!         locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
-      !!         lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-      !!         lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-      !!    allocate(orbslarge2%onwhichatom(tmb%orbs%norb), stat=istat)
-      !!    call memocc(istat, orbslarge2%onwhichatom, 'orbslarge2%onwhichatom', subname)
-      !!    call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, orbslarge2%onwhichatom(1), 1)
-      !!end if
   end if
 
 
@@ -526,10 +489,6 @@ type(DFT_wavefunction),pointer:: tmbopt
 
       end if do_ortho_if
 
-
-
-
-
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       withConfinement=.true.
@@ -620,7 +579,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      !if(fnrmMax<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
       if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
           if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
@@ -682,12 +640,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      !!if(secondLocreg) then
-      !!    call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      !!    call destroy_new_locregs(lzdlarge2, tmb%orbs, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-      !!         lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-      !!    call deallocateDIIS(ldiis2)
-      !!end if
 
       ! Write the locreg centers
       if(iproc==0) then
@@ -789,8 +741,6 @@ contains
           icountDIISFailureTot=icountDIISFailureTot+1
           icountSDSatur=0
           if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
-          !if((icountDIISFailureCons>=200 .or. icountDIISFailureTot>=300 .or. resetDIIS) .and. ldiis%isx>0) then
-          !if((icountDIISFailureCons>=400 .or. icountDIISFailureTot>=600 .or. resetDIIS) .and. ldiis%isx>0) then
               ! Switch back to SD.
               alpha=ldiis%alphaSD
               if(iproc==0) then
@@ -858,64 +808,6 @@ contains
     end subroutine DIISorSD
 
 
-    !!subroutine improveOrbitals()
-    !!!
-    !!! Purpose:
-    !!! ========
-    !!!   This subroutine improves the basis functions by following the gradient 
-    !!! For DIIS 
-    !!!!if (diisLIN%idsx > 0) then
-    !!!!   diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
-    !!!!   diisLIN%ids=diisLIN%ids+1
-    !!!!end if
-    !!if (ldiis%isx > 0) then
-    !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
-    !!    ldiis%is=ldiis%is+1
-    !!end if
-
-    !!! Follow the gradient using steepest descent.
-    !!! The same, but transposed
-    !!
-    !!! steepest descent
-    !!if(ldiis%isx==0) then
-    !!    call timing(iproc,'optimize_SD   ','ON')
-    !!    istart=1
-    !!    do iorb=1,tmb%orbs%norbp
-    !!        !ilr=tmb%orbs%inWhichLocregp(iorb)
-    !!        !if(.not.newgradient) then
-    !!        if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-    !!            iiorb=tmb%orbs%isorb+iorb
-    !!            ilr=tmb%orbs%inWhichLocreg(iiorb)
-    !!            ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-    !!            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
-    !!        else
-    !!            iiorb=tmblarge%orbs%isorb+iorb
-    !!            ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-    !!            ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-    !!            call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, tmblarge%psi(istart), 1)
-    !!        end if
-    !!        istart=istart+ncount
-    !!    end do
-    !!    call timing(iproc,'optimize_SD   ','OF')
-    !!else
-    !!    ! DIIS
-    !!    if(ldiis%alphaDIIS/=1.d0) then
-    !!        !if(.not.newgradient) then
-    !!        if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-    !!            call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
-    !!        else
-    !!            call dscal(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
-    !!        end if
-    !!    end if
-    !!    !if(.not.newgradient) then
-    !!    if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-    !!        call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
-    !!    else
-    !!        call optimizeDIIS(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%lzd, lhphilarge, tmblarge%psi, ldiis, it)
-    !!    end if
-    !!end if
-    !!end subroutine improveOrbitals
-
 
 
     subroutine allocateLocalArrays()
@@ -924,10 +816,10 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
-      allocate(alpha(tmb%orbs%norb), stat=istat)
+      allocate(alpha(tmb%orbs%norbp), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
 
-      allocate(alphaDIIS(tmb%orbs%norb), stat=istat)
+      allocate(alphaDIIS(tmb%orbs%norbp), stat=istat)
       call memocc(istat, alphaDIIS, 'alphaDIIS', subname)
 
       allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
@@ -939,11 +831,9 @@ contains
       allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
-      !allocate(lhphi(lin%tmb%orbs%npsidim), stat=istat)
       allocate(lhphi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
-      !allocate(lhphiold(lin%tmb%orbs%npsidim), stat=istat)
       allocate(lhphiold(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
@@ -1083,34 +973,19 @@ if(ldiis%isx==0) then
     call timing(iproc,'optimize_SD   ','ON')
     istart=1
     do iorb=1,tmb%orbs%norbp
-        !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-            iiorb=tmb%orbs%isorb+iorb
-            ilr=tmb%orbs%inWhichLocreg(iiorb)
-            ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
-        !!else
-        !!    iiorb=tmblarge%orbs%isorb+iorb
-        !!    ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-        !!    ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-        !!    call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, tmblarge%psi(istart), 1)
-        !!end if
+        iiorb=tmb%orbs%isorb+iorb
+        ilr=tmb%orbs%inWhichLocreg(iiorb)
+        ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+        call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
         istart=istart+ncount
     end do
     call timing(iproc,'optimize_SD   ','OF')
 else
     ! DIIS
     if(ldiis%alphaDIIS/=1.d0) then
-        !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-            call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
-        !!else
-        !!    call dscal(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), ldiis%alphaDIIS, lhphilarge, 1)
-        !!end if
+        call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
     end if
-    !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-        call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
-    !!else
-    !!    call optimizeDIIS(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%lzd, lhphilarge, tmblarge%psi, ldiis, it)
-    !!end if
+    call optimizeDIIS(iproc, nproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis, it)
 end if
 end subroutine improveOrbitals
 
@@ -3289,3 +3164,146 @@ subroutine update_kernel(norb, Umat, kernel)
   call memocc(istat, iall, 'kernelold', subname)
 
 end subroutine update_kernel
+
+
+
+!!    subroutine DIISorSD2()
+!!    use module_base
+!!    use module_types
+!!    implicit none
+!!
+!!    ! Calling arguments
+!!    type(localizedDIISParameters),intent(inout):: ldiis
+!!    integer,intent(in):: it
+!!    real(8),intent(in):: trH
+!!    integer,intent(inout):: icountSDSatur, icountDIISFailureCons
+!!
+!!
+!!    !
+!!    ! Purpose:
+!!    ! ========
+!!    !   This subroutine decides whether one should use DIIS or variable step size
+!!    !   steepest descent to improve the orbitals. In the beginning we start with DIIS
+!!    !   with history length lin%DIISHistMax. If DIIS becomes unstable, we switch to
+!!    !   steepest descent. If the steepest descent iterations are successful, we switch
+!!    !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
+!!    !   history length is limited to be larger or equal than lin%DIISHistMin.
+!!    !
+!!
+!!
+!!      ! First there are some checks whether the force is small enough to allow DIIS.
+!!
+!!      ! If we swicthed to SD in the previous iteration, reset this flag.
+!!      if(ldiis%switchSD) ldiis%switchSD=.false.
+!!
+!!      ! Now come some checks whether the trace is descreasing or not. This further decides
+!!      ! whether we should use DIIS or SD.
+!!
+!!      ! Determine wheter the trace is decreasing (as it should) or increasing.
+!!      ! This is done by comparing the current value with diisLIN%energy_min, which is
+!!      ! the minimal value of the trace so far.
+!!      if(trH<=ldiis%trmin .and. .not.resetDIIS) then
+!!          ! Everything ok
+!!          ldiis%trmin=trH
+!!          ldiis%switchSD=.false.
+!!          itBest=it
+!!          icountSDSatur=icountSDSatur+1
+!!          icountDIISFailureCons=0
+!!
+!!          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
+!!          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
+!!          !if(icountSDSatur>=10 .and. ldiis%isx==0 .and. allowDIIS .or. immediateSwitchToSD) then
+!!          if(icountSDSatur>=10 .and. ldiis%isx==0 .or. immediateSwitchToSD) then
+!!              icountSwitch=icountSwitch+1
+!!              idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-icountSwitch)
+!!              if(idsx>0) then
+!!                  if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
+!!                  icountSDSatur=0
+!!                  icountSwitch=0
+!!                  icountDIISFailureTot=0
+!!                  icountDIISFailureCons=0
+!!                  ldiis%is=0
+!!                  ldiis%switchSD=.false.
+!!                  ldiis%trmin=1.d100
+!!                  ldiis%trold=1.d100
+!!                  alpha=ldiis%alphaSD
+!!                  alphaDIIS=ldiis%alphaDIIS
+!!                  !!!call initializeDIIS(lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+!!                  icountDIISFailureTot=0
+!!                  icountDIISFailureCons=0
+!!                  immediateSwitchToSD=.false.
+!!              end if
+!!          end if
+!!      else
+!!          ! The trace is growing.
+!!          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
+!!          ! total failures or after 2 consecutive failures.
+!!          icountDIISFailureCons=icountDIISFailureCons+1
+!!          icountDIISFailureTot=icountDIISFailureTot+1
+!!          icountSDSatur=0
+!!          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+!!              ! Switch back to SD.
+!!              alpha=ldiis%alphaSD
+!!              if(iproc==0) then
+!!                  if(icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+!!                      icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
+!!                  if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+!!                      icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+!!                  if(resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
+!!              end if
+!!              if(resetDIIS) then
+!!                  resetDIIS=.false.
+!!                  immediateSwitchToSD=.true.
+!!                  ldiis%trmin=1.d100
+!!              end if
+!!              ! Try to get back the orbitals of the best iteration. This is possible if
+!!              ! these orbitals are still present in the DIIS history.
+!!              if(it-itBest<ldiis%isx) then
+!!                 if(iproc==0) then
+!!                     if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
+!!                         itBest, ' which are the best so far.'
+!!                 end if
+!!                 ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
+!!                 offset=0
+!!                 istdest=1
+!!                 do iorb=1,tmb%orbs%norbp
+!!                     !ilr=tmb%orbs%inWhichLocregp(iorb)
+!!                     !if(.not.newgradient) then
+!!                     if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!                         iiorb=tmb%orbs%isorb+iorb
+!!                         ilr=tmb%orbs%inWhichLocreg(iiorb)
+!!                         ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!                     else
+!!                         iiorb=tmblarge%orbs%isorb+iorb
+!!                         ilr=tmblarge%orbs%inWhichLocreg(iiorb)
+!!                         ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+!!                     end if
+!!                     istsource=offset+ii*ncount+1
+!!                     !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
+!!                     !if(.not.newgradient) then
+!!                     if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
+!!                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
+!!                     else
+!!                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmblarge%psi(istdest), 1)
+!!                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphilargeold(istdest), 1)
+!!                     end if
+!!                     offset=offset+ldiis%isx*ncount
+!!                     istdest=istdest+ncount
+!!                 end do
+!!             else
+!!                 ! else copy the orbitals of the last iteration to lphiold
+!!                 !if(.not.newgradient) then
+!!                 if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+!!                     call dcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
+!!                 else
+!!                     call dcopy(size(tmblarge%psi), tmblarge%psi(1), 1, lphilargeold(1), 1)
+!!                 end if
+!!              end if
+!!              !!!call deallocateDIIS(ldiis)
+!!              ldiis%isx=0
+!!              ldiis%switchSD=.true.
+!!          end if
+!!      end if
+!!
+!!    end subroutine DIISorSD2
