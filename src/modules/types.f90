@@ -131,7 +131,7 @@ module module_types
     integer:: confinement_decrease_mode
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType

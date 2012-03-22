@@ -2446,3 +2446,114 @@ subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarg
 end subroutine destroy_new_locregs
 
 
+
+subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
+           ldiis, denspot, nphi, lphi)
+use module_base
+use module_types
+use module_interfaces, except_this_one => enlarge_locreg
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+real(8),intent(in):: hx, hy, hz
+type(local_zone_descriptors),intent(inout):: lzd
+real(8),dimension(lzd%nlr),intent(in):: locrad
+type(orbitals_data),intent(inout):: lorbs
+type(p2pComms),intent(inout):: comon, comgp
+type(overlapParameters),intent(inout):: op
+type(matrixDescriptors),intent(inout):: mad
+type(localizedDIISParameters),intent(inout):: ldiis
+type(DFT_local_fields),intent(inout):: denspot
+integer,intent(inout):: nphi
+real(8),dimension(:),pointer:: lphi
+
+! Local variables
+type(local_zone_descriptors):: lzdlarge
+type(orbitals_data):: orbslarge
+type(p2pComms):: comonlarge, comgplarge
+type(overlapParameters):: oplarge
+type(matrixDescriptors):: madlarge
+type(localizedDIISParameters):: ldiislarge
+real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
+real(8),dimension(:,:),allocatable:: locregCenter
+integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
+integer:: istat, iall, iorb, ilr
+character(len=*),parameter:: subname='enlarge_locreg'
+
+
+allocate(locregCenter(3,lzd%nlr), stat=istat)
+call memocc(istat, locregCenter, 'locregCenter', subname)
+
+allocate(inwhichlocreg_reference(lorbs%norb), stat=istat)
+call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
+
+allocate(onwhichatom_reference(lorbs%norb), stat=istat)
+call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
+
+! Fake allocation
+allocate(lhphi(1), stat=istat)
+call memocc(istat, lhphi, 'lhphi', subname)
+allocate(lhphiold(1), stat=istat)
+call memocc(istat, lhphiold, 'lhphiold', subname)
+allocate(lphiold(1), stat=istat)
+call memocc(istat, lphiold, 'lphiold', subname)
+
+! always use the same inwhichlocreg
+call vcopy(lorbs%norb, lorbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
+
+do iorb=1,lorbs%norb
+    ilr=lorbs%inwhichlocreg(iorb)
+    locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+end do
+
+! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
+call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
+call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
+call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+call vcopy(lorbs%norb, lorbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+     lphi, lhphi, lhphiold, lphiold)
+call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     lzd, lorbs, op, comon, mad, comgp, &
+     lphi, lhphi, lhphiold, lphiold)
+allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
+call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
+call vcopy(lorbs%norb, onwhichatom_reference(1), 1, lorbs%onwhichatom(1), 1)
+nphi=lorbs%npsidim_orbs
+call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+
+iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
+deallocate(inwhichlocreg_reference, stat=istat)
+call memocc(istat, iall, 'inwhichlocreg_reference', subname)
+
+iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
+deallocate(onwhichatom_reference, stat=istat)
+call memocc(istat, iall, 'onwhichatom_reference', subname)
+
+iall=-product(shape(locregCenter))*kind(locregCenter)
+deallocate(locregCenter, stat=istat)
+call memocc(istat, iall, 'locregCenter', subname)
+
+iall=-product(shape(lhphi))*kind(lhphi)
+deallocate(lhphi, stat=istat)
+call memocc(istat, iall, 'lhphi', subname)
+
+iall=-product(shape(lhphiold))*kind(lhphiold)
+deallocate(lhphiold, stat=istat)
+call memocc(istat, iall, 'lhphiold', subname)
+
+iall=-product(shape(lphiold))*kind(lphiold)
+deallocate(lphiold, stat=istat)
+call memocc(istat, iall, 'lphiold', subname)
+
+
+end subroutine enlarge_locreg
