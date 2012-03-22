@@ -240,7 +240,7 @@ type(DFT_wavefunction),pointer:: tmbmix
   ifail=0
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
-  ! ot to tmbder if we use the derivatives.
+  ! or to tmbder if we use the derivatives.
   if(input%lin%useDerivativeBasisFunctions) then
       tmbmix => tmbder
   else
@@ -275,12 +275,9 @@ type(DFT_wavefunction),pointer:: tmbmix
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      !if(.not.lowaccur_converged .and. (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged)) then
       if(.not.lowaccur_converged .and. &
-         !(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==nint(.6d0*dble(ndecrease)))) then
          (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
           decrease_factor_total<1.d0-input%lin%decrease_amount)) then
-         !!(itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. idecrease==ndecrease)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
@@ -290,6 +287,12 @@ type(DFT_wavefunction),pointer:: tmbmix
           if( (.not.lowaccur_converged .and. &
                (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
               .or. lowaccur_converged ) then
+              withder=.true.
+          else
+              withder=.false.
+          end if
+      else
+          if(input%lin%useDerivativeBasisFunctions) then
               withder=.true.
           else
               withder=.false.
@@ -306,8 +309,6 @@ type(DFT_wavefunction),pointer:: tmbmix
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           decrease_factor_total=1.d0
-      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      !!    tt=1.d0-(dble(itout-1))/dble(input%lin%nit_lowaccuracy)
       else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
           if(infoBasisFunctions>0) then
               idecrease=idecrease+1
@@ -316,8 +317,6 @@ type(DFT_wavefunction),pointer:: tmbmix
               ifail=ifail+1
           end if
           decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
-          !tt=1.d0-(dble(idecrease))/dble(ndecrease)
-          !tt=max(tt,0.d0)
       end if
       if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
       if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
@@ -339,8 +338,6 @@ type(DFT_wavefunction),pointer:: tmbmix
           allocate(tmbmix%comsr%recvbuf(1), stat=istat)
           call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
           call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
-          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
           locreg_increased=.true.
       else
           locreg_increased=.false.
@@ -379,12 +376,8 @@ type(DFT_wavefunction),pointer:: tmbmix
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
-              !!tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-              !!tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.true.
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
-              !!tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
-              !!tmbder%wfnmd%bs%communicate_phi_for_lsumrho=.false.
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
 
@@ -426,23 +419,12 @@ type(DFT_wavefunction),pointer:: tmbmix
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
-              !call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
-              if(.not. input%lin%mixedmode) then
-                  if(input%lin%useDerivativeBasisFunctions) then
-                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-                      tmbmix => tmbder
-                  else
-                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-                      tmbmix => tmb
-                  end if
+              if(withder) then
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+                  tmbmix => tmbder
               else
-                  if(withder) then
-                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-                      tmbmix => tmbder
-                  else
-                      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-                      tmbmix => tmb
-                  end if
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+                  tmbmix => tmb
               end if
           end if
 
@@ -475,18 +457,10 @@ type(DFT_wavefunction),pointer:: tmbmix
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
           ! Deallocate the buffers needed for the communication of the potential.
-          if(.not. input%lin%mixedmode) then
-              if(input%lin%useDerivativeBasisFunctions) then
-                  call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-              else
-                  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-              end if
+          if(withder) then
+              call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
           else
-              if(withder) then
-                  call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-              else
-                  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-              end if
+              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
 
 

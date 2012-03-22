@@ -1976,10 +1976,12 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
   deallocate(lorbs%inWhichLocreg, stat=istat)
   call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
-  
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
+  iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
+  deallocate(lorbs%onwhichatom, stat=istat)
+  call memocc(istat, iall, 'lorbs%onwhichatom', subname)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, at%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
@@ -2223,8 +2225,8 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   end do
 
   ! Copy back onwhichatom
-  allocate(llborbs%onwhichatom(llborbs%norb), stat=istat)
-  call memocc(istat, llborbs%onwhichatom, 'llborbs%onwhichatom', subname)
+  !!allocate(llborbs%onwhichatom(llborbs%norb), stat=istat)
+  !!call memocc(istat, llborbs%onwhichatom, 'llborbs%onwhichatom', subname)
   call vcopy(llborbs%norb, onwhichatom(1), 1, llborbs%onwhichatom(1), 1)
 
   ! Recreate lzd, since it has to contain the bounds also for the derivatives
@@ -2512,8 +2514,8 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locre
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
-call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
+!!allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
+!!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
 call vcopy(lorbs%norb, lorbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
@@ -2522,8 +2524,8 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%g
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lzd, lorbs, op, comon, mad, comgp, &
      lphi, lhphi, lhphiold, lphiold)
-allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
-call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
+!!allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
+!!call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
 call vcopy(lorbs%norb, onwhichatom_reference(1), 1, lorbs%onwhichatom(1), 1)
 nphi=lorbs%npsidim_orbs
 call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)

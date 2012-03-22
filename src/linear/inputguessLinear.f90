@@ -119,6 +119,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
 
   call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
        input%nspin, orbs%nspinor, orbs%nkpts, orbs%kpts, orbs%kwgts, lig%orbsig,.true.) !simple repartition
+  iall=-product(shape(lig%orbsig%onwhichatom))*kind(lig%orbsig%onwhichatom)
+  deallocate(lig%orbsig%onwhichatom,stat=istat)
+  call memocc(istat,iall,'lig%orbsig%onwhichatom',subname)
 
 
   allocate(locregCenter(3,lig%orbsig%norb), stat=istat)
