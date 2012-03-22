@@ -285,8 +285,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-                   tmb%psi, lhphi, lhphiold, lphiold)
+              call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
               call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -303,8 +302,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+              call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
@@ -349,8 +347,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-                  call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-                       tmb%psi, lhphi, lhphiold, lphiold)
+                  call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -374,8 +371,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               ! Update the localization region if required.
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-                  call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                       tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
                   call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &

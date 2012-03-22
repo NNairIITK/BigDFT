@@ -2400,32 +2400,26 @@ end subroutine create_new_locregs
 
 
 
-subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
   implicit none
 
   ! Calling arguments
-  type(local_zone_descriptors),intent(inout):: lzdlarge
-  type(orbitals_data),intent(inout):: orbslarge
-  type(overlapParameters),intent(inout):: oplarge
-  type(p2pComms),intent(inout):: comonlarge
-  type(matrixDescriptors),intent(inout):: madlarge
-  type(p2pComms),intent(inout):: comgplarge
+  type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
 
   ! Local variables
   integer:: istat, iall
   character(len=*),parameter:: subname='destroy_new_locregs'
 
-  call deallocate_local_zone_descriptors(lzdlarge, subname)
-  call deallocate_orbitals_data(orbslarge, subname)
-  call deallocate_overlapParameters(oplarge, subname)
-  call deallocate_p2pComms(comonlarge, subname)
-  call deallocate_matrixDescriptors(madlarge, subname)
-  call deallocate_p2pComms(comgplarge, subname)
+  call deallocate_local_zone_descriptors(tmb%lzd, subname)
+  call deallocate_orbitals_data(tmb%orbs, subname)
+  call deallocate_overlapParameters(tmb%op, subname)
+  call deallocate_p2pComms(tmb%comon, subname)
+  call deallocate_matrixDescriptors(tmb%mad, subname)
+  call deallocate_p2pComms(tmb%comgp, subname)
 
   iall=-product(shape(lphilarge))*kind(lphilarge)
   deallocate(lphilarge, stat=istat)
@@ -2514,8 +2508,7 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locre
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
 call vcopy(lorbs%norb, lorbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-     lphi, lhphi, lhphiold, lphiold)
+call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lphi, lhphi, lhphiold, lphiold, tmb)
@@ -2525,8 +2518,7 @@ call vcopy(lorbs%norb, onwhichatom_reference(1), 1, lorbs%onwhichatom(1), 1)
 nphi=lorbs%npsidim_orbs
 call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
 call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
 iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
 deallocate(inwhichlocreg_reference, stat=istat)

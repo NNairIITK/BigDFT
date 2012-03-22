@@ -5930,17 +5930,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_wavefunction),intent(out):: tmb
        end subroutine create_new_locregs
 
-       subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+       subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
          implicit none
-         type(local_zone_descriptors),intent(inout):: lzdlarge
-         type(orbitals_data),intent(inout):: orbslarge
-         type(overlapParameters),intent(inout):: oplarge
-         type(p2pComms),intent(inout):: comonlarge
-         type(matrixDescriptors),intent(inout):: madlarge
-         type(p2pComms),intent(inout):: comgplarge
+         type(DFT_wavefunction),intent(inout):: tmb
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
 

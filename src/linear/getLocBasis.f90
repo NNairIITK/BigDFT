@@ -352,8 +352,7 @@ type(DFT_wavefunction),pointer:: tmbopt
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-           tmb%psi, lhphi, lhphiold, lphiold)
+      call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -362,8 +361,7 @@ type(DFT_wavefunction),pointer:: tmbopt
       tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
       call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
       if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
@@ -409,8 +407,7 @@ type(DFT_wavefunction),pointer:: tmbopt
 
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-               tmb%psi, lhphi, lhphiold, lphiold)
+          call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
           call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -432,8 +429,7 @@ type(DFT_wavefunction),pointer:: tmbopt
       ! Update the localization region if required.
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-               tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
           call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
@@ -583,8 +579,7 @@ type(DFT_wavefunction),pointer:: tmbopt
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
       ! Write the locreg centers
       if(iproc==0) then
