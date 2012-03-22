@@ -260,7 +260,7 @@ integer:: istat,istart,ierr,ii,it,iall,ind2,jorb,ist,iiorb
 integer:: ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat, locregCenterTemp
+real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -268,15 +268,9 @@ real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt, lhphioldopt
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old, lhphiopt
 type(local_zone_descriptors):: lzdlarge, lzdlarge2
-type(orbitals_data):: orbslarge2
-type(overlapParameters):: oplarge2
-type(p2pComms):: comonlarge2
-type(p2pComms):: comgplarge2
-type(matrixDescriptors):: madlarge2
-type(localizedDIISParameters):: ldiis2
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
-logical,parameter:: secondLocreg=.false.
+!!logical,parameter:: secondLocreg=.false.
 
 
 
@@ -320,23 +314,23 @@ logical,parameter:: secondLocreg=.false.
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
-  ! Copy parameters to ldiis2 (needed for debugging)
-  if(secondLocreg) then
-      ldiis2%is=ldiis%is
-      ldiis2%isx=ldiis%isx
-      ldiis2%mis=ldiis%mis
-      ldiis2%DIISHistMax=ldiis%DIISHistMax
-      ldiis2%DIISHistMin=ldiis%DIISHistMin
-      ldiis2%trmin=ldiis%trmin
-      ldiis2%trold=ldiis%trold
-      ldiis2%alphaSD=ldiis%alphaSD
-      ldiis2%alphaDIIS=ldiis%alphaDIIS
-      ldiis2%switchSD=ldiis%switchSD
-      allocate(ldiis2%phiHist(1), stat=istat)
-      call memocc(istat, ldiis2%phiHist, 'ldiis2%phiHist', subname)
-      allocate(ldiis2%hphiHist(1), stat=istat)
-      call memocc(istat, ldiis2%hphiHist, 'ldiis2%hphiHist', subname)
-  end if
+  !!! Copy parameters to ldiis2 (needed for debugging)
+  !!if(secondLocreg) then
+  !!    ldiis2%is=ldiis%is
+  !!    ldiis2%isx=ldiis%isx
+  !!    ldiis2%mis=ldiis%mis
+  !!    ldiis2%DIISHistMax=ldiis%DIISHistMax
+  !!    ldiis2%DIISHistMin=ldiis%DIISHistMin
+  !!    ldiis2%trmin=ldiis%trmin
+  !!    ldiis2%trold=ldiis%trold
+  !!    ldiis2%alphaSD=ldiis%alphaSD
+  !!    ldiis2%alphaDIIS=ldiis%alphaDIIS
+  !!    ldiis2%switchSD=ldiis%switchSD
+  !!    allocate(ldiis2%phiHist(1), stat=istat)
+  !!    call memocc(istat, ldiis2%phiHist, 'ldiis2%phiHist', subname)
+  !!    allocate(ldiis2%hphiHist(1), stat=istat)
+  !!    call memocc(istat, ldiis2%hphiHist, 'ldiis2%hphiHist', subname)
+  !!end if
 
 
 
@@ -424,17 +418,17 @@ logical,parameter:: secondLocreg=.false.
 
 
 
-      if(secondLocreg) then
-          locrad_tmp=factor2*locrad
-          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-               locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
-               lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-               lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-          allocate(orbslarge2%onwhichatom(tmb%orbs%norb), stat=istat)
-          call memocc(istat, orbslarge2%onwhichatom, 'orbslarge2%onwhichatom', subname)
-          call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, orbslarge2%onwhichatom(1), 1)
-      end if
+      !!if(secondLocreg) then
+      !!    locrad_tmp=factor2*locrad
+      !!    call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+      !!         tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+      !!         locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
+      !!         lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
+      !!         lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+      !!    allocate(orbslarge2%onwhichatom(tmb%orbs%norb), stat=istat)
+      !!    call memocc(istat, orbslarge2%onwhichatom, 'orbslarge2%onwhichatom', subname)
+      !!    call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, orbslarge2%onwhichatom(1), 1)
+      !!end if
   end if
 
 
@@ -689,12 +683,12 @@ logical,parameter:: secondLocreg=.false.
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      if(secondLocreg) then
-          call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(lzdlarge2, tmb%orbs, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-               lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-          call deallocateDIIS(ldiis2)
-      end if
+      !!if(secondLocreg) then
+      !!    call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+      !!    call destroy_new_locregs(lzdlarge2, tmb%orbs, oplarge2, comonlarge2, madlarge2, comgplarge2, &
+      !!         lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+      !!    call deallocateDIIS(ldiis2)
+      !!end if
 
       ! Write the locreg centers
       if(iproc==0) then
@@ -969,9 +963,6 @@ contains
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
-      allocate(lagmat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, lagmat, 'lagmat', subname)
-
       allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, Umat, 'Umat', subname)
 
@@ -1024,10 +1015,6 @@ contains
       iall=-product(shape(lphiold))*kind(lphiold)
       deallocate(lphiold, stat=istat)
       call memocc(istat, iall, 'lphiold', subname)
-
-      iall=-product(shape(lagmat))*kind(lagmat)
-      deallocate(lagmat, stat=istat)
-      call memocc(istat, iall, 'lagmat', subname)
 
       iall=-product(shape(Umat))*kind(Umat)
       deallocate(Umat, stat=istat)
