@@ -184,8 +184,9 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
-           lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
-           denspot, locrad, inwhichlocreg_reference, factor)
+           lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
+           alpha, locregCenter, locregCenterTemp, &
+           denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
 use module_base
 use module_types
 use module_interfaces, except_this_one => hpsitopsi_linear
@@ -202,13 +203,14 @@ real(8),dimension(tmblarge%orbs%norb,tmblarge%orbs%norb),intent(inout):: kernel
 real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
 real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
 real(8),dimension(:),pointer,intent(inout):: lhphiopt
-real(8),dimension(tmblarge%orbs%norbp),intent(in):: alpha
+real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
 real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
 real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
 type(DFT_local_fields),intent(inout):: denspot
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
-real(8),intent(in):: factor
+real(8),intent(in):: factor, trH, meanAlpha
+real(8),dimension(tmbopt%orbs%norb),intent(out):: alpha, alphaDIIS
 
 ! Local variables
 integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall
@@ -230,6 +232,18 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+
+
+      call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+      if(iproc==0) then
+          if(ldiis%isx>0) then
+              write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
+                  ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+          else
+              write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
+          end if
+      end if
 
       ! Improve the orbitals, depending on the choice made above.
       if(.not.ldiis%switchSD) then

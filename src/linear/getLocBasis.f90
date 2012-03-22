@@ -597,18 +597,18 @@ type(DFT_wavefunction),pointer:: tmbopt
       end if
   
   
-      ! Determine whether the basis functions shall be further optimized using DIIS or steepest descent.
-      !call DIISorSD()
-      call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
-      if(iproc==0) then
-          if(ldiis%isx>0) then
-              write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
-                  ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
-          else
-              write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
-              ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
-          end if
-      end if
+      !!! Determine whether the basis functions shall be further optimized using DIIS or steepest descent.
+      !!!call DIISorSD()
+      !!call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+      !!if(iproc==0) then
+      !!    if(ldiis%isx>0) then
+      !!        write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
+      !!            ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+      !!    else
+      !!        write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+      !!        ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
+      !!    end if
+      !!end if
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
@@ -624,8 +624,9 @@ type(DFT_wavefunction),pointer:: tmbopt
       tmbopt%confdatarr => tmb%confdatarr
 
       call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
-           lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, locregCenter, locregCenterTemp, &
-           denspot, locrad, inwhichlocreg_reference, factor)
+           lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
+           alpha, locregCenter, locregCenterTemp, &
+           denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
 
 
      ! Flush the standard output
