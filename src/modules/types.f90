@@ -562,9 +562,9 @@ module module_types
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+    real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray, noverlapsmax, nrecv, nsend
+    integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
     logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)

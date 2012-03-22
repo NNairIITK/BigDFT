@@ -2109,7 +2109,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call deallocate_p2pComms(tmbmix%comsr, subname)
       call nullify_p2pComms(tmbmix%comsr)
       call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-      call allocateCommunicationbufferSumrho(iproc, .false., tmbmix%comsr, subname)
+      call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   end if
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call nullify_p2pComms(tmbmix%comgp)
@@ -2274,7 +2274,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   call deallocate_p2pComms(comsr, subname)
   call nullify_p2pComms(comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
-  call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
+  call allocateCommunicationbufferSumrho(iproc, comsr, subname)
 
   iall=-product(shape(onwhichatom))*kind(onwhichatom)
   deallocate(onwhichatom, stat=istat)

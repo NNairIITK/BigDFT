@@ -338,8 +338,6 @@ type(DFT_wavefunction),pointer:: tmbmix
           call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
           allocate(tmbmix%comsr%recvbuf(1), stat=istat)
           call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
-          allocate(tmbmix%comsr%auxarray(1), stat=istat)
-          call memocc(istat, tmbmix%comsr%auxarray, 'tmbmix%comsr%auxarray', subname)
           call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
           !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
           !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
@@ -369,9 +367,8 @@ type(DFT_wavefunction),pointer:: tmbmix
       end if
 
       ! Allocate the communication arrays for the calculation of the charge density.
-      with_auxarray=.false.
-      if(.not. locreg_increased) call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbder%comsr, subname)
+      if(.not. locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
 
       ! Now all initializations are done...
 
@@ -591,7 +588,7 @@ type(DFT_wavefunction),pointer:: tmbmix
 
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
-  call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmbmix%comsr, subname)
+  call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
