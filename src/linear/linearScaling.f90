@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
-     eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
+     eion,edisp,eexctX,scpot,psi,psit,energy)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -24,12 +24,11 @@ logical,intent(in):: scpot
 real(8),dimension(:),pointer,intent(out):: psi, psit
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
-real(8),dimension(3,at%nat),intent(out):: fxyz
 
 ! Local variables
-integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout, ifail
-integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit, npsidim,ityp, idecrease, ndecrease
-real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, trace, increase_locreg
+integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,ilr,tag,itout,ifail,iorb
+integer:: nit_highaccuracy, mixHist, nitSCCWhenOptimizing,idecrease
+real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
@@ -37,28 +36,20 @@ logical:: compare_outer_loop, locreg_increased
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
-integer:: iorb
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
-!type(confpot_data), dimension(:),pointer :: tmb%confdatarr, tmbder%confdatarr
-type(orthon_data):: orthpar
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
-type(local_zone_descriptors):: lzd
 
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1tot=mpi_wtime()
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
   tag=0
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1init=mpi_wtime()
 
 
   ! Initialize everything related to the linear scaling version ###########################################################
@@ -136,11 +127,6 @@ type(local_zone_descriptors):: lzd
 
 
   ! Assign some values to orthpar
-  orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  orthpar%nItOrtho = input%lin%nItOrtho
-  orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-  orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
-
   tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
   tmb%orthpar%nItOrtho = input%lin%nItOrtho
   tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
@@ -175,7 +161,6 @@ type(local_zone_descriptors):: lzd
 
 
   ! Generate the input guess for the TMB
-  potshortcut=0 ! What is this?
   tmb%wfnmd%bs%update_phi=.false.
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
@@ -250,7 +235,6 @@ type(local_zone_descriptors):: lzd
   lowaccur_converged=.false.
   infoBasisFunctions=-1
   idecrease=0
-  ndecrease=15
   increase_locreg=0.d0
   decrease_factor_total=1.d10 !initialize to some large value
   ifail=0
@@ -602,8 +586,6 @@ type(local_zone_descriptors):: lzd
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
-  call mpi_barrier(mpi_comm_world, ierr)
-  t2scc=mpi_wtime()
   !timescc=t2scc-t1scc
 
 
@@ -616,8 +598,6 @@ type(local_zone_descriptors):: lzd
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(input%lin%transformToGlobal) then
       call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &

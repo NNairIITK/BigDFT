@@ -2188,7 +2188,7 @@ module module_interfaces
     
     subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
          rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
-         eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
+         eion,edisp,eexctX,scpot,psi,psit,energy)
       use module_base
       use module_types
       implicit none
@@ -2211,7 +2211,6 @@ module module_interfaces
       real(8),dimension(:),pointer,intent(out):: psi, psit
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
-      real(8),dimension(3,at%nat),intent(out):: fxyz
     end subroutine linearScaling
     
     

@@ -382,7 +382,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
-          energy,fxyz)
+          energy)
 
      ! debug
 

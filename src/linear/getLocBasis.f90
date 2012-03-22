@@ -463,9 +463,6 @@ type(DFT_wavefunction),pointer:: tmbopt
   end if
 
 
-
-
-
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
@@ -547,7 +544,6 @@ type(DFT_wavefunction),pointer:: tmbopt
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
-
 
   
       ! Write some informations to the screen.
