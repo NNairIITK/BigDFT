@@ -250,12 +250,11 @@ real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
 ! Local variables
 real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
-real(8):: tt1,tt2,tt3,tt4,tt5
-real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,dnrm2
+real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, factor2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
-integer:: icountDIISFailureCons,itBest, ncnt, lorb, ilrlarge2, ilrlarge
+integer:: icountDIISFailureCons,itBest, ncnt, lorb, ilrlarge
 integer:: istat,istart,ierr,ii,it,iall,ind2,jorb,ist,iiorb
 integer:: ilr,ncount,offset,istsource,istdest,korb
 integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom_reference
@@ -266,7 +265,7 @@ logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt, lhphioldopt
-real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old, lhphiopt
+real(8),dimension(:),pointer:: lhphiopt
 type(local_zone_descriptors):: lzdlarge, lzdlarge2
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
