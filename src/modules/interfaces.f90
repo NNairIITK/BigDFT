@@ -5911,13 +5911,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-                    inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                    lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmb)
+                  inwhichlocreg_reference, ldiis, &
+                  lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
          use module_base
          use module_types
          implicit none
-
-         ! Calling arguments
          integer,intent(in):: iproc, nproc, nlr
          real(8),intent(in):: hx, hy, hz
          type(orbitals_data),intent(in):: lorbs
@@ -5928,12 +5926,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(in):: withder
          integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
          type(localizedDIISParameters),intent(inout):: ldiis
-         type(local_zone_descriptors),intent(out):: lzdlarge
-         type(orbitals_data),intent(out):: orbslarge
-         type(overlapParameters),intent(out):: oplarge
-         type(p2pComms),intent(out):: comonlarge
-         type(matrixDescriptors),intent(out):: madlarge
-         type(p2pComms),intent(out):: comgplarge
          real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
          type(DFT_wavefunction),intent(out):: tmb
        end subroutine create_new_locregs

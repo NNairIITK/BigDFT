@@ -349,7 +349,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
@@ -358,7 +357,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
            tmb%psi, lhphi, lhphiold, lphiold, tmb)
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
       tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
@@ -374,7 +372,6 @@ type(DFT_wavefunction),pointer:: tmbopt
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
@@ -417,7 +414,6 @@ type(DFT_wavefunction),pointer:: tmbopt
           call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-               tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                tmb%psi, lhphi, lhphiold, lphiold, tmb)
           call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
@@ -442,7 +438,6 @@ type(DFT_wavefunction),pointer:: tmbopt
           call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-               tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
                tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
           tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
           call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)

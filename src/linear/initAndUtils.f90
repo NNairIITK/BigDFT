@@ -2288,7 +2288,7 @@ end subroutine update_locreg
 
 
 subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-           inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+           inwhichlocreg_reference, ldiis, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
 use module_base
 use module_types
@@ -2306,12 +2306,6 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 logical,intent(in):: withder
 integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
 type(localizedDIISParameters),intent(inout):: ldiis
-type(local_zone_descriptors),intent(out):: lzdlarge
-type(orbitals_data),intent(out):: orbslarge
-type(overlapParameters),intent(out):: oplarge
-type(p2pComms),intent(out):: comonlarge
-type(matrixDescriptors),intent(out):: madlarge
-type(p2pComms),intent(out):: comgplarge
 real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
 type(DFT_wavefunction),intent(out):: tmb
 
@@ -2324,9 +2318,9 @@ character(len=*),parameter:: subname='create_new_locregs'
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
    call nullify_local_zone_descriptors(tmb%lzd)
    call nullify_orbitals_data(tmb%orbs)
-   call nullify_overlapParameters(oplarge)
+   call nullify_overlapParameters(tmb%op)
    call nullify_p2pComms(tmb%comon)
-   call nullify_matrixDescriptors(madlarge)
+   call nullify_matrixDescriptors(tmb%mad)
    call nullify_p2pComms(tmb%comgp)
 
    tag=1
@@ -2361,10 +2355,10 @@ character(len=*),parameter:: subname='create_new_locregs'
    tmb%orbs%eval=-.5d0
    tmb%orbs%npsidim_orbs=max(npsidim,1)
    call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
-        's', oplarge, tmb%comon, tag)
+        's', tmb%op, tmb%comon, tag)
    call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, &
-        oplarge%noverlaps, oplarge%overlaps, madlarge)
-   call initCompressedMatmul3(tmb%orbs%norb, madlarge)
+        tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
 
    call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
 
@@ -2515,7 +2509,6 @@ end do
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
@@ -2525,7 +2518,6 @@ call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
      lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-     lzd, lorbs, op, comon, mad, comgp, &
      lphi, lhphi, lhphiold, lphiold, tmb)
 !!allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
 !!call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)

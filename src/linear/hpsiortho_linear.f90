@@ -290,7 +290,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                   tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                    tmb%psi, lhphi, lhphiold, lphiold, tmb)
               !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
               !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
@@ -310,7 +309,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                   tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
                    tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
               tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
               !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
@@ -356,7 +354,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                       tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
                        tmb%psi, lhphi, lhphiold, lphiold, tmb)
                   !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
@@ -383,7 +380,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                       tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
                        tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
                   tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
                   !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
