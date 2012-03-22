@@ -517,16 +517,14 @@ type(DFT_wavefunction),pointer:: tmbopt
       end if
 
 
-
-      ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
-      call allocateSendBufferOrtho(tmb%comon, subname)
-      call allocateRecvBufferOrtho(tmb%comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-      call extractOrbital3(iproc, nproc, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%inWhichLocreg, &
-           tmb%lzd, tmb%op, tmb%psi, tmb%comon%nsendBuf, tmb%comon%sendBuf)
-      ! Post the send messages.
-      call postCommsOverlapNew(iproc, nproc, tmb%orbs, tmb%op, tmb%lzd, tmb%psi, tmb%comon, timecommunp2p, timeextract)
-
+      !!! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
+      !!call allocateSendBufferOrtho(tmb%comon, subname)
+      !!call allocateRecvBufferOrtho(tmb%comon, subname)
+      !!! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
+      !!call extractOrbital3(iproc, nproc, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%inWhichLocreg, &
+      !!     tmb%lzd, tmb%op, tmb%psi, tmb%comon%nsendBuf, tmb%comon%sendBuf)
+      !!! Post the send messages.
+      !!call postCommsOverlapNew(iproc, nproc, tmb%orbs, tmb%op, tmb%lzd, tmb%psi, tmb%comon, timecommunp2p, timeextract)
 
 
 
@@ -536,13 +534,16 @@ type(DFT_wavefunction),pointer:: tmbopt
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      ! Gather the messages and calculate the overlap matrix.
-      call collectnew(iproc, nproc, tmb%comon, tmb%mad, tmb%op, tmb%orbs, tmb%lzd, tmb%comon%nsendbuf, &
-           tmb%comon%sendbuf, tmb%comon%nrecvbuf, tmb%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
-      call calculateOverlapMatrix3(iproc, nproc, tmb%orbs, tmb%op, tmb%orbs%inWhichLocreg, tmb%comon%nsendBuf, &
-           tmb%comon%sendBuf, tmb%comon%nrecvBuf, tmb%comon%recvBuf, tmb%mad, ovrlp)
-      call deallocateRecvBufferOrtho(tmb%comon, subname)
-      call deallocateSendBufferOrtho(tmb%comon, subname)
+      !!! Gather the messages and calculate the overlap matrix.
+      !!call collectnew(iproc, nproc, tmb%comon, tmb%mad, tmb%op, tmb%orbs, tmb%lzd, tmb%comon%nsendbuf, &
+      !!     tmb%comon%sendbuf, tmb%comon%nrecvbuf, tmb%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
+      !!call calculateOverlapMatrix3(iproc, nproc, tmb%orbs, tmb%op, tmb%orbs%inWhichLocreg, tmb%comon%nsendBuf, &
+      !!     tmb%comon%sendBuf, tmb%comon%nrecvBuf, tmb%comon%recvBuf, tmb%mad, ovrlp)
+      !!call deallocateRecvBufferOrtho(tmb%comon, subname)
+      !!call deallocateSendBufferOrtho(tmb%comon, subname)
+
+      ! Calculate the overlap matrix.
+      call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
