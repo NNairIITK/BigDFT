@@ -959,6 +959,8 @@ lig%lzdGauss%hgrids(3)=hz
   call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb)
+  ! Deallocate the buffers needed for the communication of the potential.
+  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
 

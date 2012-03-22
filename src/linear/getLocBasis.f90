@@ -97,8 +97,8 @@ character(len=*),parameter:: subname='get_coeff'
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
-  ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  !!! Deallocate the buffers needed for the communication of the potential.
+  !!call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
 
 
 
