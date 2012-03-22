@@ -617,7 +617,6 @@ logical,parameter:: secondLocreg=.false.
 
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      write(*,'(a,i7,i10)') 'HERE: iproc, size(lhphilarge)', iproc, size(lhphilarge)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &

@@ -490,14 +490,10 @@ type(local_zone_descriptors):: lzd
 
 
           ! Calculate the coefficients
-          !!if(iproc==0) write(*,'(a,l4)') 'BEFORE: associated(tmb%comgp%recvbuf)', associated(tmb%comgp%recvbuf)
-          !!if(iproc==0) write(*,'(a,l4)') 'BEFORE: associated(tmbder%comgp%recvbuf)', associated(tmbder%comgp%recvbuf)
-          !!if(iproc==0) write(*,'(a,l4)') 'BEFORE: associated(tmbmix%comgp%recvbuf)', associated(tmbmix%comgp%recvbuf)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
-          !!! Deallocate the buffers needed for the communication of the potential.
-          !!call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+          ! Deallocate the buffers needed for the communication of the potential.
           if(.not. input%lin%mixedmode) then
               if(input%lin%useDerivativeBasisFunctions) then
                   call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
@@ -511,9 +507,6 @@ type(local_zone_descriptors):: lzd
                   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
               end if
           end if
-          !!if(iproc==0) write(*,'(a,l4)') 'AFTER: associated(tmb%comgp%recvbuf)', associated(tmb%comgp%recvbuf)
-          !!if(iproc==0) write(*,'(a,l4)') 'AFTER: associated(tmbder%comgp%recvbuf)', associated(tmbder%comgp%recvbuf)
-          !!if(iproc==0) write(*,'(a,l4)') 'AFTER: associated(tmbmix%comgp%recvbuf)', associated(tmbmix%comgp%recvbuf)
 
 
           ! Calculate the charge density.
