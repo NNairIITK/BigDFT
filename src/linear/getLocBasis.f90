@@ -727,7 +727,6 @@ contains
                   ldiis%trold=1.d100
                   alpha=ldiis%alphaSD
                   alphaDIIS=ldiis%alphaDIIS
-                  !!!call initializeDIIS(lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
                   icountDIISFailureTot=0
                   icountDIISFailureCons=0
                   immediateSwitchToSD=.false.
@@ -768,36 +767,42 @@ contains
                  do iorb=1,tmb%orbs%norbp
                      !ilr=tmb%orbs%inWhichLocregp(iorb)
                      !if(.not.newgradient) then
-                     if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                         iiorb=tmb%orbs%isorb+iorb
-                         ilr=tmb%orbs%inWhichLocreg(iiorb)
-                         ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-                     else
-                         iiorb=tmblarge%orbs%isorb+iorb
-                         ilr=tmblarge%orbs%inWhichLocreg(iiorb)
-                         ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                     end if
+                     !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                     !!    iiorb=tmb%orbs%isorb+iorb
+                     !!    ilr=tmb%orbs%inWhichLocreg(iiorb)
+                     !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+                     !!else
+                     !!    iiorb=tmblarge%orbs%isorb+iorb
+                     !!    ilr=tmblarge%orbs%inWhichLocreg(iiorb)
+                     !!    ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+                     !!end if
+                     iiorb=tmbopt%orbs%isorb+iorb
+                     ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+                     ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
                      istsource=offset+ii*ncount+1
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      !if(.not.newgradient) then
-                     if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
-                     else
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmblarge%psi(istdest), 1)
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphilargeold(istdest), 1)
-                     end if
+                     !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                     !!    call dcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
+                     !!    call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
+                     !!else
+                     !!    call dcopy(ncount, ldiis%phiHist(istsource), 1, tmblarge%psi(istdest), 1)
+                     !!    call dcopy(ncount, ldiis%phiHist(istsource), 1, lphilargeold(istdest), 1)
+                     !!end if
+                     call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
+                     call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount
                  end do
              else
                  ! else copy the orbitals of the last iteration to lphiold
                  !if(.not.newgradient) then
-                 if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                     call dcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
-                 else
-                     call dcopy(size(tmblarge%psi), tmblarge%psi(1), 1, lphilargeold(1), 1)
-                 end if
+                 !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                 !!    call dcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
+                 !!else
+                 !!    call dcopy(size(tmblarge%psi), tmblarge%psi(1), 1, lphilargeold(1), 1)
+                 !!end if
+                 call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphiold(1), 1)
               end if
               !!!call deallocateDIIS(ldiis)
               ldiis%isx=0
