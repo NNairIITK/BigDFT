@@ -249,27 +249,22 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
 ! Local variables
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
-real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha
+real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC,fnrm,fnrmMax,meanAlpha
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, factor2
-integer:: iorb, idsx, consecutive_rejections
-integer:: ncnt, lorb, ilrlarge
-integer:: istat,istart,ierr,ii,it,iall,ind2,jorb,ist,iiorb
-integer:: ilr,ncount,offset,istsource,istdest,korb
-integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference, onwhichatom_reference
+real(8):: trHold, factor
+integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
+integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: withConfinement, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
-real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt, lhphioldopt
-real(8),dimension(:),pointer:: lhphiopt
-type(local_zone_descriptors):: lzdlarge, lzdlarge2
+real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
+real(8),dimension(:),pointer:: lhphiopt,lhphioldopt
+type(local_zone_descriptors):: lzdlarge
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
-!!logical,parameter:: secondLocreg=.false.
 
 
 
@@ -337,7 +332,6 @@ type(DFT_wavefunction),pointer:: tmbopt
 
   ! ratio of large locreg and standard locreg
   factor=tmb%wfnmd%bs%locreg_enlargement
-  factor2=200.0d0
 
   ! always use the same inwhichlocreg
   call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
@@ -671,119 +665,6 @@ type(DFT_wavefunction),pointer:: tmbopt
 
 contains
 
-
-
-
-
-
-
-
-
-!!    subroutine DIISorSD()
-!!    !
-!!    ! Purpose:
-!!    ! ========
-!!    !   This subroutine decides whether one should use DIIS or variable step size
-!!    !   steepest descent to improve the orbitals. In the beginning we start with DIIS
-!!    !   with history length lin%DIISHistMax. If DIIS becomes unstable, we switch to
-!!    !   steepest descent. If the steepest descent iterations are successful, we switch
-!!    !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
-!!    !   history length is limited to be larger or equal than lin%DIISHistMin.
-!!    !
-!!
-!!
-!!      ! First there are some checks whether the force is small enough to allow DIIS.
-!!
-!!      ! If we swicthed to SD in the previous iteration, reset this flag.
-!!      if(ldiis%switchSD) ldiis%switchSD=.false.
-!!
-!!      ! Now come some checks whether the trace is descreasing or not. This further decides
-!!      ! whether we should use DIIS or SD.
-!!
-!!      ! Determine wheter the trace is decreasing (as it should) or increasing.
-!!      ! This is done by comparing the current value with diisLIN%energy_min, which is
-!!      ! the minimal value of the trace so far.
-!!      if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
-!!          ! Everything ok
-!!          ldiis%trmin=trH
-!!          ldiis%switchSD=.false.
-!!          ldiis%itBest=it
-!!          ldiis%icountSDSatur=ldiis%icountSDSatur+1
-!!          ldiis%icountDIISFailureCons=0
-!!
-!!          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
-!!          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-!!          if(ldiis%icountSDSatur>=10 .and. ldiis%isx==0 .or. ldiis%immediateSwitchToSD) then
-!!              ldiis%icountSwitch=ldiis%icountSwitch+1
-!!              idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-ldiis%icountSwitch)
-!!              if(idsx>0) then
-!!                  if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-!!                  ldiis%icountSDSatur=0
-!!                  ldiis%icountSwitch=0
-!!                  ldiis%icountDIISFailureTot=0
-!!                  ldiis%icountDIISFailureCons=0
-!!                  ldiis%is=0
-!!                  ldiis%switchSD=.false.
-!!                  ldiis%trmin=1.d100
-!!                  ldiis%trold=1.d100
-!!                  alpha=ldiis%alphaSD
-!!                  alphaDIIS=ldiis%alphaDIIS
-!!                  ldiis%icountDIISFailureTot=0
-!!                  ldiis%icountDIISFailureCons=0
-!!                  ldiis%immediateSwitchToSD=.false.
-!!              end if
-!!          end if
-!!      else
-!!          ! The trace is growing.
-!!          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
-!!          ! total failures or after 2 consecutive failures.
-!!          ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
-!!          ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
-!!          ldiis%icountSDSatur=0
-!!          if((ldiis%icountDIISFailureCons>=2 .or. ldiis%icountDIISFailureTot>=3 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
-!!              ! Switch back to SD.
-!!              alpha=ldiis%alphaSD
-!!              if(iproc==0) then
-!!                  if(ldiis%icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-!!                      ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-!!                  if(ldiis%icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-!!                      ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-!!                  if(ldiis%resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
-!!              end if
-!!              if(ldiis%resetDIIS) then
-!!                  ldiis%resetDIIS=.false.
-!!                  ldiis%immediateSwitchToSD=.true.
-!!                  ldiis%trmin=1.d100
-!!              end if
-!!              ! Try to get back the orbitals of the best iteration. This is possible if
-!!              ! these orbitals are still present in the DIIS history.
-!!              if(it-ldiis%itBest<ldiis%isx) then
-!!                 if(iproc==0) then
-!!                     if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-!!                         ldiis%itBest, ' which are the best so far.'
-!!                 end if
-!!                 ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
-!!                 offset=0
-!!                 istdest=1
-!!                 do iorb=1,tmb%orbs%norbp
-!!                     iiorb=tmbopt%orbs%isorb+iorb
-!!                     ilr=tmbopt%orbs%inWhichLocreg(iiorb)
-!!                     ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-!!                     istsource=offset+ii*ncount+1
-!!                     call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
-!!                     call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
-!!                     offset=offset+ldiis%isx*ncount
-!!                     istdest=istdest+ncount
-!!                 end do
-!!             else
-!!                 call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
-!!             end if
-!!             ldiis%isx=0
-!!             ldiis%switchSD=.true.
-!!          end if
-!!      end if
-!!
-!!    end subroutine DIISorSD
 
 
 
