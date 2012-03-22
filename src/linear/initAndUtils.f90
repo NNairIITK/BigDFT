@@ -2322,15 +2322,15 @@ character(len=*),parameter:: subname='create_new_locregs'
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-   call nullify_local_zone_descriptors(lzdlarge)
-   call nullify_orbitals_data(orbslarge)
+   call nullify_local_zone_descriptors(tmb%lzd)
+   call nullify_orbitals_data(tmb%orbs)
    call nullify_overlapParameters(oplarge)
-   call nullify_p2pComms(comonlarge)
+   call nullify_p2pComms(tmb%comon)
    call nullify_matrixDescriptors(madlarge)
-   call nullify_p2pComms(comgplarge)
+   call nullify_p2pComms(tmb%comgp)
 
    tag=1
-   lzdlarge%nlr=nlr
+   tmb%lzd%nlr=nlr
    if(.not.withder) then
        norbu=lorbs%norb
    else
@@ -2340,33 +2340,33 @@ character(len=*),parameter:: subname='create_new_locregs'
    norbd=0
    nspin=1
 !!$   call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-!!$        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
-!!$   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
-!!$        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+!!$        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, tmb%orbs)
+!!$   call repartitionOrbitals(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par,&
+!!$        tmb%orbs%norbp, tmb%orbs%isorb_par, tmb%orbs%isorb, tmb%orbs%onWhichMPI)
    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge,.true.) !simple repartition
+        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, tmb%orbs,.true.) !simple repartition
 
-   orbslarge%inwhichlocreg = inwhichlocreg_reference
+   tmb%orbs%inwhichlocreg = inwhichlocreg_reference
 
-   call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, Glr, locrad, 's')
-   call nullify_locreg_descriptors(lzdlarge%Glr)
-   call copy_locreg_descriptors(Glr, lzdlarge%Glr, subname)
+   call initLocregs(iproc, nproc, tmb%lzd%nlr, locregCenter, hx, hy, hz, tmb%lzd, tmb%orbs, Glr, locrad, 's')
+   call nullify_locreg_descriptors(tmb%lzd%Glr)
+   call copy_locreg_descriptors(Glr, tmb%lzd%Glr, subname)
    npsidim = 0
-   do iorb=1,orbslarge%norbp
-    ilr=orbslarge%inwhichlocreg(iorb+orbslarge%isorb)
-    npsidim = npsidim + lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+   do iorb=1,tmb%orbs%norbp
+    ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+    npsidim = npsidim + tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
    end do
-   allocate(orbslarge%eval(orbslarge%norb), stat=istat)
-   call memocc(istat, orbslarge%eval, 'orbslarge%eval', subname)
-   orbslarge%eval=-.5d0
-   orbslarge%npsidim_orbs=max(npsidim,1)
-   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzdlarge, orbslarge, orbslarge%inWhichLocreg,&
-        's', oplarge, comonlarge, tag)
-   call initMatrixCompression(iproc, nproc, lzdlarge%nlr, orbslarge, &
+   allocate(tmb%orbs%eval(tmb%orbs%norb), stat=istat)
+   call memocc(istat, tmb%orbs%eval, 'tmb%orbs%eval', subname)
+   tmb%orbs%eval=-.5d0
+   tmb%orbs%npsidim_orbs=max(npsidim,1)
+   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
+        's', oplarge, tmb%comon, tag)
+   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, &
         oplarge%noverlaps, oplarge%overlaps, madlarge)
-   call initCompressedMatmul3(orbslarge%norb, madlarge)
+   call initCompressedMatmul3(tmb%orbs%norb, madlarge)
 
-   call initializeCommunicationPotential(iproc, nproc, nscatterarr, orbslarge, lzdlarge, comgplarge, orbslarge%inWhichLocreg, tag)
+   call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
 
    iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
    deallocate(ldiis%phiHist, stat=istat)
@@ -2375,22 +2375,22 @@ character(len=*),parameter:: subname='create_new_locregs'
    deallocate(ldiis%hphiHist, stat=istat)
    call memocc(istat, iall, 'ldiis%hphiHist', subname)
    ii=0
-   do iorb=1,orbslarge%norbp
-       ilr=orbslarge%inwhichlocreg(orbslarge%isorb+iorb)
-       ii=ii+ldiis%isx*(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f)
+   do iorb=1,tmb%orbs%norbp
+       ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+       ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
    end do
    allocate(ldiis%phiHist(ii), stat=istat)
    call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
    allocate(ldiis%hphiHist(ii), stat=istat)
    call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
-   allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
+   allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
    call memocc(istat, lphilarge, 'lphilarge', subname)
-   allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
+   allocate(lhphilarge(tmb%orbs%npsidim_orbs), stat=istat)
    call memocc(istat, lhphilarge, 'lhphilarge', subname)
-   allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
+   allocate(lhphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
    call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
-   allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
+   allocate(lphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
    call memocc(istat, lphilargeold, 'lphilargeold', subname)
 
    lphilarge=0.d0
@@ -2398,9 +2398,9 @@ character(len=*),parameter:: subname='create_new_locregs'
    lhphilargeold=0.d0
    lphilargeold=0.d0
 
-   lzdlarge%hgrids(1)=hx
-   lzdlarge%hgrids(2)=hy
-   lzdlarge%hgrids(3)=hz
+   tmb%lzd%hgrids(1)=hx
+   tmb%lzd%hgrids(2)=hy
+   tmb%lzd%hgrids(3)=hz
 
 end subroutine create_new_locregs
 
