@@ -5912,7 +5912,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
        subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
                     inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                    lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmb)
          use module_base
          use module_types
          implicit none
@@ -5935,6 +5935,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(out):: madlarge
          type(p2pComms),intent(out):: comgplarge
          real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+         type(DFT_wavefunction),intent(out):: tmb
        end subroutine create_new_locregs
 
        subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
@@ -6174,22 +6175,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine redefine_locregs_quantities
 
        subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
-                  ldiis, denspot, nphi, lphi)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       real(8),intent(in):: hx, hy, hz
-       type(local_zone_descriptors),intent(inout):: lzd
-       real(8),dimension(lzd%nlr),intent(in):: locrad
-       type(orbitals_data),intent(inout):: lorbs
-       type(p2pComms),intent(inout):: comon, comgp
-       type(overlapParameters),intent(inout):: op
-       type(matrixDescriptors),intent(inout):: mad
-       type(localizedDIISParameters),intent(inout):: ldiis
-       type(DFT_local_fields),intent(inout):: denspot
-       integer,intent(inout):: nphi
-       real(8),dimension(:),pointer:: lphi
+                  ldiis, denspot, nphi, lphi, tmb)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         real(8),intent(in):: hx, hy, hz
+         type(local_zone_descriptors),intent(inout):: lzd
+         real(8),dimension(lzd%nlr),intent(in):: locrad
+         type(orbitals_data),intent(inout):: lorbs
+         type(p2pComms),intent(inout):: comon, comgp
+         type(overlapParameters),intent(inout):: op
+         type(matrixDescriptors),intent(inout):: mad
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(DFT_local_fields),intent(inout):: denspot
+         integer,intent(inout):: nphi
+         real(8),dimension(:),pointer:: lphi
+         type(DFT_wavefunction),intent(inout):: tmb
        end subroutine enlarge_locreg
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &

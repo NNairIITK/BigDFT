@@ -331,7 +331,7 @@ type(DFT_wavefunction),pointer:: tmbmix
           ifail=0
           locrad=locrad+increase_locreg
           call enlarge_locreg(iproc, nproc, hx, hy, hz, tmb%lzd, locrad, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%mad, &
-               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi)
+               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
           ! Fake allocation
           allocate(tmbmix%comsr%sendbuf(1), stat=istat)
           call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)

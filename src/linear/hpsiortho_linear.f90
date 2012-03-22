@@ -291,7 +291,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-                   tmb%psi, lhphi, lhphiold, lphiold)
+                   tmb%psi, lhphi, lhphiold, lphiold, tmb)
               !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
               !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
               call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -311,7 +311,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                   tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
               tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
               !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
               !!call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
@@ -357,7 +357,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%mad, tmb%comgp, &
-                       tmb%psi, lhphi, lhphiold, lphiold)
+                       tmb%psi, lhphi, lhphiold, lphiold, tmb)
                   !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -384,7 +384,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
-                       tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                       tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
                   tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
                   !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   !!call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)

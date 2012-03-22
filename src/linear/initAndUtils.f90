@@ -2289,7 +2289,7 @@ end subroutine update_locreg
 
 subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
            inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
 use module_base
 use module_types
 use module_interfaces, except_this_one => create_new_locregs
@@ -2313,6 +2313,7 @@ type(p2pComms),intent(out):: comonlarge
 type(matrixDescriptors),intent(out):: madlarge
 type(p2pComms),intent(out):: comgplarge
 real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+type(DFT_wavefunction),intent(out):: tmb
 
 ! Local variables
 integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
@@ -2450,7 +2451,7 @@ end subroutine destroy_new_locregs
 
 
 subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
-           ldiis, denspot, nphi, lphi)
+           ldiis, denspot, nphi, lphi, tmb)
 use module_base
 use module_types
 use module_interfaces, except_this_one => enlarge_locreg
@@ -2469,6 +2470,7 @@ type(localizedDIISParameters),intent(inout):: ldiis
 type(DFT_local_fields),intent(inout):: denspot
 integer,intent(inout):: nphi
 real(8),dimension(:),pointer:: lphi
+type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
 type(local_zone_descriptors):: lzdlarge
@@ -2481,6 +2483,7 @@ real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeol
 real(8),dimension(:,:),allocatable:: locregCenter
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 integer:: istat, iall, iorb, ilr
+type(DFT_wavefunction):: tmblarge
 character(len=*),parameter:: subname='enlarge_locreg'
 
 
@@ -2513,7 +2516,7 @@ end do
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+     lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
@@ -2523,7 +2526,7 @@ call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lzd, lorbs, op, comon, mad, comgp, &
-     lphi, lhphi, lhphiold, lphiold)
+     lphi, lhphi, lhphiold, lphiold, tmb)
 !!allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
 !!call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
 call vcopy(lorbs%norb, onwhichatom_reference(1), 1, lorbs%onwhichatom(1), 1)
