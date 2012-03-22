@@ -1842,33 +1842,27 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
 
-      subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-           denspot,GPU,trH,&
-           infoBasisFunctions,nlpspd,proj,ldiis,&
-           SIC, &
-           locrad,tmb)
-        use module_base
-        use module_types
 
-        implicit none
-
-        ! Calling arguments
-        integer,intent(in):: iproc, nproc
-        integer,intent(out):: infoBasisFunctions
-        type(atoms_data), intent(in) :: at
-        type(orbitals_data):: orbs
-        real(8),dimension(3,at%nat):: rxyz
-        type(DFT_local_fields), intent(inout) :: denspot
-        type(GPU_pointers), intent(inout) :: GPU
-        real(8),intent(out):: trH
-        type(nonlocal_psp_descriptors),intent(in):: nlpspd
-        real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-        type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),intent(inout):: tmb
-        type(SIC_data) :: SIC !<parameters for the SIC methods
-        real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-      end subroutine getLocalizedBasis
-
+        subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,&
+                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          integer,intent(out):: infoBasisFunctions
+          type(atoms_data), intent(in) :: at
+          type(orbitals_data):: orbs
+          real(8),dimension(3,at%nat):: rxyz
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers), intent(inout) :: GPU
+          real(8),intent(out):: trH
+          type(nonlocal_psp_descriptors),intent(in):: nlpspd
+          real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+          type(localizedDIISParameters),intent(inout):: ldiis
+          type(DFT_wavefunction),target,intent(inout):: tmb
+          type(SIC_data) :: SIC !<parameters for the SIC methods
+          real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+        end subroutine getLocalizedBasis
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
