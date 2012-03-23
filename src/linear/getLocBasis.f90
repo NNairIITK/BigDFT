@@ -25,7 +25,7 @@ type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
+integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb, ilr
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
@@ -51,6 +51,9 @@ character(len=*),parameter:: subname='get_coeff'
 
 
   if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
+      do ilr=1,tmbmix%lzd%nlr
+          write(*,'(a,2i7,l5)') 'In get_coeff: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
+      end do
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   
@@ -2910,12 +2913,17 @@ type(workarr_sumrho):: w
       ! Allocate the communication buffers for the calculation of the charge density.
       !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
       ! Transform all orbitals to real space.
+      do ilr=1,lzd%nlr
+          write(*,'(a,2i8,l6)') 'direct: iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
+      end do
       ist=1
       istr=1
+      write(*,*) 'iproc, llborbs%norbp',iproc, llborbs%norbp
       do iorb=1,llborbs%norbp
           iiorb=llborbs%isorb+iorb
           ilr=llborbs%inWhichLocreg(iiorb)
           call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+          write(*,'(a,2i7,l6)') 'iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)', iproc, ilr, associated(lzd%llr(ilr)%bounds%kb%ibyz_c)
           call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f

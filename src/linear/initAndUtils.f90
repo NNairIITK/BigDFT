@@ -608,6 +608,8 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
+ write(*,*) 'iproc, lzd%nlr', iproc, lzd%nlr
+ write(*,'(a,i5,3x,100i5)') 'iproc, orbs%inWhichLocreg', iproc, orbs%inWhichLocreg
  do ilr=1,lzd%nlr
      do jorb=1,orbs%norbp
          jjorb=orbs%isorb+jorb
@@ -629,6 +631,7 @@ end do
      end if
      lzd%llr(ilr)%locrad=locrad(ilr)
      lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+     write(*,'(a,2i8,l5)') 'iproc, ilr, calculateBounds(ilr)', iproc, ilr, calculateBounds(ilr)
  end do
 
  if(locregShape=='c') then
@@ -2196,6 +2199,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
           orbsperlocreg(iorb)=1
       end if
   end do
+  write(*,*) 'norb',norb
 
   iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
   deallocate(llborbs%inWhichLocreg, stat=istat)
@@ -2209,6 +2213,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
 
   call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
        nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
+  if(iproc==0) write(*,'(a,100i6)') 'llborbs%inwhichlocreg',llborbs%inwhichlocreg
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -2313,6 +2318,7 @@ type(DFT_wavefunction),intent(out):: tmb
 integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
 integer,dimension(:),allocatable:: orbsperlocreg
 character(len=*),parameter:: subname='create_new_locregs'
+
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
@@ -2438,7 +2444,7 @@ end subroutine destroy_new_locregs
 
 
 
-subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
+subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, transform_psi, lzd, locrad, &
            ldiis, denspot, nphi, lphi, tmb)
 use module_base
 use module_types
@@ -2448,7 +2454,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 real(8),intent(in):: hx, hy, hz
-logical,intent(in):: withder
+logical,intent(in):: withder, transform_psi
 type(local_zone_descriptors),intent(inout):: lzd
 real(8),dimension(lzd%nlr),intent(in):: locrad
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -2503,7 +2509,10 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, lo
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
-call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
+if(transform_psi) then
+    call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
+end if
+
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
@@ -2513,7 +2522,9 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblar
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
 call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
 nphi=tmb%orbs%npsidim_orbs
-call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+if(transform_psi) then
+    call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+end if
 call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 

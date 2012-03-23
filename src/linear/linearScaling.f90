@@ -67,10 +67,13 @@ type(DFT_wavefunction),pointer:: tmbmix
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
+  call nullify_local_zone_descriptors(tmb%lzd)
+  call nullify_local_zone_descriptors(tmbder%lzd)
   call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+  call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmbder%orbs, tmbder%orbs, tmbder%lzd)
 
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
-  call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
+  call update_wavefunctions_size(tmbder%lzd,tmbder%orbs)
 
   call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
        tmb%orbs%norb, orbs%norb, input, tmb%wfnmd)
@@ -87,16 +90,16 @@ type(DFT_wavefunction),pointer:: tmbmix
 
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
        input%lin%locregShape, tmb%op, tmb%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbder%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
        tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmbder%orbs, tmb%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
+       tmbder%orbs, tmbder%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
 
   if(input%lin%useDerivativeBasisFunctions) then
-      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmbder%lzd, tmbder%comrp)
       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
   else
       call nullify_p2pComms(tmbder%comrp)
@@ -107,11 +110,11 @@ type(DFT_wavefunction),pointer:: tmbmix
   call nullify_p2pcomms(tmb%comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tag, tmb%comsr)
   call nullify_p2pcomms(tmbder%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tag, tmbder%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%lzd, tmbder%orbs, tag, tmbder%comsr)
 
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
+  call initMatrixCompression(iproc, nproc, tmbder%lzd%nlr, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
@@ -121,7 +124,7 @@ type(DFT_wavefunction),pointer:: tmbmix
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
   call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmbder%lzd,tmbder%orbs%onwhichatom)
 
   ! Now all initializations are done ######################################################################################
 
@@ -253,6 +256,7 @@ type(DFT_wavefunction),pointer:: tmbmix
   else
       variable_locregs=.true.
   end if
+  write(*,*) 'HERE: tmbder%orbs%inwhichlocreg', tmbder%orbs%inwhichlocreg
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
@@ -306,15 +310,29 @@ type(DFT_wavefunction),pointer:: tmbmix
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
-      call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
+      call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmbder%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
       !!! Update the localization regions if required
       !!if(update_locregs) then
-      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+      !!    !call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      !!    !!if(withder) call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., .true., tmb%lzd, locrad, &
       !!         ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, withder, tmbder%lzd, locrad, &
+      !!    ! Pass withder=.false. here since we don't want to calculate the derivatives of derivatives
+      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., .false., tmbder%lzd, locrad, &
       !!         ldiis, denspot, tmbder%wfnmd%nphi, tmbder%psi, tmbder)
+      !!    call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      !!    !!call mpi_barrier(mpi_comm_world, istat)
+      !!    !!stop
+      !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+      !!    !!if(withder) then
+      !!    !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+      !!    !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+      !!    !!end if
+      !!    locreg_increased=.true.
+      !!else
+      !!    locreg_increased=.false.
       !!end if
 
       ! Adjust the confining potential if required.
@@ -341,14 +359,14 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
           ifail=0
           locrad=locrad+increase_locreg
-          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., .true., tmb%lzd, locrad, &
                ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
           ! Fake allocation
           allocate(tmbmix%comsr%sendbuf(1), stat=istat)
           call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
           allocate(tmbmix%comsr%recvbuf(1), stat=istat)
           call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
-          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
+          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmbmix%lzd, tmb, tmbmix, denspot)
           locreg_increased=.true.
       else
           locreg_increased=.false.
@@ -430,8 +448,13 @@ type(DFT_wavefunction),pointer:: tmbmix
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
+              ! Update the locreg center, since they may have changed.
+              !!do ilr=1,tmb%lzd%nlr
+              !!    tmbder%lzd%llr(ilr)%locregCenter=tmb%lzd%llr(ilr)%locregCenter
+              !!end do
+              call copy_local_zone_descriptors(tmb%lzd, tmbder%lzd, subname)
               if(withder) then
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmbder%lzd, tmb, tmbder, denspot)
                   tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
@@ -450,11 +473,11 @@ type(DFT_wavefunction),pointer:: tmbmix
                       !!call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, tmb%lzd, tmbmix%comrp)
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call nullify_p2pComms(tmbder%comrp)
-                      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+                      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmbder%lzd, tmbder%comrp)
                       tmbmix => tmbder
                   end if
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-                  call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
+                  call getDerivativeBasisFunctions(iproc,nproc,hx,tmbder%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
               else
@@ -464,9 +487,12 @@ type(DFT_wavefunction),pointer:: tmbmix
 
 
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          write(*,*) 'before get_coeff, iproc', iproc
+          call get_coeff(iproc,nproc,tmbmix%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
+write(*,*) 'after get_coeff, iproc', iproc
+call mpi_barrier(mpi_comm_world,istat)
           ! Deallocate the buffers needed for the communication of the potential.
           if(withder) then
               call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
@@ -477,7 +503,7 @@ type(DFT_wavefunction),pointer:: tmbmix
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-               tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
+               tmbmix%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
                tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                denspot%rhov, at, denspot%dpcom%nscatterarr)
 
@@ -574,15 +600,15 @@ type(DFT_wavefunction),pointer:: tmbmix
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
+  call communicate_basis_for_density(iproc, nproc, tmbmix%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmbmix%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
   ! Build global orbitals psi (the physical ones).
   if(input%lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
+      call transformToGlobal(iproc, nproc, tmbmix%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
            tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
   end if
 
@@ -591,6 +617,7 @@ type(DFT_wavefunction),pointer:: tmbmix
   call destroy_DFT_wavefunction(tmb)
   call destroy_DFT_wavefunction(tmbder)
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
+  call deallocate_local_zone_descriptors(tmbder%lzd, subname)
   call deallocateBasicArraysInput(input%lin)
   deallocate(tmb%confdatarr)
   deallocate(tmbder%confdatarr)

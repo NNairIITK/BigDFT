@@ -6160,14 +6160,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields),intent(inout):: denspot
        end subroutine redefine_locregs_quantities
 
-       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
+       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, transform_psi, lzd, locrad, &
                   ldiis, denspot, nphi, lphi, tmb)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
-         logical,intent(in):: withder
+         logical,intent(in):: withder, transform_psi
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
          type(localizedDIISParameters),intent(inout):: ldiis
@@ -6269,6 +6269,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
+
+       subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
+         use module_base
+         use module_types
+         implicit none
+         type(local_zone_descriptors),intent(in):: lzdin
+         type(local_zone_descriptors),intent(out):: lzdout
+         character(len=*),intent(in):: subname
+       end subroutine copy_local_zone_descriptors
 
    end interface
 
