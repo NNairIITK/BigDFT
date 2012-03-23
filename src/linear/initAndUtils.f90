@@ -2502,18 +2502,18 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, lo
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
-call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, tmb%orbs, orbslarge, lphi, lphilarge)
+call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
-call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
      lphi, lhphi, lhphiold, lphiold, tmb)
 !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
 call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
 nphi=tmb%orbs%npsidim_orbs
-call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
-call vcopy(tmb%orbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
 iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
