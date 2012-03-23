@@ -330,6 +330,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAto
 !  integer, dimension(:,:), allocatable :: overlaps_nseg
 
   call nullify_overlapParameters(op)
+  call nullify_p2pComms(comon)
 
   ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
   ! and per orbital (op%noverlaps)

@@ -820,14 +820,14 @@ print *,'total number of electrons: ',2*sum(wannocc)
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,.false.)
      call orbitals_communicators(iproc,nproc,Glr,orbsw,commsw)
 
      nvirtu = n_virt
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
      !##########################################################################
      ! Read the Wavefunctions
@@ -1650,7 +1650,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   end do loop_iter
 
   if(iproc == 0) then
-     write(*,'(A,x,i4,x,A)') 'Convergence reached in',iter,'iterations.'
+     write(*,'(A,1x,i4,1x,A)') 'Convergence reached in',iter,'iterations.'
      write(*,'(A,A,A,1x,i4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
      do i = 1, nbuf
         minold = huge(minold)

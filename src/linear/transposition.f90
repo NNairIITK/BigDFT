@@ -235,7 +235,7 @@ integer:: k, ii
 
 
   if(orbs%nkptsp>1) then
-    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    write(*,'(1x,a)') 'ERROR: more than 1 k-point!'
     stop
   end if
   
@@ -344,7 +344,7 @@ integer:: k, ii, kk, iiorb
 
   ! This subroutine is not yet implemented for k-points.
   if(orbs%nkptsp>1) then
-    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    write(*,'(1x,a)') 'ERROR: more than 1 k-point!'
     stop
   end if
 
@@ -661,7 +661,7 @@ integer:: k, ii
 
 
   if(orbs%nkptsp>1) then
-    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    write(*,'(1x,a)') 'ERROR: more than 1 k-point!'
     stop
   end if
   
@@ -775,7 +775,7 @@ integer:: k, ii, kk, iiorb
 
   ! This subroutine is not yet implemented for k-points.
   if(orbs%nkptsp>1) then
-    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    write(*,'(1x,a)') 'ERROR: more than 1 k-point!'
     stop
   end if
 

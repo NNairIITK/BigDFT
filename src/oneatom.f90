@@ -104,7 +104,7 @@ program oneatom
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,in,in%hx,in%hy,in%hz,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
@@ -231,18 +231,9 @@ program oneatom
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
-     call FullHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+     call FullHamiltonianApplication(iproc,nproc,atoms,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
-
-!!$     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
-!!$          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
-!!$
-!!$     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-!!$          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
-!!$
-!!$     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-
 
      energybs=ekin_sum+epot_sum+eproj_sum
      !n(c) energy_old=energy
@@ -267,8 +258,8 @@ program oneatom
 
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
-
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar) 
+     stop
+     !call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar) 
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)
@@ -292,8 +283,9 @@ program oneatom
        write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   !this deallocates also hpsivirt and psitvirt
-  call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
-       comms,psi,hpsi,psit,evsum)
+  stop
+  !call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
+  !     comms,psi,hpsi,psit,evsum)
   
   call deallocate_diis_objects(diis,subname)
 
@@ -863,8 +855,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
 
   end if
 
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,&
-       gaucoeffs,psi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psi)
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)

@@ -414,7 +414,7 @@ program memguess
       nspinor=1
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
-         &   in%nkpt,in%kpt,in%wkpt,orbstst)
+           in%nkpt,in%kpt,in%wkpt,orbstst,.false.)
       allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
       call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
       do iorb=1,orbstst%norbp
@@ -426,7 +426,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,hx,hy,hz,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
