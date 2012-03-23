@@ -2438,7 +2438,7 @@ end subroutine destroy_new_locregs
 
 
 
-subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, &
+subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
            ldiis, denspot, nphi, lphi, tmb)
 use module_base
 use module_types
@@ -2448,6 +2448,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 real(8),intent(in):: hx, hy, hz
+logical,intent(in):: withder
 type(local_zone_descriptors),intent(inout):: lzd
 real(8),dimension(lzd%nlr),intent(in):: locrad
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -2498,7 +2499,7 @@ end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
@@ -2506,7 +2507,7 @@ call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%o
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphi, lhphi, lhphiold, lphiold, tmb)
 !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)

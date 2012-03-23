@@ -32,7 +32,7 @@ real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop, locreg_increased
+logical:: compare_outer_loop, locreg_increased, update_locregs
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
@@ -280,6 +280,9 @@ type(DFT_wavefunction),pointer:: tmbmix
           decrease_factor_total<1.d0-input%lin%decrease_amount)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
+          update_locregs=.true.
+      else
+          update_locregs=.false.
       end if 
 
       ! Check whether the derivatives shall be used or not.
@@ -306,6 +309,14 @@ type(DFT_wavefunction),pointer:: tmbmix
       call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
+      !!! Update the localization regions if required
+      !!if(update_locregs) then
+      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+      !!         ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, withder, tmbder%lzd, locrad, &
+      !!         ldiis, denspot, tmbder%wfnmd%nphi, tmbder%psi, tmbder)
+      !!end if
+
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
           decrease_factor_total=1.d0
@@ -330,7 +341,7 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
           ifail=0
           locrad=locrad+increase_locreg
-          call enlarge_locreg(iproc, nproc, hx, hy, hz, tmb%lzd, locrad, &
+          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
                ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
           ! Fake allocation
           allocate(tmbmix%comsr%sendbuf(1), stat=istat)
