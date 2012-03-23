@@ -597,8 +597,9 @@ program WaCo
       allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3))
 
       ! Do stereographic projection of atoms and Wannier centers
-      call stereographic_projection(atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
-      call stereographic_projection(plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
+      call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
+      ! TO DO: CNeglectPoint should be a vector...
+      call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
       call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
       call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
 
@@ -638,8 +639,8 @@ program WaCo
       if(CNeglectPoint .ne. 0) then
          write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
          write(*,*) 'Surfaces will be deformed'
-         call mpi_finalize(ierr)
-         stop
+!         call mpi_finalize(ierr)
+!         stop
       end if
 
       call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
@@ -1748,11 +1749,12 @@ subroutine init_random_seed(shuffler)
   deallocate(seed)
 end subroutine init_random_seed
 
-subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, dcp)
+subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
    use Poisson_Solver
    use module_interfaces
    implicit none
+   integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
    real(gp), dimension(3,natom), intent(in) :: rxyz
    real(gp), dimension(3), intent(inout) :: refpos, CM
@@ -1846,8 +1848,7 @@ subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, 
       if(norm2 < 1.0d-10) norm2 = 1.0d-10
 
       if(norm2 < 1.0d-1 .and. abs(dotprod/(norm*norm2)) < 1.0d-2) then
-
-        if(dcp .ne. 0) stop 'This should not happen'
+        if(dcp .ne. 0 .and. mode == 0) stop 'This should not happen'
         dcp = iat
       end if
    end do
@@ -2487,10 +2488,10 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    integer, dimension(nwann),intent(in) :: wann_list
    !Local variables
    character(len=*),parameter :: subname='character_list'
-   character(len=4) :: num
-   character(len=17):: forma
+   character(len=2) :: num
+   character(len=27):: forma
    character(len=10), dimension(nproj) :: label
-   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat
+   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat, i_all
    real(gp), dimension(:,:), allocatable :: Wpweight
    real(gp), dimension(:), allocatable :: norm 
    character(len=10),dimension(:), allocatable :: Wplabel
@@ -2616,14 +2617,25 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    ! Print the information
 !   if(iproc==0) then
      write(*,*) 'Analysis of the symmetry types of the Wannier functions'
-     write(num,'(I4)') ntype
-     forma = '(23x,'//trim(num)//'(A,17x))'
+     write(num,'(I2)') ntype
+     forma = '(15x,'//trim(num)//'(A,6x))'
      write(*,trim(forma))(Wplabel(ii),ii=1,ntype)
+     forma = '(I3,2x,I3,2x,'//trim(num)//'(E14.6,2x))'
      do iwann = 1, plotwann
         iiwann = wann_list(iwann)
-        write(*,*) iiwann, iwann, (Wpweight(iiwann,ii)/norm(iiwann), ii=1,ntype)
+        write(*,trim(forma)) iiwann, iwann, (Wpweight(iiwann,ii)/norm(iiwann), ii=1,ntype)
      end do
 !   end if
+
+    i_all = -product(shape(norm))*kind(norm)
+    deallocate(norm,stat=i_stat)
+    call memocc(i_stat,i_all,'norm',subname)
+    i_all = -product(shape(Wpweight))*kind(Wpweight)
+    deallocate(Wpweight,stat=i_stat)
+    call memocc(i_stat,i_all,'Wpweight',subname)
+    i_all = -product(shape(Wplabel))*kind(Wplabel)
+    deallocate(Wplabel,stat=i_stat)
+    call memocc(i_stat,i_all,'Wplabel',subname)
 
 end subroutine character_list
 
