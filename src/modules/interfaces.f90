@@ -748,7 +748,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(local_zone_descriptors), intent(in) :: Lzd
+        type(local_zone_descriptors), intent(inout) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpcom
@@ -1401,7 +1401,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(local_zone_descriptors),intent(in) :: Lzd
+        type(local_zone_descriptors),intent(inout) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpcom
@@ -5822,6 +5822,25 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          implicit none
          type(DFT_local_fields), intent(out) :: denspot
        end subroutine initialize_DFT_local_fields
+
+       subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: ndimfirstproc
+         type(local_zone_descriptors), intent(inout) :: Lzd
+         type(orbitals_data), intent(inout) :: orbs
+       end subroutine local_potential_dimensions
+
+       subroutine check_communications(iproc,nproc,orbs,lr,comms)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc,nproc
+         type(orbitals_data), intent(in) :: orbs
+         type(locreg_descriptors), intent(in) :: lr
+         type(communications_arrays), intent(in) :: comms
+       end subroutine check_communications
 
    end interface
 

@@ -1084,7 +1084,7 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyglob',subname)
        nullify(wfd%keyglob)
     else
-       if(associated(wfd%keygloc)) then
+       if(associated(wfd%keyglob)) then
           i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
           deallocate(wfd%keyglob,stat=i_stat)
           call memocc(i_stat,i_all,'wfd%keyglob',subname)
