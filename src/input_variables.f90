@@ -22,16 +22,19 @@ subroutine set_inputfile(filename, radical, ext)
   end if
 
   inquire(file=trim(filename),exist=exists)
-  if (.not. exists .and. trim(radical) /= "") &
+  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
 
 !> Define the name of the input files
 subroutine standard_inputfile_names(inputs, radical)
   use module_types
+  use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
+
+  integer :: ierr
 
   call set_inputfile(inputs%file_dft, radical,    "dft")
   call set_inputfile(inputs%file_geopt, radical,  "geopt")
@@ -51,6 +54,10 @@ subroutine standard_inputfile_names(inputs, radical)
   end if
 
   inputs%files = INPUTS_NONE
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
