@@ -587,7 +587,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
-      &   (verbose > 1))
+      &   (verbose > 1),0)
 
    !calculate the irreductible zone for this region, if necessary.
    call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)

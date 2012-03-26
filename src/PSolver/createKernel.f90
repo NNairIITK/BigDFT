@@ -36,6 +36,7 @@
 !!                    Its dimensions are equivalent to the region of the FFT space for which the
 !!                    kernel is injective. This will divide by two each direction, 
 !!                    since the kernel for the zero-padded convolution is real and symmetric.
+!!    @param gpu      tag for CUDA gpu   0: CUDA GPU is disabled
 !!
 !! @warning
 !!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
@@ -43,12 +44,12 @@
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg,gpu)
   use module_base, only: ndebug
   implicit none
  ! include 'mpif.h'
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc,gpu
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
   logical, intent(in) :: wrtmsg
@@ -83,7 +84,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
           'Calculating Poisson solver kernel, surfaces BC...'
 
      !Build the Kernel
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
 
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
@@ -101,7 +102,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
           'Calculating Poisson solver kernel, free BC...'
 
      !Build the Kernel
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
 
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)

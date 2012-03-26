@@ -272,7 +272,7 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.) 
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,0) 
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
