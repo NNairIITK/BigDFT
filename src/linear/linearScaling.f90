@@ -153,10 +153,11 @@ type(DFT_wavefunction),pointer:: tmbmix
   call nullify_p2pcomms(tmbder%comsr)
   call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%lzd, tmbder%orbs, tag, tmbder%comsr)
 
+  call nullify_matrixDescriptors(tmb%mad)
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, tmbder%lzd%nlr, tmbder%orbs, &
-       tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
+  call nullify_matrixDescriptors(tmbder%mad)
+  call initMatrixCompression(iproc, nproc, tmbder%lzd%nlr, tmbder%orbs, tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
   allocate(tmb%confdatarr(tmb%orbs%norbp))
@@ -472,6 +473,9 @@ type(DFT_wavefunction),pointer:: tmbmix
                   input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
+  write(*,*) '1: before barrier, iproc',iproc
+  call mpi_barrier(mpi_comm_world, istat)
+  write(*,*) '1: after barrier, iproc',iproc
 
           ! Decide whether we have to use the derivatives or not.
           !if(input%lin%mixedmode) then
@@ -486,6 +490,9 @@ type(DFT_wavefunction),pointer:: tmbmix
                   end if
                   tmbmix => tmbder
               end if
+  write(*,*) '2: before barrier, iproc',iproc
+  call mpi_barrier(mpi_comm_world, istat)
+  write(*,*) '2: after barrier, iproc',iproc
           !end if
           if(tmbmix%wfnmd%bs%use_derivative_basis) then
           !!if(tmbmix%wfnmd%bs%use_derivative_basis .and. &
@@ -498,6 +505,9 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
           !!if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
           !!    .and. tmb%wfnmd%bs%update_phi) then
+  write(*,*) '3: before barrier, iproc',iproc
+  call mpi_barrier(mpi_comm_world, istat)
+  write(*,*) '3: after barrier, iproc',iproc
           if(tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               ! Update the locreg center, since they may have changed.
@@ -520,8 +530,14 @@ type(DFT_wavefunction),pointer:: tmbmix
               !!call deallocate_local_zone_descriptors(tmbder%lzd, subname)
               !!write(*,*) 'debug: after deallocate_local_zone_descriptors...'
   call destroy_DFT_wavefunction(tmbder)
+  write(*,*) '4: before barrier, iproc',iproc
+  call mpi_barrier(mpi_comm_world, istat)
+  write(*,*) '4: after barrier, iproc',iproc
   !!write(*,*) 'after destroy_DFT_wavefunction, iproc', iproc
   call deallocate_local_zone_descriptors(tmbder%lzd, subname)
+  write(*,*) '5: before barrier, iproc',iproc
+  call mpi_barrier(mpi_comm_world, istat)
+  write(*,*) '5: after barrier, iproc',iproc
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   !!write(*,*) 'after destroy_local_zone_descriptors, iproc', iproc
   do ilr=1,tmb%lzd%nlr
@@ -1265,7 +1281,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
-  use deallocatePointers
+  !!use deallocatePointers
   implicit none
   
   ! Calling arguments
@@ -1279,15 +1295,25 @@ subroutine destroy_DFT_wavefunction(wfn)
   deallocate(wfn%psi, stat=istat)
   call memocc(istat, iall, 'wfn%psi', subname)
 
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_overlapParameters(wfn%op, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_p2pComms(wfn%comon, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_p2pComms(wfn%comgp, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_p2pComms(wfn%comrp, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_p2pComms(wfn%comsr, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_matrixDescriptors(wfn%mad, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_orbitals_data(wfn%orbs, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call deallocate_communications_arrays(wfn%comms, subname)
+call mpi_barrier(mpi_comm_world, istat)
   call destroy_wfn_metadata(wfn%wfnmd)
+call mpi_barrier(mpi_comm_world, istat)
 
 end subroutine destroy_DFT_wavefunction
 
