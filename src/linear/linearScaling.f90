@@ -70,6 +70,7 @@ type(local_zone_descriptors):: lzd
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmb%orbs, tmb%comms)
+
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmbder%orbs, tmbder%comms)

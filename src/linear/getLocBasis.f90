@@ -29,9 +29,11 @@ integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+!real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+real(8):: tt
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+type(energy_terms) :: energs
 character(len=*),parameter:: subname='get_coeff'
 
 
@@ -81,7 +83,7 @@ character(len=*),parameter:: subname='get_coeff'
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
-       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+       energs,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
 
@@ -249,7 +251,7 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
 ! Local variables
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
+!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: tt1,tt2,tt3,tt4,tt5
 real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,dnrm2
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
@@ -276,6 +278,7 @@ type(matrixDescriptors):: madlarge2
 type(localizedDIISParameters):: ldiis2
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
+type(energy_terms) :: energs
 logical,parameter:: secondLocreg=.false.
 
 
@@ -556,7 +559,7 @@ logical,parameter:: secondLocreg=.false.
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+           energs,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 
 
@@ -621,8 +624,6 @@ logical,parameter:: secondLocreg=.false.
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
-
-
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH

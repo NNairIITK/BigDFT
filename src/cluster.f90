@@ -495,7 +495,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            end if
            wfn_loop: do iter=1,in%itermax
 
-              !control whether the minimisation iterations ended
+              !control whether the minimisation iterations should end after the hamiltionian application
               endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax
 
               if (iproc == 0 .and. verbose > 0) then 
@@ -533,13 +533,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
 
-           call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,mix,in%ixc,&
-                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
+              call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,mix,in%ixc,&
+                   nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
 
-           endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
+              endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
 
-           call total_energies(energs)
-           energy=energs%eKS
+              call total_energies(energs)
+              energy=energs%eKS
 
               !check for convergence or whether max. numb. of iterations exceeded
               if (endloop) then
@@ -555,8 +555,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               !control the previous value of idsx_actual
               idsx_actual_before=KSwfn%diis%idsx
 
-              !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-              if(inputpsi/=INPUT_PSI_LINEAR) call hpsitopsi(iproc,nproc,iter,in%idsx,KSwfn)
+              call hpsitopsi(iproc,nproc,iter,in%idsx,KSwfn)
 
               if (inputpsi == INPUT_PSI_LCAO) then
                  if ((gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &

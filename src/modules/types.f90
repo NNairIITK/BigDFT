@@ -54,6 +54,7 @@ module module_types
        (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
+  integer, parameter :: SCF_KIND_GENERALIZED_DIRMIN = -1
   integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
   !> Occupation parameters.
@@ -526,7 +527,8 @@ module module_types
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin, in_iat_absorber, Labsorber
      real(gp) :: hx,hy,hz
-     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+     type(energy_terms) :: energs
+     !real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
      type(atoms_data), pointer :: at
      type(orbitals_data), pointer :: orbs
      type(communications_arrays) :: comms

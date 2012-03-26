@@ -633,11 +633,12 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc)
          use module_base
          use module_types
          use module_xc
          implicit none
+         logical, intent(in) :: onlypot !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
@@ -648,8 +649,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp) :: confdatarr
          !real(wp), dimension(:), pointer :: pot
          real(wp), dimension(*) :: pot
-         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-         real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
+         type(energy_terms), intent(inout) :: energs
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
          type(GPU_pointers), intent(inout) :: GPU
          real(dp), dimension(:), pointer, optional :: pkernel
@@ -1102,9 +1102,9 @@ module module_interfaces
       END SUBROUTINE correct_hartree_potential
 
       subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-           &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-           &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-           &   in , PAWD , orbs )
+           radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+           energs,nspin,GPU,in_iat_absorber,&
+           in , PAWD , orbs )
         use module_base
         use module_types
         implicit none
@@ -1118,7 +1118,7 @@ module module_interfaces
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
         real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
-        real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum
+        type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber
         type(input_variables),intent(in), target :: in
@@ -1195,7 +1195,7 @@ module module_interfaces
 
       subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
            &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-           &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+           &   energs,nspin,GPU,in_iat_absorber,&
            &   in , rhoXanes, PAWD , PPD, orbs )
         use module_base
         use module_types
@@ -1212,8 +1212,7 @@ module module_interfaces
         real(wp), dimension(nlpspd%nprojel), target :: proj
         real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
         real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
-
-        real(gp) :: ekin_sum,epot_sum,eproj_sum
+        type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber
         type(pawproj_data_type), target ::PAWD
@@ -1223,7 +1222,7 @@ module module_interfaces
 
       subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
            radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-           ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
+           energs,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
         use module_base
         use module_types
         implicit none
@@ -1237,7 +1236,7 @@ module module_interfaces
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), target :: proj
         real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
-        real(gp) :: ekin_sum,epot_sum,eproj_sum
+        type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber 
         type(input_variables),intent(in), target :: in
@@ -1246,8 +1245,8 @@ module module_interfaces
       end subroutine xabs_chebychev
 
       subroutine cg_spectra(iproc,nproc,at,hx,hy,hz,rxyz,&
-            &   radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-         ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in , PAWD  )! aggiunger a interface
+           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+           energs,nspin,GPU,in_iat_absorber,in , PAWD  )! aggiunger a interface
          !n(c) use module_base
          use module_types
          implicit none
@@ -1261,8 +1260,7 @@ module module_interfaces
          real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
          real(wp), dimension(nlpspd%nprojel), target :: proj
          real(wp), dimension(max(ndimpot,1),nspin), target :: potential
-
-         real(gp) :: ekin_sum,epot_sum,eproj_sum
+         type(energy_terms), intent(inout) :: energs
          type(GPU_pointers), intent(inout) , target :: GPU
          integer, intent(in) :: in_iat_absorber
          type(pawproj_data_type), target ::PAWD
@@ -4998,7 +4996,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+          energs,SIC,GPU,&
           pkernel,orbsocc,psirocc)
        use module_base
        use module_types
@@ -5016,7 +5014,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        real(wp), dimension(lzd%ndimpotisf) :: Lpot
-       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+       type(energy_terms), intent(inout) :: energs
        real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(:), pointer, optional :: pkernel
@@ -6278,6 +6276,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
         real(8),intent(in):: factor
        end subroutine hpsitopsi_linear
+
+       subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
+            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc,ipotmethod,ixc
+         real(gp), intent(in) :: alphaSIC
+         type(orbitals_data), intent(in) :: orbs
+         type(local_zone_descriptors), intent(in) :: Lzd
+         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
+         real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+         real(gp), intent(out) :: epot_sum,evSIC
+         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
+         real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+       end subroutine psi_to_vlocpsi
 
    end interface
 
