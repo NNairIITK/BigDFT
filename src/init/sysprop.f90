@@ -146,14 +146,14 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   call createKernel(iproc,nproc,geocode,&
        d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-       ndegree_ip,denspot%pkernel,verb)
+       ndegree_ip,denspot%pkernel,verb,0)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      call createKernel(0,1,geocode,&
           d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-          ndegree_ip,denspot%pkernelseq,.false.)
+          ndegree_ip,denspot%pkernelseq,.false.,0)
   else 
      denspot%pkernelseq => denspot%pkernel
   end if

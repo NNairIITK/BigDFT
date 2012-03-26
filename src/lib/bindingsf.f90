@@ -94,16 +94,16 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
   call inquire_pointer5(pt_c, pt_f, size_c)
 end subroutine f90_pointer_5D_init
 
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg,gpu)
   use Poisson_Solver, only: ck => createKernel
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc,gpu
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
   logical, intent(in) :: wrtmsg
 
-  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg,gpu)
 end subroutine createKernel
 
 subroutine deallocate_double_1D(array)
