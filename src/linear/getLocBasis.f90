@@ -510,6 +510,7 @@ type(DFT_wavefunction),pointer:: tmbopt
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
       end if
 
+      write(*,*) 'iproc, tmb%orbs%npsidim_orbs, size(lhphi)', iproc, tmb%orbs%npsidim_orbs, size(lhphi)
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
