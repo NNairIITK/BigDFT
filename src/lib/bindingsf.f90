@@ -193,16 +193,22 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
-subroutine lzd_new(lzd, glr)
+subroutine lzd_new(lzd)
   use module_types
   implicit none
   type(local_zone_descriptors), pointer :: lzd
-  type(locreg_descriptors), pointer :: glr
 
   allocate(lzd)
-  glr => lzd%glr
-  call nullify_local_zone_descriptors(lzd)
 end subroutine lzd_new
+subroutine lzd_init(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), target, intent(inout) :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  call nullify_local_zone_descriptors(lzd)
+  glr => lzd%glr
+end subroutine lzd_init
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -211,6 +217,15 @@ subroutine lzd_free(lzd)
   call deallocate_local_zone_descriptors(lzd, "lzd_free")
   deallocate(lzd)
 end subroutine lzd_free
+subroutine lzd_set_hgrids(Lzd, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: Lzd
+  real(gp), intent(in) :: hgrids(3)
+  !initial values
+  Lzd%hgrids = hgrids
+end subroutine lzd_set_hgrids
 
 subroutine inputs_new(in)
   use module_types
@@ -380,25 +395,47 @@ subroutine orbs_new(orbs)
   type(orbitals_data), pointer :: orbs
 
   allocate(orbs)
-  call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_new
+subroutine orbs_init(orbs)
+  use module_types
+  implicit none
+  type(orbitals_data), intent(inout) :: orbs
+
+  call nullify_orbitals_data(orbs)
+END SUBROUTINE orbs_init
 subroutine orbs_free(orbs)
   use module_types
   use m_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
+  deallocate(orbs)
+END SUBROUTINE orbs_free
+subroutine orbs_empty(orbs)
+  use module_types
+  use m_profiling
+  implicit none
+  type(orbitals_data), intent(inout) :: orbs
+
   integer :: i_all, i_stat
 
-  call deallocate_orbs(orbs,"orbs_free")
+  call deallocate_orbs(orbs,"orbs_empty")
   if (associated(orbs%eval)) then
      i_all=-product(shape(orbs%eval))*kind(orbs%eval)
      deallocate(orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%eval',"orbs_free")
+     call memocc(i_stat,i_all,'orbs%eval',"orbs_empty")
   end if
-  deallocate(orbs)
-END SUBROUTINE orbs_free
-subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
+END SUBROUTINE orbs_empty
+subroutine orbs_comm_new(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), pointer :: comms
+
+  allocate(comms)
+end subroutine orbs_comm_new
+subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
   use module_interfaces
@@ -406,11 +443,10 @@ subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), pointer :: comms
+  type(communications_arrays), intent(inout) :: comms
 
-  allocate(comms)
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
-end subroutine orbs_comm
+end subroutine orbs_comm_init
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
@@ -418,9 +454,17 @@ subroutine orbs_comm_free(comms)
   implicit none
   type(communications_arrays), pointer :: comms
 
-  call deallocate_comms(comms,"orbs_comm_free")
   deallocate(comms)
 end subroutine orbs_comm_free
+subroutine orbs_comm_empty(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), pointer :: comms
+
+  call deallocate_comms(comms,"orbs_comm_empty")
+end subroutine orbs_comm_empty
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types
@@ -634,6 +678,71 @@ subroutine gpu_free(GPU)
   deallocate(GPU)
 END SUBROUTINE gpu_free
 
+subroutine wf_new(wf, orbs, comm, lzd)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), pointer :: wf
+  type(orbitals_data), pointer :: orbs
+  type(communications_arrays), pointer :: comm
+  type(local_zone_descriptors), pointer :: lzd
+
+  allocate(wf)
+  nullify(wf%psi)
+  nullify(wf%hpsi)
+  nullify(wf%psit)
+  nullify(wf%spsi)
+  orbs => wf%orbs
+  comm => wf%comms
+  lzd => wf%Lzd
+end subroutine wf_new
+subroutine wf_free(wf)
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_wavefunction), pointer :: wf
+
+  integer :: i_all, i_stat
+
+  if (associated(wf%psi)) then
+     i_all=-product(shape(wf%psi))*kind(wf%psi)
+     deallocate(wf%psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi', "wf_free")
+  end if
+  if (associated(wf%psit)) then
+     i_all=-product(shape(wf%psit))*kind(wf%psit)
+     deallocate(wf%psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit', "wf_free")
+  end if
+  if (associated(wf%hpsi)) then
+     i_all=-product(shape(wf%hpsi))*kind(wf%hpsi)
+     deallocate(wf%hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi', "wf_free")
+  end if
+  call deallocate_diis_objects(wf%diis, "wf_free")
+  call deallocate_comms(wf%comms, "wf_free")
+  if (associated(wf%orbs%eval)) then
+     i_all=-product(shape(wf%orbs%eval))*kind(wf%orbs%eval)
+     deallocate(wf%orbs%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'eval', "wf_free")
+  end if
+  call deallocate_orbs(wf%orbs, "wf_free")
+  call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
+  deallocate(wf)
+end subroutine wf_free
+subroutine wf_get_psi(wf, psi)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(in) :: wf
+  double precision, intent(out) :: psi
+
+  interface
+     subroutine inquire_address1(add, pt_f)
+       double precision, dimension(:), pointer :: pt_f
+       double precision, intent(out) :: add
+     end subroutine inquire_address1
+  end interface
+  call inquire_address1(psi, wf%psi)
+end subroutine wf_get_psi
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
   implicit none
@@ -689,6 +798,6 @@ subroutine glr_get_psi_size(glr, psisize)
   implicit none
   type(locreg_descriptors), intent(in) :: glr
   integer, intent(out) :: psisize
-  
+
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size

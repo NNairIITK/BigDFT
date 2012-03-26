@@ -108,7 +108,6 @@ int main(guint argc, char **argv)
 #define CRMULT 5.
 #define FRMULT 8.
   BigDFT_Inputs *in;
-  BigDFT_Lzd *lzd;
   BigDFT_Wf *wf;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
@@ -183,36 +182,34 @@ int main(guint argc, char **argv)
   in = bigdft_inputs_new("test");
   output_inputs(in);
 
-  fprintf(stdout, "Test BigDFT_Lzd structure creation.\n");
-  lzd = bigdft_lzd_new();
+  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
+  wf = bigdft_wf_new();
+
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
-  if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(lzd), "posinp.ascii"))
+  if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
       fprintf(stdout, "Problem with your file.\n");
       return 1;
     }
-  output_atoms(BIGDFT_ATOMS(lzd));
+  output_atoms(BIGDFT_ATOMS(wf->lzd));
 
-  bigdft_atoms_set_symmetries(BIGDFT_ATOMS(lzd), !in->disableSym, -1., in->elecfield);
-  bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(lzd));
+  bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
+  bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
 
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential evaluation.\n");
-  bigdft_atoms_set_psp(BIGDFT_ATOMS(lzd), in->ixc, in->nspin, (const gchar*)0);
-  radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(lzd), in->crmult, in->frmult, 0.);
-  bigdft_locreg_set_radii(BIGDFT_LOCREG(lzd), radii);
+  bigdft_atoms_set_psp(BIGDFT_ATOMS(wf->lzd), in->ixc, in->nspin, (const gchar*)0);
+  radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(wf->lzd), in->crmult, in->frmult, 0.);
+  bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
   g_free(radii);
-  bigdft_locreg_set_size(BIGDFT_LOCREG(lzd), in->h, in->crmult, in->frmult);
-  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(lzd));
-  output_locreg(BIGDFT_LOCREG(lzd));
+  bigdft_lzd_set_size(wf->lzd, in->h, in->crmult, in->frmult);
+  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
+  output_locreg(BIGDFT_LOCREG(wf->lzd));
 
-  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
+  nelec = bigdft_orbs_define(BIGDFT_ORBS(wf), wf->lzd, in, 0, 1);
   fprintf(stdout, " System has %d electrons.\n", nelec);
-  fprintf(stdout, " Add linear zone description.\n");
-  bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, 0, 1);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
-  proj = bigdft_proj_new(BIGDFT_LOCREG(lzd), BIGDFT_ORBS(wf), in->frmult);
+  proj = bigdft_proj_new(BIGDFT_LOCREG(wf->lzd), BIGDFT_ORBS(wf), in->frmult);
   fprintf(stdout, " System has %d projectors, and %d elements.\n",
           proj->nproj, proj->nprojel);
 
@@ -220,13 +217,13 @@ int main(guint argc, char **argv)
     {
       fprintf(stdout, "Test memory estimation.\n");
       stdout_fileno_old = redirect_init(out_pipe);
-      peak = bigdft_memory_get_peak(4, BIGDFT_LOCREG(lzd), in, BIGDFT_ORBS(wf), proj);
+      peak = bigdft_memory_get_peak(4, BIGDFT_LOCREG(wf->lzd), in, BIGDFT_ORBS(wf), proj);
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
   fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
-  denspot = bigdft_localfields_new(BIGDFT_LOCREG(lzd), in, 0, 1);
+  denspot = bigdft_localfields_new(BIGDFT_LOCREG(wf->lzd), in, 0, 1);
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
@@ -255,10 +252,6 @@ int main(guint argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Inputs free.\n");
   bigdft_inputs_free(in);
-  fprintf(stdout, " Ok\n");
-
-  fprintf(stdout, "Test BigDFT_Lzd free.\n");
-  bigdft_lzd_free(lzd);
   fprintf(stdout, " Ok\n");
 
   if (argc > 2)

@@ -101,12 +101,12 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
   hh[0] = glr->h[0] * 0.5;
   hh[1] = glr->h[1] * 0.5;
   hh[2] = glr->h[2] * 0.5;
+  FC_FUNC_(denspot_set_hgrids, DENSPOT_SET_HGRIDS)(localfields->data, hh);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
     (&iproc, &nproc, glr->d, hh, hh + 1, hh + 2, in->data,
      glr->parent.data, glr->parent.rxyz.data, glr->radii, localfields->dpcom, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, glr->data,
-                                          hh, hh + 1, hh + 2, in->data,
-                                          glr->parent.data, glr->parent.rxyz.data,
+                                          &in->nspin, glr->parent.data, glr->parent.rxyz.data,
                                           localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
     (localfields->data, &localfields->rhov_is, localfields->h,
@@ -116,7 +116,7 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
   GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,  V_XC);
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &glr->parent.geocode, glr->d, glr->h,
+    (&iproc, &nproc, &verb, &glr->parent.geocode, glr->d,
      in->data, localfields->data);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
@@ -136,16 +136,11 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc)
 {
-  double hh[3];
   int verb = 0;
   
-  hh[0] = denspot->glr->h[0] * 0.5;
-  hh[1] = denspot->glr->h[1] * 0.5;
-  hh[2] = denspot->glr->h[2] * 0.5;
-
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
     (&iproc, &nproc, &verb, in->data, denspot->glr->parent.data, denspot->glr->parent.rxyz.data,
-     denspot->glr->parent.shift, denspot->glr->data, hh, hh + 1, hh + 2,
+     denspot->glr->parent.shift, denspot->glr->data, denspot->h, denspot->h + 1, denspot->h + 2,
      denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
 

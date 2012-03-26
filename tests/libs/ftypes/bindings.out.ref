@@ -11,7 +11,7 @@ Test BigDFT_Atoms free.
 Test BigDFT_Inputs structure creation.
  Read 'test.dft' file: 1
  Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
-Test BigDFT_Lzd structure creation.
+Test BigDFT_Wf structure creation.
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -36,13 +36,11 @@ Test BigDFT_Atoms pseudo-potential evaluation.
 Test calculation of grid points.
  Coarse grid has   24084 points.
  Fine grid has      3489 points.
-Test BigDFT_Wf structure creation.
  System has 8 electrons.
 Test BigDFT_Proj structure creation.
  System has 5 projectors, and 191050 elements.
 Test BigDFT_LocalFields creation.
- Meta data are -123456789.000000 -123456789.000000 -123456789.000000  -  -1980  -  0.000000
- Add linear zone description.
+ Meta data are 0.203845 0.240000 0.122307  -  -1980  -  0.000000
  Calculation of ionic potential started.
  Calculation of ionic potential finished.
  Calculation of input guess started.
@@ -82,8 +80,6 @@ Test BigDFT_Proj free.
 Test BigDFT_Wf free.
  Ok
 Test BigDFT_Inputs free.
- Ok
-Test BigDFT_Lzd free.
  Ok
 # BigDFT file - Test from memory generation.
  0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01

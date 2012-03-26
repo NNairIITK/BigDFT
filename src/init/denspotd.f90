@@ -73,6 +73,17 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
+subroutine denspot_set_hgrids(denspot, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  real(gp), intent(in) :: hgrids(3)
+  denspot%hgrids(1)=hgrids(1)
+  denspot%hgrids(2)=hgrids(2)
+  denspot%hgrids(3)=hgrids(3)
+end subroutine denspot_set_hgrids
+
 subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
   use module_base
   use module_types
@@ -124,7 +135,6 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
   dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
   dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
        dpcom%nrhodim
-
 end subroutine denspot_communications
 
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
