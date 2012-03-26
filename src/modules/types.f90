@@ -859,6 +859,7 @@ end type workarrays_quartic_convolutions
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
+     double precision :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status

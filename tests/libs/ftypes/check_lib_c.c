@@ -31,6 +31,7 @@ typedef struct bigdft_data
 #ifdef HAVE_GLIB
 static gboolean exit_loop(gpointer data);
 static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
+static void onDensReady(BigDFT_LocalFields *denspot, guint istep, gpointer data);
 #endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
@@ -372,6 +373,19 @@ static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
   /* Chain up with the input guess. */
   g_idle_add(calculate_psi_0, data);
 }
+static void onDensReady(BigDFT_LocalFields *denspot, guint istep, gpointer data)
+{
+  guint i;
+  double dens;
+
+  /* Do something with the density. */
+  fprintf(stdout, "Callback for \"density-ready\" signal at iter %d.\n", istep);
+  dens = 0.;
+  for (i = 0; i < denspot->glr->ni[0] * denspot->glr->ni[1] * denspot->glr->ni[2]; i++)
+    dens += denspot->rhov[i];
+  dens *= denspot->h[0] * denspot->h[1] * denspot->h[2];
+  fprintf(stdout, " Density calculated by C is %16.16f.\n", dens);
+}
 static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
 {
   const double *psic;
@@ -454,6 +468,8 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
   ct->loop    = (GMainLoop*)data;
   g_signal_connect(G_OBJECT(ct->denspot), "v-ext-ready",
                    G_CALLBACK(onVExtReady), (gpointer)ct);
+  g_signal_connect(G_OBJECT(ct->denspot), "density-ready",
+                   G_CALLBACK(onDensReady), (gpointer)ct);
   g_signal_connect(G_OBJECT(ct->wf), "psi-ready",
                    G_CALLBACK(onPsiReady), (gpointer)ct);
   g_idle_add(calculate_ionic_pot, (gpointer)ct);

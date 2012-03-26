@@ -133,7 +133,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
-     denspot%rhov_is=ELECTRONIC_DENSITY
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itrp)
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -161,13 +161,13 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,ixc,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        denspot%rhov_is=CHARGE_DENSITY
+        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itrp)
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
-        denspot%rhov_is=HARTREE_POTENTIAL
+        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itrp)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
@@ -195,7 +195,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
            !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
         end if
      end if
-     denspot%rhov_is=KS_POTENTIAL
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itrp)
 
   end if
 
@@ -292,8 +292,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
 
-  integer:: i
-
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
 
@@ -357,7 +355,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
-   integer :: i_stat,n3p,ispot,ipotmethod,iorb
+   integer :: i_stat,n3p,ispot,ipotmethod
    real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
 
@@ -754,7 +752,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
+   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr
    integer:: istl, ist, size_Lpot, i3s, i3e
    integer,dimension(:,:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
@@ -1033,8 +1031,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
-  real(gp) :: rzeroorbs,tt,scpr
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  real(gp) :: rzeroorbs,tt
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 

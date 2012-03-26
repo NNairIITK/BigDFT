@@ -63,7 +63,7 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, co
                                         const double *hx, const double *hy, const double *hz,
                                         int *grid);
 
-void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(void *denspotd,
+void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
 void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd);
 void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,

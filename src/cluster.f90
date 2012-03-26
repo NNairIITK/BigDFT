@@ -1062,7 +1062,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call communicate_density(iproc,nproc,KSwfn%orbs%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),KSwfn%Lzd,&
                 denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
-           denspot%rhov_is=ELECTRONIC_DENSITY
+           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
 
            if (OCLconv) then
               call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
@@ -1081,7 +1081,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
-           denspot%rhov_is=CHARGE_DENSITY
+           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1)
 
            !select the active space if needed
 

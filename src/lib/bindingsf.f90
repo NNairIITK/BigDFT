@@ -549,9 +549,10 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
-subroutine localfields_new(denspotd, rhod, dpcom)
+subroutine localfields_new(self, denspotd, rhod, dpcom)
   use module_types
   implicit none
+  double precision, intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
   type(denspot_distribution), pointer :: dpcom
   type(rho_descriptors), pointer :: rhod
@@ -559,6 +560,7 @@ subroutine localfields_new(denspotd, rhod, dpcom)
   allocate(denspotd)
   rhod => denspotd%rhod
   dpcom => denspotd%dpcom
+  denspotd%c_obj = self
 END SUBROUTINE localfields_new
 subroutine localfields_free(denspotd)
   use module_types

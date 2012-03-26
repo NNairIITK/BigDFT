@@ -1312,7 +1312,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
              denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
      end if
      !now the meaning is KS potential
-     denspot%rhov_is=KS_POTENTIAL
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0)
 
      i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
      deallocate(denspot%Vloc_KS,stat=i_stat)
@@ -1657,6 +1657,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
         denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+   call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0)
    orbse%nspin=nspin_ig
 
    !-- if spectra calculation uses a energy dependent potential
@@ -1820,6 +1821,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
+   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
 
@@ -2118,7 +2120,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,0,atoms%sym,GPU,in)
-     denspot%rhov_is=KS_POTENTIAL
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
      if (iproc == 0) then

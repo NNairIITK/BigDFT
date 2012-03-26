@@ -22,6 +22,7 @@ static void bigdft_localfields_finalize(GObject *localfields);
 #ifdef HAVE_GLIB
 enum {
   V_EXT_READY_SIGNAL,
+  DENSITY_READY_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -42,17 +43,25 @@ static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
 		 0, NULL, NULL, g_cclosure_marshal_VOID__VOID,
                  G_TYPE_NONE, 0, NULL);
+  bigdft_localfields_signals[DENSITY_READY_SIGNAL] =
+    g_signal_new("density-ready", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
+                 G_TYPE_NONE, 1, G_TYPE_UINT, NULL);
 }
 #endif
 
 static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 {
+  double self;
+
 #ifdef HAVE_GLIB
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_LocalFields));
 #endif
-  FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(&obj->data, &obj->rhod, &obj->dpcom);
+  self = *((double*)&obj);
+  FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(&self, &obj->data, &obj->rhod, &obj->dpcom);
   FC_FUNC_(initialize_dft_local_fields, INITIALIZE_DFT_LOCAL_FIELDS)(obj->data);
 }
 static void bigdft_localfields_dispose(GObject *obj)
@@ -78,6 +87,23 @@ static void bigdft_localfields_finalize(GObject *obj)
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->finalize(obj);
 #endif
+}
+void FC_FUNC_(denspot_emit_rhov, DENSPOT_EMIT_RHOV)(BigDFT_LocalFields **denspot,
+                                                    guint *istep)
+{
+#ifdef HAVE_GLIB
+  FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
+    ((*denspot)->data, &(*denspot)->rhov_is, (*denspot)->h, &(*denspot)->psoffset);
+  switch ((*denspot)->rhov_is)
+    {
+    case BIGDFT_RHO_IS_ELECTRONIC_DENSITY:
+      g_signal_emit(G_OBJECT(*denspot), bigdft_localfields_signals[DENSITY_READY_SIGNAL],
+                    0 /* details */, *istep, NULL);
+      break;
+    default:
+      break;
+    }
+#endif  
 }
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
