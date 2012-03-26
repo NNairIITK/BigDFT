@@ -1172,6 +1172,7 @@ end subroutine copy_orthon_data
 subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => copy_local_zone_descriptors
   implicit none
   
   ! Calling aruments
@@ -1181,6 +1182,9 @@ subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
 
   ! Local variables
   integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer:: iproc,ierr
+
+  call mpi_comm_rank(mpi_comm_world, iproc, ierr)
 
 
   lzdout%linear=lzdin%linear
@@ -1225,6 +1229,7 @@ subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
   end if
   
   call deallocate_locreg_descriptors(lzdout%Glr, subname)
+  call nullify_locreg_descriptors(lzdout%glr)
   call copy_locreg_descriptors(lzdin%glr, lzdout%glr, subname)
   
   if(associated(lzdout%llr)) then
@@ -1240,6 +1245,7 @@ subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
       iie1=ubound(lzdin%llr,1)
       allocate(lzdout%llr(iis1:iie1), stat=istat)
       do i1=iis1,iie1
+          call nullify_locreg_descriptors(lzdout%llr(i1))
           call copy_locreg_descriptors(lzdin%llr(i1), lzdout%llr(i1), subname)
       end do
   end if

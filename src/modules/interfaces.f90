@@ -2198,7 +2198,7 @@ module module_interfaces
       type(orbitals_data),intent(inout):: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(inout):: at
-      type(input_variables),intent(in):: input
+      type(input_variables),intent(inout):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
       real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       type(DFT_local_fields), intent(inout) :: denspot
@@ -6105,17 +6105,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
-                  lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, glr, &
+                  use_derivative_basis, rxyz, locregCenter, lorbs)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, nspinor
+         
+         ! Calling arguments
+         integer,intent(in):: iproc, nproc, nspinor, nlr
          type(input_variables),intent(in):: input
          type(atoms_data),intent(in):: at
          type(locreg_descriptors),intent(in):: glr
          logical,intent(in):: use_derivative_basis
          real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(3,nlr),intent(in):: locregCenter
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
@@ -6127,9 +6130,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          type(atoms_data),intent(in):: at
-         real(8),dimension(3,at%nat),intent(in):: rxyz
          type(orbitals_data),intent(in):: orbs, derorbs
-         type(local_zone_descriptors),intent(out):: lzd
+         type(local_zone_descriptors),intent(inout):: lzd
+         real(8),dimension(3,lzd%nlr),intent(in):: rxyz
        end subroutine init_local_zone_descriptors
 
        subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &

@@ -213,7 +213,7 @@ real(8),intent(in):: factor, trH, meanAlpha
 real(8),dimension(tmbopt%orbs%norb),intent(out):: alpha, alphaDIIS
 
 ! Local variables
-integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall
+integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
 real(8):: tt, dnrm2
 real(8),dimension(:,:),allocatable:: Umat, ovrlp
 integer,dimension(:),allocatable:: onwhichatom_reference
@@ -383,6 +383,18 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
                   locregCenterTemp=locregCenter
               end if
+
+              ! Normalize by hand
+              ist=1
+              do iorb=1,tmb%orbs%norbp
+                  iiorb=tmb%orbs%isorb+iorb
+                  ilr=tmb%orbs%inwhichlocreg(iiorb)
+                  ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+                  tt=dnrm2(ncnt, tmb%psi(ist), 1)
+                  !!write(*,*) 'here iorb,tt',iorb,tt
+                  call dscal(ncnt, 1/tt, tmb%psi(ist), 1)
+                  ist=ist+ncnt
+              end do
 
           end if
 
