@@ -708,7 +708,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   !for the given processor (this is only the cubic strategy)
   orbs%npsidim_orbs=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor
   orbs%npsidim_comp=sum(comms%ncntt(0:nproc-1))
-    
 !!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
 !!$       sum(comms%ncntt(0:nproc-1)))
 

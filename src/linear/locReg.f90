@@ -921,7 +921,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
 
-   !starting point of locreg (always inside locreg)
+   !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
    isdir(3) = Llr(ilr)%ns3
@@ -1001,7 +1001,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
-
 
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd,subname)
@@ -3223,8 +3222,8 @@ else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
 
-do iorb=1,orbs%norb
-end do
+!do iorb=1,orbs%norb
+!end do
 
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)

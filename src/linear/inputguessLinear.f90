@@ -267,7 +267,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   logical,dimension(:),allocatable:: covered
   !real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
+  logical:: withConfinement, isoverlap, ovrlpx, ovrlpy, ovrlpz
   logical,dimension(:),allocatable:: doNotCalculate, skip
   integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp
   integer :: ldim,gdim,ierr,jlr,kk,iiorb,ndim_lhchi,ii_orbs,ii_comp
@@ -659,7 +659,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ndim_lhchi=0
   !do iat=1,at%nat
   do ilr=1,lig%lzdig%nlr
-      call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!      call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,lig%orbsig%norbp
           !onWhichAtomTemp(jorb)=ilr
@@ -668,11 +668,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !jlr=lig%orbsig%inWhichLocregp(jorb)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
           if(lig%orbsig%inWhichlocreg(jorb+lig%orbsig%isorb)/=jlr) stop 'this should not happen'
-          call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
-          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          call check_overlap_cubic_periodic(lig%lzdig%Glr,lig%lzdig%llr(ilr),lig%lzdig%llr(jlr),isoverlap)
+!          call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+!          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+           if(isoverlap) then
               skip(ilr)=.false.
           end if
       end do
@@ -729,7 +731,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       lig%lzdig%doHamAppl=.false.
       !!call mpi_barrier(mpi_comm_world, ierr)
       !call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-      call getIndices(lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
+      !call getIndices(lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       !!write(*,'(a,2i8,3es12.4)') 'ilr, owa, lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr))%locregCenter', &
       !!                            ilr, lig%orbsGauss%inwhichlocreg(ilr), lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr))%locregCenter
@@ -740,14 +742,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !jlr=onWhichAtomp(jorb)
           !jlr=lig%orbsig%inWhichLocregp(jorb)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
-          call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+          !call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+          call check_overlap_cubic_periodic(lig%lzdig%Glr,lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)),&
+               lig%lzdig%llr(jlr),isoverlap)
           !!write(1710,'(a,4i7,4x,6i7,4x,6i7)') 'ilr, owa, jorb, jlr, is1, ie1, is2, ie2, is3, ie3 ; js1, je1, js2, je2, js3, je3', &
           !!      ilr, lig%orbsGauss%inwhichlocreg(ilr), jorb, jlr, is1, ie1, is2, ie2, is3, ie3 , js1, je1, js2, je2, js3, je3
-          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+          !ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+          !ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+          !ovrlpz = ( is3<=je3 .and. ie3>=js3 )
           !if(lig%orbsig%isorb+jorb==28) write(*,'(a,i8,3l7)') 'ilr, ovrlpx, ovrlpy, ovrlpz', ilr, ovrlpx, ovrlpy, ovrlpz
-          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          if(isoverlap) then
               doNotCalculate(jlr)=.false.
               lig%lzdig%doHamAppl(jlr)=.true.
               skip(ilr)=.false.
@@ -781,12 +786,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
 !DEBUG
-!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-!             if (iproc==0) then
-!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!                 ekin_sum,epot_sum,eproj_sum
-!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-!             endif
+             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+             if (iproc==0) then
+                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                 ekin_sum,epot_sum,eproj_sum
+                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+             endif
 !END DEBUG
       !!!! DEBUG #####################################
       !!istat=1

@@ -840,9 +840,6 @@ program WaCo
       i_all=-product(shape(hamr))*kind(hamr)
       deallocate(hamr,stat=i_stat)
       call memocc(i_stat,i_all,'hamr',subname)
-      i_all=-product(shape(ham))*kind(ham)
-      deallocate(ham,stat=i_stat)
-      call memocc(i_stat,i_all,'ham',subname)
       i_all=-product(shape(diag))*kind(diag)
       deallocate(diag,stat=i_stat)
       call memocc(i_stat,i_all,'diag',subname)
@@ -1037,10 +1034,17 @@ program WaCo
            else
              if(trim(outputype)=='bin') then
                 open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='unformatted')
+                if(hamilana) then
                 call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
-                     wann(1),wann(Glr%wfd%nvctr_c+1), 0.d0)
+                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                     wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                else
+                call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
+                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                     wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
+                end if
              else
                 stop 'ETSF not implemented yet'                
                 ! should be write_wave_etsf  (only one orbital)
@@ -1087,6 +1091,11 @@ program WaCo
      i_all = -product(shape(buf))*kind(buf)
      deallocate(buf,stat=i_stat)
      call memocc(i_stat,i_all,'buf',subname)
+  end if
+  if(hamilana) then
+     i_all=-product(shape(ham))*kind(ham)
+     deallocate(ham,stat=i_stat)
+     call memocc(i_stat,i_all,'ham',subname)
   end if
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
