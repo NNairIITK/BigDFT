@@ -34,8 +34,6 @@ subroutine standard_inputfile_names(inputs, radical)
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
 
-  integer :: ierr
-
   call set_inputfile(inputs%file_dft, radical,    "dft")
   call set_inputfile(inputs%file_geopt, radical,  "geopt")
   call set_inputfile(inputs%file_kpt, radical,    "kpt")
@@ -54,10 +52,6 @@ subroutine standard_inputfile_names(inputs, radical)
   end if
 
   inputs%files = INPUTS_NONE
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 

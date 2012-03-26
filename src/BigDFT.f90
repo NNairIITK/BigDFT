@@ -88,6 +88,9 @@ program BigDFT
       ! Read all input files.
       !standard names
       call standard_inputfile_names(inputs, radical)
+      ! To avoid race conditions where procs create the default file and other test its
+      ! presence, we put a barrier here.
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       if (iproc == 0) then
          call print_general_parameters(nproc,inputs,atoms)
