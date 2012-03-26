@@ -467,6 +467,7 @@ type(DFT_wavefunction),pointer:: tmbmix
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
+              write(*,*) 'calling getLocalizedBasis from main...'
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
                   denspot,GPU,trace,&
                   infoBasisFunctions,nlpspd,proj,ldiis,&
