@@ -6290,6 +6290,21 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(out):: locreg_increased
        end subroutine adjust_locregs_and_confinement
 
+       subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
+                  mixdiis, exit_outer_loop)
+         use module_base
+         use module_types
+         implicit none
+         logical,intent(in):: lowaccur_converged
+         type(input_variables),intent(in):: input
+         type(DFT_wavefunction),intent(in):: tmb
+         type(DFT_local_fields),intent(inout) :: denspot
+         integer,intent(inout):: nit_highaccuracy
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(mixrhopotDIISParameters),intent(inout):: mixdiis
+         logical,intent(out):: exit_outer_loop
+       end subroutine adjust_DIIS_for_high_accuracy
+
    end interface
 
 END MODULE module_interfaces

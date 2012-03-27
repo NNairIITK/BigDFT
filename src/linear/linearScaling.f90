@@ -32,7 +32,7 @@ real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_standard, redefine_derivatives
+logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_standard, redefine_derivatives, exit_outer_loop
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
@@ -311,94 +311,32 @@ type(DFT_wavefunction),pointer:: tmbmix
 
 
       ! Adjust the confining potential if required.
-      !!call adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
       call adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
            input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
            locreg_increased)
-      !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-      !!    decrease_factor_total=1.d0
-      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      !!    if(infoBasisFunctions>0) then
-      !!        idecrease=idecrease+1
-      !!        ifail=0
-      !!    else
-      !!        ifail=ifail+1
-      !!    end if
-      !!    decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
-      !!end if
-      !!if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
-      !!if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
-      !!    100.d0*decrease_factor_total,'% of its initial value.'
-      !!tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
-
-
-      !!locreg_increased=.false.
-      !!redefine_derivatives=.false.
-      !!redefine_standard=.false.
-      !!if(ifail>=3 .and. .not.lowaccur_converged) then
-      !!    increase_locreg=increase_locreg+1.d0
-      !!    if(iproc==0) then
-      !!        write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
-      !!        write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',increase_locreg
-      !!    end if
-      !!    ifail=0
-      !!    locrad=locrad+increase_locreg
-      !!    if(withder) then
-      !!        redefine_derivatives=.true.
-      !!    else
-      !!        redefine_standard=.true.
-      !!    end if
-      !!    locreg_increased=.true.
-      !!end if
-
-      !!redefine_derivatives=.false.
-      !!if(lowaccur_converged) then
-      !!    if(iproc==0) then
-      !!        write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
-      !!    end if
-      !!    locreg_increased=.true.
-      !!    redefine_standard=.true.
-      !!end if
-      !!if(locreg_increased) then
-      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-      !!         ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-      !!end if
-      !!if(redefine_standard) then
-      !!    ! Fake allocation
-      !!    allocate(tmb%comsr%sendbuf(1), stat=istat)
-      !!    call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-      !!    allocate(tmb%comsr%recvbuf(1), stat=istat)
-      !!    call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-      !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-      !!end if
-      !!if(redefine_derivatives) then
-      !!    ! Fake allocation
-      !!    allocate(tmbder%comsr%sendbuf(1), stat=istat)
-      !!    call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-      !!    allocate(tmbder%comsr%recvbuf(1), stat=istat)
-      !!    call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-      !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-      !!end if
 
       ! Somce special treatement if we are in the high accuracy part
-      if(lowaccur_converged) then
-          nit_highaccuracy=nit_highaccuracy+1
-          if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
-              ! Deallocate DIIS structures.
-              call deallocateDIIS(ldiis)
-              exit outerLoop
-          end if
-          ! only use steepest descent if the localization regions may change
-          if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
-              ldiis%isx=0
-          end if
+      call adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
+           mixdiis, exit_outer_loop)
+      if(exit_outer_loop) exit outerLoop
+      !!if(lowaccur_converged) then
+      !!    nit_highaccuracy=nit_highaccuracy+1
+      !!    if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
+      !!        ! Deallocate DIIS structures.
+      !!        call deallocateDIIS(ldiis)
+      !!        exit outerLoop
+      !!    end if
+      !!    ! only use steepest descent if the localization regions may change
+      !!    if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
+      !!        ldiis%isx=0
+      !!    end if
 
-          if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-              call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
-          else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-              call deallocateMixrhopotDIIS(mixdiis)
-          end if
-      end if
+      !!    if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+      !!        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+      !!    else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+      !!        call deallocateMixrhopotDIIS(mixdiis)
+      !!    end if
+      !!end if
 
       ! Allocate the communication arrays for the calculation of the charge density.
       if(.not. locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -1290,3 +1228,45 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, 
   end if
 
 end subroutine adjust_locregs_and_confinement
+
+
+subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
+           mixdiis, exit_outer_loop)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
+  implicit none
+  
+  ! Calling arguments
+  logical,intent(in):: lowaccur_converged
+  type(input_variables),intent(in):: input
+  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_local_fields),intent(inout) :: denspot
+  integer,intent(inout):: nit_highaccuracy
+  type(localizedDIISParameters),intent(inout):: ldiis
+  type(mixrhopotDIISParameters),intent(inout):: mixdiis
+  logical,intent(out):: exit_outer_loop
+  
+  
+  exit_outer_loop=.false.
+  
+  if(lowaccur_converged) then
+      nit_highaccuracy=nit_highaccuracy+1
+      if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
+          ! Deallocate DIIS structures.
+          call deallocateDIIS(ldiis)
+          exit_outer_loop=.true.
+      end if
+      ! only use steepest descent if the localization regions may change
+      if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
+          ldiis%isx=0
+      end if
+  
+      if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+          call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+      else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+          call deallocateMixrhopotDIIS(mixdiis)
+      end if
+  end if
+  
+end subroutine adjust_DIIS_for_high_accuracy
