@@ -1590,3 +1590,29 @@ subroutine deallocate_collectiveComms(collComms, subname)
   call checkAndDeallocatePointer(collComms%indexarray, 'collComms%indexarray', subname)
 
 end subroutine deallocate_collectiveComms
+
+
+
+subroutine destroy_wfn_metadata(wfnmd)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(wfn_metadata),intent(inout):: wfnmd
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_wfn_metadata'
+
+  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
+  deallocate(wfnmd%coeff, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff', subname)
+
+  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
+  deallocate(wfnmd%coeff_proj, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+
+end subroutine destroy_wfn_metadata
+

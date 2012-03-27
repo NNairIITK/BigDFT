@@ -26,7 +26,7 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,itSCC,ilr,tag,itout,iorb,ist,iiorb,ncnt
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
@@ -44,8 +44,6 @@ logical:: check_whether_derivatives_to_be_used
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
-  ! Initialize the parameters for the linear scaling version and allocate all arrays.
-  tag=0
 
 
   ! Initialize everything related to the linear scaling version ###########################################################
@@ -81,6 +79,7 @@ logical:: check_whether_derivatives_to_be_used
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
+  tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
        input%lin%locregShape, tmb%op, tmb%comon, tag)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
@@ -301,9 +300,11 @@ logical:: check_whether_derivatives_to_be_used
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
-      do itSCC=1,lscv%nit_scc
-          if(itSCC>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
-          if(itSCC==1) then
+      do it_scc=1,lscv%nit_scc
+          ! Do not update the TMB if it_scc>1
+          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
+          ! Only communicate the TMB for sumrho in the first iteration.
+          if(it_scc==1) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
@@ -329,7 +330,7 @@ logical:: check_whether_derivatives_to_be_used
                   tmbmix => tmb
               else
                   ! We have to communicate the potential in the first iteration
-                  if(itSCC==1) then
+                  if(it_scc==1) then
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
                       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
                   end if
@@ -356,9 +357,10 @@ logical:: check_whether_derivatives_to_be_used
 
 
           ! Build the derivatives if required.
-          if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
+          if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
+                  if((lscv%locreg_increased .or. &
+                      (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
                       .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call nullify_p2pComms(tmbder%comrp)
@@ -395,7 +397,7 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then
-           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. itSCC==lscv%nit_scc
+           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
@@ -414,7 +416,7 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the potential
           if(trim(input%lin%mixingMethod)=='pot') then
-           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. itSCC==lscv%nit_scc
+           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
@@ -429,7 +431,7 @@ logical:: check_whether_derivatives_to_be_used
           end if
 
           ! Write some informations.
-          call printSummary(iproc, itSCC, lscv%info_basis_functions, &
+          call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%mixingMethod)
           if(pnrm<lscv%self_consistent) then
               lscv%reduce_convergence_tolerance=.true.
@@ -518,53 +520,6 @@ end subroutine linearScaling
 
 
 
-subroutine mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
-!
-! Purpose:
-! ========
-!   Mixes the potential in order to get a self consistent potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments
-!   ---------------
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, n3p
-type(locreg_descriptors),intent(in) :: Glr
-type(input_variables),intent(in):: input
-real(8),intent(in):: alphaMix
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in):: rhopotOld
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
-real(8),intent(out):: pnrm
-
-! Local variables
-integer:: i, ierr
-real(8):: tt
-
-  call timing(iproc,'mix_linear    ','ON')
-
-  pnrm=0.d0
-  tt=1.d0-alphaMix
-  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
-  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
-  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-      pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
-      rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
-  end do
-  call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
-  pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-
-  call timing(iproc,'mix_linear    ','OF')
-
-end subroutine mixPotential
-
-
-
 
 subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, mixingMethod)
 !
@@ -611,37 +566,6 @@ character(len=4),intent(in):: mixingMethod
 end subroutine printSummary
 
 
-subroutine cancelCommunicationPotential(iproc, nproc, comgp)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-!type(p2pCommsGatherPot),intent(inout):: comgp
-type(p2pComms),intent(inout):: comgp
-
-! Local variables
-integer:: jproc, kproc, ierr
-integer,dimension(mpi_status_size):: stat
-logical:: sendComplete, receiveComplete
-
-! Cancel all communications. 
-! It gives errors, therefore simply wait for the communications to complete.
-do jproc=0,nproc-1
-    do kproc=1,comgp%noverlaps(jproc)
-        !call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)
-        !call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)
-        !if(sendComplete .and. receiveComplete) cycle
-        !call mpi_cancel(comgp%comarr(7,kproc,jproc), ierr)
-        !call mpi_cancel(comgp%comarr(8,kproc,jproc), ierr)
-        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)
-        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)
-    end do
-end do
-
-end subroutine cancelCommunicationPotential
-
 
 subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,ld_coeff,coeff,lphi,psi,psit)
 use module_base
@@ -673,10 +597,6 @@ type(communications_arrays):: gcomms
   call copy_orbitals_data(lorbs, gorbs, subname)
   call orbitals_communicators(iproc,nproc,lzd%glr,gorbs,gcomms)
 
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'START transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
-
   allocate(phi(max(gorbs%npsidim_orbs,gorbs%npsidim_comp)+ndebug), stat=istat)
   call memocc(istat, phi, 'phi', subname)
   allocate(phiWork(max(size(phi),size(psi))), stat=istat)
@@ -684,12 +604,10 @@ type(communications_arrays):: gcomms
 
   ind1=1
   ind2=1
-!  phi=0.d0
   if (max(gorbs%npsidim_orbs,gorbs%npsidim_comp) > 0) &
        call to_zero(max(gorbs%npsidim_orbs,gorbs%npsidim_comp),phi(1))
 
   do iorb=1,lorbs%norbp
-      !ilr = lorbs%inWhichLocregp(iorb)
       ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
       ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
@@ -698,19 +616,7 @@ type(communications_arrays):: gcomms
       ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
       ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
-  !if(ind1/=lin%gorbs%npsidim+1) then
-  !    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ind1/=lin%gorbs%npsidim',ind1,lin%gorbs%npsidim
-  !end if
-  !if(ind2/=lorbs%npsidim+1) then
-  !    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ind1/=lorbs%npsidim',ind1,lorbs%npsidim
-  !end if
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'after loop: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
   call transpose_v(iproc, nproc, lorbs, lzd%Glr%wfd, gcomms, phi, work=phiWork)
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'after transpose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
 
 
   if(iproc==0) then
@@ -720,14 +626,8 @@ type(communications_arrays):: gcomms
   ! this has to replaced, but at the moment it is still needed.
   !call buildWavefunctionModified(iproc, nproc, orbs, gorbs, comms, gcomms, phi, psi, coeff)
   nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  !write(*,*) 'iproc, nvctrp', iproc, nvctrp
-  !write(*,*) 'iproc, orbs%npsidim', iproc, orbs%npsidim
   call dgemm('n', 'n', nvctrp, orbs%norb, lorbs%norb, 1.d0, phi(1), nvctrp, coeff(1,1), &
        lorbs%norb, 0.d0, psi(1), nvctrp)
-
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'after buildWavefunctionModified: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
 
 
   if(nproc>1) then
@@ -736,17 +636,6 @@ type(communications_arrays):: gcomms
       psit => psi
   end if
 
-  !call untranspose_v(iproc, nproc, lorbs, lzd%Glr%wfd, gcomms, phi, work=phiWork)
-!  do iall=0,nproc-1
-!      write(*,'(a,i5,4i12)') 'after untranspose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-!  end do
-!
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
-  !call mpi_barrier(mpi_comm_world, iall)
-  !flush(6)
-  !stop
   call untranspose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, psi, work=phiWork)
 
   if(iproc==0) write(*,'(a)') 'done.'
@@ -763,125 +652,6 @@ type(communications_arrays):: gcomms
   call deallocate_communications_arrays(gcomms, subname)
 
 end subroutine transformToGlobal
-
-
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, llbnorb, norb
-  type(input_variables),intent(in):: input
-  type(wfn_metadata),intent(out):: wfnmd
-
-  ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='create_wfn_metadata'
-
-  ! Determine which variables we need, depending on the mode we are in.
-  if(mode=='l') then
-      ! linear scaling mode
-      wfnmd%nphi=nphi
-      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
-
-      allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
-
-      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
-
-      call init_basis_specifications(input, wfnmd%bs)
-      call init_basis_performance_options(input, wfnmd%bpo)
-
-  else if(mode=='c') then
-      ! cubic scaling mode
-
-      nullify(wfnmd%coeff)
-      nullify(wfnmd%coeff_proj)
-  else
-      stop 'wrong mode'
-  end if
-
-end subroutine create_wfn_metadata
-
-
-subroutine destroy_wfn_metadata(wfnmd)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(wfn_metadata),intent(inout):: wfnmd
-
-  ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_wfn_metadata'
-
-  !!call checkAndDeallocatePointer(wfnmd%phi)
-  !!call checkAndDeallocatePointer(wfnmd%phiRestart)
-  !!call checkAndDeallocatePointer(wfnmd%coeff)
-  !!call checkAndDeallocatePointer(wfnmd%coeff_proj)
-
-  !!iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
-  !!deallocate(wfnmd%phi, stat=istat)
-  !!call memocc(istat, iall, 'wfnmd%phi', subname)
-
-  !!iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
-  !!deallocate(wfnmd%phiRestart, stat=istat)
-  !!call memocc(istat, iall, 'wfnmd%phiRestart', subname)
-
-  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
-  deallocate(wfnmd%coeff, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeff', subname)
-
-  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
-  deallocate(wfnmd%coeff_proj, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
-
-end subroutine destroy_wfn_metadata
-
-
-subroutine init_basis_specifications(input, bs)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(basis_specifications),intent(out):: bs
-  
-  bs%update_phi=.false.
-  bs%communicate_phi_for_lsumrho=.false.
-  bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
-  bs%conv_crit=input%lin%convCrit
-  bs%target_function=TARGET_FUNCTION_IS_TRACE
-  bs%meth_transform_overlap=input%lin%methTransformOverlap
-  bs%nit_precond=input%lin%nitPrecond
-  bs%locreg_enlargement=input%lin%factor_enlarge
-  bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  bs%nit_unitary_loop=input%lin%nItInnerLoop
-  bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
-
-end subroutine init_basis_specifications
-
-
-subroutine init_basis_performance_options(input, bpo)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(basis_performance_options),intent(out):: bpo
-  
-  bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
-  bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
-  bpo%nproc_pdsyev=input%lin%nproc_pdsyev
-
-end subroutine init_basis_performance_options
 
 
 
@@ -948,134 +718,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   end if
 
 end subroutine set_optimization_variables
-
-
-
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => create_DFT_wavefunction
-  implicit none
-  
-  ! Calling arguments
-  character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, norb
-  type(input_variables),intent(in):: input
-  type(DFT_wavefunction),intent(out):: wfn
-
-  ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='create_DFT_wavefunction'
-
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
-
-  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
-  call memocc(istat, wfn%psi, 'wfn%psi', subname)
-
-end subroutine create_DFT_wavefunction
-
-
-
-subroutine destroy_DFT_wavefunction(wfn)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => destroy_DFT_wavefunction
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(DFT_wavefunction),intent(inout):: wfn
-
-  ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_DFT_wavefunction'
-
-  iall=-product(shape(wfn%psi))*kind(wfn%psi)
-  deallocate(wfn%psi, stat=istat)
-  call memocc(istat, iall, 'wfn%psi', subname)
-
-  call deallocate_overlapParameters(wfn%op, subname)
-  call deallocate_p2pComms(wfn%comon, subname)
-  call deallocate_p2pComms(wfn%comgp, subname)
-  call deallocate_p2pComms(wfn%comrp, subname)
-  call deallocate_p2pComms(wfn%comsr, subname)
-  call deallocate_matrixDescriptors(wfn%mad, subname)
-  call deallocate_orbitals_data(wfn%orbs, subname)
-  call deallocate_communications_arrays(wfn%comms, subname)
-  call destroy_wfn_metadata(wfn%wfnmd)
-
-end subroutine destroy_DFT_wavefunction
-
-
-subroutine update_wavefunctions_size(lzd,orbs)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(inout):: orbs
-
-! Local variables
-integer:: npsidim, ilr, iorb
-
-  npsidim = 0
-  do iorb=1,orbs%norbp
-   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
-   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  orbs%npsidim_orbs=max(npsidim,1)
-
-end subroutine update_wavefunctions_size
-
-
-
-subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
-           denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => mix_main
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, mixHist
-  logical,intent(in):: compare_outer_loop
-  type(input_variables),intent(in):: input
-  type(locreg_descriptors),intent(in):: glr
-  real(8),intent(in):: alpha_mix
-  type(DFT_local_fields),intent(inout):: denspot
-  type(mixrhopotDIISParameters),intent(inout):: mixdiis
-  real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
-  real(8),intent(out):: pnrm, pnrm_out
-  
-  ! Local variables
-  integer:: ndimtot, i, ierr
-
-  ! Mix the density.
-  if(mixHist==0) then
-      call mixPotential(iproc, denspot%dpcom%n3p, glr, input, alpha_mix, rhopotOld, denspot%rhov, pnrm)
-  else 
-      ndimtot=glr%d%n1i*glr%d%n2i*glr%d%n3i
-      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-      mixdiis%is=mixdiis%is+1
-      call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
-           denspot%rhov, rhopotold, mixdiis, ndimtot, alpha_mix, 1, pnrm)
-  end if
-  ! Determine the change in the density between this iteration and the last iteration in the outer loop.
-  if(compare_outer_loop) then
-      pnrm_out=0.d0
-      do i=1,glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p
-          pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-      end do
-      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
-      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-      call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
-  end if
-
-  ! Copy the current charge density.
-  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-
-end subroutine mix_main
 
 
 
@@ -1168,6 +810,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 end subroutine adjust_locregs_and_confinement
 
 
+
 subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
   use module_base
   use module_types
@@ -1206,6 +849,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
 end subroutine adjust_DIIS_for_high_accuracy
 
 
+
 function check_whether_derivatives_to_be_used(input, itout, lscv)
   use module_base
   use module_types
@@ -1238,6 +882,7 @@ function check_whether_derivatives_to_be_used(input, itout, lscv)
   check_whether_derivatives_to_be_used=withder
 
 end function check_whether_derivatives_to_be_used
+
 
 
 subroutine check_whether_lowaccuracy_converged(itout, input, lscv)

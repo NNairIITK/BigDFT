@@ -2543,3 +2543,169 @@ call memocc(istat, iall, 'lphiold', subname)
 
 
 end subroutine enlarge_locreg
+
+
+
+subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => create_DFT_wavefunction
+  implicit none
+  
+  ! Calling arguments
+  character(len=1),intent(in):: mode
+  integer,intent(in):: nphi, lnorb, norb
+  type(input_variables),intent(in):: input
+  type(DFT_wavefunction),intent(out):: wfn
+
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='create_DFT_wavefunction'
+
+  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+
+  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
+  call memocc(istat, wfn%psi, 'wfn%psi', subname)
+
+end subroutine create_DFT_wavefunction
+
+
+
+subroutine destroy_DFT_wavefunction(wfn)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => destroy_DFT_wavefunction
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(DFT_wavefunction),intent(inout):: wfn
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_DFT_wavefunction'
+
+  iall=-product(shape(wfn%psi))*kind(wfn%psi)
+  deallocate(wfn%psi, stat=istat)
+  call memocc(istat, iall, 'wfn%psi', subname)
+
+  call deallocate_overlapParameters(wfn%op, subname)
+  call deallocate_p2pComms(wfn%comon, subname)
+  call deallocate_p2pComms(wfn%comgp, subname)
+  call deallocate_p2pComms(wfn%comrp, subname)
+  call deallocate_p2pComms(wfn%comsr, subname)
+  call deallocate_matrixDescriptors(wfn%mad, subname)
+  call deallocate_orbitals_data(wfn%orbs, subname)
+  call deallocate_communications_arrays(wfn%comms, subname)
+  call destroy_wfn_metadata(wfn%wfnmd)
+
+end subroutine destroy_DFT_wavefunction
+
+
+subroutine update_wavefunctions_size(lzd,orbs)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(inout):: orbs
+
+! Local variables
+integer:: npsidim, ilr, iorb
+
+  npsidim = 0
+  do iorb=1,orbs%norbp
+   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+   npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  orbs%npsidim_orbs=max(npsidim,1)
+
+end subroutine update_wavefunctions_size
+
+
+
+subroutine init_basis_specifications(input, bs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(basis_specifications),intent(out):: bs
+  
+  bs%update_phi=.false.
+  bs%communicate_phi_for_lsumrho=.false.
+  bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
+  bs%conv_crit=input%lin%convCrit
+  bs%target_function=TARGET_FUNCTION_IS_TRACE
+  bs%meth_transform_overlap=input%lin%methTransformOverlap
+  bs%nit_precond=input%lin%nitPrecond
+  bs%locreg_enlargement=input%lin%factor_enlarge
+  bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+  bs%nit_unitary_loop=input%lin%nItInnerLoop
+  bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
+
+end subroutine init_basis_specifications
+
+
+subroutine init_basis_performance_options(input, bpo)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(basis_performance_options),intent(out):: bpo
+  
+  bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
+  bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
+  bpo%nproc_pdsyev=input%lin%nproc_pdsyev
+
+end subroutine init_basis_performance_options
+
+
+
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  character(len=1),intent(in):: mode
+  integer,intent(in):: nphi, lnorb, llbnorb, norb
+  type(input_variables),intent(in):: input
+  type(wfn_metadata),intent(out):: wfnmd
+
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='create_wfn_metadata'
+
+  ! Determine which variables we need, depending on the mode we are in.
+  if(mode=='l') then
+      ! linear scaling mode
+      wfnmd%nphi=nphi
+      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
+
+      allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
+
+      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
+
+      call init_basis_specifications(input, wfnmd%bs)
+      call init_basis_performance_options(input, wfnmd%bpo)
+
+  else if(mode=='c') then
+      ! cubic scaling mode
+
+      nullify(wfnmd%coeff)
+      nullify(wfnmd%coeff_proj)
+  else
+      stop 'wrong mode'
+  end if
+
+end subroutine create_wfn_metadata
+
+
+
