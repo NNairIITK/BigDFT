@@ -32,7 +32,7 @@ real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop, locreg_increased, update_locregs
+logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_derivatives
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
@@ -301,6 +301,12 @@ type(DFT_wavefunction),pointer:: tmbmix
               withder=.false.
           end if
       end if
+      
+      !!if(withder) then
+      !!    tmbmix => tmbder
+      !!else
+      !!    tmbmix => tmb
+      !!end if
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -333,7 +339,9 @@ type(DFT_wavefunction),pointer:: tmbmix
       if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
           100.d0*decrease_factor_total,'% of its initial value.'
       tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
-      if(ifail>=3) then
+
+      locreg_increased=.false.
+      if(ifail>=3 .and. .not.lowaccur_converged) then
           increase_locreg=increase_locreg+1.d0
           if(iproc==0) then
               write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
@@ -350,8 +358,56 @@ type(DFT_wavefunction),pointer:: tmbmix
           call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
           call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
           locreg_increased=.true.
-      else
-          locreg_increased=.false.
+      !!else
+      !!    locreg_increased=.false.
+      end if
+
+      redefine_derivatives=.false.
+      if(lowaccur_converged) then
+          if(iproc==0) then
+              write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+          end if
+
+          if(iproc==0) write(*,'(1x,a)',advance='no') 'standard locregs...'
+          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+          ! Fake allocation
+          allocate(tmb%comsr%sendbuf(1), stat=istat)
+          call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+          allocate(tmb%comsr%recvbuf(1), stat=istat)
+          call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+          if(tmb%wfnmd%bs%use_derivative_basis) then
+              ! Fake communication, will be canceled in redefine_locregs_quantities
+              call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+          end if
+          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+          locreg_increased=.true.
+          if(tmbder%wfnmd%bs%use_derivative_basis) redefine_derivatives=.true.
+          if(iproc==0) write(*,'(a)') ' done.'
+
+
+          !!if(iproc==0) write(*,'(1x,a)',advance='no') 'derivative locregs...'
+          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+          !!     ldiis, denspot, tmbder%wfnmd%nphi, tmbder%psi, tmbder)
+          !!! Fake allocation
+          !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
+          !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+          !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
+          !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+          !!if(tmbder%wfnmd%bs%use_derivative_basis) then
+          !!    ! Fake communication, will be canceled in redefine_locregs_quantities
+          !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+          !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+          !!end if
+          !!call mpi_barrier(mpi_comm_world, istat)
+          !!if(iproc==0) write(*,*) 'before redefine_locregs_quantities'
+          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+          !!locreg_increased=.true.
+          !!if(iproc==0) write(*,'(a)') ' done.'
+
+      !!else
+      !!    locreg_increased=.false.
       end if
 
       ! Somce special treatement if we are in the high accuracy part
@@ -428,7 +484,7 @@ type(DFT_wavefunction),pointer:: tmbmix
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-              .and. tmb%wfnmd%bs%update_phi) then
+              .and. tmb%wfnmd%bs%update_phi .or. locreg_increased) then
               ! Redefine some quantities if the localization region has changed.
               if(withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
@@ -444,7 +500,7 @@ type(DFT_wavefunction),pointer:: tmbmix
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-                      .and. tmb%wfnmd%bs%update_phi) then
+                      .and. tmb%wfnmd%bs%update_phi .or. locreg_increased) then
                       !!call deallocate_p2pComms(tmbmix%comrp, subname)
                       !!call nullify_p2pComms(tmbmix%comrp)
                       !!call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, tmb%lzd, tmbmix%comrp)
@@ -461,6 +517,7 @@ type(DFT_wavefunction),pointer:: tmbmix
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
           end if
+          locreg_increased=.false. !this is a bad localtion....
   !!ist=1
   !!do iorb=1,tmb%orbs%norbp
   !!    iiorb=tmb%orbs%isorb+iorb
