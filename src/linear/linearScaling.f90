@@ -278,30 +278,9 @@ logical:: check_whether_derivatives_to_be_used
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
            decrease_factor_total, lowaccur_converged, nit_highaccuracy)
-      !!if(.not.lowaccur_converged .and. &
-      !!   (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
-      !!    decrease_factor_total<1.d0-input%lin%decrease_amount)) then
-      !!    lowaccur_converged=.true.
-      !!    nit_highaccuracy=0
-      !!end if 
 
       ! Check whether the derivatives shall be used or not.
       withder=check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out)
-      !!if(input%lin%mixedmode) then
-      !!    if( (.not.lowaccur_converged .and. &
-      !!         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
-      !!        .or. lowaccur_converged ) then
-      !!        withder=.true.
-      !!    else
-      !!        withder=.false.
-      !!    end if
-      !!else
-      !!    if(input%lin%useDerivativeBasisFunctions) then
-      !!        withder=.true.
-      !!    else
-      !!        withder=.false.
-      !!    end if
-      !!end if
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -320,24 +299,6 @@ logical:: check_whether_derivatives_to_be_used
       call adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
            mixdiis, exit_outer_loop)
       if(exit_outer_loop) exit outerLoop
-      !!if(lowaccur_converged) then
-      !!    nit_highaccuracy=nit_highaccuracy+1
-      !!    if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
-      !!        ! Deallocate DIIS structures.
-      !!        call deallocateDIIS(ldiis)
-      !!        exit outerLoop
-      !!    end if
-      !!    ! only use steepest descent if the localization regions may change
-      !!    if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
-      !!        ldiis%isx=0
-      !!    end if
-
-      !!    if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-      !!        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
-      !!    else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-      !!        call deallocateMixrhopotDIIS(mixdiis)
-      !!    end if
-      !!end if
 
       ! Allocate the communication arrays for the calculation of the charge density.
       if(.not. locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -390,8 +351,8 @@ logical:: check_whether_derivatives_to_be_used
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
-          if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-              .and. tmb%wfnmd%bs%update_phi .or. locreg_increased) then
+          if((locreg_increased .or. (variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
+              .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
@@ -406,8 +367,8 @@ logical:: check_whether_derivatives_to_be_used
           ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-                      .and. tmb%wfnmd%bs%update_phi .or. locreg_increased) then
+                  if((locreg_increased .or. (variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
+                      .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call nullify_p2pComms(tmbder%comrp)
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
