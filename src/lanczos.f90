@@ -9,9 +9,9 @@
 
 !> Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-      &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-      &   in , PAWD , orbs )! add to interface
+     radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+     energs,nspin,GPU,in_iat_absorber,&
+     in , PAWD , orbs )! add to interface
    use module_base
    use module_types
    use lanczos_interface
@@ -28,8 +28,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
-
-   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum
+   type(energy_terms), intent(inout) :: energs
    type(GPU_pointers), intent(inout) , target :: GPU
    integer, intent(in) :: in_iat_absorber
 
@@ -109,17 +108,11 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ngatherarr=>dpcom%ngatherarr
    ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
-   ha%ekin_sum=ekin_sum
-   ha%epot_sum=epot_sum
-   ha%eexctX=0.0_gp
-   ha%eproj_sum=eproj_sum
-   ha%eexctX=0.0_gp
+   ha%energs = energs
    ha%nspin=nspin
    ha%GPU=>GPU !!
    ha%Gabs_coeffs=>Gabs_coeffs
    ha%PAWD=> PAWD
-
-   ha%eSIC_DC=0.0_gp
    ha%SIC=>in%SIC
    ha%orbs=>orbs
 
@@ -179,8 +172,8 @@ END SUBROUTINE xabs_lanczos
 
 !> Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-      &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
+     radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+     energs,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
    use module_base
    use module_types
@@ -200,8 +193,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
-
-   real(gp) :: ekin_sum,epot_sum,eproj_sum
+   type(energy_terms), intent(inout) :: energs
    type(GPU_pointers), intent(inout) , target :: GPU
    integer, intent(in) :: in_iat_absorber 
 
@@ -282,16 +274,11 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ngatherarr=>dpcom%ngatherarr
    ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
-   ha%ekin_sum=ekin_sum
-   ha%epot_sum=epot_sum
-   ha%eexctX=0.0_gp
-   ha%eproj_sum=eproj_sum
-   ha%eexctX=0.0_gp
+   ha%energs = energs
    ha%nspin=nspin
    ha%GPU=>GPU !!
    ha%Gabs_coeffs=>in%Gabs_coeffs
    ha%PAWD=> PAWD
-   ha%eSIC_DC=0.0_gp
    ha%SIC=>in%SIC
    ha%orbs=>orbs
 
@@ -432,7 +419,7 @@ END SUBROUTINE xabs_chebychev
 !> Finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
       &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
-      &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+      &   energs,nspin,GPU,in_iat_absorber,&
       &   in , rhoXanes, PAWD , PPD, orbs )
    use module_base
    use module_types
@@ -455,8 +442,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(wp), dimension(nlpspd%nprojel), target :: proj
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
-
-   real(gp) :: ekin_sum,epot_sum,eproj_sum
+   type(energy_terms), intent(inout) :: energs
    type(GPU_pointers), intent(inout) , target :: GPU
    integer, intent(in) :: in_iat_absorber
    type(pawproj_data_type), target ::PAWD
@@ -542,18 +528,12 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ngatherarr=>dpcom%ngatherarr
    ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
-   ha%ekin_sum=ekin_sum
-   ha%epot_sum=epot_sum
-   ha%eexctX=0.0_gp
-   ha%eproj_sum=eproj_sum
-   ha%eexctX=0.0_gp
+   ha%energs = energs
    ha%nspin=nspin
    ha%GPU=>GPU !!
    ha%Gabs_coeffs=>Gabs_coeffs
    ha%PAWD=> PAWD 
    ha%PPD=> PPD
-
-   ha%eSIC_DC=0.0_gp
    ha%SIC=>in%SIC
    ha%orbs=>orbs
 

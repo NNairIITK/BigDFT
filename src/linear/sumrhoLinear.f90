@@ -277,8 +277,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, hx, hy, hz, orbs, &
-           comsr, ld_coeff, coeff, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,&
+     comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
 !
 use module_base
 use module_types

@@ -304,6 +304,7 @@ low_level = \
 	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
+	init/wavefunctions.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
@@ -370,6 +371,7 @@ low_level = \
 	linear/locReg.f90 \
 	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
+	linear/hpsiortho_linear.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

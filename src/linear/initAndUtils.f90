@@ -1387,107 +1387,13 @@ call memocc(istat, iall, 'mat3', subname)
 
 end subroutine initCompressedMatmul3
 
-
-
-
-
-
-subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp, isorb_par, isorb, onWhichMPI)
-  use module_base
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  integer,dimension(0:nproc-1),intent(out):: norb_par, isorb_par
-  integer,dimension(norb),intent(out):: onWhichMPI
-  integer,intent(out):: norbp, isorb
-
-  ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
-  real(8):: tt
-
-  ! Determine norb_par
-  norb_par=0
-  tt=dble(norb)/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  norb_par(0:nproc-1)=ii
-  kk=norb-nproc*ii
-  norb_par(0:kk-1)=ii+1
-
-  ! Determine norbp
-  norbp=norb_par(iproc)
-
-  ! Determine isorb
-  isorb=0
-  do jproc=0,iproc-1
-      isorb=isorb+norb_par(jproc)
-  end do
-
-  ! Determine onWhichMPI and isorb_par
-  iiorb=0
-  isorb_par=0
-  do jproc=0,nproc-1
-      do iorb=1,norb_par(jproc)
-          iiorb=iiorb+1
-          onWhichMPI(iiorb)=jproc
-      end do
-      if(iproc==jproc) then
-          isorb_par(jproc)=isorb
-      end if
-  end do
-  call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0) call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
-
-
-end subroutine repartitionOrbitals
-
-
-
-
-subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
-  use module_base
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  integer,dimension(0:nproc-1),intent(out):: norb_par
-  integer,intent(out):: norbp, isorb
-
-  ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
-  real(8):: tt
-
-  ! Determine norb_par
-  norb_par=0
-  tt=dble(norb)/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  norb_par(0:nproc-1)=ii
-  kk=norb-nproc*ii
-  norb_par(0:kk-1)=ii+1
-
-  ! Determine norbp
-  norbp=norb_par(iproc)
-
-  ! Determine isorb
-  isorb=0
-  do jproc=0,iproc-1
-      isorb=isorb+norb_par(jproc)
-  end do
-
-
-end subroutine repartitionOrbitals2
-
-
-subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs,rxyz)
+subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
   use module_xc
   implicit none
 
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in):: hx, hy, hz
   type(input_variables), intent(in) :: input
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
@@ -1522,7 +1428,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,&
+          Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
           Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
@@ -1561,7 +1468,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
         calculateBounds=.true.
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
-             hx,hy,hz,Lzd%Glr,Lzd%Llr,&
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
@@ -1615,18 +1522,18 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs
 
 end subroutine check_linear_and_create_Lzd
 
-subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
+subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   use module_base
   use module_types
   use module_xc
   implicit none
 
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
-  type(input_variables), intent(in) :: input
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
+  character(len=*), intent(in) :: linearmode
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(out) :: Lzd
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -1641,14 +1548,18 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   !default variables
   Lzd%nlr = 1
 
-  if (input%nspin == 4) then
+  Lzd%hgrids(1)=hx
+  Lzd%hgrids(2)=hy
+  Lzd%hgrids(3)=hz
+
+  if (nspin == 4) then
      nspin_ig=1
   else
-     nspin_ig=input%nspin
+     nspin_ig=nspin
   end if
 
   linear  = .true.
-  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+  if (linearmode == 'LIG' .or. linearmode == 'FUL') then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -1661,11 +1572,11 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
           Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
-     if(input%nspin >= 4) linear = .false. 
+     if(nspin >= 4) linear = .false. 
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
-  if (input%linear =='OFF' .or. .not. linear) then
+  if (linearmode =='OFF' .or. .not. linear) then
      linear = .false.
      Lzd%nlr = 1
   end if
@@ -1677,7 +1588,7 @@ subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   call nullify_locreg_descriptors(Lzd%Glr)
   call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
 
-  if(input%linear /= 'TMO') then
+  if(linearmode /= 'TMO') then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
@@ -2037,11 +1948,14 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   norbu=norb
   norbd=0
   call nullify_orbitals_data(lorbs)
-  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-       input%nkpt, input%kpt, input%wkpt, lorbs)
-  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
-       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
-  
+!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+!!$       input%nkpt, input%kpt, input%wkpt, lorbs)
+!!$  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
+!!$       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
+ 
+  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+       input%nkpt, input%kpt, input%wkpt, lorbs,.true.) !simple repartition
+ 
 
   allocate(locregCenter(3,nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -2144,6 +2058,10 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   call nullify_locreg_descriptors(lzd%Glr)
   call copy_locreg_descriptors(Glr, lzd%Glr, subname)
 
+  lzd%hgrids(1)=input%hx
+  lzd%hgrids(2)=input%hy
+  lzd%hgrids(3)=input%hz
+
 end subroutine init_local_zone_descriptors
 
 
@@ -2175,7 +2093,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call deallocate_orbitals_data(orbs_tmp, subname)
 
       tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
-      tmb%wfnmd%basis_is=BASIS_IS_ENHANCED
 
       ! Reallocate tmbmix%psi, since it might have a new shape
       iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
@@ -2261,10 +2178,12 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   norb=norbu
   norbd=0
   nspin=1
-  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs)
-  call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
-       llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
+!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+!!$       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs)
+!!$  call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
+!!$       llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
+  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
 
   allocate(orbsperlocreg(lzd%nlr), stat=istat)
   call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
@@ -2417,31 +2336,13 @@ character(len=*),parameter:: subname='create_new_locregs'
    norb=norbu
    norbd=0
    nspin=1
-   call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
-   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
-        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+!!$   call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
+!!$        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
+!!$   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
+!!$        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
+        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge,.true.) !simple repartition
 
-   !!!!allocate(orbsperlocreg(lzdlarge%nlr), stat=istat)
-   !!!!call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
-   !!!!!!orbsperlocreg=0
-   !!!!!!do iorb=1,lorbs%norbp
-   !!!!!!    iiorb=lorbs%isorb+iorb
-   !!!!!!    ilr=iiorb
-   !!!!!!    orbsperlocreg(ilr)=orbsperlocreg(ilr)+1
-   !!!!!!end do
-   !!!!!!call mpiallred(orbsperlocreg(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
-   !!!!do iorb=1,lzdlarge%nlr
-   !!!!    orbsperlocreg(iorb)=1
-   !!!!end do
-   !!!!iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
-   !!!!deallocate(orbslarge%inWhichLocreg, stat=istat)
-   !!!!call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
-   !!!!call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, 0, lzdlarge%nlr, &
-   !!!!     nspin, orbsperlocreg, locregCenter, orbslarge%inwhichlocreg)
-   !!!iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
-   !!!deallocate(orbsperlocreg, stat=istat)
-   !!!call memocc(istat, iall, 'orbsperlocreg', subname)
    orbslarge%inwhichlocreg = inwhichlocreg_reference
 
    call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, Glr, locrad, 's')
@@ -2494,6 +2395,10 @@ character(len=*),parameter:: subname='create_new_locregs'
    lhphilargeold=0.d0
    lphilargeold=0.d0
 
+   lzdlarge%hgrids(1)=hx
+   lzdlarge%hgrids(2)=hy
+   lzdlarge%hgrids(3)=hz
+
 end subroutine create_new_locregs
 
 
@@ -2541,3 +2446,114 @@ subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarg
 end subroutine destroy_new_locregs
 
 
+
+subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
+           ldiis, denspot, nphi, lphi)
+use module_base
+use module_types
+use module_interfaces, except_this_one => enlarge_locreg
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+real(8),intent(in):: hx, hy, hz
+type(local_zone_descriptors),intent(inout):: lzd
+real(8),dimension(lzd%nlr),intent(in):: locrad
+type(orbitals_data),intent(inout):: lorbs
+type(p2pComms),intent(inout):: comon, comgp
+type(overlapParameters),intent(inout):: op
+type(matrixDescriptors),intent(inout):: mad
+type(localizedDIISParameters),intent(inout):: ldiis
+type(DFT_local_fields),intent(inout):: denspot
+integer,intent(inout):: nphi
+real(8),dimension(:),pointer:: lphi
+
+! Local variables
+type(local_zone_descriptors):: lzdlarge
+type(orbitals_data):: orbslarge
+type(p2pComms):: comonlarge, comgplarge
+type(overlapParameters):: oplarge
+type(matrixDescriptors):: madlarge
+type(localizedDIISParameters):: ldiislarge
+real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
+real(8),dimension(:,:),allocatable:: locregCenter
+integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
+integer:: istat, iall, iorb, ilr
+character(len=*),parameter:: subname='enlarge_locreg'
+
+
+allocate(locregCenter(3,lzd%nlr), stat=istat)
+call memocc(istat, locregCenter, 'locregCenter', subname)
+
+allocate(inwhichlocreg_reference(lorbs%norb), stat=istat)
+call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
+
+allocate(onwhichatom_reference(lorbs%norb), stat=istat)
+call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
+
+! Fake allocation
+allocate(lhphi(1), stat=istat)
+call memocc(istat, lhphi, 'lhphi', subname)
+allocate(lhphiold(1), stat=istat)
+call memocc(istat, lhphiold, 'lhphiold', subname)
+allocate(lphiold(1), stat=istat)
+call memocc(istat, lphiold, 'lphiold', subname)
+
+! always use the same inwhichlocreg
+call vcopy(lorbs%norb, lorbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
+
+do iorb=1,lorbs%norb
+    ilr=lorbs%inwhichlocreg(iorb)
+    locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+end do
+
+! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
+call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+allocate(orbslarge%onwhichatom(lorbs%norb), stat=istat)
+call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
+call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+call vcopy(lorbs%norb, lorbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+     lphi, lhphi, lhphiold, lphiold)
+call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+     lzd, lorbs, op, comon, mad, comgp, &
+     lphi, lhphi, lhphiold, lphiold)
+allocate(lorbs%onwhichatom(lorbs%norb), stat=istat)
+call memocc(istat, lorbs%onwhichatom, 'lorbs%onwhichatom', subname)
+call vcopy(lorbs%norb, onwhichatom_reference(1), 1, lorbs%onwhichatom(1), 1)
+nphi=lorbs%npsidim_orbs
+call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+call vcopy(lorbs%norb, orbslarge%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+
+iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
+deallocate(inwhichlocreg_reference, stat=istat)
+call memocc(istat, iall, 'inwhichlocreg_reference', subname)
+
+iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
+deallocate(onwhichatom_reference, stat=istat)
+call memocc(istat, iall, 'onwhichatom_reference', subname)
+
+iall=-product(shape(locregCenter))*kind(locregCenter)
+deallocate(locregCenter, stat=istat)
+call memocc(istat, iall, 'locregCenter', subname)
+
+iall=-product(shape(lhphi))*kind(lhphi)
+deallocate(lhphi, stat=istat)
+call memocc(istat, iall, 'lhphi', subname)
+
+iall=-product(shape(lhphiold))*kind(lhphiold)
+deallocate(lhphiold, stat=istat)
+call memocc(istat, iall, 'lhphiold', subname)
+
+iall=-product(shape(lphiold))*kind(lphiold)
+deallocate(lphiold, stat=istat)
+call memocc(istat, iall, 'lphiold', subname)
+
+
+end subroutine enlarge_locreg

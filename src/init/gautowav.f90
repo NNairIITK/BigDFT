@@ -9,12 +9,11 @@
 
 
 !>  Control the accuracy of the expansion in gaussian
-subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
+subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(gaussian_basis), intent(in) :: G
@@ -32,7 +31,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
   !     lr%wfd,G,coeffs,workpsi)
 
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,coeffs,workpsi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,orbs%norbp
@@ -567,12 +566,11 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
-subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi)
+subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
@@ -608,7 +606,8 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi
      do ispinor=1,orbs%nspinor,ncplx
         !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
-        call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),hx,hy,hz,kx,ky,kz,G,&
+        call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),&
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(ind))
 
         !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor

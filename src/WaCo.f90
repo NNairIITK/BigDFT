@@ -864,14 +864,14 @@ program WaCo
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,.false.)
      call orbitals_communicators(iproc,nproc,Glr,orbsw,commsw)
 
      nvirtu = n_virt
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
      !##########################################################################
      ! Read the Wavefunctions

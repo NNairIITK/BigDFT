@@ -850,3 +850,50 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   call yaml_close_flow_map(advance='no')
  
 end subroutine write_orbital_data
+
+subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: ncplx,idsx,ngroup,nkpts,itdiis
+  real(tp), dimension(ncplx,idsx+1,ngroup,nkpts), intent(in) :: rds
+  !local variables
+  integer :: j,igroup,ikpt
+  character(len=2) :: mesupdw
+  if (verbose < 10) then  
+     !we restrict the printing to the first k point only.
+     if (ngroup==1) then
+        if (verbose >0) write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,itdiis+1)!,&
+        !yaml output
+        call yaml_map('DIIS weights',yaml_toa(rds(1:ncplx,1,1,1),fmt='(1pe9.2)'))
+!        write(70,'(1x,a,1pe9.2)',advance='no')'DIIS wgts: [ ',rds(1:ncplx,1,1,1)
+        do j=2,itdiis+1
+!           write(70,'(a,1pe9.2)',advance='no')', ',rds(1:ncplx,j,1,1)
+        end do
+!        write(70,'(a)')']'
+        !'(',ttr,tti,')'
+     else if (verbose >0) then
+        do igroup=1,ngroup
+           if (igroup==1) mesupdw='up'
+           if (igroup==2) mesupdw='dw'
+           write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts'//mesupdw//':',&
+                (rds(1:ncplx,j,igroup,1),j=1,itdiis+1)
+        end do
+     end if
+  else if (verbose >0) then
+     do ikpt = 1, nkpts
+        if (ngroup==1) then
+           write(*,'(1x,a,I3.3,a,2x,9(1x,(1pe9.2)))')'DIIS wgts (kpt #', ikpt, &
+                & ')',(rds(1:ncplx,j,1,ikpt),j=1,itdiis+1)
+        else
+           do igroup=1,ngroup
+              if (igroup==1) mesupdw='up'
+              if (igroup==2) mesupdw='dw'
+              write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))')'DIIS wgts (kpt #', ikpt, &
+                   & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,itdiis+1)
+           end do
+        end if
+     end do
+  end if
+END SUBROUTINE write_diis_weights
+

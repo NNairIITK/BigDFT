@@ -1032,3 +1032,51 @@ end if
 
 end subroutine copy_orbitals_data
 
+
+subroutine copy_basis_specifications(bsin, bsout, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(basis_specifications),intent(in):: bsin
+  type(basis_specifications),intent(out):: bsout
+  character(len=*),intent(in):: subname
+  
+  
+  bsout%update_phi=bsin%update_phi
+  bsout%use_derivative_basis=bsin%use_derivative_basis
+  bsout%communicate_phi_for_lsumrho=bsin%communicate_phi_for_lsumrho
+  bsout%conv_crit=bsin%conv_crit
+  bsout%locreg_enlargement=bsin%locreg_enlargement
+  bsout%target_function=bsin%target_function
+  bsout%meth_transform_overlap=bsin%meth_transform_overlap
+  bsout%nit_precond=bsin%nit_precond
+  bsout%nit_basis_optimization=bsin%nit_basis_optimization
+  bsout%nit_unitary_loop=bsin%nit_unitary_loop
+  bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
+
+end subroutine copy_basis_specifications
+
+subroutine copy_orthon_data(odin, odout, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling aruments
+  type(orthon_data),intent(in):: odin
+  type(orthon_data),intent(out):: odout
+  character(len=*),intent(in):: subname
+
+  odout%directDiag=odin%directDiag
+  odout%norbpInguess=odin%norbpInguess
+  odout%bsLow=odin%bsLow
+  odout%bsUp=odin%bsUp
+  odout%methOrtho=odin%methOrtho
+  odout%iguessTol=odin%iguessTol
+  odout%methTransformOverlap=odin%methTransformOverlap
+  odout%nItOrtho=odin%nItOrtho
+  odout%blocksize_pdsyev=odin%blocksize_pdsyev
+  odout%blocksize_pdgemm=odin%blocksize_pdgemm
+
+end subroutine copy_orthon_data
