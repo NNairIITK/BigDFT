@@ -301,12 +301,6 @@ type(DFT_wavefunction),pointer:: tmbmix
               withder=.false.
           end if
       end if
-      
-      !!if(withder) then
-      !!    tmbmix => tmbder
-      !!else
-      !!    tmbmix => tmb
-      !!end if
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -315,13 +309,6 @@ type(DFT_wavefunction),pointer:: tmbmix
       call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
-      !!! Update the localization regions if required
-      !!if(update_locregs) then
-      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-      !!         ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, withder, tmbder%lzd, locrad, &
-      !!         ldiis, denspot, tmbder%wfnmd%nphi, tmbder%psi, tmbder)
-      !!end if
 
       ! Adjust the confining potential if required.
       if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -351,27 +338,9 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
           ifail=0
           locrad=locrad+increase_locreg
-          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-          !!     ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-          ! Fake allocation
-          !!allocate(tmbmix%comsr%sendbuf(1), stat=istat)
-          !!call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
-          !!allocate(tmbmix%comsr%recvbuf(1), stat=istat)
-          !!call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
-          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
           if(withder) then
-              !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
-              !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-              !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
-              !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-              !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
               redefine_derivatives=.true.
           else
-              !!allocate(tmb%comsr%sendbuf(1), stat=istat)
-              !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-              !!allocate(tmb%comsr%recvbuf(1), stat=istat)
-              !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-              !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
               redefine_standard=.true.
           end if
           locreg_increased=.true.
@@ -382,19 +351,7 @@ type(DFT_wavefunction),pointer:: tmbmix
           if(iproc==0) then
               write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
           end if
-
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'standard locregs...'
-          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-          !!     ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-          !!! Fake allocation
-          !!allocate(tmb%comsr%sendbuf(1), stat=istat)
-          !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-          !!allocate(tmb%comsr%recvbuf(1), stat=istat)
-          !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
           locreg_increased=.true.
-          !!if(tmbder%wfnmd%bs%use_derivative_basis) redefine_derivatives=.true.
-          !!if(iproc==0) write(*,'(a)') ' done.'
           redefine_standard=.true.
       end if
       if(locreg_increased) then
@@ -402,6 +359,7 @@ type(DFT_wavefunction),pointer:: tmbmix
                ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
       end if
       if(redefine_standard) then
+          ! Fake allocation
           allocate(tmb%comsr%sendbuf(1), stat=istat)
           call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
           allocate(tmb%comsr%recvbuf(1), stat=istat)
@@ -409,11 +367,12 @@ type(DFT_wavefunction),pointer:: tmbmix
           call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
       end if
       if(redefine_derivatives) then
-         allocate(tmbder%comsr%sendbuf(1), stat=istat)
-         call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-         allocate(tmbder%comsr%recvbuf(1), stat=istat)
-         call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-         call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+          ! Fake allocation
+          allocate(tmbder%comsr%sendbuf(1), stat=istat)
+          call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+          allocate(tmbder%comsr%recvbuf(1), stat=istat)
+          call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
       end if
 
       ! Somce special treatement if we are in the high accuracy part
@@ -507,9 +466,6 @@ type(DFT_wavefunction),pointer:: tmbmix
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
                   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
                       .and. tmb%wfnmd%bs%update_phi .or. locreg_increased) then
-                      !!call deallocate_p2pComms(tmbmix%comrp, subname)
-                      !!call nullify_p2pComms(tmbmix%comrp)
-                      !!call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbmix%orbs, tmb%lzd, tmbmix%comrp)
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call nullify_p2pComms(tmbder%comrp)
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
@@ -524,23 +480,6 @@ type(DFT_wavefunction),pointer:: tmbmix
               end if
           end if
           locreg_increased=.false. !this is a bad localtion....
-  !!ist=1
-  !!do iorb=1,tmb%orbs%norbp
-  !!    iiorb=tmb%orbs%isorb+iorb
-  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !!    ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!    write(*,*) 'ilr, ncnt, ddot in main 2',ilr, ncnt, ddot(ncnt, tmb%psi(ist), 1, tmb%psi(ist), 1)
-  !!    ist=ist+ncnt
-  !!end do
-  !!ist=1
-  !!do iorb=1,tmbmix%orbs%norbp
-  !!    iiorb=tmbmix%orbs%isorb+iorb
-  !!    ilr=tmbmix%orbs%inwhichlocreg(iiorb)
-  !!    ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!    write(*,*) 'ilr, ncnt, ddot in main 2',ilr, ncnt, ddot(ncnt, tmbmix%psi(ist), 1, tmbmix%psi(ist), 1)
-  !!    ist=ist+ncnt
-  !!end do
-
 
 
           ! Calculate the coefficients
