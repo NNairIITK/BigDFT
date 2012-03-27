@@ -311,7 +311,10 @@ type(DFT_wavefunction),pointer:: tmbmix
 
 
       ! Adjust the confining potential if required.
-      call adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
+      !!call adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
+      call adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
+           input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
+           locreg_increased)
       !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
       !!    decrease_factor_total=1.d0
       !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
@@ -329,53 +332,53 @@ type(DFT_wavefunction),pointer:: tmbmix
       !!tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
 
 
-      locreg_increased=.false.
-      redefine_derivatives=.false.
-      redefine_standard=.false.
-      if(ifail>=3 .and. .not.lowaccur_converged) then
-          increase_locreg=increase_locreg+1.d0
-          if(iproc==0) then
-              write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
-              write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',increase_locreg
-          end if
-          ifail=0
-          locrad=locrad+increase_locreg
-          if(withder) then
-              redefine_derivatives=.true.
-          else
-              redefine_standard=.true.
-          end if
-          locreg_increased=.true.
-      end if
+      !!locreg_increased=.false.
+      !!redefine_derivatives=.false.
+      !!redefine_standard=.false.
+      !!if(ifail>=3 .and. .not.lowaccur_converged) then
+      !!    increase_locreg=increase_locreg+1.d0
+      !!    if(iproc==0) then
+      !!        write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
+      !!        write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',increase_locreg
+      !!    end if
+      !!    ifail=0
+      !!    locrad=locrad+increase_locreg
+      !!    if(withder) then
+      !!        redefine_derivatives=.true.
+      !!    else
+      !!        redefine_standard=.true.
+      !!    end if
+      !!    locreg_increased=.true.
+      !!end if
 
-      redefine_derivatives=.false.
-      if(lowaccur_converged) then
-          if(iproc==0) then
-              write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
-          end if
-          locreg_increased=.true.
-          redefine_standard=.true.
-      end if
-      if(locreg_increased) then
-          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-      end if
-      if(redefine_standard) then
-          ! Fake allocation
-          allocate(tmb%comsr%sendbuf(1), stat=istat)
-          call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-          allocate(tmb%comsr%recvbuf(1), stat=istat)
-          call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-      end if
-      if(redefine_derivatives) then
-          ! Fake allocation
-          allocate(tmbder%comsr%sendbuf(1), stat=istat)
-          call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-          allocate(tmbder%comsr%recvbuf(1), stat=istat)
-          call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-      end if
+      !!redefine_derivatives=.false.
+      !!if(lowaccur_converged) then
+      !!    if(iproc==0) then
+      !!        write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+      !!    end if
+      !!    locreg_increased=.true.
+      !!    redefine_standard=.true.
+      !!end if
+      !!if(locreg_increased) then
+      !!    call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+      !!         ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+      !!end if
+      !!if(redefine_standard) then
+      !!    ! Fake allocation
+      !!    allocate(tmb%comsr%sendbuf(1), stat=istat)
+      !!    call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+      !!    allocate(tmb%comsr%recvbuf(1), stat=istat)
+      !!    call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+      !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+      !!end if
+      !!if(redefine_derivatives) then
+      !!    ! Fake allocation
+      !!    allocate(tmbder%comsr%sendbuf(1), stat=istat)
+      !!    call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+      !!    allocate(tmbder%comsr%recvbuf(1), stat=istat)
+      !!    call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+      !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+      !!end if
 
       ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
@@ -1194,17 +1197,32 @@ end subroutine mix_main
 
 
 
-subroutine adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
+subroutine adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
+           input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
+           locreg_increased)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => adjust_locregs_and_confinement
   implicit none
   
   ! Calling argument
-  integer,intent(in):: iproc, infoBasisFunctions
+  integer,intent(in):: iproc, nproc, infoBasisFunctions
+  real(8),intent(in):: hx, hy, hz
+  logical,intent(in):: lowaccur_converged, withder
   type(input_variables),intent(in):: input
-  type(DFT_wavefunction),intent(in):: tmb, tmbmix
+  type(DFT_wavefunction),intent(inout):: tmb, tmbder
   integer,intent(inout):: idecrease, ifail
+  real(8),intent(inout):: increase_locreg
+  real(8),dimension(tmb%lzd%nlr),intent(inout):: locrad
+  type(DFT_local_fields),intent(inout) :: denspot
+  type(localizedDIISParameters),intent(inout):: ldiis
   real(8),intent(out):: decrease_factor_total
+  logical,intent(out):: locreg_increased
+
+  ! Local variables
+  integer:: istat, iall
+  logical:: redefine_derivatives, redefine_standard
+  character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
       decrease_factor_total=1.d0
@@ -1217,9 +1235,58 @@ subroutine adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, ide
       end if
       decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
   end if
-  if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
+  if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
   if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
       100.d0*decrease_factor_total,'% of its initial value.'
   tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
 
-end subroutine adjust_confinement
+
+  locreg_increased=.false.
+  redefine_derivatives=.false.
+  redefine_standard=.false.
+  if(ifail>=3 .and. .not.lowaccur_converged) then
+      increase_locreg=increase_locreg+1.d0
+      if(iproc==0) then
+          write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
+          write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',increase_locreg
+      end if
+      ifail=0
+      locrad=locrad+increase_locreg
+      if(withder) then
+          redefine_derivatives=.true.
+      else
+          redefine_standard=.true.
+      end if
+      locreg_increased=.true.
+  end if
+
+  redefine_derivatives=.false.
+  if(lowaccur_converged) then
+      if(iproc==0) then
+          write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+      end if
+      locreg_increased=.true.
+      redefine_standard=.true.
+  end if
+  if(locreg_increased) then
+      call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+           ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+  end if
+  if(redefine_standard) then
+      ! Fake allocation
+      allocate(tmb%comsr%sendbuf(1), stat=istat)
+      call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+      allocate(tmb%comsr%recvbuf(1), stat=istat)
+      call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+  end if
+  if(redefine_derivatives) then
+      ! Fake allocation
+      allocate(tmbder%comsr%sendbuf(1), stat=istat)
+      call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+      allocate(tmbder%comsr%recvbuf(1), stat=istat)
+      call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+  end if
+
+end subroutine adjust_locregs_and_confinement

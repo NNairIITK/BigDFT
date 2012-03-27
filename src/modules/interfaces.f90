@@ -6270,6 +6270,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
 
+       subroutine adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
+                  input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
+                  locreg_increased)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, infoBasisFunctions
+         real(8),intent(in):: hx, hy, hz
+         logical,intent(in):: lowaccur_converged, withder
+         type(input_variables),intent(in):: input
+         type(DFT_wavefunction),intent(inout):: tmb, tmbder
+         integer,intent(inout):: idecrease, ifail
+         real(8),intent(inout):: increase_locreg
+         real(8),dimension(tmb%lzd%nlr),intent(inout):: locrad
+         type(DFT_local_fields),intent(inout) :: denspot
+         type(localizedDIISParameters),intent(inout):: ldiis
+         real(8),intent(out):: decrease_factor_total
+         logical,intent(out):: locreg_increased
+       end subroutine adjust_locregs_and_confinement
+
    end interface
 
 END MODULE module_interfaces
