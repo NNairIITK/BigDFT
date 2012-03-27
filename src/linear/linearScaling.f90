@@ -32,7 +32,7 @@ real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_derivatives
+logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_standard, redefine_derivatives
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 real(8):: decrease_factor_total
@@ -341,6 +341,8 @@ type(DFT_wavefunction),pointer:: tmbmix
       tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
 
       locreg_increased=.false.
+      redefine_derivatives=.false.
+      redefine_standard=.false.
       if(ifail>=3 .and. .not.lowaccur_converged) then
           increase_locreg=increase_locreg+1.d0
           if(iproc==0) then
@@ -349,17 +351,30 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
           ifail=0
           locrad=locrad+increase_locreg
-          call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-               ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+          !!     ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
           ! Fake allocation
-          allocate(tmbmix%comsr%sendbuf(1), stat=istat)
-          call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
-          allocate(tmbmix%comsr%recvbuf(1), stat=istat)
-          call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
-          call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
+          !!allocate(tmbmix%comsr%sendbuf(1), stat=istat)
+          !!call memocc(istat, tmbmix%comsr%sendbuf, 'tmbmix%comsr%sendbuf', subname)
+          !!allocate(tmbmix%comsr%recvbuf(1), stat=istat)
+          !!call memocc(istat, tmbmix%comsr%recvbuf, 'tmbmix%comsr%recvbuf', subname)
+          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbmix, denspot)
+          if(withder) then
+              !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
+              !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+              !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
+              !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+              !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+              redefine_derivatives=.true.
+          else
+              !!allocate(tmb%comsr%sendbuf(1), stat=istat)
+              !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+              !!allocate(tmb%comsr%recvbuf(1), stat=istat)
+              !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+              !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+              redefine_standard=.true.
+          end if
           locreg_increased=.true.
-      !!else
-      !!    locreg_increased=.false.
       end if
 
       redefine_derivatives=.false.
@@ -369,45 +384,36 @@ type(DFT_wavefunction),pointer:: tmbmix
           end if
 
           if(iproc==0) write(*,'(1x,a)',advance='no') 'standard locregs...'
+          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
+          !!     ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+          !!! Fake allocation
+          !!allocate(tmb%comsr%sendbuf(1), stat=istat)
+          !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+          !!allocate(tmb%comsr%recvbuf(1), stat=istat)
+          !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+          locreg_increased=.true.
+          !!if(tmbder%wfnmd%bs%use_derivative_basis) redefine_derivatives=.true.
+          !!if(iproc==0) write(*,'(a)') ' done.'
+          redefine_standard=.true.
+      end if
+      if(locreg_increased) then
           call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
                ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-          ! Fake allocation
+      end if
+      if(redefine_standard) then
           allocate(tmb%comsr%sendbuf(1), stat=istat)
           call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
           allocate(tmb%comsr%recvbuf(1), stat=istat)
           call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-          if(tmb%wfnmd%bs%use_derivative_basis) then
-              ! Fake communication, will be canceled in redefine_locregs_quantities
-              call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-          end if
           call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-          locreg_increased=.true.
-          if(tmbder%wfnmd%bs%use_derivative_basis) redefine_derivatives=.true.
-          if(iproc==0) write(*,'(a)') ' done.'
-
-
-          !!if(iproc==0) write(*,'(1x,a)',advance='no') 'derivative locregs...'
-          !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, locrad, &
-          !!     ldiis, denspot, tmbder%wfnmd%nphi, tmbder%psi, tmbder)
-          !!! Fake allocation
-          !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
-          !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-          !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
-          !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-          !!if(tmbder%wfnmd%bs%use_derivative_basis) then
-          !!    ! Fake communication, will be canceled in redefine_locregs_quantities
-          !!    call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-          !!    call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-          !!end if
-          !!call mpi_barrier(mpi_comm_world, istat)
-          !!if(iproc==0) write(*,*) 'before redefine_locregs_quantities'
-          !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-          !!locreg_increased=.true.
-          !!if(iproc==0) write(*,'(a)') ' done.'
-
-      !!else
-      !!    locreg_increased=.false.
+      end if
+      if(redefine_derivatives) then
+         allocate(tmbder%comsr%sendbuf(1), stat=istat)
+         call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+         allocate(tmbder%comsr%recvbuf(1), stat=istat)
+         call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+         call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
       end if
 
       ! Somce special treatement if we are in the high accuracy part
