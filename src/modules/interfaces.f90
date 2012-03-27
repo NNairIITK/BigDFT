@@ -6270,39 +6270,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
 
-       subroutine adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
-                  input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
-                  locreg_increased)
+       subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
+                  input, tmb, tmbder, denspot, ldiis, lscv)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, infoBasisFunctions
+         integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
-         logical,intent(in):: lowaccur_converged, withder
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(inout):: tmb, tmbder
-         integer,intent(inout):: idecrease, ifail
-         real(8),intent(inout):: increase_locreg
-         real(8),dimension(tmb%lzd%nlr),intent(inout):: locrad
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),intent(out):: decrease_factor_total
-         logical,intent(out):: locreg_increased
+         type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
-                  mixdiis, exit_outer_loop)
+       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
          use module_base
          use module_types
          implicit none
-         logical,intent(in):: lowaccur_converged
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(in):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
-         integer,intent(inout):: nit_highaccuracy
          type(localizedDIISParameters),intent(inout):: ldiis
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
-         logical,intent(out):: exit_outer_loop
+         type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_DIIS_for_high_accuracy
 
        subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
