@@ -27,9 +27,10 @@ real(8),intent(out):: energy
 
 ! Local variables
 type:: linear_scaling_control_variables
-  integer:: nit_highaccuracy
-  real(8):: pnrm_out, decrease_factor_total
+  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist
+  real(8):: pnrm_out, decrease_factor_total, alpha_mix
   logical:: lowaccur_converged
+  real(8),dimension(:),allocatable:: locrad
 end type linear_scaling_control_variables
 
 type(linear_scaling_control_variables):: lscv
@@ -189,8 +190,8 @@ logical:: check_whether_derivatives_to_be_used
   !end of the initialization part, will later be moved to cluster
   call timing(iproc,'INIT','PR')
 
-  allocate(locrad(tmb%lzd%nlr), stat=istat)
-  call memocc(istat, locrad, 'locrad', subname)
+  allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
+  call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
 
 
   if(input%lin%nItInguess>0) then
@@ -199,7 +200,7 @@ logical:: check_whether_derivatives_to_be_used
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       do ilr=1,tmb%lzd%nlr
-          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
 
       if(trim(input%lin%mixingMethod)=='dens') then
@@ -292,14 +293,14 @@ logical:: check_whether_derivatives_to_be_used
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lscv%lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-           tmb%confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+           tmb%confdatarr, tmb%wfnmd, lscv%locrad, lscv%nit_scc, lscv%nit_scc_when_optimizing, lscv%mix_hist, lscv%alpha_mix)
       call set_optimization_variables(lscv%lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
-           tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+           tmbder%confdatarr, tmbder%wfnmd, lscv%locrad, lscv%nit_scc, lscv%nit_scc_when_optimizing, lscv%mix_hist, lscv%alpha_mix)
 
 
       ! Adjust the confining potential if required.
       call adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lscv%lowaccur_converged, withder, &
-           input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, lscv%decrease_factor_total, &
+           input, tmb, tmbder, idecrease, ifail, increase_locreg, lscv%locrad, denspot, ldiis, lscv%decrease_factor_total, &
            locreg_increased)
 
       ! Somce special treatement if we are in the high accuracy part
@@ -315,10 +316,10 @@ logical:: check_whether_derivatives_to_be_used
 
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
-      ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
+      ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
-      do itSCC=1,nitSCC
-          if(itSCC>nitSCCWhenOptimizing) tmb%wfnmd%bs%update_phi=.false.
+      do itSCC=1,lscv%nit_scc
+          if(itSCC>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
           else
@@ -335,7 +336,7 @@ logical:: check_whether_derivatives_to_be_used
                   end do
               end if
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, infoBasisFunctions,&
-                  nlpspd,proj,ldiis,input%SIC,locrad,tmb)
+                  nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
 
@@ -411,8 +412,8 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then
-           compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
-           call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
+           compare_outer_loop = pnrm<selfConsistent .or. itSCC==lscv%nit_scc
+           call mix_main(iproc, nproc, lscv%mix_hist, compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -430,8 +431,8 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the potential
           if(trim(input%lin%mixingMethod)=='pot') then
-           compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
-           call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
+           compare_outer_loop = pnrm<selfConsistent .or. itSCC==lscv%nit_scc
+           call mix_main(iproc, nproc, lscv%mix_hist, compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -522,9 +523,9 @@ logical:: check_whether_derivatives_to_be_used
   deallocate(tmb%confdatarr)
   deallocate(tmbder%confdatarr)
 
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad, stat=istat)
-  call memocc(istat, iall, 'locrad', subname)
+  iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
+  deallocate(lscv%locrad, stat=istat)
+  call memocc(istat, iall, 'lscv%locrad', subname)
 
   call timing(iproc,'WFN_OPT','PR')
 
