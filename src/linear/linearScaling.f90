@@ -280,9 +280,9 @@ type(DFT_wavefunction),pointer:: tmbmix
           decrease_factor_total<1.d0-input%lin%decrease_amount)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
-          update_locregs=.true.
+          !!update_locregs=.true.
       else
-          update_locregs=.false.
+          !!update_locregs=.false.
       end if 
 
       ! Check whether the derivatives shall be used or not.
@@ -311,21 +311,23 @@ type(DFT_wavefunction),pointer:: tmbmix
 
 
       ! Adjust the confining potential if required.
-      if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-          decrease_factor_total=1.d0
-      else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-          if(infoBasisFunctions>0) then
-              idecrease=idecrease+1
-              ifail=0
-          else
-              ifail=ifail+1
-          end if
-          decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
-      end if
-      if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
-      if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
-          100.d0*decrease_factor_total,'% of its initial value.'
-      tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
+      call adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
+      !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+      !!    decrease_factor_total=1.d0
+      !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      !!    if(infoBasisFunctions>0) then
+      !!        idecrease=idecrease+1
+      !!        ifail=0
+      !!    else
+      !!        ifail=ifail+1
+      !!    end if
+      !!    decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
+      !!end if
+      !!if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
+      !!if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
+      !!    100.d0*decrease_factor_total,'% of its initial value.'
+      !!tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
+
 
       locreg_increased=.false.
       redefine_derivatives=.false.
@@ -1192,4 +1194,32 @@ end subroutine mix_main
 
 
 
+subroutine adjust_confinement(iproc, infoBasisFunctions, input, tmb, tmbmix, idecrease, ifail, decrease_factor_total)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling argument
+  integer,intent(in):: iproc, infoBasisFunctions
+  type(input_variables),intent(in):: input
+  type(DFT_wavefunction),intent(in):: tmb, tmbmix
+  integer,intent(inout):: idecrease, ifail
+  real(8),intent(out):: decrease_factor_total
 
+  if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+      decrease_factor_total=1.d0
+  else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+      if(infoBasisFunctions>0) then
+          idecrease=idecrease+1
+          ifail=0
+      else
+          ifail=ifail+1
+      end if
+      decrease_factor_total=1.d0-dble(idecrease)*input%lin%decrease_step
+  end if
+  if(tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) decrease_factor_total=1.d0
+  if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
+      100.d0*decrease_factor_total,'% of its initial value.'
+  tmb%confdatarr(:)%prefac=decrease_factor_total*tmb%confdatarr(:)%prefac
+
+end subroutine adjust_confinement
