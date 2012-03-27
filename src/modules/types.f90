@@ -708,8 +708,9 @@ end type workarrays_quartic_convolutions
 
 type:: linear_scaling_control_variables
   integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
-  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg
-  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop
+  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg, self_consistent
+  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop, variable_locregs, compare_outer_loop
+  logical:: reduce_convergence_tolerance
   real(8),dimension(:),allocatable:: locrad
 end type linear_scaling_control_variables
 

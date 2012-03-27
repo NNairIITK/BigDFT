@@ -25,25 +25,12 @@ real(8),dimension(:),pointer,intent(out):: psi, psit
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
-!!! Local variables
-!!type:: linear_scaling_control_variables
-!!  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
-!!  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg
-!!  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop
-!!  real(8),dimension(:),allocatable:: locrad
-!!end type linear_scaling_control_variables
-!!
 type(linear_scaling_control_variables):: lscv
-integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,ilr,tag,itout,ifail,iorb
-integer:: nit_highaccuracy, mixHist, nitSCCWhenOptimizing,idecrease,ist,iiorb, ncnt
-real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
+integer:: infoCoeff,istat,iall,itSCC,ilr,tag,itout,iorb,ist,iiorb,ncnt
+real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
-logical:: reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder, variable_locregs
-logical:: compare_outer_loop, locreg_increased, update_locregs, redefine_standard, redefine_derivatives, exit_outer_loop
-real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
-real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
-real(8):: decrease_factor_total
+real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
+real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
 type(DFT_wavefunction),target:: tmb
@@ -196,7 +183,6 @@ logical:: check_whether_derivatives_to_be_used
 
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-      with_auxarray=.false.
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       do ilr=1,tmb%lzd%nlr
@@ -239,7 +225,7 @@ logical:: check_whether_derivatives_to_be_used
   lscv%pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  reduceConvergenceTolerance=.false.
+  lscv%reduce_convergence_tolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
@@ -258,9 +244,9 @@ logical:: check_whether_derivatives_to_be_used
 
   ! Check whether it is possible to have variable localization regions or not.
   if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
-      variable_locregs=.false.
+      lscv%variable_locregs=.false.
   else
-      variable_locregs=.true.
+      lscv%variable_locregs=.true.
   end if
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
@@ -280,7 +266,7 @@ logical:: check_whether_derivatives_to_be_used
       tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency loop
-      selfConsistent=input%lin%convCritMix
+      lscv%self_consistent=input%lin%convCritMix
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
@@ -356,7 +342,7 @@ logical:: check_whether_derivatives_to_be_used
               call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
-          if((lscv%locreg_increased .or. (variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
+          if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
@@ -372,7 +358,7 @@ logical:: check_whether_derivatives_to_be_used
           ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. itSCC==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  if((lscv%locreg_increased .or. (variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
+                  if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
                       .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call nullify_p2pComms(tmbder%comrp)
@@ -409,8 +395,8 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then
-           compare_outer_loop = pnrm<selfConsistent .or. itSCC==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, compare_outer_loop, input, glr, lscv%alpha_mix, &
+           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. itSCC==lscv%nit_scc
+           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -428,8 +414,8 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Mix the potential
           if(trim(input%lin%mixingMethod)=='pot') then
-           compare_outer_loop = pnrm<selfConsistent .or. itSCC==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, compare_outer_loop, input, glr, lscv%alpha_mix, &
+           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. itSCC==lscv%nit_scc
+           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -445,11 +431,11 @@ logical:: check_whether_derivatives_to_be_used
           ! Write some informations.
           call printSummary(iproc, itSCC, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%mixingMethod)
-          if(pnrm<selfConsistent) then
-              reduceConvergenceTolerance=.true.
+          if(pnrm<lscv%self_consistent) then
+              lscv%reduce_convergence_tolerance=.true.
               exit
           else
-              reduceConvergenceTolerance=.false.
+              lscv%reduce_convergence_tolerance=.false.
           end if
       end do
 
@@ -497,7 +483,6 @@ logical:: check_whether_derivatives_to_be_used
 
 
   ! Allocate the communication buffers for the calculation of the charge density.
-  with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
