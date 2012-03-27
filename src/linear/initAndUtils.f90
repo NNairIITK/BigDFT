@@ -1902,26 +1902,26 @@ end subroutine initCollectiveComms
 
 
 
-subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, glr, &
-           use_derivative_basis, rxyz, locregCenter, lorbs)
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
+           lorbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nspinor, nlr
+  integer,intent(in):: iproc, nproc, nspinor
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
   type(locreg_descriptors),intent(in):: glr
   logical,intent(in):: use_derivative_basis
   real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(3,nlr),intent(in):: locregCenter
   type(orbitals_data),intent(out):: lorbs
   
   ! Local variables
-  integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb
+  integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
   integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
+  real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
   
   call nullify_orbitals_data(lorbs)
@@ -1930,7 +1930,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, 
   allocate(norbsPerAtom(at%nat), stat=istat)
   call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
   norb=0
-  !nlr=0
+  nlr=0
   if(use_derivative_basis) then
       ii=4
   else
@@ -1940,7 +1940,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, 
       ityp=at%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
       norb=norb+ii*input%lin%norbsPerType(ityp)
-      !nlr=nlr+input%lin%norbsPerType(ityp)
+      nlr=nlr+input%lin%norbsPerType(ityp)
   end do
   
   
@@ -1957,17 +1957,17 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, 
        input%nkpt, input%kpt, input%wkpt, lorbs,.true.) !simple repartition
  
 
-  !!allocate(locregCenter(3,nlr), stat=istat)
-  !!call memocc(istat, locregCenter, 'locregCenter', subname)
-  !!
-  !!ilr=0
-  !!do iat=1,at%nat
-  !!    ityp=at%iatype(iat)
-  !!    do iorb=1,input%lin%norbsPerType(ityp)
-  !!        ilr=ilr+1
-  !!        locregCenter(:,ilr)=rxyz(:,iat)
-  !!    end do
-  !!end do
+  allocate(locregCenter(3,nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+  
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      do iorb=1,input%lin%norbsPerType(ityp)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
+      end do
+  end do
   
   allocate(norbsPerLocreg(nlr), stat=istat)
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
@@ -1976,14 +1976,12 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, 
   iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
   deallocate(lorbs%inWhichLocreg, stat=istat)
   call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
-
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
   iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
   deallocate(lorbs%onwhichatom, stat=istat)
   call memocc(istat, iall, 'lorbs%onwhichatom', subname)
-
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, at%nat, at%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
@@ -1996,9 +1994,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, 
   deallocate(norbsPerLocreg, stat=istat)
   call memocc(istat, iall, 'norbsPerLocreg', subname)
   
-  !!iall=-product(shape(locregCenter))*kind(locregCenter)
-  !!deallocate(locregCenter, stat=istat)
-  !!call memocc(istat, iall, 'locregCenter', subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
 
   iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
   deallocate(norbsPerAtom, stat=istat)
@@ -2008,7 +2006,7 @@ end subroutine init_orbitals_data_for_linear
 
 
 
-subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, locregCenter, orbs, derorbs, lzd)
+subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_local_zone_descriptors
@@ -2019,13 +2017,13 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, locregCente
   type(input_variables),intent(in):: input
   type(locreg_descriptors),intent(in):: glr
   type(atoms_data),intent(in):: at
+  real(8),dimension(3,at%nat),intent(in):: rxyz
   type(orbitals_data),intent(in):: orbs, derorbs
-  type(local_zone_descriptors),intent(inout):: lzd
-  real(8),dimension(3,lzd%nlr),intent(in):: locregCenter
+  type(local_zone_descriptors),intent(out):: lzd
   
   ! Local variables
   integer:: iat, ityp, ilr, istat, iorb, iall
-  !!real(8),dimension(:,:),allocatable:: locregCenter
+  real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_local_zone_descriptors'
   
   call nullify_local_zone_descriptors(lzd)
@@ -2036,33 +2034,27 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, locregCente
       ityp=at%iatype(iat)
       lzd%nlr=lzd%nlr+input%lin%norbsPerType(ityp)
   end do
-
-  if(iproc==0) then
-      do ilr=1,lzd%nlr
-          write(*,'(i6,3es14.6)') ilr, locregCenter(:,ilr)
+  
+  
+  allocate(locregCenter(3,lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+  
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      do iorb=1,input%lin%norbsPerType(ityp)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
       end do
-  end if
-  
-  
-  !!allocate(locregCenter(3,lzd%nlr), stat=istat)
-  !!call memocc(istat, locregCenter, 'locregCenter', subname)
-  
-  !!ilr=0
-  !!do iat=1,at%nat
-  !!    ityp=at%iatype(iat)
-  !!    do iorb=1,input%lin%norbsPerType(ityp)
-  !!        ilr=ilr+1
-  !!        locregCenter(:,ilr)=locregCenter(:,iat)
-  !!    end do
-  !!end do
+  end do
   
   
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, input%hx, input%hy, input%hz, lzd, orbs, &
        glr, input%lin%locrad, input%lin%locregShape, derorbs)
 
-  !!iall=-product(shape(locregCenter))*kind(locregCenter)
-  !!deallocate(locregCenter, stat=istat)
-  !!call memocc(istat, iall, 'locregCenter', subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
 
 
   call nullify_locreg_descriptors(lzd%Glr)
@@ -2073,30 +2065,6 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, locregCente
   lzd%hgrids(3)=input%hz
 
 end subroutine init_local_zone_descriptors
-
-
-
-subroutine number_of_locregs(at, input, nlr)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(atoms_data),intent(in):: at
-  type(input_variables),intent(in):: input
-  integer,intent(out):: nlr
-  
-  ! Local variables
-  integer:: iat, ityp
-  
-  ! Count the number of localization regions
-  nlr=0
-  do iat=1,at%nat
-      ityp=at%iatype(iat)
-      nlr=nlr+input%lin%norbsPerType(ityp)
-  end do
-  
-end subroutine number_of_locregs
 
 
 
@@ -2142,11 +2110,9 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
       call deallocate_p2pComms(tmbmix%comsr, subname)
       call nullify_p2pComms(tmbmix%comsr)
-      !!call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-      !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
+      call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
+      call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   end if
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-  call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call nullify_p2pComms(tmbmix%comgp)
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
@@ -2230,7 +2196,6 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
           orbsperlocreg(iorb)=1
       end if
   end do
-  write(*,*) 'norb',norb
 
   iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
   deallocate(llborbs%inWhichLocreg, stat=istat)
@@ -2244,7 +2209,6 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
 
   call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
        nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
-  if(iproc==0) write(*,'(a,100i6)') 'llborbs%inwhichlocreg',llborbs%inwhichlocreg
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -2349,7 +2313,6 @@ type(DFT_wavefunction),intent(out):: tmb
 integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
 integer,dimension(:),allocatable:: orbsperlocreg
 character(len=*),parameter:: subname='create_new_locregs'
-
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
@@ -2475,7 +2438,7 @@ end subroutine destroy_new_locregs
 
 
 
-subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, transform_psi, lzd, locrad, &
+subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
            ldiis, denspot, nphi, lphi, tmb)
 use module_base
 use module_types
@@ -2485,7 +2448,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 real(8),intent(in):: hx, hy, hz
-logical,intent(in):: withder, transform_psi
+logical,intent(in):: withder
 type(local_zone_descriptors),intent(inout):: lzd
 real(8),dimension(lzd%nlr),intent(in):: locrad
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -2540,10 +2503,7 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, lo
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
-if(transform_psi) then
-    call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
-end if
-
+call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
@@ -2553,9 +2513,7 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblar
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
 call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
 nphi=tmb%orbs%npsidim_orbs
-if(transform_psi) then
-    call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
-end if
+call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
 call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 

@@ -25,11 +25,11 @@ type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb, ilr, iiorb, ncnt, ist
+integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC, ddot
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 character(len=*),parameter:: subname='get_coeff'
@@ -48,23 +48,9 @@ character(len=*),parameter:: subname='get_coeff'
 
 
   call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
-  !!do iorb=1,tmbmix%orbs%norb
-  !!    do jorb=1,tmbmix%orbs%norb
-  !!        if(iproc==0) write(400,*) iorb,jorb,ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-  !!ist=1
-  !!do iorb=1,tmbmix%orbs%norbp
-  !!    iiorb=tmbmix%orbs%isorb+iorb
-  !!    ilr=tmbmix%orbs%inwhichlocreg(iiorb)
-  !!    ncnt=tmbmix%lzd%llr(ilr)%wfd%nvctr_c+7*tmbmix%lzd%llr(ilr)%wfd%nvctr_f
-  !!    write(*,*) 'ddot,ovrlp',ddot(ncnt, tmbmix%psi(ist), 1, tmbmix%psi(ist), 1),ovrlp(iiorb,iiorb)
-  !!    ist=ist+ncnt
-  !!end do
 
 
   if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
-      write(*,*) 'communicating for sumrho...'
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
   
@@ -83,14 +69,10 @@ character(len=*),parameter:: subname='get_coeff'
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
 
-  !!write(*,*) 'WARNING DEBUG!!! denspot%pot_full'
-  !!denspot%pot_full=0.d0
-
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
   allocate(lhphi(max(tmbmix%orbs%npsidim_orbs,tmbmix%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
-  !!lhphi=0.d0
   withConfinement=.false.
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -125,28 +107,14 @@ character(len=*),parameter:: subname='get_coeff'
   call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
   call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
 
-  !!ist=1
-  !!do iorb=1,tmbmix%orbs%norbp
-  !!    iiorb=tmbmix%orbs%isorb+iorb
-  !!    ilr=tmbmix%orbs%inwhichlocreg(iiorb)
-  !!    ncnt=tmbmix%lzd%llr(ilr)%wfd%nvctr_c+7*tmbmix%lzd%llr(ilr)%wfd%nvctr_f
-  !!    write(*,*) 'ddot,ovrlp H',ddot(ncnt, tmbmix%psi(ist), 1, lhphi(ist), 1),matrixElements(iiorb,iiorb,1)
-  !!    ist=ist+ncnt
-  !!end do
-
 
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   do iorb=1,tmbmix%orbs%norb
       do jorb=1,tmbmix%orbs%norb
           matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
-          !!if(iproc==0) write(500,*) iorb,jorb,matrixElements(jorb,iorb,1)
       end do
   end do
-
-  !!do istat=1,size(lhphi)
-  !!    write(600,*) istat, lhphi(istat), tmbmix%psi(istat)
-  !!end do
 
 
   allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
@@ -318,8 +286,6 @@ type(DFT_wavefunction),pointer:: tmbopt
   else
       variable_locregs=.true.
   end if
-  write(*,*) 'attention debug: variable_locregs=.true.'
-  variable_locregs=.true.
 
   ! Initialize the arrays and variable needed for DIIS.
   !if(newgradient .and. ldiis%isx>0) then
@@ -510,7 +476,6 @@ type(DFT_wavefunction),pointer:: tmbopt
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
       end if
 
-      write(*,*) 'iproc, tmb%orbs%npsidim_orbs, size(lhphi)', iproc, tmb%orbs%npsidim_orbs, size(lhphi)
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&

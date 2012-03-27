@@ -2198,7 +2198,7 @@ module module_interfaces
       type(orbitals_data),intent(inout):: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(inout):: at
-      type(input_variables),intent(inout):: input
+      type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
       real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       type(DFT_local_fields), intent(inout) :: denspot
@@ -6105,20 +6105,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nlr, nspinor, input, at, glr, &
-                  use_derivative_basis, rxyz, locregCenter, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
+                  lorbs)
          use module_base
          use module_types
          implicit none
-         
-         ! Calling arguments
-         integer,intent(in):: iproc, nproc, nspinor, nlr
+         integer,intent(in):: iproc, nproc, nspinor
          type(input_variables),intent(in):: input
          type(atoms_data),intent(in):: at
          type(locreg_descriptors),intent(in):: glr
          logical,intent(in):: use_derivative_basis
          real(8),dimension(3,at%nat),intent(in):: rxyz
-         real(8),dimension(3,nlr),intent(in):: locregCenter
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
@@ -6130,9 +6127,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          type(atoms_data),intent(in):: at
+         real(8),dimension(3,at%nat),intent(in):: rxyz
          type(orbitals_data),intent(in):: orbs, derorbs
-         type(local_zone_descriptors),intent(inout):: lzd
-         real(8),dimension(3,lzd%nlr),intent(in):: rxyz
+         type(local_zone_descriptors),intent(out):: lzd
        end subroutine init_local_zone_descriptors
 
        subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
@@ -6163,14 +6160,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields),intent(inout):: denspot
        end subroutine redefine_locregs_quantities
 
-       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, transform_psi, lzd, locrad, &
+       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
                   ldiis, denspot, nphi, lphi, tmb)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
-         logical,intent(in):: withder, transform_psi
+         logical,intent(in):: withder
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
          type(localizedDIISParameters),intent(inout):: ldiis
@@ -6272,15 +6269,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
-
-       subroutine copy_local_zone_descriptors(lzdin, lzdout, subname)
-         use module_base
-         use module_types
-         implicit none
-         type(local_zone_descriptors),intent(in):: lzdin
-         type(local_zone_descriptors),intent(out):: lzdout
-         character(len=*),intent(in):: subname
-       end subroutine copy_local_zone_descriptors
 
    end interface
 

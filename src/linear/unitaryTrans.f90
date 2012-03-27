@@ -48,9 +48,6 @@ real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='MLWFnew'
 type(p2pComms):: comon_local
 
-!!!write(*,*) 'ATTENTION DEBUG HERE!!!!!!!!!!'
-!!!return
-
 ! Quick return if possible. In this way the localization regions will remain unchanged.
 if(nit==-1) return
 
@@ -1004,13 +1001,6 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       centers_end(2,iorb)=Y(iorb,iorb)/normarr(iorb)
       centers_end(3,iorb)=Z(iorb,iorb)/normarr(iorb)
   end do
-
-  !!write(*,*) 'ATTENTION: HEAVY DEBUG HERE!!!!'
-  !!!!centers=8.45d0
-  !!centers(:,1)=8.45d0
-  !!centers(:,2)=8.46d0
-  !!centers(:,3)=8.47d0
-  !!centers(:,4)=8.48d0
 
   !!write(*,*) 'ATTENTION DEBUG'
   !!centers=locregCenters

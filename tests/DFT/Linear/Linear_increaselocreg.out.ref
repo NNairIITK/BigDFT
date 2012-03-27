@@ -1252,7 +1252,7 @@ max deviation from unity, position:  1.001663E+00  21  21
  total average noise            :   9.78111018E-02
  clean forces norm (Ha/Bohr): maxval=  6.662584443076E-02  fnrm2=  3.398355395576E-02
  raw forces:                  maxval=  8.708559441589E-02  fnrm2=  4.395188881159E-02
- CPU time/ELAPSED time for root process     0        12.26        12.15
+ CPU time/ELAPSED time for root process     0        14.09        14.02
  Final values of the Forces for each atom
      1      C  4.83658E-02  2.28303E-02  1.00873E-05
      2      C  4.19686E-02  2.08742E-02  3.19266E-02

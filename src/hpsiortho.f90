@@ -297,27 +297,26 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
 
-
   !write(*,*) 'lzd%ndimpotisf', lzd%ndimpotisf
   !do i=1,lzd%ndimpotisf
   !    write(210,*) pot(i)
   !end do
 
-  if (.not. present(pkernel)) then
-     call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
-          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,evsic,SIC,GPU)
-  else if (present(pkernel) .and. .not. present(orbsocc)) then
-     call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
-          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel=pkernel)
-  else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
-     call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
-          Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
-  else
-     stop 'HamiltonianApplication, argument error'
-  end if
+ if (.not. present(pkernel)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU)
+ else if (present(pkernel) .and. .not. present(orbsocc)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel=pkernel)
+ else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         ekin_sum,epot_sum,eexctX,evsic,SIC,GPU,pkernel,orbsocc,psirocc)
+ else
+    stop 'HamiltonianApplication, argument error'
+ end if
 
   call NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
