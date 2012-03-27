@@ -26,6 +26,13 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
 ! Local variables
+type:: linear_scaling_control_variables
+  integer:: nit_highaccuracy
+  real(8):: pnrm_out, decrease_factor_total
+  logical:: lowaccur_converged
+end type linear_scaling_control_variables
+
+type(linear_scaling_control_variables):: lscv
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,ilr,tag,itout,ifail,iorb
 integer:: nit_highaccuracy, mixHist, nitSCCWhenOptimizing,idecrease,ist,iiorb, ncnt
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,alphaMix,trace,increase_locreg
@@ -228,16 +235,16 @@ logical:: check_whether_derivatives_to_be_used
   ! Flag that indicates that the basis functions shall be improved in the following.
   tmb%wfnmd%bs%update_phi=.true.
   pnrm=1.d100
-  pnrm_out=1.d100
+  lscv%pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
   reduceConvergenceTolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
-  lowaccur_converged=.false.
+  lscv%lowaccur_converged=.false.
   infoBasisFunctions=-1
   idecrease=0
   increase_locreg=0.d0
-  decrease_factor_total=1.d10 !initialize to some large value
+  lscv%decrease_factor_total=1.d10 !initialize to some large value
   ifail=0
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
@@ -276,27 +283,27 @@ logical:: check_whether_derivatives_to_be_used
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
-           decrease_factor_total, lowaccur_converged, nit_highaccuracy)
+      call check_whether_lowaccuracy_converged(itout, input, lscv%pnrm_out, &
+           lscv%decrease_factor_total, lscv%lowaccur_converged, lscv%nit_highaccuracy)
 
       ! Check whether the derivatives shall be used or not.
-      withder=check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out)
+      withder=check_whether_derivatives_to_be_used(input, lscv%lowaccur_converged, itout, lscv%pnrm_out)
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      call set_optimization_variables(lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+      call set_optimization_variables(lscv%lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
-      call set_optimization_variables(lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
+      call set_optimization_variables(lscv%lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
 
 
       ! Adjust the confining potential if required.
-      call adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lowaccur_converged, withder, &
-           input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, decrease_factor_total, &
+      call adjust_locregs_and_confinement(iproc, nproc, infoBasisFunctions, hx, hy, hz, lscv%lowaccur_converged, withder, &
+           input, tmb, tmbder, idecrease, ifail, increase_locreg, locrad, denspot, ldiis, lscv%decrease_factor_total, &
            locreg_increased)
 
       ! Somce special treatement if we are in the high accuracy part
-      call adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot, nit_highaccuracy, ldiis, &
+      call adjust_DIIS_for_high_accuracy(lscv%lowaccur_converged, input, tmb, denspot, lscv%nit_highaccuracy, ldiis, &
            mixdiis, exit_outer_loop)
       if(exit_outer_loop) exit outerLoop
 
@@ -382,7 +389,6 @@ logical:: check_whether_derivatives_to_be_used
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
           end if
-          !!locreg_increased=.false. !this is a bad localtion....
 
 
           ! Calculate the coefficients
@@ -407,7 +413,7 @@ logical:: check_whether_derivatives_to_be_used
           if(trim(input%lin%mixingMethod)=='dens') then
            compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
            call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
-                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
 
@@ -426,7 +432,7 @@ logical:: check_whether_derivatives_to_be_used
           if(trim(input%lin%mixingMethod)=='pot') then
            compare_outer_loop = pnrm<selfConsistent .or. itSCC==nitSCC
            call mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alphaMix, &
-                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
 
@@ -458,10 +464,10 @@ logical:: check_whether_derivatives_to_be_used
               ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
           if(trim(input%lin%mixingMethod)=='dens') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                   'itout, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, energy-energyoldout
+                   'itout, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           else if(trim(input%lin%mixingMethod)=='pot') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                   'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
+                   'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           end if
       end if
       energyoldout=energy
@@ -490,7 +496,6 @@ logical:: check_whether_derivatives_to_be_used
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
-  !timescc=t2scc-t1scc
 
 
   ! Allocate the communication buffers for the calculation of the charge density.
