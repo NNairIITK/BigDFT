@@ -12,6 +12,7 @@
 !!  and the routines of allocations and de-allocations
 module module_types
 
+  use m_ab6_mixing, only : ab6_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized
   implicit none
 
@@ -838,7 +839,9 @@ end type workarrays_quartic_convolutions
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is 
+     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is
+     
+     type(ab6_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !local fields which are associated to their name
      !normally given in parallel distribution
      real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN

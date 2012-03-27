@@ -292,6 +292,7 @@ low_level = \
 	$(PS_SOURCES) \
 	init/atoms.f90 \
 	init/projectors.f90  \
+	init/kswfn.f90 \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
