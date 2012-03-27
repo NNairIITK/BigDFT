@@ -286,21 +286,22 @@ type(DFT_wavefunction),pointer:: tmbmix
       end if 
 
       ! Check whether the derivatives shall be used or not.
-      if(input%lin%mixedmode) then
-          if( (.not.lowaccur_converged .and. &
-               (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
-              .or. lowaccur_converged ) then
-              withder=.true.
-          else
-              withder=.false.
-          end if
-      else
-          if(input%lin%useDerivativeBasisFunctions) then
-              withder=.true.
-          else
-              withder=.false.
-          end if
-      end if
+      call check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out, withder)
+      !!if(input%lin%mixedmode) then
+      !!    if( (.not.lowaccur_converged .and. &
+      !!         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
+      !!        .or. lowaccur_converged ) then
+      !!        withder=.true.
+      !!    else
+      !!        withder=.false.
+      !!    end if
+      !!else
+      !!    if(input%lin%useDerivativeBasisFunctions) then
+      !!        withder=.true.
+      !!    else
+      !!        withder=.false.
+      !!    end if
+      !!end if
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -1270,3 +1271,34 @@ subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot
   end if
   
 end subroutine adjust_DIIS_for_high_accuracy
+
+
+subroutine check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out, withder)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  logical,intent(in):: lowaccur_converged
+  integer,intent(in):: itout
+  real(8),intent(in):: pnrm_out
+  logical,intent(out):: withder
+
+  if(input%lin%mixedmode) then
+      if( (.not.lowaccur_converged .and. &
+           (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
+          .or. lowaccur_converged ) then
+          withder=.true.
+      else
+          withder=.false.
+      end if
+  else
+      if(input%lin%useDerivativeBasisFunctions) then
+          withder=.true.
+      else
+          withder=.false.
+      end if
+  end if
+
+end subroutine check_whether_derivatives_to_be_used
