@@ -19,7 +19,7 @@ subroutine initialize_DFT_local_fields(denspot)
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
   nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
-  nullify(denspot%f_XC,denspot%rho_full,denspot%pot_full,denspot%rhov)
+  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
 
   denspot%psoffset=0.0_gp
 

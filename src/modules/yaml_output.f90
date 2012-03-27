@@ -30,6 +30,14 @@ module yaml_output
  
   contains
 
+    subroutine dump(message)
+      implicit none
+      character(len=*), intent(in) :: message
+      !local variables
+      integer :: lgt
+
+    end subroutine dump
+
     !> Reset the line control quantities
     subroutine carriage_return()
       implicit none

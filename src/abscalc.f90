@@ -1760,7 +1760,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,dpcom%nscatterarr,&
        GPU,symObj,rhod,psi,rho_p)
   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
-       rhod,dpcom%nscatterarr,rho_p,rhopot)
+       rhod,dpcom%nscatterarr,rho_p,rhopot,.false.)
   orbse%nspin=nspin_ig
 
   !-- if spectra calculation uses a energy dependent potential

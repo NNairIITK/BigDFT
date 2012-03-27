@@ -551,7 +551,7 @@ lig%lzdGauss%hgrids(3)=hz
        hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lig%lzdGauss,&
-       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
   !!do istat=1,size(denspot%rhov)
   !!    write(4000+iproc,*) istat, denspot%rhov(istat)
   !!end do 
@@ -705,7 +705,7 @@ lig%lzdGauss%hgrids(3)=hz
   call local_potential_dimensions(lig%lzdig,lig%orbsig,denspot%dpcom%ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,lig%orbsig,lig%lzdig,2,&
-       denspot%dpcom,denspot%rhov,denspot%pot_full,lig%comgp)
+       denspot%dpcom,denspot%rhov,denspot%pot_work,lig%comgp)
 
   !!!write(*,*) 'iproc, size(denspot%pot_full)', iproc, size(denspot%pot_full)
   !!!write(*,*) 'iproc, lig%lzdig%ndimpotisf', iproc, lig%lzdig%ndimpotisf
@@ -785,7 +785,7 @@ lig%lzdGauss%hgrids(3)=hz
              !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
              call to_zero(lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lig%orbsig,&
-                  lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
+                  lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
                   energs,input%SIC,GPU,.false.,&
                   pkernel=denspot%pkernelseq)
              !!write(333,*) 'debug: following line is commented!'
@@ -852,9 +852,9 @@ lig%lzdGauss%hgrids(3)=hz
   !call deallocate_p2pCommsGatherPot(lig%comgp, subname)
   call deallocate_p2pComms(lig%comgp, subname)
 
-  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  deallocate(denspot%pot_full, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_full', subname)
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
    if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop

@@ -850,7 +850,7 @@ end type workarrays_quartic_convolutions
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
      !temporary arrays
-     real(wp), dimension(:), pointer :: rho_full,pot_full !<full grid arrays
+     real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
      integer :: rhov_is
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC

@@ -485,7 +485,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,potshortcut,symObj,GPU,input)
+            nspin,symObj,GPU,input)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -510,7 +510,6 @@ module module_interfaces
          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
-         integer, intent(in) ::potshortcut
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
@@ -604,10 +603,11 @@ module module_interfaces
       END SUBROUTINE sumrho
 
       !starting point for the communication routine of the density
-      subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+      subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho,keep_rhop)
         use module_base
         use module_types
         implicit none
+        logical, intent(in) :: keep_rhop !< preserves the total density in the rho_p array
         integer, intent(in) :: iproc,nproc,nspin
         real(gp), intent(in) :: hxh,hyh,hzh
         type(local_zone_descriptors), intent(in) :: Lzd

@@ -397,7 +397,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
