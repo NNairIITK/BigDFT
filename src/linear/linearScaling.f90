@@ -41,6 +41,7 @@ type(localizedDIISParameters):: ldiis
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
+logical:: check_whether_derivatives_to_be_used
 
 
   if(iproc==0) then
@@ -270,23 +271,22 @@ type(DFT_wavefunction),pointer:: tmbmix
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
 
-      ! Convergence criterion for the self consistency looo
+      ! Convergence criterion for the self consistency loop
       selfConsistent=input%lin%convCritMix
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      if(.not.lowaccur_converged .and. &
-         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
-          decrease_factor_total<1.d0-input%lin%decrease_amount)) then
-          lowaccur_converged=.true.
-          nit_highaccuracy=0
-          !!update_locregs=.true.
-      else
-          !!update_locregs=.false.
-      end if 
+      call check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
+           decrease_factor_total, lowaccur_converged, nit_highaccuracy)
+      !!if(.not.lowaccur_converged .and. &
+      !!   (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
+      !!    decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+      !!    lowaccur_converged=.true.
+      !!    nit_highaccuracy=0
+      !!end if 
 
       ! Check whether the derivatives shall be used or not.
-      call check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out, withder)
+      withder=check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out)
       !!if(input%lin%mixedmode) then
       !!    if( (.not.lowaccur_converged .and. &
       !!         (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
@@ -366,10 +366,8 @@ type(DFT_wavefunction),pointer:: tmbmix
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-                  denspot,GPU,trace,&
-                  infoBasisFunctions,nlpspd,proj,ldiis,&
-                  input%SIC,locrad,tmb)
+              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, infoBasisFunctions,&
+                  nlpspd,proj,ldiis,input%SIC,locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
 
@@ -1273,7 +1271,7 @@ subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot
 end subroutine adjust_DIIS_for_high_accuracy
 
 
-subroutine check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out, withder)
+function check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out)
   use module_base
   use module_types
   implicit none
@@ -1283,7 +1281,10 @@ subroutine check_whether_derivatives_to_be_used(input, lowaccur_converged, itout
   logical,intent(in):: lowaccur_converged
   integer,intent(in):: itout
   real(8),intent(in):: pnrm_out
-  logical,intent(out):: withder
+  logical:: check_whether_derivatives_to_be_used
+
+  ! Local variables
+  logical:: withder
 
   if(input%lin%mixedmode) then
       if( (.not.lowaccur_converged .and. &
@@ -1300,5 +1301,29 @@ subroutine check_whether_derivatives_to_be_used(input, lowaccur_converged, itout
           withder=.false.
       end if
   end if
+  check_whether_derivatives_to_be_used=withder
 
-end subroutine check_whether_derivatives_to_be_used
+end function check_whether_derivatives_to_be_used
+
+
+subroutine check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
+           decrease_factor_total, lowaccur_converged, nit_highaccuracy)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: itout
+  type(input_variables),intent(in):: input
+  real(8),intent(in):: pnrm_out, decrease_factor_total
+  logical,intent(inout):: lowaccur_converged
+  integer,intent(inout):: nit_highaccuracy
+  
+  if(.not.lowaccur_converged .and. &
+     (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
+      decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+      lowaccur_converged=.true.
+      nit_highaccuracy=0
+  end if 
+
+end subroutine check_whether_lowaccuracy_converged
