@@ -25,14 +25,14 @@ real(8),dimension(:),pointer,intent(out):: psi, psit
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
-! Local variables
-type:: linear_scaling_control_variables
-  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
-  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg
-  logical:: lowaccur_converged, withder, locreg_increased
-  real(8),dimension(:),allocatable:: locrad
-end type linear_scaling_control_variables
-
+!!! Local variables
+!!type:: linear_scaling_control_variables
+!!  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
+!!  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg
+!!  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop
+!!  real(8),dimension(:),allocatable:: locrad
+!!end type linear_scaling_control_variables
+!!
 type(linear_scaling_control_variables):: lscv
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,ilr,tag,itout,ifail,iorb
 integer:: nit_highaccuracy, mixHist, nitSCCWhenOptimizing,idecrease,ist,iiorb, ncnt
@@ -284,18 +284,17 @@ logical:: check_whether_derivatives_to_be_used
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, input, lscv%pnrm_out, &
-           lscv%decrease_factor_total, lscv%lowaccur_converged, lscv%nit_highaccuracy)
+      call check_whether_lowaccuracy_converged(itout, input, lscv)
 
       ! Check whether the derivatives shall be used or not.
-      lscv%withder=check_whether_derivatives_to_be_used(input, lscv%lowaccur_converged, itout, lscv%pnrm_out)
+      lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      call set_optimization_variables(lscv%lowaccur_converged, input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-           tmb%confdatarr, tmb%wfnmd, lscv%locrad, lscv%nit_scc, lscv%nit_scc_when_optimizing, lscv%mix_hist, lscv%alpha_mix)
-      call set_optimization_variables(lscv%lowaccur_converged, input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
-           tmbder%confdatarr, tmbder%wfnmd, lscv%locrad, lscv%nit_scc, lscv%nit_scc_when_optimizing, lscv%mix_hist, lscv%alpha_mix)
+      call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+           tmb%confdatarr, tmb%wfnmd, lscv)
+      call set_optimization_variables(input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
+           tmbder%confdatarr, tmbder%wfnmd, lscv)
 
 
       ! Adjust the confining potential if required.
@@ -305,8 +304,8 @@ logical:: check_whether_derivatives_to_be_used
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(lscv%lowaccur_converged, input, tmb, denspot, lscv%nit_highaccuracy, ldiis, &
-           mixdiis, exit_outer_loop)
-      if(exit_outer_loop) exit outerLoop
+           mixdiis, lscv%exit_outer_loop)
+      if(lscv%exit_outer_loop) exit outerLoop
 
       ! Allocate the communication arrays for the calculation of the charge density.
       if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -903,14 +902,12 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
-           locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  logical,intent(in):: lowaccur_converged
   integer,intent(in):: nlr
   type(orbitals_data),intent(in):: lorbs
   type(input_variables),intent(in):: input
@@ -918,14 +915,12 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
   integer,dimension(lorbs%norb),intent(in):: onwhichatom
   type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
   type(wfn_metadata),intent(inout):: wfnmd
-  real(8),dimension(nlr),intent(out):: locrad
-  integer,intent(out):: nitSCC, nitSCCWhenOptimizing, mixHist
-  real(8),intent(out):: alphaMix
+  type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
   integer:: iorb, ilr, iiat
 
-  if(lowaccur_converged) then
+  if(lscv%lowaccur_converged) then
 
       do iorb=1,lorbs%norbp
           ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
@@ -934,16 +929,16 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
-      nitSCC=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
-      nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
-      mixHist=input%lin%mixHist_highaccuracy
+      lscv%nit_scc=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
+      lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
+      lscv%mix_hist=input%lin%mixHist_highaccuracy
       do ilr=1,nlr
-          locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
+          lscv%locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
       end do
       if(wfnmd%bs%update_phi) then
-          alphaMix=input%lin%alphaMixWhenOptimizing_highaccuracy
+          lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_highaccuracy
       else
-          alphaMix=input%lin%alphaMixWhenFixed_highaccuracy
+          lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
       end if
 
   else
@@ -955,16 +950,16 @@ subroutine set_optimization_variables(lowaccur_converged, input, at, lorbs, nlr,
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-      nitSCC=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
-      nitSCCWhenOptimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
-      mixHist=input%lin%mixHist_lowaccuracy
+      lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
+      lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
+      lscv%mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr
-          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
       if(wfnmd%bs%update_phi) then
-          alphaMix=input%lin%alphaMixWhenOptimizing_lowaccuracy
+          lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
       else
-          alphaMix=input%lin%alphaMixWhenFixed_lowaccuracy
+          lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
       end if
 
   end if
@@ -1238,25 +1233,24 @@ subroutine adjust_DIIS_for_high_accuracy(lowaccur_converged, input, tmb, denspot
 end subroutine adjust_DIIS_for_high_accuracy
 
 
-function check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, pnrm_out)
+function check_whether_derivatives_to_be_used(input, itout, lscv)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   type(input_variables),intent(in):: input
-  logical,intent(in):: lowaccur_converged
   integer,intent(in):: itout
-  real(8),intent(in):: pnrm_out
+  type(linear_scaling_control_variables),intent(in):: lscv
   logical:: check_whether_derivatives_to_be_used
 
   ! Local variables
   logical:: withder
 
   if(input%lin%mixedmode) then
-      if( (.not.lowaccur_converged .and. &
-           (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged) ) &
-          .or. lowaccur_converged ) then
+      if( (.not.lscv%lowaccur_converged .and. &
+           (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged) ) &
+          .or. lscv%lowaccur_converged ) then
           withder=.true.
       else
           withder=.false.
@@ -1273,8 +1267,7 @@ function check_whether_derivatives_to_be_used(input, lowaccur_converged, itout, 
 end function check_whether_derivatives_to_be_used
 
 
-subroutine check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
-           decrease_factor_total, lowaccur_converged, nit_highaccuracy)
+subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
   use module_base
   use module_types
   implicit none
@@ -1282,15 +1275,13 @@ subroutine check_whether_lowaccuracy_converged(itout, input, pnrm_out, &
   ! Calling arguments
   integer,intent(in):: itout
   type(input_variables),intent(in):: input
-  real(8),intent(in):: pnrm_out, decrease_factor_total
-  logical,intent(inout):: lowaccur_converged
-  integer,intent(inout):: nit_highaccuracy
+  type(linear_scaling_control_variables),intent(inout):: lscv
   
-  if(.not.lowaccur_converged .and. &
-     (itout==input%lin%nit_lowaccuracy+1 .or. pnrm_out<input%lin%lowaccuray_converged .or. &
-      decrease_factor_total<1.d0-input%lin%decrease_amount)) then
-      lowaccur_converged=.true.
-      nit_highaccuracy=0
+  if(.not.lscv%lowaccur_converged .and. &
+     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged .or. &
+      lscv%decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+      lscv%lowaccur_converged=.true.
+      lscv%nit_highaccuracy=0
   end if 
 
 end subroutine check_whether_lowaccuracy_converged

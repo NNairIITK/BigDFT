@@ -6305,6 +6305,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(out):: exit_outer_loop
        end subroutine adjust_DIIS_for_high_accuracy
 
+       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: nlr
+         type(orbitals_data),intent(in):: lorbs
+         type(input_variables),intent(in):: input
+         type(atoms_data),intent(in):: at
+         integer,dimension(lorbs%norb),intent(in):: onwhichatom
+         type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
+         type(wfn_metadata),intent(inout):: wfnmd
+         type(linear_scaling_control_variables),intent(inout):: lscv
+       end subroutine set_optimization_variables
+
    end interface
 
 END MODULE module_interfaces
