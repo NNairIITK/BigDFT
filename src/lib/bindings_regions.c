@@ -89,7 +89,7 @@ void bigdft_locreg_set_radii(BigDFT_LocReg *glr, const double *radii)
   glr->radii = g_malloc(sizeof(double) * glr->parent.ntypes * 3);
   memcpy(glr->radii, radii, sizeof(double) * glr->parent.ntypes * 3);
 }
-void bigdft_locreg_set_size(BigDFT_LocReg *glr, double h[3],
+void bigdft_locreg_set_size(BigDFT_LocReg *glr, const double h[3],
                             double crmult, double frmult)
 {
   int iproc = 1;
@@ -97,14 +97,14 @@ void bigdft_locreg_set_size(BigDFT_LocReg *glr, double h[3],
   /* Deallocate all previously allocated data. */
   FC_FUNC_(glr_empty, GLR_EMPTY)(glr->data);
 
-  /* Set the new size. */
-  FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
-                                     glr->radii, &crmult, &frmult, h, h + 1, h + 2, glr->data,
-                                     glr->parent.shift);
   /* Assign values. */
   glr->h[0] = h[0];
   glr->h[1] = h[1];
   glr->h[2] = h[2];
+  /* Set the new size. */
+  FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
+                                     glr->radii, &crmult, &frmult, glr->h, glr->h + 1,
+                                     glr->h + 2, glr->data, glr->parent.shift);
   FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
   glr->crmult = crmult;
   glr->frmult = frmult;
@@ -204,9 +204,6 @@ static void bigdft_lzd_init(BigDFT_Lzd *obj)
 #else
   memset(obj, 0, sizeof(BigDFT_Lzd));
 #endif
-  
-  FC_FUNC_(lzd_new, LZD_NEW)(&obj->data, &obj->parent.data);
-  FC_FUNC_(glr_init, GLR_INIT)(obj->parent.data, &obj->parent.d);
 }
 static void bigdft_lzd_dispose(GObject *obj)
 {
@@ -227,7 +224,8 @@ static void bigdft_lzd_finalize(GObject *obj)
 {
   BigDFT_Lzd *lzd = BIGDFT_LZD(obj);
 
-  FC_FUNC_(lzd_free, LZD_FREE)(&lzd->data);
+  if (lzd->data)
+    FC_FUNC_(lzd_free, LZD_FREE)(&lzd->data);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_lzd_parent_class)->finalize(obj);
@@ -244,6 +242,27 @@ BigDFT_Lzd* bigdft_lzd_new()
   lzd = g_malloc(sizeof(BigDFT_Lzd));
   bigdft_lzd_init(lzd);
 #endif
+   
+  FC_FUNC_(lzd_new, LZD_NEW)(&lzd->data);
+  FC_FUNC_(lzd_init, LZD_INIT)(lzd->data, &lzd->parent.data);
+  FC_FUNC_(glr_init, GLR_INIT)(lzd->parent.data, &lzd->parent.d);
+
+  return lzd;
+}
+BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd)
+{
+  BigDFT_Lzd *lzd;
+
+#ifdef HAVE_GLIB
+  lzd = BIGDFT_LZD(g_object_new(BIGDFT_LZD_TYPE, NULL));
+#else
+  lzd = g_malloc(sizeof(BigDFT_Lzd));
+  bigdft_lzd_init(lzd);
+#endif
+
+  lzd->data = fortran_lzd;
+  FC_FUNC_(lzd_init, LZD_INIT)(lzd->data, &lzd->parent.data);
+  FC_FUNC_(glr_init, GLR_INIT)(lzd->parent.data, &lzd->parent.d);
 
   return lzd;
 }
@@ -256,10 +275,12 @@ void bigdft_lzd_free(BigDFT_Lzd *lzd)
   g_free(lzd);
 #endif
 }
-void bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
-                             const BigDFT_Inputs *in, guint iproc, guint nproc)
-{  
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, in->data, lzd->parent.h, lzd->parent.h + 1, lzd->parent.h + 2,
-     lzd->data, lzd->parent.parent.data, orbs->data, lzd->parent.parent.rxyz.data);
+void bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
+                         double crmult, double frmult)
+{
+  bigdft_locreg_set_size(&lzd->parent, h, crmult, frmult);
+  FC_FUNC_(lzd_set_hgrids, LZD_SET_HGRIDS)(lzd->data, lzd->parent.h);
+  lzd->h[0] = lzd->parent.h[0];
+  lzd->h[1] = lzd->parent.h[1];
+  lzd->h[2] = lzd->parent.h[2];
 }

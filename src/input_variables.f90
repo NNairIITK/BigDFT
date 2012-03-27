@@ -7,35 +7,48 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine set_inputfile(filename, radical, ext)
+  implicit none
+  character(len = 100), intent(out) :: filename
+  character(len = *), intent(in) :: radical, ext
+  
+  logical :: exists
+
+  write(filename, "(A)") ""
+  if (trim(radical) == "") then
+     write(filename, "(A,A,A)") "input", ".", trim(ext)
+  else
+     write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+  end if
+
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+       & write(filename, "(A,A,A)") "default", ".", trim(ext)
+end subroutine set_inputfile
 
 !> Define the name of the input files
 subroutine standard_inputfile_names(inputs, radical)
   use module_types
+  use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
 
-  character(len = 128) :: rad
+  call set_inputfile(inputs%file_dft, radical,    "dft")
+  call set_inputfile(inputs%file_geopt, radical,  "geopt")
+  call set_inputfile(inputs%file_kpt, radical,    "kpt")
+  call set_inputfile(inputs%file_perf, radical,   "perf")
+  call set_inputfile(inputs%file_tddft, radical,  "tddft")
+  call set_inputfile(inputs%file_mix, radical,    "mix")
+  call set_inputfile(inputs%file_sic, radical,    "sic")
+  call set_inputfile(inputs%file_occnum, radical, "occ")
+  call set_inputfile(inputs%file_igpop, radical,  "occup")
+  call set_inputfile(inputs%file_lin, radical,    "lin")
 
-  write(rad, "(A)") ""
-  write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
-
-  inputs%file_dft=trim(rad) // '.dft'
-  inputs%file_geopt=trim(rad) // '.geopt'
-  inputs%file_kpt=trim(rad) // '.kpt'
-  inputs%file_perf=trim(rad) // '.perf'
-  inputs%file_tddft=trim(rad) // '.tddft'
-  inputs%file_mix=trim(rad) // '.mix'
-  inputs%file_sic=trim(rad) // '.sic'
-  inputs%file_occnum=trim(rad) // '.occ'
-  inputs%file_igpop=trim(rad) // '.occup'
-  inputs%file_lin=trim(rad) // '.lin'
-
-  if (trim(rad) == "input") then
+  if (trim(radical) == "input") then
      inputs%dir_output="data"
   else
-     inputs%dir_output="data-"//trim(rad)
+     inputs%dir_output="data-"//trim(radical)
   end if
 
   inputs%files = INPUTS_NONE

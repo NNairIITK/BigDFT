@@ -44,10 +44,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
-  !initial values
-  Lzd%hgrids(1)=in%hx
-  Lzd%hgrids(2)=in%hy
-  Lzd%hgrids(3)=in%hz  
+  !grid spacings of the zone descriptors
+  call lzd_set_hgrids(Lzd, (/ in%hx, in%hy, in%hz /))
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -62,9 +60,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call initialize_DFT_local_fields(denspot)
 
   !grid spacings of the DFT_local fields
-  denspot%hgrids(1)=0.5_gp*Lzd%hgrids(1)
-  denspot%hgrids(2)=0.5_gp*Lzd%hgrids(2)
-  denspot%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+  call denspot_set_hgrids(denspot, 0.5_gp*Lzd%hgrids)
 
   ! Create the Poisson solver kernels.
   call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)

@@ -12,7 +12,7 @@ subroutine initialize_DFT_local_fields(denspot)
   use module_base
   use module_types
   implicit none
-  type(DFT_local_fields), intent(out) :: denspot
+  type(DFT_local_fields), intent(inout) :: denspot
   !local variables
   integer :: i
 
@@ -34,7 +34,6 @@ subroutine initialize_DFT_local_fields(denspot)
 
   call initialize_rho_descriptors(denspot%rhod)
   call initialize_denspot_distribution(denspot%dpcom)
-
 end subroutine initialize_DFT_local_fields
 
 subroutine initialize_denspot_distribution(dpcom)
@@ -72,6 +71,17 @@ subroutine initialize_rho_descriptors(rhod)
   nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
 
 end subroutine initialize_rho_descriptors
+
+subroutine denspot_set_hgrids(denspot, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  real(gp), intent(in) :: hgrids(3)
+  denspot%hgrids(1)=hgrids(1)
+  denspot%hgrids(2)=hgrids(2)
+  denspot%hgrids(3)=hgrids(3)
+end subroutine denspot_set_hgrids
 
 subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
   use module_base
@@ -124,8 +134,21 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
   dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
   dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
        dpcom%nrhodim
-
 end subroutine denspot_communications
+
+subroutine denspot_set_rhov_status(denspot, status, istep)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  integer, intent(in) :: status, istep
+
+  denspot%rhov_is = status
+  
+  if (denspot%c_obj /= 0) then
+     call denspot_emit_rhov(denspot%c_obj, istep)
+  end if
+end subroutine denspot_set_rhov_status
 
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base

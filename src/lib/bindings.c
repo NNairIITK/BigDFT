@@ -34,6 +34,17 @@ void FC_FUNC_(inquire_pointer5, INQUIRE_POINTER5)(void *pt, void *add, int *size
   memcpy(pt, add, sizeof(void*) * *size);
 }
 
+void FC_FUNC_(inquire_address1, INQUIRE_ADDRESS1)(double *add, void *pt)
+{
+  double *val = (double*)(&pt);
+  *add = val[0];
+}
+void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
+{
+  double *val = (double*)(&pt);
+  *add = val[0];
+}
+
 
 void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
 void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);

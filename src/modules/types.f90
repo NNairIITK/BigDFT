@@ -861,6 +861,7 @@ end type workarrays_quartic_convolutions
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
+     double precision :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -1165,7 +1166,7 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyglob',subname)
        nullify(wfd%keyglob)
     else
-       if(associated(wfd%keygloc)) then
+       if(associated(wfd%keyglob)) then
           i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
           deallocate(wfd%keyglob,stat=i_stat)
           call memocc(i_stat,i_all,'wfd%keyglob',subname)

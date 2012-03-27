@@ -158,10 +158,10 @@ typedef struct BigDFT_locReg_
   gboolean dispose_has_run;
 #endif
 
-  double h[3];
   guint n[3], ni[3];
 
   /* Values that have been used to built this localisation region. */
+  double h[3];
   double *radii;
   double crmult, frmult;
   
@@ -180,7 +180,7 @@ typedef enum
 BigDFT_LocReg* bigdft_locreg_new                 ();
 void           bigdft_locreg_free                (BigDFT_LocReg *glr);
 void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
-void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, double h[3],
+void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, const double h[3],
                                                   double crmult, double frmult);
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
@@ -211,13 +211,17 @@ struct BigDFT_lzd_
   gboolean dispose_has_run;
 #endif
 
+  /* Values binded from the Fortran object. */
+  double h[3];
+
   /* Private. */
   void *data;
 };
 BigDFT_Lzd* bigdft_lzd_new ();
-void        bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
-                                    const BigDFT_Inputs *in, guint iproc, guint nproc);
+BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
+void        bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
+                                double crmult, double frmult);
 
 
 /*******************************/
@@ -244,18 +248,17 @@ struct BigDFT_orbs_
 #endif
 
   /* TODO: bindings to values... */
-  int norb, norbp, norbu, norbd;
-  int nspin, nspinor, npsidim;
-  int nkpts, nkptsp;
-  int isorb, iskpts;
+  guint norb, norbp, norbu, norbd;
+  guint nspin, nspinor, npsidim;
+  guint nkpts, nkptsp;
+  guint isorb, iskpts;
 
   double efermi, HLgap, eTS;
 
      /* integer, dimension(:), pointer :: iokpt,ikptproc */
      /* integer, dimension(:,:), pointer :: norb_par */
-     /* real(wp), dimension(:), pointer :: eval */
-     /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
-     /* real(gp), dimension(:,:), pointer :: kpts */
+  double *eval, *occup;
+  double *kwgts, *kpts;
 
   /* Pointers on building objects. */
   const BigDFT_Inputs *in;
@@ -266,9 +269,12 @@ struct BigDFT_orbs_
   void *comm;
 };
 
-BigDFT_Orbs* bigdft_orbs_new (const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
+BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
                               guint iproc, guint nproc, guint *nelec);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
+guint        bigdft_orbs_define(BigDFT_Orbs *orbs,
+                                const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
+                                guint iproc, guint nproc);
 
 /*****************************/
 /* BigDFT_Wf data structure. */
@@ -293,11 +299,14 @@ typedef struct BigDFT_wf_
   gboolean dispose_has_run;
 #endif
 
-  /* Pointers on building objects. */
-  const BigDFT_Lzd *lzd;
+  /* Accessors. */
+  BigDFT_Lzd *lzd;
+  f90_pointer_double *psi, *hpsi, *psit, *spsi;
 
-  /* Private. */
-  f90_pointer_double psi, hpsi, psit;
+  /* private. */
+  void *data;
+  void *data_lzd;
+  void *diis;
 } BigDFT_Wf;
 typedef enum
   {
@@ -311,8 +320,7 @@ typedef enum
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
 
-BigDFT_Wf* bigdft_wf_new (BigDFT_Lzd *lzd, BigDFT_Inputs *in,
-                          guint iproc, guint nproc, guint *nelec);
+BigDFT_Wf* bigdft_wf_new ();
 void       bigdft_wf_free(BigDFT_Wf *wf);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, guint iproc, guint nproc);
@@ -321,6 +329,9 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                          guint *psiSize, guint iproc);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
+void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
+                            const BigDFT_Inputs *in,
+                            gboolean threaded, guint iproc, guint nproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
