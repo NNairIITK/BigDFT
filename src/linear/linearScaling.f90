@@ -382,7 +382,7 @@ logical:: check_whether_derivatives_to_be_used
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
           end if
-          locreg_increased=.false. !this is a bad localtion....
+          !!locreg_increased=.false. !this is a bad localtion....
 
 
           ! Calculate the coefficients
