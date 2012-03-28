@@ -1491,9 +1491,9 @@ subroutine deallocate_inguessParameters(ip, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(ip%norb_par, 'ip%norb_par', subname)
-  call checkAndDeallocatePointer(ip%onWhichMPI, 'ip%onWhichMPI', subname)
-  call checkAndDeallocatePointer(ip%isorb_par, 'ip%isorb_par', subname)
+  !!call checkAndDeallocatePointer(ip%norb_par, 'ip%norb_par', subname)
+  !!call checkAndDeallocatePointer(ip%onWhichMPI, 'ip%onWhichMPI', subname)
+  !!call checkAndDeallocatePointer(ip%isorb_par, 'ip%isorb_par', subname)
   call checkAndDeallocatePointer(ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
   call checkAndDeallocatePointer(ip%sendcounts, 'ip%sendcounts', subname)
   call checkAndDeallocatePointer(ip%senddispls, 'ip%senddispls', subname)

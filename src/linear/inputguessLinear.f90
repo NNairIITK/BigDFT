@@ -1080,42 +1080,6 @@ character(len=*),parameter:: subname='initializeInguessParameters'
       ip%norbtotPad=ip%norbtotPad+1
   end do
 
-  ! Distribute the orbitals among the processes.
-  allocate(ip%norb_par(0:nproc-1), stat=istat)
-  call memocc(istat, ip%norb_par, 'ip%norb_par', subname)
-  ip%norb_par=0
-  tt=dble(ip%norb)/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  ip%norb_par(0:nproc-1)=ii
-  kk=ip%norb-nproc*ii
-  ip%norb_par(0:kk-1)=ii+1
-
-  ! ip%onWhichMPI indicates on which MPI process a given orbital is located.
-  allocate(ip%onWhichMPI(ip%norb), stat=istat)
-  call memocc(istat, ip%onWhichMPI, 'ip%onWhichMPI', subname)
-  iiorb=0
-  do jproc=0,nproc-1
-      do iorb=1,ip%norb_par(jproc)
-          iiorb=iiorb+1
-          ip%onWhichMPI(iiorb)=jproc
-      end do
-  end do
-
-
-  ! Starting orbital for each process
-  allocate(ip%isorb_par(0:nproc-1), stat=istat)
-  call memocc(istat, ip%isorb_par, 'ip%isorb_par', subname)
-  ip%isorb_par=0
-  ii=0
-  do jproc=0,iproc-1
-     ii=ii+ip%norb_par(jproc)
-  end do
-  !reference orbital for process
-  ip%isorb=ii
-  ip%isorb_par(iproc)=ip%isorb
-  call mpiallred(ip%isorb_par(0), nproc, mpi_sum, newComm, ierr)
-  
 
 
   ! Calculate the number of elements that each process has when the vectors are transposed.
@@ -1151,7 +1115,7 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
   ii=0
   do jproc=0,nproc-1
-      ip%sendcounts(jproc)=ip%nvctrp*ip%norb_par(iproc)
+      ip%sendcounts(jproc)=ip%nvctrp*orbs%norb_par(iproc,0)
       ip%senddispls(jproc)=ii
       ii=ii+ip%sendcounts(jproc)
   end do
@@ -1163,13 +1127,13 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
   ii=0
   do jproc=0,nproc-1
-      ip%recvcounts(jproc)=ip%nvctrp*ip%norb_par(jproc)
+      ip%recvcounts(jproc)=ip%nvctrp*orbs%norb_par(jproc,0)
       ip%recvdispls(jproc)=ii
       ii=ii+ip%recvcounts(jproc)
   end do
 
   ! Determine the size of the work array needed for the transposition.
-  ip%sizeWork=max(ip%norbtotPad*ip%norb_par(iproc),sum(ip%recvcounts(:)))
+  ip%sizeWork=max(ip%norbtotPad*orbs%norb_par(iproc,0),sum(ip%recvcounts(:)))
 
 end subroutine initializeInguessParameters
 
@@ -3267,8 +3231,8 @@ real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrm
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
 real(4):: ttreal, builtin_rand
-integer:: wholeGroup, newGroup, newComm, norbtot, isx, iiiat
-integer,dimension(:),allocatable:: newID
+integer:: norbtot, isx, iiiat
+!!integer,dimension(:),allocatable:: newID
 integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
 type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
@@ -3277,14 +3241,6 @@ type(matrixMinimization):: matmin
 logical:: same
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
-
-!!do istat=1,nlocregPerMPI
-!!  do iorb=1,orbsig%norb
-!!    do jorb=1,orbsig%norb
-!!      write(1000*(iproc+1)+100+istat,'(2i8,es16.7)') iorb,jorb,ham3(jorb,iorb,istat)
-!!    end do
-!!  end do
-!!end do
 
 
 
@@ -3297,375 +3253,285 @@ type(matrixDescriptors):: mad
   call nullify_matrixMinimization(matmin)
 
 
-  ! Determine the number of processes we need, which will be stored in nproc.
-  ! This is the only variable in ip that all processes (also those which do not
-  ! participate in the minimization of the trace) will know. The other variables
-  ! are known only by the active processes and will be determined by initializeInguessParameters.
-  !!if(input%lin%norbsPerProcIG>lorbs%norb) then
-  !!    norbTarget=lorbs%norb
-  !!else
-  !!   norbTarget=input%lin%norbsperProcIG
-  !!end if
-  !!nproc=ceiling(dble(lorbs%norb)/dble(norbTarget))
-  !!nproc=min(nproc,nproc)
-  !nproc=nproc
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
 
 
-  !!! Create the new communicator newComm.
-  !!allocate(newID(0:nproc-1), stat=istat)
-  !!call memocc(istat, newID, 'newID', subname)
-  !!do jproc=0,nproc-1
-  !!   newID(jproc)=jproc
-  !!end do
-  !!call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
-  !!call mpi_group_incl(wholeGroup, nproc, newID, newGroup, ierr)
-  !!call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
 
-  ! Everything inside this if statements is only executed by the processes in newComm.
-!!  processIf: if(iproc<nproc) then
+  ! Initialize the parameters for performing tha calculations in parallel.
+  call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
 
-      ! Initialize the parameters for performing tha calculations in parallel.
-      call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
-    
-      ! Allocate the local arrays.
-      call allocateArrays()
 
-      !!call determineLocalizationRegions(iproc, nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-      !!     lin%locrad, rxyz, lzd, input%hx, input%hy, input%hz, matmin%mlr)
-      call determineLocalizationRegions(iproc, nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-           input%lin%locrad, locregCenter, lzd, hx, hy, hz, matmin%mlr)
-      call extractMatrix3(iproc, nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
-           ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
+  ! Allocate the local arrays.
+  call allocateArrays()
 
-      call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
-           onWhichAtom, onWhichAtomPhi, comom)
-      !tag=1
-      call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, ip%norb_par, ip%isorb_par, &
-           onWhichAtomPhi, ip%onWhichMPI, tag, comom)
- 
-      call nullify_matrixDescriptors(mad)
-      call initMatrixCompression(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
-      call initCompressedMatmul3(orbsig%norb, mad)
+  call determineLocalizationRegions(iproc, nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
+       input%lin%locrad, locregCenter, lzd, hx, hy, hz, matmin%mlr)
+  call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, onWhichAtomPhi, &
+       lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
+
+  call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
+       onWhichAtom, onWhichAtomPhi, comom)
+  call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, lorbs%norb_par, lorbs%isorb_par, &
+       onWhichAtomPhi, lorbs%onwhichmpi, tag, comom)
+
+  call nullify_matrixDescriptors(mad)
+  call initMatrixCompression(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
+  call initCompressedMatmul3(orbsig%norb, mad)
 
 
 
-      allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
-      call memocc(istat, lcoeff, 'lcoeff', subname)
-      allocate(lgrad(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
-      call memocc(istat, lgrad, 'lgrad', subname)
-      allocate(lgradold(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
-      call memocc(istat, lgradold, 'lgradold', subname)
-    
-      ! Initialize the coefficient vectors. Put random number to places where it is
-      ! reasonable (i.e. close to the atom where the basis function is centered).
-      ! Make sure that the random initialization is done in the same way independent
-      ! of the number of preocesses that are used.
-      !call initRandomSeed(0, 1)
+  allocate(lcoeff(matmin%norbmax,lorbs%norbp), stat=istat)
+  call memocc(istat, lcoeff, 'lcoeff', subname)
+  allocate(lgrad(matmin%norbmax,lorbs%norbp), stat=istat)
+  call memocc(istat, lgrad, 'lgrad', subname)
+  allocate(lgradold(matmin%norbmax,lorbs%norbp), stat=istat)
+  call memocc(istat, lgradold, 'lgradold', subname)
 
-    
-      coeffPad=0.d0
-      ii=0
-      do jproc=0,nproc-1
-          do iorb=1,ip%norb_par(jproc)
-              iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
-              iiiAt=orbsGauss%inwhichlocreg(ip%isorb_par(jproc)+iorb)
-              ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
-              !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-              cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
-              do jorb=1,ip%norbtot
-                  ii=ii+1
-                  !call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
-                  ttreal=builtin_rand(ii)
-                  if(iproc==jproc) then
-                      jjAt=onWhichAtom(jorb)
-                      !tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-                      tt = (locregCenter(1,iiat)-locregCenter(1,jjAt))**2 + &
-                           (locregCenter(2,iiat)-locregCenter(2,jjAt))**2 + &
-                           (locregCenter(3,iiat)-locregCenter(3,jjAt))**2
-                      if(tt>cut) then
-                           coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
-                      else
-                          coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-                      end if
-                  end if
-              end do
-          end do
-      end do
-
-    
-      
-      ! Initial step size for the optimization
-      alpha=5.d-1
-    
-      ! Flag which checks convergence.
-      converged=.false.
-    
-      if(iproc==0) write(*,'(1x,a)') '============================== optimizing coefficients =============================='
-    
-      ! The optimization loop.
-    
-      ! Transform to localization regions
-      do iorb=1,ip%norb_par(iproc)
-          ilr=matmin%inWhichLocregExtracted(iorb)
-          if(ilr/=lorbs%inWhichLocreg(iorb+lorbs%isorb)) then
-              write(*,'(a,2i6,3x,2i8)') &
-                   'THIS IS STRANGE -- iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)',&
-                   iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)
-          end if
-          call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
-      end do
+  ! Initialize the coefficient vectors. Put random number to places where it is
+  ! reasonable (i.e. close to the atom where the basis function is centered).
+  ! Make sure that the random initialization is done in the same way independent
+  ! of the number of preocesses that are used.
+  !call initRandomSeed(0, 1)
 
 
-
-      if(input%lin%nItInguess==0) then
-          ! Orthonormalize the coefficients.
-          methTransformOverlap=0
-          call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-               input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
-               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
-      end if
-
-
-      isx=1
-      if(ip%norb_par(iproc)>0) then
-          ! otherwise it makes no sense...
-          call initializeDIIS_inguess(isx, ip%norb_par(iproc), matmin, onWhichAtom(ip%isorb+1), ldiis)
-      end if
-
-      !!allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
-    
-      iterLoop: do it=1,input%lin%nItInguess
-    
-          if (iproc==0 .and. mod(it,1)==0) then
-              write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
-          endif
-
-          if(it<=2) then
-              methTransformOverlap=0
-          else
-              methTransformOverlap=input%lin%methTransformOverlap
-          end if
-          !methTransformOverlap=0
-          !methTransformOverlap=lin%methTransformOverlap
-    
-    
-          ! Orthonormalize the coefficients.
-          call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-               input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
-               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
-          !!ilr=onWhichAtom(ip%isorb+1)
-
-    
-          ! Calculate the gradient grad.
-          ilrold=0
-          iilr=0
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              iilr=matmin%inWhichLocregOnMPI(iorb)
-              !!if(it==1) write(*,'(a,3i8,es16.7)') 'iorb, ilr, iilr, hamextract(1,1,iilr)', iorb, ilr, iilr, hamextract(1,1,iilr)
-              !!if(ilr>ilrold) then
-              !!    iilr=iilr+1
-              !!    ilrold=ilr
-              !!end if
-              call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
-                   hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
-              !!if(it==1) then
-              !!  do istat=1,matmin%norbmax
-              !!    do iall=1,matmin%norbmax
-              !!      write(1000+ip%isorb+iorb,'(2i8,es20.10)') istat, iall, hamextract(iall,istat,iilr)
-              !!    end do
-              !!  end do
-              !!end if
-          end do
-          !!ilr=onWhichAtom(ip%isorb+1)
-
-      
-          if(it>1) then
-              traceOld=trace
-          else
-              traceOld=1.d10
-          end if
-          ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
-          ! multiplier matrix.
-
-          !!do iorb=1,ip%norb_par(iproc)
-          !!    lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-          !!end do
-
-          call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
-               input%lin%blocksize_pdgemm, &
-               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
-               matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
-               matmin%mlr, mad, lcoeff, lgrad, comom, trace)
-          !!do jorb=1,matmin%norbmax
-          !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
-          !!end do
-          !!ilr=onWhichAtom(ip%isorb+1)
-          ! Calculate the gradient norm.
-          fnrm=0.d0
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              iilr=matmin%inWhichLocregOnMPI(iorb)
-              fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
-
-              if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgradold(1,iorb), 1)
-          end do
-          if(ip%norb_par(iproc)>0) call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
-    
-          ! Keep the gradient for the next iteration.
-          if(it>1 .and. (ip%norb_par(iproc)>0)) then
-              call dcopy(ip%norb_par(iproc), fnrmArr(1), 1, fnrmOldArr(1), 1)
-          end if
-
-          fnrmMax=0.d0
-          meanAlpha=0.d0
-          do iorb=1,ip%norb_par(iproc)
-
-              fnrm=fnrm+fnrmArr(iorb)
-              if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
-              if(it>1) then
-              ! Adapt step size for the steepest descent minimization.
-                  tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
-                  if(tt>.9d0) then
-                      alpha(iorb)=alpha(iorb)*1.1d0
+  coeffPad=0.d0
+  ii=0
+  do jproc=0,nproc-1
+      do iorb=1,lorbs%norb_par(jproc,0)
+          iiAt=onWhichAtomPhi(lorbs%isorb_par(jproc)+iorb)
+          iiiAt=orbsGauss%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
+          ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
+          !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
+          cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
+          do jorb=1,ip%norbtot
+              ii=ii+1
+              ttreal=builtin_rand(ii)
+              if(iproc==jproc) then
+                  jjAt=onWhichAtom(jorb)
+                  tt = (locregCenter(1,iiat)-locregCenter(1,jjAt))**2 + &
+                       (locregCenter(2,iiat)-locregCenter(2,jjAt))**2 + &
+                       (locregCenter(3,iiat)-locregCenter(3,jjAt))**2
+                  if(tt>cut) then
+                       coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                   else
-                      alpha(iorb)=alpha(iorb)*.5d0
+                      coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
                   end if
               end if
-              meanAlpha=meanAlpha+alpha(iorb)
           end do
-         call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-         call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
-         fnrm=sqrt(fnrm)
-         fnrmMax=sqrt(fnrmMax)
-    
-         ! Determine the mean step size for steepest descent iterations.
-         call mpiallred(meanAlpha, 1, mpi_sum, mpi_comm_world, ierr)
-         meanAlpha=meanAlpha/dble(ip%norb)
+      end do
+  end do
 
-          ! Precondition the gradient.
-          !if(it>20) then
-              do iorb=1,ip%norb_par(iproc)
-                  ilr=onWhichAtom(ip%isorb+iorb)
-                  iilr=matmin%inWhichLocregOnMPI(iorb)
-                  !tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-                  !tt=lagmatdiag(iorb)
-                  !write(80+iproc,*) it, iorb, tt
-                  !do istat=1,matmin%mlr(ilr)%norbinlr
-                  !    write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
-                  !end do
-                  !call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
-                  call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
-              end do
-          !!end if
-      
-    
-          ! Write some informations to the screen, but only every 1000th iteration.
-          if(iproc==0 .and. mod(it,1)==0) write(*,'(1x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
-              fnrm, trace, meanAlpha
-          
-          ! Check for convergence.
-          if(fnrm<1.d-3) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'converged in ', it, ' iterations.'
-              if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, trace:', fnrm, trace
-              converged=.true.
-              infoCoeff=it
-              ! Transform back to global ragion.
-              do iorb=1,ip%norb_par(iproc)
-                  ilr=matmin%inWhichLocregExtracted(iorb)
-                  call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-              end do
-              exit
-          end if
-      
-          ! Quit if the maximal number of iterations is reached.
-          if(it==input%lin%nItInguess) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-                  ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
-              infoCoeff=-1
-              ! Transform back to global region.
-              do iorb=1,ip%norb_par(iproc)
-                  ilr=matmin%inWhichLocregExtracted(iorb)
-                  call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-              end do
-              exit
-          end if
-    
-          ! Improve the coefficients (by steepet descent).
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
-              !!do istat=1,matmin%mlr(ilr)%norbinlr
-              !!    write(100+ip%isorb+iorb,'(i9,2es20.10)') istat, lgrad(istat,iorb), lcoeff(istat,iorb)
-              !!end do
-          end do
-          !!if (ldiis%isx > 0) then
-          !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
-          !!    ldiis%is=ldiis%is+1
-          !!end if
-          !!do iorb=1,ip%norb_par(iproc)
-          !!    ilr=onWhichAtom(ip%isorb+iorb)
-          !!    call dscal(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1)
-          !!end do
-          !!call optimizeDIIS_inguess(iproc, nproc, ip%norb_par(iproc), onWhichAtom(ip%isorb+1), matmin, lgrad, lcoeff, ldiis)
 
-    
-    
-      end do iterLoop
+  
+  ! Initial step size for the optimization
+  alpha=5.d-1
 
-      if(ip%norb_par(iproc)>0) call deallocateDIIS(ldiis)
-    
-    
-      if(iproc==0) write(*,'(1x,a)') '===================================================================================='
-    
-    
-      ! Cut out the zeros
-      allocate(coeff2(max(ip%norbtot*ip%norb_par(iproc),1)), stat=istat)
-      call memocc(istat, coeff2, 'coeff2', subname)
-      do iorb=1,ip%norb_par(iproc)
-          call dcopy(ip%norbtot, coeffPad((iorb-1)*ip%norbtotPad+1), 1, coeff2((iorb-1)*ip%norbtot+1), 1)
+  ! Flag which checks convergence.
+  converged=.false.
+
+  if(iproc==0) write(*,'(1x,a)') '============================== optimizing coefficients =============================='
+
+  ! The optimization loop.
+
+  ! Transform to localization regions
+  do iorb=1,lorbs%norbp
+      ilr=matmin%inWhichLocregExtracted(iorb)
+      if(ilr/=lorbs%inWhichLocreg(iorb+lorbs%isorb)) then
+          write(*,'(a,2i6,3x,2i8)') &
+               'THIS IS STRANGE -- iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)',&
+               iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)
+      end if
+      call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+  end do
+
+
+
+  if(input%lin%nItInguess==0) then
+      ! Orthonormalize the coefficients.
+      methTransformOverlap=0
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+           input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
+           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
+           lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
+  end if
+
+
+  isx=1
+  if(lorbs%norbp>0) then
+      ! otherwise it makes no sense...
+      call initializeDIIS_inguess(isx, lorbs%norbp, matmin, onWhichAtom(lorbs%isorb+1), ldiis)
+  end if
+
+
+  iterLoop: do it=1,input%lin%nItInguess
+
+      if (iproc==0 .and. mod(it,1)==0) then
+          write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
+      endif
+
+      if(it<=2) then
+          methTransformOverlap=0
+      else
+          methTransformOverlap=input%lin%methTransformOverlap
+      end if
+
+
+      ! Orthonormalize the coefficients.
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+           input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
+           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
+           lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
+
+
+      ! Calculate the gradient grad.
+      ilrold=0
+      iilr=0
+      do iorb=1,lorbs%norbp
+          ilr=onWhichAtom(lorbs%isorb+iorb)
+          iilr=matmin%inWhichLocregOnMPI(iorb)
+          call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
+               hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
       end do
 
-      call deallocateArrays()
-
-      iall=-product(shape(hamextract))*kind(hamextract)
-      deallocate(hamextract, stat=istat)
-      call memocc(istat, iall, 'hamextract', subname)
-
-      call deallocate_matrixDescriptors(mad, subname)
-
-
-!!   end if processIf
-
-  !!if(newComm/=MPI_COMM_NULL) call mpi_comm_free(newComm, ierr)
-  !!call mpi_group_free(newGroup, ierr)
- 
-  !!call mpi_barrier(mpi_comm_world, ierr)
   
-  !! Allocate coeff2 for those processes which did not allocate it
-  !! during the previous if statement.
-  !!if(iproc>=nproc) then
-  !!    allocate(coeff2(1), stat=istat)
-  !!    call memocc(istat, coeff2, 'coeff2', subname)
-  !!end if
+      if(it>1) then
+          traceOld=trace
+      else
+          traceOld=1.d10
+      end if
+      ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
+      ! multiplier matrix.
+      call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
+           input%lin%blocksize_pdgemm, &
+           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, &
+           matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
+           matmin%mlr, mad, lcoeff, lgrad, comom, trace)
+      ! Calculate the gradient norm.
+      fnrm=0.d0
+      do iorb=1,lorbs%norbp
+          ilr=onWhichAtom(lorbs%isorb+iorb)
+          iilr=matmin%inWhichLocregOnMPI(iorb)
+          fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+
+          if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgradold(1,iorb), 1)
+      end do
+      if(lorbs%norbp>0) call dcopy(lorbs%norbp*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
+
+      ! Keep the gradient for the next iteration.
+      if(it>1 .and. (lorbs%norbp>0)) then
+          call dcopy(lorbs%norbp, fnrmArr(1), 1, fnrmOldArr(1), 1)
+      end if
+
+      fnrmMax=0.d0
+      meanAlpha=0.d0
+      do iorb=1,lorbs%norbp
+
+          fnrm=fnrm+fnrmArr(iorb)
+          if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
+          if(it>1) then
+          ! Adapt step size for the steepest descent minimization.
+              tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
+              if(tt>.9d0) then
+                  alpha(iorb)=alpha(iorb)*1.1d0
+              else
+                  alpha(iorb)=alpha(iorb)*.5d0
+              end if
+          end if
+          meanAlpha=meanAlpha+alpha(iorb)
+      end do
+     call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+     call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
+     fnrm=sqrt(fnrm)
+     fnrmMax=sqrt(fnrmMax)
+
+     ! Determine the mean step size for steepest descent iterations.
+     call mpiallred(meanAlpha, 1, mpi_sum, mpi_comm_world, ierr)
+     meanAlpha=meanAlpha/dble(ip%norb)
+
+      ! Precondition the gradient.
+      do iorb=1,lorbs%norbp
+          ilr=onWhichAtom(lorbs%isorb+iorb)
+          iilr=matmin%inWhichLocregOnMPI(iorb)
+          call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+      end do
   
+
+      ! Write some informations to the screen, but only every 1000th iteration.
+      if(iproc==0 .and. mod(it,1)==0) write(*,'(1x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
+          fnrm, trace, meanAlpha
+      
+      ! Check for convergence.
+      if(fnrm<1.d-3) then
+          if(iproc==0) write(*,'(1x,a,i0,a)') 'converged in ', it, ' iterations.'
+          if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, trace:', fnrm, trace
+          converged=.true.
+          infoCoeff=it
+          ! Transform back to global ragion.
+          do iorb=1,lorbs%norbp
+              ilr=matmin%inWhichLocregExtracted(iorb)
+              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          end do
+          exit
+      end if
   
+      ! Quit if the maximal number of iterations is reached.
+      if(it==input%lin%nItInguess) then
+          if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+              ' iterations! Exiting loop due to limitations of iterations.'
+          if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
+          infoCoeff=-1
+          ! Transform back to global region.
+          do iorb=1,lorbs%norbp
+              ilr=matmin%inWhichLocregExtracted(iorb)
+              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          end do
+          exit
+      end if
+
+      ! Improve the coefficients (by steepet descent).
+      do iorb=1,lorbs%norbp
+          ilr=onWhichAtom(lorbs%isorb+iorb)
+          call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
+      end do
+
+
+
+  end do iterLoop
+
+  if(lorbs%norbp>0) call deallocateDIIS(ldiis)
+
+
+  if(iproc==0) write(*,'(1x,a)') '===================================================================================='
+
+
+  ! Cut out the zeros
+  allocate(coeff2(max(ip%norbtot*lorbs%norbp,1)), stat=istat)
+  call memocc(istat, coeff2, 'coeff2', subname)
+  do iorb=1,lorbs%norbp
+      call dcopy(ip%norbtot, coeffPad((iorb-1)*ip%norbtotPad+1), 1, coeff2((iorb-1)*ip%norbtot+1), 1)
+  end do
+
+  call deallocateArrays()
+
+  iall=-product(shape(hamextract))*kind(hamextract)
+  deallocate(hamextract, stat=istat)
+  call memocc(istat, iall, 'hamextract', subname)
+
+  call deallocate_matrixDescriptors(mad, subname)
+
+
   ! Now collect all coefficients on all processes.
   allocate(recvcounts(0:nproc-1), stat=istat)
   call memocc(istat, recvcounts, 'recvcounts', subname)
   allocate(displs(0:nproc-1), stat=istat)
   call memocc(istat, displs, 'displs', subname)
   
-  !!! Send ip%norb_par and ip%norbtot to all processes.
+  !!! Send lorbs%norb_par and ip%norbtot to all processes.
   allocate(norb_par(0:nproc-1), stat=istat)
   call memocc(istat, norb_par, 'norb_par', subname)
   if(iproc==0) then
       do jproc=0,nproc-1
-          norb_par(jproc)=ip%norb_par(jproc)
+          norb_par(jproc)=lorbs%norb_par(jproc,0)
       end do
       norbtot=ip%norbtot
   end if
@@ -3685,7 +3551,7 @@ type(matrixDescriptors):: mad
       ii=ii+recvcounts(jproc)
   end do
   if(iproc<nproc) then
-      sendcount=ip%norbtot*ip%norb_par(iproc)
+      sendcount=ip%norbtot*lorbs%norbp
   else
       sendcount=0
   end if
@@ -3776,11 +3642,11 @@ type(matrixDescriptors):: mad
   contains
 
     subroutine allocateArrays()
-      allocate(coeffPad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
+      allocate(coeffPad(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      allocate(grad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
+      allocate(grad(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
       call memocc(istat, grad, 'grad', subname)
-      allocate(gradOld(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
+      allocate(gradOld(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
       call memocc(istat, gradOld, 'gradOld', subname)
       allocate(fnrmArr(ip%norb), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)

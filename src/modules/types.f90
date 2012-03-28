@@ -718,7 +718,7 @@ end type linear_scaling_control_variables
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
     integer:: norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
-    integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+    integer,dimension(:),pointer:: nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
     !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
