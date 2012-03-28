@@ -165,7 +165,8 @@ subroutine compressMatrix2(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displ
           end if
       end do
   end do
-  sendcounts(nproc-1)=ncount
+  !sendcounts(nproc-1)=ncount
+  sendcounts(jjproc)=ncount !last process
   if(jj/=mad%nvctr) then
       write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
       stop

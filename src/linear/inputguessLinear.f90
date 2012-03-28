@@ -511,12 +511,12 @@ lig%lzdGauss%hgrids(3)=hz
       ind1=ind1+lig%lzdGauss%llr(ilrg)%wfd%nvctr_c+7*lig%lzdGauss%llr(ilrg)%wfd%nvctr_f
       ind2=ind2+lig%lzdig%Llr(ilrl)%wfd%nvctr_c+7*lig%lzdig%Llr(ilrl)%wfd%nvctr_f
   end do
-  if(ind1/=lig%orbsGauss%npsidim_orbs+1) then
+  if(lig%orbsGauss%norbp>0 .and. ind1/=lig%orbsGauss%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
            ': ind1/=lig%orbsGauss%npsidim+1',ind1,lig%orbsGauss%npsidim_orbs+1
       stop
   end if
-  if(ind2/=lig%orbsig%npsidim_orbs+1) then
+  if(lig%orbsig%norbp>0 .and. ind2/=lig%orbsig%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
            ': ind2/=lig%orbsig%npsidim+1',ind2,lig%orbsig%npsidim_orbs+1
       stop
