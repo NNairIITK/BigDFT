@@ -610,6 +610,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
+  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
@@ -776,6 +777,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
               locradType(jtype)=lrl
+              in%lin%locrad_type(jtype)=lrl
               locradType_lowaccur(jtype)=lrl
               locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)

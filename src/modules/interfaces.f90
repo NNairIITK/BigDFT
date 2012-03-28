@@ -3379,7 +3379,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
-     subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, locrad, rxyz, lzd, hx, hy, hz, mlr)
+     subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, &
+                locrad, rxyz, lzd, lzdig, hx, hy, hz, mlr)
        use module_base
        use module_types
        implicit none
@@ -3388,7 +3389,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(norb),intent(in):: onWhichAtomAll
        real(8),dimension(at%nat),intent(in):: locrad
        real(8),dimension(3,at%nat),intent(in):: rxyz
-       type(local_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd, lzdig
        real(8),intent(in):: hx, hy, hz
        type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
      end subroutine determineLocalizationRegions
@@ -3548,6 +3549,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine buildLinearCombinationsLocalized
 
 
+
+
      subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
                 orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace)
        use module_base
@@ -3636,6 +3639,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters):: opig
        type(matrixDescriptors):: madig
      end subroutine buildLinearCombinations
+
+
+      subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
+                 tag, comonig, opig, madig, lphi)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(local_zone_descriptors),intent(in):: lzdig, lzd
+        type(orbitals_data),intent(in):: orbsig, orbs
+        type(input_variables),intent(in):: input
+        real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+        real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+        character(len=1),intent(in):: locregShape
+        integer,intent(inout):: tag
+        type(p2pComms):: comonig
+        type(overlapParameters):: opig
+        type(matrixDescriptors):: madig
+        real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+      end subroutine buildLinearCombinations_new
 
 
      subroutine postCommunicationsPotential(iproc, nproc, ndimpot, pot, comgp)

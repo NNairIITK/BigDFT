@@ -477,8 +477,8 @@ subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
-  !!allocate(lin%locrad(nlr),stat=istat)
-  !!call memocc(istat,lin%locrad,'lin%locrad',subname)
+  allocate(lin%locrad_type(ntypes),stat=istat)
+  call memocc(istat,lin%locrad_type,'lin%locrad_type',subname)
 
 end subroutine allocateBasicArraysInputLin
 
@@ -561,6 +561,13 @@ subroutine deallocateBasicArraysInput(lin)
     deallocate(lin%locrad_highaccuracy,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
     nullify(lin%locrad_highaccuracy)
+  end if 
+
+  if(associated(lin%locrad_type)) then
+    i_all = -product(shape(lin%locrad_type))*kind(lin%locrad_type)
+    deallocate(lin%locrad_type,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_type',subname)
+    nullify(lin%locrad_type)
   end if 
 
 
@@ -742,7 +749,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   
   ! Local variables
   integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
-  character(len=*),parameter:: subname='initMatrixCompressionForInguess'
+  character(len=*),parameter:: subname='initMatrixCompression'
   
   call nullify_matrixDescriptors(mad)
   
@@ -764,7 +771,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
               jjorb=overlaps(jorb,iiorb)+ijorb
               !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
+              !!if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   jjorbold=jjorb
