@@ -678,7 +678,8 @@ lig%lzdGauss%hgrids(3)=hz
       do jorb=1,lig%orbsig%norbp
           !onWhichAtomTemp(jorb)=ilr
           !onWhichAtomTemp(lig%orbsig%isorb+jorb)=ilr
-          onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
+          !onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
+          onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsig%inwhichlocreg(ilr)
           !jlr=lig%orbsig%inWhichLocregp(jorb)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
           if(lig%orbsig%inWhichlocreg(jorb+lig%orbsig%isorb)/=jlr) stop 'this should not happen'
@@ -794,9 +795,7 @@ lig%lzdGauss%hgrids(3)=hz
   nlocregPerMPI=0
   do jorb=1,lorbs%norb
       jlr=lorbs%inWhichLocreg(jorb)
-      !jproc=lorbs%onWhichMPI(jorb)
       jproc=lorbs%onWhichMPI(jorb)
-      !if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
       if(iproc==jproc) then
           if(jlr/=jlrold) then
               nlocregPerMPI=nlocregPerMPI+1
