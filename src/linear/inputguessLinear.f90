@@ -448,14 +448,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(lig%lzdGauss,lig%orbsGauss)
   call wavefunction_dimension(lig%lzdig,lig%orbsig)
 
-  !!! Copy lig%orbsig to lig%orbsGauss, but keep the size of the orbitals in lig%orbsGauss.
-  !!call deallocate_orbitals_data(lig%orbsGauss,subname)
-  !!ii_orbs=lig%orbsGauss%npsidim_orbs
-  !!ii_comp=lig%orbsGauss%npsidim_comp
-  !!call nullify_orbitals_data(lig%orbsGauss)
-  !!call copy_orbitals_data(lig%orbsig,lig%orbsGauss,subname)
-  !!lig%orbsGauss%npsidim_orbs=ii_orbs
-  !!lig%orbsGauss%npsidim_comp=ii_comp
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
@@ -472,9 +464,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Assign the size of the orbitals to the new variable lpsidimtot.
   !lig%lzdig%lpsidimtot=lig%orbsig%npsidim
   !lig%lzdGauss%lpsidimtot=lig%orbsGauss%npsidim
-lig%lzdGauss%hgrids(1)=hx
-lig%lzdGauss%hgrids(2)=hy
-lig%lzdGauss%hgrids(3)=hz
+  lig%lzdGauss%hgrids(1)=hx
+  lig%lzdGauss%hgrids(2)=hy
+  lig%lzdGauss%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
   lchi2=0.d0
   call gaussians_to_wavelets_new(iproc,nproc,lig%lzdGauss,lig%orbsGauss,G,&
@@ -646,17 +638,12 @@ lig%lzdGauss%hgrids(3)=hz
       end do
   end do
 
-  !!write(*,*) 'ATTENTION DBUG!!!!'
-  !!denspot%rhov=0.d0
 
   ! Post the messages for the communication of the potential.
   !ndimpot = lzd%lzd%glr%d%n1i*lzd%lzd%glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lig%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lig%comgp)
 
-  ! Gather the potential
-  !!! IS THIS DONE BY full_local_potential???
-  call gatherPotential(iproc, nproc, lig%comgp)
 
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates that all orbitals feel the confining potential
@@ -671,16 +658,11 @@ lig%lzdGauss%hgrids(3)=hz
 
   ! Determine for how many localization regions we need a Hamiltonian application.
   ndim_lhchi=0
-  !do iat=1,at%nat
   do ilr=1,lig%lzdig%nlr
       call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,lig%orbsig%norbp
-          !onWhichAtomTemp(jorb)=ilr
-          !onWhichAtomTemp(lig%orbsig%isorb+jorb)=ilr
-          !onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
           onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsig%inwhichlocreg(ilr)
-          !jlr=lig%orbsig%inWhichLocregp(jorb)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
           if(lig%orbsig%inWhichlocreg(jorb+lig%orbsig%isorb)/=jlr) stop 'this should not happen'
           call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
@@ -743,6 +725,8 @@ lig%lzdGauss%hgrids(3)=hz
           end if
       end do
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
+      !!if(iproc==0) write(*,'(a,100i5)') 'onwhichatomtemp',onwhichatomtemp
+      !!if(iproc==0) write(*,'(a,100i5)') 'lig%orbsGauss%inwhichlocreg', lig%orbsGauss%inwhichlocreg
 
       if(.not.skip(ilr)) then
           ii=ii+1
@@ -853,7 +837,6 @@ lig%lzdGauss%hgrids(3)=hz
   call deallocate_orbitals_data(lig%orbsGauss, subname)
   call deallocate_matrixDescriptors(lig%mad, subname)
   call deallocate_overlapParameters(lig%op, subname)
-  !call deallocate_p2pCommsOrthonormality(lig%comon, subname)
   call deallocate_p2pComms(lig%comon, subname)
 
   ! Deallocate all remaining local arrays.
@@ -1068,13 +1051,13 @@ end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 
 
-subroutine initializeInguessParameters(iproc, orbs, orbsig, newComm, ip)
+subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
+integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
 integer,intent(in):: newComm
 type(inguessParameters),intent(inout):: ip
@@ -1093,26 +1076,26 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   ! orbitals after this padding is then given by ip%norbtotPad.
   ip%norbtotPad=ip%norbtot
   do
-      if(mod(ip%norbtotPad, ip%nproc)==0) exit
+      if(mod(ip%norbtotPad, nproc)==0) exit
       ip%norbtotPad=ip%norbtotPad+1
   end do
 
   ! Distribute the orbitals among the processes.
-  allocate(ip%norb_par(0:ip%nproc-1), stat=istat)
+  allocate(ip%norb_par(0:nproc-1), stat=istat)
   call memocc(istat, ip%norb_par, 'ip%norb_par', subname)
   ip%norb_par=0
-  tt=dble(ip%norb)/dble(ip%nproc)
+  tt=dble(ip%norb)/dble(nproc)
   ii=floor(tt)
   ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  ip%norb_par(0:ip%nproc-1)=ii
-  kk=ip%norb-ip%nproc*ii
+  ip%norb_par(0:nproc-1)=ii
+  kk=ip%norb-nproc*ii
   ip%norb_par(0:kk-1)=ii+1
 
   ! ip%onWhichMPI indicates on which MPI process a given orbital is located.
   allocate(ip%onWhichMPI(ip%norb), stat=istat)
   call memocc(istat, ip%onWhichMPI, 'ip%onWhichMPI', subname)
   iiorb=0
-  do jproc=0,ip%nproc-1
+  do jproc=0,nproc-1
       do iorb=1,ip%norb_par(jproc)
           iiorb=iiorb+1
           ip%onWhichMPI(iiorb)=jproc
@@ -1121,7 +1104,7 @@ character(len=*),parameter:: subname='initializeInguessParameters'
 
 
   ! Starting orbital for each process
-  allocate(ip%isorb_par(0:ip%nproc-1), stat=istat)
+  allocate(ip%isorb_par(0:nproc-1), stat=istat)
   call memocc(istat, ip%isorb_par, 'ip%isorb_par', subname)
   ip%isorb_par=0
   ii=0
@@ -1131,23 +1114,23 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   !reference orbital for process
   ip%isorb=ii
   ip%isorb_par(iproc)=ip%isorb
-  call mpiallred(ip%isorb_par(0), ip%nproc, mpi_sum, newComm, ierr)
+  call mpiallred(ip%isorb_par(0), nproc, mpi_sum, newComm, ierr)
   
 
 
   ! Calculate the number of elements that each process has when the vectors are transposed.
   ! nvctrp is the total number, nvctrp_nz is the nonzero numbers.
-  allocate(ip%nvctrp_nz(0:ip%nproc-1), stat=istat)
+  allocate(ip%nvctrp_nz(0:nproc-1), stat=istat)
   call memocc(istat, ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
-  tt=ip%norbtot/dble(ip%nproc)
+  tt=ip%norbtot/dble(nproc)
   ii=floor(tt)
   ! ii is now the number of elements that every process has. Distribute the remaining ones.
   ip%nvctrp_nz=ii
-  kk=ip%norbtot-ip%nproc*ii
+  kk=ip%norbtot-nproc*ii
   ip%nvctrp_nz(0:kk-1)=ii+1
   ! Check wheter this distribution is correct
   ii=0
-  do jproc=0,ip%nproc-1
+  do jproc=0,nproc-1
      ii=ii+ip%nvctrp_nz(jproc)
   end do
   if(ii/=ip%norbtot) then
@@ -1157,29 +1140,29 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   end if
 
   ! With the padded zeros, the elements can be distributed evenly.
-  ip%nvctrp=ip%norbtotPad/ip%nproc
+  ip%nvctrp=ip%norbtotPad/nproc
 
   ! Define the values for the mpi_alltoallv.
   ! sendcounts: number of elements that a given  process sends to another process.
   ! senddispls: offset of the starting index on a given process for the send operation to another process.
-  allocate(ip%sendcounts(0:ip%nproc-1), stat=istat)
+  allocate(ip%sendcounts(0:nproc-1), stat=istat)
   call memocc(istat, ip%sendcounts, 'ip%sendcounts', subname)
-  allocate(ip%senddispls(0:ip%nproc-1), stat=istat)
+  allocate(ip%senddispls(0:nproc-1), stat=istat)
   call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
   ii=0
-  do jproc=0,ip%nproc-1
+  do jproc=0,nproc-1
       ip%sendcounts(jproc)=ip%nvctrp*ip%norb_par(iproc)
       ip%senddispls(jproc)=ii
       ii=ii+ip%sendcounts(jproc)
   end do
   ! recvcounts: number of elements that a given process receives from another process.
   ! recvdispls: offset of the starting index on a given process for the receive operation from another process.
-  allocate(ip%recvcounts(0:ip%nproc-1), stat=istat)
+  allocate(ip%recvcounts(0:nproc-1), stat=istat)
   call memocc(istat, ip%recvcounts, 'ip%recvcounts', subname)
-  allocate(ip%recvdispls(0:ip%nproc-1), stat=istat)
+  allocate(ip%recvdispls(0:nproc-1), stat=istat)
   call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
   ii=0
-  do jproc=0,ip%nproc-1
+  do jproc=0,nproc-1
       ip%recvcounts(jproc)=ip%nvctrp*ip%norb_par(jproc)
       ip%recvdispls(jproc)=ii
       ii=ii+ip%recvcounts(jproc)
@@ -3282,7 +3265,7 @@ real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, tt2
 logical:: converged
-character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
+character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
 real(4):: ttreal, builtin_rand
 integer:: wholeGroup, newGroup, newComm, norbtot, isx, iiiat
 integer,dimension(:),allocatable:: newID
@@ -3314,51 +3297,51 @@ type(matrixDescriptors):: mad
   call nullify_matrixMinimization(matmin)
 
 
-  ! Determine the number of processes we need, which will be stored in ip%nproc.
+  ! Determine the number of processes we need, which will be stored in nproc.
   ! This is the only variable in ip that all processes (also those which do not
   ! participate in the minimization of the trace) will know. The other variables
   ! are known only by the active processes and will be determined by initializeInguessParameters.
-  if(input%lin%norbsPerProcIG>lorbs%norb) then
-      norbTarget=lorbs%norb
-  else
-     norbTarget=input%lin%norbsperProcIG
-  end if
-  ip%nproc=ceiling(dble(lorbs%norb)/dble(norbTarget))
-  ip%nproc=min(ip%nproc,nproc)
-  ip%nproc=nproc
-  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', ip%nproc, ' processes.'
+  !!if(input%lin%norbsPerProcIG>lorbs%norb) then
+  !!    norbTarget=lorbs%norb
+  !!else
+  !!   norbTarget=input%lin%norbsperProcIG
+  !!end if
+  !!nproc=ceiling(dble(lorbs%norb)/dble(norbTarget))
+  !!nproc=min(nproc,nproc)
+  !nproc=nproc
+  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
 
 
-  ! Create the new communicator newComm.
-  allocate(newID(0:ip%nproc-1), stat=istat)
-  call memocc(istat, newID, 'newID', subname)
-  do jproc=0,ip%nproc-1
-     newID(jproc)=jproc
-  end do
-  call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
-  call mpi_group_incl(wholeGroup, ip%nproc, newID, newGroup, ierr)
-  call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
+  !!! Create the new communicator newComm.
+  !!allocate(newID(0:nproc-1), stat=istat)
+  !!call memocc(istat, newID, 'newID', subname)
+  !!do jproc=0,nproc-1
+  !!   newID(jproc)=jproc
+  !!end do
+  !!call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+  !!call mpi_group_incl(wholeGroup, nproc, newID, newGroup, ierr)
+  !!call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
 
   ! Everything inside this if statements is only executed by the processes in newComm.
-!!  processIf: if(iproc<ip%nproc) then
+!!  processIf: if(iproc<nproc) then
 
       ! Initialize the parameters for performing tha calculations in parallel.
-      call initializeInguessParameters(iproc, lorbs, orbsig, mpi_comm_world, ip)
+      call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
     
       ! Allocate the local arrays.
       call allocateArrays()
 
-      !!call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
+      !!call determineLocalizationRegions(iproc, nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
       !!     lin%locrad, rxyz, lzd, input%hx, input%hy, input%hz, matmin%mlr)
-      call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
+      call determineLocalizationRegions(iproc, nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
            input%lin%locrad, locregCenter, lzd, hx, hy, hz, matmin%mlr)
-      call extractMatrix3(iproc, ip%nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
+      call extractMatrix3(iproc, nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
 
-      call determineOverlapRegionMatrix(iproc, ip%nproc, lzd, matmin%mlr, lorbs, orbsig, &
+      call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
            onWhichAtom, onWhichAtomPhi, comom)
       !tag=1
-      call initCommsMatrixOrtho(iproc, ip%nproc, lorbs%norb, ip%norb_par, ip%isorb_par, &
+      call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, ip%norb_par, ip%isorb_par, &
            onWhichAtomPhi, ip%onWhichMPI, tag, comom)
  
       call nullify_matrixDescriptors(mad)
@@ -3383,7 +3366,7 @@ type(matrixDescriptors):: mad
     
       coeffPad=0.d0
       ii=0
-      do jproc=0,ip%nproc-1
+      do jproc=0,nproc-1
           do iorb=1,ip%norb_par(jproc)
               iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
               iiiAt=orbsGauss%inwhichlocreg(ip%isorb_par(jproc)+iorb)
@@ -3438,7 +3421,7 @@ type(matrixDescriptors):: mad
       if(input%lin%nItInguess==0) then
           ! Orthonormalize the coefficients.
           methTransformOverlap=0
-          call orthonormalizeVectors(iproc, ip%nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+          call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
@@ -3469,7 +3452,7 @@ type(matrixDescriptors):: mad
     
     
           ! Orthonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+          call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
@@ -3512,7 +3495,7 @@ type(matrixDescriptors):: mad
           !!    lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
           !!end do
 
-          call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
+          call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
                input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
@@ -3628,7 +3611,7 @@ type(matrixDescriptors):: mad
           !!    ilr=onWhichAtom(ip%isorb+iorb)
           !!    call dscal(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1)
           !!end do
-          !!call optimizeDIIS_inguess(iproc, ip%nproc, ip%norb_par(iproc), onWhichAtom(ip%isorb+1), matmin, lgrad, lcoeff, ldiis)
+          !!call optimizeDIIS_inguess(iproc, nproc, ip%norb_par(iproc), onWhichAtom(ip%isorb+1), matmin, lgrad, lcoeff, ldiis)
 
     
     
@@ -3658,14 +3641,14 @@ type(matrixDescriptors):: mad
 
 !!   end if processIf
 
-  if(newComm/=MPI_COMM_NULL) call mpi_comm_free(newComm, ierr)
-  call mpi_group_free(newGroup, ierr)
+  !!if(newComm/=MPI_COMM_NULL) call mpi_comm_free(newComm, ierr)
+  !!call mpi_group_free(newGroup, ierr)
  
-  call mpi_barrier(mpi_comm_world, ierr)
+  !!call mpi_barrier(mpi_comm_world, ierr)
   
   !! Allocate coeff2 for those processes which did not allocate it
   !! during the previous if statement.
-  !!if(iproc>=ip%nproc) then
+  !!if(iproc>=nproc) then
   !!    allocate(coeff2(1), stat=istat)
   !!    call memocc(istat, coeff2, 'coeff2', subname)
   !!end if
@@ -3678,30 +3661,30 @@ type(matrixDescriptors):: mad
   call memocc(istat, displs, 'displs', subname)
   
   !!! Send ip%norb_par and ip%norbtot to all processes.
-  allocate(norb_par(0:ip%nproc-1), stat=istat)
+  allocate(norb_par(0:nproc-1), stat=istat)
   call memocc(istat, norb_par, 'norb_par', subname)
   if(iproc==0) then
-      do jproc=0,ip%nproc-1
+      do jproc=0,nproc-1
           norb_par(jproc)=ip%norb_par(jproc)
       end do
       norbtot=ip%norbtot
   end if
-  call mpi_bcast(norb_par(0), ip%nproc, mpi_integer, 0, mpi_comm_world, ierr)
+  call mpi_bcast(norb_par(0), nproc, mpi_integer, 0, mpi_comm_world, ierr)
   call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
   
   ! Define the parameters, for the mpi_allgatherv.
   ii=0
-  do jproc=0,ip%nproc-1
+  do jproc=0,nproc-1
       recvcounts(jproc)=norbtot*norb_par(jproc)
       displs(jproc)=ii
       ii=ii+recvcounts(jproc)
   end do
-  do jproc=ip%nproc,nproc-1
+  do jproc=nproc,nproc-1
       recvcounts(jproc)=0
       displs(jproc)=ii
       ii=ii+recvcounts(jproc)
   end do
-  if(iproc<ip%nproc) then
+  if(iproc<nproc) then
       sendcount=ip%norbtot*ip%norb_par(iproc)
   else
       sendcount=0
@@ -3716,7 +3699,7 @@ type(matrixDescriptors):: mad
   end if
 
   ! Deallocate stuff which is not needed any more.
-  if(iproc<ip%nproc) then
+  !if(iproc<nproc) then
       call deallocate_inguessParameters(ip, subname)
       call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
       call deallocate_matrixMinimization(matmin,subname)
@@ -3732,11 +3715,11 @@ type(matrixDescriptors):: mad
       iall=-product(shape(lgradold))*kind(lgradold)
       deallocate(lgradold, stat=istat)
       call memocc(istat, iall, 'lgradold', subname)
-  end if
+  !end if
 
-  iall=-product(shape(newID))*kind(newID)
-  deallocate(newID, stat=istat)
-  call memocc(istat, iall, 'newID', subname)
+  !!iall=-product(shape(newID))*kind(newID)
+  !!deallocate(newID, stat=istat)
+  !!call memocc(istat, iall, 'newID', subname)
 
   iall=-product(shape(coeff2))*kind(coeff2)
   deallocate(coeff2, stat=istat)
@@ -3795,8 +3778,6 @@ type(matrixDescriptors):: mad
     subroutine allocateArrays()
       allocate(coeffPad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      !!allocate(HamPad(ip%norbtotPad,ip%norbtotPad,at%nat), stat=istat)
-      !!call memocc(istat, HamPad, 'HamPad', subname)
       allocate(grad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
       call memocc(istat, grad, 'grad', subname)
       allocate(gradOld(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
@@ -3834,10 +3815,6 @@ type(matrixDescriptors):: mad
       iall=-product(shape(coeffPad))*kind(coeffPad)
       deallocate(coeffPad, stat=istat)
       call memocc(istat, iall, 'coeffPad', subname)
-
-      !!iall=-product(shape(HamPad))*kind(HamPad)
-      !!deallocate(HamPad, stat=istat)
-      !!call memocc(istat, iall, 'HamPad', subname)
 
       iall=-product(shape(fnrmArr))*kind(fnrmArr)
       deallocate(fnrmArr, stat=istat)
