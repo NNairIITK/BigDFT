@@ -322,14 +322,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call system_initialization(iproc,nproc,in,atoms,rxyz,&
        KSwfn%orbs,KSwfn%Lzd,denspot,nlpspd,KSwfn%comms,shift,proj,radii_cf)
 
-!!$  hx=hgrids(1)
-!!$  hy=hgrids(2)
-!!$  hz=hgrids(3)
-
   !variables substitution for the PSolver part
-  !hxh=0.5d0*hx
-  !hyh=0.5d0*hy
-  !hzh=0.5d0*hz
 
   n1i=KSwfn%Lzd%Glr%d%n1i
   n2i=KSwfn%Lzd%Glr%d%n2i
@@ -390,11 +383,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!return
 
      !temporary allocation of the density
-     allocate(denspot%rho_full(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
+     allocate(denspot%rho_work(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
           denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%rho_full,'rho',subname)
+     call memocc(i_stat,denspot%rho_work,'rho',subname)
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
-          denspot%rhov(1),1,denspot%rho_full(1),1)
+          denspot%rhov(1),1,denspot%rho_work(1),1)
 
      if (nproc > 1) then
         i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
@@ -440,7 +433,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !Davidson is set to false first because used in deallocate_before_exiting
      DoDavidson= .false.
 
-     call denspot_set_history(denspot, in%iscf, KSwfn%Lzd%Glr%d%n1i, KSwfn%Lzd%Glr%d%n2i, in%nspin)
      endlooprp=.false.
 
      !if we are in the last_run case, validate the last_run only for the last cycle
@@ -480,7 +472,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            end if
            wfn_loop: do iter=1,in%itermax
 
-              !control whether the minimisation iterations ended
+              !control whether the minimisation iterations should end after the hamiltionian application
               endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax
 
               if (iproc == 0 .and. verbose > 0) then 
@@ -510,21 +502,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               !stop the partial timing counter if necessary
               if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
               !logical flag for the self-consistent potential
-              scpot=(in%iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1) .or. & !mixing to be done
-                   (in%iscf == SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
+              scpot=(in%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1) .or. & !mixing to be done
+                   (in%iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
                    (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
               !allocate the potential in the full box
-              linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
+              !temporary, should change the use of flag in full_local_potential2
+              linflag = 1                                 
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
+              call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,in%ixc,&
+                   nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
 
-           call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,in%ixc,&
-                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
+              endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
 
-           endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
-
-           call total_energies(energs)
-           energy=energs%eKS
+              call total_energies(energs)
+              energy=energs%eKS
 
               !check for convergence or whether max. numb. of iterations exceeded
               if (endloop) then
@@ -540,8 +532,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               !control the previous value of idsx_actual
               idsx_actual_before=KSwfn%diis%idsx
 
-              !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-              if(inputpsi/=INPUT_PSI_LINEAR) call hpsitopsi(iproc,nproc,iter,in%idsx,KSwfn)
+              call hpsitopsi(iproc,nproc,iter,in%idsx,KSwfn)
 
               if (inputpsi == INPUT_PSI_LCAO) then
                  if ((gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
@@ -831,7 +822,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call density_and_hpot(iproc,nproc,atoms%geocode,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
           denspot%dpcom%nscatterarr,&
-          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_full,denspot%pot_full,hstrten)
+          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
@@ -843,7 +834,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call calc_dipole(iproc,nproc,KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpcom%n3p,in%nspin,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-             atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_full)
+             atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
@@ -852,7 +843,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_full)
+                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
            
            if (associated(denspot%rho_C)) then
               if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
@@ -868,7 +859,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%pot_full)
+                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%pot_work)
         end if
      end if
 
@@ -888,17 +879,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call calculate_forces(iproc,nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
-          in%nspin,refill_proj,denspot%dpcom%ngatherarr,denspot%rho_full,&
-          denspot%pot_full,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+          in%nspin,refill_proj,denspot%dpcom%ngatherarr,denspot%rho_work,&
+          denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
 
-     i_all=-product(shape(denspot%rho_full))*kind(denspot%rho_full)
-     deallocate(denspot%rho_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rho_full',subname)
-     i_all=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-     deallocate(denspot%pot_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_full',subname)
-     nullify(denspot%rho_full,denspot%pot_full)
+     i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+     deallocate(denspot%rho_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%rho_work',subname)
+     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+     deallocate(denspot%pot_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+     nullify(denspot%rho_work,denspot%pot_work)
      call timing(iproc,'Forces        ','OF')
      !!stop
   end if
@@ -1037,7 +1028,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
            call communicate_density(iproc,nproc,KSwfn%orbs%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),KSwfn%Lzd,&
-                denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+                denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
 
            if (OCLconv) then
@@ -1158,23 +1149,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     allocate(denspot%pot_full(n1i*n2i*n3i*in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%pot_full,'denspot%pot_full',subname)
+     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpcom%n3p,&
-             &   mpidtypd,denspot%pot_full(1),denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
+             &   mpidtypd,denspot%pot_work(1),denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
              mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpcom%n3p),n1i*n2i*denspot%dpcom%n3p,&
-                mpidtypd,denspot%pot_full(1+n1i*n2i*n3i),&
+                mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
                 denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
                 mpidtypd,MPI_COMM_WORLD,ierr)
         end if
      else
-        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_full,1)
+        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
      end if
 
      call deallocate_denspot_distribution(denspot%dpcom, subname)
@@ -1189,13 +1180,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
-          KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_full,KSwfn%Lzd%hgrids(1),&
+          KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_work,KSwfn%Lzd%hgrids(1),&
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
           proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
-     i_all=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-     deallocate(denspot%pot_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_full',subname)
+     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+     deallocate(denspot%pot_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%pot_work',subname)
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp

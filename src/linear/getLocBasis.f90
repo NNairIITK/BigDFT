@@ -29,9 +29,11 @@ integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+!real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+real(8):: tt
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+type(energy_terms) :: energs
 character(len=*),parameter:: subname='get_coeff'
 
 
@@ -67,7 +69,7 @@ character(len=*),parameter:: subname='get_coeff'
   end if
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
+  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -80,8 +82,8 @@ character(len=*),parameter:: subname='get_coeff'
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
-       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+       energs,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
 
@@ -91,9 +93,9 @@ character(len=*),parameter:: subname='get_coeff'
 
 
 
-  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  deallocate(denspot%pot_full, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_full', subname)
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
@@ -249,7 +251,7 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
 ! Local variables
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
+!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: tt1,tt2,tt3,tt4,tt5
 real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,dnrm2
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
@@ -276,6 +278,7 @@ type(matrixDescriptors):: madlarge2
 type(localizedDIISParameters):: ldiis2
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
+type(energy_terms) :: energs
 logical,parameter:: secondLocreg=.false.
 
 
@@ -347,7 +350,7 @@ logical,parameter:: secondLocreg=.false.
 
       ! Build the required potential
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
 
 
@@ -551,12 +554,12 @@ logical,parameter:: secondLocreg=.false.
 
           ! Build the required potential
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+           energs,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 
 
@@ -567,9 +570,9 @@ logical,parameter:: secondLocreg=.false.
    
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Deallocate potential
-          iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-          deallocate(denspot%pot_full, stat=istat)
-          call memocc(istat, iall, 'denspot%pot_full', subname)
+          iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+          deallocate(denspot%pot_work, stat=istat)
+          call memocc(istat, iall, 'denspot%pot_work', subname)
       end if
 
 
@@ -621,8 +624,6 @@ logical,parameter:: secondLocreg=.false.
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
-
-
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
@@ -710,9 +711,9 @@ logical,parameter:: secondLocreg=.false.
 
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Deallocate potential
-      iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-      deallocate(denspot%pot_full, stat=istat)
-      call memocc(istat, iall, 'denspot%pot_full', subname)
+      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work, stat=istat)
+      call memocc(istat, iall, 'denspot%pot_work', subname)
   end if
 
 

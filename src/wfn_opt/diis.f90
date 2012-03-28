@@ -496,7 +496,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
           & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
   end do
 
-  ! Do the mixing
+  ! Do the mixing 
   call ab6_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
@@ -510,7 +510,6 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   i_all=-product(shape(user_data))*kind(user_data)
   deallocate(user_data,stat=i_stat)
   call memocc(i_stat,i_all,'user_data',subname)
-
   ! Copy new in vrespc
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 

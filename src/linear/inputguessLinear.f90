@@ -262,7 +262,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg,tag
-  real(gp) :: hxh,hyh,hzh,eks,epot_sum,ekin_sum,eexctX,eproj_sum,eSIC_DC,t1,t2,time,tt,ddot,dsum
+  real(gp) :: hxh,hyh,hzh,eks,t1,t2,time,tt,ddot,dsum
   integer, dimension(:,:), allocatable :: norbsc_arr
   !real(wp), dimension(:), allocatable :: potxc
   !real(dp), dimension(:,:), pointer :: rho_p
@@ -283,9 +283,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer:: norbTarget,norbpTemp,isorbTemp, nprocTemp, ncount, infoCoeff
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
+  type(energy_terms) :: energs
   real(dp),dimension(6) :: xcstr
   type(linearInputGuess):: lig
-  real(8):: ehart, eexcu, vexcu, ebs
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -551,7 +551,7 @@ lig%lzdGauss%hgrids(3)=hz
        hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lig%lzdGauss,&
-       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
   !!do istat=1,size(denspot%rhov)
   !!    write(4000+iproc,*) istat, denspot%rhov(istat)
   !!end do 
@@ -574,7 +574,8 @@ lig%lzdGauss%hgrids(3)=hz
 
   call deallocate_local_zone_descriptors(lig%lzdGauss, subname)
 
-  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,ehart,eexcu,vexcu)
+  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,&
+       energs%eh,energs%exc,energs%evxc)
 
 !!$  
 !!$  if(orbs%nspinor==4) then
@@ -626,10 +627,8 @@ lig%lzdGauss%hgrids(3)=hz
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
-
-
   !call dcopy(lig%orbsig%npsidim,psi,1,hpsi,1)
-  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
+  if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
   
   ! Set localnorb, i.e. the number of orbitals a given process has in a specific loalization region.
@@ -706,7 +705,7 @@ lig%lzdGauss%hgrids(3)=hz
   call local_potential_dimensions(lig%lzdig,lig%orbsig,denspot%dpcom%ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,lig%orbsig,lig%lzdig,2,&
-       denspot%dpcom,denspot%rhov,denspot%pot_full,lig%comgp)
+       denspot%dpcom,denspot%rhov,denspot%pot_work,lig%comgp)
 
   !!!write(*,*) 'iproc, size(denspot%pot_full)', iproc, size(denspot%pot_full)
   !!!write(*,*) 'iproc, lig%lzdig%ndimpotisf', iproc, lig%lzdig%ndimpotisf
@@ -786,13 +785,13 @@ lig%lzdGauss%hgrids(3)=hz
              !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
              call to_zero(lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lig%orbsig,&
-                  lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
-                  ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
+                  lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                  energs,input%SIC,GPU,.false.,&
                   pkernel=denspot%pkernelseq)
              !!write(333,*) 'debug: following line is commented!'
              call NonLocalHamiltonianApplication(iproc,at,lig%orbsig,&
                   rxyz,&
-                  proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
+                  proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),energs%eproj)
              deallocate(confdatarr)
 !DEBUG
 !!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
@@ -853,9 +852,9 @@ lig%lzdGauss%hgrids(3)=hz
   !call deallocate_p2pCommsGatherPot(lig%comgp, subname)
   call deallocate_p2pComms(lig%comgp, subname)
 
-  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  deallocate(denspot%pot_full, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_full', subname)
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
    if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
@@ -956,7 +955,7 @@ lig%lzdGauss%hgrids(3)=hz
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb)
   ! Deallocate the buffers needed for the communication of the potential.

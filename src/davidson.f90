@@ -249,7 +249,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
            proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
-           energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,KSwfn%orbs,psirocc)
 
       energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -419,13 +419,14 @@ subroutine davidson(iproc,nproc,in,at,&
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
    integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
    integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake
+   real(gp) :: tt,gnrm,gnrm_fake
    integer, dimension(:,:), allocatable :: ndimovrlp
    real(wp), dimension(:), allocatable :: work,work_rp,hamovr
    real(wp), dimension(:), allocatable :: hv,g,hg,ew
    real(wp), dimension(:,:,:), allocatable :: e
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
+   type(energy_terms) :: energs
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -465,9 +466,9 @@ subroutine davidson(iproc,nproc,in,at,&
    GPU%full_locham=.true.
    !verify whether the calculation of the exact exchange term
    !should be performed
-   eexctX=0.0_gp
+   energs%eexctX=0.0_gp
    exctX = xc_exctXfac() /= 0.0_gp
-   if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+   if (in%exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
 
    !check the size of the rhopot array related to NK SIC
    nrhodim=in%nspin
@@ -598,7 +599,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+        energs,in%SIC,GPU,&
         pkernel,orbs,psirocc)
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -872,7 +873,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
@@ -1137,7 +1138,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv

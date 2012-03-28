@@ -19,7 +19,7 @@ subroutine initialize_DFT_local_fields(denspot)
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
   nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
-  nullify(denspot%f_XC,denspot%rho_full,denspot%pot_full,denspot%rhov)
+  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
 
   denspot%psoffset=0.0_gp
 
@@ -108,7 +108,7 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
      npoints = n1i*n2i*denspot%dpcom%n3d
      if (denspot%dpcom%n3d==0) npoints=1
   end if
-  if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
      call ab6_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
           AB6_MIXING_REAL_SPACE, npoints, nspin, 0, &

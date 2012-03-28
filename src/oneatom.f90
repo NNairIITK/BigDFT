@@ -16,13 +16,13 @@ program oneatom
   implicit none
   character(len=*), parameter :: subname='oneatom'
   logical :: dokernel=.false.
-  logical :: endloop
+  logical :: endloop,endlooprp
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC !n(c) gnrm_zero,alpha
-  real(gp) :: energy,energy_min,energybs,evsum,scprsum !n(c) energy_old
+  real(gp) :: tt,gnrm !n(c) gnrm_zero,alpha
+  real(gp) :: energy,energy_min,scprsum !n(c) energy_old
   type(atoms_data) :: atoms
   type(input_variables) :: in
   type(orbitals_data) :: orbs
@@ -34,6 +34,7 @@ program oneatom
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
+  type(energy_terms) :: energs
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -196,10 +197,6 @@ program oneatom
   energy=1.d10
   gnrm=1.d10
   !n(c) gnrm_zero=0.0_gp
-  ekin_sum=0.d0 
-  epot_sum=0.d0 
-  eproj_sum=0.d0
-  eSIC_DC=0.0_gp
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
@@ -233,11 +230,10 @@ program oneatom
 
      call FullHamiltonianApplication(iproc,nproc,atoms,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
+          energs,in%SIC,GPU)
 
-     energybs=ekin_sum+epot_sum+eproj_sum
-     !n(c) energy_old=energy
-     energy=energybs-eexctX-eSIC_DC
+     call total_energies(energs)
+     energy=energs%eKS
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
@@ -245,17 +241,17 @@ program oneatom
            if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
            write( *,'(1x,a)') &
                 '------------------------------------------- End of Virtual Wavefunction Optimisation'
-           write( *,'(1x,a,3(1x,1pe18.11))') &
-                'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                'FINAL iter,total "energy",gnrm',iter,energy,gnrm
-           !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
-                'WARNING: Found an "energy" value lower than the FINAL "energy", delta:',energy-energy_min
-        end if
-        exit wfn_loop 
-     endif
+              if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
 
+                 call write_energies(iter,0,energs,gnrm,0.0_gp,"FINAL")
+                 
+                 !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+                 if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
+                      'WARNING: Found an "energy" value lower than the FINAL "energy", delta:',energy-energy_min
+              end if
+           end if
+           exit wfn_loop 
+        endif
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
      stop
@@ -264,20 +260,20 @@ program oneatom
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)
 
-     tt=(energybs-scprsum)/scprsum
+     tt=(energs%ebs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
           (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-             'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+             'ERROR: inconsistency between gradient and energy',tt,energs%ebs,scprsum
      endif
      if (iproc.eq.0) then
         if (verbose > 0) then
-           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                ekin_sum,epot_sum,eproj_sum
+           call write_energies(iter,0,energs,gnrm,0.0_gp,"FINAL")
+           !write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+           !     ekin_sum,epot_sum,eproj_sum
         end if
         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
      endif
-
   end do wfn_loop
   if (iter == in%itermax .and. iproc == 0 ) &
        write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
