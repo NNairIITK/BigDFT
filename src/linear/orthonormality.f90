@@ -78,11 +78,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
      !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
      !if(iproc==0) write(*,*) 'deviation from unity:', maxError
      timeoverlap=timeoverlap+t4-t3
-     do iorb=1,orbs%norb
-       do jorb=1,orbs%norb
-         write(200+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
-       end do
-     end do
+     !!do iorb=1,orbs%norb
+     !!  do jorb=1,orbs%norb
+     !!    write(200+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
+     !!  end do
+     !!end do
 
      t3=mpi_wtime()
      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
@@ -1694,7 +1694,7 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
         call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
         ncount=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
         ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
-        write(300+iproc,*) iiorb,jjorb,ovrlp(jjorb,iiorb)
+        !!write(300+iproc,*) iiorb,jjorb,ovrlp(jjorb,iiorb)
      end do
   end do
 
@@ -1714,11 +1714,11 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
   call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
   call timing(iproc,'lovrlp_comm   ','ON')
-  do istat=1,mad%nvctr
-      write(400+iproc,*) istat, ovrlpCompressed_send(istat)
-  end do
-  write(*,'(a,i5,2x,100i5)') 'iproc, sendcounts', iproc, sendcounts
-  write(*,'(a,i5,2x,100i5)') 'iproc, displs', iproc, displs
+  !!do istat=1,mad%nvctr
+  !!    write(400+iproc,*) istat, ovrlpCompressed_send(istat)
+  !!end do
+  !!write(*,'(a,i5,2x,100i5)') 'iproc, sendcounts', iproc, sendcounts
+  !!write(*,'(a,i5,2x,100i5)') 'iproc, displs', iproc, displs
   if (nproc >1) then
      call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc),&
           mpi_double_precision, ovrlpCompressed_receive(1), &
@@ -1726,9 +1726,9 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   else
      call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)
   end if
-  do istat=1,mad%nvctr
-      write(500+iproc,*) istat, ovrlpCompressed_receive(istat)
-  end do
+  !!do istat=1,mad%nvctr
+  !!    write(500+iproc,*) istat, ovrlpCompressed_receive(istat)
+  !!end do
   call timing(iproc,'lovrlp_comm   ','OF')
 
   call timing(iproc,'lovrlp_uncompr','ON')

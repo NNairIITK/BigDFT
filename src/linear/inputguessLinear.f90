@@ -1365,6 +1365,8 @@ allocate(displs(0:nproc-1), stat=istat)
 call memocc(istat, displs, 'displs', subname)
 
 call getCommunArraysMatrixCompression(iproc, nproc, orbsig, mad, sendcounts, displs)
+!!write(*,'(a,i4,2x,100i5)') 'getHamiltonianMatrix6: iproc, sendcounts', iproc, sendcounts
+!!write(*,'(a,i4,2x,100i5)') 'getHamiltonianMatrix6: iproc, displs', iproc, displs
 availableMemory=memoryForCommunOverlapIG*1048576
 availableMemory=availableMemory/8 ! double precision
 ii=maxval(sendcounts)
@@ -1373,7 +1375,8 @@ if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', n
 noverlaps=min(noverlaps,lzdig%nlr)
 
 
-allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
+!allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
+allocate(hamTempCompressed(max(sendcounts(iproc),1),noverlaps), stat=istat)
 call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 allocate(hamTempCompressed2(mad%nvctr,nlocregPerMPI), stat=istat)
 call memocc(istat, hamTempCompressed2, 'ovrlpCompressed2', subname)
@@ -1467,7 +1470,8 @@ do iat=1,lzdig%nlr
                         ! Send this matrix to process jproc.
                         if(iproc==jjproc) then
                             do jproc=0,nproc-1
-                                nrecv=nrecv+1
+                                !nrecv=nrecv+1
+                                if(orbs%norb_par(jproc,0)>0) nrecv=nrecv+1 !otherwise process jproc has no data and should not communicate...
                             end do
                             nsend=nsend+1
                         else
@@ -1507,6 +1511,7 @@ do iat=1,lzdig%nlr
                        if(iproc==jjproc .and. nproc > 1) then
                           imat=imat+1
                           do jproc=0,nproc-1
+                             if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
                              tag=tag0+jproc
                              irecv=irecv+1
                              !write(*,'(3(a,i0))') 'process ',iproc,' receives data from process ',jproc,' with tag ',tag
@@ -3453,7 +3458,7 @@ type(matrixDescriptors):: mad
   call mpi_group_incl(wholeGroup, ip%nproc, newID, newGroup, ierr)
   call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
 
-  ! Everything inside this if statements is only executed by the processes in newComm.
+!!  ! Everything inside this if statements is only executed by the processes in newComm.
   processIf: if(iproc<ip%nproc) then
 
       ! Initialize the parameters for performing tha calculations in parallel.
@@ -3768,7 +3773,10 @@ type(matrixDescriptors):: mad
 
 
    end if processIf
-  
+
+  if(newComm/=MPI_COMM_NULL) call mpi_comm_free(newComm, ierr)
+  call mpi_group_free(newGroup, ierr)
+ 
   call mpi_barrier(mpi_comm_world, ierr)
   
   !! Allocate coeff2 for those processes which did not allocate it
