@@ -179,6 +179,18 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if BUILD_BINDINGS
+bindings_files = lib/bindings_api.h \
+	lib/bindings.c lib/bindings.h \
+	lib/bindings_atoms.c \
+	lib/bindings_regions.c \
+	lib/bindings_wavefunctions.c \
+	lib/bindings_localfields.c \
+	lib/bindingsf.f90
+else
+bindings_files =
+endif
+
 if HAVE_FC_FLUSH
 flush_files = lib/flush.f90
 else
@@ -322,13 +334,7 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
-	lib/bindings_api.h \
-	lib/bindings.c lib/bindings.h \
-	lib/bindings_atoms.c \
-	lib/bindings_regions.c \
-	lib/bindings_wavefunctions.c \
-	lib/bindings_localfields.c \
-	lib/bindingsf.f90 \
+	$(bindings_files) \
 	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \

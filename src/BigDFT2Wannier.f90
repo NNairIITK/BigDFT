@@ -129,7 +129,7 @@ program BigDFT2Wannier
 
 
       ! Initalise the variables for the calculation
-      call standard_inputfile_names(input,radical)
+      call standard_inputfile_names(input,radical,nproc)
       call read_input_variables(iproc,'posinp',input, atoms, rxyz)
 
       if (iproc == 0) call print_general_parameters(nproc,input,atoms)

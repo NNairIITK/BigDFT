@@ -253,7 +253,7 @@ program memguess
    end if
 
    !standard names
-   call standard_inputfile_names(in, radical)
+   call standard_inputfile_names(in, radical, 1)
    if (trim(radical) == "") then
       call read_input_variables(0, "posinp", in, atoms, rxyz)
    else

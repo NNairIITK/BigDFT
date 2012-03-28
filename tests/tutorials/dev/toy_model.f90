@@ -43,7 +43,7 @@ program wvl
   if (iproc==0) call print_logo()
 
   ! Setup names for input and output files.
-  call standard_inputfile_names(inputs, "toy")
+  call standard_inputfile_names(inputs, "toy",nproc)
   ! Read all input stuff, variables and atomic coordinates and pseudo.
   call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
 
