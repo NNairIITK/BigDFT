@@ -1361,7 +1361,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    if(iproc==0 .and. Lzd%linear)  write(*,'(1x,A)') 'Entering the Linear IG'
 
-     write(*,*) "hello"
    ! determine the wavefunction dimension
    call wavefunction_dimension(Lzd,orbse)
 
@@ -1388,7 +1387,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         OCLconv=.false.
      end if
 
-     write(*,*) "hello"
     call timing(iproc,'wavefunction  ','ON')   
    !use only the part of the arrays for building the hamiltonian matrix
      call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbse,hx,hy,hz,G,&
@@ -1413,8 +1411,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !end if
 
   ! test merging of the cubic and linear code
-  !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)   
-     write(*,*) "hello"
+  !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin

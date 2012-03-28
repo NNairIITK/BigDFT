@@ -748,7 +748,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(local_zone_descriptors), intent(in) :: Lzd
+        type(local_zone_descriptors), intent(inout) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpcom
@@ -1401,7 +1401,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(local_zone_descriptors),intent(in) :: Lzd
+        type(local_zone_descriptors),intent(inout) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpcom
@@ -1900,7 +1900,7 @@ module module_interfaces
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
       type(diis_objects), intent(inout) :: diis
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
+      real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
     
     subroutine estimatePerturbedOrbitals(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz, nspin, &
@@ -1929,36 +1929,6 @@ module module_interfaces
     real(8),dimension(max(orbsLIN%npsidim_orbs,orbsLIN%npsidim_comp)):: phi
     real(8),dimension(3,at%nat):: perturbation
     end subroutine estimatePerturbedOrbitals
-    
-    subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iproc,nproc
-      type(orbitals_data), intent(in) :: orbs
-      type(communications_arrays), intent(in) :: comms
-      type(diis_objects), intent(inout) :: diis
-      type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
-      logical, optional:: quiet ! to avoid that the DIIS weights are written
-    end subroutine psimixVariable
-    
-    
-    
-    subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
-      use module_base
-      use module_types
-      implicit none
-    ! Arguments
-      integer, intent(in) :: nproc,iproc
-      type(orbitals_data), intent(in) :: orbs
-      type(communications_arrays), intent(in) :: comms
-      type(diis_objects), intent(inout) :: diis
-      type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
-      logical, optional:: quiet ! to avoid that the DIIS weights are written
-    end subroutine diisstpVariable
-    
     
     subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
          hxh, hyh, hzh, potentialPrefac, confPotOrder, &
@@ -5015,21 +4985,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
      end subroutine transformToGlobal
 
-
-     subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
-       use module_base
-       implicit none
-
-       ! Calling arguments
-       integer,intent(in):: iproc, nproc, sendcount, comm
-       integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
-       real(8),dimension(sendcount),intent(in):: sendbuf
-       integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
-       integer,intent(in):: tagx
-       real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
-     end subroutine my_iallgatherv
-
-
      subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, comon, nsendbuf, sendbuf,&
           nrecvbuf, recvbuf, lphiovrlp, expanded, ovrlp)
        use module_base
@@ -5201,19 +5156,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(nrecvbuf),intent(inout):: recvbuf
          real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
        end subroutine collectnew
-
-
-       subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
-         use module_base
-         implicit none
-         integer,intent(in):: iproc, nproc, sendcount, comm
-         integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
-         real(8),dimension(sendcount),intent(in):: sendbuf
-         integer,dimension(2,0:nproc-1),intent(in):: requests
-         integer,intent(in):: tagx
-         real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
-       end subroutine my_iallgatherv2
-
 
        subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
          use module_base
@@ -5823,16 +5765,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields), intent(out) :: denspot
        end subroutine initialize_DFT_local_fields
 
-       subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-         use module_base, only: ndebug
+       subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+         use module_base
+         use module_types
          implicit none
-        ! include 'mpif.h'
-         character(len=1), intent(in) :: geocode
-         integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-         real(kind=8), intent(in) :: hx,hy,hz
-         real(kind=8), pointer :: kernel(:)
-         logical, intent(in) :: wrtmsg
-       end subroutine createKernel
+         integer, intent(in) :: ndimfirstproc
+         type(local_zone_descriptors), intent(inout) :: Lzd
+         type(orbitals_data), intent(inout) :: orbs
+       end subroutine local_potential_dimensions
+
+       subroutine check_communications(iproc,nproc,orbs,lr,comms)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc,nproc
+         type(orbitals_data), intent(in) :: orbs
+         type(locreg_descriptors), intent(in) :: lr
+         type(communications_arrays), intent(in) :: comms
+       end subroutine check_communications
 
    end interface
 

@@ -73,7 +73,8 @@ integer,intent(in):: iproc, nproc, itSCC, nit, nItInnerLoop
 integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
-type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
+type(orbitals_data),intent(in) :: orbs
+type(orbitals_data),intent(inout) :: lorbs, llborbs
 !type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad

@@ -824,7 +824,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                  call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
                       scalprodGlobal(1,0,1,1,1,1,ii), &
-                      sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                      sendcounts2(0,ii), sum(sendcounts2(:,ii)), displs, &
+                      & mpi_comm_world, tag2, requests2(1,1,ii))
                  call mpi_barrier(mpi_comm_world, ierr)
                  t2=mpi_wtime()
                  timecomm1=timecomm1+t2-t1
@@ -978,7 +979,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
               tag2 = tag2x + (ii-1)*nproc
               jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
               call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
-                   scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                   scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), sum(sendcounts2(:, ii)), &
+                   & displs, mpi_comm_world, tag2, requests2(1,1,ii))
               t2=mpi_wtime()
               timecomm1=timecomm1+t2-t1
            end if
@@ -995,7 +997,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
            !tag1=tag1x+(ii-1)*nproc**2
            tag1=tag1x+(ii-1)*nproc
            call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), &
-                fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
+                fxyz_tmo(1,1,1,ii), sendcounts1, sum(sendcounts1), displs, mpi_comm_world, tag1, requests1(1,1,ii))
            t2=mpi_wtime()
            timecomm2=timecomm2+t2-t1
            !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
@@ -1257,17 +1259,17 @@ end function dsum
 
 
 
-subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, recvcounts_sum, displs, comm, tagx, requests)
   use module_base
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,intent(in):: iproc, nproc, sendcount, comm, recvcounts_sum
   integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
   real(8),dimension(sendcount),intent(in):: sendbuf
   integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
   integer,intent(in):: tagx
-  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  real(8),dimension(recvcounts_sum),intent(out):: recvbuf
   
   ! Local variables
   integer:: jproc, kproc, tag, tag0, ierr
