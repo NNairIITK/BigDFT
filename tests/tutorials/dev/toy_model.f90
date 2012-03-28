@@ -184,7 +184,7 @@ program wvl
   call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
        GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,nscatterarr,rho_p,rhor)
+       rhodsc,nscatterarr,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 

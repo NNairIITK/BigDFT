@@ -529,6 +529,7 @@
            & mix%iscf == AB6_MIXING_ANDERSON .or. &
            & mix%iscf == AB6_MIXING_ANDERSON_2 .or. &
            & mix%iscf == AB6_MIXING_PULAY) then
+         !print *,'NSPDEN',mix%nspden
          if (present(user_data)) then
             call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                  & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &

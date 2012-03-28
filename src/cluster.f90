@@ -232,7 +232,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
   real(gp), dimension(:,:), pointer :: fdisp,fion
   ! Charge density/potential,ionic potential, pkernel
-  type(ab6_mixing_object) :: mix
   type(DFT_local_fields) :: denspot
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -391,7 +390,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
 
-     ! denspot%rho_work => denspot%rhov
+     if (nproc > 1) then
+        i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
+        deallocate(KSwfn%psit,stat=i_stat)
+        call memocc(i_stat,i_all,'KSwfn%psit',subname)
+     else
+        nullify(KSwfn%psit)
+     end if
+     ! denspot%rho_full => denspot%rhov
 
   end if
 
@@ -428,27 +434,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !Davidson is set to false first because used in deallocate_before_exiting
      DoDavidson= .false.
 
-     !allocate the rhopot_old array needed for mixing
-     if (in%iscf < 10) then
-        potden = AB6_MIXING_POTENTIAL
-        npoints = n1i*n2i*denspot%dpcom%n3p
-        if (denspot%dpcom%n3p==0) npoints=1
-     else
-        potden = AB6_MIXING_DENSITY
-        npoints = n1i*n2i*denspot%dpcom%n3d
-        if (denspot%dpcom%n3d==0) npoints=1
-     end if
-     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-        call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
-             AB6_MIXING_REAL_SPACE, npoints, in%nspin, 0, &
-             ierr, errmess, useprec = .false.)
-        call ab6_mixing_eval_allocate(mix)
-        !stop if the iscf is not compatible 
-        if (in%iscf == 0) then
-           write(*,*)'ERROR: the iscf code is not compatible with the mixing routines'
-           stop
-        end if
-     end if
      endlooprp=.false.
 
      !if we are in the last_run case, validate the last_run only for the last cycle
@@ -522,10 +507,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                    (in%iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
                    (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
               !allocate the potential in the full box
-              linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
+              !temporary, should change the use of flag in full_local_potential2
+              linflag = 1                                 
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
-              call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,mix,in%ixc,&
+              call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,in%ixc,&
                    nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
 
               endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
@@ -557,7 +543,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                             &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
                     end if
                     infocode=3
-                    call deallocate_before_exiting
                     return
                  end if
               else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
@@ -567,9 +552,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                             &   'The norm of the residue is too large, need to recalculate input wavefunctions'
                     end if
                     infocode=2
-                    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                    call deallocate_before_exiting
-                    return
                  end if
               end if
               !flush all writings on standart output
@@ -578,6 +560,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  call yaml_close_flow_map()
                  call yaml_close_sequence_element()
                  call bigdft_utils_flush(unit=6)
+              end if
+              ! Emergency exit case
+              if (infocode == 2 .or. infocode == 3) then
+                 if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                 call kswfn_free_scf_data(KSwfn, (nproc > 1))
+                 call deallocate_before_exiting
+                 return
               end if
            end do wfn_loop
 
@@ -686,35 +675,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!    write(12000+iproc,*) psi(i_all)
      !!end do
 
-     call deallocate_diis_objects(KSwfn%diis,subname)
-
      if (inputpsi /= INPUT_PSI_EMPTY) then
         energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
          if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
           &   'Difference:evsum,energybs',energs%evsum,energs%ebs
      end if
 
-     i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-     deallocate(KSwfn%hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi',subname)
+     ! Clean KSwfn parts only needed in the SCF loop.
+     call kswfn_free_scf_data(KSwfn, (nproc > 1))
+
+     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+        call ab6_mixing_deallocate(denspot%mix)
+        deallocate(denspot%mix)
+     end if
   else
      ! put the infocode to 0, which means success
      infocode=0
   end if skip_if_linear !end of linear if
-
-
-  !deallocate psit and hpsi since it is not anymore done
-  !if (nproc > 1 .or. inputpsi == INPUT_PSI_LINEAR) then
-  if (nproc > 1) then
-     i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-     deallocate(KSwfn%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'KSwfn%psit',subname)
-  else
-     nullify(KSwfn%psit)
-  end if
-  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-     call ab6_mixing_deallocate(mix)
-  end if
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -825,7 +802,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,i_all,'denspot%V_ext',subname)
   nullify(denspot%V_ext)
 
-  if (inputpsi /= -1000) then
+  if (inputpsi /= INPUT_PSI_EMPTY) then
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc == 0) then
@@ -1257,19 +1234,12 @@ contains
   subroutine deallocate_before_exiting
 
     !when this condition is verified we are in the middle of the SCF cycle
-    if (infocode /=0 .and. infocode /=1 .and. inputpsi /=INPUT_PSI_EMPTY) then
-
-       call deallocate_diis_objects(KSwfn%diis,subname)
-
-       if (nproc > 1) then
-          i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-          deallocate(KSwfn%psit,stat=i_stat)
-          call memocc(i_stat,i_all,'psit',subname)
+    if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
+       !deallocate the mixing
+       if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+          call ab6_mixing_deallocate(denspot%mix)
+          deallocate(denspot%mix)
        end if
-
-       i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-       deallocate(KSwfn%hpsi,stat=i_stat)
-       call memocc(i_stat,i_all,'hpsi',subname)
 
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
        deallocate(denspot%V_ext,stat=i_stat)
@@ -1307,17 +1277,6 @@ contains
 
     end if
 
-    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-         KSwfn%Lzd%Glr%bounds,subname)
-
-    !    call deallocate_local_zone_descriptors(Lzd, subname)
-    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
-
-
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,KSwfn%orbs%norbp)
@@ -1325,36 +1284,35 @@ contains
        call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
     end if
 
-    call deallocate_comms(KSwfn%comms,subname)
-
-    call deallocate_orbs(KSwfn%orbs,subname)
-
-    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
-
-    i_all=-product(shape(radii_cf))*kind(radii_cf)
-    deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf',subname)
-
-    call deallocate_proj_descr(nlpspd,subname)
-
-    !free the rhodsc pointers if they were allocated
+    ! Free all remaining parts of denspot
     call deallocate_rho_descriptors(denspot%rhod,subname)
-
-    i_all=-product(shape(proj))*kind(proj)
-    deallocate(proj,stat=i_stat)
-    call memocc(i_stat,i_all,'proj',subname)
-
-    !deallocate the core density if it has been allocated
     if(associated(denspot%rho_C)) then
        i_all=-product(shape(denspot%rho_C))*kind(denspot%rho_C)
        deallocate(denspot%rho_C,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%rho_C',subname)
     end if
 
-    !deallocate the mixing
-    if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-       call ab6_mixing_deallocate(mix)
-    end if
+    ! Free all remaining parts of KSwfn
+    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+         KSwfn%Lzd%Glr%bounds,subname)
+    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Glr%projflg',subname)
+    call deallocate_comms(KSwfn%comms,subname)
+    call deallocate_orbs(KSwfn%orbs,subname)
+    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
+
+    ! Free radii_cf
+    i_all=-product(shape(radii_cf))*kind(radii_cf)
+    deallocate(radii_cf,stat=i_stat)
+    call memocc(i_stat,i_all,'radii_cf',subname)
+
+    ! Free projectors.
+    call deallocate_proj_descr(nlpspd,subname)
+    i_all=-product(shape(proj))*kind(proj)
+    deallocate(proj,stat=i_stat)
+    call memocc(i_stat,i_all,'proj',subname)
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

@@ -37,7 +37,7 @@
     real :: memorylimit = 0.e0
     logical :: meminit = .false.
     integer, parameter :: mallocFile = 98
-    type(memstat) :: memloc,memtot
+    type(memstat), save :: memloc,memtot
     integer :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
     !logical :: memdebug=.true.
@@ -141,7 +141,7 @@
     !! DESCRIPTION
     !!   when allocating allocating an array "stuff" of dimension n in the routine "dosome":
     !!      allocate(stuff(n),stat=i_stat)
-    !!      call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
+    !!      call memocc(i_stat,stuff,'stuff','dosome')
     !!   when deallocating:
     !!      i_all=-product(shape(stuff))*kind(stuff)
     !!      deallocate(stuff,stat=i_stat)

@@ -44,7 +44,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
-  !grid spacings of the zone descriptors
+  !grid spacings of the zone descriptors (not correct, the set is done by system size)
   call lzd_set_hgrids(Lzd, (/ in%hx, in%hy, in%hz /))
 
   ! Determine size alat of overall simulation cell and shift atom positions

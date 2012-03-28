@@ -5794,7 +5794,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(dp), dimension(:), pointer :: pkernel,pkernelseq
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
-       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
+
+       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
             nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
             energs,rpnrm,xcstr)
          use module_base
@@ -5807,7 +5808,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-         type(ab6_mixing_object), intent(in) :: mix
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn

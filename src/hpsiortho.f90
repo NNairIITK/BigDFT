@@ -10,7 +10,7 @@
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
-subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
+subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
      nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
      energs,rpnrm,xcstr)
   use module_base
@@ -25,7 +25,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
   real(gp), intent(in) :: alphamix
   type(atoms_data), intent(in) :: atoms
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(ab6_mixing_object), intent(in) :: mix
   type(DFT_local_fields), intent(inout) :: denspot
   type(energy_terms), intent(inout) :: energs
   type(DFT_wavefunction), intent(inout) :: wfn
@@ -130,10 +129,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
 
      !here the density can be mixed
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-        if (mix%kind == AB6_MIXING_DENSITY) then
-           call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
+        if (denspot%mix%kind == AB6_MIXING_DENSITY) then
+           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
-                product(wfn%Lzd%hgrids),&!hx*hy*hz,&
+                atoms%alat1*atoms%alat2*atoms%alat3,&!hx*hy*hz,& !volume should be used
                 rpnrm,denspot%dpcom%nscatterarr)
            
            if (iproc == 0 .and. itrp > 1) then
@@ -198,16 +197,18 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
      end if
 
      !here the potential can be mixed
-     if (mix%kind == AB6_MIXING_POTENTIAL .and. iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-        call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
-             denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
-             product(wfn%Lzd%hgrids),&!hx*hy*hz,&
-             rpnrm,denspot%dpcom%nscatterarr)
-        if (iproc == 0 .and. itrp > 1) then
-           write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-           !yaml output
-           !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+     if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+        if (denspot%mix%kind == AB6_MIXING_POTENTIAL) then
+           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
+                denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
+                product(wfn%Lzd%hgrids),&!hx*hy*hz,&
+                rpnrm,denspot%dpcom%nscatterarr)
+           if (iproc == 0 .and. itrp > 1) then
+              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                   &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+              !yaml output
+              !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+           end if
         end if
      end if
      call denspot_set_rhov_status(denspot, KS_POTENTIAL, itrp)
