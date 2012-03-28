@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.1)
+                           ggggg       i         BBBB                 (Ver 1.7-dev.2)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -749,29 +749,29 @@ max deviation from unity, position:  1.000898E-02  8  9
  creating new locregs...
  creating new locregs...
  creating new locregs...
- ----------------------------------------------------------------------------- iter=1
- Orthonormalization... creating new locregs...
+ creating new locregs...
  Posting sends / receives for communicating the potential... done.
  creating new locregs...
- Gathering the potential... done.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... Gathering the potential... done.
  Gathering the potential... done.
  Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  3.7265928E-01  4.8436785E-01    -3.2726379169
  tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
- steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
+ steepest descent informations: mean alpha=1.400E-05, consecutive successes=1, DIIS=y
  creating new locregs...
  creating new locregs...
- ----------------------------------------------------------------------------- iter=2
- Orthonormalization... creating new locregs...
+ creating new locregs...
  Posting sends / receives for communicating the potential... done.
  creating new locregs...
- Gathering the potential... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... Gathering the potential... done.
  Gathering the potential... done.
  Hamiltonian application... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     2  3.7233617E-01  4.8456564E-01    -3.2844229739
+ iter, fnrm, fnrmMax, trace     2  3.7233644E-01  4.8456595E-01    -3.2844265267
  tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.7233617E-01  4.8456564E-01  -3.2844230
+ Final values for fnrm, fnrmMax, trace:   3.7233644E-01  4.8456595E-01  -3.2844265
  ============================= Basis functions created. =============================
  the new centers of the localization regions:
          1      7.346192917010E+00      7.083416280806E+00      7.747076065580E+00
@@ -865,7 +865,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   1   1.20E-05   -5.53428529201331116E+01   -3.5934E+00
+   it, Delta POT, energy energyDiff   1   1.20E-05   -5.53428529201330548E+01   -3.5934E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -904,7 +904,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   2   2.70E-06   -5.18913230642334042E+01    3.4515E+00
+   it, Delta POT, energy energyDiff   2   2.70E-06   -5.18913230642335179E+01    3.4515E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -943,10 +943,10 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   3   1.58E-06   -5.17234107532509029E+01    1.6791E-01
+   it, Delta POT, energy energyDiff   3   1.58E-06   -5.17234107532510734E+01    1.6791E-01
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.4992844819E+00  2.7172662314E+02 -2.2995816089E+01 -3.0104333536E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itout, Delta POTOUT, energy energyDiff   3   7.98E-06   -5.17234107532509029E+01    2.6068E-02
+   itout, Delta POTOUT, energy energyDiff   3   7.98E-06   -5.17234107532510734E+01    2.6068E-02
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
@@ -969,9 +969,9 @@ max deviation from unity, position:  1.000898E-02  8  9
  average noise along y direction:   2.01392667E-02
  average noise along z direction:   2.27214904E-02
  total average noise            :   3.15721558E-02
- clean forces norm (Ha/Bohr): maxval=  1.931308571109E-01  fnrm2=  4.815460151474E-01
+ clean forces norm (Ha/Bohr): maxval=  1.931308571110E-01  fnrm2=  4.815460151474E-01
  raw forces:                  maxval=  1.925083389660E-01  fnrm2=  4.827248029386E-01
- CPU time/ELAPSED time for root process     0        23.29        23.27
+ CPU time/ELAPSED time for root process     0        21.47        21.35
  Final values of the Forces for each atom
      1      C -1.74803E-02  7.08530E-03  3.32466E-02
      2      C  2.13673E-02 -2.31074E-02  1.90609E-02
@@ -1000,6 +1000,6 @@ max deviation from unity, position:  1.000898E-02  8  9
     25      H  1.22170E-01 -1.16458E-01  5.23190E-03
     26      H  7.16252E-03  1.15692E-01 -1.54478E-01
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 161873 allocations and 161873 deallocations, remaining memory(B): 0
- memory occupation peak: 81 MB
+ 161895 allocations and 161895 deallocations, remaining memory(B): 0
+ memory occupation peak: 82 MB
  for the array  psirz in the routine apply_position_operators

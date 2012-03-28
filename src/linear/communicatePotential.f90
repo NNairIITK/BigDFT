@@ -375,3 +375,35 @@ end if
 
 end subroutine gatherPotential
 
+
+
+subroutine cancelCommunicationPotential(iproc, nproc, comgp)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
+
+! Local variables
+integer:: jproc, kproc, ierr
+integer,dimension(mpi_status_size):: stat
+logical:: sendComplete, receiveComplete
+
+! Cancel all communications. 
+! It gives errors, therefore simply wait for the communications to complete.
+do jproc=0,nproc-1
+    do kproc=1,comgp%noverlaps(jproc)
+        !call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)
+        !call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)
+        !if(sendComplete .and. receiveComplete) cycle
+        !call mpi_cancel(comgp%comarr(7,kproc,jproc), ierr)
+        !call mpi_cancel(comgp%comarr(8,kproc,jproc), ierr)
+        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)
+        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)
+    end do
+end do
+
+end subroutine cancelCommunicationPotential
