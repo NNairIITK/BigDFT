@@ -17,11 +17,15 @@ if HAVE_ETSF_IO
 etsf_tests = write_etsf.report read_etsf.report exportwf_etsf.report check_lib_etsf.report
 endif
 
+if BUILD_BINDINGS
+bindings_tests = check_lib_bindings.report
+endif
+
 # Checks to do.
 check: write_plain.report write_binary.report \
 	read_plain.report read_binary.report \
 	exportwf.report check_lib_plain.report check_lib_binary.report \
-	$(etsf_tests) check_lib_bindings.report
+	$(etsf_tests) $(bindings_tests)
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

@@ -243,11 +243,11 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_radical(in, rad, ln)
+subroutine inputs_set_radical(in, nproc, rad, ln)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: ln
+  integer, intent(in) :: ln, nproc
   character, intent(in) :: rad(ln)
 
   character(len = 1024) :: rad_
@@ -257,7 +257,7 @@ subroutine inputs_set_radical(in, rad, ln)
   do i = 1, ln
      write(rad_(i:i), "(A1)") rad(i)
   end do
-  call standard_inputfile_names(in, rad_)
+  call standard_inputfile_names(in, rad_, nproc)
 end subroutine inputs_set_radical
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types

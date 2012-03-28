@@ -99,7 +99,7 @@ module yaml_output
          if (present(advance)) then
             write(stdout,'(a)',advance=advance)trim(comment)
             if (advance=='no') then
-2               icursor=icursor+len(trim(comment))
+               icursor=icursor+len(trim(comment))
                icommentline=1
             else
                call carriage_return()
@@ -164,7 +164,6 @@ module yaml_output
       character(len=*), optional, intent(in) :: mapname
       character(len=*), optional, intent(in) :: label
       !local variables
-      character(len=500) :: line
 
       if (present(mapname))then
          if (present(label)) then
@@ -205,7 +204,6 @@ module yaml_output
     subroutine yaml_flow_sequence()
       implicit none
       !local variables
-      character(len=500) :: line
 
       write(stdout,'(a)',advance='no')' ['
       icursor=icursor+2
@@ -317,7 +315,6 @@ module yaml_output
       character(len=*), optional, intent(in) :: mapvalue,label,advance
       !local variables
       integer :: ipos,lgt,tabeff,ish
-      character(len=2) :: fmt
       character(len=max_record_length) :: towrite
 
       !reinitialize itab if at beginning of the line

@@ -45,7 +45,7 @@ program rism
 
   !initalise the varaibles for the calculation
   !standard names
-  call standard_inputfile_names(in,radical)
+  call standard_inputfile_names(in,radical,nproc)
   call read_input_variables(iproc,'posinp',in,atoms,rxyz)
   write(gridformat, "(A)") ""
   select case (in%output_denspot_format)

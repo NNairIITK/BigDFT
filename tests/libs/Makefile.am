@@ -3,8 +3,7 @@ SUBDIRS = fft \
 	PSolver \
 	OP2P \
 	psp \
-	IO-wf \
-	ftypes 
+	IO-wf
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA
@@ -16,6 +15,10 @@ endif
 
 if USE_LIBXC
 SUBDIRS += xc
+endif
+
+if BUILD_BINDINGS
+SUBDIRS += ftypes
 endif
 
 check, report:

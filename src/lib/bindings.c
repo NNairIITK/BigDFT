@@ -48,7 +48,7 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
 
 void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
 void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
-void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in,
+void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in, int *nproc,
                                                       const gchar *rad, int *len);
 void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const void *in, double *hx, double *hy, double *hz, double *crmult, double *frmult, int *ixc, int *ncharge, double *elecfield, int *nspin, int *mpol, double *gnrm_cv, int *itermax, int *nrepmax, int *ncong, int *idsx, int *dispersion, int *inputPsiId, int *output_wf_format, int *output_grid, double *rbuf, int *ncongt, int *norbv, int *nvirt, int *nplot, int *disableSym);
 void FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(void *in, int *iscf, int *itrpmax,
@@ -88,19 +88,19 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 {
   BigDFT_Inputs *in;
-  int iproc = 0, len, dump = 0;
+  int iproc = 0, len, dump = 0, nproc = 1;
 
   in = bigdft_inputs_init();
   FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
   if (naming && naming[0])
     {
       len = strlen(naming);
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, naming, &len);
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, naming, &len);
     }
   else
     {
       len = 0;
-      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, " ", &len);
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data, &nproc, " ", &len);
     }
   FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data, &iproc, &dump);
 

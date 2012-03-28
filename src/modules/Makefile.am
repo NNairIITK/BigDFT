@@ -24,6 +24,12 @@ LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
 endif
 
+if BUILD_BINDINGS
+bindings_headers = bigdft.h bigdft_cst.h
+else
+bindings_headers =
+endif
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -48,7 +54,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
-include_HEADERS = bigdft.h bigdft_cst.h
+include_HEADERS = $(bindings_headers)
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 
@@ -67,7 +73,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	yaml_output.f90 \
-	bigdft.h \
+	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)

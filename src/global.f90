@@ -106,8 +106,8 @@ program MINHOP
   endif
   close(12)
 
-  call standard_inputfile_names(inputs_opt,'input')
-  call standard_inputfile_names(inputs_md,'mdinput')
+  call standard_inputfile_names(inputs_opt,'input',nproc)
+  call standard_inputfile_names(inputs_md,'mdinput',nproc)
 
   call read_atomic_file('poscur',iproc,atoms,pos)
 
