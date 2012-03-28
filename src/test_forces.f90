@@ -120,7 +120,7 @@ program test_forces
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs,radical)
+      call standard_inputfile_names(inputs,radical,nproc)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       !     if (iproc == 0) then
       !       call print_general_parameters(nproc,inputs,atoms)

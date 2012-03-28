@@ -119,13 +119,13 @@ module bigdft_forces
 
    !> ART bigdft_init
    !! Routine to initialize all BigDFT stuff
-   subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
+   subroutine bigdft_init( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
 
       implicit none
 
       !Arguments
       integer,      intent(in) :: nat
-      integer,      intent(in)  :: me_
+      integer,      intent(in)  :: me_, nproc_
       real(kind=8), intent(in)  :: my_gnrm
       logical,      intent(in)  :: passivate
       integer,      intent(in)  :: total_nb_atoms
@@ -138,6 +138,7 @@ module bigdft_forces
       !_______________________
 
       me = me_
+      nproc = nproc_
 
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
@@ -151,7 +152,7 @@ module bigdft_forces
          call initialize_atomic_file(me_,at,rxyz)
       endif
       !standard names
-      call standard_inputfile_names(in,'input')
+      call standard_inputfile_names(in,'input',nproc)
       ! Read inputs.
       call read_input_parameters(me_, in, at, rxyz)
 

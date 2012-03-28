@@ -62,7 +62,7 @@ program oneatom
 
 
   !initalise the variables for the calculation
-  call standard_inputfile_names(in,radical)
+  call standard_inputfile_names(in,radical,nproc)
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then

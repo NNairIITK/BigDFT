@@ -210,12 +210,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat, final_out
-  character(len=500) :: errmess
   logical :: endloop,endlooprp,refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
-  integer :: icycle,potden
+  integer :: icycle
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: i,npoints
+  integer :: i
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming

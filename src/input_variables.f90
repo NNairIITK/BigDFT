@@ -27,12 +27,15 @@ subroutine set_inputfile(filename, radical, ext)
 end subroutine set_inputfile
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs, radical)
+subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
   use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
+  integer, intent(in) :: nproc
+
+  integer :: ierr
 
   call set_inputfile(inputs%file_dft, radical,    "dft")
   call set_inputfile(inputs%file_geopt, radical,  "geopt")
@@ -52,6 +55,10 @@ subroutine standard_inputfile_names(inputs, radical)
   end if
 
   inputs%files = INPUTS_NONE
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
@@ -1700,13 +1707,13 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               !end if
               stop
@@ -1717,7 +1724,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      end do
      if (verb) then
         write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
+             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 
