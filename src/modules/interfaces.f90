@@ -5317,17 +5317,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine getCommunArraysMatrixCompression
 
 
-       subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
+       subroutine getHamiltonianMatrix6(iproc, nproc, lzdig, orbsig, orbs, &
                   input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad,&
                   memoryForCommunOverlapIG, locregShape, tagout, ham)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
+         integer,intent(in):: iproc, nproc, ndim_lhchi, nlocregPerMPI
          real(gp), intent(in) :: hx, hy, hz
          type(local_zone_descriptors),intent(in):: lzdig
          type(orbitals_data),intent(in):: orbsig, orbs
-         integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
          type(input_variables),intent(in):: input
          integer,dimension(orbsig%norb),intent(in):: onWhichAtom
          real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)),intent(in):: lchi

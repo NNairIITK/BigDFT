@@ -283,8 +283,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp
   integer :: ldim,gdim,ierr,jlr,kk,iiorb,ndim_lhchi,ii_orbs,ii_comp
   integer :: is1,ie1,is2,ie2,is3,ie3,js1,je1,js2,je2,js3,je3,nlocregPerMPI,jproc,jlrold
-  integer:: norbTarget,norbpTemp,isorbTemp, nprocTemp, ncount, infoCoeff
-  integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
+  integer:: norbTarget,norbpTemp,isorbTemp, ncount, infoCoeff
+  !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
   real(dp),dimension(6) :: xcstr
   type(linearInputGuess):: lig
@@ -711,26 +711,6 @@ lig%lzdGauss%hgrids(3)=hz
   call full_local_potential(iproc,nproc,lig%orbsig,lig%lzdig,2,&
        denspot%dpcom,denspot%rhov,denspot%pot_full,lig%comgp)
 
-  !!!write(*,*) 'iproc, size(denspot%pot_full)', iproc, size(denspot%pot_full)
-  !!!write(*,*) 'iproc, lig%lzdig%ndimpotisf', iproc, lig%lzdig%ndimpotisf
-  !!!do istat=1,size(denspot%pot_full)
-  !!!    write(3000+iproc,*) istat, denspot%pot_full(istat)
-  !!!end do 
-  !!!ii=1
-  !!!do iorb=1,lig%orbsig%norbp
-  !!!    write(*,'(a,3i8,es18.8)') 'iproc, iorb, lig%orbsig%ispot(iorb), denspot%pot_full(lig%orbsig%ispot(iorb))', &
-  !!!         iproc, iorb, lig%orbsig%ispot(iorb), denspot%pot_full(lig%orbsig%ispot(iorb))
-  !!!    ilr=lig%orbsig%inwhichlocreg(lig%orbsig%isorb+iorb)
-  !!!    write(*,'(a,3i8,es16.7)') 'iorb, ilr, ii, lchi(ii)', iorb, ilr, ii, lchi(ii)
-  !!!    ii=ii+lig%lzdig%llr(ilr)%wfd%nvctr_c+7*lig%lzdig%llr(ilr)%wfd%nvctr_f
-  !!!end do
-
-!!$  call full_local_potential(iproc,nproc,&
-!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*nscatterarr(iproc,2),&
-!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*lig%lzdig%lzd%glr%d%n3i,input%nspin,&
-!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
-!!$       lig%orbsig,lig%lzdig,2,ngatherarr,rhopot,lpot,lig%comgp)
-
   lig%lzdig%hgrids(1)=hx
   lig%lzdig%hgrids(2)=hy
   lig%lzdig%hgrids(3)=hz
@@ -740,31 +720,18 @@ lig%lzdGauss%hgrids(3)=hz
   call memocc(istat, lig%lzdig%doHamAppl, 'lig%lzdig%doHamAppl', subname)
   withConfinement=.true.
   ii=0
-  iall=0!debug
-  !do iat=1,at%nat
   do ilr=1,lig%lzdig%nlr
       doNotCalculate=.true.
       lig%lzdig%doHamAppl=.false.
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       call getIndices(lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
-      !!write(*,'(a,2i8,3es12.4)') 'ilr, owa, lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr))%locregCenter', &
-      !!                            ilr, lig%orbsGauss%inwhichlocreg(ilr), lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr))%locregCenter
       do jorb=1,lig%orbsig%norbp
-          !onWhichAtomTemp(jorb)=ilr
-          !onWhichAtomTemp(lig%orbsig%isorb+jorb)=ilr
           onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
-          !jlr=onWhichAtomp(jorb)
-          !jlr=lig%orbsig%inWhichLocregp(jorb)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
           call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
-          !!write(1710,'(a,4i7,4x,6i7,4x,6i7)') 'ilr, owa, jorb, jlr, is1, ie1, is2, ie2, is3, ie3 ; js1, je1, js2, je2, js3, je3', &
-          !!      ilr, lig%orbsGauss%inwhichlocreg(ilr), jorb, jlr, is1, ie1, is2, ie2, is3, ie3 , js1, je1, js2, je2, js3, je3
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-          !if(lig%orbsig%isorb+jorb==28) write(*,'(a,i8,3l7)') 'ilr, ovrlpx, ovrlpy, ovrlpz', ilr, ovrlpx, ovrlpy, ovrlpz
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
               doNotCalculate(jlr)=.false.
               lig%lzdig%doHamAppl(jlr)=.true.
@@ -774,7 +741,6 @@ lig%lzdGauss%hgrids(3)=hz
               lig%lzdig%doHamAppl(jlr)=.false.
           end if
       end do
-      !!!lig%lzdig%doHamAppl=.true.!debug
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
 
       if(.not.skip(ilr)) then
@@ -784,69 +750,20 @@ lig%lzdGauss%hgrids(3)=hz
              call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
                   hx,hy,hz,input%lin%confpotorder,&
                   input%lin%potentialprefac_lowaccuracy,lig%lzdig,onWhichAtomTemp)
-             ! use orbsGauss%inwhichlocreg
-             !!call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
-             !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
              call to_zero(lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lig%orbsig,&
                   lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
                   ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
                   pkernel=denspot%pkernelseq)
-             !!write(333,*) 'debug: following line is commented!'
              call NonLocalHamiltonianApplication(iproc,at,lig%orbsig,&
                   rxyz,&
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
-!DEBUG
-!!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-!!             if (iproc==0) then
-!!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!!                 ekin_sum,epot_sum,eproj_sum
-!!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-!!             endif
-!END DEBUG
-      !!!! DEBUG #####################################
-      !!istat=1
-      !!do iorb=1,lig%orbsig%norbp
-      !!    iiorb=lig%orbsig%isorb+iorb
-      !!    iall=lig%orbsig%inwhichlocreg(iiorb)
-      !!    ierr=lig%lzdig%llr(iall)%wfd%nvctr_c+7*lig%lzdig%llr(iall)%wfd%nvctr_f
-      !!    if(iiorb==28) then
-      !!        write(*,'(a,3i9,l5,2es20.10)') 'grep',ilr, ii, iall, lig%lzdig%doHamAppl(iall), ddot(ierr, lchi(istat), 1, lhchi(istat,ii), 1), ddot(ierr, lchi(istat), 1, lchi(istat), 1)
-      !!    end if
-      !!    istat=istat+ierr
-      !!end do
-      !!!! ###########################################
-
-
           end if
       else
           if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
       end if
       if(iproc==0) write(*,'(a)') 'done.'
-
-
-
-
-      !!do istat=1,size(lchi)
-      !!    write(1500*(iproc+1)+ii,'(2es25.14,i6,l4)') lchi(istat), lhchi(istat,ii), onWhichAtomTemp(1), lig%lzdig%doHamAppl(1)
-      !!end do
-      !!istat=1
-      !!do iorb=1,lig%orbsig%norbp
-      !!    jlr=lig%orbsig%inwhichlocreg(lig%orbsig%isorb+iorb)
-      !!    !!write(1700,'(a,3i8,es18.8,l4)') 'istat, iorb, lig%orbsig%inwhichlocreg(iorb), lhchi(istat,ii), lig%lzdig%doHamAppl(jlr)', &
-      !!    !!istat, iorb, lig%orbsig%inwhichlocreg(lig%orbsig%isorb+iorb), lhchi(istat,ii), lig%lzdig%doHamAppl(jlr)
-      !!    !!write(1750,'(a,5i9,es20.10,l5)') 'ilr, lig%orbsGauss%inwhichlocreg(ilr), istat, iorb, lig%orbsig%inwhichlocreg(iorb), lhchi(istat,ii),  lig%lzdig%doHamAppl(jlr)', &
-      !!    !!                                 ilr, lig%orbsGauss%inwhichlocreg(ilr), istat, iorb, lig%orbsig%inwhichlocreg(iorb), lhchi(istat,ii),  lig%lzdig%doHamAppl(jlr)
-      !!    !!write(1770,'(a,3i7,es22.8)') 'ilr, lig%orbsGauss%inwhichlocreg(ilr), jlr, ddot', &
-      !!    !!              ilr, lig%orbsGauss%inwhichlocreg(ilr), jlr, &
-      !!    !!              ddot(lig%lzdig%llr(jlr)%wfd%nvctr_c+7*lig%lzdig%llr(jlr)%wfd%nvctr_f, lchi(istat), 1, lhchi(istat,ii), 1)
-      !!    if(lig%orbsGauss%inwhichlocreg(ilr)/=iall) write(1780,'(a,i7,es22.8)') 'onwhichatom, ddot', &
-      !!                  lig%orbsGauss%inwhichlocreg(ilr), &
-      !!                  ddot(lig%lzdig%llr(jlr)%wfd%nvctr_c+7*lig%lzdig%llr(jlr)%wfd%nvctr_f, lchi(istat), 1, lhchi(istat,ii), 1)
-      !!    istat=istat+lig%lzdig%llr(jlr)%wfd%nvctr_c+7*lig%lzdig%llr(jlr)%wfd%nvctr_f
-      !!end do
-      !!iall=lig%orbsGauss%inwhichlocreg(ilr)
   end do
 
 
@@ -872,45 +789,13 @@ lig%lzdGauss%hgrids(3)=hz
 
 
 
-
-  ! The input guess is possibly performed only with a subset of all processes.
-  if(input%lin%norbsPerProcIG>lorbs%norb) then
-      norbTarget=lorbs%norb
-  else
-     norbTarget=input%lin%norbsperProcIG
-  end if
-  nprocTemp=ceiling(dble(lorbs%norb)/dble(norbTarget))
-  nprocTemp=min(nprocTemp,nproc)
-  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nprocTemp, ' processes.'
-
-  ! Create temporary norb_parTemp, onWhichMPITemp
-  allocate(norb_parTemp(0:nprocTemp-1), stat=istat)
-  call memocc(istat, norb_parTemp, 'norb_parTemp', subname)
-  norb_parTemp=0
-  tt=dble(lorbs%norb)/dble(nprocTemp)
-  ii=floor(tt)
-  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-  norb_parTemp(0:nprocTemp-1)=ii
-  kk=lorbs%norb-nprocTemp*ii
-  norb_parTemp(0:kk-1)=ii+1
-
-  allocate(onWhichMPITemp(lorbs%norb), stat=istat)
-  call memocc(istat, onWhichMPITemp, 'onWhichMPITemp', subname)
-  iiorb=0
-  do jproc=0,nprocTemp-1
-      do iorb=1,norb_parTemp(jproc)
-          iiorb=iiorb+1
-          onWhichMPITemp(iiorb)=jproc
-      end do
-  end do
-
   ! Calculate the number of different matrices that have to be stored on a given MPI process.
   jlrold=0
   nlocregPerMPI=0
   do jorb=1,lorbs%norb
       jlr=lorbs%inWhichLocreg(jorb)
       !jproc=lorbs%onWhichMPI(jorb)
-      jproc=onWhichMPITemp(jorb)
+      jproc=lorbs%onWhichMPI(jorb)
       !if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
       if(iproc==jproc) then
           if(jlr/=jlrold) then
@@ -930,8 +815,8 @@ lig%lzdGauss%hgrids(3)=hz
   call memocc(istat,ham3,'ham3',subname)
 
   if(input%lin%nItInguess>0) then
-      call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lig%lzdig, lig%orbsig, lorbs, &
-           onWhichMPITemp, input, hx, hy, hz, lig%orbsig%inWhichLocreg, ndim_lhchi, &
+      call getHamiltonianMatrix6(iproc, nproc, lig%lzdig, lig%orbsig, lorbs, &
+           input, hx, hy, hz, lig%orbsig%inWhichLocreg, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, lig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
   end if
 
@@ -942,18 +827,11 @@ lig%lzdGauss%hgrids(3)=hz
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  !!call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lorbs, lin%comms, at, lzd%glr, input, hx, hy, hz, lin%norbsPerType, &
-  !!     lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lorbs%inWhichLocreg, lin, lig%lzdig, nlocregPerMPI, tag, ham3, &
-  !!     lig%comon, lig%op, lig%mad)
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
        at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
        lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, &
        lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
-  !call cpu_time(t2)
-  !!time=t2-t1
-  !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-  !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
   ! Calculate the coefficients
   ! Calculate the coefficients
@@ -1008,13 +886,13 @@ lig%lzdGauss%hgrids(3)=hz
   deallocate(ham3, stat=istat)
   call memocc(istat, iall, 'ham3',subname)
 
-  iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
-  deallocate(norb_parTemp, stat=istat)
-  call memocc(istat, iall, 'norb_parTemp',subname)
+  !!iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
+  !!deallocate(norb_parTemp, stat=istat)
+  !!call memocc(istat, iall, 'norb_parTemp',subname)
 
-  iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
-  deallocate(onWhichMPITemp, stat=istat)
-  call memocc(istat, iall, 'onWhichMPITemp',subname)
+  !!iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
+  !!deallocate(onWhichMPITemp, stat=istat)
+  !!call memocc(istat, iall, 'onWhichMPITemp',subname)
 
   iall=-product(shape(mapping))*kind(mapping)
   deallocate(mapping, stat=istat)
@@ -1316,7 +1194,7 @@ end subroutine initializeInguessParameters
 
 
 
-subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
+subroutine getHamiltonianMatrix6(iproc, nproc, lzdig, orbsig, orbs, &
 input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
 tagout, ham)
 use module_base
@@ -1325,11 +1203,10 @@ use module_interfaces, exceptThisOne => getHamiltonianMatrix6
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
+integer,intent(in):: iproc, nproc, ndim_lhchi, nlocregPerMPI
 real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzdig
 type(orbitals_data),intent(in):: orbsig, orbs
-integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
 type(input_variables),intent(in):: input
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 !real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
@@ -1461,10 +1338,10 @@ do iat=1,lzdig%nlr
         jjprocold=-1
         do iorb=1,orbs%norb
             ilr=orbs%inWhichLocreg(iorb)
-            jjproc=onWhichMPITemp(iorb)
+            jjproc=orbs%onWhichMPI(iorb)
             do iioverlap=1,jj
                 iiat=iioverlap+nshift
-                if(iproc<nprocTemp) then
+                if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle !Otherwise we would communicate the same again
                     if(ilr==iiat) then
                         ! Send this matrix to process jproc.
@@ -1498,13 +1375,13 @@ do iat=1,lzdig%nlr
         jjprocold=-1
         do iorb=1,orbs%norb
             ilr=orbs%inWhichLocreg(iorb)
-            jjproc=onWhichMPITemp(iorb)
+            jjproc=orbs%onWhichMPI(iorb)
             do iioverlap=1,jj
                 iiat=iioverlap+nshift
                 ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
                 ! in calculating the input guess, this check has to be done only for those processes.
                 !write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
-                if(iproc<nprocTemp) then
+                if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle
                     if(ilr==iiat) then
                         ! Send to process jproc
