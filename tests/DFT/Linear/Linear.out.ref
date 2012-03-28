@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.1)
+                           ggggg       i         BBBB                 (Ver 1.7-dev.2)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -210,6 +210,7 @@
  |1              number of orbitals per process for trace minimization during input g
  |F              mixed mode (without and with derivatives)                           
  |1              confinement_decrease_mode: 0=linear, 1=abrupt                       
+ |.6d0  .1d0     decrease_amount, decrease_step                                      
  |C 4 2.0d-2 1.0d-4 5.0 5.0  Atom name, number of basis functions per atom, prefactor
  |H 1 2.0d-2 1.0d-4 5.0 5.0  Atom name, number of basis functions per atom, prefactor
  ------------------------------------------------------------------------------------
@@ -305,53 +306,77 @@ max deviation from unity, position:  9.610156E-04  14  14
  converged in 9 iterations.
    Final values for fnrm, trace:   7.50552E-04   3.17060E+00
  ====================================================================================
+ Posting sends / receives for communicating the potential... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-7.20059E-01
+   eval(2)=-5.81224E-01
+   eval(3)=-4.19574E-01
+   eval(4)=-4.19036E-01
+   eval(5)=-4.05841E-01
+   eval(6)=-3.11559E-01
+   eval(7)=-3.10469E-01  <-- last occupied orbital
+   eval(8)= 2.75156E-01  <-- first virtual orbital
+   eval(9)= 3.57103E-01
+   eval(10)= 3.58054E-01
+   eval(11)= 4.61204E-01
+   eval(12)= 4.61575E-01
+   eval(13)= 5.69364E-01
+   eval(14)= 5.78305E-01
+ -------------------------------------------------
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
+ Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
  Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  9.9789593E-01  1.3736565E+00     3.0677360334
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  6.0698248E-01  8.9082622E-01     0.9600827874
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  1.4972122E-01  1.9232654E-01     0.6032746396
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  7.8997772E-02  9.2186623E-02     0.5344033606
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  5.8948292E-02  7.4366278E-02     0.5013081656
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  4.7131865E-02  5.8135814E-02     0.4776191679
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  2.8216864E-02  3.6437877E-02     0.4554177645
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  1.8196405E-02  2.1245191E-02     0.4521808825
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.8196405E-02  2.1245191E-02   0.4521809
  ============================= Basis functions created. =============================
- timings:
-   -total time: 1.171E+00
-     - orthonormalization: 1.499E-01=12.8%
-     - Hamiltonian application: 3.525E-01=30.1%
-     - orthoconstraint: 7.692E-02= 6.6%
-     - preconditioning: 5.405E-01=46.1%
-     - unitary optimization: 0.000E+00= 0.0%
-     - other: 5.153E-02= 4.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -455,7 +480,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.16E-07   -1.45777901481449490E+01   -5.2457E-01
+   it, Delta DENS, energy, energyDiff   3   3.16E-07   -1.45777901481449135E+01   -5.2457E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -490,7 +515,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.45E-07   -1.44585455842277355E+01    1.1924E-01
+   it, Delta DENS, energy, energyDiff   4   1.45E-07   -1.44585455842277213E+01    1.1924E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -525,7 +550,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.11E-08   -1.44843487411262686E+01   -2.5803E-02
+   it, Delta DENS, energy, energyDiff   5   7.11E-08   -1.44843487411263254E+01   -2.5803E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -560,7 +585,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   3.54E-08   -1.44775316628615869E+01    6.8171E-03
+   it, Delta DENS, energy, energyDiff   6   3.54E-08   -1.44775316628615798E+01    6.8171E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -595,7 +620,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.77E-08   -1.44785856148171419E+01   -1.0540E-03
+   it, Delta DENS, energy, energyDiff   7   1.77E-08   -1.44785856148171490E+01   -1.0540E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -630,7 +655,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   8.84E-09   -1.44780766841534003E+01    5.0893E-04
+   it, Delta DENS, energy, energyDiff   8   8.84E-09   -1.44780766841533719E+01    5.0893E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -665,7 +690,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   4.42E-09   -1.44780556759772168E+01    2.1008E-05
+   it, Delta DENS, energy, energyDiff   9   4.42E-09   -1.44780556759771599E+01    2.1008E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -700,7 +725,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   2.21E-09   -1.44779905919002090E+01    6.5084E-05
+   it, Delta DENS, energy, energyDiff   10   2.21E-09   -1.44779905919002516E+01    6.5084E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -735,7 +760,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 11 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   1.11E-09   -1.44779702481517631E+01    2.0344E-05
+   it, Delta DENS, energy, energyDiff   11   1.11E-09   -1.44779702481517845E+01    2.0344E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -770,55 +795,56 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   5.53E-10   -1.44779571932937827E+01    1.3055E-05
+   it, Delta DENS, energy, energyDiff   12   5.53E-10   -1.44779571932938396E+01    1.3055E-05
  #############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.5356082491E+00  3.8304884289E+01 -5.8376444645E+00 -7.6367942577E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   1   1.59E-06   -1.44779571932937827E+01   -1.4478E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   1.59E-06   -1.44779571932938396E+01   -1.4478E+01
+ Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
  Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  6.7280565E-02  8.2313769E-02     2.0511123371
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  4.0801065E-02  5.1143229E-02     2.0267655269
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  2.0731256E-02  2.7832404E-02     2.0154637420
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  1.6453804E-02  2.2363767E-02     2.0136189077
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  1.5148776E-02  2.0624440E-02     2.0130752892
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  1.4713603E-02  1.9983770E-02     2.0127592937
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  1.4144727E-02  2.0704190E-02     2.0125891151
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  1.3776398E-02  2.0671200E-02     2.0125049797
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3776398E-02  2.0671200E-02   2.0125050
  ============================= Basis functions created. =============================
- timings:
-   -total time: 1.170E+00
-     - orthonormalization: 1.501E-01=12.8%
-     - Hamiltonian application: 3.528E-01=30.1%
-     - orthoconstraint: 7.662E-02= 6.5%
-     - preconditioning: 5.395E-01=46.1%
-     - unitary optimization: 0.000E+00= 0.0%
-     - other: 5.114E-02= 4.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -852,7 +878,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.55E-07   -1.44645297549521104E+01    1.3427E-02
+   it, Delta DENS, energy, energyDiff   1   3.55E-07   -1.44645297549520819E+01    1.3427E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -887,7 +913,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.80E-07   -1.45069668440390060E+01   -4.2437E-02
+   it, Delta DENS, energy, energyDiff   2   1.80E-07   -1.45069668440390558E+01   -4.2437E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -922,7 +948,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.89E-08   -1.45097941035665983E+01   -2.8273E-03
+   it, Delta DENS, energy, energyDiff   3   8.89E-08   -1.45097941035665912E+01   -2.8273E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -957,7 +983,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.46E-08   -1.45152814932611705E+01   -5.4874E-03
+   it, Delta DENS, energy, energyDiff   4   4.46E-08   -1.45152814932611989E+01   -5.4874E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -992,7 +1018,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.22E-08   -1.45170878773150918E+01   -1.8064E-03
+   it, Delta DENS, energy, energyDiff   5   2.22E-08   -1.45170878773149852E+01   -1.8064E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1027,7 +1053,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   1.11E-08   -1.45181943540196059E+01   -1.1065E-03
+   it, Delta DENS, energy, energyDiff   6   1.11E-08   -1.45181943540196272E+01   -1.1065E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1062,7 +1088,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   5.57E-09   -1.45186991278503825E+01   -5.0477E-04
+   it, Delta DENS, energy, energyDiff   7   5.57E-09   -1.45186991278504678E+01   -5.0477E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1097,7 +1123,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   2.79E-09   -1.45189613895317464E+01   -2.6226E-04
+   it, Delta DENS, energy, energyDiff   8   2.79E-09   -1.45189613895316825E+01   -2.6226E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1132,7 +1158,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   1.39E-09   -1.45190899079185129E+01   -1.2852E-04
+   it, Delta DENS, energy, energyDiff   9   1.39E-09   -1.45190899079184703E+01   -1.2852E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1167,7 +1193,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   6.97E-10   -1.45191546021257025E+01   -6.4694E-05
+   it, Delta DENS, energy, energyDiff   10   6.97E-10   -1.45191546021257238E+01   -6.4694E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1202,7 +1228,7 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 11 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   3.48E-10   -1.45191867909769314E+01   -3.2189E-05
+   it, Delta DENS, energy, energyDiff   11   3.48E-10   -1.45191867909769385E+01   -3.2189E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1237,120 +1263,133 @@ max deviation from unity, position:  9.610156E-04  14  14
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   1.74E-10   -1.45192028966593725E+01   -1.6106E-05
+   it, Delta DENS, energy, energyDiff   12   1.74E-10   -1.45192028966594791E+01   -1.6106E-05
  #############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.6631075215E+00  3.8204200416E+01 -5.7926272381E+00 -7.5773467267E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   2   3.56E-07   -1.45192028966593725E+01   -4.1246E-02
+   itout, Delta DENSOUT, energy, energyDiff   2   3.56E-07   -1.45192028966594791E+01   -4.1246E-02
+ Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
  Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.3275766E-01  1.5058127E-01    -2.3220583891
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  5.1410322E-02  6.1884573E-02    -2.4747822528
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  1.9364666E-02  2.2801786E-02    -2.4988040323
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  9.8611582E-03  1.1680240E-02    -2.5018245759
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  7.1716463E-03  8.2276643E-03    -2.5018201875
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=1, total failures=1
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  5.8727440E-03  7.0213168E-03    -2.5018462040
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=1
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  6.2916008E-03  8.5097886E-03    -2.5023065564
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=0, total failures=1
  ----------------------------------------------------------------------------- iter=8
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  6.5572971E-03  8.7491077E-03    -2.5020786087
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS informations: history length=5, consecutive failures=1, total failures=2
  ----------------------------------------------------------------------------- iter=9
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     9  7.5086329E-03  1.1373495E-02    -2.5018614442
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  DIIS failed 3 times in total. Switch to SD with stepsize 1.000E-04
  Recover the orbitals from iteration 7 which are the best so far.
- steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
+ steepest descent informations: mean alpha=1.429E-05, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=10
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    10  6.2916008E-03  8.5097886E-03    -2.5023065564
- steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=1.429E-05, consecutive successes=1, DIIS=y
  ---------------------------------------------------------------------------- iter=11
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    11  6.6534116E-03  9.3926099E-03    -2.5022226666
- steepest descent informations: mean alpha=5.657E-05, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=5.143E-06, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=12
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  1.56E-03%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    12  6.7619593E-03  9.6062696E-03    -2.5021835730
- steepest descent informations: mean alpha=3.271E-05, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=1.851E-06, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=13
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  8.22E-04%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    13  6.8070875E-03  9.6729213E-03    -2.5021630101
- steepest descent informations: mean alpha=1.918E-05, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=6.665E-07, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=14
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  4.28E-04%.
 Preconditioning.
  iter, fnrm, fnrmMax, trace    14  6.8323509E-03  9.7004821E-03    -2.5021523069
- steepest descent informations: mean alpha=1.891E-05, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=3.999E-07, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=15
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  2.12E-04%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    15  6.8489013E-03  9.7140865E-03    -2.5021469979
- steepest descent informations: mean alpha=1.125E-05, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=1.440E-07, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=16
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  9.34E-05%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    16  6.8608828E-03  9.7213991E-03    -2.5021446612
- steepest descent informations: mean alpha=6.717E-06, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=5.183E-08, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=17
  Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  2.83E-05%.
  Decrease step size, but accept new orbitals
 Preconditioning.
  iter, fnrm, fnrmMax, trace    17  6.8703334E-03  9.7255233E-03    -2.5021439537
- steepest descent informations: mean alpha=4.018E-06, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=1.866E-08, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=18
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    18  6.8783659E-03  9.7279662E-03    -2.5021441273
- steepest descent informations: mean alpha=4.020E-06, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=2.052E-08, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=19
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    19  6.8855972E-03  9.7295171E-03    -2.5021447664
- steepest descent informations: mean alpha=4.022E-06, consecutive successes=0, DIIS=y
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
+ steepest descent informations: mean alpha=2.258E-08, consecutive successes=0, DIIS=y
  ---------------------------------------------------------------------------- iter=20
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    20  6.8923666E-03  9.7306007E-03    -2.5021456413
+ tmb%wfnmd%bs%conv_crit  4.000000000000000E-005
  WARNING: not converged within 20 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   6.8923666E-03  9.7306007E-03  -2.5021456
  ============================= Basis functions created. =============================
- timings:
-   -total time: 3.048E+00
-     - orthonormalization: 3.737E-01=12.3%
-     - Hamiltonian application: 8.918E-01=29.3%
-     - orthoconstraint: 3.072E-01=10.1%
-     - preconditioning: 1.350E+00=44.3%
-     - unitary optimization: 0.000E+00= 0.0%
-     - other: 1.251E-01= 4.1%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1385,7 +1424,7 @@ Preconditioning.
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.13E-06   -1.42680712896322390E+01    2.5113E-01
+   it, Delta DENS, energy, energyDiff   1   1.13E-06   -1.42680712896321609E+01    2.5113E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1420,7 +1459,7 @@ Preconditioning.
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.33E-07   -1.48171990647471077E+01   -5.4913E-01
+   it, Delta DENS, energy, energyDiff   2   5.33E-07   -1.48171990647471361E+01   -5.4913E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1455,7 +1494,7 @@ Preconditioning.
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.60E-07   -1.48131068455658266E+01    4.0922E-03
+   it, Delta DENS, energy, energyDiff   3   2.60E-07   -1.48131068455658479E+01    4.0922E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1490,7 +1529,7 @@ Preconditioning.
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.31E-07   -1.48425115952096220E+01   -2.9405E-02
+   it, Delta DENS, energy, energyDiff   4   1.31E-07   -1.48425115952096434E+01   -2.9405E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1525,7 +1564,7 @@ Preconditioning.
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.53E-08   -1.48524999056925608E+01   -9.9883E-03
+   it, Delta DENS, energy, energyDiff   5   6.53E-08   -1.48524999056924969E+01   -9.9883E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1560,7 +1599,7 @@ Preconditioning.
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   3.27E-08   -1.48578156868541953E+01   -5.3158E-03
+   it, Delta DENS, energy, energyDiff   6   3.27E-08   -1.48578156868542237E+01   -5.3158E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1595,7 +1634,7 @@ Preconditioning.
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.64E-08   -1.48603735089849351E+01   -2.5578E-03
+   it, Delta DENS, energy, energyDiff   7   1.64E-08   -1.48603735089848712E+01   -2.5578E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1630,7 +1669,7 @@ Preconditioning.
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   8.19E-09   -1.48616480510034350E+01   -1.2745E-03
+   it, Delta DENS, energy, energyDiff   8   8.19E-09   -1.48616480510034705E+01   -1.2745E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1665,7 +1704,7 @@ Preconditioning.
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   4.09E-09   -1.48622817681386366E+01   -6.3372E-04
+   it, Delta DENS, energy, energyDiff   9   4.09E-09   -1.48622817681386152E+01   -6.3372E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1700,7 +1739,7 @@ Preconditioning.
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   2.05E-09   -1.48625979983604140E+01   -3.1623E-04
+   it, Delta DENS, energy, energyDiff   10   2.05E-09   -1.48625979983604211E+01   -3.1623E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1770,10 +1809,10 @@ Preconditioning.
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   5.12E-10   -1.48628348102893142E+01   -7.8900E-05
+   it, Delta DENS, energy, energyDiff   12   5.12E-10   -1.48628348102893568E+01   -7.8900E-05
  #############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.7600701144E+00  3.7363278999E+01 -5.5165421049E+00 -7.2136708558E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   3   1.04E-06   -1.48628348102893142E+01   -3.4363E-01
+   itout, Delta DENSOUT, energy, energyDiff   3   1.04E-06   -1.48628348102893568E+01   -3.4363E-01
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
@@ -1797,8 +1836,8 @@ Preconditioning.
  average noise along z direction:   3.45665317E-04
  total average noise            :   7.24055392E-04
  clean forces norm (Ha/Bohr): maxval=  5.426129275045E-03  fnrm2=  1.665458003202E-04
- raw forces:                  maxval=  5.992487199601E-03  fnrm2=  1.753396877349E-04
- CPU time/ELAPSED time for root process     0        14.61        14.55
+ raw forces:                  maxval=  5.992487199603E-03  fnrm2=  1.753396877349E-04
+ CPU time/ELAPSED time for root process     0        14.30        14.22
  Final values of the Forces for each atom
      1      C -5.46794E-04  5.44728E-04  8.79491E-04
      2      C  1.43499E-03  3.66479E-04 -2.98893E-04
@@ -1809,6 +1848,6 @@ Preconditioning.
      7      H -3.77107E-03  4.07163E-04  3.88022E-03
      8      H  3.73488E-04  4.64700E-03 -2.23248E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 36157 allocations and 36157 deallocations, remaining memory(B): 0
+ 36402 allocations and 36402 deallocations, remaining memory(B): 0
  memory occupation peak: 68 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
