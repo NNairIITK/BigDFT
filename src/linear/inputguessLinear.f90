@@ -135,13 +135,14 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
       do iorb=1,norbsPerAt(iat)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
-          locrad=lin%locrad_type(ityp)
+          locrad(ilr)=lin%locrad_type(ityp)
       end do
   end do
   if(ilr/=lig%lzdig%nlr) then
       write(*,'(a,2(2x,i0))') 'ERROR: ilr/=lig%lzdig%nlr',ilr,lig%lzdig%nlr
       stop
   end if
+  if(iproc==0) write(*,'(a,100f)') 'lin%locrad_type',lin%locrad_type
 
 
 
@@ -178,6 +179,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
       end do
   end if
   if(iproc==0) write(*,'(a,100f9.2)') 'locrad', locrad
+  if(iproc==0) write(*,'(a,100f9.2)') 'lin%locrad', lin%locrad
   call initLocregs(iproc, nproc, lig%lzdig%nlr, locregCenter, hx, hy, hz, lig%lzdig, &
        lig%orbsig, Glr, locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
