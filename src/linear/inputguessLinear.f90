@@ -2773,25 +2773,29 @@ integer:: i, nsend, nrecv, ind, ierr
 
 if (nproc >1) then
   nsend=0
-  waitLoopSend: do
-     call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
-     nsend=nsend+1
-     do i=ind,comom%nsend-nsend
-        comom%requests(i,1)=comom%requests(i+1,1)
-     end do
-     if(nsend==comom%nsend) exit waitLoopSend
-  end do waitLoopSend
+  if(comom%nsend>0) then
+      waitLoopSend: do
+         call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
+         nsend=nsend+1
+         do i=ind,comom%nsend-nsend
+            comom%requests(i,1)=comom%requests(i+1,1)
+         end do
+         if(nsend==comom%nsend) exit waitLoopSend
+      end do waitLoopSend
+  end if
 
 
   nrecv=0
-  waitLoopRecv: do
-     call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
-     nrecv=nrecv+1
-     do i=ind,comom%nrecv-nrecv
-        comom%requests(i,2)=comom%requests(i+1,2)
-     end do
-     if(nrecv==comom%nrecv) exit waitLoopRecv
-  end do waitLoopRecv
+  if(comom%nrecv>0) then
+      waitLoopRecv: do
+         call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
+         nrecv=nrecv+1
+         do i=ind,comom%nrecv-nrecv
+            comom%requests(i,2)=comom%requests(i+1,2)
+         end do
+         if(nrecv==comom%nrecv) exit waitLoopRecv
+      end do waitLoopRecv
+  end if
 end if
 
 end subroutine gatherVectorsNew
@@ -2985,7 +2989,7 @@ character(len=*),parameter:: subname='orthonormalLinearCombinations'
 allocate(vecTemp(norbmax,norbp), stat=istat)
 call memocc(istat, vecTemp, 'vecTemp',subname)
 
-call dcopy(norbmax*norbp, vec(1,1), 1, vecTemp(1,1), 1)
+if(norbp>0) call dcopy(norbmax*norbp, vec(1,1), 1, vecTemp(1,1), 1)
 
 vec=0.d0
 
@@ -3445,6 +3449,7 @@ type(matrixDescriptors):: mad
   end if
   ip%nproc=ceiling(dble(lorbs%norb)/dble(norbTarget))
   ip%nproc=min(ip%nproc,nproc)
+  ip%nproc=nproc
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', ip%nproc, ' processes.'
 
 
@@ -3458,11 +3463,11 @@ type(matrixDescriptors):: mad
   call mpi_group_incl(wholeGroup, ip%nproc, newID, newGroup, ierr)
   call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
 
-!!  ! Everything inside this if statements is only executed by the processes in newComm.
-  processIf: if(iproc<ip%nproc) then
+  ! Everything inside this if statements is only executed by the processes in newComm.
+!!  processIf: if(iproc<ip%nproc) then
 
       ! Initialize the parameters for performing tha calculations in parallel.
-      call initializeInguessParameters(iproc, lorbs, orbsig, newComm, ip)
+      call initializeInguessParameters(iproc, lorbs, orbsig, mpi_comm_world, ip)
     
       ! Allocate the local arrays.
       call allocateArrays()
@@ -3557,15 +3562,18 @@ type(matrixDescriptors):: mad
       if(input%lin%nItInguess==0) then
           ! Orthonormalize the coefficients.
           methTransformOverlap=0
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
+          call orthonormalizeVectors(iproc, ip%nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+               lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
       end if
 
 
       isx=1
-      call initializeDIIS_inguess(isx, ip%norb_par(iproc), matmin, onWhichAtom(ip%isorb+1), ldiis)
+      if(ip%norb_par(iproc)>0) then
+          ! otherwise it makes no sense...
+          call initializeDIIS_inguess(isx, ip%norb_par(iproc), matmin, onWhichAtom(ip%isorb+1), ldiis)
+      end if
 
       !!allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
     
@@ -3585,11 +3593,11 @@ type(matrixDescriptors):: mad
     
     
           ! Orthonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
+          call orthonormalizeVectors(iproc, ip%nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
-          ilr=onWhichAtom(ip%isorb+1)
+               lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
+          !!ilr=onWhichAtom(ip%isorb+1)
 
     
           ! Calculate the gradient grad.
@@ -3613,7 +3621,7 @@ type(matrixDescriptors):: mad
               !!  end do
               !!end if
           end do
-          ilr=onWhichAtom(ip%isorb+1)
+          !!ilr=onWhichAtom(ip%isorb+1)
 
       
           if(it>1) then
@@ -3631,12 +3639,12 @@ type(matrixDescriptors):: mad
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
                input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
-               matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lzd%nlr, newComm, &
+               matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
                matmin%mlr, mad, lcoeff, lgrad, comom, trace)
           !!do jorb=1,matmin%norbmax
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do
-          ilr=onWhichAtom(ip%isorb+1)
+          !!ilr=onWhichAtom(ip%isorb+1)
           ! Calculate the gradient norm.
           fnrm=0.d0
           do iorb=1,ip%norb_par(iproc)
@@ -3646,10 +3654,10 @@ type(matrixDescriptors):: mad
 
               if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgradold(1,iorb), 1)
           end do
-          call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
+          if(ip%norb_par(iproc)>0) call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
     
           ! Keep the gradient for the next iteration.
-          if(it>1) then
+          if(it>1 .and. (ip%norb_par(iproc)>0)) then
               call dcopy(ip%norb_par(iproc), fnrmArr(1), 1, fnrmOldArr(1), 1)
           end if
 
@@ -3670,13 +3678,13 @@ type(matrixDescriptors):: mad
               end if
               meanAlpha=meanAlpha+alpha(iorb)
           end do
-         call mpiallred(fnrm, 1, mpi_sum, newComm, ierr)
-         call mpiallred(fnrmMax, 1, mpi_max, newComm, ierr)
+         call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+         call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
          fnrm=sqrt(fnrm)
          fnrmMax=sqrt(fnrmMax)
     
          ! Determine the mean step size for steepest descent iterations.
-         call mpiallred(meanAlpha, 1, mpi_sum, newComm, ierr)
+         call mpiallred(meanAlpha, 1, mpi_sum, mpi_comm_world, ierr)
          meanAlpha=meanAlpha/dble(ip%norb)
 
           ! Precondition the gradient.
@@ -3750,14 +3758,14 @@ type(matrixDescriptors):: mad
     
       end do iterLoop
 
-      call deallocateDIIS(ldiis)
+      if(ip%norb_par(iproc)>0) call deallocateDIIS(ldiis)
     
     
       if(iproc==0) write(*,'(1x,a)') '===================================================================================='
     
     
       ! Cut out the zeros
-      allocate(coeff2(ip%norbtot*ip%norb_par(iproc)), stat=istat)
+      allocate(coeff2(max(ip%norbtot*ip%norb_par(iproc),1)), stat=istat)
       call memocc(istat, coeff2, 'coeff2', subname)
       do iorb=1,ip%norb_par(iproc)
           call dcopy(ip%norbtot, coeffPad((iorb-1)*ip%norbtotPad+1), 1, coeff2((iorb-1)*ip%norbtot+1), 1)
@@ -3772,7 +3780,7 @@ type(matrixDescriptors):: mad
       call deallocate_matrixDescriptors(mad, subname)
 
 
-   end if processIf
+!!   end if processIf
 
   if(newComm/=MPI_COMM_NULL) call mpi_comm_free(newComm, ierr)
   call mpi_group_free(newGroup, ierr)
@@ -3781,10 +3789,10 @@ type(matrixDescriptors):: mad
   
   !! Allocate coeff2 for those processes which did not allocate it
   !! during the previous if statement.
-  if(iproc>=ip%nproc) then
-      allocate(coeff2(1), stat=istat)
-      call memocc(istat, coeff2, 'coeff2', subname)
-  end if
+  !!if(iproc>=ip%nproc) then
+  !!    allocate(coeff2(1), stat=istat)
+  !!    call memocc(istat, coeff2, 'coeff2', subname)
+  !!end if
   
   
   ! Now collect all coefficients on all processes.
