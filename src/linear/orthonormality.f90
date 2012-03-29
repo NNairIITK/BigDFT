@@ -1151,16 +1151,16 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd
            ! Get the correct descriptors
            korb=jjorb-orbsig%isorb
            !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
-           do i=1,op%noverlaps(jjorb)
+           do i=1,opig%noverlaps(jjorb)
               !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
-              if(op%overlaps(i,jjorb)==iorb) then
+              if(opig%overlaps(i,jjorb)==iorb) then
                  lorb=i
                  exit
               end if
            end do
            !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
            gdim=lzdig%llr(jjlr)%wfd%nvctr_c+7*lzdig%llr(jjlr)%wfd%nvctr_f
-           ldim=op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
+           ldim=opig%wfd_overlap(lorb,korb)%nvctr_c+7*opig%wfd_overlap(lorb,korb)%nvctr_f
            ind=1
            do kkorb=orbsig%isorb+1,jjorb-1
               klr=onWhichAtom(kkorb)
@@ -1176,9 +1176,9 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd
             jst=0
             kold = 1
             knseg = 0
-            do iseg=1,op%wfd_overlap(lorb,korb)%nseg_c
-                istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg)
-                iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg)
+            do iseg=1,opig%wfd_overlap(lorb,korb)%nseg_c
+                istart=opig%wfd_overlap(lorb,korb)%keyglob(1,iseg)
+                iend=opig%wfd_overlap(lorb,korb)%keyglob(2,iseg)
                 ncount=iend-istart+1  
                 inner_loop: do kseg=kold,lzdig%llr(jjlr)%wfd%nseg_c
                    kstart = lzdig%llr(jjlr)%wfd%keyglob(1,kseg)
@@ -1193,19 +1193,19 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd
                    end if
                 end do inner_loop
             end do
-            if(jst .ne. op%wfd_overlap(lorb,korb)%nvctr_c) then
+            if(jst .ne. opig%wfd_overlap(lorb,korb)%nvctr_c) then
                print *,'ilr,jjlr',ilr,jjlr
-               print *,'knseg: ',knseg,'onseg:',op%wfd_overlap(lorb,korb)%nseg_c
-               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',op%wfd_overlap(lorb,korb)%nvctr_c
+               print *,'knseg: ',knseg,'onseg:',opig%wfd_overlap(lorb,korb)%nseg_c
+               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',opig%wfd_overlap(lorb,korb)%nvctr_c
                stop
             end if
             !MUST DO THE FINE GRID NOW
             jst=0
             kold = 1
             knseg = 0
-            do iseg=1,op%wfd_overlap(lorb,korb)%nseg_f
-                istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
-                iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
+            do iseg=1,opig%wfd_overlap(lorb,korb)%nseg_f
+                istart=opig%wfd_overlap(lorb,korb)%keyglob(1,iseg+opig%wfd_overlap(lorb,korb)%nseg_c)
+                iend=opig%wfd_overlap(lorb,korb)%keyglob(2,iseg+opig%wfd_overlap(lorb,korb)%nseg_c)
                 ncount=7*(iend-istart+1) 
                 inner_loop2: do kseg=kold,lzdig%llr(jjlr)%wfd%nseg_f
                    kstart = lzdig%llr(jjlr)%wfd%keyglob(1,kseg+lzdig%llr(jjlr)%wfd%nseg_c)
@@ -1216,16 +1216,16 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd
                       start = lzdig%llr(jjlr)%wfd%nvctr_c+(lzdig%llr(jjlr)%wfd%keyvglob(kseg+lzdig%llr(jjlr)%wfd%nseg_c) +&
                               max(0,istart-kstart)-1)*7
                       call dcopy(ncount,phi(ind+start),1,&
-                              sendBuf(indovrlp+jst+op%wfd_overlap(lorb,korb)%nvctr_c),1)
+                              sendBuf(indovrlp+jst+opig%wfd_overlap(lorb,korb)%nvctr_c),1)
                       jst=jst+ncount
                       exit inner_loop2
                    end if
                 end do inner_loop2
             end do
-            if(jst .ne. 7*op%wfd_overlap(lorb,korb)%nvctr_f) then
+            if(jst .ne. 7*opig%wfd_overlap(lorb,korb)%nvctr_f) then
                print *,'ilr,jjlr',ilr,jjlr
-               print *,'knseg: ',knseg,'onseg:',op%wfd_overlap(lorb,korb)%nseg_f
-               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',7*op%wfd_overlap(lorb,korb)%nvctr_f
+               print *,'knseg: ',knseg,'onseg:',opig%wfd_overlap(lorb,korb)%nseg_f
+               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',7*opig%wfd_overlap(lorb,korb)%nvctr_f
                stop
             end if
             
@@ -1255,8 +1255,14 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd
             !!    indSource=ind+op%indexExtract(ii+6)-1
             !!    sendBuf(ii+6)=phi(indSource)
             !!end do
-           op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
-           indovrlp=indovrlp+op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
+           if(orbs%norb==orbsig%norb) then
+               op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
+           else if(orbsig%norb>orbs%norb) then
+               opig%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
+           else
+               stop 'orbsig%norb<orbs%norb not yet implemented'
+           end if
+           indovrlp=indovrlp+opig%wfd_overlap(lorb,korb)%nvctr_c+7*opig%wfd_overlap(lorb,korb)%nvctr_f
         end if
      end do
      ilrold=ilr

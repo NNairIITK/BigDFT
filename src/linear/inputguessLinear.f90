@@ -3175,12 +3175,14 @@ call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd
 allocate(lchiovrlp2(op_local%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp2, 'lchiovrlp2',subname)
 call allocateCommuncationBuffersOrtho(comon_local, subname)
+call allocateCommuncationBuffersOrtho(comonig, subname)
 call extractOrbital3(iproc,nproc,orbs,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
-     lzd,lzdig,op_local,opig,lchi,comon_local%nsendBuf,comon_local%sendBuf)
+     lzd,lzdig,op_local,opig,lchi,comonig%nsendBuf,comonig%sendBuf)
 call postCommsOverlapNew(iproc, nproc, orbsig, op_local, lzdig, lchi, comon_local, tt1, tt2)
 call collectnew(iproc, nproc, comon_local, madig, op_local, orbsig, lzdig, comon_local%nsendbuf, &
      comon_local%sendbuf, comon_local%nrecvbuf, comon_local%recvbuf, tt1, tt2, tt3)
 call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op_local, comon_local, lchiovrlp2)
+call deallocateCommuncationBuffersOrtho(comonig, subname)
 call deallocateCommuncationBuffersOrtho(comon_local, subname)
 
 
