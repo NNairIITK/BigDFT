@@ -113,7 +113,7 @@ module ConvolutionGenerator
       ss = ""
       @source.dimension[0..-2].each{ |d|
         if d.val2 then
-          ss += "*(#{d.val2}-#{d.val1}+1})"
+          ss += "*(#{d.val2}-#{d.val1}+1)"
         else
           ss += "*#{d.val1}"
         end
