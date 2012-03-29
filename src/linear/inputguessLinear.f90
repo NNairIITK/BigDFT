@@ -2358,7 +2358,7 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 trace=0.d0
 do iorb=1,orbs%norb
   trace=trace+lagmat(iorb,iorb)
-  if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
+  !if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
 end do
 
 ! Now we also have to calculate the overlap matrix.
@@ -3221,8 +3221,8 @@ do iorb=1,orbs%norbp
         !jjorb=opig%overlaps(jorb,iiorb)
         jjorb=opig%overlaps(jorb,kkorb)
         !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
-        write(*,'(a,5i7)') 'iiorb, jjorb, ilr, ilrold, iwa', iiorb, jjorb, ilr, ilrold, iwa
-        write(*,'(a,2i5,3x,es12.5,3x,2i6,2es12.4)') 'iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)', iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)
+        !!write(*,'(a,5i7)') 'iiorb, jjorb, ilr, ilrold, iwa', iiorb, jjorb, ilr, ilrold, iwa
+        !!write(*,'(a,2i5,3x,es12.5,3x,2i6,2es12.4)') 'iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)', iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)
         call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
         jst=jst+ncount
     end do
@@ -3429,20 +3429,20 @@ type(matrixDescriptors):: mad
        input%lin%locrad, locregCenter, lzd, lzdig, hx, hy, hz, matmin%mlr)
   call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, onWhichAtomPhi, &
        lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
- if(iproc==0) write(*,'(a,100i5)') 'onwhichatomphi',onwhichatomphi
- if(iproc==0) write(*,'(a,100i5)') 'lorbs%inwhichlocreg', lorbs%inwhichlocreg
- if(iproc==0) write(*,'(a,100i5)') 'lorbs%onwhichmpi', lorbs%onwhichmpi
-  write(*,'(a,100i5)') 'matmin%inwhichlocregonmpi', matmin%inwhichlocregonmpi
+ !!if(iproc==0) write(*,'(a,100i5)') 'onwhichatomphi',onwhichatomphi
+ !!if(iproc==0) write(*,'(a,100i5)') 'lorbs%inwhichlocreg', lorbs%inwhichlocreg
+ !!if(iproc==0) write(*,'(a,100i5)') 'lorbs%onwhichmpi', lorbs%onwhichmpi
+ !!write(*,'(a,100i5)') 'matmin%inwhichlocregonmpi', matmin%inwhichlocregonmpi
 
   call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
        onWhichAtom, onWhichAtomPhi, comom)
-       if(iproc==0) then
-           do iorb=1,lorbs%norb
-               do jorb=1,comom%noverlap(iorb)
-                   write(*,'(a,2i7,i10)') 'iorb,jorb,comom%overlaps(jorb,iorb)',iorb,jorb,comom%overlaps(jorb,iorb)
-               end do
-           end do
-       end if
+       !!if(iproc==0) then
+       !!    do iorb=1,lorbs%norb
+       !!        do jorb=1,comom%noverlap(iorb)
+       !!            write(*,'(a,2i7,i10)') 'iorb,jorb,comom%overlaps(jorb,iorb)',iorb,jorb,comom%overlaps(jorb,iorb)
+       !!        end do
+       !!    end do
+       !!end if
   call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, lorbs%norb_par, lorbs%isorb_par, &
        onWhichAtomPhi, lorbs%onwhichmpi, tag, comom)
 
@@ -3469,8 +3469,8 @@ type(matrixDescriptors):: mad
 
   coeffPad=0.d0
   ii=0
-  write(*,'(a,100i6)') 'orbsGauss%inwhichlocreg', orbsGauss%inwhichlocreg
-  write(*,'(a,100i6)') 'lorbs%onwhichatom', lorbs%onwhichatom
+  !!write(*,'(a,100i6)') 'orbsGauss%inwhichlocreg', orbsGauss%inwhichlocreg
+  !!write(*,'(a,100i6)') 'lorbs%onwhichatom', lorbs%onwhichatom
   do jproc=0,nproc-1
       do iorb=1,lorbs%norb_par(jproc,0)
           iiAt=onWhichAtomPhi(lorbs%isorb_par(jproc)+iorb)
@@ -3487,8 +3487,8 @@ type(matrixDescriptors):: mad
                   tt = (rxyz(1,iiiat)-locregCenter(1,jjAt))**2 + &
                        (rxyz(2,iiiat)-locregCenter(2,jjAt))**2 + &
                        (rxyz(3,iiiat)-locregCenter(3,jjAt))**2
-                  write(*,'(a,3i5,2es12.4)') 'jproc, iorb, jorb, tt, cut', jproc, iorb, jorb, tt, cut
-                  write(*,'(a,5i5,2es12.4)') 'lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut', lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut
+                  !!write(*,'(a,3i5,2es12.4)') 'jproc, iorb, jorb, tt, cut', jproc, iorb, jorb, tt, cut
+                  !!write(*,'(a,5i5,2es12.4)') 'lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut', lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut
                   if(tt>cut) then
                        coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                   else
@@ -3579,12 +3579,12 @@ type(matrixDescriptors):: mad
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
-          write(200+lorbs%isorb+iorb,'(a,3i5,es14.6)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
-          do jorb=1,matmin%mlr(ilr)%norbinlr
-              write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
-          end do
-          write(*,'(a,3i6,es12.5)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
-          write(*,'(a,4i7,es14.5)') 'lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)', lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)
+          !!write(200+lorbs%isorb+iorb,'(a,3i5,es14.6)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
+          !!do jorb=1,matmin%mlr(ilr)%norbinlr
+          !!    write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
+          !!end do
+          !!write(*,'(a,3i6,es12.5)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
+          !!write(*,'(a,4i7,es14.5)') 'lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)', lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)
       end do
 
   
@@ -3647,9 +3647,9 @@ type(matrixDescriptors):: mad
           ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
-          do jorb=1,matmin%mlr(ilr)%norbinlr
-              write(300+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
-          end do
+          !!do jorb=1,matmin%mlr(ilr)%norbinlr
+          !!    write(300+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
+          !!end do
       end do
   
 
@@ -3761,12 +3761,12 @@ type(matrixDescriptors):: mad
      call vcopy(sendcount,coeff2(1),1,coeff(1,1),1)
   end if
 
-  do iorb=1,lorbs%norb
-      do jorb=1,ip%norbtot
-          !write(600+iproc,*) coeff(jorb,iorb), iorb, jorb
-          read(600+iproc,*) coeff(jorb,iorb), istat, iall
-      end do
-  end do
+  !!do iorb=1,lorbs%norb
+  !!    do jorb=1,ip%norbtot
+  !!        !write(600+iproc,*) coeff(jorb,iorb), iorb, jorb
+  !!        read(600+iproc,*) coeff(jorb,iorb), istat, iall
+  !!    end do
+  !!end do
 
   ! Deallocate stuff which is not needed any more.
   !if(iproc<nproc) then
