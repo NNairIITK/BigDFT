@@ -515,6 +515,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
               endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
 
+              !print the energies only if they are meaningful
               call total_energies(energs)
               energy=energs%eKS
 
@@ -683,7 +684,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! Clean KSwfn parts only needed in the SCF loop.
      call kswfn_free_scf_data(KSwfn, (nproc > 1))
 
-     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
         call ab6_mixing_deallocate(denspot%mix)
         deallocate(denspot%mix)
      end if
@@ -1235,7 +1236,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        !deallocate the mixing
-       if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+       if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
           call ab6_mixing_deallocate(denspot%mix)
           deallocate(denspot%mix)
        end if

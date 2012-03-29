@@ -197,7 +197,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
      end if
 
      !here the potential can be mixed
-     if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+     if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
         if (denspot%mix%kind == AB6_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&

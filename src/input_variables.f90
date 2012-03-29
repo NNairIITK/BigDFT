@@ -434,7 +434,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   call input_free((iproc == 0) .and. dump)
 
   !put the startmix if the mixing has to be done
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
 
