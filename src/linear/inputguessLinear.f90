@@ -3166,24 +3166,29 @@ character(len=*),parameter:: subname='buildLinearCombinations'
 !type(matrixDescriptors):: mad !just for calling collectnew, not really needed
 real(8),dimension(:,:),allocatable:: ttmat
 real(8):: tt1, tt2, tt3
-type(p2pComms):: comon_local
-type(overlapParameters):: op_local
+type(p2pComms):: comon_tmb_ig, comon_ig_tmb
+type(overlapParameters):: op_tmb_ig, op_ig_tmb
 
-call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, lzdig, orbs, orbsig, orbs%inwhichlocreg, 's', op_local, comon_local, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, lzdig, &
+     orbs, orbsig, orbs%inwhichlocreg, 's', op_tmb_ig, comon_tmb_ig, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzdig, lzd, &
+     orbsig, orbs, orbsig%inwhichlocreg, 's', op_ig_tmb, comon_ig_tmb, tag)
 
 ! For the moment this is a test
-allocate(lchiovrlp2(op_local%ndim_lphiovrlp), stat=istat)
+allocate(lchiovrlp2(op_tmb_ig%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp2, 'lchiovrlp2',subname)
-call allocateCommuncationBuffersOrtho(comon_local, subname)
+call allocateCommuncationBuffersOrtho(comon_tmb_ig, subname)
+call allocateCommuncationBuffersOrtho(comon_ig_tmb, subname)
 call allocateCommuncationBuffersOrtho(comonig, subname)
-call extractOrbital3(iproc,nproc,orbs,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
-     lzd,lzdig,op_local,opig,lchi,comonig%nsendBuf,comonig%sendBuf)
-call postCommsOverlapNew(iproc, nproc, orbsig, op_local, lzdig, lchi, comon_local, tt1, tt2)
-call collectnew(iproc, nproc, comon_local, madig, op_local, orbsig, lzdig, comon_local%nsendbuf, &
-     comon_local%sendbuf, comon_local%nrecvbuf, comon_local%recvbuf, tt1, tt2, tt3)
-call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op_local, comon_local, lchiovrlp2)
+call extractOrbital3(iproc,nproc,orbsig,orbs,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
+     lzdig,lzd,op_ig_tmb,op_tmb_ig,lchi,comon_ig_tmb%nsendBuf,comon_ig_tmb%sendBuf)
+call postCommsOverlapNew(iproc, nproc, orbsig, op_tmb_ig, lzdig, lchi, comon_tmb_ig, tt1, tt2)
+call collectnew(iproc, nproc, comon_tmb_ig, madig, op_tmb_ig, orbsig, lzdig, comon_tmb_ig%nsendbuf, &
+     comon_tmb_ig%sendbuf, comon_tmb_ig%nrecvbuf, comon_tmb_ig%recvbuf, tt1, tt2, tt3)
+call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op_tmb_ig, comon_tmb_ig, lchiovrlp2)
 call deallocateCommuncationBuffersOrtho(comonig, subname)
-call deallocateCommuncationBuffersOrtho(comon_local, subname)
+call deallocateCommuncationBuffersOrtho(comon_tmb_ig, subname)
+call deallocateCommuncationBuffersOrtho(comon_ig_tmb, subname)
 
 
 
@@ -3276,8 +3281,10 @@ iall=-product(shape(lchiovrlp2))*kind(lchiovrlp2)
 deallocate(lchiovrlp2, stat=istat)
 call memocc(istat, iall, 'lchiovrlp2', subname)
 
-call deallocate_p2pComms(comon_local, subname)
-call deallocate_overlapParameters(op_local, subname)
+call deallocate_p2pComms(comon_tmb_ig, subname)
+call deallocate_overlapParameters(op_tmb_ig, subname)
+call deallocate_p2pComms(comon_ig_tmb, subname)
+call deallocate_overlapParameters(op_ig_tmb, subname)
 
 
 end subroutine buildLinearCombinations_new
