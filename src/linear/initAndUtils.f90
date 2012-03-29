@@ -2268,7 +2268,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, llborbs, llborbs%inWhichLocreg,&
+  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
        's', lbop, lbcomon, tag)
   call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
@@ -2359,7 +2359,7 @@ character(len=*),parameter:: subname='create_new_locregs'
    call memocc(istat, tmb%orbs%eval, 'tmb%orbs%eval', subname)
    tmb%orbs%eval=-.5d0
    tmb%orbs%npsidim_orbs=max(npsidim,1)
-   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
+   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%lzd, tmb%orbs, tmb%orbs, tmb%orbs%inWhichLocreg,&
         's', tmb%op, tmb%comon, tag)
    call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, &
         tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)

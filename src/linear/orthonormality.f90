@@ -310,7 +310,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAtomAll, locregShape, op, comon, tag)
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon, tag)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -319,8 +319,8 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAto
   ! Calling arguments
   integer,intent(in):: iproc, nproc, nspin
   real(8),intent(in):: hx, hy, hz
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd, lzdig
+  type(orbitals_data),intent(in):: orbs, orbsig
   integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op

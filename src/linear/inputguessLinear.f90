@@ -213,7 +213,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initCommsOrtho(iproc, nproc, lig%lzdGauss, lig%orbsGauss, lig%orbsGauss%inWhichLocreg, &
   !!     input, lig%op, lig%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lig%lzdig, lig%orbsig, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lig%lzdig, lig%lzdig, lig%orbsig, lig%orbsig, &
        lig%orbsig%inWhichLocreg, lin%locregShape, lig%op, lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
@@ -1237,7 +1237,7 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, orbsig, &
+call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, orbsig, &
      onWhichAtom, locregShape, op, comon, tagout)
 
 
