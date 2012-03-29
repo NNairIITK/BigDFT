@@ -6334,6 +6334,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine set_optimization_variables
 
+       subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs, orbsig
+         type(local_zone_descriptors),intent(in):: lzd, lzdig
+         type(overlapParameters),intent(out):: op
+         type(p2pComms),intent(out):: comon
+       end subroutine determine_overlap_from_descriptors
+
    end interface
 
 END MODULE module_interfaces

@@ -2989,16 +2989,16 @@ END SUBROUTINE determine_locreg_parallel
 
 
 !> Count for each orbital and each process the number of overlapping orbitals.
-subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
+subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, except_this_one => determine_overlap_from_descriptors
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs, orbsig
+type(local_zone_descriptors),intent(in):: lzd, lzdig
 type(overlapParameters),intent(out):: op
 type(p2pComms),intent(out):: comon
 ! Local variables
@@ -3017,7 +3017,7 @@ integer,dimension(:,:,:),allocatable :: overlaps_nseg
 !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
 character(len=*),parameter:: subname='determine_overlap_from_descriptors'
 
-allocate(overlapMatrix(orbs%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
 allocate(noverlapsarr(orbs%norbp), stat=istat)
 call memocc(istat, noverlapsarr, 'noverlapsarr', subname)
@@ -3025,7 +3025,7 @@ allocate(displs(0:nproc-1), stat=istat)
 call memocc(istat, displs, 'displs', subname)
 allocate(recvcnts(0:nproc-1), stat=istat)
 call memocc(istat, recvcnts, 'recvcnts', subname)
-allocate(overlaps_nseg(orbs%norb,orbs%norbp,2), stat=istat)
+allocate(overlaps_nseg(orbsig%norb,orbs%norbp,2), stat=istat)
 call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
 
@@ -3038,9 +3038,9 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
         iiorb=orbs%isorb+iorb
         ilr=orbs%inWhichLocreg(iiorb)
 !        call get_start_and_end_indices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-        do jorb=1,orbs%norb
-            jlr=orbs%inWhichLocreg(jorb)
-            call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
+        do jorb=1,orbsig%norb
+            jlr=orbsig%inWhichLocreg(jorb)
+            call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzdig%llr(jlr),isoverlap)
 !            call get_start_and_end_indices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
 !            ovrlpx = ( is1<=je1 .and. ie1>=js1 )
 !            ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -3058,8 +3058,8 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
                 !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c, &
                 !!     lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc, lzd%llr(jlr)%wfd%keygloc, lzd%llr(jlr)%wfd%keyvloc, &
                 !!     n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
-                call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
-                     lzd%llr(ilr)%wfd%keyglob, lzd%llr(jlr)%wfd%keyglob, &
+                call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_c,&
+                     lzd%llr(ilr)%wfd%keyglob, lzdig%llr(jlr)%wfd%keyglob, &
                      isoverlap, onseg)
                 if(isoverlap) then
                     ! There is really an overlap
@@ -3131,13 +3131,13 @@ do iorb=1,orbs%norbp
     ioverlaporb=0 ! counts the overlaps for the given orbital.
     iiorb=orbs%isorb+iorb
     ilr=orbs%inWhichLocreg(iiorb)
-    do jorb=1,orbs%norb
-        jlr=orbs%inWhichLocreg(jorb)
+    do jorb=1,orbsig%norb
+        jlr=orbsig%inWhichLocreg(jorb)
         if(overlapMatrix(jorb,iorb,iproc)) then
             ioverlaporb=ioverlaporb+1
             ! Determine the number of segments of the fine grid in the overlap
-            call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f,&
-                 lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c), &
+            call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_f,&
+                 lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1+lzdig%llr(jlr)%wfd%nseg_c), &
                  isoverlap, overlaps_nseg(ioverlaporb,iorb,2))
             !op%overlaps(ioverlaporb,iiorb)=jorb
             overlaps_op(ioverlaporb,iorb)=jorb
@@ -3173,19 +3173,19 @@ do iorb=1,orbs%norbp
     ioverlaporb=0 ! counts the overlaps for the given orbital.
     iiorb=orbs%isorb+iorb
     ilr=orbs%inWhichLocreg(iiorb)
-    do jorb=1,orbs%norb
-        jlr=orbs%inWhichLocreg(jorb)
+    do jorb=1,orbsig%norb
+        jlr=orbsig%inWhichLocreg(jorb)
         if(overlapMatrix(jorb,iorb,iproc)) then
             ioverlaporb=ioverlaporb+1
            ! Determine the keyglob, keyvglob, nvctr of the coarse grid
-           call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c, &
-                lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1),  &
+           call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_c, &
+                lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1),  &
                 .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_c, op%wfd_overlap(ioverlaporb,iorb)%nvctr_c,&
                 op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,1), op%wfd_overlap(ioverlaporb,iorb)%keyvglob(1))
            ! Determine the keyglob, keyvglob, nvctr of the fine grid
            if(op%wfd_overlap(ioverlaporb,iorb)%nseg_f > 0) then
-              call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f, &
-                   lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c),  &
+              call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_f, &
+                   lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1+lzdig%llr(jlr)%wfd%nseg_c),  &
                    .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_f, op%wfd_overlap(ioverlaporb,iorb)%nvctr_f,&
                    op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1), &
                    op%wfd_overlap(ioverlaporb,iorb)%keyvglob(op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1))
@@ -3223,8 +3223,8 @@ else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
 
-do iorb=1,orbs%norb
-end do
+!!do iorb=1,orbs%norb
+!!end do
 
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)

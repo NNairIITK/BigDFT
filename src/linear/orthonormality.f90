@@ -361,7 +361,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
      call memocc(istat, op%overlaps, 'op%overlaps', subname)
      call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
   else if(locregShape=='s') then
-     call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
+     call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if
 
   ! OLRs NOT NEEDED ANYMORE
