@@ -396,7 +396,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ilr=0
   do iat=1,at%nat
       ityp=at%iatype(iat)
-      do iorb=1,input%lin%norbsPerType(ityp)
+      !do iorb=1,input%lin%norbsPerType(ityp)
+      do iorb=1,norbsPerAt(iat)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
       end do
@@ -676,7 +677,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Determine for how many localization regions we need a Hamiltonian application.
   ndim_lhchi=0
-  do ilr=1,lig%lzdig%nlr
+  !do ilr=1,lig%lzdig%nlr
+  do ilr=1,lzd%nlr
       call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,lig%orbsig%norbp
@@ -721,13 +723,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, lig%lzdig%doHamAppl, 'lig%lzdig%doHamAppl', subname)
   withConfinement=.true.
   ii=0
-  do ilr=1,lig%lzdig%nlr
+  !do ilr=1,lig%lzdig%nlr
+  do ilr=1,lzd%nlr
       doNotCalculate=.true.
       lig%lzdig%doHamAppl=.false.
-      call getIndices(lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
+      !call getIndices(lig%lzdig%llr(lig%orbsig%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
+      call getIndices(lzd%llr(lorbs%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,lig%orbsig%norbp
-          onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
+          !onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsGauss%inwhichlocreg(ilr)
+          onWhichAtomTemp(lig%orbsig%isorb+jorb)=lorbs%onwhichatom(ilr)
           jlr=lig%orbsig%inWhichLocreg(lig%orbsig%isorb+jorb)
           call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
@@ -830,7 +835,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
        at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
-       lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, &
+       lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, rxyz, lorbs%inWhichLocreg, &
        lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
 
@@ -2484,7 +2489,7 @@ do jproc=0,nproc-1
      tag=comom%comarr(6,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpidest .and. nproc > 1) then
-        !write(*,'(6(a,i0))') 'Bprocess ', mpidest, ' receives ', ncount,&
+        !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount,&
         !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
         tag=iorb
         irecv=irecv+1
@@ -2508,7 +2513,8 @@ do jproc=0,nproc-1
      tag=comom%comarr(6,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpisource .and. nproc > 1) then
-        !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+        !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, &
+        !     ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
         tag=iorb
         isend=isend+1
         call mpi_isend(comom%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, newComm,&
@@ -3332,7 +3338,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
-           onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+           onWhichAtom, lchi, lphi, locregCenter, rxyz, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
 use module_types
@@ -3354,6 +3360,7 @@ real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
 !real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(3,lzdig%nlr):: locregCenter
+real(8),dimension(3,at%nat):: rxyz
 integer,dimension(lorbs%norb):: onWhichAtomPhi
 !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 integer,intent(inout):: tag
@@ -3408,6 +3415,10 @@ type(matrixDescriptors):: mad
        input%lin%locrad, locregCenter, lzd, lzdig, hx, hy, hz, matmin%mlr)
   call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, onWhichAtomPhi, &
        lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
+ if(iproc==0) write(*,'(a,100i5)') 'onwhichatomphi',onwhichatomphi
+ if(iproc==0) write(*,'(a,100i5)') 'lorbs%inwhichlocreg', lorbs%inwhichlocreg
+ if(iproc==0) write(*,'(a,100i5)') 'lorbs%onwhichmpi', lorbs%onwhichmpi
+  write(*,'(a,100i5)') 'matmin%inwhichlocregonmpi', matmin%inwhichlocregonmpi
 
   call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
        onWhichAtom, onWhichAtomPhi, comom)
@@ -3424,7 +3435,7 @@ type(matrixDescriptors):: mad
   call nullify_matrixDescriptors(mad)
   if(iproc==0) write(300,*) 'HERE'
   call initMatrixCompression(iproc, nproc, lzdig%nlr, lorbs, comom%noverlap, comom%overlaps, mad)
-  call initCompressedMatmul3(orbsig%norb, mad)
+  call initCompressedMatmul3(lorbs%norb, mad)
 
 
 
@@ -3444,10 +3455,13 @@ type(matrixDescriptors):: mad
 
   coeffPad=0.d0
   ii=0
+  write(*,'(a,100i6)') 'orbsGauss%inwhichlocreg', orbsGauss%inwhichlocreg
+  write(*,'(a,100i6)') 'lorbs%onwhichatom', lorbs%onwhichatom
   do jproc=0,nproc-1
       do iorb=1,lorbs%norb_par(jproc,0)
           iiAt=onWhichAtomPhi(lorbs%isorb_par(jproc)+iorb)
-          iiiAt=orbsGauss%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
+          !iiiAt=orbsGauss%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
+          iiiAt=lorbs%onwhichatom(lorbs%isorb_par(jproc)+iorb)
           ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
           !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
           cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
@@ -3456,9 +3470,11 @@ type(matrixDescriptors):: mad
               ttreal=builtin_rand(ii)
               if(iproc==jproc) then
                   jjAt=onWhichAtom(jorb)
-                  tt = (locregCenter(1,iiat)-locregCenter(1,jjAt))**2 + &
-                       (locregCenter(2,iiat)-locregCenter(2,jjAt))**2 + &
-                       (locregCenter(3,iiat)-locregCenter(3,jjAt))**2
+                  tt = (rxyz(1,iiiat)-locregCenter(1,jjAt))**2 + &
+                       (rxyz(2,iiiat)-locregCenter(2,jjAt))**2 + &
+                       (rxyz(3,iiiat)-locregCenter(3,jjAt))**2
+                  write(*,'(a,3i5,2es12.4)') 'jproc, iorb, jorb, tt, cut', jproc, iorb, jorb, tt, cut
+                  write(*,'(a,5i5,2es12.4)') 'lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut', lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut
                   if(tt>cut) then
                        coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                   else
@@ -3535,10 +3551,20 @@ type(matrixDescriptors):: mad
       ilrold=0
       iilr=0
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtom(lorbs%isorb+iorb)
+          !!write(*,*) 'attention debug'
+          !!if(lorbs%isorb+iorb>12) then
+          !!    lcoeff(:,iorb)=0.d0
+          !!end if
+          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
+          write(200+lorbs%isorb+iorb,'(a,3i5,es14.6)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
+          do jorb=1,matmin%mlr(ilr)%norbinlr
+              write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
+          end do
+          write(*,'(a,3i6,es12.5)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
+          write(*,'(a,4i7,es14.5)') 'lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)', lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)
       end do
 
   
@@ -3557,7 +3583,7 @@ type(matrixDescriptors):: mad
       ! Calculate the gradient norm.
       fnrm=0.d0
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtom(lorbs%isorb+iorb)
+          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
 
@@ -3598,9 +3624,12 @@ type(matrixDescriptors):: mad
 
       ! Precondition the gradient.
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtom(lorbs%isorb+iorb)
+          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+          do jorb=1,matmin%mlr(ilr)%norbinlr
+              write(300+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
+          end do
       end do
   
 
@@ -3638,7 +3667,7 @@ type(matrixDescriptors):: mad
 
       ! Improve the coefficients (by steepet descent).
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtom(lorbs%isorb+iorb)
+          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
       end do
 
