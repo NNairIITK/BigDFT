@@ -42,7 +42,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
      call allocateRecvBufferOrtho(comon, subname)
 
      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-     call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inwhichlocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+     call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inwhichlocreg, lzd, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
 
     !! if(it==1)then
     !! open(11,file='sendbuf.out',status='unknown')
@@ -206,7 +206,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, &
        lphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeExtract=t2-t1
@@ -214,7 +214,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
        comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, &
        lhphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeextract=timeextract+t2-t1
@@ -293,8 +293,8 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   real(8):: tt1, tt2, tt3
 
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
-  call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,&
-       lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,&
+       lzd,lzd, op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
   call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
        comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
@@ -1111,16 +1111,16 @@ end subroutine postCommsOverlap
 
 
 
-subroutine extractOrbital3(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, nsendBuf, sendBuf)
+subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd, lzdig, op, phi, nsendBuf, sendBuf)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc, sizePhi
-  type(orbitals_data),intent(in):: orbs
+  type(orbitals_data),intent(in):: orbs, orbsig
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
-  type(local_zone_descriptors),intent(in):: lzd
+  type(local_zone_descriptors),intent(in):: lzd, lzdig
   type(overlapParameters),intent(inout):: op
   real(8),dimension(sizePhi),intent(in):: phi
   integer,intent(in):: nsendBuf
@@ -2888,12 +2888,14 @@ type(input_variables):: input
 
 
   ! Put lphi in the sendbuffer,i.e. lphi will be sent to other processes' receive buffer.
-  call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,lzd,&
+       op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
   call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
        comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   ! Put lhphi to the sendbuffer,so we can the calculate <lphi|lhphi>
-  call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,op_lb,lhphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,lzd,&
+       op_lb,lhphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   call calculateOverlapMatrix3(iproc,nproc,orbs,op_lb,orbs%inWhichLocreg,comon_lb%nsendBuf,&
                                comon_lb%sendBuf,comon_lb%nrecvBuf,comon_lb%recvBuf,mad,matrixElements)
 

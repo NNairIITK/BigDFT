@@ -922,7 +922,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
   t1=mpi_wtime()
   !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, &
+       op, lphi, comon%nsendBuf, comon%sendBuf)
   call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
   call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
        comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
