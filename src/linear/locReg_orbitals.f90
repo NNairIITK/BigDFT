@@ -385,7 +385,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
 
       ! Switch to the next atom if the number of basis functions for this atom is reached.
       !if(iiOrb==Localnorb(jat)) then
-      if(iproc==0) write(*,*) 'localnorb(iiat)',localnorb(iiat)
+      !if(iproc==0) write(*,*) 'localnorb(iiat)',localnorb(iiat)
       if(iiOrb==Localnorb(iiat)) then
           iiOrb=0
           !jat=jat+1
@@ -395,7 +395,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
           minvalue=1.d100
           do iat=1,nlr
               !write(*,'(a,i8,a,l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, ' covered(iat) ', covered(iat)
-              if(iproc==0 .and. nlr>12) write(*,'(a,2i6,l5,i7)') 'iorb, iat, covered(13), iiat', iorb, iat, covered(13), iiat
+              !if(iproc==0 .and. nlr>12) write(*,'(a,2i6,l5,i7)') 'iorb, iat, covered(13), iiat', iorb, iat, covered(13), iiat
               if(covered(iat)) then
                   !!write(*,'(a,i8,a,i4)') 'iproc, iorb, minvalue, iiat, covered', iproc, 'cycles for iat=',iat
                   cycle
@@ -419,7 +419,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       iiOrb=iiOrb+1
       !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
       !orbse%inWhichLocreg(iorb)=jat
-      if(iproc==0) write(*,'(a,2i8,es16.8,i8,20l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, iorb, minvalue, iiat, covered
+      !if(iproc==0) write(*,'(a,2i8,es16.8,i8,20l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, iorb, minvalue, iiat, covered
       inWhichLocreg(iorb)=iiat
   end do
 

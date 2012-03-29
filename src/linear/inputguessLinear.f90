@@ -3160,11 +3160,29 @@ real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr, iwa, kwa
 !type(overlapParameters):: op
 !type(p2pCommsOrthonormality):: comon
-real(8),dimension(:),allocatable:: lchiovrlp
+real(8),dimension(:),allocatable:: lchiovrlp, lchiovrlp2
 character(len=*),parameter:: subname='buildLinearCombinations'
 !type(matrixDescriptors):: mad !just for calling collectnew, not really needed
 real(8),dimension(:,:),allocatable:: ttmat
 real(8):: tt1, tt2, tt3
+type(p2pComms):: comon_local
+type(overlapParameters):: op_local
+
+call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, lzdig, orbs, orbsig, orbs%inwhichlocreg, 's', op_local, comon_local, tag)
+
+! For the moment this is a test
+allocate(lchiovrlp2(op_local%ndim_lphiovrlp), stat=istat)
+call memocc(istat, lchiovrlp2, 'lchiovrlp2',subname)
+call allocateCommuncationBuffersOrtho(comon_local, subname)
+call extractOrbital3(iproc,nproc,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
+     lzdig,op_local,lchi,comon_local%nsendBuf,comon_local%sendBuf)
+call postCommsOverlapNew(iproc, nproc, orbsig, op_local, lzdig, lchi, comon_local, tt1, tt2)
+call collectnew(iproc, nproc, comon_local, madig, op_local, orbsig, lzdig, comon_local%nsendbuf, &
+     comon_local%sendbuf, comon_local%nrecvbuf, comon_local%recvbuf, tt1, tt2, tt3)
+call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op_local, comon_local, lchiovrlp2)
+call deallocateCommuncationBuffersOrtho(comon_local, subname)
+
+
 
 !tag=10000
 !call initCommsOrtho(iproc, nproc, lzdig, orbsig, orbsig%inWhichLocreg, input, locregShape, op, comon, tag)
@@ -3251,6 +3269,12 @@ iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
 deallocate(lchiovrlp, stat=istat)
 call memocc(istat, iall, 'lchiovrlp', subname)
 
+iall=-product(shape(lchiovrlp2))*kind(lchiovrlp2)
+deallocate(lchiovrlp2, stat=istat)
+call memocc(istat, iall, 'lchiovrlp2', subname)
+
+call deallocate_p2pComms(comon_local, subname)
+call deallocate_overlapParameters(op_local, subname)
 
 
 end subroutine buildLinearCombinations_new
