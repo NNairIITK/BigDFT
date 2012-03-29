@@ -124,6 +124,10 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
   deallocate(lig%orbsig%onwhichatom,stat=istat)
   call memocc(istat,iall,'lig%orbsig%onwhichatom',subname)
 
+  call assignToLocreg2(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, at%nat, at%nat, &
+       input%nspin, norbsPerAt, rxyz, lig%orbsig%onwhichatom)
+       if(iproc==0) write(*,'(a,100i5)') 'lig%orbsig%onwhichatom',lig%orbsig%onwhichatom
+
 
   allocate(locregCenter(3,lig%orbsig%norb), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -671,7 +675,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   allocate(doNotCalculate(lig%lzdig%nlr), stat=istat)
   call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
-  allocate(skip(lig%lzdig%nlr), stat=istat)
+  allocate(skip(lzd%nlr), stat=istat)
   call memocc(istat, skip, 'skip', subname)
 
 
@@ -821,7 +825,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat,ham3,'ham3',subname)
 
   if(input%lin%nItInguess>0) then
-      call getHamiltonianMatrix6(iproc, nproc, lig%lzdig, lig%orbsig, lorbs, &
+      call getHamiltonianMatrix6(iproc, nproc, lzd, lig%lzdig, lig%orbsig, lorbs, &
            input, hx, hy, hz, lig%orbsig%inWhichLocreg, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, lig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
   end if
@@ -1163,7 +1167,7 @@ end subroutine initializeInguessParameters
 
 
 
-subroutine getHamiltonianMatrix6(iproc, nproc, lzdig, orbsig, orbs, &
+subroutine getHamiltonianMatrix6(iproc, nproc, lzd, lzdig, orbsig, orbs, &
 input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
 tagout, ham)
 use module_base
@@ -1174,7 +1178,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, ndim_lhchi, nlocregPerMPI
 real(gp),intent(in) :: hx, hy, hz
-type(local_zone_descriptors),intent(in):: lzdig
+type(local_zone_descriptors),intent(in):: lzd, lzdig
 type(orbitals_data),intent(in):: orbsig, orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
@@ -1182,7 +1186,7 @@ integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 !real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
 real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)),intent(in):: lchi
 real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp),ndim_lhchi),intent(in):: lhchi
-logical,dimension(lzdig%nlr),intent(in):: skip
+logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
@@ -1218,7 +1222,8 @@ availableMemory=availableMemory/8 ! double precision
 ii=maxval(sendcounts)
 noverlaps=max(availableMemory/ii,1)
 if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
-noverlaps=min(noverlaps,lzdig%nlr)
+!noverlaps=min(noverlaps,lzdig%nlr)
+noverlaps=min(noverlaps,lzd%nlr)
 
 
 !allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
@@ -1257,7 +1262,8 @@ iatold=0
 ii=0
 imatold=1
 imat=0
-do iat=1,lzdig%nlr
+!do iat=1,lzdig%nlr
+do iat=1,lzd%nlr
 
     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for locreg ', iat, '... '
 
@@ -1349,7 +1355,7 @@ do iat=1,lzdig%nlr
                 iiat=iioverlap+nshift
                 ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
                 ! in calculating the input guess, this check has to be done only for those processes.
-                !write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
+                write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
                 if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle
                     if(ilr==iiat) then
@@ -2352,6 +2358,7 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 trace=0.d0
 do iorb=1,orbs%norb
   trace=trace+lagmat(iorb,iorb)
+  if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
 end do
 
 ! Now we also have to calculate the overlap matrix.
@@ -3150,7 +3157,7 @@ type(matrixDescriptors):: madig
 real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
-integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr
+integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr, iwa, kwa
 !type(overlapParameters):: op
 !type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
@@ -3187,28 +3194,35 @@ jst=1
 ilrold=-1
 do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
-    ilr=orbs%inWhichLocreg(iiorb)
+    !ilr=orbs%inWhichLocreg(iiorb)
+    iwa=orbs%onwhichatom(iiorb)
 
-    ! Search an orbital of the inguess orbitals which is in the same locreg as iiorb
+    !!! Search an orbital of the inguess orbitals which is in the same locreg as iiorb
+    ! Search an orbital of the inguess orbitals which is centered on the same atom as iiorb
     do korb=1,orbsig%norb
-        klr=orbsig%inwhichlocreg(korb)
-        if(klr==ilr) then
+        !klr=orbsig%inwhichlocreg(korb)
+        kwa=orbsig%onwhichatom(korb)
+        !if(klr==ilr) then
+        if(kwa==iwa) then
             kkorb=korb
+            ilr=orbsig%inwhichlocreg(korb)
             exit
         end if
     end do
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        !jst=jst-opig%noverlaps(iiorb-1)*ncount
-        jst=jst-opig%noverlaps(kkorb-1)*ncount
-    end if
+    !!if(ilr==ilrold) then
+    !!    ! Set back the index of lphiovrlp, since we again need the same orbitals.
+    !!    !jst=jst-opig%noverlaps(iiorb-1)*ncount
+    !!    jst=jst-opig%noverlaps(kkorb-1)*ncount
+    !!end if
     !write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
-    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    ncount=lzdig%llr(ilr)%wfd%nvctr_c+7*lzdig%llr(ilr)%wfd%nvctr_f
     !do jorb=1,opig%noverlaps(iiorb)
     do jorb=1,opig%noverlaps(kkorb)
         !jjorb=opig%overlaps(jorb,iiorb)
         jjorb=opig%overlaps(jorb,kkorb)
         !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
+        write(*,'(a,5i7)') 'iiorb, jjorb, ilr, ilrold, iwa', iiorb, jjorb, ilr, ilrold, iwa
+        write(*,'(a,2i5,3x,es12.5,3x,2i6,2es12.4)') 'iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)', iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)
         call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
         jst=jst+ncount
     end do
@@ -3508,6 +3522,12 @@ type(matrixDescriptors):: mad
       call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
   end do
 
+  !!write(*,*) 'attention debug 1'
+  !!do iorb=1,lorbs%norbp
+  !!    if(lorbs%norb==14 .and. (lorbs%isorb+iorb==7 .or. lorbs%isorb+iorb==11)) then
+  !!        lcoeff(:,iorb)=0.d0
+  !!    end if
+  !!end do
 
 
   if(input%lin%nItInguess==0) then
@@ -3552,7 +3572,7 @@ type(matrixDescriptors):: mad
       iilr=0
       do iorb=1,lorbs%norbp
           !!write(*,*) 'attention debug'
-          !!if(lorbs%isorb+iorb>12) then
+          !!if(lorbs%norb==14 .and. (lorbs%isorb+iorb==7 .or. lorbs%isorb+iorb==11)) then
           !!    lcoeff(:,iorb)=0.d0
           !!end if
           ilr=onWhichAtomPhi(lorbs%isorb+iorb)
@@ -3740,6 +3760,13 @@ type(matrixDescriptors):: mad
   else
      call vcopy(sendcount,coeff2(1),1,coeff(1,1),1)
   end if
+
+  do iorb=1,lorbs%norb
+      do jorb=1,ip%norbtot
+          !write(600+iproc,*) coeff(jorb,iorb), iorb, jorb
+          read(600+iproc,*) coeff(jorb,iorb), istat, iall
+      end do
+  end do
 
   ! Deallocate stuff which is not needed any more.
   !if(iproc<nproc) then
