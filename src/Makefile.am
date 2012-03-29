@@ -188,7 +188,7 @@ bindings_files = lib/bindings_api.h \
 	lib/bindings_localfields.c \
 	lib/bindingsf.f90
 else
-bindings_files =
+bindings_files = lib/bindingsf_fake.f90
 endif
 
 if HAVE_FC_FLUSH
