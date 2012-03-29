@@ -4714,7 +4714,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       !!  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
       !!end subroutine expandRemainingOrbitals
 
-      subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd, lzdig, op, phi, nsendBuf, sendBuf)
+      subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd, lzdig, op, opig, phi, nsendBuf, sendBuf)
         use module_base
         use module_types
         implicit none
@@ -4722,7 +4722,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(orbitals_data),intent(in):: orbs, orbsig
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(local_zone_descriptors),intent(in):: lzd, lzdig
-        type(overlapParameters),intent(inout):: op
+        type(overlapParameters),intent(inout):: op, opig
         real(8),dimension(sizePhi),intent(in):: phi
         integer,intent(in):: nsendBuf
         real(8),dimension(nsendBuf),intent(out):: sendBuf
