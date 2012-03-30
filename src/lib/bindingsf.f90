@@ -680,15 +680,17 @@ subroutine gpu_free(GPU)
   deallocate(GPU)
 END SUBROUTINE gpu_free
 
-subroutine wf_new(wf, orbs, comm, lzd)
+subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
   implicit none
+  double precision, intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
   type(communications_arrays), pointer :: comm
   type(local_zone_descriptors), pointer :: lzd
 
   allocate(wf)
+  wf%c_obj = self
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
@@ -720,7 +722,6 @@ subroutine wf_free(wf)
      deallocate(wf%hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi', "wf_free")
   end if
-  call deallocate_diis_objects(wf%diis, "wf_free")
   call deallocate_comms(wf%comms, "wf_free")
   if (associated(wf%orbs%eval)) then
      i_all=-product(shape(wf%orbs%eval))*kind(wf%orbs%eval)
@@ -803,3 +804,41 @@ subroutine glr_get_psi_size(glr, psisize)
 
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
+
+subroutine energs_new(energs)
+  use module_types
+  implicit none
+  type(energy_terms), pointer :: energs
+
+  allocate(energs)
+END SUBROUTINE energs_new
+subroutine energs_free(energs)
+  use module_types
+  implicit none
+  type(energy_terms), pointer :: energs
+
+  deallocate(energs)
+END SUBROUTINE energs_free
+subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
+     & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
+  use module_types
+  implicit none
+  type(energy_terms), intent(in) :: energs
+  real(gp), intent(out) :: eh, exc, evxc, eion, edisp, ekin, epot, eproj, &
+       & eexctX, ebs, eKS, trH, evsum, evsic
+
+  eh     = energs%eh
+  exc    = energs%exc
+  evxc   = energs%evxc
+  eion   = energs%eion
+  edisp  = energs%edisp
+  ekin   = energs%ekin
+  epot   = energs%epot
+  eproj  = energs%eproj
+  eexctX = energs%eexctX
+  ebs    = energs%ebs
+  eKS    = energs%eKS
+  trH    = energs%trH
+  evsum  = energs%evsum
+  evsic  = energs%evsic
+END SUBROUTINE energs_copy_data

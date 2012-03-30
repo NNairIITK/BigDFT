@@ -1106,6 +1106,7 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   type(input_variables), intent(in) :: in !<todo: Remove me
 
+  character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr
   real(gp) :: gnrm_zero, gnrm, rpnrm
@@ -1115,6 +1116,13 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=KSwfn%diis%idsx
+
+  ! Setup the mixing, if necessary
+  call denspot_set_history(denspot,iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+
+  ! allocate arrays necessary for DIIS convergence acceleration
+  call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
+       KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
 
   gnrm_zero=0.0d0
   gnrm=1.d10
@@ -1186,7 +1194,7 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
            linflag = 1                                 
            if(in%linear == 'OFF') linflag = 0
            if(in%linear == 'TMO') linflag = 2
-           call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,iscf,alphamix,in%ixc,&
+           call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,iter,iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
 
            endlooprp= (itrp > 1 .and. rpnrm <= rpnrm_cv) .or. itrp == itrpmax
@@ -1279,7 +1287,7 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
              &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         if (iproc==0) call yaml_close_indent_map() !wfn iterations
 
-        call last_orthon(iproc,nproc,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
+        call last_orthon(iproc,nproc,iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
         !exit if the infocode is correct
         if (infocode == 0) then

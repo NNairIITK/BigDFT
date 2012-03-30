@@ -741,11 +741,11 @@ module module_interfaces
          real(wp), dimension(:), pointer, optional :: psivirt
       END SUBROUTINE DiagHam
 
-      subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
+      subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc
+        integer, intent(in) :: iproc,nproc,iter
         real(wp), intent(out) :: evsum
         type(DFT_wavefunction), intent(inout) :: wfn
         logical, optional :: opt_keeppsit
@@ -5818,7 +5818,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 
-       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
+       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
             nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
             energs,rpnrm,xcstr)
          use module_base
@@ -5826,7 +5826,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          use m_ab6_mixing
          implicit none
          logical, intent(in) :: scf
-         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms

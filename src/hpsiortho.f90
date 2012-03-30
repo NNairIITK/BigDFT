@@ -10,7 +10,7 @@
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
-subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
+subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
      nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
      energs,rpnrm,xcstr)
   use module_base
@@ -20,7 +20,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
   use m_ab6_mixing
   implicit none
   logical, intent(in) :: scf
-  integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+  integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: alphamix
   type(atoms_data), intent(in) :: atoms
@@ -145,7 +145,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
-     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itrp)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn)
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -174,14 +174,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,ixc,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itrp)
+        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn)
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
         !this is not true, there is also Vext
-        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itrp)
+        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
@@ -211,7 +211,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
            end if
         end if
      end if
-     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itrp)
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn)
 
      if (savefields) then
         if (associated(denspot%rho_work)) then
@@ -1307,6 +1307,10 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+   ! Emit that new wavefunctions are ready.
+   if (iproc == 0 .and. wfn%c_obj /= 0) then
+      call wf_emit_psi(wfn%c_obj, iter)
+   end if
 
    if (nproc == 1) then
       nullify(wfn%psit)
@@ -1477,12 +1481,12 @@ END SUBROUTINE first_orthon
 
 
 !>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
+subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    use module_base
    use module_types
    use module_interfaces, except_this_one_C => last_orthon
    implicit none
-   integer, intent(in) :: iproc,nproc
+   integer, intent(in) :: iproc,nproc,iter
    real(wp), intent(out) :: evsum
    type(DFT_wavefunction), intent(inout) :: wfn
    logical, optional :: opt_keeppsit
@@ -1510,6 +1514,10 @@ subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+   ! Emit that new wavefunctions are ready.
+   if (iproc == 0 .and. wfn%c_obj /= 0) then
+      call wf_emit_psi(wfn%c_obj, iter)
+   end if
 
    if(.not.  keeppsit) then
       if (nproc > 1  ) then

@@ -21,6 +21,7 @@ typedef struct bigdft_data
   BigDFT_Proj        *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Wf          *wf;
+  BigDFT_Energs      *energs;
 
 #ifdef HAVE_GLIB
   GMainLoop *loop;
@@ -113,6 +114,7 @@ int main(guint argc, char **argv)
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Data *data;
+  BigDFT_Energs *energs;
 #ifdef HAVE_GLIB
   GMainLoop *loop;
 #endif
@@ -232,12 +234,15 @@ int main(guint argc, char **argv)
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
   data = run_bigdft(in, proj, denspot, wf, loop);
-  g_timeout_add(10000, exit_loop, (gpointer)loop);
+  g_timeout_add(100000, exit_loop, (gpointer)loop);
   g_main_loop_run(loop);
 #else
   data = run_bigdft(in, proj, denspot, wf, (gpointer)0);
 #endif
+  energs = data->energs;
   g_free(data);
+
+  fprintf(stdout, " Total energy after relaxation is %gHt.\n", energs->eKS);
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -253,6 +258,10 @@ int main(guint argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Inputs free.\n");
   bigdft_inputs_free(in);
+  fprintf(stdout, " Ok\n");
+
+  fprintf(stdout, "Test BigDFT_Energs free.\n");
+  bigdft_energs_free(energs);
   fprintf(stdout, " Ok\n");
 
   if (argc > 2)
@@ -327,6 +336,45 @@ static gboolean exit_loop(gpointer data)
 }
 #endif
 
+static gpointer optimize_psi_thread(gpointer data)
+{
+  BigDFT_Data *container = (BigDFT_Data*)data;
+  
+  fprintf(stdout, " Calculation of optimization started.\n");
+  bigdft_wf_optimization_loop(container->wf, container->denspot, container->proj,
+                              container->energs, 0, 1, (BigDFT_optLoopParams*)0);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(container->wf));
+  g_object_unref(G_OBJECT(container->denspot));
+  /* g_object_unref(G_OBJECT(container->proj)); */
+  g_idle_add((GSourceFunc)g_main_loop_quit, container->loop);
+#endif
+  fprintf(stdout, " Calculation of optimization finished.\n");
+
+  return (gpointer)0;
+}
+static gboolean optimize_psi(gpointer data)
+{
+  BigDFT_Data *ct = (BigDFT_Data*)data;
+#ifdef G_THREADS_ENABLED
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(ct->denspot));
+  g_object_ref(G_OBJECT(ct->wf));
+  /* g_object_ref(G_OBJECT(ct->proj)); */
+#endif
+#ifdef G_THREADS_ENABLED
+  ld_thread = g_thread_create(optimize_psi_thread, ct, FALSE, &error);
+#else
+  optimize_psi_thread(ct);
+#endif
+
+  return FALSE;
+}
+
 static gpointer calculate_psi_0_thread(gpointer data)
 {
   BigDFT_Data *container = (BigDFT_Data*)data;
@@ -337,7 +385,8 @@ static gpointer calculate_psi_0_thread(gpointer data)
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));
   /* g_object_unref(G_OBJECT(container->proj)); */
-  g_idle_add((GSourceFunc)g_main_loop_quit, container->loop);
+  /* Chain up with the SCF loop. */
+  g_idle_add(optimize_psi, data);
 #endif
   fprintf(stdout, " Calculation of input guess finished.\n");
 
@@ -464,6 +513,7 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
   ct->in      = in;
   ct->proj    = proj;
   ct->wf      = wf;
+  ct->energs  = bigdft_energs_new();
 #ifdef HAVE_GLIB
   ct->loop    = (GMainLoop*)data;
   g_signal_connect(G_OBJECT(ct->denspot), "v-ext-ready",

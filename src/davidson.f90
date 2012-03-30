@@ -309,7 +309,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    call deallocate_diis_objects(VTwfn%diis,subname)
 
    !this deallocates also hpsivirt and psitvirt
-   call last_orthon(iproc,nproc,VTwfn,energs%evsum)
+   call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
 
    !resize work array before final transposition
    if(nproc > 1)then

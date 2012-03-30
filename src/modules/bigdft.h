@@ -15,8 +15,9 @@
 
 typedef struct BigDFT_lzd_ BigDFT_Lzd;
 typedef struct BigDFT_orbs_ BigDFT_Orbs;
-typedef struct BigDFT_proj_ BigDFT_Proj;
+typedef struct BigDFT_Proj_ BigDFT_Proj;
 typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
+typedef struct BigDFT_Energs_ BigDFT_Energs;
 
 /********************************/
 /* BigDFT_Atoms data structure. */
@@ -319,25 +320,56 @@ typedef enum
     BIGDFT_IMAG,
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
+typedef struct BigDFT_optLoopParams_
+{
+  guint iscf;
+  guint itrpmax, nrepmax, itermax;
+  double gnrm_cv, rpnrm_cv;
+  double gnrm_startmix, alphamix;
+  guint idsx;
+} BigDFT_optLoopParams;
+void bigdft_optloopparams_init(BigDFT_optLoopParams *params);
 
 BigDFT_Wf* bigdft_wf_new ();
 void       bigdft_wf_free(BigDFT_Wf *wf);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, guint iproc, guint nproc);
+guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                       BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                       guint iproc, guint nproc, BigDFT_optLoopParams *params);
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
-void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
-                            const BigDFT_Inputs *in,
-                            gboolean threaded, guint iproc, guint nproc);
+void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
+                                  BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
+                                  const BigDFT_Inputs *in,
+                                  gboolean threaded, guint iproc, guint nproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-struct BigDFT_proj_
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_PROJ_TYPE    (bigdft_proj_get_type())
+#define BIGDFT_PROJ(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_PROJ_TYPE, BigDFT_Proj))
+typedef struct BigDFT_ProjClass_
 {
+  GObjectClass parent;
+} BigDFT_ProjClass;
+GType bigdft_proj_get_type(void);
+#else
+#define BIGDFT_PROJ_TYPE    (999)
+#define BIGDFT_PROJ(obj)    ((BigDFT_Proj*)obj)
+#endif
+struct BigDFT_Proj_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   /* TODO: bindings to values... */
   guint nproj, nprojel;
 
@@ -410,6 +442,40 @@ void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc);
+
+/********************************/
+/* BigDFT_Energs data structure */
+/********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
+#define BIGDFT_ENERGS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ENERGS_TYPE, BigDFT_Energs))
+typedef struct BigDFT_EnergsClass_
+{
+  GObjectClass parent;
+} BigDFT_EnergsClass;
+GType bigdft_energs_get_type(void);
+#else
+#define BIGDFT_ENERGS_TYPE    (999)
+#define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
+#endif
+struct BigDFT_Energs_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
+  /* Binded values. */
+  double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
+
+  /* Private. */
+  void *data;
+};
+BigDFT_Energs* bigdft_energs_new();
+void           bigdft_energs_free(BigDFT_Energs *energs);
+void           bigdft_energs_update(BigDFT_Energs *energs);
+
 
 /******************/
 /* Miscellaneous. */

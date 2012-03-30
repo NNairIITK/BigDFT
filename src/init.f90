@@ -2156,10 +2156,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   if(inputpsi /= INPUT_PSI_LINEAR) then
-     ! allocate arrays necessary for DIIS convergence acceleration
-     call allocate_diis_objects(in%idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
-          KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
-
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2174,8 +2170,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              in%nspin,KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
         if (iproc == 0) write(*,*)'GPU data allocated'
      end if
-
-     call denspot_set_history(denspot,in%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
   end if
 
 END SUBROUTINE input_wf
