@@ -117,11 +117,20 @@ real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
+integer::iatyp
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
 !real(8),dimension(:),pointer:: lpot
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
+  !wvl+PAW objects
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
 
+  !nullify paw objects:
+  !nullify(paw%paw_ij%dij)
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   ! Allocate the local arrays.  
   allocate(matrixElements(llborbs%norb,llborbs%norb,2), stat=istat)
@@ -252,6 +261,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           hx,hy,hz,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+          proj_G,paw,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
 
@@ -263,6 +273,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           hx,hy,hz,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+          proj_G,paw,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
@@ -532,6 +543,7 @@ integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecu
 integer :: icountDIISFailureCons,itBest
 integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
 integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
+integer:: iatyp
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
 real(8),dimension(:),allocatable:: lphiold
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat
@@ -543,6 +555,15 @@ real(8),dimension(5):: time
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
 
+  !wvl+PAW objects
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
+
+  !nullify paw objects:
+  !nullify(paw%paw_ij%dij)
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
 
   ! Allocate all local arrays.
@@ -657,6 +678,7 @@ character(len=3):: orbname, comment
            hx,hy,hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+           proj_G,paw,&
            pkernel=denspot%pkernelseq)
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)

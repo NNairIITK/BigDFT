@@ -20,6 +20,7 @@ program oneatom
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
+  integer :: iatyp
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC !n(c) gnrm_zero,alpha
   real(gp) :: energy,energy_min,energybs,evsum,scprsum !n(c) energy_old
@@ -34,6 +35,9 @@ program oneatom
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
+  type(gaussian_basis),dimension(:),allocatable::proj_G
+!  type(gaussian_basis)::proj_G
+  type(paw_objects)::paw
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -72,6 +76,14 @@ program oneatom
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
+! Nullify paw objects:
+  !nullify(paw%paw_ij%dij)
+  allocate(proj_G(atoms%ntypes))
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  !call nullify_gaussian_basis(proj_G)
+
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -98,7 +110,7 @@ program oneatom
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj_G,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   !allocate communications arrays
@@ -233,7 +245,7 @@ program oneatom
 
      call FullHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,proj_G,paw)
 
 !!$     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
 !!$          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
@@ -242,7 +254,6 @@ program oneatom
 !!$          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 !!$
 !!$     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-
 
      energybs=ekin_sum+epot_sum+eproj_sum
      !n(c) energy_old=energy
@@ -296,6 +307,8 @@ program oneatom
        comms,psi,hpsi,psit,evsum)
   
   call deallocate_diis_objects(diis,subname)
+
+  deallocate(proj_G)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)

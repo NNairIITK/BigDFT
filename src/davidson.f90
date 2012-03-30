@@ -1,4 +1,5 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -29,7 +30,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), intent(in) :: hx,hy,hz
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    real(dp), dimension(:), pointer :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -46,8 +47,19 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
 
+   !wvl+PAW objects
+   integer :: iatyp
+   type(gaussian_basis),dimension(at%ntypes)::proj_G
+   type(paw_objects)::paw
+
    !supplementary messages
    msg=.false.
+
+   !nullify paw objects:
+   !nullify(paw%paw_ij%dij)
+   do iatyp=1,at%ntypes
+   call nullify_gaussian_basis(proj_G(iatyp))
+   end do
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -260,6 +272,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,orbs,psirocc)
 
 !!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
@@ -432,7 +445,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), intent(in) :: hx,hy,hz
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    real(dp), dimension(:), pointer :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -453,6 +466,19 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:,:,:), allocatable :: e
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
+
+   !wvl+PAW variables
+   integer::iatyp
+   type(gaussian_basis),dimension(at%ntypes)::proj_G
+   !type(gaussian_basis)::proj_G
+   type(paw_objects)::paw
+
+   !Nullify PAW objects
+   do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+   end do
+   !nullify(paw%paw_ij%dij)
+
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -626,6 +652,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+        proj_G,paw,&
         pkernel,orbs,psirocc)
 
 !!$   call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
@@ -910,6 +937,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,orbs,psirocc)
 
 !!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
@@ -1189,6 +1217,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,orbs,psirocc)
 
 

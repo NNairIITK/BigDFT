@@ -34,8 +34,17 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(wp), dimension(:), pointer :: proj
   !local variables
   logical :: onefile
-  integer :: nelec,ndegree_ip
+  integer :: nelec,ndegree_ip,iatyp
   real(gp) :: peakmem
+  !Note proj_G should be filled for PAW:
+  type(gaussian_basis),dimension(atoms%nat)::proj_tmp
+
+
+  !nullify dummy variables only used for PAW:
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_tmp(iatyp))
+  end do
+
 
   ! Initialise XC calculation
   if (in%ixc < 0) then
@@ -121,7 +130,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj_tmp,proj)
   ! See if linear scaling should be activated and build the correct Lzd 
   ! There is a copy of this inside the LCAO input guess because the norbs changes
   ! and so the inwhichlocreg also ==> different distribution for the locregs

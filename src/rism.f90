@@ -726,6 +726,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -742,9 +743,9 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
   ishell=0
@@ -754,8 +755,8 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
         if (l==1) then
            ishell=ishell+1
            iexpo=iexpo+1
-           G%psiat(iexpo)=-oneo2pi3halves/radii(iat)**3
-           G%xp(iexpo)=radii(iat)
+           G%psiat(1,iexpo)=-oneo2pi3halves/radii(iat)**3
+           G%xp(1,iexpo)=radii(iat)
         end if
      end do
   end do
@@ -891,7 +892,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
 
   !fake orbitals descriptor to calculate the wavelet expansion
   call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,1,&
-       (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf)
+       (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf,at%npspcode(1))
 
   !allocate the wavefunctions in wavelets and in gaussians
   allocate(psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncoeff_par(iproc,1)+ndebug),stat=i_stat)

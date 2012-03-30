@@ -355,7 +355,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   !allocate the fake orbital structure for the application of projectors
   call orbitals_descriptors(0,1,1,1,0,1,1,1, &
-       & reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb)
+       & reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb,at%npspcode(1))
 
   do iorb=1,orbs%norbp
 

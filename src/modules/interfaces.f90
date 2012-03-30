@@ -280,7 +280,7 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
-            &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+            &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
          !n(c) use module_base
          use module_types
          implicit none
@@ -292,6 +292,7 @@ module module_interfaces
          real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
          real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+       type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
          real(kind=8), dimension(:), pointer :: proj
       END SUBROUTINE createProjectorsArrays
 
@@ -393,7 +394,8 @@ module module_interfaces
        END SUBROUTINE IonicEnergyandForces
 
        subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-            hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+            hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
+            pot_ion,psoffset,rholoc)
          use module_base
          use module_types
          implicit none
@@ -405,12 +407,13 @@ module module_interfaces
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(dp), dimension(*), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
+         type(rholoc_objects),intent(in)::rholoc
        END SUBROUTINE createIonicPotential
 
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,potshortcut,symObj,GPU,input)
+            nspin,potshortcut,symObj,GPU,input,proj_G)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -432,10 +435,11 @@ module module_interfaces
          type(input_variables):: input
          type(symmetry_data), intent(in) :: symObj
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
          integer, intent(in) ::potshortcut
+         type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
        end subroutine input_wf_diag
 
       subroutine reformatmywaves(iproc,orbs,at,&
@@ -561,7 +565,7 @@ module module_interfaces
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-           proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+           proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
         use module_base
         use module_types
         implicit none
@@ -571,11 +575,13 @@ module module_interfaces
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
-        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
+        type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+        type(paw_objects),intent(in)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
@@ -4877,6 +4883,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+          proj_G,paw,&
           pkernel,orbsocc,psirocc)
        use module_base
        use module_types
@@ -4891,7 +4898,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(SIC_data), intent(in) :: SIC
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
+       real(wp), dimension(Lzd%Lnprojel), intent(inout) :: proj
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        real(wp), dimension(lzd%ndimpotisf) :: Lpot
@@ -4901,6 +4908,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(dp), dimension(:), pointer, optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
+       !PAW variables:
+       type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
+       type(paw_objects),intent(in)::paw
      end subroutine FullHamiltonianApplication
 
 
@@ -5683,7 +5693,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
             nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
-            ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+            ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
          use module_base
          use module_types
          use m_ab6_mixing
@@ -5701,13 +5711,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(SIC_data), intent(in) :: SIC
          character(len=*), intent(in) :: exctxpar
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
          type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
          type(GPU_pointers), intent(inout) :: GPU
          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
          real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+         type(gaussian_basis),dimension(atoms%nat),intent(in)::proj_G
+         type(paw_objects),intent(in)::paw
        end subroutine psitohpsi
 
        subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)

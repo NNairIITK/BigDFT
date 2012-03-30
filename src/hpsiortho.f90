@@ -12,7 +12,7 @@
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
      nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
-     ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+     ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
@@ -32,18 +32,22 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   type(SIC_data), intent(in) :: SIC
   character(len=*), intent(in) :: exctxpar
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+  type(gaussian_basis),dimension(atoms%nat),intent(in)::proj_G
+  type(paw_objects),intent(in)::paw
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot
   integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
+
+  
 
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
@@ -105,7 +109,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-             proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+             proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
      end if
      !$OMP END PARALLEL
      !finalize the communication scheme
@@ -235,7 +239,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+          proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
   end if
   !$OMP END PARALLEL
   !finalize the communication scheme
@@ -259,6 +263,7 @@ end subroutine psitohpsi
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+     proj_G,paw,&
      pkernel,orbsocc,psirocc)
   use module_base
   use module_types
@@ -274,13 +279,16 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(SIC_data), intent(in) :: SIC
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
+  real(wp), dimension(Lzd%Lnprojel), intent(inout) :: proj
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(lzd%ndimpotisf) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
+  !PAW variables:
+  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
+  type(paw_objects),intent(in)::paw
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
@@ -305,7 +313,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
  end if
 
   call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-       proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+       proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
        ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -482,7 +490,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
+     proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
    use module_base
    use module_types
    implicit none
@@ -492,15 +500,18 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    type(orbitals_data),  intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
+   !PAW variables:
+   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   type(paw_objects),intent(in)::paw
    !local variables
    logical :: dosome, overlap
    integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj
+   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype
 
    eproj_sum=0.0_gp
 
@@ -514,6 +525,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
 
    nwarnings=0
 
+   if(any(at%npspcode==7)) then  
+   !initialize to zero in PAW case
+      proj(:)=0.0_wp
+   end if
    !here the localisation region should be changed, temporary only for cubic approach
 
    !apply the projectors following the strategy (On-the-fly calculation or not)
@@ -540,8 +555,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
             !first create a projector ,then apply it for everyone
             iproj=0
             do iat=1,at%nat
+               iatype=at%iatype(iat)
+
                ! Check if atom has projectors, if not cycle
-               call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj) 
+               call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,proj_G(iatype),mproj) 
                if(mproj == 0) cycle
 
                !check if the atom projector intersect with the given localisation region
@@ -553,7 +570,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                call atom_projector(ikpt,iat,0,istart_c,iproj,&
                     nlpspd%nprojel,&
                     Lzd%Glr,hx,hy,hz,rxyz(1,iat),at,orbs,&
-                    nlpspd%plr(iat),proj,nwarnings)
+                    nlpspd%plr(iat),proj,nwarnings,proj_G(iatype),paw)
 
                !apply the projector to all the orbitals belonging to the processor
                ispsi=ispsi_k
@@ -568,7 +585,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                   call apply_atproj_iorb_new(iat,iorb,istart_c,&
                        nlpspd%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
-                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                       proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
+                       proj_G(iatype),paw)
 !                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                   ispsi=ispsi+&
                        (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
@@ -595,7 +613,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
                do iat=1,at%nat
                   ! Check if atom has projectors, if not cycle
-                  call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj) 
+                  call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,proj_G(iatype),mproj) 
                   if(mproj == 0) cycle
                   !check if the atom intersect with the given localisation region
                   call check_overlap(Lzd%Llr(ilr), nlpspd%plr(iat), Lzd%Glr, overlap)

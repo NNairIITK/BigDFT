@@ -236,6 +236,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(paw_objects)::paw
   type(diis_objects) :: diis
   !type(denspot_distribution) :: denspotd
   real(gp), dimension(3) :: shift,hgrids
@@ -267,7 +269,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(linearParameters):: lin
   type(confpot_data), dimension(:), allocatable :: confdatarr
 
-  ! ----------------------------------
+  !Variables for WVL+PAW
+  integer:: iatyp
+  type(rholoc_objects)::rholoc_tmp
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -297,6 +301,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   case (WF_FORMAT_BINARY)
      write(wfformat, "(A)") ".bin"
   end select
+     
+  !proj_G is dummy here, it is only used for PAW
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  !nullify(paw%paw_ij%dij)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -377,7 +387,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Lzd%Glr,&
        hxh,hyh,hzh,&
-       denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+       denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset,rholoc_tmp)
 
   !to be deplaced in wavefunction structure
   allocate(confdatarr(orbs%norbp))
@@ -527,7 +537,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,&
           nlpspd,proj,ixc,psi,hpsi,psit,&
-          Gvirt,nspin,0,atoms%sym,GPU,in)
+          Gvirt,nspin,0,atoms%sym,GPU,in,proj_G)
      denspot%rhov_is=KS_POTENTIAL
 
      if (nvirt > norbv) then
@@ -834,7 +844,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,hxh,hyh,hzh,itrp,in%iscf,in%alphamix,mix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%exctxpar,in%unblock_comms,hx,hy,hz,Lzd,orbs,in%SIC,confdatarr,GPU,psi,&
-                ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+                ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
 
 !!$!----
 !!$           !calculate the self-consistent potential
@@ -1370,7 +1380,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                &   orbs%nspin,orbs%nspinor,nkptv,in%kptv,wkptv,orbsv)
+                &   orbs%nspin,orbs%nspinor,nkptv,in%kptv,wkptv,orbsv,&
+                & atoms%npspcode(1))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Lzd%Glr,orbsv,commsv)  
 
@@ -1387,13 +1398,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbsv,&
-                radii_cf,in%frmult,in%frmult,hx,hy,hz,nlpspd,proj) 
+                radii_cf,in%frmult,in%frmult,hx,hy,hz,nlpspd,proj_G,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,basedist=orbs%norb_par(0:,1:))
+                &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,&
+                &   basedist=orbs%norb_par(0:,1:))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Lzd%Glr,orbsv,commsv,basedist=comms%nvctr_par(0:,1:))  
 

@@ -262,7 +262,7 @@ end subroutine wfd_from_grids
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
-      &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+      &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
    use module_base
    use module_types
    implicit none
@@ -275,6 +275,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
    type(nonlocal_psp_descriptors), intent(out) :: nlpspd
    real(wp), dimension(:), pointer :: proj
+   type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
    !local variables
    character(len=*), parameter :: subname='createProjectorsArrays'
    integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
@@ -306,7 +307,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    call memocc(i_stat,logrid,'logrid',subname)
 
    call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-        rxyz,radii_cf,logrid,at,orbs,nlpspd)
+        rxyz,radii_cf,logrid,at,orbs,nlpspd,proj_G)
 
    !here the allocation is possible
    do iat=1,nlpspd%natoms
@@ -325,7 +326,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
    ! After having determined the size of the projector descriptor arrays fill them
    do iat=1,at%nat
-      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,proj_G(at%iatype(iat)),mproj)
       if (mproj.ne.0) then 
 
          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
@@ -934,7 +935,6 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    deallocate(iorbto_iexpobeg,stat=i_stat)
    call memocc(i_stat,i_all,'iorbto_iexpobeg',subname)
 
-
 END SUBROUTINE createPcProjectorsArrays
 
 
@@ -1256,7 +1256,7 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,potshortcut,symObj,GPU,input)
+     nspin,potshortcut,symObj,GPU,input,proj_G)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1281,7 +1281,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(input_variables):: input
    type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    integer, intent(in) ::potshortcut
@@ -1306,11 +1307,15 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   integer :: i!,iorb,jorb,icplx
   real(gp), dimension(:), allocatable :: ovrlp
   real(gp), dimension(:,:), allocatable :: smat,tmp
+  type(paw_objects)::paw !This is to be filled for PAW
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
    allocate(locrad(at%nat+ndebug),stat=i_stat)
    call memocc(i_stat,locrad,'locrad',subname)
+
+   !Nullify paw object
+   !nullify(paw%paw_ij%dij)
 
    if (iproc == 0) then
       write(*,'(1x,a)')&
@@ -1395,6 +1400,36 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
+! IF PAW: return
+  if(any(at%npspcode(:)==7)) then
+
+     !for testing
+     !application of the hamiltonian for gaussian based treatment
+     !call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
+     !     nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+     !   
+     !!-- if spectra calculation uses a energy dependent potential
+     !!    input_wf_diag will write (to be used in abscalc)
+     !!    the density to the file electronic_density.cube
+     !!  The writing is activated if  5th bit of  in%potshortcut is on.
+     !   call plot_density_cube_old(at%geocode,'electronic_density',&
+     !        iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
+     !        nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
+     !---
+
+
+    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+    allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+    call memocc(i_stat,hpsi,'hpsi',subname)
+    
+    !This is allocated in DiagHam
+    nullify(psit)
+
+    nullify(G%rxyz)
+
+    call deallocate_input_wfs()
+    return 
+  end if
 
    !check the size of the rhopot array related to NK SIC
 !!$   nrhodim=nspin
@@ -1450,8 +1485,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    call updatePotential(iproc,nproc,at%geocode,ixc,nspin,&
         hxh,hyh,hzh,Lzd%Glr,denspot,ehart,eexcu,vexcu)
-     
-   
 
 !!$     if(orbs%nspinor==4) then
 !!$        !this wrapper can be inserted inside the poisson solver 
@@ -1624,6 +1657,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+        proj_G,paw,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
@@ -1702,8 +1736,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !with a gaussian basis
    !!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
    !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
- 
-  
 
     !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
      ncplx=1
@@ -1774,11 +1806,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$      end if
 !!$   end if
 
-   call deallocate_comms(commse,subname)
-
-   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-   deallocate(norbsc_arr,stat=i_stat)
-   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
    if (iproc == 0) then
       !gaussian estimation valid only for Free BC
@@ -1791,18 +1818,32 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
       end if
    endif
 
-   !here we can define the subroutine which generates the coefficients for the virtual orbitals
-   call deallocate_gwf(G,subname)
+   call deallocate_input_wfs()
 
-   i_all=-product(shape(psigau))*kind(psigau)
-   deallocate(psigau,stat=i_stat)
-   call memocc(i_stat,i_all,'psigau',subname)
+contains
 
-   call deallocate_orbs(orbse,subname)
-   i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-   deallocate(orbse%eval,stat=i_stat)
-   call memocc(i_stat,i_all,'orbse%eval',subname)
+subroutine deallocate_input_wfs()
 
+  call deallocate_orbs(orbse,subname)
+  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+  deallocate(orbse%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%eval',subname)
+ 
+ !deallocate the gaussian basis descriptors
+ !here we can define the subroutine which generates the coefficients for the virtual orbitals
+ call deallocate_gwf(G,subname)
+ 
+  i_all=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=i_stat)
+  call memocc(i_stat,i_all,'psigau',subname)
 
+  call deallocate_comms(commse,subname)
 
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr',subname)
+
+end subroutine deallocate_input_wfs
+     
 END SUBROUTINE input_wf_diag
+

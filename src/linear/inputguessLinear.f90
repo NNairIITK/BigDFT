@@ -217,6 +217,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(confpot_data), dimension(:), allocatable :: confdatarr
   real(dp),dimension(6) :: xcstr
 
+  !wvl+PAW objects
+  integer::iatyp
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
+
+  !nullify paw objects:
+  !nullify(paw%paw_ij%dij)
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '------------------------------------------------------- Input Wavefunctions Creation'
@@ -642,7 +653,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   pkernel=denspot%pkernelseq)
              call NonLocalHamiltonianApplication(iproc,at,lin%lig%orbsig,&
                   input%hx,input%hy,input%hz,rxyz,&
-                  proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
+                  proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum,proj_G,paw)
              deallocate(confdatarr)
           end if
       else

@@ -145,10 +145,13 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   character(len=*), parameter :: subname='mulliken_charge_population'
   character(len=11) :: shname
   integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  integer :: icpx_xp
   real(wp) :: msum,rad,radnorm,r,sumch
   real(wp), dimension(2) :: msumiat
   real(wp), dimension(:,:), allocatable :: mchg
   
+  
+
   !allocate both for spins up and down
   allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
   call memocc(i_stat,mchg,'mchg',subname)
@@ -216,9 +219,9 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
         rad=0.0_wp
         radnorm=0.0_wp
         do ig=1,ng
-           r=G%xp(iexpo)
-           rad=rad+(G%psiat(iexpo))**2*r
-           radnorm=radnorm+(G%psiat(iexpo))**2
+           r=G%xp(1,iexpo)
+           rad=rad+(G%psiat(1,iexpo))**2*r
+           radnorm=radnorm+(G%psiat(1,iexpo))**2
            iexpo=iexpo+1
         end do
         rad=rad/radnorm

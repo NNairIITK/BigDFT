@@ -785,7 +785,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,iatyp
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac,strc,Enl,vol
@@ -795,8 +795,14 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   integer :: ierr,ilr
   real(gp), dimension(6) :: sab
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
 
   call to_zero(6,strten(1)) 
+  
+  !nullify PAW objects
+  do iatyp=1,at%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
@@ -884,7 +890,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                   proj,nwarnings)
+                   proj,nwarnings,proj_G)
 !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
  
               !calculate the contribution for each orbital

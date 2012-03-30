@@ -19,7 +19,7 @@ program wvl
   type(denspot_distribution)           :: dpcom
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   type(GPU_pointers)                   :: GPU
-  
+  type(rholoc_objects)                 :: rholoc_tmp
   integer :: i, j, ierr, iproc, nproc, nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s
   real(dp) :: nrm, epot_sum
@@ -196,7 +196,7 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & n3pi,i3s+i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset)
+       & pkernel,pot_ion,psoffset,rholoc_tmp)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
