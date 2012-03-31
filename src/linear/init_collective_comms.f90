@@ -50,7 +50,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
   call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_f) stop 'wrong partition of fine grid points'
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
 
 !!  ! Allocate the keys
   allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
@@ -58,14 +58,21 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
 !!  call determine_num_orbs_per_gridpoint(iproc, nproc, orbs%norb, collcom%nptsp, lzd%glr, lzd%llr, istartend, collcom%orbs%norb_per_gridpoint)
 call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
            collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-!!
-!!
-!!  ! Determine values for mpi_alltoallv
-!!  allocate(collcom%nsendcounts(0:nproc-1))
-!!  allocate(collcom%nsenddspls(0:nproc-1))
-!!  allocate(collcom%nrecvcounts(0:nproc-1))
-!!  allocate(collcom%nrecvdspls(0:nproc-1))
+
+
+  ! Determine values for mpi_alltoallv
+  allocate(collcom%nsendcounts_c(0:nproc-1))
+  allocate(collcom%nsenddspls_c(0:nproc-1))
+  allocate(collcom%nrecvcounts_c(0:nproc-1))
+  allocate(collcom%nrecvdspls_c(0:nproc-1))
+  allocate(collcom%nsendcounts_f(0:nproc-1))
+  allocate(collcom%nsenddspls_f(0:nproc-1))
+  allocate(collcom%nrecvcounts_f(0:nproc-1))
+  allocate(collcom%nrecvdspls_f(0:nproc-1))
 !!  call determine_communication_arrays(iproc, nproc, orbs%norb, orbs%orbs%norbp, orbs%isorb, orbs%npsidim, lzd%glr, lzd%llr, istartend, weightp, collcom%nsendcounts, collcom%nsenddspls, collcom%nrecvcounts, collcom%nrecvdspls)
+call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, weightp_c, weightp_f, &
+           collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
+           collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 !!
 !!
 !!  ! Now rearrange the data on the process to communicate them
@@ -141,8 +148,8 @@ integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i,
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+7.d0
-          weight_f_tot=weight_f_tot+7.d0
+          weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+1.d0
+          weight_f_tot=weight_f_tot+1.d0
        enddo
     enddo
   end do
@@ -285,7 +292,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
   call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_f) stop 'ii/=lzd%glr%wfd%nvctr_f'
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii/=lzd%glr%wfd%nvctr_f'
 
 
 
@@ -380,7 +387,7 @@ logical:: found
                                       i, i2, i3, found)
                       if(found) then
                           npgp=npgp+1
-                          iiorb=iiorb+7
+                          iiorb=iiorb+1
                       end if
                   end do
                   norb_per_gridpoint_f(iipt)=npgp
@@ -398,85 +405,173 @@ end subroutine determine_num_orbs_per_gridpoint
 
 
 
-!!subroutine determine_communication_arrays(iproc, nproc, norb, norbp, isorb, ndimpsi, glr, llr, istartend, weightp, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls)
-!!use types
-!!implicit none
-!!include 'mpif.h'
-!!
-!!! Calling arguments
-!!integer,intent(in):: iproc, nproc, norb, norbp, isorb, ndimpsi
-!!type(locreg_descriptors),intent(in):: glr
-!!type(locreg_descriptors),dimension(norb),intent(in):: llr
-!!integer,dimension(2,0:nproc-1),intent(in):: istartend
-!!real(8),intent(in):: weightp
-!!integer,dimension(0:nproc-1),intent(out):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-!!
-!!! Local variables
-!!integer:: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr
-!!integer,dimension(:),allocatable:: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
-!!
-!!  ! Determine values for mpi_alltoallv
-!!  ! first nsendcounts
-!!  !allocate(nsendcounts(0:nproc-1))
-!!  nsendcounts=0
-!!  do iorb=1,norbp
-!!      iiorb=isorb+iorb
-!!      do i3=llr(iiorb)%is3,llr(iiorb)%ie3
-!!          do i2=llr(iiorb)%is2,llr(iiorb)%ie2
-!!              do i1=llr(iiorb)%is1,llr(iiorb)%ie1
-!!                  ii = (i3-1)*(glr%ie1-glr%is1+1)*(glr%ie2-glr%is2+1) + (i2-1)*(glr%ie1-glr%is1+1) + i1
-!!                  do jproc=0,nproc-1
-!!                      if(ii>=istartend(1,jproc) .and. ii<=istartend(2,jproc)) then
-!!                          jproctarget=jproc
-!!                          exit
-!!                      end if
-!!                  end do
-!!                  nsendcounts(jproctarget)=nsendcounts(jproctarget)+1
-!!              end do
-!!          end do
-!!      end do
-!!  end do
-!!
-!!  if(sum(nsendcounts)/=ndimpsi) stop 'sum(nsendcounts)/=ndimpsi'
-!!  
-!!  ! now nsenddspls
-!!  !allocate(nsenddspls(0:nproc-1))
-!!  nsenddspls(0)=0
-!!  do jproc=1,nproc-1
-!!      nsenddspls(jproc)=nsenddspls(jproc-1)+nsendcounts(jproc-1)
-!!  end do
-!!
-!!  ! now nrecvcounts
-!!  ! use an mpi_alltoallv to gather the date
-!!  !allocate(nrecvcounts(0:nproc-1))
-!!  allocate(nsendcounts_tmp(0:nproc-1))
-!!  allocate(nsenddspls_tmp(0:nproc-1))
-!!  allocate(nrecvcounts_tmp(0:nproc-1))
-!!  allocate(nrecvdspls_tmp(0:nproc-1))
-!!  nsendcounts_tmp=1
-!!  nrecvcounts_tmp=1
-!!  do jproc=0,nproc-1
-!!      nsenddspls_tmp(jproc)=jproc
-!!      nrecvdspls_tmp(jproc)=jproc
-!!  end do
-!!  call mpi_alltoallv(nsendcounts, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts, &
-!!       nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
-!!  deallocate(nsendcounts_tmp)
-!!  deallocate(nsenddspls_tmp)
-!!  deallocate(nrecvcounts_tmp)
-!!  deallocate(nrecvdspls_tmp)
-!!
-!!  ! now recvdspls
-!!  !allocate(nrecvdspls(0:nproc-1))
-!!  nrecvdspls(0)=0
-!!  do jproc=1,nproc-1
-!!      nrecvdspls(jproc)=nrecvdspls(jproc-1)+nrecvcounts(jproc-1)
-!!  end do
-!!
-!!  if(sum(nrecvcounts)/=nint(weightp)) stop 'sum(nrecvcounts)/=nint(nweightp)'
-!!
-!!end subroutine determine_communication_arrays
-!!
+subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, weightp_c, weightp_f, &
+           nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
+real(8),intent(in):: weightp_c, weightp_f
+integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+
+! Local variables
+integer:: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, jj, ilr, j0, j1, i0, i, ind, ii1, ii2, ii3, iseg, istart, iend
+integer,dimension(:),allocatable:: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
+
+  ! Determine values for mpi_alltoallv
+  ! first nsendcounts
+  !allocate(nsendcounts(0:nproc-1))
+  nsendcounts_c=0
+  do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inwhichlocreg(iiorb)
+    do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+       jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+       j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+       j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+       ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+       i2=ii/(lzd%llr(ilr)%d%n1+1)
+       i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+       i1=i0+j1-j0
+       !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+       do i=i0,i1
+          ii1=i+lzd%llr(ilr)%ns1
+          ii2=i2+lzd%llr(ilr)%ns2
+          ii3=i3+lzd%llr(ilr)%ns3
+          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', ind)
+          jproctarget=-1
+          do jproc=0,nproc-1
+              if(ind>=istartend_c(1,jproc) .and. ind<=istartend_c(2,jproc)) then
+                  jproctarget=jproc
+                  exit
+              end if
+          end do
+          if(jproctarget==-1) write(*,*) 'ind, lzd%glr%wfd%nvctr_c',ind, lzd%glr%wfd%nvctr_c
+          nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
+        end do
+     end do
+   end do
+
+   write(*,'(a,i3,3x,100i8)') 'iproc, istartend_f(2,:)', iproc, istartend_f(2,:)
+
+  nsendcounts_f=0
+  do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inwhichlocreg(iiorb)
+    istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+    iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+    do iseg=istart,iend
+       jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+       j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+       j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+       ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+       i2=ii/(lzd%llr(ilr)%d%n1+1)
+       i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+       i1=i0+j1-j0
+       !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+       do i=i0,i1
+          ii1=i+lzd%llr(ilr)%ns1
+          ii2=i2+lzd%llr(ilr)%ns2
+          ii3=i3+lzd%llr(ilr)%ns3
+          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
+          do jproc=0,nproc-1
+              if(ind>=istartend_f(1,jproc) .and. ind<=istartend_f(2,jproc)) then
+                  jproctarget=jproc
+                  exit
+              end if
+          end do
+          nsendcounts_f(jproctarget)=nsendcounts_f(jproctarget)+1
+      end do
+    end do
+   end do
+
+
+
+  !!do iorb=1,norbp
+  !!    iiorb=isorb+iorb
+  !!    do i3=llr(iiorb)%is3,llr(iiorb)%ie3
+  !!        do i2=llr(iiorb)%is2,llr(iiorb)%ie2
+  !!            do i1=llr(iiorb)%is1,llr(iiorb)%ie1
+  !!                ii = (i3-1)*(glr%ie1-glr%is1+1)*(glr%ie2-glr%is2+1) + (i2-1)*(glr%ie1-glr%is1+1) + i1
+  !!                call get_index_in_global(lr, itarget1, itarget2, itarget3, ind_c, ind_f)
+  !!                do jproc=0,nproc-1
+  !!                    if(ii>=istartend(1,jproc) .and. ii<=istartend(2,jproc)) then
+  !!                        jproctarget=jproc
+  !!                        exit
+  !!                    end if
+  !!                end do
+  !!                nsendcounts(jproctarget)=nsendcounts(jproctarget)+1
+  !!            end do
+  !!        end do
+  !!    end do
+  !!end do
+  if(iproc==0) write(*,'(a,100i7)') 'istartend_c(2,:)', istartend_c(2,:)
+  write(*,*) 'sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs
+  if(sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
+
+  write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_c',iproc, nsendcounts_c 
+  write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_f',iproc, nsendcounts_f 
+  
+  ! now nsenddspls
+  nsenddspls_c(0)=0
+  do jproc=1,nproc-1
+      nsenddspls_c(jproc)=nsenddspls_c(jproc-1)+nsendcounts_c(jproc-1)
+  end do
+  nsenddspls_f(0)=0
+  do jproc=1,nproc-1
+      nsenddspls_f(jproc)=nsenddspls_f(jproc-1)+nsendcounts_f(jproc-1)
+  end do
+
+
+
+  ! now nrecvcounts
+  ! use an mpi_alltoallv to gather the date
+  allocate(nsendcounts_tmp(0:nproc-1))
+  allocate(nsenddspls_tmp(0:nproc-1))
+  allocate(nrecvcounts_tmp(0:nproc-1))
+  allocate(nrecvdspls_tmp(0:nproc-1))
+  nsendcounts_tmp=1
+  nrecvcounts_tmp=1
+  do jproc=0,nproc-1
+      nsenddspls_tmp(jproc)=jproc
+      nrecvdspls_tmp(jproc)=jproc
+  end do
+  call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
+       nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+  call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
+       nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+  deallocate(nsendcounts_tmp)
+  deallocate(nsenddspls_tmp)
+  deallocate(nrecvcounts_tmp)
+  deallocate(nrecvdspls_tmp)
+
+  ! now recvdspls
+  nrecvdspls_c(0)=0
+  do jproc=1,nproc-1
+      nrecvdspls_c(jproc)=nrecvdspls_c(jproc-1)+nrecvcounts_c(jproc-1)
+  end do
+  nrecvdspls_f(0)=0
+  do jproc=1,nproc-1
+      nrecvdspls_f(jproc)=nrecvdspls_f(jproc-1)+nrecvcounts_f(jproc-1)
+  end do
+
+  !write(*,*) 'sum(nrecvcounts_c), nint(weightp_c)', sum(nrecvcounts_c), nint(weightp_c)
+  write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
+  if(sum(nrecvcounts_c)/=nint(weightp_c)) stop 'sum(nrecvcounts_c)/=nint(nweightp_c)'
+  if(sum(nrecvcounts_f)/=nint(weightp_f)) stop 'sum(nrecvcounts_f)/=nint(nweightp_f)'
+
+end subroutine determine_communication_arrays
+
 !!
 !!subroutine get_switch_indices(iproc, nproc, norbp, norb, isorb, ndimpsi, glr, llr, istartend, nsendcounts, nsenddspls, nrecvcounts, &
 !!           nrecvdspls, weightp, isendbuf, irecvbuf, indexrecvorbital, iextract, iexpand)
@@ -742,3 +837,78 @@ integer:: j0, j1, ii, i1, i2, i3, i0, ii1, ii2, ii3, iseg, i
 
 
 end subroutine check_gridpoint
+
+
+
+
+subroutine get_index_in_global(lr, itarget1, itarget2, itarget3, region, ind)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(locreg_descriptors),intent(in):: lr
+integer,intent(in):: itarget1, itarget2, itarget3
+character(len=1),intent(in):: region
+integer,intent(out):: ind
+
+! Local variables
+integer:: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend, ii1, ii2, ii3
+
+
+ if(region=='c') then
+    iitot=0
+    loop_segments_c: do iseg=1,lr%wfd%nseg_c
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
+       ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
+       i2=ii/(lr%d%n1+1)
+       i0=ii-i2*(lr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+          iitot=iitot+1
+          ii1=i+lr%ns1
+          ii2=i2+lr%ns2
+          ii3=i3+lr%ns3
+          if(ii1==itarget1 .and. ii2==itarget2 .and. ii3==itarget3) then
+              ind=iitot
+              exit loop_segments_c
+          end if
+       end do
+    end do loop_segments_c
+
+  else if(region=='f') then
+
+    iitot=0
+    istart=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+    iend=istart+lr%wfd%nseg_f-1
+    loop_segments_f: do iseg=istart,iend
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
+       ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
+       i2=ii/(lr%d%n1+1)
+       i0=ii-i2*(lr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+          ii1=i+lr%ns1
+          ii2=i2+lr%ns2
+          ii3=i3+lr%ns3
+          iitot=iitot+1
+          if(ii1==itarget1 .and. ii2==itarget2 .and. ii3==itarget3) then
+              ind=iitot
+              exit loop_segments_f
+          end if
+       end do
+    end do loop_segments_f
+
+else
+    stop 'wrong region'
+end if
+
+
+
+end subroutine get_index_in_global
