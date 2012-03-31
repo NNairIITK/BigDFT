@@ -6345,6 +6345,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(p2pComms),intent(out):: comon
        end subroutine determine_overlap_from_descriptors
 
+       subroutine get_weights(orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+         use module_base
+         use module_types
+         implicit none
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(out):: weight_c, weight_f
+         real(8),intent(out):: weight_c_tot, weight_f_tot
+       end subroutine get_weights
+
+       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         type(collective_comms),intent(out):: collcom
+       end subroutine init_collective_comms
+
    end interface
 
 END MODULE module_interfaces

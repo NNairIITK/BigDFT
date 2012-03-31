@@ -118,6 +118,8 @@ logical:: check_whether_derivatives_to_be_used
   call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
 
+  call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+
   ! Now all initializations are done ######################################################################################
 
 
