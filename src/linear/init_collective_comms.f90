@@ -11,7 +11,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(collective_comms),intent(out):: collcom
 
 ! Local variables
-integer:: ii, istat, iorb, iiorb, ilr, ndimpsi_c, ndimpsi_f
+integer:: ii, istat, iorb, iiorb, ilr
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
 real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
@@ -76,32 +76,32 @@ call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istart
 !!
 !!
   ! Now rearrange the data on the process to communicate them
-  ndimpsi_c=0
+  collcom%ndimpsi_c=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      ndimpsi_c=ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
+      collcom%ndimpsi_c=collcom%ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
   end do
-  allocate(collcom%irecvbuf_c(ndimpsi_c))
+  allocate(collcom%irecvbuf_c(collcom%ndimpsi_c))
   allocate(collcom%indexrecvorbital_c(sum(collcom%nrecvcounts_c)))
   allocate(collcom%iextract_c(sum(collcom%nrecvcounts_c)))
   allocate(collcom%iexpand_c(sum(collcom%nrecvcounts_c)))
-  allocate(collcom%isendbuf_c(ndimpsi_c))
+  allocate(collcom%isendbuf_c(collcom%ndimpsi_c))
 
-  ndimpsi_f=0
+  collcom%ndimpsi_f=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      ndimpsi_f=ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
+      collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
   end do
-  allocate(collcom%irecvbuf_f(ndimpsi_f))
+  allocate(collcom%irecvbuf_f(collcom%ndimpsi_f))
   allocate(collcom%indexrecvorbital_f(sum(collcom%nrecvcounts_f)))
   allocate(collcom%iextract_f(sum(collcom%nrecvcounts_f)))
   allocate(collcom%iexpand_f(sum(collcom%nrecvcounts_f)))
-  allocate(collcom%isendbuf_f(ndimpsi_f))
+  allocate(collcom%isendbuf_f(collcom%ndimpsi_f))
 !!  call get_switch_indices(iproc, nproc, orbs%orbs%norbp, orbs%norb, orbs%isorb, orbs%npsidim, lzd%glr, lzd%llr, istartend, collcom%nsendcounts, collcom%nsenddspls, collcom%nrecvcounts, &
 !!           collcom%nrecvdspls, weightp,  collcom%isendbuf, collcom%irecvbuf, collcom%indexrecvorbital, collcom%iextract, collcom%iexpand)
-call get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
+call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
      collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
      collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
      weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
@@ -1126,3 +1126,272 @@ end if
 
 
 end subroutine get_index_in_global
+
+
+
+
+
+
+
+subroutine transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(orbitals_Data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+  
+  ! Local variables
+  integer:: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind
+  real(8),dimension(:),allocatable:: psi_c, psi_f
+  
+  
+  ! split up psi into coarse and fine part
+  allocate(psi_c(collcom%ndimpsi_c))
+  allocate(psi_f(7*collcom%ndimpsi_f))
+  i_tot=0
+  i_c=0
+  i_f=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do i=1,lzd%llr(ilr)%wfd%nvctr_c
+          i_c=i_c+1
+          i_tot=i_tot+1
+          psi_c(i_c)=psi(i_tot)
+      end do
+      do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
+          i_f=i_f+1
+          i_tot=i_tot+1
+          psi_f(i_f)=psi(i_tot)
+      end do
+  end do
+  
+  
+  ! coarse part
+  do i=1,collcom%ndimpsi_c
+      ind=collcom%isendbuf_c(i)
+      psiwork_c(ind)=psi_c(i)
+  end do
+  
+  ! fine part
+  do i=1,collcom%ndimpsi_f
+      ind=collcom%isendbuf_f(i)
+      psiwork_f(7*ind-6)=psi_f(7*i-6)
+      psiwork_f(7*ind-5)=psi_f(7*i-5)
+      psiwork_f(7*ind-4)=psi_f(7*i-4)
+      psiwork_f(7*ind-3)=psi_f(7*i-3)
+      psiwork_f(7*ind-2)=psi_f(7*i-2)
+      psiwork_f(7*ind-1)=psi_f(7*i-1)
+      psiwork_f(7*ind-0)=psi_f(7*i-0)
+  end do
+
+  deallocate(psi_c)
+  deallocate(psi_f)
+  
+end subroutine transpose_switch_psi
+
+
+
+
+
+subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+  
+  ! Local variables
+  integer:: ierr
+  
+  
+  
+    ! coarse part
+    call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
+         collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, mpi_comm_world, ierr)
+  
+    ! fine part
+    call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
+         7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, mpi_comm_world, ierr)
+
+
+end subroutine transpose_communicate_psi
+
+
+
+subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+  
+  ! Local variables
+  integer:: i, ind
+  
+  ! coarse part
+  do i=1,sum(collcom%nrecvcounts_c)
+      ind=collcom%iextract_c(i)
+      psit_c(ind)=psitwork_c(i)
+  end do
+
+  ! fine part
+  do i=1,sum(collcom%nrecvcounts_f)
+      ind=collcom%iextract_f(i)
+      psit_f(7*ind-6)=psitwork_f(7*i-6)
+      psit_f(7*ind-5)=psitwork_f(7*i-5)
+      psit_f(7*ind-4)=psitwork_f(7*i-4)
+      psit_f(7*ind-3)=psitwork_f(7*i-3)
+      psit_f(7*ind-2)=psitwork_f(7*i-2)
+      psit_f(7*ind-1)=psitwork_f(7*i-1)
+      psit_f(7*ind-0)=psitwork_f(7*i-0)
+  end do
+
+end subroutine transpose_unswitch_psit
+
+
+
+
+
+subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+  
+  ! Local variables
+  integer:: i, ind
+
+ 
+  ! coarse part
+  do i=1,sum(collcom%nrecvcounts_c)
+      ind=collcom%iexpand_c(i)
+      psitwork_c(ind)=psit_c(i)
+  end do
+
+  ! fine part
+  do i=1,sum(collcom%nrecvcounts_f)
+      ind=collcom%iexpand_f(i)
+      psitwork_f(7*ind-6)=psit_f(7*i-6)
+      psitwork_f(7*ind-5)=psit_f(7*i-5)
+      psitwork_f(7*ind-4)=psit_f(7*i-4)
+      psitwork_f(7*ind-3)=psit_f(7*i-3)
+      psitwork_f(7*ind-2)=psit_f(7*i-2)
+      psitwork_f(7*ind-1)=psit_f(7*i-1)
+      psitwork_f(7*ind-0)=psit_f(7*i-0)
+  end do
+
+end subroutine transpose_switch_psit
+
+
+subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+  
+  ! Local variables
+  integer:: ierr
+
+ ! coarse part
+  call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+       collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, mpi_comm_world, ierr)
+
+ ! fine part
+  call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+       7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, mpi_comm_world, ierr)
+
+end subroutine transpose_communicate_psit
+
+
+
+subroutine transpose_unswitch_psi
+use module_base
+use module_types
+implicit none
+
+
+  ! coarse part
+  do i=1,ndimpsi_c
+      ind=collcom%irecvbuf_c(i)
+      psi_c(ind)=psiwork_c(i)
+  end do
+
+  ! fine part
+  do i=1,ndimpsi_f
+      ind=collcom%irecvbuf_f(i)
+      psi_f(7*ind-6)=psiwork_f(7*i-6)
+      psi_f(7*ind-5)=psiwork_f(7*i-5)
+      psi_f(7*ind-4)=psiwork_f(7*i-4)
+      psi_f(7*ind-3)=psiwork_f(7*i-3)
+      psi_f(7*ind-2)=psiwork_f(7*i-2)
+      psi_f(7*ind-1)=psiwork_f(7*i-1)
+      psi_f(7*ind-0)=psiwork_f(7*i-0)
+  end do
+
+  ! glue together coarse and fine part
+  ! split up psi into coarse and fine part
+  allocate(psi_c(collcom%ndimpsi_c))
+  allocate(psi_f(7*collcom%ndimpsi_f))
+  i_tot=0
+  i_c=0
+  i_f=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do i=1,lzd%llr(ilr)%wfd%nvctr_c
+          i_c=i_c+1
+          i_tot=i_tot+1
+          psi_c(i_c)=psi(i_tot)
+      end do
+      do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
+          i_f=i_f+1
+          i_tot=i_tot+1
+          psi_f(i_f)=psi(i_tot)
+      end do
+  end do
+
+
+end subroutine transpose_unswitch_psi
+
+
+!!!subroutine transpose_localized
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!end subroutine transpose_localized
