@@ -2096,7 +2096,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call nullify_orbitals_data(orbs_tmp)
       call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
       call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-           orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad)
+           orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
+           tmbmix%collcom)
       call deallocate_orbitals_data(orbs_tmp, subname)
 
       tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
@@ -2129,7 +2130,7 @@ end subroutine redefine_locregs_quantities
 
 
 subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -2148,6 +2149,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   type(p2pComms),intent(inout):: comgp, lbcomgp
   type(p2pComms),intent(inout):: comsr
   type(matrixDescriptors),intent(inout):: lbmad
+  type(collective_comms),intent(inout):: lbcollcom
   
   ! Local variables
   integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, nlr, i, tag, ii
@@ -2168,6 +2170,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   call deallocate_overlapParameters(lbop, subname)
   call deallocate_p2pComms(lbcomon, subname)
   call deallocate_matrixDescriptors(lbmad, subname)
+  call deallocate_collective_comms(lbcollcom, subname)
   !!call deallocate_p2pComms(lbcomgp, subname)
 
 
@@ -2175,6 +2178,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   call nullify_overlapParameters(lbop)
   call nullify_p2pComms(lbcomon)
   call nullify_matrixDescriptors(lbmad)
+  call nullify_collective_comms(lbcollcom)
   !!call nullify_p2pComms(lbcomgp)
   tag=1
   if(.not.useDerivativeBasisFunctions) then
@@ -2274,6 +2278,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
        lbop%noverlaps, lbop%overlaps, lbmad)
   call initCompressedMatmul3(llborbs%norb, lbmad)
 
+  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 
 
   tag=1
@@ -2327,6 +2332,7 @@ character(len=*),parameter:: subname='create_new_locregs'
    call nullify_p2pComms(tmb%comon)
    call nullify_matrixDescriptors(tmb%mad)
    call nullify_p2pComms(tmb%comgp)
+   call nullify_collective_comms(tmb%collcom)
 
    tag=1
    tmb%lzd%nlr=nlr
@@ -2366,6 +2372,8 @@ character(len=*),parameter:: subname='create_new_locregs'
    call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
 
    call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
+
+   call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
 
    iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
    deallocate(ldiis%phiHist, stat=istat)
@@ -2425,6 +2433,7 @@ subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphila
   call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_p2pComms(tmb%comgp, subname)
+  call deallocate_collective_comms(tmb%collcom, subname)
 
   iall=-product(shape(lphilarge))*kind(lphilarge)
   deallocate(lphilarge, stat=istat)
@@ -2667,6 +2676,7 @@ subroutine init_basis_performance_options(input, bpo)
   bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
   bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
   bpo%nproc_pdsyev=input%lin%nproc_pdsyev
+  bpo%communication_strategy_overlap=input%lin%communication_strategy_overlap
 
 end subroutine init_basis_performance_options
 

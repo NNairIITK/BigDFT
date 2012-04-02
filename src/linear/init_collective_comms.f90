@@ -602,8 +602,11 @@ character(len=*),parameter:: subname='determine_communication_arrays'
   !!    end do
   !!end do
   if(iproc==0) write(*,'(a,100i7)') 'istartend_c(2,:)', istartend_c(2,:)
-  write(*,*) 'sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs
-  if(sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
+  write(*,'(a,2i9)') 'sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs
+  ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
+  ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
+  if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) &
+      stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
 
   write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_c',iproc, nsendcounts_c 
   write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_f',iproc, nsendcounts_f 

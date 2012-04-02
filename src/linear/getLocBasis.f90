@@ -26,7 +26,7 @@ type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
-real(8),dimension(:),allocatable:: eval, lhphi
+real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
@@ -45,9 +45,25 @@ character(len=*),parameter:: subname='get_coeff'
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
-
-
-  call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
+  if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      call memocc(istat, psit_f, 'psit_f', subname)
+      call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%lzd, tmbmix%collcom, tmbmix%psi, psit_c, psit_f)
+      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%lzd, tmbmix%collcom, psit_c, psit_f, tmbmix%psi)
+      iall=-product(shape(psit_c))*kind(psit_c)
+      deallocate(psit_c, stat=istat)
+      call memocc(istat, iall, 'psit_c', subname)
+      iall=-product(shape(psit_f))*kind(psit_f)
+      deallocate(psit_f, stat=istat)
+      call memocc(istat, iall, 'psit_f', subname)
+  else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
+  else
+      stop 'wrong communication_strategy_overlap'
+  end if
 
 
   if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then

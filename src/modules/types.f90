@@ -74,6 +74,8 @@ module module_types
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
   integer,parameter:: DECREASE_LINEAR=0
   integer,parameter:: DECREASE_ABRUPT=1
+  integer,parameter:: COMMUNICATION_COLLECTIVE=0
+  integer,parameter:: COMMUNICATION_P2P=1
   
 
   !> Type used for the orthogonalisation parameter
@@ -128,7 +130,7 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: confinement_decrease_mode
+    integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
@@ -815,6 +817,7 @@ end type linear_scaling_control_variables
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
     integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
+    integer:: communication_strategy_overlap
   end type basis_performance_options
 
   type,public:: wfn_metadata
