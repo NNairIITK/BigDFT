@@ -1727,4 +1727,63 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c1, ps
 
   if(nproc>1) call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
-endsubroutine calculate_overlap_transposed
+end subroutine calculate_overlap_transposed
+
+
+
+subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c, psitwork_f, reset, psit_c, psit_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: norb
+  real(8),dimension(norb,norb),intent(in):: matrix
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+  logical,intent(in):: reset
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+
+  ! Local variables
+  integer:: i0, ipt, ii, j, iiorb, jjorb, i
+
+  if(reset) then
+      psit_c=0.d0
+      psit_f=0.d0
+  end if
+
+  i0=0
+  do ipt=1,collcom%nptsp_c 
+      ii=collcom%norb_per_gridpoint_c(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_c(i0+i)
+          do j=1,ii
+              jjorb=collcom%indexrecvorbital_c(i0+j)
+              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
+          end do
+      end do
+      i0=i0+ii
+  end do
+
+  i0=0
+  do ipt=1,collcom%nptsp_f 
+      ii=collcom%norb_per_gridpoint_f(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_f(i0+i)
+          do j=1,ii
+              jjorb=collcom%indexrecvorbital_f(i0+j)
+              psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-6)
+              psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-5)
+              psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-4)
+              psit_f(7*(i0+i)-3) = psit_f(7*(i0+i)-3) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-3)
+              psit_f(7*(i0+i)-2) = psit_f(7*(i0+i)-2) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-2)
+              psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-1)
+              psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-0)
+          end do
+      end do
+      i0=i0+ii
+  end do
+
+end subroutine build_linear_combination_transposed

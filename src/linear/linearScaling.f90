@@ -37,10 +37,10 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
-real(8),dimension(:),allocatable:: psit_c, psit_f, philarge
+real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
-real(8):: ddot
+real(8):: ddot, tt1, tt2, tt3
 
 
   if(iproc==0) then
@@ -182,73 +182,111 @@ real(8):: ddot
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
 
-  !!!!! TEST
-  !!  !!tmb%psi=dble(iproc+1)
-  !!  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb))
-  !!  call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
-  !!  do istat=1,tmb%orbs%norb
-  !!      do iall=1,tmb%orbs%norb
-  !!          write(300+iproc,*) istat, iall, ovrlp(iall,istat)
-  !!      end do
-  !!  end do
+  !!! TEST
+    !!tmb%psi=dble(iproc+1)
+    allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb))
+    call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
+    do istat=1,tmb%orbs%norb
+        do iall=1,tmb%orbs%norb
+            write(300+iproc,*) istat, iall, ovrlp(iall,istat)
+        end do
+    end do
 
-  !!  allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
-  !!  allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-  !!  call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
+    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
+    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
+    call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
 
-  !!  ! Calculate overlp
-  !!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-  !!  do istat=1,tmb%orbs%norb
-  !!      do iall=1,tmb%orbs%norb
-  !!          write(310+iproc,*) istat, iall, ovrlp(iall,istat)
-  !!      end do
-  !!  end do
-
-
-  !!  call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
-  !!  !!do istat=1,tmb%orbs%npsidim_orbs
-  !!  !!    write(210+iproc,*) istat, tmb%psi(istat)
-  !!  !!end do
-  !!  deallocate(psit_c)
-  !!  deallocate(psit_f)
+    ! Calculate overlp
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    do istat=1,tmb%orbs%norb
+        do iall=1,tmb%orbs%norb
+            write(310+iproc,*) istat, iall, ovrlp(iall,istat)
+        end do
+    end do
 
 
-  !!  ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!  allocate(philarge(tmb%orbs%norbp*ldim))
-  !!  allocate(philarge_root(ldim,tmb%orbs%norb))
-  !!  philarge=0.d0
-  !!  ists=1
-  !!  istl=1
-  !!  do iorb=1,tmb%orbs%norbp
-  !!      ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-  !!      sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!      ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!      nspin=1 !this must be modified later
-  !!      call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
-  !!           tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
-  !!      ists=ists+sdim
-  !!      istl=istl+ldim
-  !!  end do
-  !!  !Gather on root
-  !!  if(nproc>1) then
-  !!      call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
-  !!           ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
-  !!  else
-  !!      call dcopy(ldim*tmb%orbs%norb, philarge, 1, philarge_root, 1)
-  !!  end if
-  !!  if(iproc==0) then
-  !!      do iorb=1,tmb%orbs%norb
-  !!          do jorb=1,tmb%orbs%norb
-  !!              ovrlp(jorb,iorb)=ddot(ldim, philarge_root(1,jorb), 1, philarge_root(1,iorb), 1)
-  !!              write(320+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-  !!          end do
-  !!      end do
-  !!  end if
+    call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
+    !!do istat=1,tmb%orbs%npsidim_orbs
+    !!    write(210+iproc,*) istat, tmb%psi(istat)
+    !!end do
+    deallocate(psit_c)
+    deallocate(psit_f)
 
 
-  !!  deallocate(ovrlp)
+    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+    allocate(philarge(tmb%orbs%norbp*ldim))
+    allocate(philarge_root(ldim,tmb%orbs%norb))
+    philarge=0.d0
+    ists=1
+    istl=1
+    do iorb=1,tmb%orbs%norbp
+        ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+        sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+        ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+        nspin=1 !this must be modified later
+        call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+             tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+        ists=ists+sdim
+        istl=istl+ldim
+    end do
+    !Gather on root
+    if(nproc>1) then
+        call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
+             ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
+    else
+        call dcopy(ldim*tmb%orbs%norb, philarge, 1, philarge_root, 1)
+    end if
+    if(iproc==0) then
+        do iorb=1,tmb%orbs%norb
+            do jorb=1,tmb%orbs%norb
+                ovrlp(jorb,iorb)=ddot(ldim, philarge_root(1,jorb), 1, philarge_root(1,iorb), 1)
+                write(320+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+            end do
+        end do
+    end if
 
-  !!!!! END TEST
+
+
+! Second test
+call dcopy(size(tmb%psi), tmb%psi, 1, philarge, 1)
+call allocateSendBufferOrtho(tmb%comon, subname)
+call allocateRecvBufferOrtho(tmb%comon, subname)
+call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, tmb%orbs%npsidim_orbs, tmb%orbs%inwhichlocreg, tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
+     tmb%psi, tmb%comon%nsendBuf, tmb%comon%sendBuf)
+call postCommsOverlapNew(iproc, nproc, tmb%orbs, tmb%op, tmb%lzd, tmb%psi, tmb%comon, tt1, tt2)
+allocate(lphiovrlp(tmb%op%ndim_lphiovrlp), stat=istat)
+call collectnew(iproc, nproc, tmb%comon, tmb%mad, tmb%op, tmb%orbs, tmb%lzd, tmb%comon%nsendbuf, &
+     tmb%comon%sendbuf, tmb%comon%nrecvbuf, tmb%comon%recvbuf, tt1, tt2, tt3)
+!!call calculateOverlapMatrix3(iproc, nproc, tmb%orbs, tmb%op, tmb%orbs%inWhichLocreg, tmb%comon%nsendBuf, &
+!!     tmb%comon%sendBuf, tmb%comon%nrecvBuf, tmb%comon%recvBuf, tmb%mad, ovrlp)
+call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, tmb%comon%recvbuf, ovrlp, .true., tmb%psi)
+call deallocateSendBufferOrtho(tmb%comon, subname)
+call deallocateRecvBufferOrtho(tmb%comon, subname)
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(800+iproc,*) istat, tmb%psi(istat)
+    end do
+
+call dcopy(size(tmb%psi), philarge, 1, tmb%psi, 1)
+
+    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
+    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
+    allocate(psittemp_c(sum(tmb%collcom%nrecvcounts_c)))
+    allocate(psittemp_f(7*sum(tmb%collcom%nrecvcounts_f)))
+    call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
+    psittemp_c=psit_c
+    psittemp_f=psit_f
+    call build_linear_combination_transposed(tmb%orbs%norb, ovrlp, tmb%collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
+    call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(810+iproc,*) istat, tmb%psi(istat)
+    end do
+    deallocate(psit_c)
+    deallocate(psit_f)
+    deallocate(psittemp_c)
+    deallocate(psittemp_f)
+
+    deallocate(ovrlp)
+  !!! END TEST
 
 
   ! Initialize the DIIS mixing of the potential if required.
