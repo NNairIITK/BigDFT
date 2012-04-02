@@ -38,6 +38,7 @@ type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
 real(8),dimension(:),allocatable:: psit_c, psit_f
+real(8),dimension(:,:),allocatable:: ovrlp
 
 
   if(iproc==0) then
@@ -158,25 +159,6 @@ real(8),dimension(:),allocatable:: psit_c, psit_f
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
 
-  !!! TEST
-    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
-    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-    do istat=0,iproc
-        call random_number(psit_c(1))
-    end do
-    call random_number(tmb%psi)
-    do istat=1,tmb%orbs%npsidim_orbs
-        write(200+iproc,*) istat, tmb%psi(istat)
-    end do
-    call transpose_localized(tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
-    tmb%psi=0.d0
-    call untranspose_localized(tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
-    do istat=1,tmb%orbs%npsidim_orbs
-        write(210+iproc,*) istat, tmb%psi(istat)
-    end do
-    deallocate(psit_c)
-    deallocate(psit_f)
-  !!! END TEST
 
 
   ! Generate the input guess for the TMB
@@ -190,6 +172,53 @@ real(8),dimension(:),allocatable:: psit_c, psit_f
   !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
   !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+
+
+  !!! TEST
+    !!tmb%psi=dble(iproc+1)
+    allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb))
+    call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
+    do istat=1,tmb%orbs%norb
+        do iall=1,tmb%orbs%norb
+            write(300+iproc,*) istat, iall, ovrlp(iall,istat)
+        end do
+    end do
+
+    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
+    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(200+iproc,*) istat, tmb%psi(istat)
+    end do
+    call transpose_localized(tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
+    do istat=1,sum(tmb%collcom%nrecvcounts_c)
+        write(400+iproc,*) istat, psit_c(istat)
+    end do
+    do istat=1,7*sum(tmb%collcom%nrecvcounts_f)
+        write(410+iproc,*) istat, psit_f(istat)
+    end do
+    tmb%psi=0.d0
+
+  do istat=1,sum(tmb%collcom%nrecvcounts_c)
+      write(500+iproc,*) istat, psit_c(istat), tmb%collcom%indexrecvorbital_c(istat)
+  end do
+
+    ! Calculate overlp
+    call calculate_overlap_transposed(tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    do istat=1,tmb%orbs%norb
+        do iall=1,tmb%orbs%norb
+            write(310+iproc,*) istat, iall, ovrlp(iall,istat)
+        end do
+    end do
+
+
+    call untranspose_localized(tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(210+iproc,*) istat, tmb%psi(istat)
+    end do
+    deallocate(psit_c)
+    deallocate(psit_f)
+    deallocate(ovrlp)
+  !!! END TEST
 
 
   ! Initialize the DIIS mixing of the potential if required.

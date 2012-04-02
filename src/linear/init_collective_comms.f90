@@ -620,7 +620,7 @@ integer,dimension(sum(nrecvcounts_f)),intent(out):: indexrecvorbital_f, iextract
 
 ! Local variables
 integer:: i, j, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr, ii1, ii2, ii3, jo, j1, i0, j0
-integer:: istart, iend
+integer:: istart, iend, indglob
 integer,dimension(:),allocatable:: nsend, indexsendorbital2, gridpoint_start_c, gridpoint_start_f, indexrecvorbital2
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_f
 integer,dimension(:),allocatable:: indexsendorbital_c, indexsendbuf_c, indexrecvbuf_c
@@ -663,18 +663,19 @@ gridpoint_start_f=-1
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', ind)
+          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
                   iitot=iitot+1
                   do jproc=0,nproc-1
-                      if(ind>=istartend_c(1,jproc) .and. ind<=istartend_c(2,jproc)) then
+                      if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
                           jproctarget=jproc
                           exit
                       end if
                   end do
+                  write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
                   nsend(jproctarget)=nsend(jproctarget)+1
                   ind=nsenddspls_c(jproctarget)+nsend(jproctarget)
                   isendbuf_c(iitot)=ind
-                  indexsendbuf_c(ind)=ii
+                  indexsendbuf_c(ind)=indglob
                   indexsendorbital_c(iitot)=iiorb
                   !indexsendorbital(ind)=iiorb
           end do
@@ -712,10 +713,10 @@ gridpoint_start_f=-1
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
+          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
                   iitot=iitot+1
                   do jproc=0,nproc-1
-                      if(ind>=istartend_f(1,jproc) .and. ind<=istartend_f(2,jproc)) then
+                      if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
                           jproctarget=jproc
                           exit
                       end if
@@ -723,7 +724,7 @@ gridpoint_start_f=-1
                   nsend(jproctarget)=nsend(jproctarget)+1
                   ind=nsenddspls_f(jproctarget)+nsend(jproctarget)
                   isendbuf_f(iitot)=ind
-                  indexsendbuf_f(ind)=ii
+                  indexsendbuf_f(ind)=indglob
                   indexsendorbital_f(iitot)=iiorb
                   !indexsendorbital(ind)=iiorb
           end do
@@ -798,6 +799,9 @@ gridpoint_start_f=-1
   !!call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
   call get_gridpoint_start(iproc, nproc, lzd, nrecvcounts_c, nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, &
             weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
+  do i=1,(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+      write(640+iproc,*) i, gridpoint_start_c(i)
+  end do
 
 
 
@@ -824,7 +828,8 @@ gridpoint_start_f=-1
       iextract_c(i)=ind
       gridpoint_start_c(ii)=gridpoint_start_c(ii)+1  
   end do
-  if(sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)) stop 'sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)'
+  !!write(*,'(a,2i12)') 'sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)', sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)
+  !!if(sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)) stop 'sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)'
   if(maxval(iextract_c)>sum(nrecvcounts_c)) stop 'maxval(iextract_c)>sum(nrecvcounts_c)'
   if(minval(iextract_c)<1) stop 'minval(iextract_c)<1'
 
@@ -928,6 +933,7 @@ integer:: i, ii, jj, i1, i2, i3
   weight_c=0.d0
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
+      write(650+iproc,*) i, ii
       jj=ii-1
       i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
       jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
@@ -935,6 +941,8 @@ integer:: i, ii, jj, i1, i2, i3
       i1=jj-i2*(lzd%glr%d%n1+1)
       weight_c(i1,i2,i3)=weight_c(i1,i2,i3)+1.d0
   end do
+
+  write(*,*) 'in get_gridpoint_start: maxval(weight_c)', maxval(weight_c)
 
   ii=1
   i=0
@@ -1412,6 +1420,8 @@ subroutine transpose_localized(orbs, lzd, collcom, psi, psit_c, psit_f)
   
   ! Local variables
   real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
+  integer:: i,iproc,ierr
+  call mpi_comm_rank(mpi_comm_world, iproc, ierr)
   
   allocate(psiwork_c(collcom%ndimpsi_c))
   allocate(psiwork_f(7*collcom%ndimpsi_f))
@@ -1419,8 +1429,17 @@ subroutine transpose_localized(orbs, lzd, collcom, psi, psit_c, psit_f)
   allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)))
   
   call transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+  do i=1,collcom%ndimpsi_c
+      write(620+iproc,*) i, psiwork_c(i)
+  end do
   call transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+  do i=1,sum(collcom%nrecvcounts_c)
+      write(610+iproc,*) i, psitwork_c(i)
+  end do
   call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+  do i=1,sum(collcom%nrecvcounts_c)
+      write(630+iproc,*) i, psit_c(i)
+  end do
   
   deallocate(psiwork_c)
   deallocate(psiwork_f)
@@ -1462,3 +1481,57 @@ subroutine untranspose_localized(orbs, lzd, collcom, psit_c, psit_f, psi)
   deallocate(psitwork_f)
   
 end subroutine untranspose_localized
+
+
+subroutine calculate_overlap_transposed(orbs, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c1, psit_c2
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f1, psit_f2
+  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+  
+  ! Local variables
+  integer:: i0, ipt, ii, iiorb, j, jjorb, i, ierr
+
+  ovrlp=0.d0
+
+  i0=0
+  do ipt=1,collcom%nptsp_c 
+      ii=collcom%norb_per_gridpoint_c(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_c(i0+i)
+          do j=1,ii
+              jjorb=collcom%indexrecvorbital_c(i0+j)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
+          end do
+      end do
+      i0=i0+ii
+  end do
+
+  i0=0
+  do ipt=1,collcom%nptsp_f 
+      ii=collcom%norb_per_gridpoint_f(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_f(i0+i)
+          do j=1,ii
+              jjorb=collcom%indexrecvorbital_f(i0+j)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-4)*psit_f2(7*(i0+j)-4)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-3)*psit_f2(7*(i0+j)-3)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-2)*psit_f2(7*(i0+j)-2)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-1)*psit_f2(7*(i0+j)-1)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-0)*psit_f2(7*(i0+j)-0)
+          end do
+      end do
+      i0=i0+ii
+  end do
+
+  call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+endsubroutine calculate_overlap_transposed
