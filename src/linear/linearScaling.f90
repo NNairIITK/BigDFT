@@ -84,9 +84,11 @@ real(8):: ddot
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
   tag=0
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
        input%lin%locregShape, tmb%op, tmb%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
@@ -120,9 +122,13 @@ real(8):: ddot
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
   call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+       input%hx,input%hy,input%hz,input%lin%confpotorder,&
+       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
 
+  call nullify_collective_comms(tmb%collcom)
+  call nullify_collective_comms(tmbder%collcom)
   call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+  call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
 
@@ -188,10 +194,10 @@ real(8):: ddot
 
     allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
     allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-    call transpose_localized(tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
+    call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
 
     ! Calculate overlp
-    call calculate_overlap_transposed(tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
     do istat=1,tmb%orbs%norb
         do iall=1,tmb%orbs%norb
             write(310+iproc,*) istat, iall, ovrlp(iall,istat)
@@ -199,7 +205,7 @@ real(8):: ddot
     end do
 
 
-    call untranspose_localized(tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
+    call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
     !!do istat=1,tmb%orbs%npsidim_orbs
     !!    write(210+iproc,*) istat, tmb%psi(istat)
     !!end do
@@ -224,8 +230,12 @@ real(8):: ddot
         istl=istl+ldim
     end do
     !Gather on root
-    call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
-         ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
+    if(nproc>1) then
+        call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
+             ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
+    else
+        call dcopy(ldim*tmb%orbs%norb, philarge, 1, philarge_root, 1)
+    end if
     if(iproc==0) then
         do iorb=1,tmb%orbs%norb
             do jorb=1,tmb%orbs%norb

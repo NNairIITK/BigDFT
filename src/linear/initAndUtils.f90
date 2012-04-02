@@ -2603,6 +2603,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_orbitals_data(wfn%orbs, subname)
   call deallocate_communications_arrays(wfn%comms, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
+  call deallocate_collective_comms(wfn%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 

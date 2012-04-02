@@ -126,7 +126,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
 
   call assignToLocreg2(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, at%nat, at%nat, &
        input%nspin, norbsPerAt, rxyz, lig%orbsig%onwhichatom)
-       if(iproc==0) write(*,'(a,100i5)') 'lig%orbsig%onwhichatom',lig%orbsig%onwhichatom
+       !if(iproc==0) write(*,'(a,100i5)') 'lig%orbsig%onwhichatom',lig%orbsig%onwhichatom
 
 
   allocate(locregCenter(3,lig%orbsig%norb), stat=istat)
@@ -146,7 +146,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
       write(*,'(a,2(2x,i0))') 'ERROR: ilr/=lig%lzdig%nlr',ilr,lig%lzdig%nlr
       stop
   end if
-  if(iproc==0) write(*,'(a,100f)') 'lin%locrad_type',lin%locrad_type
+  !if(iproc==0) write(*,'(a,100f)') 'lin%locrad_type',lin%locrad_type
 
 
 
@@ -175,15 +175,15 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx
   ! Determine the localization regions.
   !!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
   !!     lig%orbsig, Glr, lin%locrad, 's')
-  write(*,*) 'lig%lzdig%nlr, lig%orbsig%norb', lig%lzdig%nlr, lig%orbsig%norb
-  if(iproc==0) then
-      write(*,'(a,100i5)') 'lig%orbsig%inwhichlocreg', lig%orbsig%inwhichlocreg
-      do ilr=1,lig%lzdig%nlr
-        write(*,'(a,3es)') 'locregCenter',locregCenter(:,ilr)
-      end do
-  end if
-  if(iproc==0) write(*,'(a,100f9.2)') 'locrad', locrad
-  if(iproc==0) write(*,'(a,100f9.2)') 'lin%locrad', lin%locrad
+  !!write(*,*) 'lig%lzdig%nlr, lig%orbsig%norb', lig%lzdig%nlr, lig%orbsig%norb
+  !!if(iproc==0) then
+  !!    write(*,'(a,100i5)') 'lig%orbsig%inwhichlocreg', lig%orbsig%inwhichlocreg
+  !!    do ilr=1,lig%lzdig%nlr
+  !!      write(*,'(a,3es)') 'locregCenter',locregCenter(:,ilr)
+  !!    end do
+  !!end if
+  !!if(iproc==0) write(*,'(a,100f9.2)') 'locrad', locrad
+  !!if(iproc==0) write(*,'(a,100f9.2)') 'lin%locrad', lin%locrad
   call initLocregs(iproc, nproc, lig%lzdig%nlr, locregCenter, hx, hy, hz, lig%lzdig, &
        lig%orbsig, Glr, locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)

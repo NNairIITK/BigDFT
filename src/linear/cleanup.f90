@@ -1616,3 +1616,41 @@ subroutine destroy_wfn_metadata(wfnmd)
 
 end subroutine destroy_wfn_metadata
 
+
+
+
+subroutine deallocate_collective_comms(collcom, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_collective_comms
+  implicit none
+  
+  ! Calling arguments
+  type(collective_comms),intent(inout):: collcom
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+
+  call checkAndDeallocatePointer(collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
+  call checkAndDeallocatePointer(collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
+  call checkAndDeallocatePointer(collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
+  call checkAndDeallocatePointer(collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
+  call checkAndDeallocatePointer(collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
+  call checkAndDeallocatePointer(collcom%iextract_c, 'collcom%iextract_c', subname)
+  call checkAndDeallocatePointer(collcom%iexpand_c, 'collcom%iexpand_c', subname)
+  call checkAndDeallocatePointer(collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
+  call checkAndDeallocatePointer(collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
+  call checkAndDeallocatePointer(collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
+  call checkAndDeallocatePointer(collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
+  call checkAndDeallocatePointer(collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
+  call checkAndDeallocatePointer(collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
+  call checkAndDeallocatePointer(collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
+  call checkAndDeallocatePointer(collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
+  call checkAndDeallocatePointer(collcom%iextract_f, 'collcom%iextract_f', subname)
+  call checkAndDeallocatePointer(collcom%iexpand_f, 'collcom%iexpand_f', subname)
+  call checkAndDeallocatePointer(collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
+  call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
+
+end subroutine deallocate_collective_comms

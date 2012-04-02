@@ -11,7 +11,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(collective_comms),intent(out):: collcom
 
 ! Local variables
-integer:: ii, istat, iorb, iiorb, ilr
+integer:: ii, istat, iorb, iiorb, ilr, iall
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
 real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
@@ -22,7 +22,7 @@ call memocc(istat, weight_c, 'weight_c', subname)
 allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_f, 'weight_f', subname)
 
-call get_weights(orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
 
 !!
@@ -41,6 +41,14 @@ call get_weights(orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
   call memocc(istat, istartend_f, 'istartend_f', subname)
 call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+
+  iall=-product(shape(weight_c))*kind(weight_c)
+  deallocate(weight_c, stat=istat)
+  call memocc(istat, iall, 'weight_c', subname)
+  iall=-product(shape(weight_f))*kind(weight_f)
+  deallocate(weight_f, stat=istat)
+  call memocc(istat, iall, 'weight_f', subname)
+
 !!  call assign_weight_to_process(iproc, nproc, lzd%glr, weight, weight_tot, istartend, weightp, collcom%nptsp)
   write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_c,' coarse points and weight ',weightp_c
   write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_f,' fine points and weight ',weightp_f
@@ -48,13 +56,29 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
 !!
 
   ! some checks
-  call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  else
+      tt=weightp_c
+  end if
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
-  call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  else
+      tt=weightp_f
+  end if     
   if(tt/=weight_f_tot) stop 'wrong partition of fine weights'
-  call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  else
+      ii=collcom%nptsp_c
+  end if
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
-  call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  else
+      ii=collcom%nptsp_f
+  end if
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
 
 !!  ! Allocate the keys
@@ -130,16 +154,24 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
+
+  iall=-product(shape(istartend_c))*kind(istartend_c)
+  deallocate(istartend_c, stat=istat)
+  call memocc(istat, iall, 'istartend_c', subname)
+  iall=-product(shape(istartend_f))*kind(istartend_f)
+  deallocate(istartend_f, stat=istat)
+  call memocc(istat, iall, 'istartend_f', subname)
   
   
 end subroutine init_collective_comms
 
-subroutine get_weights(orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
+integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(out):: weight_c, weight_f
@@ -202,11 +234,13 @@ integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i,
   end do
 
 
-  call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
-  call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
-  ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
-  call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
-  call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+  end if
 
 
 end subroutine get_weights
@@ -284,7 +318,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'ii/=lzd%glr%wfd%nvctr_c'
 
 
@@ -338,7 +372,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii/=lzd%glr%wfd%nvctr_f'
 
 
@@ -347,7 +381,8 @@ end subroutine assign_weight_to_process
 
 
 
-subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, weightp_c, weightp_f, nptsp_c, nptsp_f, &
+subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+           weightp_c, weightp_f, nptsp_c, nptsp_f, &
            norb_per_gridpoint_c, norb_per_gridpoint_f)
 use module_base
 use module_types
@@ -430,8 +465,9 @@ logical:: found
                       ! Check whether this orbitals extends here
                       iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
                       call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
-                                      lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc(1,iii), &
-                                      i, i2, i3, found)
+                           lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+                           lzd%llr(ilr)%wfd%keygloc(1,iii), &
+                           i, i2, i3, found)
                       if(found) then
                           npgp=npgp+1
                           iiorb=iiorb+1
@@ -443,6 +479,7 @@ logical:: found
   end do
 
   if(iipt/=nptsp_f) stop 'iipt/=nptsp_f'
+  write(*,*) 'iiorb, weightp_f', iiorb, weightp_f
   if(iiorb/=nint(weightp_f)) stop 'iiorb/=weightp_f'
 
 
@@ -599,10 +636,15 @@ character(len=*),parameter:: subname='determine_communication_arrays'
       nsenddspls_tmp(jproc)=jproc
       nrecvdspls_tmp(jproc)=jproc
   end do
-  call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
-       nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
-  call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
-       nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+  if(nproc>1) then
+      call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+      call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+  else
+      nrecvcounts_c=nsendcounts_c
+      nrecvcounts_f=nsendcounts_f
+  end if
   iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
   deallocate(nsendcounts_tmp, stat=istat)
   call memocc(istat, iall, 'nsendcounts_tmp', subname)
@@ -677,7 +719,7 @@ allocate(indexsendorbital_f(ndimpsi_f), stat=istat)
 call memocc(istat, indexsendorbital_f, 'indexsendorbital_f', subname)
 allocate(indexsendbuf_f(ndimpsi_f), stat=istat)
 call memocc(istat, indexsendbuf_f, 'indexsendbuf_f', subname)
-allocate(indexrecvbuf_f(sum(nrecvcounts_c)), stat=istat)
+allocate(indexrecvbuf_f(sum(nrecvcounts_f)), stat=istat)
 call memocc(istat, indexrecvbuf_f, 'indexrecvbuf_f', subname)
 
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
@@ -690,6 +732,8 @@ allocate(gridpoint_start_f((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)), 
 call memocc(istat, gridpoint_start_f, 'gridpoint_start_f', subname)
 gridpoint_start_c=-1
 gridpoint_start_f=-1
+
+write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
 
   allocate(nsend(0:nproc-1), stat=istat)
   call memocc(istat, nsend, 'nsend', subname)
@@ -837,19 +881,26 @@ gridpoint_start_f=-1
 
 
 
-  ! Communicate indexsendbuf
-  call mpi_alltoallv(indexsendbuf_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvbuf_c, &
-       nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
-  ! Communicate indexsendorbitals
-  call mpi_alltoallv(indexsendorbital_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvorbital_c, &
-       nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+  if(nproc>1) then
+      ! Communicate indexsendbuf
+      call mpi_alltoallv(indexsendbuf_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvbuf_c, &
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+      ! Communicate indexsendorbitals
+      call mpi_alltoallv(indexsendorbital_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvorbital_c, &
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
 
-  ! Communicate indexsendbuf
-  call mpi_alltoallv(indexsendbuf_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvbuf_f, &
-       nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
-  ! Communicate indexsendorbitals
-  call mpi_alltoallv(indexsendorbital_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvorbital_f, &
-       nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+      ! Communicate indexsendbuf
+      call mpi_alltoallv(indexsendbuf_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvbuf_f, &
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+      ! Communicate indexsendorbitals
+      call mpi_alltoallv(indexsendorbital_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvorbital_f, &
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+   else
+       indexrecvbuf_c=indexsendbuf_c
+       indexrecvorbital_c=indexsendorbital_c
+       indexrecvbuf_f=indexsendbuf_f
+       indexrecvorbital_f=indexsendorbital_f
+   end if
 
 
 
@@ -964,6 +1015,44 @@ gridpoint_start_f=-1
   if(maxval(indexrecvorbital_f)>orbs%norb) stop 'maxval(indexrecvorbital_f)>orbs%norb'
 
 
+
+  iall=-product(shape(indexsendorbital_c))*kind(indexsendorbital_c)
+  deallocate(indexsendorbital_c, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital_c', subname)
+  iall=-product(shape(indexsendbuf_c))*kind(indexsendbuf_c)
+  deallocate(indexsendbuf_c, stat=istat)
+  call memocc(istat, iall, 'indexsendbuf_c', subname)
+  iall=-product(shape(indexrecvbuf_c))*kind(indexrecvbuf_c)
+  deallocate(indexrecvbuf_c, stat=istat)
+  call memocc(istat, iall, 'indexrecvbuf_c', subname)
+
+  iall=-product(shape(indexsendorbital_f))*kind(indexsendorbital_f)
+  deallocate(indexsendorbital_f, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital_f', subname)
+  iall=-product(shape(indexsendbuf_f))*kind(indexsendbuf_f)
+  deallocate(indexsendbuf_f, stat=istat)
+  call memocc(istat, iall, 'indexsendbuf_f', subname)
+  iall=-product(shape(indexrecvbuf_f))*kind(indexrecvbuf_f)
+  deallocate(indexrecvbuf_f, stat=istat)
+  call memocc(istat, iall, 'indexrecvbuf_f', subname)
+
+  iall=-product(shape(weight_c))*kind(weight_c)
+  deallocate(weight_c, stat=istat)
+  call memocc(istat, iall, 'weight_c', subname)
+  iall=-product(shape(weight_f))*kind(weight_f)
+  deallocate(weight_f, stat=istat)
+  call memocc(istat, iall, 'weight_f', subname)
+
+  iall=-product(shape(gridpoint_start_c))*kind(gridpoint_start_c)
+  deallocate(gridpoint_start_c, stat=istat)
+  call memocc(istat, iall, 'gridpoint_start_c', subname)
+  iall=-product(shape(gridpoint_start_f))*kind(gridpoint_start_f)
+  deallocate(gridpoint_start_f, stat=istat)
+  call memocc(istat, iall, 'gridpoint_start_f', subname)
+
+  iall=-product(shape(nsend))*kind(nsend)
+  deallocate(nsend, stat=istat)
+  call memocc(istat, iall, 'nsend', subname)
 
 
 end subroutine get_switch_indices
@@ -1479,12 +1568,13 @@ end subroutine transpose_unswitch_psi
 
 
 
-subroutine transpose_localized(orbs, lzd, collcom, psi, psit_c, psit_f)
+subroutine transpose_localized(iproc, nproc, orbs, lzd, collcom, psi, psit_c, psit_f)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
@@ -1507,7 +1597,12 @@ subroutine transpose_localized(orbs, lzd, collcom, psi, psit_c, psit_f)
   call memocc(istat, psitwork_f, 'psitwork_f', subname)
   
   call transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
-  call transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+  if(nproc>1) then
+      call transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+  else
+      psitwork_c=psiwork_c
+      psitwork_f=psiwork_f
+  end if
   call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
   
   iall=-product(shape(psiwork_c))*kind(psiwork_c)
@@ -1527,12 +1622,13 @@ end subroutine transpose_localized
 
 
 
-subroutine untranspose_localized(orbs, lzd, collcom, psit_c, psit_f, psi)
+subroutine untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_f, psi)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
@@ -1555,7 +1651,12 @@ subroutine untranspose_localized(orbs, lzd, collcom, psit_c, psit_f, psi)
   call memocc(istat, psitwork_f, 'psitwork_f', subname)
 
   call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
-  call transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+  if(nproc>1) then
+      call transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+  else
+      psiwork_c=psitwork_c
+      psiwork_f=psitwork_f
+  end if
   call transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
   
   iall=-product(shape(psiwork_c))*kind(psiwork_c)
@@ -1574,12 +1675,13 @@ subroutine untranspose_localized(orbs, lzd, collcom, psit_c, psit_f, psi)
 end subroutine untranspose_localized
 
 
-subroutine calculate_overlap_transposed(orbs, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
+  integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(collective_comms),intent(in):: collcom
   real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c1, psit_c2
@@ -1623,6 +1725,6 @@ subroutine calculate_overlap_transposed(orbs, collcom, psit_c1, psit_c2, psit_f1
       i0=i0+ii
   end do
 
-  call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 endsubroutine calculate_overlap_transposed
