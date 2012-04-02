@@ -37,8 +37,10 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
-real(8),dimension(:),allocatable:: psit_c, psit_f
-real(8),dimension(:,:),allocatable:: ovrlp
+real(8),dimension(:),allocatable:: psit_c, psit_f, philarge
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
+real(8):: ddot
 
 
   if(iproc==0) then
@@ -186,21 +188,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
     allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
     allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-    do istat=1,tmb%orbs%npsidim_orbs
-        write(200+iproc,*) istat, tmb%psi(istat)
-    end do
     call transpose_localized(tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
-    do istat=1,sum(tmb%collcom%nrecvcounts_c)
-        write(400+iproc,*) istat, psit_c(istat)
-    end do
-    do istat=1,7*sum(tmb%collcom%nrecvcounts_f)
-        write(410+iproc,*) istat, psit_f(istat)
-    end do
-    tmb%psi=0.d0
-
-  do istat=1,sum(tmb%collcom%nrecvcounts_c)
-      write(500+iproc,*) istat, psit_c(istat), tmb%collcom%indexrecvorbital_c(istat)
-  end do
 
     ! Calculate overlp
     call calculate_overlap_transposed(tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
@@ -212,12 +200,44 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
 
     call untranspose_localized(tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
-    do istat=1,tmb%orbs%npsidim_orbs
-        write(210+iproc,*) istat, tmb%psi(istat)
-    end do
+    !!do istat=1,tmb%orbs%npsidim_orbs
+    !!    write(210+iproc,*) istat, tmb%psi(istat)
+    !!end do
     deallocate(psit_c)
     deallocate(psit_f)
+
+
+    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+    allocate(philarge(tmb%orbs%norbp*ldim))
+    allocate(philarge_root(ldim,tmb%orbs%norb))
+    philarge=0.d0
+    ists=1
+    istl=1
+    do iorb=1,tmb%orbs%norbp
+        ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+        sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+        ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+        nspin=1 !this must be modified later
+        call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+             tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+        ists=ists+sdim
+        istl=istl+ldim
+    end do
+    !Gather on root
+    call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
+         ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
+    if(iproc==0) then
+        do iorb=1,tmb%orbs%norb
+            do jorb=1,tmb%orbs%norb
+                ovrlp(jorb,iorb)=ddot(ldim, philarge_root(1,jorb), 1, philarge_root(1,iorb), 1)
+                write(320+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+            end do
+        end do
+    end if
+
+
     deallocate(ovrlp)
+
   !!! END TEST
 
 
