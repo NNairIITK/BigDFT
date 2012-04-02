@@ -1215,16 +1215,13 @@ subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, 
   ! Local variables
   integer:: ierr
   
+  ! coarse part
+  call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
+       collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, mpi_comm_world, ierr)
   
-  
-    ! coarse part
-    call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
-         collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, mpi_comm_world, ierr)
-  
-    ! fine part
-    call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
-         7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, mpi_comm_world, ierr)
-
+  ! fine part
+  call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
+       7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, mpi_comm_world, ierr)
 
 end subroutine transpose_communicate_psi
 
@@ -1333,65 +1330,135 @@ end subroutine transpose_communicate_psit
 
 
 
-subroutine transpose_unswitch_psi
-use module_base
-use module_types
-implicit none
-
-
-  ! coarse part
-  do i=1,ndimpsi_c
-      ind=collcom%irecvbuf_c(i)
-      psi_c(ind)=psiwork_c(i)
-  end do
-
-  ! fine part
-  do i=1,ndimpsi_f
-      ind=collcom%irecvbuf_f(i)
-      psi_f(7*ind-6)=psiwork_f(7*i-6)
-      psi_f(7*ind-5)=psiwork_f(7*i-5)
-      psi_f(7*ind-4)=psiwork_f(7*i-4)
-      psi_f(7*ind-3)=psiwork_f(7*i-3)
-      psi_f(7*ind-2)=psiwork_f(7*i-2)
-      psi_f(7*ind-1)=psiwork_f(7*i-1)
-      psi_f(7*ind-0)=psiwork_f(7*i-0)
-  end do
-
-  ! glue together coarse and fine part
-  ! split up psi into coarse and fine part
+subroutine transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Caling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+  real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+  
+  ! Local variables
+  integer:: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f
+  real(8),dimension(:),allocatable:: psi_c, psi_f
+  
+  
   allocate(psi_c(collcom%ndimpsi_c))
   allocate(psi_f(7*collcom%ndimpsi_f))
-  i_tot=0
-  i_c=0
-  i_f=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      do i=1,lzd%llr(ilr)%wfd%nvctr_c
-          i_c=i_c+1
-          i_tot=i_tot+1
-          psi_c(i_c)=psi(i_tot)
-      end do
-      do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-          i_f=i_f+1
-          i_tot=i_tot+1
-          psi_f(i_f)=psi(i_tot)
-      end do
-  end do
-
+  
+  
+    ! coarse part
+    do i=1,collcom%ndimpsi_c
+        ind=collcom%irecvbuf_c(i)
+        psi_c(ind)=psiwork_c(i)
+    end do
+  
+    ! fine part
+    do i=1,collcom%ndimpsi_f
+        ind=collcom%irecvbuf_f(i)
+        psi_f(7*ind-6)=psiwork_f(7*i-6)
+        psi_f(7*ind-5)=psiwork_f(7*i-5)
+        psi_f(7*ind-4)=psiwork_f(7*i-4)
+        psi_f(7*ind-3)=psiwork_f(7*i-3)
+        psi_f(7*ind-2)=psiwork_f(7*i-2)
+        psi_f(7*ind-1)=psiwork_f(7*i-1)
+        psi_f(7*ind-0)=psiwork_f(7*i-0)
+    end do
+  
+    ! glue together coarse and fine part
+    i_tot=0
+    i_c=0
+    i_f=0
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        do i=1,lzd%llr(ilr)%wfd%nvctr_c
+            i_c=i_c+1
+            i_tot=i_tot+1
+            psi(i_tot)=psi_c(i_c)
+        end do
+        do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
+            i_f=i_f+1
+            i_tot=i_tot+1
+            psi(i_tot)=psi_f(i_f)
+        end do
+    end do
+  
+  deallocate(psi_c)
+  deallocate(psi_f)
 
 end subroutine transpose_unswitch_psi
 
 
-!!!subroutine transpose_localized
-!!!use module_base
-!!!use module_types
-!!!implicit none
-!!!
-!!!
-!!!
-!!!
-!!!
-!!!
-!!!
-!!!end subroutine transpose_localized
+
+
+subroutine transpose_localized(orbs, lzd, collcom, psi, psit_c, psit_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+  
+  ! Local variables
+  real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
+  
+  allocate(psiwork_c(collcom%ndimpsi_c))
+  allocate(psiwork_f(7*collcom%ndimpsi_f))
+  allocate(psitwork_c(sum(collcom%nrecvcounts_c)))
+  allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)))
+  
+  call transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+  call transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+  call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+  
+  deallocate(psiwork_c)
+  deallocate(psiwork_f)
+  deallocate(psitwork_c)
+  deallocate(psitwork_f)
+  
+end subroutine transpose_localized
+
+
+
+subroutine untranspose_localized(orbs, lzd, collcom, psit_c, psit_f, psi)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
+  real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
+  real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+  
+  ! Local variables
+  real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
+  
+  allocate(psiwork_c(collcom%ndimpsi_c))
+  allocate(psiwork_f(7*collcom%ndimpsi_f))
+  allocate(psitwork_c(sum(collcom%nrecvcounts_c)))
+  allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)))
+
+  call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+  call transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+  call transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
+  
+  deallocate(psiwork_c)
+  deallocate(psiwork_f)
+  deallocate(psitwork_c)
+  deallocate(psitwork_f)
+  
+end subroutine untranspose_localized

@@ -37,6 +37,7 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
+real(8),dimension(:),allocatable:: psit_c, psit_f
 
 
   if(iproc==0) then
@@ -155,6 +156,27 @@ logical:: check_whether_derivatives_to_be_used
   call memocc(istat, rhopotold, 'rhopotold', subname)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+
+
+  !!! TEST
+    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
+    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
+    do istat=0,iproc
+        call random_number(psit_c(1))
+    end do
+    call random_number(tmb%psi)
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(200+iproc,*) istat, tmb%psi(istat)
+    end do
+    call transpose_localized(tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
+    tmb%psi=0.d0
+    call untranspose_localized(tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
+    do istat=1,tmb%orbs%npsidim_orbs
+        write(210+iproc,*) istat, tmb%psi(istat)
+    end do
+    deallocate(psit_c)
+    deallocate(psit_f)
+  !!! END TEST
 
 
   ! Generate the input guess for the TMB
