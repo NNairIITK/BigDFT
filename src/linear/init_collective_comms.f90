@@ -106,7 +106,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
   t2=mpi_wtime()
-  write(*,*) 'time get_index_in_global2:',t2-t1
+  write(*,'(a,i5,es15.5)') 'iproc, time get_index_in_global2:',iproc, t2-t1
 
 
   ! Determine values for mpi_alltoallv
@@ -133,7 +133,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
   t2=mpi_wtime()
-  write(*,*) 'time determine_communication_arrays:',t2-t1
+  write(*,'(a,i5,es15.5)') 'iproc, time determine_communication_arrays:',iproc, t2-t1
 !!
 !!
   ! Now rearrange the data on the process to communicate them
@@ -181,7 +181,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
   t2=mpi_wtime()
-  write(*,*) 'time get_switch_indices:',t2-t1
+  write(*,'(a,i5,es15.5)') 'iproc, time get_switch_indices:',iproc, t2-t1
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
@@ -451,7 +451,7 @@ integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot,
 logical:: found, overlap_possible
 integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
 character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
-real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
+!!real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)
@@ -464,8 +464,8 @@ real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
   iitot=0
   iiorb=0
   iipt=0
-t_check_gridpoint=0.d0
-t1tot=mpi_wtime()
+!!t_check_gridpoint=0.d0
+!!t1tot=mpi_wtime()
   !write(*,*) 'iproc, istartp_seg_c,iendp_seg_c', iproc, istartp_seg_c,iendp_seg_c
     !do iseg=1,lzd%glr%wfd%nseg_c
     do iseg=istartp_seg_c,iendp_seg_c
@@ -492,12 +492,12 @@ t1tot=mpi_wtime()
                    if(.not. overlap_possible) then
                        found=.false.
                    else
-                       t1=mpi_wtime()
+                       !!t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
                             i, i2, i3, iseg_start_c(ilr), found)
-                       t2=mpi_wtime()
-                       t_check_gridpoint=t_check_gridpoint+t2-t1
+                       !!t2=mpi_wtime()
+                       !!t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -544,13 +544,13 @@ t1tot=mpi_wtime()
                        found=.false.
                    else
                        iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-                       t1=mpi_wtime()
+                       !!t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
                             lzd%llr(ilr)%wfd%keygloc(1,iii), &
                             i, i2, i3, iseg_start_f(ilr), found)
-                       t2=mpi_wtime()
-                       t_check_gridpoint=t_check_gridpoint+t2-t1
+                       !!t2=mpi_wtime()
+                       !!t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -574,9 +574,9 @@ t1tot=mpi_wtime()
   deallocate(iseg_start_f, stat=istat)
   call memocc(istat, iall, 'iseg_start_f', subname)
 
-t2tot=mpi_wtime()
-write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
-write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
+!!t2tot=mpi_wtime()
+!!write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
+!!write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
 
 end subroutine determine_num_orbs_per_gridpoint
 
@@ -784,7 +784,10 @@ real(8),dimension(:,:,:),allocatable:: weight_c, weight_f
 integer,dimension(:),allocatable:: indexsendorbital_c, indexsendbuf_c, indexrecvbuf_c
 integer,dimension(:),allocatable:: indexsendorbital_f, indexsendbuf_f, indexrecvbuf_f
 character(len=*),parameter:: subname='get_switch_indices'
+!real(8):: t1, t2, t1tot, t2tot, t_reverse
 
+!!t_reverse=0.d0
+!!t1tot=mpi_wtime()
 
 allocate(indexsendorbital_c(ndimpsi_c), stat=istat)
 call memocc(istat, indexsendorbital_c, 'indexsendorbital_c', subname)
@@ -927,13 +930,17 @@ gridpoint_start_f=-1
       indexsendorbital_c(ind)=indexsendorbital2(i)
   end do
   ! Inverse of isendbuf
-  do i=1,ndimpsi_c
-      do j=1,ndimpsi_c
-          if(isendbuf_c(j)==i) then
-              irecvbuf_c(i)=j
-          end if
-      end do
-  end do
+!!t1=mpi_wtime()
+  call get_reverse_indices(ndimpsi_c, isendbuf_c, irecvbuf_c)
+  !!do i=1,ndimpsi_c
+  !!    do j=1,ndimpsi_c
+  !!        if(isendbuf_c(j)==i) then
+  !!            irecvbuf_c(i)=j
+  !!        end if
+  !!    end do
+  !!end do
+!!t2=mpi_wtime()
+!!t_reverse=t_reverse+t2-t1
   iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
   deallocate(indexsendorbital2, stat=istat)
   call memocc(istat, iall, 'indexsendorbital2', subname)
@@ -947,13 +954,17 @@ gridpoint_start_f=-1
       indexsendorbital_f(ind)=indexsendorbital2(i)
   end do
   ! Inverse of isendbuf
-  do i=1,ndimpsi_f
-      do j=1,ndimpsi_f
-          if(isendbuf_f(j)==i) then
-              irecvbuf_f(i)=j
-          end if
-      end do
-  end do
+!!t1=mpi_wtime()
+  call get_reverse_indices(ndimpsi_f, isendbuf_f, irecvbuf_f)
+  !!do i=1,ndimpsi_f
+  !!    do j=1,ndimpsi_f
+  !!        if(isendbuf_f(j)==i) then
+  !!            irecvbuf_f(i)=j
+  !!        end if
+  !!    end do
+  !!end do
+!!t2=mpi_wtime()
+!!t_reverse=t_reverse+t2-t1
   iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
   deallocate(indexsendorbital2, stat=istat)
   call memocc(istat, iall, 'indexsendorbital2', subname)
@@ -1047,21 +1058,29 @@ gridpoint_start_f=-1
 
 
   ! Get the array to transfrom back the data
-  do i=1,sum(nrecvcounts_c)
-      do j=1,sum(nrecvcounts_c)
-          if(iextract_c(j)==i) then
-              iexpand_c(i)=j
-          end if
-      end do
-  end do
+!!t1=mpi_wtime()
+  call get_reverse_indices(sum(nrecvcounts_c), iextract_c, iexpand_c)
+  !!do i=1,sum(nrecvcounts_c)
+  !!    do j=1,sum(nrecvcounts_c)
+  !!        if(iextract_c(j)==i) then
+  !!            iexpand_c(i)=j
+  !!        end if
+  !!    end do
+  !!end do
+!!t2=mpi_wtime()
+!!t_reverse=t_reverse+t2-t1
 
-  do i=1,sum(nrecvcounts_f)
-      do j=1,sum(nrecvcounts_f)
-          if(iextract_f(j)==i) then
-              iexpand_f(i)=j
-          end if
-      end do
-  end do
+!!t1=mpi_wtime()
+  call get_reverse_indices(sum(nrecvcounts_f), iextract_f, iexpand_f)
+  !!do i=1,sum(nrecvcounts_f)
+  !!    do j=1,sum(nrecvcounts_f)
+  !!        if(iextract_f(j)==i) then
+  !!            iexpand_f(i)=j
+  !!        end if
+  !!    end do
+  !!end do
+!!t2=mpi_wtime()
+!!t_reverse=t_reverse+t2-t1
   
 
 
@@ -1134,6 +1153,9 @@ gridpoint_start_f=-1
   deallocate(nsend, stat=istat)
   call memocc(istat, iall, 'nsend', subname)
 
+!!t2tot=mpi_wtime()
+!!write(*,'(a,i6,es15.5)') 'in sub get_switch_indices: iproc, time reverse',iproc, t_reverse
+!!write(*,'(a,i6,es15.5)') 'in sub get_switch_indices: iproc, total time',iproc, t2tot-t1tot
 
 end subroutine get_switch_indices
 
@@ -1283,8 +1305,16 @@ call mpi_comm_rank(mpi_comm_world, iproc, i)
      equal_possible = (ii2==itarget2 .and. ii3==itarget3)
      larger_possible = (ii2>itarget2 .and. ii3>itarget3)
      smaller_possible = (ii2<itarget2 .and. ii3<itarget3)
+     ! check whether quick exit is possible since there is no chance to find the point anymore...
+     if(ii3>itarget3) then
+            exit loop_segments
+     end if
+     if(ii3>=itarget3 .and. ii2>itarget2) then
+         exit loop_segments
+     end if
+     larger_possible = (ii3>=itarget3 .and. ii2>=itarget2)
+
      do i=i0,i1
-        !!write(300+iproc,'(a,7i8)') 'iseg, itarget1, itarget2, itarget3, ii1, ii2, ii3', iseg, itarget1, itarget2, itarget3, ii1, ii2, ii3
         ii1=i+noffset1
         if(equal_possible .and. ii1==itarget1) then
             found=.true.
@@ -1292,10 +1322,8 @@ call mpi_comm_rank(mpi_comm_world, iproc, i)
             iseg_start=iseg
             exit loop_segments
         end if
-        !if(larger_possible .and. ii1>itarget1) then
-        if(ii3>itarget3 .or. ii3>=itarget3 .and. ii2>itarget2 .or. ii3>=itarget3 .and. ii2>=itarget2 .and. ii1>itarget1) then
+        if(larger_possible .and. ii1>itarget1) then
             ! there is no chance to find the point anymore...
-            !!write(300+iproc,*) 'exit here'
             exit loop_segments
         end if
         if(smaller_possible .and. ii1<itarget1) then
@@ -1969,3 +1997,30 @@ subroutine check_grid_point_from_boxes(i1, i2, i3, lr, overlap_possible)
   end if
 
 end subroutine check_grid_point_from_boxes
+
+
+subroutine get_reverse_indices(n, indices, reverse_indices)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: n
+  integer,dimension(n),intent(in):: indices
+  integer,dimension(n),intent(out):: reverse_indices
+
+  ! Local variables
+  integer:: i, j
+
+  do i=1,n
+      j=indices(i)
+      reverse_indices(j)=i
+  end do
+  !!do i=1,n
+  !!    do j=1,n
+  !!        if(indices(j)==i) then
+  !!            reverse_indices(i)=j
+  !!        end if
+  !!    end do
+  !!end do
+
+end subroutine get_reverse_indices
