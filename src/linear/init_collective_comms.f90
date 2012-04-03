@@ -15,12 +15,17 @@ integer:: ii, istat, iorb, iiorb, ilr, iall
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
 real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
+integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 character(len=*),parameter:: subname='init_collective_comms'
 
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
 allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_f, 'weight_f', subname)
+allocate(index_in_global_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
+call memocc(istat, index_in_global_c, 'index_in_global_c', subname)
+allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
+call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
@@ -32,7 +37,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
 !!  ii=(lzd%glr%ie1-lzd%glr%is1+1)*(lzd%glr%ie2-lzd%glr%is2+1)*(lzd%glr%ie3-lzd%glr%is3+1)
 !!  call mpi_alzd%llreduce(weight_temp, weight, ii, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
 !!
-  if(iproc==0) write(*,'(a,2es14.5)') 'total weights (coarse / fine):',weight_c_tot, weight_f_tot
+  !!if(iproc==0) write(*,'(a,2es14.5)') 'total weights (coarse / fine):',weight_c_tot, weight_f_tot
 
 !!  ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
@@ -50,8 +55,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call memocc(istat, iall, 'weight_f', subname)
 
 !!  call assign_weight_to_process(iproc, nproc, lzd%glr, weight, weight_tot, istartend, weightp, collcom%nptsp)
-  write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_c,' coarse points and weight ',weightp_c
-  write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_f,' fine points and weight ',weightp_f
+  !!write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_c,' coarse points and weight ',weightp_c
+  !!write(*,'(a,i0,a,i0,a,es14.5)') 'process ',iproc,' has ',collcom%nptsp_f,' fine points and weight ',weightp_f
 !!!!  if(istartend(2,nproc-1)/=(lzd%glr%ie1-lzd%glr%is1+1)*(lzd%glr%ie2-lzd%glr%is2+1)*(lzd%glr%ie3-lzd%glr%is3+1)) stop 'istartend(2,nproc-1)/=(lzd%glr%ie1-lzd%glr%is1+1)*(lzd%glr%ie2-lzd%glr%is2+1)*(lzd%glr%ie3-lzd%glr%is3+1)'
 !!
 
@@ -90,6 +95,9 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
 
+  ! Determine the index of a grid point i1,i2,i3 in the compressed array
+  call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
+
 
   ! Determine values for mpi_alltoallv
   allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
@@ -108,7 +116,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-  call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, weightp_c, weightp_f, &
+  call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+       index_in_global_c, index_in_global_f, weightp_c, weightp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 !!
@@ -151,6 +160,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
+       index_in_global_c, index_in_global_f, &
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
@@ -158,9 +168,14 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
   call memocc(istat, iall, 'istartend_c', subname)
-  iall=-product(shape(istartend_f))*kind(istartend_f)
-  deallocate(istartend_f, stat=istat)
-  call memocc(istat, iall, 'istartend_f', subname)
+
+  iall=-product(shape(index_in_global_c))*kind(index_in_global_c)
+  deallocate(index_in_global_c, stat=istat)
+  call memocc(istat, iall, 'index_in_global_c', subname)
+
+  iall=-product(shape(index_in_global_f))*kind(index_in_global_f)
+  deallocate(index_in_global_f, stat=istat)
+  call memocc(istat, iall, 'index_in_global_f', subname)
   
   
 end subroutine init_collective_comms
@@ -268,7 +283,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
   weight_c_ideal=weight_tot_c/dble(nproc)
   weight_f_ideal=weight_tot_f/dble(nproc)
-  if(iproc==0) write(*,'(a,2es14.5)') 'ideal weight per process (coarse / fine):',weight_c_ideal,weight_f_ideal
+  !!if(iproc==0) write(*,'(a,2es14.5)') 'ideal weight per process (coarse / fine):',weight_c_ideal,weight_f_ideal
 
   jproc=0
   tt=0.d0
@@ -479,7 +494,7 @@ logical:: found
   end do
 
   if(iipt/=nptsp_f) stop 'iipt/=nptsp_f'
-  write(*,*) 'iiorb, weightp_f', iiorb, weightp_f
+  !!write(*,*) 'iiorb, weightp_f', iiorb, weightp_f
   if(iiorb/=nint(weightp_f)) stop 'iiorb/=weightp_f'
 
 
@@ -490,6 +505,7 @@ end subroutine determine_num_orbs_per_gridpoint
 
 
 subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+           index_in_global_c, index_in_global_f, &
            weightp_c, weightp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
            nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
 use module_base
@@ -501,6 +517,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
+integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
 real(8),intent(in):: weightp_c, weightp_f
 integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
 integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
@@ -532,7 +549,8 @@ character(len=*),parameter:: subname='determine_communication_arrays'
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', ind)
+          !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', ind)
+          ind=index_in_global_c(ii1,ii2,ii3)
           jproctarget=-1
           do jproc=0,nproc-1
               if(ind>=istartend_c(1,jproc) .and. ind<=istartend_c(2,jproc)) then
@@ -540,13 +558,13 @@ character(len=*),parameter:: subname='determine_communication_arrays'
                   exit
               end if
           end do
-          if(jproctarget==-1) write(*,*) 'ind, lzd%glr%wfd%nvctr_c',ind, lzd%glr%wfd%nvctr_c
+          !!if(jproctarget==-1) write(*,*) 'ind, lzd%glr%wfd%nvctr_c',ind, lzd%glr%wfd%nvctr_c
           nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
         end do
      end do
    end do
 
-   write(*,'(a,i3,3x,100i8)') 'iproc, istartend_f(2,:)', iproc, istartend_f(2,:)
+   !!write(*,'(a,i3,3x,100i8)') 'iproc, istartend_f(2,:)', iproc, istartend_f(2,:)
 
   nsendcounts_f=0
   do iorb=1,orbs%norbp
@@ -569,7 +587,8 @@ character(len=*),parameter:: subname='determine_communication_arrays'
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
+          !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
+          ind=index_in_global_f(ii1,ii2,ii3)
           do jproc=0,nproc-1
               if(ind>=istartend_f(1,jproc) .and. ind<=istartend_f(2,jproc)) then
                   jproctarget=jproc
@@ -601,15 +620,15 @@ character(len=*),parameter:: subname='determine_communication_arrays'
   !!        end do
   !!    end do
   !!end do
-  if(iproc==0) write(*,'(a,100i7)') 'istartend_c(2,:)', istartend_c(2,:)
-  write(*,'(a,2i9)') 'sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs
+  !!if(iproc==0) write(*,'(a,100i7)') 'istartend_c(2,:)', istartend_c(2,:)
+  !!write(*,'(a,2i9)') 'sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
   ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
   if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) &
       stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
 
-  write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_c',iproc, nsendcounts_c 
-  write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_f',iproc, nsendcounts_f 
+  !!write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_c',iproc, nsendcounts_c 
+  !!write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_f',iproc, nsendcounts_f 
   
   ! now nsenddspls
   nsenddspls_c(0)=0
@@ -672,7 +691,7 @@ character(len=*),parameter:: subname='determine_communication_arrays'
   end do
 
   !write(*,*) 'sum(nrecvcounts_c), nint(weightp_c)', sum(nrecvcounts_c), nint(weightp_c)
-  write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
+  !!write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
   if(sum(nrecvcounts_c)/=nint(weightp_c)) stop 'sum(nrecvcounts_c)/=nint(nweightp_c)'
   if(sum(nrecvcounts_f)/=nint(weightp_f)) stop 'sum(nrecvcounts_f)/=nint(nweightp_f)'
 
@@ -682,6 +701,7 @@ end subroutine determine_communication_arrays
 subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
            nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
            nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f, &
+           index_in_global_c, index_in_global_f, &
            weightp_c, weightp_f,  isendbuf_c, irecvbuf_c, isendbuf_f, irecvbuf_f, &
            indexrecvorbital_c, iextract_c, iexpand_c, indexrecvorbital_f, iextract_f, iexpand_f)
 use module_base
@@ -695,6 +715,7 @@ type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
 integer,dimension(0:nproc-1),intent(in):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
 integer,dimension(0:nproc-1),intent(in):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
 real(8),intent(in):: weightp_c, weightp_f
 integer,dimension(ndimpsi_c),intent(out):: isendbuf_c, irecvbuf_c
 integer,dimension(ndimpsi_f),intent(out):: isendbuf_f, irecvbuf_f
@@ -736,7 +757,7 @@ call memocc(istat, gridpoint_start_f, 'gridpoint_start_f', subname)
 gridpoint_start_c=-1
 gridpoint_start_f=-1
 
-write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
+!!write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
 
   allocate(nsend(0:nproc-1), stat=istat)
   call memocc(istat, nsend, 'nsend', subname)
@@ -761,7 +782,8 @@ write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
+          !!call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
+          indglob=index_in_global_c(ii1,ii2,ii3)
                   iitot=iitot+1
                   do jproc=0,nproc-1
                       if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
@@ -769,7 +791,7 @@ write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
                           exit
                       end if
                   end do
-                  write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
+                  !!write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
                   nsend(jproctarget)=nsend(jproctarget)+1
                   ind=nsenddspls_c(jproctarget)+nsend(jproctarget)
                   isendbuf_c(iitot)=ind
@@ -811,7 +833,8 @@ write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
           ii1=i+lzd%llr(ilr)%ns1
           ii2=i2+lzd%llr(ilr)%ns2
           ii3=i3+lzd%llr(ilr)%ns3
-          call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
+          !!call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
+          indglob=index_in_global_f(ii1,ii2,ii3)
                   iitot=iitot+1
                   do jproc=0,nproc-1
                       if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
@@ -833,7 +856,7 @@ write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
 
   !check
   do jproc=0,nproc-1
-      write(*,*) 'nsend(jproc), nsendcounts_f(jproc)', nsend(jproc), nsendcounts_f(jproc)
+      !!write(*,*) 'nsend(jproc), nsendcounts_f(jproc)', nsend(jproc), nsendcounts_f(jproc)
       if(nsend(jproc)/=nsendcounts_f(jproc)) stop 'nsend(jproc)/=nsendcounts_f(jproc)'
   end do
 
@@ -1085,7 +1108,7 @@ integer:: i, ii, jj, i1, i2, i3
   weight_c=0.d0
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
-      write(650+iproc,*) i, ii
+      !!write(650+iproc,*) i, ii
       jj=ii-1
       i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
       jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
@@ -1094,7 +1117,7 @@ integer:: i, ii, jj, i1, i2, i3
       weight_c(i1,i2,i3)=weight_c(i1,i2,i3)+1.d0
   end do
 
-  write(*,*) 'in get_gridpoint_start: maxval(weight_c)', maxval(weight_c)
+  !!write(*,*) 'in get_gridpoint_start: maxval(weight_c)', maxval(weight_c)
 
   ii=1
   i=0
@@ -1288,6 +1311,60 @@ end if
 end subroutine get_index_in_global
 
 
+
+
+
+subroutine get_index_in_global2(lr, index_in_global_c, index_in_global_f)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(locreg_descriptors),intent(in):: lr
+integer,dimension(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3),intent(out):: index_in_global_c, index_in_global_f
+
+! Local variables
+integer:: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend
+
+
+    iitot=0
+    do iseg=1,lr%wfd%nseg_c
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
+       ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
+       i2=ii/(lr%d%n1+1)
+       i0=ii-i2*(lr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+          iitot=iitot+1
+          index_in_global_c(i,i2,i3)=iitot
+       end do
+    end do 
+
+
+    iitot=0
+    istart=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+    iend=istart+lr%wfd%nseg_f-1
+    do iseg=istart,iend
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
+       ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
+       i2=ii/(lr%d%n1+1)
+       i0=ii-i2*(lr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+          iitot=iitot+1
+          index_in_global_f(i,i2,i3)=iitot
+       end do
+    end do
+
+
+
+end subroutine get_index_in_global2
 
 
 

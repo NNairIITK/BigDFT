@@ -1356,7 +1356,7 @@ do iat=1,lzd%nlr
                 iiat=iioverlap+nshift
                 ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
                 ! in calculating the input guess, this check has to be done only for those processes.
-                write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
+                !!write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
                 if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle
                     if(ilr==iiat) then

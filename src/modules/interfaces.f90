@@ -6417,6 +6417,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
                   nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
                   nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f, &
+                  index_in_global_c, index_in_global_f, &
                   weightp_c, weightp_f,  isendbuf_c, irecvbuf_c, isendbuf_f, irecvbuf_f, &
                   indexrecvorbital_c, iextract_c, iexpand_c, indexrecvorbital_f, iextract_f, iexpand_f)
          use module_base
@@ -6428,12 +6429,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
          integer,dimension(0:nproc-1),intent(in):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
          integer,dimension(0:nproc-1),intent(in):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+         integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
          real(8),intent(in):: weightp_c, weightp_f
          integer,dimension(ndimpsi_c),intent(out):: isendbuf_c, irecvbuf_c
          integer,dimension(ndimpsi_f),intent(out):: isendbuf_f, irecvbuf_f
          integer,dimension(sum(nrecvcounts_c)),intent(out):: indexrecvorbital_c, iextract_c, iexpand_c
          integer,dimension(sum(nrecvcounts_f)),intent(out):: indexrecvorbital_f, iextract_f, iexpand_f
        end subroutine get_switch_indices
+
+       subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+                  index_in_global_c, index_in_global_f, &
+                  weightp_c, weightp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
+                  nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
+         integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
+         real(8),intent(in):: weightp_c, weightp_f
+         integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+         integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+       end subroutine determine_communication_arrays
 
    end interface
 

@@ -508,6 +508,8 @@ real(8):: ddot, tt1, tt2, tt3
 
 
           ! Calculate the coefficients
+          call mpi_barrier(mpi_comm_world, istat)
+          write(*,*) 'tmbmix%wfnmd%bs%use_derivative_basis',tmbmix%wfnmd%bs%use_derivative_basis
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
