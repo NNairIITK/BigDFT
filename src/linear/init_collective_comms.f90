@@ -93,20 +93,20 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call mpi_barrier(mpi_comm_world, ierr)
-  t1=mpi_wtime()
+  !!t1=mpi_wtime()
   call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  t2=mpi_wtime()
-  write(*,'(a,i5,es15.5)') 'iproc, time determine_num_orbs_per_gridpoint:',iproc, t2-t1
+  !!t2=mpi_wtime()
+  !!write(*,'(a,i5,es15.5)') 'iproc, time determine_num_orbs_per_gridpoint:',iproc, t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1=mpi_wtime()
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-  t2=mpi_wtime()
-  write(*,'(a,i5,es15.5)') 'iproc, time get_index_in_global2:',iproc, t2-t1
+  !!t2=mpi_wtime()
+  !!write(*,'(a,i5,es15.5)') 'iproc, time get_index_in_global2:',iproc, t2-t1
 
 
   ! Determine values for mpi_alltoallv
@@ -126,14 +126,14 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1=mpi_wtime()
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, weightp_c, weightp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-  t2=mpi_wtime()
-  write(*,'(a,i5,es15.5)') 'iproc, time determine_communication_arrays:',iproc, t2-t1
+  !!t2=mpi_wtime()
+  !!write(*,'(a,i5,es15.5)') 'iproc, time determine_communication_arrays:',iproc, t2-t1
 !!
 !!
   ! Now rearrange the data on the process to communicate them
@@ -171,8 +171,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-  call mpi_barrier(mpi_comm_world, ierr)
-  t1=mpi_wtime()
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -180,8 +180,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-  t2=mpi_wtime()
-  write(*,'(a,i5,es15.5)') 'iproc, time get_switch_indices:',iproc, t2-t1
+  !!t2=mpi_wtime()
+  !!write(*,'(a,i5,es15.5)') 'iproc, time get_switch_indices:',iproc, t2-t1
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
