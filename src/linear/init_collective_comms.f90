@@ -13,7 +13,7 @@ type(collective_comms),intent(out):: collcom
 ! Local variables
 integer:: ii, istat, iorb, iiorb, ilr, iall
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
-real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr
+real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr, t1, t2
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
 integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 character(len=*),parameter:: subname='init_collective_comms'
@@ -91,12 +91,20 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+  t2=mpi_wtime()
+  write(*,*) 'time determine_num_orbs_per_gridpoint:',t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
+  t2=mpi_wtime()
+  write(*,*) 'time get_index_in_global2:',t2-t1
 
 
   ! Determine values for mpi_alltoallv
@@ -116,10 +124,14 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, weightp_c, weightp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
+  t2=mpi_wtime()
+  write(*,*) 'time determine_communication_arrays:',t2-t1
 !!
 !!
   ! Now rearrange the data on the process to communicate them
@@ -157,6 +169,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -164,6 +178,8 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
+  t2=mpi_wtime()
+  write(*,*) 'time get_switch_indices:',t2-t1
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
@@ -413,8 +429,18 @@ integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
 integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
 
 ! Local variables
-integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0
-logical:: found
+integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
+logical:: found, overlap_possible
+integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
+character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
+
+  allocate(iseg_start_c(lzd%nlr), stat=istat)
+  call memocc(istat, iseg_start_c, 'iseg_start_c', subname)
+  allocate(iseg_start_f(lzd%nlr), stat=istat)
+  call memocc(istat, iseg_start_f, 'iseg_start_f', subname)
+
+  iseg_start_c=1
+  iseg_start_f=1
 
   iitot=0
   iiorb=0
@@ -430,23 +456,28 @@ logical:: found
        i0=ii-i2*(lzd%glr%d%n1+1)
        i1=i0+j1-j0
        do i=i0,i1
-              iitot=iitot+1
-              if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
-                  iipt=iipt+1
-                  npgp=0
-                  do iorb=1,orbs%norb
-                      ilr=orbs%inwhichlocreg(iorb)
-                      ! Check whether this orbitals extends here
-                      call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
-                                      lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
-                                      i, i2, i3, found)
-                      if(found) then
-                          npgp=npgp+1
-                          iiorb=iiorb+1
-                      end if
-                  end do
-                  norb_per_gridpoint_c(iipt)=npgp
-              end if
+           iitot=iitot+1
+           if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
+               iipt=iipt+1
+               npgp=0
+               do iorb=1,orbs%norb
+                   ilr=orbs%inwhichlocreg(iorb)
+                   ! Check whether this orbitals extends here
+                   call check_grid_point_from_boxes(i, i2, i3, lzd%llr(ilr), overlap_possible)
+                   if(.not. overlap_possible) then
+                       found=.false.
+                   else
+                       call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+                            lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
+                            i, i2, i3, iseg_start_c(ilr), found)
+                   end if
+                   if(found) then
+                       npgp=npgp+1
+                       iiorb=iiorb+1
+                   end if
+               end do
+               norb_per_gridpoint_c(iipt)=npgp
+           end if
       end do
   end do
 
@@ -471,25 +502,30 @@ logical:: found
        i0=ii-i2*(lzd%glr%d%n1+1)
        i1=i0+j1-j0
        do i=i0,i1
-              iitot=iitot+1
-              if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
-                  iipt=iipt+1
-                  npgp=0
-                  do iorb=1,orbs%norb
-                      ilr=orbs%inwhichlocreg(iorb)
-                      ! Check whether this orbitals extends here
-                      iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-                      call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
-                           lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-                           lzd%llr(ilr)%wfd%keygloc(1,iii), &
-                           i, i2, i3, found)
-                      if(found) then
-                          npgp=npgp+1
-                          iiorb=iiorb+1
-                      end if
-                  end do
-                  norb_per_gridpoint_f(iipt)=npgp
-              end if
+           iitot=iitot+1
+           if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
+               iipt=iipt+1
+               npgp=0
+               do iorb=1,orbs%norb
+                   ilr=orbs%inwhichlocreg(iorb)
+                   ! Check whether this orbitals extends here
+                   call check_grid_point_from_boxes(i, i2, i3, lzd%llr(ilr), overlap_possible)
+                   if(.not. overlap_possible) then
+                       found=.false.
+                   else
+                       iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+                       call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+                            lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+                            lzd%llr(ilr)%wfd%keygloc(1,iii), &
+                            i, i2, i3, iseg_start_f(ilr), found)
+                   end if
+                   if(found) then
+                       npgp=npgp+1
+                       iiorb=iiorb+1
+                   end if
+               end do
+               norb_per_gridpoint_f(iipt)=npgp
+           end if
       end do
   end do
 
@@ -498,6 +534,12 @@ logical:: found
   if(iiorb/=nint(weightp_f)) stop 'iiorb/=weightp_f'
 
 
+  iall=-product(shape(iseg_start_c))*kind(iseg_start_c)
+  deallocate(iseg_start_c, stat=istat)
+  call memocc(istat, iall, 'iseg_start_c', subname)
+  iall=-product(shape(iseg_start_f))*kind(iseg_start_f)
+  deallocate(iseg_start_f, stat=istat)
+  call memocc(istat, iall, 'iseg_start_f', subname)
 
 
 end subroutine determine_num_orbs_per_gridpoint
@@ -544,11 +586,10 @@ character(len=*),parameter:: subname='determine_communication_arrays'
        i2=ii/(lzd%llr(ilr)%d%n1+1)
        i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
        i1=i0+j1-j0
-       !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+       ii2=i2+lzd%llr(ilr)%ns2
+       ii3=i3+lzd%llr(ilr)%ns3
        do i=i0,i1
           ii1=i+lzd%llr(ilr)%ns1
-          ii2=i2+lzd%llr(ilr)%ns2
-          ii3=i3+lzd%llr(ilr)%ns3
           !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', ind)
           ind=index_in_global_c(ii1,ii2,ii3)
           jproctarget=-1
@@ -582,11 +623,10 @@ character(len=*),parameter:: subname='determine_communication_arrays'
        i2=ii/(lzd%llr(ilr)%d%n1+1)
        i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
        i1=i0+j1-j0
-       !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+       ii2=i2+lzd%llr(ilr)%ns2
+       ii3=i3+lzd%llr(ilr)%ns3
        do i=i0,i1
           ii1=i+lzd%llr(ilr)%ns1
-          ii2=i2+lzd%llr(ilr)%ns2
-          ii3=i3+lzd%llr(ilr)%ns3
           !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
           ind=index_in_global_f(ii1,ii2,ii3)
           do jproc=0,nproc-1
@@ -602,33 +642,11 @@ character(len=*),parameter:: subname='determine_communication_arrays'
 
 
 
-  !!do iorb=1,norbp
-  !!    iiorb=isorb+iorb
-  !!    do i3=llr(iiorb)%is3,llr(iiorb)%ie3
-  !!        do i2=llr(iiorb)%is2,llr(iiorb)%ie2
-  !!            do i1=llr(iiorb)%is1,llr(iiorb)%ie1
-  !!                ii = (i3-1)*(glr%ie1-glr%is1+1)*(glr%ie2-glr%is2+1) + (i2-1)*(glr%ie1-glr%is1+1) + i1
-  !!                call get_index_in_global(lr, itarget1, itarget2, itarget3, ind_c, ind_f)
-  !!                do jproc=0,nproc-1
-  !!                    if(ii>=istartend(1,jproc) .and. ii<=istartend(2,jproc)) then
-  !!                        jproctarget=jproc
-  !!                        exit
-  !!                    end if
-  !!                end do
-  !!                nsendcounts(jproctarget)=nsendcounts(jproctarget)+1
-  !!            end do
-  !!        end do
-  !!    end do
-  !!end do
-  !!if(iproc==0) write(*,'(a,100i7)') 'istartend_c(2,:)', istartend_c(2,:)
-  !!write(*,'(a,2i9)') 'sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs', sum(nsendcounts_c)+7*sum(nsendcounts_f), orbs%npsidim_orbs
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
   ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
   if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) &
       stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
 
-  !!write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_c',iproc, nsendcounts_c 
-  !!write(*,'(a,i4,3x,100i8)') 'iproc, nsendcounts_f',iproc, nsendcounts_f 
   
   ! now nsenddspls
   nsenddspls_c(0)=0
@@ -784,20 +802,20 @@ gridpoint_start_f=-1
           ii3=i3+lzd%llr(ilr)%ns3
           !!call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
           indglob=index_in_global_c(ii1,ii2,ii3)
-                  iitot=iitot+1
-                  do jproc=0,nproc-1
-                      if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
-                          jproctarget=jproc
-                          exit
-                      end if
-                  end do
-                  !!write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
-                  nsend(jproctarget)=nsend(jproctarget)+1
-                  ind=nsenddspls_c(jproctarget)+nsend(jproctarget)
-                  isendbuf_c(iitot)=ind
-                  indexsendbuf_c(ind)=indglob
-                  indexsendorbital_c(iitot)=iiorb
-                  !indexsendorbital(ind)=iiorb
+              iitot=iitot+1
+              do jproc=0,nproc-1
+                  if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
+                      jproctarget=jproc
+                      exit
+                  end if
+              end do
+              !!write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
+              nsend(jproctarget)=nsend(jproctarget)+1
+              ind=nsenddspls_c(jproctarget)+nsend(jproctarget)
+              isendbuf_c(iitot)=ind
+              indexsendbuf_c(ind)=indglob
+              indexsendorbital_c(iitot)=iiorb
+              !indexsendorbital(ind)=iiorb
           end do
       end do
   end do
@@ -946,16 +964,16 @@ gridpoint_start_f=-1
       jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
       i2=jj/(lzd%glr%d%n1+1)
       i1=jj-i2*(lzd%glr%d%n1+1)
-      if(weight_c(i1,i2,i3)==0.d0) stop 'coarse: weight is zero!'
-      if(weight_c(i1,i2,i3)>0.d0) then
-          if(gridpoint_start_c(ii)==0) then
-              write(*,'(a,5i8)') 'DEBUG: iproc, jj, i1, i2, i3', iproc, jj, i1, i2, i3
-              stop 'coarse: weight>0, but gridpoint_start(ii)==0'
-          end if
-      end if
+      !!if(weight_c(i1,i2,i3)==0.d0) stop 'coarse: weight is zero!'
+      !!if(weight_c(i1,i2,i3)>0.d0) then
+      !!    if(gridpoint_start_c(ii)==0) then
+      !!        write(*,'(a,5i8)') 'DEBUG: iproc, jj, i1, i2, i3', iproc, jj, i1, i2, i3
+      !!        stop 'coarse: weight>0, but gridpoint_start(ii)==0'
+      !!    end if
+      !!end if
 
       ind=gridpoint_start_c(ii)
-      if(ind==0) stop 'ind is zero!'
+      !!if(ind==0) stop 'ind is zero!'
       iextract_c(i)=ind
       gridpoint_start_c(ii)=gridpoint_start_c(ii)+1  
   end do
@@ -972,16 +990,16 @@ gridpoint_start_f=-1
       jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
       i2=jj/(lzd%glr%d%n1+1)
       i1=jj-i2*(lzd%glr%d%n1+1)
-      if(weight_f(i1,i2,i3)==0.d0) stop 'fine: weight is zero!'
-      if(weight_f(i1,i2,i3)>0.d0) then
-          if(gridpoint_start_f(ii)==0) then
-              write(*,'(a,5i8)') 'DEBUG: iproc, jj, i1, i2, i3', iproc, jj, i1, i2, i3
-              stop 'fine: weight>0, but gridpoint_start(ii)==0'
-          end if
-      end if
+      !!if(weight_f(i1,i2,i3)==0.d0) stop 'fine: weight is zero!'
+      !!if(weight_f(i1,i2,i3)>0.d0) then
+      !!    if(gridpoint_start_f(ii)==0) then
+      !!        write(*,'(a,5i8)') 'DEBUG: iproc, jj, i1, i2, i3', iproc, jj, i1, i2, i3
+      !!        stop 'fine: weight>0, but gridpoint_start(ii)==0'
+      !!    end if
+      !!end if
 
       ind=gridpoint_start_f(ii)
-      if(ind==0) stop 'ind is zero!'
+      !!if(ind==0) stop 'ind is zero!'
       iextract_f(i)=ind
       gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
   end do
@@ -1195,7 +1213,7 @@ end subroutine get_gridpoint_start
 
 
 
-subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, itarget1, itarget2, itarget3, found)
+subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, itarget1, itarget2, itarget3, iseg_start, found)
 use module_base
 use module_types
 implicit none
@@ -1203,15 +1221,17 @@ implicit none
 ! Calling arguments
 integer,intent(in):: nseg, n1, n2, noffset1, noffset2, noffset3, itarget1, itarget2, itarget3
 integer,dimension(2,nseg),intent(in):: keyg
+integer,intent(inout):: iseg_start
 logical,intent(out):: found
 
 ! Local variables
 integer:: j0, j1, ii, i1, i2, i3, i0, ii1, ii2, ii3, iseg, i
+logical:: equal_possible, larger_possible, smaller_possible
 
 
   !This could be optimized a lot...
   found=.false.
-  loop_segments: do iseg=1,nseg
+  loop_segments: do iseg=iseg_start,nseg
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
      ii=j0-1
@@ -1220,16 +1240,27 @@ integer:: j0, j1, ii, i1, i2, i3, i0, ii1, ii2, ii3, iseg, i
      i2=ii/(n1+1)
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
+     ii2=i2+noffset2
+     ii3=i3+noffset3
+     equal_possible = (ii2==itarget2 .and. ii3==itarget3)
+     larger_possible = (ii2>itarget2 .and. ii3>itarget3)
+     smaller_possible = (ii2<itarget2 .and. ii3<itarget3)
      do i=i0,i1
         ii1=i+noffset1
-        ii2=i2+noffset2
-        ii3=i3+noffset3
-        if(ii1==itarget1 .and. ii2==itarget2 .and. ii3==itarget3) then
+        if(equal_possible .and. ii1==itarget1) then
             found=.true.
             exit loop_segments
         end if
-     enddo
-  enddo loop_segments
+        if(larger_possible .and. ii1>itarget1) then
+            ! there is no chance to find the point anymore...
+            exit loop_segments
+        end if
+        if(smaller_possible .and. ii1<itarget1) then
+            ! no need to search in these segments from now on, since the itargets will never decrease any more...
+            iseg_start=iseg
+        end if
+     end do
+  end do loop_segments
 
 
 
@@ -1867,3 +1898,30 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   end do
 
 end subroutine build_linear_combination_transposed
+
+
+
+
+subroutine check_grid_point_from_boxes(i1, i2, i3, lr, overlap_possible)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: i1, i2, i3
+  type(locreg_descriptors),intent(in):: lr  
+  logical,intent(out):: overlap_possible
+
+  ! Local variables
+  logical:: ovrlpx, ovrlpy, ovrlpz
+  
+  ovrlpx = (i1>=lr%ns1 .and. i1<=lr%ns1+lr%d%n1)
+  ovrlpy = (i2>=lr%ns2 .and. i2<=lr%ns2+lr%d%n2)
+  ovrlpz = (i3>=lr%ns3 .and. i3<=lr%ns3+lr%d%n3)
+  if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+      overlap_possible=.true.
+  else
+      overlap_possible=.true.
+  end if
+
+end subroutine check_grid_point_from_boxes
