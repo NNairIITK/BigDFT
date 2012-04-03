@@ -1862,7 +1862,7 @@ subroutine untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_
 end subroutine untranspose_localized
 
 
-subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
   implicit none
@@ -1870,13 +1870,16 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c1, ps
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
+  type(matrixDescriptors),intent(in):: mad
   type(collective_comms),intent(in):: collcom
   real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c1, psit_c2
   real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f1, psit_f2
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, j, jjorb, i, ierr
+  integer:: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall
+  real(8),dimension(:),allocatable:: ovrlp_compr
+  character(len=*),parameter:: subname='calculate_overlap_transposed'
 
   ovrlp=0.d0
 
@@ -1912,7 +1915,17 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c1, ps
       i0=i0+ii
   end do
 
-  if(nproc>1) call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) then
+      allocate(ovrlp_compr(mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+      call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
+      !call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+      call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
+      iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+      deallocate(ovrlp_compr, stat=istat)
+      call memocc(istat, iall, 'ovrlp_compr', subname)
+  end if
 
 end subroutine calculate_overlap_transposed
 
@@ -2028,3 +2041,28 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   !!end do
 
 end subroutine get_reverse_indices
+
+
+subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: n
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(n**2),intent(in):: mat
+  real(8),dimension(mad%nvctr),intent(out):: mat_compr
+
+  ! Local variables
+  integer:: jj, iseg, jorb
+
+  jj=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          mat_compr(jj)=mat(jorb)
+      end do
+  end do
+
+end subroutine compress_matrix_for_allreduce
