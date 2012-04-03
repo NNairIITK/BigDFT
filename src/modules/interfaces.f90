@@ -3636,15 +3636,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
        character(len=1),intent(in):: locregShape
        integer,intent(inout):: tag
-       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
        type(p2pComms):: comonig
        type(overlapParameters):: opig
        type(matrixDescriptors):: madig
+       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
      end subroutine buildLinearCombinations
 
 
       subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
-                 tag, comonig, opig, madig, lphi)
+                 tag, comonig, opig, madig, collcomig, collcom, lphi)
         use module_base
         use module_types
         implicit none
@@ -3659,6 +3659,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(p2pComms):: comonig
         type(overlapParameters):: opig
         type(matrixDescriptors):: madig
+        type(collective_comms),intent(in):: collcomig, collcom
         real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
       end subroutine buildLinearCombinations_new
 
@@ -4457,23 +4458,25 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !end subroutine index_of_Lpsi_to_global2
 
 
-    subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx, hy, hz, lin, lig, rxyz, nscatterarr, tag)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc,nproc
-      real(gp), intent(in) :: hx, hy, hz
-      type(atoms_data),intent(inout) :: at
-      type(local_zone_descriptors),intent(in):: lzd
-      type(orbitals_data),intent(in):: orbs
-      type(locreg_descriptors),intent(in) :: Glr
-      type(input_variables)::input
-      type(linearInputParameters),intent(inout):: lin
-      type(linearInputGuess),intent(inout):: lig
-      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      real(gp),dimension(3,at%nat),intent(in):: rxyz
-      integer,intent(inout):: tag
-    end subroutine initInputguessConfinement
+     subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
+                Glr, input, hx, hy, hz, lin, lig, rxyz, nscatterarr, tag)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc,nproc
+       real(gp), intent(in) :: hx, hy, hz
+       type(atoms_data),intent(inout) :: at
+       type(local_zone_descriptors),intent(in):: lzd
+       type(orbitals_data),intent(in):: orbs
+       type(collective_comms),intent(in):: collcom_reference
+       type(locreg_descriptors),intent(in) :: Glr
+       type(input_variables)::input
+       type(linearInputParameters),intent(inout):: lin
+       type(linearInputGuess),intent(inout):: lig
+       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+       real(gp),dimension(3,at%nat),intent(in):: rxyz
+       integer,intent(inout):: tag
+     end subroutine initInputguessConfinement
 
 
     subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, &
@@ -4497,7 +4500,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
     subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input,hx,hy,hz, norbsPerType, &
                onWhichAtom, lchi, lphi, locregCenter, rxyz, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, &
-               comonig, opig, madig)
+               comonig, opig, madig, collcomig, collcom)
       use module_base
       use module_types
       implicit none
@@ -4523,6 +4526,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(p2pComms):: comonig
       type(overlapParameters):: opig
       type(matrixDescriptors):: madig
+      type(collective_comms),intent(in):: collcomig, collcom
     end subroutine buildLinearCombinationsLocalized3
 
 
@@ -6350,7 +6354,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom)
+       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
          use module_base
          use module_types
          implicit none
@@ -6358,6 +6362,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(collective_comms),intent(out):: collcom
+         type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms
 
        subroutine deallocate_collective_comms(collcom, subname)
@@ -6448,6 +6453,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
          integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
        end subroutine determine_communication_arrays
+
+       subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+                  npts_par_c, npts_par_f, &
+                  istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+                  weightp_c, weightp_f, nptsp_c, nptsp_f)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
+         real(8),intent(in):: weight_tot_c, weight_tot_f
+         integer,dimension(0:nproc-1),intent(in):: npts_par_c, npts_par_f
+         integer,dimension(2,0:nproc-1),intent(out):: istartend_c, istartend_f
+         integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+         real(8),intent(out):: weightp_c, weightp_f
+         integer,intent(out):: nptsp_c, nptsp_f
+       end subroutine assign_weight_to_process2
 
    end interface
 

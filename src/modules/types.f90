@@ -760,6 +760,7 @@ end type linear_scaling_control_variables
       !type(p2pCommsGatherPot):: comgp
       type(p2pComms):: comgp
       type(matrixDescriptors):: mad
+      type(collective_comms):: collcom
   end type linearInputGuess
 
 !> Contains all parameters related to the linear scaling version.

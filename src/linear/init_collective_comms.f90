@@ -1,4 +1,4 @@
-subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom)
+subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
 use module_base
 use module_types
 use module_interfaces, except_this_one => init_collective_comms
@@ -9,14 +9,17 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(collective_comms),intent(out):: collcom
+type(collective_comms),optional,intent(in):: collcom_reference
 
 ! Local variables
-integer:: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+integer:: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
-real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr, t1, t2
+real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
 integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
+integer,dimension(:),allocatable:: npts_par_c, npts_par_f
 character(len=*),parameter:: subname='init_collective_comms'
+write(*,*) 'present(collcom_reference)', present(collcom_reference)
 
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
@@ -44,9 +47,35 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   call memocc(istat, istartend_c, 'istartend_c', subname)
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
-call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+  if(.not.present(collcom_reference)) then
+      call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+   else
+       allocate(npts_par_c(0:nproc-1), stat=istat)
+       allocate(npts_par_f(0:nproc-1), stat=istat)
+       npts_par_c=0
+       npts_par_f=0
+       write(*,*) 'iproc, collcom_reference%nptsp_f', iproc, collcom_reference%nptsp_f
+       npts_par_c(iproc)=collcom_reference%nptsp_c
+       npts_par_f(iproc)=collcom_reference%nptsp_f
+       call mpiallred(npts_par_c(0), nproc, mpi_sum, mpi_comm_world, ierr)
+       call mpiallred(npts_par_f(0), nproc, mpi_sum, mpi_comm_world, ierr)
+       if(iproc==0) write(*,'(a,100i8)') 'FIRST: npts_par_f', npts_par_f
+       call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+            npts_par_c, npts_par_f, &
+            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+       !!call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+       !!     npts_par_c, npts_par_f, &
+       !!     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+       !!     weightp_c, weightp_f, nptsp_c, nptsp_f)
+       deallocate(npts_par_c, stat=istat)
+       deallocate(npts_par_f, stat=istat)
+  end if
+
+  write(*,*) 'VERY FIRST: collcom%nptsp_f', collcom%nptsp_f
+
 
   iall=-product(shape(weight_c))*kind(weight_c)
   deallocate(weight_c, stat=istat)
@@ -67,6 +96,7 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   else
       tt=weightp_c
   end if
+  write(*,*) 'tt, weight_c_tot', tt, weight_c_tot
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
       call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
@@ -430,6 +460,173 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
 
 end subroutine assign_weight_to_process
+
+
+
+
+subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+           npts_par_c, npts_par_f, &
+           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, nptsp_c, nptsp_f)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(local_zone_descriptors),intent(in):: lzd
+real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
+real(8),intent(in):: weight_tot_c, weight_tot_f
+integer,dimension(0:nproc-1),intent(in):: npts_par_c, npts_par_f
+integer,dimension(2,0:nproc-1),intent(out):: istartend_c, istartend_f
+integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+real(8),intent(out):: weightp_c, weightp_f
+integer,intent(out):: nptsp_c, nptsp_f
+
+! Local variables
+integer:: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1
+integer:: i, iseg, i0, iitot, ierr, iiseg
+real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
+
+  weight_c_ideal=weight_tot_c/dble(nproc)
+  weight_f_ideal=weight_tot_f/dble(nproc)
+  !!if(iproc==0) write(*,'(a,2es14.5)') 'ideal weight per process (coarse / fine):',weight_c_ideal,weight_f_ideal
+
+  jproc=0
+  tt=0.d0
+  tt2=0.d0
+  iitot=0
+  ii2=0
+  iiseg=1
+  weightp_c=0.d0
+    do iseg=1,lzd%glr%wfd%nseg_c
+       jj=lzd%glr%wfd%keyvloc(iseg)
+       j0=lzd%glr%wfd%keygloc(1,iseg)
+       j1=lzd%glr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+       i2=ii/(lzd%glr%d%n1+1)
+       i0=ii-i2*(lzd%glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+           tt=tt+weight_c(i,i2,i3)
+           iitot=iitot+1
+           !if(tt>weight_c_ideal) then
+           if(iitot==npts_par_c(jproc)) then
+               write(*,'(a,i0)') 'COARSE: HERE FOR JPROC=',jproc
+               if(iproc==jproc) then
+                   weightp_c=tt
+                   nptsp_c=iitot
+                   istartp_c=ii2+1
+                   iendp_c=istartp_c+iitot-1
+                   istartp_seg_c=iiseg
+                   iendp_seg_c=iseg
+               end if
+               istartend_c(1,jproc)=ii2+1
+               istartend_c(2,jproc)=istartend_c(1,jproc)+iitot-1
+               tt2=tt2+tt
+               tt=0.d0
+               ii2=ii2+iitot
+               iitot=0
+               jproc=jproc+1
+               iiseg=iseg
+           end if
+       end do
+   end do
+  !!if(iproc==nproc-1) then
+  !!    ! Take the rest
+  !!    istartp_c=ii2+1
+  !!    iendp_c=istartp_c+iitot-1
+  !!    weightp_c=weight_tot_c-tt2
+  !!    nptsp_c=lzd%glr%wfd%nvctr_c-ii2
+  !!    istartp_seg_c=iiseg
+  !!    iendp_seg_c=lzd%glr%wfd%nseg_c
+  !!end if
+  !!istartend_c(1,nproc-1)=ii2+1
+  !!istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
+
+  ! some check
+  ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+  write(*,'(a,i5,2i8)') 'iproc, istartend_c(:,iproc)', iproc, istartend_c(:,iproc)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'ii, lzd%glr%wfd%nvctr_c', ii, lzd%glr%wfd%nvctr_c
+  if(ii/=lzd%glr%wfd%nvctr_c) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_c'
+
+
+  jproc=0
+  tt=0.d0
+  tt2=0.d0
+  iitot=0
+  ii2=0
+  weightp_f=0.d0
+  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+  iend=istart+lzd%glr%wfd%nseg_f-1
+  iiseg=istart
+    do iseg=istart,iend
+       jj=lzd%glr%wfd%keyvloc(iseg)
+       j0=lzd%glr%wfd%keygloc(1,iseg)
+       j1=lzd%glr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+       i2=ii/(lzd%glr%d%n1+1)
+       i0=ii-i2*(lzd%glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+           tt=tt+weight_f(i,i2,i3)
+           iitot=iitot+1
+           !!if(tt>weight_f_ideal) then
+           if(iitot==npts_par_f(jproc)) then
+               write(*,'(a,i0)') 'FINE: HERE FOR JPROC=',jproc
+               if(iproc==jproc) then
+                   weightp_f=tt
+                   nptsp_f=iitot
+                   istartp_f=ii2+1
+                   iendp_f=istartp_f+iitot-1
+                   istartp_seg_f=iiseg
+                   iendp_seg_f=iseg
+               end if
+               istartend_f(1,jproc)=ii2+1
+               istartend_f(2,jproc)=istartend_f(1,jproc)+iitot-1
+               tt2=tt2+tt
+               tt=0.d0
+               ii2=ii2+iitot
+               iitot=0
+               jproc=jproc+1
+               iiseg=iseg
+           end if
+       end do
+   end do
+  !!if(iproc==nproc-1) then
+  !!    ! Take the rest
+  !!    istartp_f=ii2+1
+  !!    iendp_f=istartp_f+iitot-1
+  !!    weightp_f=weight_tot_f-tt2
+  !!    nptsp_f=lzd%glr%wfd%nvctr_f-ii2
+  !!    istartp_seg_f=iiseg
+  !!    iendp_seg_f=iend
+  !!end if
+  !!istartend_f(1,nproc-1)=ii2+1
+  !!istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
+
+  ! some check
+  if(iproc==0) write(*,'(a,100i8)') 'npts_par_f', npts_par_f
+  write(*,'(a,i5,2i8)') 'iproc, istartend_f(:,iproc)', iproc, istartend_f(:,iproc)
+  ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'ii, lzd%glr%wfd%nvctr_f', ii, lzd%glr%wfd%nvctr_f
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii/=lzd%glr%wfd%nvctr_f'
+
+
+
+end subroutine assign_weight_to_process2
+
+
+
+
+
+
 
 
 

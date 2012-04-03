@@ -127,6 +127,7 @@ real(8):: ddot, tt1, tt2, tt3
 
   call nullify_collective_comms(tmb%collcom)
   call nullify_collective_comms(tmbder%collcom)
+  write(*,*) 'calling from main..'
   call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
