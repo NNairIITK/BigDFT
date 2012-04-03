@@ -187,6 +187,10 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   deallocate(istartend_c, stat=istat)
   call memocc(istat, iall, 'istartend_c', subname)
 
+  iall=-product(shape(istartend_f))*kind(istartend_f)
+  deallocate(istartend_f, stat=istat)
+  call memocc(istat, iall, 'istartend_f', subname)
+
   iall=-product(shape(index_in_global_c))*kind(index_in_global_c)
   deallocate(index_in_global_c, stat=istat)
   call memocc(istat, iall, 'index_in_global_c', subname)
