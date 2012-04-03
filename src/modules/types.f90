@@ -246,6 +246,8 @@ module module_types
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
+
+     double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations

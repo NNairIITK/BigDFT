@@ -805,12 +805,14 @@ subroutine glr_get_psi_size(glr, psisize)
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
 
-subroutine energs_new(energs)
+subroutine energs_new(self, energs)
   use module_types
   implicit none
+  double precision, intent(in) :: self
   type(energy_terms), pointer :: energs
 
   allocate(energs)
+  energs%c_obj = self
 END SUBROUTINE energs_new
 subroutine energs_free(energs)
   use module_types

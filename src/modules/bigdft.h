@@ -459,6 +459,10 @@ GType bigdft_energs_get_type(void);
 #define BIGDFT_ENERGS_TYPE    (999)
 #define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
 #endif
+typedef enum
+  {
+    BIGDFT_E_KS
+  } BigDFT_EnergsKind;
 struct BigDFT_Energs_
 {
 #ifdef GLIB_MAJOR_VERSION
@@ -474,7 +478,6 @@ struct BigDFT_Energs_
 };
 BigDFT_Energs* bigdft_energs_new();
 void           bigdft_energs_free(BigDFT_Energs *energs);
-void           bigdft_energs_update(BigDFT_Energs *energs);
 
 
 /******************/

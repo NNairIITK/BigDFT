@@ -240,7 +240,14 @@ void bigdft_proj_free(BigDFT_Proj *proj)
 /* BigDFT_Energs data structure */
 /********************************/
 #ifdef HAVE_GLIB
+enum {
+  EKS_READY_SIGNAL,
+  LAST_SIGNAL
+};
+
 G_DEFINE_TYPE(BigDFT_Energs, bigdft_energs, G_TYPE_OBJECT)
+
+static guint bigdft_energs_signals[LAST_SIGNAL] = { 0 };
 
 static void bigdft_energs_dispose(GObject *energs);
 static void bigdft_energs_finalize(GObject *energs);
@@ -252,17 +259,26 @@ static void bigdft_energs_class_init(BigDFT_EnergsClass *klass)
   G_OBJECT_CLASS(klass)->finalize     = bigdft_energs_finalize;
   /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
   /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+
+  bigdft_energs_signals[EKS_READY_SIGNAL] =
+    g_signal_new("eks-ready", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
+                 G_TYPE_NONE, 1, G_TYPE_UINT, NULL);
 }
 #endif
 
 static void bigdft_energs_init(BigDFT_Energs *obj)
 {
+  double self;
+
 #ifdef HAVE_GLIB
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Energs) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Energs));
 #endif
-  FC_FUNC_(energs_new, ENERGS_NEW)(&obj->data);
+  self = *((double*)&obj);
+  FC_FUNC_(energs_new, ENERGS_NEW)(&self, &obj->data);
 }
 static void bigdft_energs_dispose(GObject *obj)
 {
@@ -309,14 +325,28 @@ void bigdft_energs_free(BigDFT_Energs *energs)
   g_free(energs);
 #endif
 }
-void bigdft_energs_update(BigDFT_Energs *energs)
+void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Energs **obj, guint *istep,
+                                        BigDFT_EnergsKind *kind)
 {
+  BigDFT_Energs *energs = *obj;
+
+#ifdef HAVE_GLIB
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
     (energs->data, &energs->eh, &energs->exc,
      &energs->evxc, &energs->eion, &energs->edisp,
      &energs->ekin, &energs->epot, &energs->eproj,
      &energs->eexctX, &energs->ebs, &energs->eKS,
      &energs->trH, &energs->evsum, &energs->evsic);
+  switch (*kind)
+    {
+    case BIGDFT_E_KS:
+      g_signal_emit(G_OBJECT(energs), bigdft_energs_signals[EKS_READY_SIGNAL],
+                    0 /* details */, *istep, NULL);
+      break;
+    default:
+      break;
+    }
+#endif  
 }
 
 

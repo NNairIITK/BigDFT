@@ -1199,7 +1199,7 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
 
            endlooprp= (itrp > 1 .and. rpnrm <= rpnrm_cv) .or. itrp == itrpmax
 
-           call total_energies(energs)
+           call total_energies(energs, iter)
 
            !check for convergence or whether max. numb. of iterations exceeded
            if (endloop) then

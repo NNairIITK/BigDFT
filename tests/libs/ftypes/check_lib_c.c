@@ -33,6 +33,7 @@ typedef struct bigdft_data
 static gboolean exit_loop(gpointer data);
 static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
 static void onDensReady(BigDFT_LocalFields *denspot, guint istep, gpointer data);
+static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data);
 #endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
@@ -469,6 +470,10 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);
 }
+static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data)
+{
+  fprintf(stdout, "Callback for 'eks-ready' signal at iter %d -> %gHt.\n", iter, energs->eKS);
+}
 #endif
 
 static gpointer calculate_ionic_pot_thread(gpointer data)
@@ -522,6 +527,8 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
                    G_CALLBACK(onDensReady), (gpointer)ct);
   g_signal_connect(G_OBJECT(ct->wf), "psi-ready",
                    G_CALLBACK(onPsiReady), (gpointer)ct);
+  g_signal_connect(G_OBJECT(ct->energs), "eks-ready",
+                   G_CALLBACK(onEksReady), (gpointer)ct);
   g_idle_add(calculate_ionic_pot, (gpointer)ct);
 #else
   calculate_ionic_pot((gpointer)ct);

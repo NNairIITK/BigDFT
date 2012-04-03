@@ -401,10 +401,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
-   integer :: i_stat,n3p,ispot,ipotmethod,iorb,i_all
+   integer :: i_stat,n3p,ispot,ipotmethod
    real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
-   real(dp), dimension(:), allocatable :: fake_pot
    
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
@@ -1057,17 +1056,21 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 END SUBROUTINE free_full_potential
 
 !> Calculate total energies from the energy terms
-subroutine total_energies(energs)
+subroutine total_energies(energs, iter)
   use module_types
   implicit none
   type(energy_terms), intent(inout) :: energs
-  
+  integer, intent(in) :: iter
+
   !band structure energy calculated with occupation numbers
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
        energs%eexctX-energs%evsic+energs%eion+energs%edisp
-  
+
+  if (energs%c_obj /= 0) then
+     call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
+  end if
 end subroutine total_energies
 
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
@@ -1105,7 +1108,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 !!$  energy=energy-eTS
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-  call total_energies(energs)
 !!$  !band structure energy calculated with occupation numbers
 !!$  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
 !!$  !this is the Kohn-Sham energy
@@ -1307,11 +1309,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
-   ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
-      call wf_emit_psi(wfn%c_obj, iter)
-   end if
-
    if (nproc == 1) then
       nullify(wfn%psit)
    end if
@@ -1319,6 +1316,11 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    if (iproc == 0 .and. verbose > 1) then
       write(*,'(1x,a)')&
          &   'done.'
+   end if
+
+   ! Emit that new wavefunctions are ready.
+   if (iproc == 0 .and. wfn%c_obj /= 0) then
+      call wf_emit_psi(wfn%c_obj, iter)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1588,6 +1590,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
 
    orbs%eTS=0.0_gp  
 
+   a = 0.d0
    select case (occopt)
    case  (SMEARING_DIST_ERF  )
    case  (SMEARING_DIST_FERMI)
@@ -1658,32 +1661,35 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
                   f =1.d0/(1.d0+exp(arg)) 
                   df=-1.d0/(2.d0+exp(arg)+exp(-arg)) 
                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
-                  &  occopt == SMEARING_DIST_METPX ) then
-               x= -arg
-               call derf_ab(res,x)
-               f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-               df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
-            end if
-            electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
-            dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
-            !if(iproc==0) write(*,*) arg,   f , df
+                    &  occopt == SMEARING_DIST_METPX ) then
+                  x= -arg
+                  call derf_ab(res,x)
+                  f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+                  df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
+               else
+                  f  = 0.d0
+                  df = 0.d0
+               end if
+               electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
+               dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
+               !if(iproc==0) write(*,*) arg,   f , df
+            enddo
          enddo
-      enddo
-
-      dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
-      diff=-real(melec,gp)/full+electrons
-      if (abs(diff) < 1.d-12) exit loop_fermi
-      if (abs(dlectrons) <= 1d-45) then
-         corr=wf
-      else
-         corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
-      end if
-      !if (iproc==0) write(*,'(i5,3e,i4,e)') ii,electrons,ef,dlectrons,melec,corr
-      if (corr > 1.d0*wf) corr=1.d0*wf
-      if (corr < -1.d0*wf) corr=-1.d0*wf
-      if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
-      if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-      ef=ef-corr  ! Ef=Ef_guess+corr.
+         
+         dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
+         diff=-real(melec,gp)/full+electrons
+         if (abs(diff) < 1.d-12) exit loop_fermi
+         if (abs(dlectrons) <= 1d-45) then
+            corr=wf
+         else
+            corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+         end if
+         !if (iproc==0) write(*,'(i5,3e,i4,e)') ii,electrons,ef,dlectrons,melec,corr
+         if (corr > 1.d0*wf) corr=1.d0*wf
+         if (corr < -1.d0*wf) corr=-1.d0*wf
+         if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
+         if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
+         ef=ef-corr  ! Ef=Ef_guess+corr.
 
    end do loop_fermi
 
