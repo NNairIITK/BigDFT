@@ -5010,7 +5010,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(SIC_data), intent(in) :: SIC
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
+       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        real(wp), dimension(lzd%ndimpotisf) :: Lpot
@@ -6139,11 +6139,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
+       subroutine init_local_zone_descriptors(iproc, nproc, input,hx,hy,hz, glr, at, rxyz, orbs, derorbs, lzd)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
+         real(gp),intent(in):: hx,hy,hz
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          type(atoms_data),intent(in):: at

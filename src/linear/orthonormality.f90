@@ -439,11 +439,11 @@ subroutine getIndices(lr, is1, ie1, is2, ie2, is3, ie3)
   type(locreg_descriptors),intent(in):: lr
   integer,intent(out):: is1, ie1, is2, ie2, is3, ie3
 
-  is1=lr%ns1+1
+  is1=lr%ns1!+1 !PB: should not have a +1
   ie1=lr%ns1+lr%d%n1
-  is2=lr%ns2+1
+  is2=lr%ns2!+1
   ie2=lr%ns2+lr%d%n2
-  is3=lr%ns3+1
+  is3=lr%ns3!+1
   ie3=lr%ns3+lr%d%n3
 
 end subroutine getIndices
@@ -514,66 +514,66 @@ end subroutine countOverlaps
 
 
 ! Count for each orbital and each process the number of overlapping orbitals.
-subroutine countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
-  type(overlapParameters),intent(out):: op
-  type(p2pComms),intent(out):: comon
-
-  ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
-  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
-  logical:: ovrlpx, ovrlpy, ovrlpz
-  real(8):: dx, dy, dz, rr
-
-  iiorb=0
-  do jproc=0,nproc-1
-     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
-     ilrold=-1
-     do iorb=1,orbs%norb_par(jproc,0)
-        ioverlaporb=0 ! counts the overlaps for the given orbital.
-        iiorb=iiorb+1 ! counts the total orbitals
-        ilr=onWhichAtom(iiorb)
-        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-        do jorb=1,orbs%norb
-           jlr=onWhichAtom(jorb)
-           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-           !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
-           !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
-           !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-           dx=(lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2
-           dy=(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2
-           dz=(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
-           rr=(lzd%llr(ilr)%locrad+lzd%llr(jlr)%locrad)**2
-           if(dx+dy+dz<=rr) then
-              ioverlaporb=ioverlaporb+1
-              if(ilr/=ilrold) then
-                 ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
-                 ! would get the same orbitals again. Therefore the counter is not increased
-                 ! in that case.
-                 ioverlapMPI=ioverlapMPI+1
-              end if
-           end if
-        end do
-        op%noverlaps(iiorb)=ioverlaporb
-        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
-        ilrold=ilr
-     end do
-     comon%noverlaps(jproc)=ioverlapMpi
-     !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
-  end do
-
-end subroutine countOverlapsSphere
+!!subroutine countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, nproc
+!!  type(orbitals_data),intent(in):: orbs
+!!  type(local_zone_descriptors),intent(in):: lzd
+!!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+!!  type(overlapParameters),intent(out):: op
+!!  type(p2pComms),intent(out):: comon
+!!
+!!  ! Local variables
+!!  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+!!  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+!!  logical:: ovrlpx, ovrlpy, ovrlpz
+!!  real(8):: dx, dy, dz, rr
+!!
+!!  iiorb=0
+!!  do jproc=0,nproc-1
+!!     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
+!!     ilrold=-1
+!!     do iorb=1,orbs%norb_par(jproc,0)
+!!        ioverlaporb=0 ! counts the overlaps for the given orbital.
+!!        iiorb=iiorb+1 ! counts the total orbitals
+!!        ilr=onWhichAtom(iiorb)
+!!        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!        do jorb=1,orbs%norb
+!!           jlr=onWhichAtom(jorb)
+!!           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!!           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!           !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
+!!           !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
+!!           !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!           dx=(lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2
+!!           dy=(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2
+!!           dz=(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+!!           rr=(lzd%llr(ilr)%locrad+lzd%llr(jlr)%locrad)**2
+!!           if(dx+dy+dz<=rr) then
+!!              ioverlaporb=ioverlaporb+1
+!!              if(ilr/=ilrold) then
+!!                 ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
+!!                 ! would get the same orbitals again. Therefore the counter is not increased
+!!                 ! in that case.
+!!                 ioverlapMPI=ioverlapMPI+1
+!!              end if
+!!           end if
+!!        end do
+!!        op%noverlaps(iiorb)=ioverlaporb
+!!        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+!!        ilrold=ilr
+!!     end do
+!!     comon%noverlaps(jproc)=ioverlapMpi
+!!     !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
+!!  end do
+!!
+!!end subroutine countOverlapsSphere
 
 
 

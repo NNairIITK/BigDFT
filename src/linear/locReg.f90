@@ -684,7 +684,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          ln3 = iez-isz
     
     
-         ! Localization regions should always have free boundary conditions
+         ! Localization regions should have free boundary conditions by default
          Llr(ilr)%geocode='F'
     
          !assign the starting/ending points and outofzone for the different
@@ -730,7 +730,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
             end if
-
             if(xperiodic .and. zperiodic) then
               Llr(ilr)%geocode = 'S'
             end if    

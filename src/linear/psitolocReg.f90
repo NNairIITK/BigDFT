@@ -257,26 +257,26 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
      ! WARNING: I added the factors 2.
      do ii3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
          i3 = ii3
-         if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
-         if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
+         !if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
+         !if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2 = ii2
-             if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
-             if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
+             !if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
+             !if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1 = ii1
-                 if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
-                 if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
+                 !if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
+                 !if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 !if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
-                 !    i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
+                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
-                 !else
-                 !   Lrho(indSmall)= 0.0_wp
-                 !end if
+                 else
+                    Lrho(indSmall)= 0.0_wp
+                 end if
              end do
          end do
      end do
@@ -1384,26 +1384,26 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
      !do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
      do ii3=i3s,i3e
          i3 = ii3
-         if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
-         if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
+         !if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
+         !if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2 = ii2
-             if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
-             if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
+             !if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
+             !if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1 = ii1
-                 if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
-                 if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
+                 !if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
+                 !if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 !if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
-                 !    i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
-                 !else
-                 !   Lrho(indSmall)= 0.0_wp
-                 !end if
+                 else
+                    Lrho(indSmall)= 0.0_wp
+                 end if
              end do
          end do
      end do
@@ -1448,27 +1448,27 @@ subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
      !do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
      do ii3=i3s,i3e
          i3 = ii3
-         if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
-         if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
+         !if(Glr%geocode /='F' .and. i3<0) i3 = i3 + Glr%d%n3i
+         !if(Glr%geocode /='F' .and. i3>Glr%d%n3i+1) i3 = modulo(i3, Glr%d%n3i+1)
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2=ii2
-             if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
-             if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
+             !if(Glr%geocode =='P' .and. i2<0) i2 = i2 + Glr%d%n2i
+             !if(Glr%geocode /='F' .and. i2>Glr%d%n2i+1) i2 = modulo(i2, Glr%d%n2i+1)
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1=ii1
-                 if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
-                 if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
+                ! if(Glr%geocode /='F' .and. i1<0) i1 = i1 + Glr%d%n1i
+                ! if(Glr%geocode /='F' .and. i1>Glr%d%n1i+1) i1 = modulo(i1, Glr%d%n1i+1)
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 !if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
-                 !    i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     !Lrho(indSmall)=rho(indLarge+indSpin)
                     rho(indLarge+indSpin)=Lrho(indSmall)
-                 !else
-                 !   rho(indLarge+indSpin)= 0.0_wp
-                 !end if
+                 else
+                    rho(indLarge+indSpin)= 0.0_wp
+                 end if
              end do
          end do
      end do
