@@ -26,7 +26,7 @@ type(DFT_wavefunction),intent(inout):: tmbmix
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
-real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f
+real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
@@ -119,9 +119,39 @@ character(len=*),parameter:: subname='get_coeff'
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
-  call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
-  call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+  if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      call memocc(istat, psit_f, 'psit_f', subname)
+      allocate(hpsit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, tmbmix%orbs, lzd, tmbmix%collcom, tmbmix%psi, psit_c, psit_f)
+      call transpose_localized(iproc, nproc, tmbmix%orbs, lzd, tmbmix%collcom, lhphi, hpsit_c, hpsit_f)
+      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, hpsit_c, psit_f, hpsit_f, matrixElements)
+      call untranspose_localized(iproc, nproc, tmbmix%orbs, lzd, tmbmix%collcom, psit_c, psit_f, tmbmix%psi)
+      ! not necessary to untranpose hpsit...
+      iall=-product(shape(psit_c))*kind(psit_c)
+      deallocate(psit_c, stat=istat)
+      call memocc(istat, iall, 'psit_c', subname)
+      iall=-product(shape(psit_f))*kind(psit_f)
+      deallocate(psit_f, stat=istat)
+      call memocc(istat, iall, 'psit_f', subname)
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+  else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+      call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
+      call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+  else
+      stop 'wrong communication_strategy_overlap'
+  end if
 
 
   ! Symmetrize the Hamiltonian
