@@ -1783,14 +1783,22 @@ subroutine transpose_localized(iproc, nproc, orbs, lzd, collcom, psi, psit_c, ps
   allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, psitwork_f, 'psitwork_f', subname)
   
+  call timing(iproc,'Un-TransSwitch','ON')
   call transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+  call timing(iproc,'Un-TransSwitch','OF')
+
+  call timing(iproc,'Un-TransComm  ','ON')
   if(nproc>1) then
       call transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
   else
       psitwork_c=psiwork_c
       psitwork_f=psiwork_f
   end if
+  call timing(iproc,'Un-TransComm  ','OF')
+
+  call timing(iproc,'Un-TransSwitch','ON')
   call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+  call timing(iproc,'Un-TransSwitch','OF')
   
   iall=-product(shape(psiwork_c))*kind(psiwork_c)
   deallocate(psiwork_c, stat=istat)
@@ -1837,14 +1845,22 @@ subroutine untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_
   allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, psitwork_f, 'psitwork_f', subname)
 
+  call timing(iproc,'Un-TransSwitch','ON')
   call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+  call timing(iproc,'Un-TransSwitch','OF')
+
+  call timing(iproc,'Un-TransComm  ','ON')
   if(nproc>1) then
       call transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
   else
       psiwork_c=psitwork_c
       psiwork_f=psitwork_f
   end if
+  call timing(iproc,'Un-TransComm  ','OF')
+
+  call timing(iproc,'Un-TransSwitch','ON')
   call transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
+  call timing(iproc,'Un-TransSwitch','OF')
   
   iall=-product(shape(psiwork_c))*kind(psiwork_c)
   deallocate(psiwork_c, stat=istat)
@@ -1919,7 +1935,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       allocate(ovrlp_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
-      !call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
       call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
       iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
@@ -2032,13 +2047,6 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
       j=indices(i)
       reverse_indices(j)=i
   end do
-  !!do i=1,n
-  !!    do j=1,n
-  !!        if(indices(j)==i) then
-  !!            reverse_indices(i)=j
-  !!        end if
-  !!    end do
-  !!end do
 
 end subroutine get_reverse_indices
 
