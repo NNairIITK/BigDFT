@@ -154,109 +154,177 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, ovrlp, &
-           methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
+           ovrlp, lphi, lhphi, lagmat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+  integer,intent(in):: iproc, nproc
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_Data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op
   type(p2pComms),intent(inout):: comon
   type(matrixDescriptors),intent(in):: mad
+  type(collective_comms),intent(in):: collcom
+  type(orthon_data),intent(in):: orthpar
+  type(basis_performance_options),intent(in):: bpo
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in):: lphi
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
 
   ! Local variables
-  integer:: istat, iall, ierr
-  real(8),dimension(:),allocatable:: lphiovrlp
+  integer:: istat, iall, ierr, iorb, jorb
+  real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, hpsit_c, hpsit_f
   real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
   real(8):: timecommunp2p, timecommuncoll, timecompress
+  real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='orthoconstraintLocalized'
 
+  allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+  allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
-  allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-  lphiovrlp=0.d0
 
 
-  timeComput=0.d0
-  timeCommun=0.d0
-  timeCalcMatrix=0.d0
-  timeExpand=0.d0
-  timeApply=0.d0
-  timeExtract=0.d0
+  !!timeComput=0.d0
+  !!timeCommun=0.d0
+  !!timeCalcMatrix=0.d0
+  !!timeExpand=0.d0
+  !!timeApply=0.d0
+  !!timeExtract=0.d0
+  if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
+      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, orbs, lzd, collcom, lphi, psit_c, psit_f)
+      call transpose_localized(iproc, nproc, orbs, lzd, collcom, lhphi, hpsit_c, hpsit_f)
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+      lphiovrlp=0.d0
+      call allocateCommuncationBuffersOrtho(comon, subname)
+      ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+      call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
+           lphi, comon%nsendBuf, comon%sendBuf)
+      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
+      call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
+           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
+      call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
+           lhphi, comon%nsendBuf, comon%sendBuf)
+      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
+ end if
 
-  call allocateCommuncationBuffersOrtho(comon, subname)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
+       orbs, lzd, op, comon, lagmat, ovrlp, mad, &
+       ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
-  ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-  t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
-       lphi, comon%nsendBuf, comon%sendBuf)
-  t2=mpi_wtime()
-  timeExtract=t2-t1
-  call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
-  call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
-       comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
-  t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
-       lhphi, comon%nsendBuf, comon%sendBuf)
-  t2=mpi_wtime()
-  timeextract=timeextract+t2-t1
-  t1=mpi_wtime()
-  call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
-       comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
-  t2=mpi_wtime()
-  timecalcmatrix=timecalcmatrix+t2-t1
+  if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      ! use hpsit_c, hpsit_f as temporary variables
+      !!call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, hpsit_c, 1)
+      !!call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, hpsit_f, 1)
 
-  t1=mpi_wtime()
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+          end do
+      end do
+      call build_linear_combination_transposed(orbs%norb, ovrlp2, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+          end do
+      end do
+      call build_linear_combination_transposed(orbs%norb, ovrlp2, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, orbs, &
-       orbs%inWhichLocreg, lzd, op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
-
-  t2=mpi_wtime()
-  timeApply=t2-t1
-
-  call deallocateCommuncationBuffersOrtho(comon, subname)
-
-  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-  deallocate(lphiovrlp, stat=istat)
-  call memocc(istat, iall, 'lphiovrlp', subname)
-
-  if (verbose > 2) then
-     timeComput=timeExtract+timeExpand+timeApply+timecalcmatrix
-     timeCommun=timecommunp2p+timecommuncoll
-     call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
-     call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
-     call mpiallred(timeCalcMatrix, 1, mpi_sum, mpi_comm_world, ierr)
-     call mpiallred(timeExpand, 1, mpi_sum, mpi_comm_world, ierr)
-     call mpiallred(timeApply, 1, mpi_sum, mpi_comm_world, ierr)
-     call mpiallred(timeExtract, 1, mpi_sum, mpi_comm_world, ierr)
-     timeComput=timeComput/dble(nproc)
-     timeCommun=timeCommun/dble(nproc)
-     timeCalcMatrix=timeCalcMatrix/dble(nproc)
-     timeExpand=timeExpand/dble(nproc)
-     timeApply=timeApply/dble(nproc)
-     timeExtract=timeExtract/dble(nproc)
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=', &
-          100.d0*timeComput/(timeComput+timeCommun), '%'
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=', &
-          100.d0*timeCommun/(timeComput+timeCommun), '%'
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeCalcMatrix, &
-          '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeExpand, '=', &
-          100.d0*timeExpand/(timeComput+timeCommun), '%'
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for applying orthoconstraint:', timeApply, &
-          '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
-     if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=', &
-          100.d0*timeExtract/(timeComput+timeCommun), '%'
+      call untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_f, lphi)
+      call untranspose_localized(iproc, nproc, orbs, lzd, collcom, hpsit_c, hpsit_f, lhphi)
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+      iall=-product(shape(psit_c))*kind(psit_c)
+      deallocate(psit_c, stat=istat)
+      call memocc(istat, iall, 'psit_c', subname)
+      iall=-product(shape(psit_f))*kind(psit_f)
+      deallocate(psit_f, stat=istat)
+      call memocc(istat, iall, 'psit_f', subname)
+  else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+          end do
+      end do
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
+      
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+          end do
+      end do
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
+      iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+      deallocate(lphiovrlp, stat=istat)
+      call memocc(istat, iall, 'lphiovrlp', subname)
+      call deallocateCommuncationBuffersOrtho(comon, subname)
   end if
+
+
+
+
+  iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+  deallocate(ovrlp_minus_one_lagmat, stat=istat)
+  call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+  iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+  deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+  call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+  iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  deallocate(ovrlp2, stat=istat)
+  call memocc(istat, iall, 'ovrlp2', subname)
+
+  !!if (verbose > 2) then
+  !!   timeComput=timeExtract+timeExpand+timeApply+timecalcmatrix
+  !!   timeCommun=timecommunp2p+timecommuncoll
+  !!   call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   call mpiallred(timeCalcMatrix, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   call mpiallred(timeExpand, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   call mpiallred(timeApply, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   call mpiallred(timeExtract, 1, mpi_sum, mpi_comm_world, ierr)
+  !!   timeComput=timeComput/dble(nproc)
+  !!   timeCommun=timeCommun/dble(nproc)
+  !!   timeCalcMatrix=timeCalcMatrix/dble(nproc)
+  !!   timeExpand=timeExpand/dble(nproc)
+  !!   timeApply=timeApply/dble(nproc)
+  !!   timeExtract=timeExtract/dble(nproc)
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=', &
+  !!        100.d0*timeComput/(timeComput+timeCommun), '%'
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=', &
+  !!        100.d0*timeCommun/(timeComput+timeCommun), '%'
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeCalcMatrix, &
+  !!        '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeExpand, '=', &
+  !!        100.d0*timeExpand/(timeComput+timeCommun), '%'
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for applying orthoconstraint:', timeApply, &
+  !!        '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
+  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=', &
+  !!        100.d0*timeExtract/(timeComput+timeCommun), '%'
+  !!end if
 
 end subroutine orthoconstraintNonorthogonal
 
@@ -2230,8 +2298,8 @@ end subroutine globalLoewdin
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
-     op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lzd, &
+     op, comon, lagmat, ovrlp, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => applyOrthoconstraintNonorthogonal2
@@ -2239,28 +2307,25 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
-  type(orbitals_data),intent(in):: orbs, lorbs
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+  type(orbitals_data),intent(in):: orbs
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
   type(p2pComms),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
-  real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
   type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lhphi
+  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr, iseg
   real(8):: tt, t1, t2, time_dsymm, time_daxpy
   real(8),dimension(:,:),allocatable:: ovrlp2
-  real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
 
-  allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-  allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  !!allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+  !!allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
   allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
@@ -2373,60 +2438,16 @@ time_dsymm=t2-t1
   call timing(iproc,'lagmat_orthoco','OF')
 
 
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
-    end do
-end do
-call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
-
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
-    end do
-end do
-call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
 
 
-!!call cpu_time(t1)
-!!ist=1
-!!jst=1
-!!ilrold=-1
-!!do iorb=1,orbs%norbp
-!!    iiorb=orbs%isorb+iorb
-!!    ilr=onWhichAtom(iiorb)
-!!    if(ilr==ilrold) then
-!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-!!        jst=jst-op%noverlaps(iiorb)*ncount
-!!    end if
-!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-!!    !call dscal(ncount, 1.5d0, lhphi(ist), 1)
-!!    do jorb=1,op%noverlaps(iiorb)
-!!        jjorb=op%overlaps(jorb,iiorb)
-!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
-!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
-!!        jst=jst+ncount
-!!    end do
-!!    ist=ist+ncount
-!!    ilrold=ilr
-!!end do
-!!call cpu_time(t2)
-!!time_daxpy=t2-t1
-
-if (verbose > 2) then
-   call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
-   call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
-   if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
-   if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
-end if
+!!if (verbose > 2) then
+!!   call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
+!!   call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
+!!   if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
+!!   if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
+!!end if
 
 
-iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-deallocate(ovrlp_minus_one_lagmat, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
 iall=-product(shape(ovrlp2))*kind(ovrlp2)
 deallocate(ovrlp2, stat=istat)
 call memocc(istat, iall, 'ovrlp2', subname)

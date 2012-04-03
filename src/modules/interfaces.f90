@@ -4644,21 +4644,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocateRecvBufferOrtho
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
-                 orbs, lorbs, onWhichAtom, lzd, op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+                 orbs, lzd, op, comon, lagmat, ovrlp, mad, &
+                 ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
-        type(orbitals_data),intent(in):: orbs, lorbs
-        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(orbitals_data),intent(in):: orbs
         type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
         type(p2pComms),intent(in):: comon
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
-        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
         type(matrixDescriptors),intent(in):: mad
-        real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lhphi
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
       end subroutine applyOrthoconstraintNonorthogonal2
 
       !!subroutine gatherOrbitalsOverlapWithComput(iproc, nproc, orbs, input, lzd, op, comon, lphiovrlp, expanded)
@@ -4826,17 +4825,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       !!  type(matrixDescriptors),intent(out):: mad
       !!end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, ovrlp, &
-                 methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
+                 ovrlp, lphi, lhphi, lagmat)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+        integer,intent(in):: iproc, nproc
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_Data),intent(in):: orbs
         type(overlapParameters),intent(inout):: op
         type(p2pComms),intent(inout):: comon
         type(matrixDescriptors),intent(in):: mad
+        type(collective_comms),intent(in):: collcom
+        type(orthon_data),intent(in):: orthpar
+        type(basis_performance_options),intent(in):: bpo
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
