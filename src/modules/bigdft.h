@@ -263,19 +263,16 @@ struct BigDFT_orbs_
 
   /* Pointers on building objects. */
   const BigDFT_Inputs *in;
-  const BigDFT_LocReg *glr;
 
   /* Private. */
   void *data;
   void *comm;
 };
 
-BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
-                              guint iproc, guint nproc, guint *nelec);
+BigDFT_Orbs* bigdft_orbs_new ();
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
-guint        bigdft_orbs_define(BigDFT_Orbs *orbs,
-                                const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
-                                guint iproc, guint nproc);
+guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd,
+                                const BigDFT_Inputs *in, guint iproc, guint nproc);
 
 /*****************************/
 /* BigDFT_Wf data structure. */
@@ -332,6 +329,7 @@ void bigdft_optloopparams_init(BigDFT_optLoopParams *params);
 
 BigDFT_Wf* bigdft_wf_new ();
 void       bigdft_wf_free(BigDFT_Wf *wf);
+guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, guint iproc, guint nproc);
 guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,

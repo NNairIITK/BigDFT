@@ -46,7 +46,6 @@ static void bigdft_orbs_dispose(GObject *obj)
     return;
   orbs->dispose_has_run = TRUE;
 
-  g_object_unref(G_OBJECT(orbs->glr));
   if (orbs->data)
     FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
   if (orbs->comm)
@@ -70,11 +69,9 @@ static void bigdft_orbs_finalize(GObject *obj)
 #endif
 }
 
-BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
-                             guint iproc, guint nproc, guint *nelec)
+BigDFT_Orbs* bigdft_orbs_new()
 {
   BigDFT_Orbs *orbs;
-  int nelec_, verb = 0;
 
 #ifdef HAVE_GLIB
   orbs = BIGDFT_ORBS(g_object_new(BIGDFT_ORBS_TYPE, NULL));
@@ -85,9 +82,6 @@ BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
 
   FC_FUNC_(orbs_new, ORBS_NEW)(&orbs->data);
   FC_FUNC_(orbs_init, ORBS_INIT)(orbs->data);
-  nelec_ = bigdft_orbs_define(orbs, lzd, in, iproc, nproc);
-  if (nelec)
-    *nelec = nelec_;
   
   return orbs;
 }
@@ -100,24 +94,20 @@ void bigdft_orbs_free(BigDFT_Orbs *orbs)
   g_free(orbs);
 #endif
 }
-guint bigdft_orbs_define(BigDFT_Orbs *orbs,
-                         const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
+guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
                          guint iproc, guint nproc)
 {
   int nelec_, verb = 0;
 
   orbs->in = in;
-#ifdef HAVE_GLIB
-  if (orbs->glr)
-    g_object_unref(G_OBJECT(orbs->glr));
-  g_object_ref(G_OBJECT(BIGDFT_LOCREG(lzd)));
-#endif
-  orbs->glr = BIGDFT_LOCREG(lzd);
+  FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
   FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
                                                            lzd->parent.parent.data,
                                                            orbs->data, &nelec_);
   if (!orbs->comm)
     FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(&orbs->comm);
+  else
+    FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(orbs->comm);
   FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(orbs->comm, orbs->data,
                                            BIGDFT_LOCREG(lzd)->data, &iproc, &nproc);
   
@@ -131,10 +121,6 @@ guint bigdft_orbs_define(BigDFT_Orbs *orbs,
   GET_ATTR_DBL   (orbs, ORBS, kwgts, KWGTS);
   GET_ATTR_DBL_2D(orbs, ORBS, kpts,  KPTS);
 
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, in->data, lzd->data, lzd->parent.parent.data,
-     orbs->data, lzd->parent.parent.rxyz.data);
-  
   return nelec_;
 }
 
@@ -256,6 +242,8 @@ static void bigdft_wf_dispose(GObject *obj)
   wf->lzd->data = (void*)0;
   g_object_unref(G_OBJECT(wf->lzd));
 
+  FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
+
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_wf_parent_class)->dispose(obj);
 #endif
@@ -268,6 +256,7 @@ static void bigdft_wf_finalize(GObject *obj)
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_wf_parent_class)->finalize(obj);
+  /* g_debug("Freeing wf object %p done.\n", obj); */
 #endif
 }
 void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
@@ -301,6 +290,21 @@ void bigdft_wf_free(BigDFT_Wf *wf)
   bigdft_wf_finalize(wf);
   g_free(wf);
 #endif
+}
+guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
+{
+  int nelec;
+
+  nelec = bigdft_orbs_define(&wf->parent, wf->lzd, in, iproc, nproc);
+  
+  FC_FUNC_(lzd_empty, LZD_EMPTY)(wf->lzd->data);
+  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+    (&iproc, &nproc, in->data, wf->lzd->data, wf->lzd->parent.parent.data,
+     wf->parent.data, wf->lzd->parent.parent.rxyz.data);
+
+  FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
+
+  return nelec;
 }
 void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT_Proj *proj,
                               guint iproc, guint nproc)
@@ -436,8 +440,6 @@ static gpointer wf_optimization_thread(gpointer data)
 #endif
   g_free(ct);
 
-  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
-  
   return (gpointer)0;
 }
 void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,

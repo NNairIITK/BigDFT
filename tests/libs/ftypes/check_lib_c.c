@@ -129,8 +129,22 @@ int main(guint argc, char **argv)
   loop = g_main_loop_new(NULL, FALSE);
 #endif
 
-  fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
-  atoms = bigdft_atoms_new();
+  FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
+
+  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
+  wf = bigdft_wf_new();
+  atoms = BIGDFT_ATOMS(wf->lzd);
+
+  atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
+  if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "truc"))
+    {
+      bigdft_wf_free(wf);
+
+      wf = bigdft_wf_new();
+      atoms = BIGDFT_ATOMS(wf->lzd);
+    }
+  fprintf(stdout, " Ok\n");
+
   atoms->comment = strdup("Test from memory generation.");
   fprintf(stdout, "Test BigDFT_Atoms structure set n types.\n");
   bigdft_atoms_set_n_types(atoms, 2);
@@ -166,17 +180,11 @@ int main(guint argc, char **argv)
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential on the fly.\n");
   bigdft_atoms_set_psp(atoms, 1, 1, (const gchar*)0);
   radii = bigdft_atoms_get_radii(atoms, 0., 0., 0.);
-  for (i = 0; i < atoms->ntypes; i++)
-    fprintf(stdout, " Type %d, radii %f %f %f\n", i,
-            radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
+  bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
   g_free(radii);
-  fprintf(stdout, "Test BigDFT_Atoms free.\n");
-#ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(atoms));
-#else
-  bigdft_atoms_free(atoms);
-#endif
-  fprintf(stdout, " Ok\n");
+  bigdft_lzd_set_size(wf->lzd, h, CRMULT, FRMULT);
+  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
+  output_locreg(BIGDFT_LOCREG(wf->lzd));
 
   if (argc > 1)
     chdir(argv[1]);
@@ -186,9 +194,11 @@ int main(guint argc, char **argv)
   in = bigdft_inputs_new("test");
   output_inputs(in);
 
-  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new();
+  bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
+  bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  nelec = bigdft_wf_define(wf, in, 0, 1);
 
+  /* Test restarting the wavefunction definition. */
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
@@ -209,7 +219,7 @@ int main(guint argc, char **argv)
   bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
   output_locreg(BIGDFT_LOCREG(wf->lzd));
 
-  nelec = bigdft_orbs_define(BIGDFT_ORBS(wf), wf->lzd, in, 0, 1);
+  nelec = bigdft_wf_define(wf, in, 0, 1);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
@@ -340,10 +350,13 @@ static gboolean exit_loop(gpointer data)
 static gpointer optimize_psi_thread(gpointer data)
 {
   BigDFT_Data *container = (BigDFT_Data*)data;
+  BigDFT_optLoopParams p;
   
   fprintf(stdout, " Calculation of optimization started.\n");
+  bigdft_optloopparams_init(&p);
+  p.itermax = 2;
   bigdft_wf_optimization_loop(container->wf, container->denspot, container->proj,
-                              container->energs, 0, 1, (BigDFT_optLoopParams*)0);
+                              container->energs, 0, 1, &p);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));

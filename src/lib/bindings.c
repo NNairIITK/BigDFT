@@ -203,6 +203,7 @@ static void bigdft_proj_finalize(GObject *obj)
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_proj_parent_class)->finalize(obj);
+  /* g_debug("Freeing proj object %p done.\n", obj); */
 #endif
 }
 BigDFT_Proj* bigdft_proj_new(const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs, double frmult)
