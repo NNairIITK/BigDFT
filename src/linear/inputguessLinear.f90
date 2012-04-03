@@ -538,9 +538,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end if
 
   ! Always use the exact Loewdin method.
-  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, input%lin%blocksize_pdsyev, &
-       input%lin%blocksize_pdgemm, lig%lzdig, lig%orbsig, lig%comon, &
-       lig%op, input, lig%mad, lchi)
+  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
+       lig%lzdig, lig%orbsig, lig%comon, &
+       lig%op, input, lig%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -925,8 +925,8 @@ END SUBROUTINE inputguessConfinement
 
 
 
-subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-           blocksize_pdgemm, lzd, orbs, comon, op, input, mad, lchi)
+subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, &
+           lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi)
 
 !
 ! Purpose:
@@ -942,13 +942,16 @@ use module_interfaces, exceptThisOne => orthonormalizeAtomicOrbitalsLocalized2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 type(p2pComms),intent(inout):: comon
 type(overlapParameters),intent(inout):: op
 type(matrixDescriptors),intent(in):: mad
+type(collective_comms),intent(in):: collcom
+type(orthon_data),intent(in):: orthpar
+type(basis_performance_options),intent(in):: bpo
 real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
 
 ! Local variables
@@ -963,8 +966,8 @@ character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
-call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
-     orbs, op, comon, lzd, mad, lchi, ovrlp)
+call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)

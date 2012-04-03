@@ -433,8 +433,8 @@ type(DFT_wavefunction),pointer:: tmbopt
       tmbopt => tmblarge
   end if
   call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-       tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-       tmbopt%mad, tmbopt%psi, ovrlp)
+       tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+       tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       ! Optimize the locreg centers and potentially the shape of the basis functions.
