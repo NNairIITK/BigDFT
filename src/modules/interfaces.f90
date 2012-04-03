@@ -6377,7 +6377,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine deallocate_collective_comms
 
        subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
-                  istartend_c, istartend_f, weightp_c, weightp_f, nptsp_c, nptsp_f)
+                  istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+                  weightp_c, weightp_f, nptsp_c, nptsp_f)
          use module_base
          use module_types
          implicit none
@@ -6386,17 +6387,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
          real(8),intent(in):: weight_tot_c, weight_tot_f
          integer,dimension(2,0:nproc-1),intent(out):: istartend_c, istartend_f
+         integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
          real(8),intent(out):: weightp_c, weightp_f
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+                  istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                   weightp_c, weightp_f, nptsp_c, nptsp_f, &
                   norb_per_gridpoint_c, norb_per_gridpoint_f)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f
+         integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f

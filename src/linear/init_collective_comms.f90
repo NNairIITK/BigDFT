@@ -11,7 +11,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(collective_comms),intent(out):: collcom
 
 ! Local variables
-integer:: ii, istat, iorb, iiorb, ilr, iall
+integer:: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
 real(8),dimension(:,:,:),allocatable:: weight_c, weight_c_temp, weight_f, weight_f_temp
 real(8):: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, ierr, t1, t2
 integer,dimension(:,:),allocatable:: istartend_c, istartend_f
@@ -45,7 +45,8 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
 call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-           istartend_c, istartend_f, weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
 
   iall=-product(shape(weight_c))*kind(weight_c)
   deallocate(weight_c, stat=istat)
@@ -94,10 +95,11 @@ call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_to
   call mpi_barrier(mpi_comm_world, ierr)
   t1=mpi_wtime()
   call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+       istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
   t2=mpi_wtime()
-  write(*,*) 'time determine_num_orbs_per_gridpoint:',t2-t1
+  write(*,'(a,i5,es15.5)') 'iproc, time determine_num_orbs_per_gridpoint:',iproc, t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
   call mpi_barrier(mpi_comm_world, ierr)
@@ -279,7 +281,8 @@ end subroutine get_weights
 
 
 subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
-           istartend_c, istartend_f, weightp_c, weightp_f, nptsp_c, nptsp_f)
+           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, nptsp_c, nptsp_f)
 use module_base
 use module_types
 implicit none
@@ -290,11 +293,13 @@ type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
 real(8),intent(in):: weight_tot_c, weight_tot_f
 integer,dimension(2,0:nproc-1),intent(out):: istartend_c, istartend_f
+integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
 real(8),intent(out):: weightp_c, weightp_f
 integer,intent(out):: nptsp_c, nptsp_f
 
 ! Local variables
-integer:: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1, i, iseg, i0, iitot, ierr
+integer:: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1
+integer:: i, iseg, i0, iitot, ierr, iiseg
 real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
   weight_c_ideal=weight_tot_c/dble(nproc)
@@ -306,6 +311,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   tt2=0.d0
   iitot=0
   ii2=0
+  iiseg=1
   weightp_c=0.d0
     do iseg=1,lzd%glr%wfd%nseg_c
        jj=lzd%glr%wfd%keyvloc(iseg)
@@ -326,6 +332,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                    nptsp_c=iitot
                    istartp_c=ii2+1
                    iendp_c=istartp_c+iitot-1
+                   istartp_seg_c=iiseg
+                   iendp_seg_c=iseg
                end if
                istartend_c(1,jproc)=ii2+1
                istartend_c(2,jproc)=istartend_c(1,jproc)+iitot-1
@@ -334,6 +342,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                ii2=ii2+iitot
                iitot=0
                jproc=jproc+1
+               iiseg=iseg
            end if
        end do
    end do
@@ -343,6 +352,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
       iendp_c=istartp_c+iitot-1
       weightp_c=weight_tot_c-tt2
       nptsp_c=lzd%glr%wfd%nvctr_c-ii2
+      istartp_seg_c=iiseg
+      iendp_seg_c=lzd%glr%wfd%nseg_c
   end if
   istartend_c(1,nproc-1)=ii2+1
   istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
@@ -359,8 +370,9 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   iitot=0
   ii2=0
   weightp_f=0.d0
-    istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
-    iend=istart+lzd%glr%wfd%nseg_f-1
+  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+  iend=istart+lzd%glr%wfd%nseg_f-1
+  iiseg=istart
     do iseg=istart,iend
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
@@ -380,6 +392,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                    nptsp_f=iitot
                    istartp_f=ii2+1
                    iendp_f=istartp_f+iitot-1
+                   istartp_seg_f=iiseg
+                   iendp_seg_f=iseg
                end if
                istartend_f(1,jproc)=ii2+1
                istartend_f(2,jproc)=istartend_f(1,jproc)+iitot-1
@@ -388,6 +402,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                ii2=ii2+iitot
                iitot=0
                jproc=jproc+1
+               iiseg=iseg
            end if
        end do
    end do
@@ -397,6 +412,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
       iendp_f=istartp_f+iitot-1
       weightp_f=weight_tot_f-tt2
       nptsp_f=lzd%glr%wfd%nvctr_f-ii2
+      istartp_seg_f=iiseg
+      iendp_seg_f=iend
   end if
   istartend_f(1,nproc-1)=ii2+1
   istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
@@ -413,6 +430,7 @@ end subroutine assign_weight_to_process
 
 
 subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+           istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, nptsp_c, nptsp_f, &
            norb_per_gridpoint_c, norb_per_gridpoint_f)
 use module_base
@@ -420,7 +438,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f
+integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
@@ -433,6 +451,7 @@ integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot,
 logical:: found, overlap_possible
 integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
 character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
+real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)
@@ -445,7 +464,11 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
   iitot=0
   iiorb=0
   iipt=0
-    do iseg=1,lzd%glr%wfd%nseg_c
+t_check_gridpoint=0.d0
+t1tot=mpi_wtime()
+  !write(*,*) 'iproc, istartp_seg_c,iendp_seg_c', iproc, istartp_seg_c,iendp_seg_c
+    !do iseg=1,lzd%glr%wfd%nseg_c
+    do iseg=istartp_seg_c,iendp_seg_c
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
        j1=lzd%glr%wfd%keygloc(2,iseg)
@@ -456,8 +479,10 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
        i0=ii-i2*(lzd%glr%d%n1+1)
        i1=i0+j1-j0
        do i=i0,i1
-           iitot=iitot+1
+           !iitot=iitot+1
+           iitot=jj+i-i0
            if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
+               !write(200+iproc,'(5i10)') iitot, iseg, iitot, jj, jj+i-i0
                iipt=iipt+1
                npgp=0
                do iorb=1,orbs%norb
@@ -467,9 +492,12 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
                    if(.not. overlap_possible) then
                        found=.false.
                    else
+                       t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
                             i, i2, i3, iseg_start_c(ilr), found)
+                       t2=mpi_wtime()
+                       t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -491,7 +519,8 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
   iipt=0
     istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
     iend=istart+lzd%glr%wfd%nseg_f-1
-    do iseg=istart,iend
+    !do iseg=istart,iend
+    do iseg=istartp_seg_f,iendp_seg_f
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
        j1=lzd%glr%wfd%keygloc(2,iseg)
@@ -502,7 +531,8 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
        i0=ii-i2*(lzd%glr%d%n1+1)
        i1=i0+j1-j0
        do i=i0,i1
-           iitot=iitot+1
+           !iitot=iitot+1
+           iitot=jj+i-i0
            if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
                iipt=iipt+1
                npgp=0
@@ -514,10 +544,13 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
                        found=.false.
                    else
                        iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+                       t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
                             lzd%llr(ilr)%wfd%keygloc(1,iii), &
                             i, i2, i3, iseg_start_f(ilr), found)
+                       t2=mpi_wtime()
+                       t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -541,6 +574,9 @@ character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
   deallocate(iseg_start_f, stat=istat)
   call memocc(istat, iall, 'iseg_start_f', subname)
 
+t2tot=mpi_wtime()
+write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
+write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
 
 end subroutine determine_num_orbs_per_gridpoint
 
@@ -1227,10 +1263,12 @@ logical,intent(out):: found
 ! Local variables
 integer:: j0, j1, ii, i1, i2, i3, i0, ii1, ii2, ii3, iseg, i
 logical:: equal_possible, larger_possible, smaller_possible
+integer:: iproc
 
+call mpi_comm_rank(mpi_comm_world, iproc, i)
 
-  !This could be optimized a lot...
   found=.false.
+  !!write(300+iproc,*) '---start---'
   loop_segments: do iseg=iseg_start,nseg
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
@@ -1246,13 +1284,18 @@ logical:: equal_possible, larger_possible, smaller_possible
      larger_possible = (ii2>itarget2 .and. ii3>itarget3)
      smaller_possible = (ii2<itarget2 .and. ii3<itarget3)
      do i=i0,i1
+        !!write(300+iproc,'(a,7i8)') 'iseg, itarget1, itarget2, itarget3, ii1, ii2, ii3', iseg, itarget1, itarget2, itarget3, ii1, ii2, ii3
         ii1=i+noffset1
         if(equal_possible .and. ii1==itarget1) then
             found=.true.
+            ! no need to search in smaller segments from now on, since the itargets will never decrease any more...
+            iseg_start=iseg
             exit loop_segments
         end if
-        if(larger_possible .and. ii1>itarget1) then
+        !if(larger_possible .and. ii1>itarget1) then
+        if(ii3>itarget3 .or. ii3>=itarget3 .and. ii2>itarget2 .or. ii3>=itarget3 .and. ii2>=itarget2 .and. ii1>itarget1) then
             ! there is no chance to find the point anymore...
+            !!write(300+iproc,*) 'exit here'
             exit loop_segments
         end if
         if(smaller_possible .and. ii1<itarget1) then
@@ -1261,7 +1304,8 @@ logical:: equal_possible, larger_possible, smaller_possible
         end if
      end do
   end do loop_segments
-
+  !!write(300+iproc,*) 'new iseg_start:',iseg_start
+  !!write(300+iproc,*) '--- end ---'
 
 
 end subroutine check_gridpoint
