@@ -160,10 +160,9 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
   !!iiseg=1
   jprocdone=-1
   loop_norbig: do iorb=1,norbig
-      if(iproc==0) write(*,*) 'iorb, weight(iorb)', iorb, weight(iorb)
       tt=tt+weight(iorb) 
       iitot=iitot+1
-      if(tt>weight_ideal) then
+      if(tt>weight_ideal .or. iorb==norbig .and. jproc<=nproc-2) then
           if(iproc==jproc) then
               weightp=tt
               nptsp=iitot
@@ -207,10 +206,6 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
       istartend(1,nproc-1)=ii2+1
       istartend(2,nproc-1)=istartend(1,nproc-1)+iitot-1
   end if
-
-  write(*,*) 'iproc, weightp', iproc, weightp
-  write(*,*) 'iproc, weight_ideal', iproc, weight_ideal
-  write(*,*) 'iproc, weight_tot', iproc, weight_tot
 
   ! some check
   ii=istartend(2,iproc)-istartend(1,iproc)+1

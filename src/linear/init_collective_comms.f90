@@ -357,7 +357,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_c(i,i2,i3)
            iitot=iitot+1
-           if(tt>weight_c_ideal) then
+           if(tt>weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
                if(iproc==jproc) then
                    weightp_c=tt
                    nptsp_c=iitot
@@ -434,7 +434,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_f(i,i2,i3)
            iitot=iitot+1
-           if(tt>weight_f_ideal) then
+           if(tt>weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
                if(iproc==jproc) then
                    weightp_f=tt
                    nptsp_f=iitot
