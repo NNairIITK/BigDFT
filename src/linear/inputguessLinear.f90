@@ -3524,6 +3524,7 @@ type(matrixMinimization):: matmin
 logical:: same
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
+type(collective_comms):: collcom_vectors
 
 
 
@@ -3537,7 +3538,6 @@ type(matrixDescriptors):: mad
 
 
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
-
 
 
   ! Initialize the parameters for performing tha calculations in parallel.
@@ -3572,6 +3572,8 @@ type(matrixDescriptors):: mad
   call initMatrixCompression(iproc, nproc, lzdig%nlr, lorbs, comom%noverlap, comom%overlaps, mad)
   call initCompressedMatmul3(lorbs%norb, mad)
 
+  call nullify_collective_comms(collcom_vectors)
+  call init_collective_comms_vectors(iproc, nproc, lzd%nlr, lorbs, orbsig, matmin%mlr, collcom_vectors)
 
 
   allocate(lcoeff(matmin%norbmax,lorbs%norbp), stat=istat)
@@ -3996,6 +3998,8 @@ type(matrixDescriptors):: mad
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
+
+  call deallocate_collective_comms(collcom_vectors, subname)
   
   
   contains

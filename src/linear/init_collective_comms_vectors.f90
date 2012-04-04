@@ -1,26 +1,131 @@
-subroutine get_weights_vectors(orbs, nlr, mlr, norbig, weight)
+subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, collcom)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => init_collective_comms_vectors
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, nlr
+  type(orbitals_data),intent(in):: orbs, orbsig
+  type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+  type(collective_comms),intent(out):: collcom
+
+  ! Local variables
+  integer:: iorb, iiorb, ilr, iall, istat, ierr, ii
+  integer,dimension(:,:),allocatable:: istartend
+  real(8),dimension(:),allocatable:: weight
+  real(8):: weightp, tt, weight_tot
+  character(len=*),parameter:: subname='init_collective_comms_vectors'
+
+  collcom%ndimpsi_c=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      collcom%ndimpsi_c=collcom%ndimpsi_c+mlr(ilr)%norbinlr
+  end do
+
+  allocate(weight(collcom%ndimpsi_c), stat=istat)
+  call memocc(istat, weight, 'weight', subname)
+
+  call get_weights_vectors(iproc, nproc, orbs, nlr, mlr, orbsig%norb, weight, weight_tot)
+
+  allocate(istartend(2,0:nproc-1), stat=istat)
+  call memocc(istat, istartend, 'istartend', subname)
+  call assign_weight_to_process_vectors(iproc, nproc, orbsig%norb, weight, weight_tot, istartend, weightp, collcom%nptsp_c)
+
+  iall=-product(shape(weight))*kind(weight)
+  deallocate(weight, stat=istat)
+  call memocc(istat, iall, 'weight', subname)
+
+
+  ! some checks
+  if(nproc>1) then
+      call mpi_allreduce(weightp, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  else
+      tt=weightp
+  end if
+  !!write(*,*) 'tt, weight_c_tot', tt, weight_c_tot
+  if(tt/=weight_tot) stop 'wrong partition of coarse weights'
+  if(nproc>1) then
+      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  else
+      ii=collcom%nptsp_c
+  end if
+  if(ii/=orbsig%norb) stop 'wrong partition of coarse grid points'
+
+
+  allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
+  call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
+  call determine_num_orbs_per_gridpoint_vectors(iproc, nproc, orbsig%norb, nlr, collcom%nptsp_c, orbs, &
+           istartend, mlr, weightp, collcom%norb_per_gridpoint_c)
+
+  allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
+  allocate(collcom%nsenddspls_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
+  allocate(collcom%nrecvcounts_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
+  allocate(collcom%nrecvdspls_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
+
+  call determine_communication_arrays_vectors(iproc, nproc, nlr, orbs, mlr, istartend, weightp, &
+           collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c)
+
+  allocate(collcom%irecvbuf_c(collcom%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
+  allocate(collcom%indexrecvorbital_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
+  allocate(collcom%iextract_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, collcom%iextract_c, 'collcom%iextract_c', subname)
+  allocate(collcom%iexpand_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, collcom%iexpand_c, 'collcom%iexpand_c', subname)
+  allocate(collcom%isendbuf_c(collcom%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
+
+
+  call get_switch_indices_vectors(iproc, nproc, nlr, orbsig%norb, collcom%ndimpsi_c, orbs, mlr, &
+           istartend, collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, weightp, &
+           collcom%isendbuf_c, collcom%irecvbuf_c, collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c)
+
+  iall=-product(shape(istartend))*kind(istartend)
+  deallocate(istartend, stat=istat)
+  call memocc(istat, iall, 'istartend', subname)
+
+end subroutine init_collective_comms_vectors
+
+
+subroutine get_weights_vectors(iproc, nproc, orbs, nlr, mlr, norbig, weight, weight_tot)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norbig, nlr
+  integer,intent(in):: iproc, nproc, norbig, nlr
   type(orbitals_data),intent(in):: orbs
   type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
   real(8),dimension(norbig),intent(out):: weight
+  real(8),intent(out):: weight_tot
 
   ! Local variables
-  integer:: iorb, iiorb, ilr, jorb, ind
+  integer:: iorb, iiorb, ilr, jorb, ind, ierr
 
   weight=0.d0
+  weight_tot=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       do jorb=1,mlr(ilr)%norbinlr
           ind=mlr(ilr)%indexInGlobal(jorb)
           weight(ind)=weight(ind)+1.d0
+          weight_tot=weight_tot+1.d0
       end do
   end do
+
+  if(nproc>1) then
+      call mpiallred(weight_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight(1), norbig,  mpi_sum, mpi_comm_world, ierr)
+  end if
+
 
 end subroutine get_weights_vectors
 
@@ -28,7 +133,7 @@ end subroutine get_weights_vectors
 
 
 
-subroutine assign_weight_to_process(iproc, nproc, norbig, weight, weight_tot, istartend, weightp, nptsp)
+subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight_tot, istartend, weightp, nptsp)
   use module_base
   use module_types
   implicit none
@@ -42,7 +147,7 @@ subroutine assign_weight_to_process(iproc, nproc, norbig, weight, weight_tot, is
   integer,intent(out):: nptsp
   
   ! Local variables
-  integer:: jproc, iitot, ii2, iorb, istartp, iendp, ii, ierr
+  integer:: jproc, iitot, ii2, iorb, ii, ierr, jprocdone
   real(8):: tt, tt2, weight_ideal
    
   weight_ideal=weight_tot/dble(nproc)
@@ -53,39 +158,59 @@ subroutine assign_weight_to_process(iproc, nproc, norbig, weight, weight_tot, is
   iitot=0
   ii2=0
   !!iiseg=1
-  do iorb=1,norbig
+  jprocdone=-1
+  loop_norbig: do iorb=1,norbig
+      if(iproc==0) write(*,*) 'iorb, weight(iorb)', iorb, weight(iorb)
       tt=tt+weight(iorb) 
       iitot=iitot+1
       if(tt>weight_ideal) then
           if(iproc==jproc) then
               weightp=tt
               nptsp=iitot
-              istartp=ii2+1
-              iendp=istartp+iitot-1
               !istartp_seg_c=iiseg
               !iendp_seg_c=iseg
           end if
           istartend(1,jproc)=ii2+1
-          istartend(2,jproc)=istartend(1,jproc)+iitot-1
+          istartend(2,jproc)=min(istartend(1,jproc)+iitot-1,norbig)
           tt2=tt2+tt
           tt=0.d0
           ii2=ii2+iitot
           iitot=0
           jproc=jproc+1
+          if(ii2>norbig) then
+              ! everything is distributed
+              jprocdone=jproc
+              exit loop_norbig
+          end if
           !!iiseg=iseg
       end if
-  end do
-  if(iproc==nproc-1) then
-      ! Take the rest
-      istartp=ii2+1
-      iendp=istartp+iitot-1
-      weightp=weight_tot-tt2
-      nptsp=norbig-ii2
-      !istartp_seg=iiseg
-      !iendp_seg=lzd%glr%wfd%nseg_c
+  end do loop_norbig
+
+  if(jprocdone>0) then
+       do jproc=jprocdone,nproc-1
+          ! these processes do nothing
+          istartend(1,iproc)=norbig+1
+          istartend(2,iproc)=norbig
+          if(iproc==jproc) then
+              weightp=0.d0
+              nptsp=0
+          end if
+      end do
+  else
+      if(iproc==nproc-1) then
+          ! Take the rest
+          weightp=weight_tot-tt2
+          nptsp=norbig-ii2
+          !istartp_seg=iiseg
+          !iendp_seg=lzd%glr%wfd%nseg_c
+      end if
+      istartend(1,nproc-1)=ii2+1
+      istartend(2,nproc-1)=istartend(1,nproc-1)+iitot-1
   end if
-  istartend(1,nproc-1)=ii2+1
-  istartend(2,nproc-1)=istartend(1,nproc-1)+iitot-1
+
+  write(*,*) 'iproc, weightp', iproc, weightp
+  write(*,*) 'iproc, weight_ideal', iproc, weight_ideal
+  write(*,*) 'iproc, weight_tot', iproc, weight_tot
 
   ! some check
   ii=istartend(2,iproc)-istartend(1,iproc)+1
@@ -93,7 +218,7 @@ subroutine assign_weight_to_process(iproc, nproc, norbig, weight, weight_tot, is
   if(ii/=norbig) stop 'ii/=norbig'
 
 
-end subroutine assign_weight_to_process
+end subroutine assign_weight_to_process_vectors
 
 
 
@@ -150,6 +275,8 @@ subroutine determine_num_orbs_per_gridpoint_vectors(iproc, nproc, norbig, nlr, n
   end do
 
   if(jjpt/=nptsp) stop 'jjpt/=nptsp'
+  write(*,'(a,3i9)') 'iproc, jjorb, nint(weightp)', iproc, jjorb, nint(weightp)
+  write(*,'(a,2i8,2i9)') 'iproc, norbig, istartend(:,iproc)', iproc, norbig, istartend(:,iproc)
   if(jjorb/=nint(weightp)) stop 'jjorb/=weightp'
 
 
@@ -263,3 +390,238 @@ subroutine determine_communication_arrays_vectors(iproc, nproc, nlr, orbs, mlr, 
   if(sum(nrecvcounts)/=nint(weightp)) stop 'sum(nrecvcounts)/=nint(nweightp)'
 
 end subroutine determine_communication_arrays_vectors
+
+
+
+subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, orbs, mlr, &
+           istartend, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, weightp, &
+           isendbuf, irecvbuf, indexrecvorbital, iextract, iexpand)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec
+  type(orbitals_data),intent(in):: orbs
+  type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+  integer,dimension(2,0:nproc-1),intent(in):: istartend
+  integer,dimension(0:nproc-1),intent(in):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  real(8),intent(in):: weightp
+  integer,dimension(ndimvec),intent(out):: isendbuf, irecvbuf
+  integer,dimension(sum(nrecvcounts)),intent(out):: indexrecvorbital, iextract, iexpand
+
+  ! Local variables
+  integer:: iitot, iorb, iiorb, ilr, jorb, indglob, jproc, jproctarget, ind, iall, istat, ierr, i, ii
+  integer,dimension(:),allocatable:: indexsendorbital, indexsendbuf, indexrecvbuf
+  integer,dimension(:),allocatable:: gridpoint_start, nsend, indexsendorbital2, indexrecvorbital2
+  real(8),dimension(:),allocatable:: weight 
+  character(len=*),parameter:: subname='get_switch_indices_vectors'
+
+
+allocate(indexsendorbital(ndimvec), stat=istat)
+call memocc(istat, indexsendorbital, 'indexsendorbital', subname)
+allocate(indexsendbuf(ndimvec), stat=istat)
+call memocc(istat, indexsendbuf, 'indexsendbuf', subname)
+allocate(indexrecvbuf(sum(nrecvcounts)), stat=istat)
+call memocc(istat, indexrecvbuf, 'indexrecvbuf', subname)
+
+
+allocate(weight(norbig), stat=istat)
+call memocc(istat, weight, 'weight', subname)
+allocate(gridpoint_start(norbig), stat=istat)
+call memocc(istat, gridpoint_start, 'gridpoint_start', subname)
+gridpoint_start=-1
+
+
+  allocate(nsend(0:nproc-1), stat=istat)
+  call memocc(istat, nsend, 'nsend', subname)
+
+  iitot=0
+  nsend=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do jorb=1,mlr(ilr)%norbinlr
+          indglob=mlr(ilr)%indexInGlobal(jorb)
+          iitot=iitot+1
+          do jproc=0,nproc-1
+              if(indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
+                  jproctarget=jproc
+                  exit
+              end if
+          end do
+          nsend(jproctarget)=nsend(jproctarget)+1
+          ind=nsenddspls(jproctarget)+nsend(jproctarget)
+          isendbuf(iitot)=ind
+          indexsendbuf(ind)=indglob
+          indexsendorbital(iitot)=iiorb
+      end do
+  end do
+
+  !!!ndimvec=0
+  !!!do iorb=1,orbs%norbp
+  !!!    iiorb=orbs%isorb+iorb
+  !!!    ilr=orbs%inwhichlocreg(iiorb)
+  !!!    ndimvec=ndimvec+mlr(ilr)%norbinlr
+  !!!end do
+  if(iitot/=ndimvec) stop 'iitot/=ndimvec'
+
+  !check
+  do jproc=0,nproc-1
+      if(nsend(jproc)/=nsendcounts(jproc)) stop 'nsend(jproc)/=nsendcounts(jproc)'
+  end do
+
+
+
+
+
+
+  allocate(indexsendorbital2(ndimvec), stat=istat)
+  call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
+  indexsendorbital2=indexsendorbital
+  do i=1,ndimvec
+      ind=isendbuf(i)
+      indexsendorbital(ind)=indexsendorbital2(i)
+  end do
+  ! Inverse of isendbuf
+  call get_reverse_indices(ndimvec, isendbuf, irecvbuf)
+  iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
+  deallocate(indexsendorbital2, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital2', subname)
+
+
+
+
+
+  if(nproc>1) then
+      ! Communicate indexsendbuf
+      call mpi_alltoallv(indexsendbuf, nsendcounts, nsenddspls, mpi_integer, indexrecvbuf, &
+           nrecvcounts, nrecvdspls, mpi_integer, mpi_comm_world, ierr)
+      ! Communicate indexsendorbitals
+      call mpi_alltoallv(indexsendorbital, nsendcounts, nsenddspls, mpi_integer, indexrecvorbital, &
+           nrecvcounts, nrecvdspls, mpi_integer, mpi_comm_world, ierr)
+
+   else
+       indexrecvbuf=indexsendbuf
+       indexrecvorbital=indexsendorbital
+   end if
+
+
+
+  !!call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+  !!call get_gridpoint_start(iproc, nproc, lzd, nrecvcounts_c, nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, &
+  !!          weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
+  call get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+
+
+
+  if(maxval(gridpoint_start)>sum(nrecvcounts)) stop '1: maxval(gridpoint_start)>sum(nrecvcounts)'
+  ! Rearrange the communicated data
+  do i=1,sum(nrecvcounts)
+      ii=indexrecvbuf(i)
+      ind=gridpoint_start(ii)
+      !!if(ind==0) stop 'ind is zero!'
+      iextract(i)=ind
+      gridpoint_start(ii)=gridpoint_start(ii)+1  
+  end do
+  !!write(*,'(a,2i12)') 'sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)', sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)
+  !!if(sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)) stop 'sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)'
+  if(maxval(iextract)>sum(nrecvcounts)) stop 'maxval(iextract)>sum(nrecvcounts)'
+  if(minval(iextract)<1) stop 'minval(iextract)<1'
+
+
+
+
+  ! Get the array to transfrom back the data
+  call get_reverse_indices(sum(nrecvcounts), iextract, iexpand)
+
+
+
+
+  allocate(indexrecvorbital2(sum(nrecvcounts)), stat=istat)
+  call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
+  indexrecvorbital2=indexrecvorbital
+  do i=1,sum(nrecvcounts)
+      ind=iextract(i)
+      indexrecvorbital(ind)=indexrecvorbital2(i)
+  end do
+  iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
+  deallocate(indexrecvorbital2, stat=istat)
+  call memocc(istat, iall, 'indexrecvorbital2', subname)
+
+
+
+  if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
+  if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
+
+
+
+  iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
+  deallocate(indexsendorbital, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital', subname)
+  iall=-product(shape(indexsendbuf))*kind(indexsendbuf)
+  deallocate(indexsendbuf, stat=istat)
+  call memocc(istat, iall, 'indexsendbuf', subname)
+  iall=-product(shape(indexrecvbuf))*kind(indexrecvbuf)
+  deallocate(indexrecvbuf, stat=istat)
+  call memocc(istat, iall, 'indexrecvbuf', subname)
+
+  iall=-product(shape(weight))*kind(weight)
+  deallocate(weight, stat=istat)
+  call memocc(istat, iall, 'weight', subname)
+
+  iall=-product(shape(gridpoint_start))*kind(gridpoint_start)
+  deallocate(gridpoint_start, stat=istat)
+  call memocc(istat, iall, 'gridpoint_start', subname)
+
+  iall=-product(shape(nsend))*kind(nsend)
+  deallocate(nsend, stat=istat)
+  call memocc(istat, iall, 'nsend', subname)
+
+
+end subroutine get_switch_indices_vectors
+
+
+
+subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norbig
+  integer,dimension(0:nproc-1),intent(in):: nrecvcounts
+  integer,dimension(sum(nrecvcounts)),intent(in):: indexrecvbuf
+  real(8),dimension(norbig),intent(out):: weight
+  integer,dimension(norbig),intent(out):: gridpoint_start
+
+  ! Local variables
+  integer:: i, ii, iorb 
+
+  weight=0.d0
+  do i=1,sum(nrecvcounts)
+      ii=indexrecvbuf(i)
+      weight(ii)=weight(ii)+1.d0
+  end do
+
+
+  ii=1
+  gridpoint_start=0
+  do iorb=1,norbig
+      if(weight(iorb)>0.d0) then
+          gridpoint_start(iorb)=ii
+          ii=ii+nint(weight(iorb))
+      end if
+  end do
+
+  !! CHECK
+  do iorb=1,norbig
+      if(weight(iorb)>0.d0) then
+          if(gridpoint_start(iorb)==0) stop 'FIRST CHECK: ERROR'
+      end if
+  end do
+
+
+
+
+end subroutine get_gridpoint_start_vectors

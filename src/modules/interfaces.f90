@@ -6472,6 +6472,92 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process2
 
+       subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, norbig
+         integer,dimension(0:nproc-1),intent(in):: nrecvcounts
+         integer,dimension(sum(nrecvcounts)),intent(in):: indexrecvbuf
+         real(8),dimension(norbig),intent(out):: weight
+         integer,dimension(norbig),intent(out):: gridpoint_start
+       end subroutine get_gridpoint_start_vectors
+
+       subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, orbs, mlr, &
+                  istartend, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, weightp, &
+                  isendbuf, irecvbuf, indexrecvorbital, iextract, iexpand)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec
+         type(orbitals_data),intent(in):: orbs
+         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+         integer,dimension(2,0:nproc-1),intent(in):: istartend
+         integer,dimension(0:nproc-1),intent(in):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+         real(8),intent(in):: weightp
+         integer,dimension(ndimvec),intent(out):: isendbuf, irecvbuf
+         integer,dimension(sum(nrecvcounts)),intent(out):: indexrecvorbital, iextract, iexpand
+       end subroutine get_switch_indices_vectors
+
+       subroutine determine_communication_arrays_vectors(iproc, nproc, nlr, orbs, mlr, istartend, weightp, &
+                  nsendcounts, nsenddspls, nrecvcounts, nrecvdspls)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nlr
+         type(orbitals_data),intent(in):: orbs
+         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+         integer,dimension(2,0:nproc-1),intent(in):: istartend
+         real(8),intent(in):: weightp
+         integer,dimension(0:nproc-1),intent(out):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+       end subroutine determine_communication_arrays_vectors
+
+       subroutine determine_num_orbs_per_gridpoint_vectors(iproc, nproc, norbig, nlr, nptsp, orbs, &
+                  istartend, mlr, weightp, norb_per_gridpoint)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, norbig, nlr, nptsp
+         type(orbitals_data),intent(in):: orbs
+         integer,dimension(2,0:nproc-1),intent(in):: istartend
+         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+         real(8),intent(in):: weightp
+         integer,dimension(nptsp),intent(out):: norb_per_gridpoint
+       end subroutine determine_num_orbs_per_gridpoint_vectors
+
+       subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight_tot, istartend, weightp, nptsp)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, norbig
+         real(8),dimension(norbig),intent(in):: weight
+         real(8),intent(in):: weight_tot
+         integer,dimension(2,0:nproc-1),intent(out):: istartend
+         real(8),intent(out):: weightp
+         integer,intent(out):: nptsp
+       end subroutine assign_weight_to_process_vectors
+
+       subroutine get_weights_vectors(iproc, nproc, orbs, nlr, mlr, norbig, weight, weight_tot)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, norbig, nlr
+         type(orbitals_data),intent(in):: orbs
+         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+         real(8),dimension(norbig),intent(out):: weight
+         real(8),intent(out):: weight_tot
+       end subroutine get_weights_vectors
+
+       subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, collcom)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nlr
+         type(orbitals_data),intent(in):: orbs, orbsig
+         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+         type(collective_comms),intent(out):: collcom
+       end subroutine init_collective_comms_vectors
+
    end interface
 
 END MODULE module_interfaces

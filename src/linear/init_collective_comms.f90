@@ -328,7 +328,7 @@ real(8),intent(out):: weightp_c, weightp_f
 integer,intent(out):: nptsp_c, nptsp_f
 
 ! Local variables
-integer:: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1
+integer:: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone
 integer:: i, iseg, i0, iitot, ierr, iiseg
 real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
@@ -342,8 +342,9 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   iitot=0
   ii2=0
   iiseg=1
+  jprocdone=-1
   weightp_c=0.d0
-    do iseg=1,lzd%glr%wfd%nseg_c
+  loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
        j1=lzd%glr%wfd%keygloc(2,iseg)
@@ -360,33 +361,49 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                if(iproc==jproc) then
                    weightp_c=tt
                    nptsp_c=iitot
-                   istartp_c=ii2+1
-                   iendp_c=istartp_c+iitot-1
                    istartp_seg_c=iiseg
                    iendp_seg_c=iseg
                end if
                istartend_c(1,jproc)=ii2+1
-               istartend_c(2,jproc)=istartend_c(1,jproc)+iitot-1
+               istartend_c(2,jproc)=min(istartend_c(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_c)
                tt2=tt2+tt
                tt=0.d0
                ii2=ii2+iitot
                iitot=0
                jproc=jproc+1
                iiseg=iseg
+               if(ii2>lzd%glr%wfd%nvctr_c) then
+                   ! everything is distributed
+                   jprocdone=jproc
+                   exit loop_nseg_c
+               end if
            end if
        end do
-   end do
-  if(iproc==nproc-1) then
-      ! Take the rest
-      istartp_c=ii2+1
-      iendp_c=istartp_c+iitot-1
-      weightp_c=weight_tot_c-tt2
-      nptsp_c=lzd%glr%wfd%nvctr_c-ii2
-      istartp_seg_c=iiseg
-      iendp_seg_c=lzd%glr%wfd%nseg_c
+   end do loop_nseg_c
+
+  if(jprocdone>0) then
+       do jproc=jprocdone,nproc-1
+          ! these processes do nothing
+          istartend_c(1,iproc)=lzd%glr%wfd%nvctr_c+1
+          istartend_c(2,iproc)=lzd%glr%wfd%nvctr_c
+          if(iproc==jproc) then
+              weightp_c=0.d0
+              nptsp_c=0
+              istartp_seg_c=lzd%glr%wfd%nseg_c+1
+              iendp_seg_c=lzd%glr%wfd%nseg_c
+          end if
+      end do
+  else
+      if(iproc==nproc-1) then
+          ! Take the rest
+          weightp_c=weight_tot_c-tt2
+          nptsp_c=lzd%glr%wfd%nvctr_c-ii2
+          istartp_seg_c=iiseg
+          iendp_seg_c=lzd%glr%wfd%nseg_c
+      end if
+      istartend_c(1,nproc-1)=ii2+1
+      istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
   end if
-  istartend_c(1,nproc-1)=ii2+1
-  istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
 
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
@@ -403,7 +420,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
   iend=istart+lzd%glr%wfd%nseg_f-1
   iiseg=istart
-    do iseg=istart,iend
+  jprocdone=-1
+  loop_nseg_f: do iseg=istart,iend
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
        j1=lzd%glr%wfd%keygloc(2,iseg)
@@ -420,33 +438,48 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                if(iproc==jproc) then
                    weightp_f=tt
                    nptsp_f=iitot
-                   istartp_f=ii2+1
-                   iendp_f=istartp_f+iitot-1
                    istartp_seg_f=iiseg
                    iendp_seg_f=iseg
                end if
                istartend_f(1,jproc)=ii2+1
-               istartend_f(2,jproc)=istartend_f(1,jproc)+iitot-1
+               istartend_f(2,jproc)=min(istartend_f(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_f)
                tt2=tt2+tt
                tt=0.d0
                ii2=ii2+iitot
                iitot=0
                jproc=jproc+1
                iiseg=iseg
+               if(ii2>lzd%glr%wfd%nvctr_f) then
+                   ! everything is distributed
+                   jprocdone=jproc
+                   exit loop_nseg_f
+               end if
            end if
        end do
-   end do
-  if(iproc==nproc-1) then
-      ! Take the rest
-      istartp_f=ii2+1
-      iendp_f=istartp_f+iitot-1
-      weightp_f=weight_tot_f-tt2
-      nptsp_f=lzd%glr%wfd%nvctr_f-ii2
-      istartp_seg_f=iiseg
-      iendp_seg_f=iend
+   end do loop_nseg_f
+  if(jprocdone>0) then
+       do jproc=jprocdone,nproc-1
+          ! these processes do nothing
+          istartend_f(1,iproc)=lzd%glr%wfd%nvctr_f+1
+          istartend_f(2,iproc)=lzd%glr%wfd%nvctr_f
+          if(iproc==jproc) then
+              weightp_f=0.d0
+              nptsp_f=0
+              istartp_seg_f=lzd%glr%wfd%nseg_f+1
+              iendp_seg_f=lzd%glr%wfd%nseg_f
+          end if
+      end do
+  else
+      if(iproc==nproc-1) then
+          ! Take the rest
+          weightp_f=weight_tot_f-tt2
+          nptsp_f=lzd%glr%wfd%nvctr_f-ii2
+          istartp_seg_f=iiseg
+          iendp_seg_f=iend
+      end if
+      istartend_f(1,nproc-1)=ii2+1
+      istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
   end if
-  istartend_f(1,nproc-1)=ii2+1
-  istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
 
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
