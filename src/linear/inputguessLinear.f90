@@ -235,7 +235,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
        lig%op%noverlaps, lig%op%overlaps, lig%mad)
   call initCompressedMatmul3(lig%orbsig%norb, lig%mad)
 
-  write(*,*) 'in IG: collcom_reference%nptsp_f', collcom_reference%nptsp_f
   call nullify_collective_comms(lig%collcom)
   call init_collective_comms(iproc, nproc, lig%orbsig, lig%lzdig, lig%collcom, collcom_reference)
 
@@ -327,11 +326,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        lig, rxyz, denspot%dpcom%nscatterarr, tag)
 
-  ! not ideal place here for this...
-  if(lorbs%norb/=lig%orbsig%norb) then
-      write(*,*) 'ERROR: lorbs%norb/=lig%orbsig%norb not implemented!'
-      !stop
-  end if
+  !!!! not ideal place here for this...
+  !!!if(lorbs%norb/=lig%orbsig%norb) then
+  !!!    write(*,*) 'ERROR: lorbs%norb/=lig%orbsig%norb not implemented!'
+  !!!    !stop
+  !!!end if
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -2368,7 +2367,7 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 trace=0.d0
 do iorb=1,orbs%norb
   trace=trace+lagmat(iorb,iorb)
-  !if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
+  !!if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
 end do
 
 ! Now we also have to calculate the overlap matrix.
@@ -3507,7 +3506,7 @@ type(matrixDescriptors):: madig
 type(collective_comms),intent(in):: collcomig, collcom
 
 ! Local variables
-integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb
+integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb, jj
 real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, gradOld, fnrmArr, fnrmOvrlpArr, fnrmOldArr, grad
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
@@ -3670,6 +3669,7 @@ type(matrixDescriptors):: mad
   end if
 
 
+
   iterLoop: do it=1,input%lin%nItInguess
 
       if (iproc==0 .and. mod(it,1)==0) then
@@ -3689,6 +3689,29 @@ type(matrixDescriptors):: mad
            lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
            lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom)
 
+!!if(it==1) then
+!!  ii=0
+!!  do iorb=1,lorbs%norb
+!!      if(lorbs%norb==14) then
+!!          if(iorb/=7 .and. iorb/=11) then
+!!              ii=ii+1
+!!              jj=0
+!!              do jorb=1,14
+!!                  jj=jj+1
+!!                   write(1000+ii,*) lcoeff(jj,iorb)
+!!              end do
+!!          end if
+!!      else
+!!          ii=ii+1
+!!          jj=0
+!!          do jorb=1,14
+!!              jj=jj+1
+!!               read(1000+ii,*) lcoeff(jj,iorb)
+!!          end do
+!!      end if
+!!  end do
+!!end if
+
 
       ! Calculate the gradient grad.
       ilrold=0
@@ -3703,12 +3726,16 @@ type(matrixDescriptors):: mad
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
           !!write(200+lorbs%isorb+iorb,'(a,3i5,es14.6)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
-          !!do jorb=1,matmin%mlr(ilr)%norbinlr
-          !!    write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
-          !!end do
           !!write(*,'(a,3i6,es12.5)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
           !!write(*,'(a,4i7,es14.5)') 'lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)', lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)
       end do
+      !!do iorb=1,lorbs%norb
+      !!    ilr=onWhichAtomPhi(lorbs%isorb+iorb)
+      !!    do jorb=1,matmin%mlr(ilr)%norbinlr
+      !!        write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
+      !!    end do
+      !!    write(300,'(a,i5,es13.5)') 'iorb, ddot', iorb, ddot(14, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+      !!end do
 
   
       if(it>1) then
@@ -3814,6 +3841,10 @@ type(matrixDescriptors):: mad
           call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
       end do
 
+          !!write(*,*) 'attention debug'
+          !!if(lorbs%norb==14 .and. (lorbs%isorb+iorb==7 .or. lorbs%isorb+iorb==11)) then
+          !!    lcoeff(:,iorb)=0.d0
+          !!end if
 
 
   end do iterLoop
