@@ -373,7 +373,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
-          energy,fxyz)
+          energy)
 
      ! debug
 
@@ -434,6 +434,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !nrepmax=0 is needed for the Band Structure calculations
      DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) .or. &
           & (in%last_run == 1 .and. icycle == in%nrepmax)
+              !print the energies only if they are meaningful
      energy = energs%eKS
      !Davidson is set to false first because used in deallocate_before_exiting
      DoDavidson= .false.
@@ -1369,7 +1370,7 @@ subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
   ! Clean KSwfn parts only needed in the SCF loop.
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
 
-  if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      call ab6_mixing_deallocate(denspot%mix)
      deallocate(denspot%mix)
   end if

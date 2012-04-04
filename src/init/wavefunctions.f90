@@ -188,6 +188,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 
+  ! allocate onwhichatom
+  allocate(orbs%onwhichatom(orbs%norb*orbs%nkpts),stat=i_stat)
+  call memocc(i_stat,orbs%onwhichatom,'orbs%onwhichatom',subname)
+  ! default for onwhichatom (all orbitals are situated in the same locreg)
+  orbs%onwhichatom = 1
+
   !initialize the starting point of the potential for each orbital (to be removed?)
   allocate(orbs%ispot(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)

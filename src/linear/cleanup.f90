@@ -1290,7 +1290,6 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%communComplete, 'p2pcomm%communComplete', subname)
   call checkAndDeallocatePointer(p2pcomm%computComplete, 'p2pcomm%computComplete', subname)
-  call checkAndDeallocatePointer(p2pcomm%auxarray, 'p2pcomm%auxarray', subname)
   call checkAndDeallocatePointer(p2pcomm%startingindex, 'p2pcomm%startingindex', subname)
   call checkAndDeallocatePointer(p2pcomm%ise3, 'p2pcomm%ise3', subname)
   call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
@@ -1591,3 +1590,29 @@ subroutine deallocate_collectiveComms(collComms, subname)
   call checkAndDeallocatePointer(collComms%indexarray, 'collComms%indexarray', subname)
 
 end subroutine deallocate_collectiveComms
+
+
+
+subroutine destroy_wfn_metadata(wfnmd)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(wfn_metadata),intent(inout):: wfnmd
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_wfn_metadata'
+
+  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
+  deallocate(wfnmd%coeff, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff', subname)
+
+  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
+  deallocate(wfnmd%coeff_proj, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+
+end subroutine destroy_wfn_metadata
+

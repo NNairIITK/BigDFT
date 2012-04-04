@@ -567,9 +567,9 @@ module module_types
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+    real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray, noverlapsmax, nrecv, nsend
+    integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
     logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
@@ -711,6 +711,13 @@ type,public:: workarrays_quartic_convolutions
   real(wp),dimension(:,:,:,:),pointer:: y_f
 end type workarrays_quartic_convolutions
 
+type:: linear_scaling_control_variables
+  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
+  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg, self_consistent
+  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop, variable_locregs, compare_outer_loop
+  logical:: reduce_convergence_tolerance
+  real(8),dimension(:),allocatable:: locrad
+end type linear_scaling_control_variables
 
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
@@ -722,10 +729,11 @@ end type workarrays_quartic_convolutions
 
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
+    integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
     real(8):: trmin, trold, alphaSD, alphaDIIS
-    logical:: switchSD
+    logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
   type,public:: mixrhopotDIISParameters
@@ -1026,6 +1034,9 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
+    deallocate(orbs%onwhichatom,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)

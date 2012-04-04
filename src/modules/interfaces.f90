@@ -1863,33 +1863,27 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
 
-      subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-           denspot,GPU,trH,&
-           infoBasisFunctions,nlpspd,proj,ldiis,&
-           SIC, &
-           locrad,tmb)
-        use module_base
-        use module_types
 
-        implicit none
-
-        ! Calling arguments
-        integer,intent(in):: iproc, nproc
-        integer,intent(out):: infoBasisFunctions
-        type(atoms_data), intent(in) :: at
-        type(orbitals_data):: orbs
-        real(8),dimension(3,at%nat):: rxyz
-        type(DFT_local_fields), intent(inout) :: denspot
-        type(GPU_pointers), intent(inout) :: GPU
-        real(8),intent(out):: trH
-        type(nonlocal_psp_descriptors),intent(in):: nlpspd
-        real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-        type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),intent(inout):: tmb
-        type(SIC_data) :: SIC !<parameters for the SIC methods
-        real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-      end subroutine getLocalizedBasis
-
+        subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,&
+                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          integer,intent(out):: infoBasisFunctions
+          type(atoms_data), intent(in) :: at
+          type(orbitals_data):: orbs
+          real(8),dimension(3,at%nat):: rxyz
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers), intent(inout) :: GPU
+          real(8),intent(out):: trH
+          type(nonlocal_psp_descriptors),intent(in):: nlpspd
+          real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+          type(localizedDIISParameters),intent(inout):: ldiis
+          type(DFT_wavefunction),target,intent(inout):: tmb
+          type(SIC_data) :: SIC !<parameters for the SIC methods
+          real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+        end subroutine getLocalizedBasis
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
@@ -2215,7 +2209,7 @@ module module_interfaces
     
     subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
          rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
-         eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
+         eion,edisp,eexctX,scpot,psi,psit,energy)
       use module_base
       use module_types
       implicit none
@@ -2238,7 +2232,6 @@ module module_interfaces
       real(8),dimension(:),pointer,intent(out):: psi, psit
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
-      real(8),dimension(3,at%nat),intent(out):: fxyz
     end subroutine linearScaling
     
     
@@ -3785,13 +3778,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine deallocateMixrhopotDIIS
 
 
-     subroutine allocateCommunicationbufferSumrho(iproc, with_auxarray, comsr, subname)
+     subroutine allocateCommunicationbufferSumrho(iproc, comsr, subname)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc
-       logical,intent(in):: with_auxarray
-       !type(p2pCommsSumrho),intent(inout):: comsr
        type(p2pComms),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationbufferSumrho
@@ -5941,13 +5932,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-                    inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                  inwhichlocreg_reference, ldiis, &
+                  lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
          use module_base
          use module_types
          implicit none
-
-         ! Calling arguments
          integer,intent(in):: iproc, nproc, nlr
          real(8),intent(in):: hx, hy, hz
          type(orbitals_data),intent(in):: lorbs
@@ -5958,26 +5947,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,intent(in):: withder
          integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
          type(localizedDIISParameters),intent(inout):: ldiis
-         type(local_zone_descriptors),intent(out):: lzdlarge
-         type(orbitals_data),intent(out):: orbslarge
-         type(overlapParameters),intent(out):: oplarge
-         type(p2pComms),intent(out):: comonlarge
-         type(matrixDescriptors),intent(out):: madlarge
-         type(p2pComms),intent(out):: comgplarge
          real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+         type(DFT_wavefunction),intent(out):: tmb
        end subroutine create_new_locregs
 
-       subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+       subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
          implicit none
-         type(local_zone_descriptors),intent(inout):: lzdlarge
-         type(orbitals_data),intent(inout):: orbslarge
-         type(overlapParameters),intent(inout):: oplarge
-         type(p2pComms),intent(inout):: comonlarge
-         type(matrixDescriptors),intent(inout):: madlarge
-         type(p2pComms),intent(inout):: comgplarge
+         type(DFT_wavefunction),intent(inout):: tmb
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
 
@@ -6203,23 +6181,21 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(DFT_local_fields),intent(inout):: denspot
        end subroutine redefine_locregs_quantities
 
-       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, lzd, locrad, lorbs, op, comon, comgp, mad, &
-                  ldiis, denspot, nphi, lphi)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       real(8),intent(in):: hx, hy, hz
-       type(local_zone_descriptors),intent(inout):: lzd
-       real(8),dimension(lzd%nlr),intent(in):: locrad
-       type(orbitals_data),intent(inout):: lorbs
-       type(p2pComms),intent(inout):: comon, comgp
-       type(overlapParameters),intent(inout):: op
-       type(matrixDescriptors),intent(inout):: mad
-       type(localizedDIISParameters),intent(inout):: ldiis
-       type(DFT_local_fields),intent(inout):: denspot
-       integer,intent(inout):: nphi
-       real(8),dimension(:),pointer:: lphi
+       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
+                  ldiis, denspot, nphi, lphi, tmb)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         real(8),intent(in):: hx, hy, hz
+         logical,intent(in):: withder
+         type(local_zone_descriptors),intent(inout):: lzd
+         real(8),dimension(lzd%nlr),intent(in):: locrad
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(DFT_local_fields),intent(inout):: denspot
+         integer,intent(inout):: nphi
+         real(8),dimension(:),pointer:: lphi
+         type(DFT_wavefunction),intent(inout):: tmb
        end subroutine enlarge_locreg
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
@@ -6275,9 +6251,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
-                   lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, alpha, &
+                   lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, alpha, &
                    locregCenter, locregCenterTemp, &
-                   denspot, locrad, inwhichlocreg_reference, factor)
+                   denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
         use module_base
         use module_types
         implicit none
@@ -6291,13 +6267,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
         real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
         real(8),dimension(:),pointer,intent(inout):: lhphiopt
-        real(8),dimension(tmblarge%orbs%norbp),intent(in):: alpha
+        real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
         real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
         real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
         type(DFT_local_fields),intent(inout):: denspot
         real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
         integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
-        real(8),intent(in):: factor
+        real(8),intent(in):: factor, trH, meanAlpha 
+        real(8),dimension(tmbopt%orbs%norb),intent(out):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
 
        subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
@@ -6316,6 +6293,59 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
        end subroutine psi_to_vlocpsi
+       subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+         use module_base
+         use module_types
+         implicit none
+
+         ! Calling arguments
+         integer,intent(in):: iproc, nproc, it
+         real(8),intent(in):: trH
+         type(DFT_wavefunction),intent(inout):: tmbopt
+         type(localizedDIISParameters),intent(inout):: ldiis
+         real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
+         real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
+       end subroutine DIISorSD
+
+       subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
+                  input, tmb, tmbder, denspot, ldiis, lscv)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         real(8),intent(in):: hx, hy, hz
+         type(input_variables),intent(in):: input
+         type(DFT_wavefunction),intent(inout):: tmb, tmbder
+         type(DFT_local_fields),intent(inout) :: denspot
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(linear_scaling_control_variables),intent(inout):: lscv
+       end subroutine adjust_locregs_and_confinement
+
+       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
+         use module_base
+         use module_types
+         implicit none
+         type(input_variables),intent(in):: input
+         type(DFT_wavefunction),intent(in):: tmb
+         type(DFT_local_fields),intent(inout) :: denspot
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(mixrhopotDIISParameters),intent(inout):: mixdiis
+         type(linear_scaling_control_variables),intent(inout):: lscv
+       end subroutine adjust_DIIS_for_high_accuracy
+
+       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: nlr
+         type(orbitals_data),intent(in):: lorbs
+         type(input_variables),intent(in):: input
+         type(atoms_data),intent(in):: at
+         integer,dimension(lorbs%norb),intent(in):: onwhichatom
+         type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
+         type(wfn_metadata),intent(inout):: wfnmd
+         type(linear_scaling_control_variables),intent(inout):: lscv
+       end subroutine set_optimization_variables
 
    end interface
 
