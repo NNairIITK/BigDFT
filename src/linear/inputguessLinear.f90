@@ -688,7 +688,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ndim_lhchi=0
   !do ilr=1,lig%lzdig%nlr
   do ilr=1,lzd%nlr
-      call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+      call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,lig%orbsig%norbp
           onWhichAtomTemp(lig%orbsig%isorb+jorb)=lig%orbsig%inwhichlocreg(ilr)
@@ -794,7 +794,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(denspot%pot_full, stat=istat)
   call memocc(istat, iall, 'denspot%pot_full', subname)
    if(ii/=ndim_lhchi) then
-      write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+      write(*,'(a,i0,a,2i9)') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if
   call mpi_barrier(mpi_comm_world, ierr)
