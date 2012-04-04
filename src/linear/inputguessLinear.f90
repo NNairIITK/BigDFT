@@ -3194,18 +3194,21 @@ call memocc(istat, phit_f, 'phit_f', subname)
 
 phit_c=0.d0
 phit_f=0.d0
+
 i0=0
+j0=0
 do ipt=1,collcom%nptsp_c 
     ii=collcom%norb_per_gridpoint_c(ipt) 
     jj=collcomig%norb_per_gridpoint_c(ipt) 
     do i=1,ii
         iiorb=collcom%indexrecvorbital_c(i0+i)
         do j=1,jj
-            jjorb=collcom%indexrecvorbital_c(i0+j)
-            phit_c(i0+i)=phit_c(i0+i)+coeff(jjorb,iiorb)*chit_c(i0+j)
+            jjorb=collcomig%indexrecvorbital_c(j0+j)
+            phit_c(i0+i)=phit_c(i0+i)+coeff(jjorb,iiorb)*chit_c(j0+j)
         end do
     end do
     i0=i0+ii
+    j0=j0+jj
 end do
 
 i0=0
@@ -3216,7 +3219,7 @@ do ipt=1,collcom%nptsp_f
     do i=1,ii
         iiorb=collcom%indexrecvorbital_f(i0+i)
         do j=1,jj
-            jjorb=collcomig%indexrecvorbital_f(i0+j)
+            jjorb=collcomig%indexrecvorbital_f(j0+j)
             phit_f(7*(i0+i)-6)=phit_f(7*(i0+i)-6)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-6)
             phit_f(7*(i0+i)-5)=phit_f(7*(i0+i)-5)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-5)
             phit_f(7*(i0+i)-4)=phit_f(7*(i0+i)-4)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-4)
