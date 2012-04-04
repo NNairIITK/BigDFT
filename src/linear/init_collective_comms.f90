@@ -1696,18 +1696,18 @@ end subroutine get_index_in_global2
 
 
 
-subroutine transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   type(orbitals_Data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
   real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
   real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
   real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+  type(local_zone_descriptors),intent(in),optional:: lzd
   
   ! Local variables
   integer:: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall
@@ -1715,28 +1715,32 @@ subroutine transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
   character(len=*),parameter:: subname='transpose_switch_psi'
   
   
-  ! split up psi into coarse and fine part
-  allocate(psi_c(collcom%ndimpsi_c), stat=istat)
-  call memocc(istat, psi_c, 'psi_c', subname)
-  allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
-  call memocc(istat, psi_f, 'psi_f', subname)
-  i_tot=0
-  i_c=0
-  i_f=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      do i=1,lzd%llr(ilr)%wfd%nvctr_c
-          i_c=i_c+1
-          i_tot=i_tot+1
-          psi_c(i_c)=psi(i_tot)
+  if(present(lzd)) then
+      ! split up psi into coarse and fine part
+      allocate(psi_c(collcom%ndimpsi_c), stat=istat)
+      call memocc(istat, psi_c, 'psi_c', subname)
+      allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
+      call memocc(istat, psi_f, 'psi_f', subname)
+      i_tot=0
+      i_c=0
+      i_f=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          do i=1,lzd%llr(ilr)%wfd%nvctr_c
+              i_c=i_c+1
+              i_tot=i_tot+1
+              psi_c(i_c)=psi(i_tot)
+          end do
+          do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
+              i_f=i_f+1
+              i_tot=i_tot+1
+              psi_f(i_f)=psi(i_tot)
+          end do
       end do
-      do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-          i_f=i_f+1
-          i_tot=i_tot+1
-          psi_f(i_f)=psi(i_tot)
-      end do
-  end do
+  else
+      call dcopy(collcom%ndimpsi_c, psi, 1, psi_c, 1)
+  end if
   
   
   ! coarse part
@@ -1900,18 +1904,18 @@ end subroutine transpose_communicate_psit
 
 
 
-subroutine transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
+subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   use module_base
   use module_types
   implicit none
   
   ! Caling arguments
   type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
   real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
   real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
   real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+  type(local_zone_descriptors),intent(in),optional:: lzd
   
   ! Local variables
   integer:: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall
@@ -1943,24 +1947,28 @@ subroutine transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
         psi_f(7*ind-0)=psiwork_f(7*i-0)
     end do
   
-    ! glue together coarse and fine part
-    i_tot=0
-    i_c=0
-    i_f=0
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        do i=1,lzd%llr(ilr)%wfd%nvctr_c
-            i_c=i_c+1
-            i_tot=i_tot+1
-            psi(i_tot)=psi_c(i_c)
+    if(present(lzd)) then
+        ! glue together coarse and fine part
+        i_tot=0
+        i_c=0
+        i_f=0
+        do iorb=1,orbs%norbp
+            iiorb=orbs%isorb+iorb
+            ilr=orbs%inwhichlocreg(iiorb)
+            do i=1,lzd%llr(ilr)%wfd%nvctr_c
+                i_c=i_c+1
+                i_tot=i_tot+1
+                psi(i_tot)=psi_c(i_c)
+            end do
+            do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
+                i_f=i_f+1
+                i_tot=i_tot+1
+                psi(i_tot)=psi_f(i_f)
+            end do
         end do
-        do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-            i_f=i_f+1
-            i_tot=i_tot+1
-            psi(i_tot)=psi_f(i_f)
-        end do
-    end do
+    else
+        call dcopy(collcom%ndimpsi_c, psi_c, 1, psi, 1)
+    end if
   
   iall=-product(shape(psi_c))*kind(psi_c)
   deallocate(psi_c, stat=istat)
@@ -1974,19 +1982,20 @@ end subroutine transpose_unswitch_psi
 
 
 
-subroutine transpose_localized(iproc, nproc, orbs, lzd, collcom, psi, psit_c, psit_f)
+subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => transpose_localized
   implicit none
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
   real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
   real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
   real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+  type(local_zone_descriptors),optional,intent(in):: lzd
   
   ! Local variables
   real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
@@ -2003,7 +2012,11 @@ subroutine transpose_localized(iproc, nproc, orbs, lzd, collcom, psi, psit_c, ps
   call memocc(istat, psitwork_f, 'psitwork_f', subname)
   
   call timing(iproc,'Un-TransSwitch','ON')
-  call transpose_switch_psi(orbs, lzd, collcom, psi, psiwork_c, psiwork_f)
+  if(present(lzd)) then
+      call transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+  else
+      call transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f)
+  end if
   call timing(iproc,'Un-TransSwitch','OF')
 
   call timing(iproc,'Un-TransComm  ','ON')
@@ -2036,19 +2049,20 @@ end subroutine transpose_localized
 
 
 
-subroutine untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_f, psi)
+subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => untranspose_localized
   implicit none
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
   type(collective_comms),intent(in):: collcom
   real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
   real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
   real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+  type(local_zone_descriptors),optional,intent(in):: lzd
   
   ! Local variables
   real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
@@ -2078,7 +2092,11 @@ subroutine untranspose_localized(iproc, nproc, orbs, lzd, collcom, psit_c, psit_
   call timing(iproc,'Un-TransComm  ','OF')
 
   call timing(iproc,'Un-TransSwitch','ON')
-  call transpose_unswitch_psi(orbs, lzd, collcom, psiwork_c, psiwork_f, psi)
+  if(present(lzd)) then
+      call transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+  else
+      call transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi)
+  end if
   call timing(iproc,'Un-TransSwitch','OF')
   
   iall=-product(shape(psiwork_c))*kind(psiwork_c)

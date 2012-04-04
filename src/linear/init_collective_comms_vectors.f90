@@ -23,6 +23,7 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
       ilr=orbs%inwhichlocreg(iiorb)
       collcom%ndimpsi_c=collcom%ndimpsi_c+mlr(ilr)%norbinlr
   end do
+  collcom%ndimpsi_f=0
 
   allocate(weight(collcom%ndimpsi_c), stat=istat)
   call memocc(istat, weight, 'weight', subname)
@@ -32,6 +33,8 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
   call assign_weight_to_process_vectors(iproc, nproc, orbsig%norb, weight, weight_tot, istartend, weightp, collcom%nptsp_c)
+  collcom%nptsp_f=0
+
 
   iall=-product(shape(weight))*kind(weight)
   deallocate(weight, stat=istat)
@@ -51,13 +54,16 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   else
       ii=collcom%nptsp_c
   end if
-  if(ii/=orbsig%norb) stop 'wrong partition of coarse grid points'
+  if(ii/=orbsig%norb) stop 'wrong partition of orbitals'
 
 
   allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   call determine_num_orbs_per_gridpoint_vectors(iproc, nproc, orbsig%norb, nlr, collcom%nptsp_c, orbs, &
            istartend, mlr, weightp, collcom%norb_per_gridpoint_c)
+  allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
+  call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  collcom%norb_per_gridpoint_f=0
 
   allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
@@ -70,6 +76,19 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
 
   call determine_communication_arrays_vectors(iproc, nproc, nlr, orbs, mlr, istartend, weightp, &
            collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c)
+
+  allocate(collcom%nsendcounts_f(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
+  allocate(collcom%nsenddspls_f(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
+  allocate(collcom%nrecvcounts_f(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
+  allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
+  collcom%nsendcounts_f=0
+  collcom%nsenddspls_f=0
+  collcom%nrecvcounts_f=0
+  collcom%nrecvdspls_f=0
 
   allocate(collcom%irecvbuf_c(collcom%ndimpsi_c), stat=istat)
   call memocc(istat, collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
@@ -86,6 +105,23 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   call get_switch_indices_vectors(iproc, nproc, nlr, orbsig%norb, collcom%ndimpsi_c, orbs, mlr, &
            istartend, collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, weightp, &
            collcom%isendbuf_c, collcom%irecvbuf_c, collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c)
+
+  allocate(collcom%irecvbuf_f(collcom%ndimpsi_f), stat=istat)
+  call memocc(istat, collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
+  allocate(collcom%indexrecvorbital_f(sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
+  allocate(collcom%iextract_f(sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, collcom%iextract_f, 'collcom%iextract_f', subname)
+  allocate(collcom%iexpand_f(sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, collcom%iexpand_f, 'collcom%iexpand_f', subname)
+  allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
+  call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
+  collcom%irecvbuf_f=0
+  collcom%indexrecvorbital_f=0
+  collcom%iextract_f=0
+  collcom%iexpand_f=0
+  collcom%isendbuf_f=0
+
 
   iall=-product(shape(istartend))*kind(istartend)
   deallocate(istartend, stat=istat)
@@ -615,8 +651,5 @@ subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexr
           if(gridpoint_start(iorb)==0) stop 'FIRST CHECK: ERROR'
       end if
   end do
-
-
-
 
 end subroutine get_gridpoint_start_vectors

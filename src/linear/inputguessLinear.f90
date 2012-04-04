@@ -3184,7 +3184,7 @@ allocate(chit_c(sum(collcomig%nrecvcounts_c)), stat=istat)
 call memocc(istat, chit_c, 'chit_c', subname)
 allocate(chit_f(7*sum(collcomig%nrecvcounts_f)), stat=istat)
 call memocc(istat, chit_f, 'chit_f', subname)
-call transpose_localized(iproc, nproc, orbsig, lzdig, collcomig, lchi, chit_c, chit_f)
+call transpose_localized(iproc, nproc, orbsig, collcomig, lchi, chit_c, chit_f, lzdig)
 
 allocate(phit_c(sum(collcom%nrecvcounts_c)), stat=istat)
 call memocc(istat, phit_c, 'phit_c', subname)
@@ -3232,7 +3232,7 @@ do ipt=1,collcom%nptsp_f
     j0=j0+jj
 end do
 
-call untranspose_localized(iproc, nproc, orbs, lzd, collcom, phit_c, phit_f, lphi)
+call untranspose_localized(iproc, nproc, orbs, collcom, phit_c, phit_f, lphi, lzd)
 
 
 

@@ -4844,7 +4844,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(orthon_data),intent(in):: orthpar
         type(basis_performance_options),intent(in):: bpo
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
-        real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in):: lphi
+        real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
       end subroutine orthoconstraintNonorthogonal
@@ -6557,6 +6557,100 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
          type(collective_comms),intent(out):: collcom
        end subroutine init_collective_comms_vectors
+
+       subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+         use module_base
+         use module_types
+         implicit none
+         type(orbitals_Data),intent(in):: orbs
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+         real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+         real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+         type(local_zone_descriptors),intent(in),optional:: lzd
+       end subroutine transpose_switch_psi
+
+       subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+         use module_base
+         use module_types
+         implicit none
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+         real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+       end subroutine transpose_communicate_psi
+
+       subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+         use module_base
+         use module_types
+         implicit none
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+       end subroutine transpose_unswitch_psit
+
+       subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+         use module_base
+         use module_types
+         implicit none
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+       end subroutine transpose_switch_psit
+
+       subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+         use module_base
+         use module_types
+         implicit none
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+         real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+         real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+       end subroutine transpose_communicate_psit
+
+       subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+         use module_base
+         use module_types
+         implicit none
+         type(orbitals_data),intent(in):: orbs
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+         real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+         real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+         type(local_zone_descriptors),intent(in),optional:: lzd
+       end subroutine transpose_unswitch_psi
+
+       subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+         type(local_zone_descriptors),optional,intent(in):: lzd
+       end subroutine transpose_localized
+
+       subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(collective_comms),intent(in):: collcom
+         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
+         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
+         real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+         type(local_zone_descriptors),optional,intent(in):: lzd
+       end subroutine untranspose_localized
 
    end interface
 
