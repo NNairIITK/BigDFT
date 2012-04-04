@@ -3569,7 +3569,6 @@ type(matrixDescriptors):: mad
        onWhichAtomPhi, lorbs%onwhichmpi, tag, comom)
 
   call nullify_matrixDescriptors(mad)
-  if(iproc==0) write(300,*) 'HERE'
   call initMatrixCompression(iproc, nproc, lzdig%nlr, lorbs, comom%noverlap, comom%overlaps, mad)
   call initCompressedMatmul3(lorbs%norb, mad)
 
