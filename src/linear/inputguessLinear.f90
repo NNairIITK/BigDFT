@@ -2442,10 +2442,16 @@ type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 real(8),intent(out):: trace
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb
 real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
 character(len=*),parameter:: subname='orthoconstraintVectors'
 real(8):: ddot
+real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+
+allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
 
 noverlaps=0
 ilrold=0
@@ -2500,10 +2506,40 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 ! Now apply the orthoconstraint.
 call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
     blocksize_pdgemm, newComm, orbs%norb, &
-    norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, orbs, grad)
+    norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
+    ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+
+ilrold=-1
+ijorb=0
+do iorb=1,norbp
+    iiorb=isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        !ijorb=ijorb-comom%noverlap(ilr)
+        ijorb=ijorb-comom%noverlap(iiorb)
+    end if
+    ncount=mlr(ilr)%norbinlr
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iiorb)
+        ijorb=ijorb+1
+        !jjorb=comom%overlaps(jorb,ilr)
+        jjorb=comom%overlaps(jorb,iiorb)
+        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+    end do
+    ilrold=ilr
+end do
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
 !call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+
+iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+deallocate(ovrlp_minus_one_lagmat, stat=istat)
+call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
 
 iall=-product(shape(lagmat))*kind(lagmat)
 deallocate(lagmat, stat=istat)
@@ -3005,7 +3041,7 @@ end subroutine orthonormalLinearCombinations
 
 subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
            comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
-           lagmat, comom, mlr, mad, orbs, grad)
+           lagmat, comom, mlr, mad, orbs, grad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintVectors
@@ -3023,18 +3059,19 @@ type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 type(matrixDescriptors),intent(in):: mad
 type(orbitals_data),intent(in):: orbs
 real(8),dimension(norbmax,norbp),intent(inout):: grad
+real(8),dimension(norb,norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
 ! Local variables
 integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
-real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+real(8),dimension(:,:),allocatable:: ovrlp2
 real(8):: tt
 character(len=*),parameter:: subname='applyOrthoconstraintVectors'
 
 
-allocate(ovrlp_minus_one_lagmat(norb,norb), stat=istat)
-call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-allocate(ovrlp_minus_one_lagmat_trans(norb,norb), stat=istat)
-call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+!!allocate(ovrlp_minus_one_lagmat(norb,norb), stat=istat)
+!!call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+!!allocate(ovrlp_minus_one_lagmat_trans(norb,norb), stat=istat)
+!!call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
 allocate(ovrlp2(norb,norb), stat=istat)
 call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
@@ -3119,35 +3156,35 @@ else if(correctionOrthoconstraint==1) then correctionIf
 end if correctionIf
 
 
-ilrold=-1
-ijorb=0
-do iorb=1,norbp
-    iiorb=isorb+iorb
-    ilr=onWhichAtom(iiorb)
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        !ijorb=ijorb-comom%noverlap(ilr)
-        ijorb=ijorb-comom%noverlap(iiorb)
-    end if
-    ncount=mlr(ilr)%norbinlr
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iiorb)
-        ijorb=ijorb+1
-        !jjorb=comom%overlaps(jorb,ilr)
-        jjorb=comom%overlaps(jorb,iiorb)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-    end do
-    ilrold=ilr
-end do
+!!ilrold=-1
+!!ijorb=0
+!!do iorb=1,norbp
+!!    iiorb=isorb+iorb
+!!    ilr=onWhichAtom(iiorb)
+!!    if(ilr==ilrold) then
+!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+!!        !ijorb=ijorb-comom%noverlap(ilr)
+!!        ijorb=ijorb-comom%noverlap(iiorb)
+!!    end if
+!!    ncount=mlr(ilr)%norbinlr
+!!    !do jorb=1,comom%noverlap(ilr)
+!!    do jorb=1,comom%noverlap(iiorb)
+!!        ijorb=ijorb+1
+!!        !jjorb=comom%overlaps(jorb,ilr)
+!!        jjorb=comom%overlaps(jorb,iiorb)
+!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+!!    end do
+!!    ilrold=ilr
+!!end do
 
 
-iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-deallocate(ovrlp_minus_one_lagmat, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+!!iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+!!deallocate(ovrlp_minus_one_lagmat, stat=istat)
+!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+!!iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+!!deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
 iall=-product(shape(ovrlp2))*kind(ovrlp2)
 deallocate(ovrlp2, stat=istat)
 call memocc(istat, iall, 'ovrlp2', subname)
