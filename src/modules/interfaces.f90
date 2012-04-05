@@ -3410,12 +3410,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine extractMatrix
 
 
-     subroutine orthonormalizeVectors(iproc, nproc, comm, nItOrtho, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, &
-                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mad, mlr, vec, comom)
+     subroutine orthonormalizeVectors(iproc, nproc, comm, nItOrtho, methTransformOverlap, &
+                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, &
+                mad, mlr, vec, comom, collcom, orthpar, bpo)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, comm, nItOrtho, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm
+       integer,intent(in):: iproc, nproc, comm, nItOrtho, methTransformOverlap
        integer,intent(in):: norbmax, norbp, isorb, nlr, newComm
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
@@ -3424,6 +3425,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        real(8),dimension(norbmax,norbp),intent(inout):: vec
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+       type(collective_comms),intent(in):: collcom
+       type(orthon_data),intent(in):: orthpar
+       type(basis_performance_options),intent(in):: bpo
      end subroutine orthonormalizeVectors
 
 
@@ -4500,7 +4504,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
     subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input,hx,hy,hz, norbsPerType, &
                onWhichAtom, lchi, lphi, locregCenter, rxyz, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, &
-               comonig, opig, madig, collcomig, collcom)
+               comonig, opig, madig, collcomig, collcom, tmb)
       use module_base
       use module_types
       implicit none
@@ -4527,6 +4531,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(overlapParameters):: opig
       type(matrixDescriptors):: madig
       type(collective_comms),intent(in):: collcomig, collcom
+      type(DFT_wavefunction),intent(in):: tmb
     end subroutine buildLinearCombinationsLocalized3
 
 

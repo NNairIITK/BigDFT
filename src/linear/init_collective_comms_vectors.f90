@@ -25,7 +25,7 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   end do
   collcom%ndimpsi_f=0
 
-  allocate(weight(collcom%ndimpsi_c), stat=istat)
+  allocate(weight(orbsig%norb), stat=istat)
   call memocc(istat, weight, 'weight', subname)
 
   call get_weights_vectors(iproc, nproc, orbs, nlr, mlr, orbsig%norb, weight, weight_tot)
@@ -198,7 +198,7 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
   loop_norbig: do iorb=1,norbig
       tt=tt+weight(iorb) 
       iitot=iitot+1
-      if(tt>weight_ideal .or. iorb==norbig .and. jproc<=nproc-2) then
+      if(tt>=weight_ideal .or. iorb==norbig .and. jproc<=nproc-2) then
           if(iproc==jproc) then
               weightp=tt
               nptsp=iitot
@@ -212,7 +212,7 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
           ii2=ii2+iitot
           iitot=0
           jproc=jproc+1
-          if(ii2>norbig) then
+          if(ii2>=norbig) then
               ! everything is distributed
               jprocdone=jproc
               exit loop_norbig
@@ -224,8 +224,8 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
   if(jprocdone>0) then
        do jproc=jprocdone,nproc-1
           ! these processes do nothing
-          istartend(1,iproc)=norbig+1
-          istartend(2,iproc)=norbig
+          istartend(1,jproc)=norbig+1
+          istartend(2,jproc)=norbig
           if(iproc==jproc) then
               weightp=0.d0
               nptsp=0
@@ -245,6 +245,7 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
 
   ! some check
   ii=istartend(2,iproc)-istartend(1,iproc)+1
+  write(*,*) 'iproc, ii', iproc, ii
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
   if(ii/=norbig) stop 'ii/=norbig'
 

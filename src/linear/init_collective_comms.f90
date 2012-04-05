@@ -357,7 +357,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_c(i,i2,i3)
            iitot=iitot+1
-           if(tt>weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
+           if(tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
                if(iproc==jproc) then
                    weightp_c=tt
                    nptsp_c=iitot
@@ -372,7 +372,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                iitot=0
                jproc=jproc+1
                iiseg=iseg
-               if(ii2>lzd%glr%wfd%nvctr_c) then
+               if(ii2>=lzd%glr%wfd%nvctr_c) then
                    ! everything is distributed
                    jprocdone=jproc
                    exit loop_nseg_c
@@ -384,8 +384,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   if(jprocdone>0) then
        do jproc=jprocdone,nproc-1
           ! these processes do nothing
-          istartend_c(1,iproc)=lzd%glr%wfd%nvctr_c+1
-          istartend_c(2,iproc)=lzd%glr%wfd%nvctr_c
+          istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
+          istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
           if(iproc==jproc) then
               weightp_c=0.d0
               nptsp_c=0
@@ -434,7 +434,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_f(i,i2,i3)
            iitot=iitot+1
-           if(tt>weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
+           if(tt>=weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
                if(iproc==jproc) then
                    weightp_f=tt
                    nptsp_f=iitot
@@ -449,7 +449,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                iitot=0
                jproc=jproc+1
                iiseg=iseg
-               if(ii2>lzd%glr%wfd%nvctr_f) then
+               if(ii2>=lzd%glr%wfd%nvctr_f) then
                    ! everything is distributed
                    jprocdone=jproc
                    exit loop_nseg_f
@@ -460,8 +460,8 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   if(jprocdone>0) then
        do jproc=jprocdone,nproc-1
           ! these processes do nothing
-          istartend_f(1,iproc)=lzd%glr%wfd%nvctr_f+1
-          istartend_f(2,iproc)=lzd%glr%wfd%nvctr_f
+          istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
+          istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
           if(iproc==jproc) then
               weightp_f=0.d0
               nptsp_f=0
@@ -514,7 +514,7 @@ integer,intent(out):: nptsp_c, nptsp_f
 
 ! Local variables
 integer:: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1
-integer:: i, iseg, i0, iitot, ierr, iiseg
+integer:: i, iseg, i0, iitot, ierr, iiseg, jprocdone
 real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
   weight_c_ideal=weight_tot_c/dble(nproc)
@@ -561,6 +561,19 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
                iiseg=iseg
            end if
        end do
+   end do
+
+   jprocdone=jproc
+   do jproc=jprocdone,nproc-1
+      ! these processes do nothing
+      istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
+      istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+      if(iproc==jproc) then
+          weightp_f=0.d0
+          nptsp_f=0
+          istartp_seg_f=lzd%glr%wfd%nseg_f+1
+          iendp_seg_f=lzd%glr%wfd%nseg_f
+      end if
    end do
   !!if(iproc==nproc-1) then
   !!    ! Take the rest
@@ -623,6 +636,19 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
            end if
        end do
    end do
+
+   jprocdone=jproc
+   do jproc=jprocdone,nproc-1
+      ! these processes do nothing
+      istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
+      istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+      if(iproc==jproc) then
+          weightp_f=0.d0
+          nptsp_f=0
+          istartp_seg_f=lzd%glr%wfd%nseg_f+1
+          iendp_seg_f=lzd%glr%wfd%nseg_f
+      end if
+   end do
   !!if(iproc==nproc-1) then
   !!    ! Take the rest
   !!    istartp_f=ii2+1
@@ -638,7 +664,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii/=lzd%glr%wfd%nvctr_f'
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_f'
 
 
 
@@ -1715,12 +1741,12 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   character(len=*),parameter:: subname='transpose_switch_psi'
   
   
+  allocate(psi_c(collcom%ndimpsi_c), stat=istat)
+  call memocc(istat, psi_c, 'psi_c', subname)
+  allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
+  call memocc(istat, psi_f, 'psi_f', subname)
   if(present(lzd)) then
       ! split up psi into coarse and fine part
-      allocate(psi_c(collcom%ndimpsi_c), stat=istat)
-      call memocc(istat, psi_c, 'psi_c', subname)
-      allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psi_f, 'psi_f', subname)
       i_tot=0
       i_c=0
       i_f=0
@@ -1739,6 +1765,7 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
           end do
       end do
   else
+      ! only coarse part is used...
       call dcopy(collcom%ndimpsi_c, psi, 1, psi_c, 1)
   end if
   
