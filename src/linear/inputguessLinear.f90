@@ -2226,7 +2226,7 @@ type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, i, ist
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, i, ist, ncnt
 real(8):: tt, dnrm2, dev
 real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
 character(len=*),parameter:: subname='orthonormalizeVectors'
@@ -2270,7 +2270,7 @@ if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       jorbmax=0
       do iorb=1,orbs%norb
          do jorb=1,orbs%norb
-            !if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+            !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
             if(iorb==jorb) then
                tt=abs(1.d0-ovrlp(jorb,iorb))
             else
@@ -2294,11 +2294,25 @@ if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
            orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
     
-      ! Normalize the vectors
-      do iorb=1,norbp
-         tt=dnrm2(norbmax, vec(1,iorb), 1)
-         call dscal(norbmax, 1/tt, vec(1,iorb), 1)
-      end do
+    !!  ! Normalize the vectors
+    !!  do iorb=1,norbp
+    !!     tt=dnrm2(norbmax, vec(1,iorb), 1)
+    !!     call dscal(norbmax, 1/tt, vec(1,iorb), 1)
+    !!     do jorb=1,norbmax
+    !!         write(400,*) iorb,jorb,vec(jorb,iorb)
+    !!     end do
+    !!  end do
+       ! Normalize the vectors
+       do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          ncnt=mlr(ilr)%norbinlr
+          tt=dnrm2(ncnt, vec(1,iorb), 1)
+          call dscal(ncnt, 1/tt, vec(1,iorb), 1)
+          !!do jorb=1,ncnt
+          !!    write(400+iiorb,*) iorb,jorb,vec(jorb,iorb)
+          !!end do
+       end do
     
     end do
 
@@ -2330,7 +2344,7 @@ else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
       jorbmax=0
       do iorb=1,orbs%norb
          do jorb=1,orbs%norb
-            !if(iproc==0) write(310,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+            !!if(iproc==0) write(310,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
             if(iorb==jorb) then
                tt=abs(1.d0-ovrlp(jorb,iorb))
             else
@@ -2386,9 +2400,15 @@ else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
     call memocc(istat, iall, 'psit_f', subname)
 
     ! Normalize the vectors
-    do iorb=1,norbp
-       tt=dnrm2(norbmax, vec(1,iorb), 1)
-       call dscal(norbmax, 1/tt, vec(1,iorb), 1)
+    do iorb=1,orbs%norbp
+       iiorb=orbs%isorb+iorb
+       ilr=orbs%inwhichlocreg(iiorb)
+       ncnt=mlr(ilr)%norbinlr
+       tt=dnrm2(ncnt, vec(1,iorb), 1)
+       call dscal(ncnt, 1/tt, vec(1,iorb), 1)
+       !!do jorb=1,ncnt
+       !!    write(500+iiorb,*) iorb,jorb,vec(jorb,iorb)
+       !!end do
     end do
 
 end if

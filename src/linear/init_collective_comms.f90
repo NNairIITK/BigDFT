@@ -358,11 +358,19 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
            tt=tt+weight_c(i,i2,i3)
            iitot=iitot+1
            if(tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
+               if(tt==weight_tot_c .and. jproc==nproc-1) then
+                   ! this process also has to take the remaining points, even if they have no weight
+                   iitot=lzd%glr%wfd%nvctr_c-ii2
+               end if
                if(iproc==jproc) then
                    weightp_c=tt
                    nptsp_c=iitot
                    istartp_seg_c=iiseg
                    iendp_seg_c=iseg
+                   if(tt==weight_tot_c .and. jproc==nproc-1) then
+                       ! this process also has to take the remaining segments, even if they have no weight
+                       iendp_seg_c=lzd%glr%wfd%nseg_c
+                   end if
                end if
                istartend_c(1,jproc)=ii2+1
                istartend_c(2,jproc)=min(istartend_c(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_c)
@@ -435,11 +443,19 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
            tt=tt+weight_f(i,i2,i3)
            iitot=iitot+1
            if(tt>=weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
+               if(tt==weight_tot_f .and. jproc==nproc-1) then
+                   ! this process also has to take the remaining points, even if they have no weight
+                   iitot=lzd%glr%wfd%nvctr_f-ii2
+               end if
                if(iproc==jproc) then
                    weightp_f=tt
                    nptsp_f=iitot
                    istartp_seg_f=iiseg
                    iendp_seg_f=iseg
+                   if(tt==weight_tot_f .and. jproc==nproc-1) then
+                       ! this process also has to take the remaining segments, even if they have no weight
+                       iendp_seg_f=iend
+                   end if
                end if
                istartend_f(1,jproc)=ii2+1
                istartend_f(2,jproc)=min(istartend_f(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_f)

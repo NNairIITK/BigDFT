@@ -199,6 +199,10 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
       tt=tt+weight(iorb) 
       iitot=iitot+1
       if(tt>=weight_ideal .or. iorb==norbig .and. jproc<=nproc-2) then
+          if(tt==weight_tot .and. jproc==nproc-1) then
+              ! this process also has to take the remaining points, even if they have no weight
+              iitot=norbig-ii2
+          end if
           if(iproc==jproc) then
               weightp=tt
               nptsp=iitot
@@ -245,7 +249,6 @@ subroutine assign_weight_to_process_vectors(iproc, nproc, norbig, weight, weight
 
   ! some check
   ii=istartend(2,iproc)-istartend(1,iproc)+1
-  write(*,*) 'iproc, ii', iproc, ii
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
   if(ii/=norbig) stop 'ii/=norbig'
 
@@ -307,8 +310,6 @@ subroutine determine_num_orbs_per_gridpoint_vectors(iproc, nproc, norbig, nlr, n
   end do
 
   if(jjpt/=nptsp) stop 'jjpt/=nptsp'
-  write(*,'(a,3i9)') 'iproc, jjorb, nint(weightp)', iproc, jjorb, nint(weightp)
-  write(*,'(a,2i8,2i9)') 'iproc, norbig, istartend(:,iproc)', iproc, norbig, istartend(:,iproc)
   if(jjorb/=nint(weightp)) stop 'jjorb/=weightp'
 
 
