@@ -2236,168 +2236,175 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, psittemp_c, psittemp_f, vec_c
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
-if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+do it=1,nItOrtho
+
+    if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+        
+        noverlaps=0
+        ilrold=0
+        do iorb=1,norbp
+          iiorb=isorb+iorb
+          ilr=onWhichAtom(iiorb)
+          if(ilr/=ilrold) then
+             !noverlaps=noverlaps+comom%noverlap(ilr)
+             noverlaps=noverlaps+comom%noverlap(iiorb)
+          end if
+          ilrold=ilr
+        end do
+        allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
+        call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
+        
+        
+          call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+          !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+          !call gatherVectors(iproc, nproc, newComm, comom)
+          call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+          call gatherVectorsNew(iproc, nproc, comom)
+        
+          call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+        
+          ! Calculate the overlap matrix.
+          call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
+               vec, vecOvrlp, newComm, ovrlp)
+          dev=0.d0
+          iorbmax=0
+          jorbmax=0
+          do iorb=1,orbs%norb
+             do jorb=1,orbs%norb
+                !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+                if(iorb==jorb) then
+                   tt=abs(1.d0-ovrlp(jorb,iorb))
+                else
+                   tt=abs(ovrlp(jorb,iorb))
+                end if
+                if(tt>dev) then
+                   dev=tt
+                   iorbmax=iorb
+                   jorbmax=jorb
+                end if
+             end do
+          end do
+          if(iproc==0) then
+             write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
+          end if
     
-    noverlaps=0
-    ilrold=0
-    do iorb=1,norbp
-      iiorb=isorb+iorb
-      ilr=onWhichAtom(iiorb)
-      if(ilr/=ilrold) then
-         !noverlaps=noverlaps+comom%noverlap(ilr)
-         noverlaps=noverlaps+comom%noverlap(iiorb)
+    else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+    
+        allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
+        call memocc(istat, vec_compr, 'vec_compr', subname)
+        ist=1
+        do iorb=1,orbs%norbp
+            iiorb=orbs%isorb+iorb
+            ilr=orbs%inwhichlocreg(iiorb)
+            call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
+            ist=ist+mlr(ilr)%norbinlr
+        end do
+    
+        allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+        call memocc(istat, psit_c, 'psit_c', subname)
+        allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+        call memocc(istat, psit_f, 'psit_f', subname)
+        call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
+        call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    
+          dev=0.d0
+          iorbmax=0
+          jorbmax=0
+          do iorb=1,orbs%norb
+             do jorb=1,orbs%norb
+                !!if(iproc==0) write(310,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+                if(iorb==jorb) then
+                   tt=abs(1.d0-ovrlp(jorb,iorb))
+                else
+                   tt=abs(ovrlp(jorb,iorb))
+                end if
+                if(tt>dev) then
+                   dev=tt
+                   iorbmax=iorb
+                   jorbmax=jorb
+                end if
+             end do
+          end do
+          if(iproc==0) then
+             write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
+          end if
+    
       end if
-      ilrold=ilr
-    end do
-    allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
-    call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
-    
-    do it=1,nItOrtho
-    
-      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-      !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-      !call gatherVectors(iproc, nproc, newComm, comom)
-      call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-      call gatherVectorsNew(iproc, nproc, comom)
-    
-      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
-    
-      ! Calculate the overlap matrix.
-      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
-           vec, vecOvrlp, newComm, ovrlp)
-      dev=0.d0
-      iorbmax=0
-      jorbmax=0
-      do iorb=1,orbs%norb
-         do jorb=1,orbs%norb
-            !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-            if(iorb==jorb) then
-               tt=abs(1.d0-ovrlp(jorb,iorb))
-            else
-               tt=abs(ovrlp(jorb,iorb))
-            end if
-            if(tt>dev) then
-               dev=tt
-               iorbmax=iorb
-               jorbmax=jorb
-            end if
-         end do
-      end do
-      if(iproc==0) then
-         write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
-      end if
-      call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
-           orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
     
     
+          call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
+               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
+        
+    if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+        
+        
+          call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
+               orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+        
+       !! !!  ! Normalize the vectors
+       !! !!  do iorb=1,norbp
+       !! !!     tt=dnrm2(norbmax, vec(1,iorb), 1)
+       !! !!     call dscal(norbmax, 1/tt, vec(1,iorb), 1)
+       !! !!     do jorb=1,norbmax
+       !! !!         write(400,*) iorb,jorb,vec(jorb,iorb)
+       !! !!     end do
+       !! !!  end do
+       !!    ! Normalize the vectors
+       !!    do iorb=1,orbs%norbp
+       !!       iiorb=orbs%isorb+iorb
+       !!       ilr=orbs%inwhichlocreg(iiorb)
+       !!       ncnt=mlr(ilr)%norbinlr
+       !!       tt=dnrm2(ncnt, vec(1,iorb), 1)
+       !!       call dscal(ncnt, 1/tt, vec(1,iorb), 1)
+       !!       !!do jorb=1,ncnt
+       !!       !!    write(400+iiorb,*) iorb,jorb,vec(jorb,iorb)
+       !!       !!end do
+       !!    end do
+       !! 
+       !! end do
     
-      call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
-           orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+        iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
+        deallocate(vecOvrlp, stat=istat)
+        call memocc(istat, iall, 'vecOvrlp', subname)
     
-    !!  ! Normalize the vectors
-    !!  do iorb=1,norbp
-    !!     tt=dnrm2(norbmax, vec(1,iorb), 1)
-    !!     call dscal(norbmax, 1/tt, vec(1,iorb), 1)
-    !!     do jorb=1,norbmax
-    !!         write(400,*) iorb,jorb,vec(jorb,iorb)
-    !!     end do
-    !!  end do
-       ! Normalize the vectors
-       do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
-          ncnt=mlr(ilr)%norbinlr
-          tt=dnrm2(ncnt, vec(1,iorb), 1)
-          call dscal(ncnt, 1/tt, vec(1,iorb), 1)
-          !!do jorb=1,ncnt
-          !!    write(400+iiorb,*) iorb,jorb,vec(jorb,iorb)
-          !!end do
-       end do
+    else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
     
-    end do
-
-    iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
-    deallocate(vecOvrlp, stat=istat)
-    call memocc(istat, iall, 'vecOvrlp', subname)
-
-else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-
-    allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
-    call memocc(istat, vec_compr, 'vec_compr', subname)
-    ist=1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
-        ist=ist+mlr(ilr)%norbinlr
-    end do
-
-    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, psit_c, 'psit_c', subname)
-    allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, psit_f, 'psit_f', subname)
-    call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
-    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-
-      dev=0.d0
-      iorbmax=0
-      jorbmax=0
-      do iorb=1,orbs%norb
-         do jorb=1,orbs%norb
-            !!if(iproc==0) write(310,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-            if(iorb==jorb) then
-               tt=abs(1.d0-ovrlp(jorb,iorb))
-            else
-               tt=abs(ovrlp(jorb,iorb))
-            end if
-            if(tt>dev) then
-               dev=tt
-               iorbmax=iorb
-               jorbmax=jorb
-            end if
-         end do
-      end do
-      if(iproc==0) then
-         write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
-      end if
-
-
-    call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
-         orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
-
-    allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, psittemp_c, 'psittemp_c', subname)
-    allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, psittemp_f, 'psittemp_f', subname)
-    call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-    call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-    call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
-    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
-
-    ist=1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        call dcopy(mlr(ilr)%norbinlr, vec_compr(ist), 1, vec(1,iorb), 1)
-        ist=ist+mlr(ilr)%norbinlr
-    end do
-
-    iall=-product(shape(vec_compr))*kind(vec_compr)
-    deallocate(vec_compr, stat=istat)
-    call memocc(istat, iall, 'vec_compr', subname)
-
-    iall=-product(shape(psittemp_c))*kind(psittemp_c)
-    deallocate(psittemp_c, stat=istat)
-    call memocc(istat, iall, 'psittemp_c', subname)
-    iall=-product(shape(psittemp_f))*kind(psittemp_f)
-    deallocate(psittemp_f, stat=istat)
-    call memocc(istat, iall, 'psittemp_f', subname)
-    iall=-product(shape(psit_c))*kind(psit_c)
-    deallocate(psit_c, stat=istat)
-    call memocc(istat, iall, 'psit_c', subname)
-    iall=-product(shape(psit_f))*kind(psit_f)
-    deallocate(psit_f, stat=istat)
-    call memocc(istat, iall, 'psit_f', subname)
+    
+        allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
+        call memocc(istat, psittemp_c, 'psittemp_c', subname)
+        allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+        call memocc(istat, psittemp_f, 'psittemp_f', subname)
+        call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
+        call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
+        call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
+    
+        ist=1
+        do iorb=1,orbs%norbp
+            iiorb=orbs%isorb+iorb
+            ilr=orbs%inwhichlocreg(iiorb)
+            call dcopy(mlr(ilr)%norbinlr, vec_compr(ist), 1, vec(1,iorb), 1)
+            ist=ist+mlr(ilr)%norbinlr
+        end do
+    
+        iall=-product(shape(vec_compr))*kind(vec_compr)
+        deallocate(vec_compr, stat=istat)
+        call memocc(istat, iall, 'vec_compr', subname)
+    
+        iall=-product(shape(psittemp_c))*kind(psittemp_c)
+        deallocate(psittemp_c, stat=istat)
+        call memocc(istat, iall, 'psittemp_c', subname)
+        iall=-product(shape(psittemp_f))*kind(psittemp_f)
+        deallocate(psittemp_f, stat=istat)
+        call memocc(istat, iall, 'psittemp_f', subname)
+        iall=-product(shape(psit_c))*kind(psit_c)
+        deallocate(psit_c, stat=istat)
+        call memocc(istat, iall, 'psit_c', subname)
+        iall=-product(shape(psit_f))*kind(psit_f)
+        deallocate(psit_f, stat=istat)
+        call memocc(istat, iall, 'psit_f', subname)
+    
+    end if
 
     ! Normalize the vectors
     do iorb=1,orbs%norbp
@@ -2411,7 +2418,7 @@ else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
        !!end do
     end do
 
-end if
+end do
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -2505,6 +2512,36 @@ if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
     call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
     call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
         vecOvrlp, newComm, ovrlp)
+
+else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+
+    allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
+    call memocc(istat, vec_compr, 'vec_compr', subname)
+    allocate(grad_compr(collcom%ndimpsi_c), stat=istat)
+    call memocc(istat, grad_compr, 'grad_compr', subname)
+    ist=1
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
+        call dcopy(mlr(ilr)%norbinlr, grad(1,iorb), 1, grad_compr(ist), 1)
+        ist=ist+mlr(ilr)%norbinlr
+    end do
+
+    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+    call memocc(istat, psit_c, 'psit_c', subname)
+    allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+    call memocc(istat, psit_f, 'psit_f', subname)
+    allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+    call memocc(istat, hpsit_c, 'hpsit_c', subname)
+    allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+    call memocc(istat, hpsit_f, 'hpsit_f', subname)
+    call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
+    call transpose_localized(iproc, nproc, orbs, collcom, grad_compr, hpsit_c, hpsit_f)
+    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+
+end if
     
     ! Now apply the orthoconstraint.
     call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
@@ -2512,6 +2549,8 @@ if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
         norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
         ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
     
+if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+
     ilrold=-1
     ijorb=0
     do iorb=1,norbp
@@ -2544,37 +2583,11 @@ if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
 
 else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 
-    allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
-    call memocc(istat, vec_compr, 'vec_compr', subname)
-    allocate(grad_compr(collcom%ndimpsi_c), stat=istat)
-    call memocc(istat, grad_compr, 'grad_compr', subname)
-    ist=1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
-        call dcopy(mlr(ilr)%norbinlr, grad(1,iorb), 1, grad_compr(ist), 1)
-        ist=ist+mlr(ilr)%norbinlr
-    end do
-
-    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, psit_c, 'psit_c', subname)
-    allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, psit_f, 'psit_f', subname)
-    allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, hpsit_c, 'hpsit_c', subname)
-    allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, hpsit_f, 'hpsit_f', subname)
-    call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
-    call transpose_localized(iproc, nproc, orbs, collcom, grad_compr, hpsit_c, hpsit_f)
-    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
-
-    ! Now apply the orthoconstraint.
-    call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
-        bpo%blocksize_pdgemm, newComm, orbs%norb, &
-        norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
-        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+    !!! Now apply the orthoconstraint.
+    !!call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
+    !!    bpo%blocksize_pdgemm, newComm, orbs%norb, &
+    !!    norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
+    !!    ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
 
       do iorb=1,orbs%norb
