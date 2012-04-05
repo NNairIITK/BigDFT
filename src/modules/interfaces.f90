@@ -4657,16 +4657,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocateRecvBufferOrtho
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
-                 orbs, lzd, op, comon, lagmat, ovrlp, mad, &
+                 correction_orthoconstraint, &
+                 orbs, lagmat, ovrlp, mad, &
                  ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+        integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
         type(orbitals_data),intent(in):: orbs
-        type(local_zone_descriptors),intent(in):: lzd
-        type(overlapParameters),intent(in):: op
-        type(p2pComms),intent(in):: comon
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
         type(matrixDescriptors),intent(in):: mad

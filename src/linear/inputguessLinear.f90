@@ -2246,7 +2246,6 @@ do it=1,nItOrtho
           iiorb=isorb+iorb
           ilr=onWhichAtom(iiorb)
           if(ilr/=ilrold) then
-             !noverlaps=noverlaps+comom%noverlap(ilr)
              noverlaps=noverlaps+comom%noverlap(iiorb)
           end if
           ilrold=ilr
@@ -2255,38 +2254,35 @@ do it=1,nItOrtho
         call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
         
         
-          call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-          !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-          !call gatherVectors(iproc, nproc, newComm, comom)
-          call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-          call gatherVectorsNew(iproc, nproc, comom)
+        call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+        call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+        call gatherVectorsNew(iproc, nproc, comom)
         
-          call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+        call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
         
-          ! Calculate the overlap matrix.
-          call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
-               vec, vecOvrlp, newComm, ovrlp)
-          dev=0.d0
-          iorbmax=0
-          jorbmax=0
-          do iorb=1,orbs%norb
-             do jorb=1,orbs%norb
-                !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-                if(iorb==jorb) then
-                   tt=abs(1.d0-ovrlp(jorb,iorb))
-                else
-                   tt=abs(ovrlp(jorb,iorb))
-                end if
-                if(tt>dev) then
-                   dev=tt
-                   iorbmax=iorb
-                   jorbmax=jorb
-                end if
-             end do
-          end do
-          if(iproc==0) then
-             write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
-          end if
+        ! Calculate the overlap matrix.
+        call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
+             vec, vecOvrlp, newComm, ovrlp)
+        dev=0.d0
+        iorbmax=0
+        jorbmax=0
+        do iorb=1,orbs%norb
+           do jorb=1,orbs%norb
+              if(iorb==jorb) then
+                 tt=abs(1.d0-ovrlp(jorb,iorb))
+              else
+                 tt=abs(ovrlp(jorb,iorb))
+              end if
+              if(tt>dev) then
+                 dev=tt
+                 iorbmax=iorb
+                 jorbmax=jorb
+              end if
+           end do
+        end do
+        if(iproc==0) then
+           write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
+        end if
     
     else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
     
@@ -2307,62 +2303,38 @@ do it=1,nItOrtho
         call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
         call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
     
-          dev=0.d0
-          iorbmax=0
-          jorbmax=0
-          do iorb=1,orbs%norb
-             do jorb=1,orbs%norb
-                !!if(iproc==0) write(310,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-                if(iorb==jorb) then
-                   tt=abs(1.d0-ovrlp(jorb,iorb))
-                else
-                   tt=abs(ovrlp(jorb,iorb))
-                end if
-                if(tt>dev) then
-                   dev=tt
-                   iorbmax=iorb
-                   jorbmax=jorb
-                end if
-             end do
-          end do
-          if(iproc==0) then
-             write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
-          end if
+        dev=0.d0
+        iorbmax=0
+        jorbmax=0
+        do iorb=1,orbs%norb
+           do jorb=1,orbs%norb
+              if(iorb==jorb) then
+                 tt=abs(1.d0-ovrlp(jorb,iorb))
+              else
+                 tt=abs(ovrlp(jorb,iorb))
+              end if
+              if(tt>dev) then
+                 dev=tt
+                 iorbmax=iorb
+                 jorbmax=jorb
+              end if
+           end do
+        end do
+        if(iproc==0) then
+           write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
+        end if
     
-      end if
+    end if
     
     
-          call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
-               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
+    call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
+         orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
         
     if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
         
+        call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
+             orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
         
-          call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
-               orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
-        
-       !! !!  ! Normalize the vectors
-       !! !!  do iorb=1,norbp
-       !! !!     tt=dnrm2(norbmax, vec(1,iorb), 1)
-       !! !!     call dscal(norbmax, 1/tt, vec(1,iorb), 1)
-       !! !!     do jorb=1,norbmax
-       !! !!         write(400,*) iorb,jorb,vec(jorb,iorb)
-       !! !!     end do
-       !! !!  end do
-       !!    ! Normalize the vectors
-       !!    do iorb=1,orbs%norbp
-       !!       iiorb=orbs%isorb+iorb
-       !!       ilr=orbs%inwhichlocreg(iiorb)
-       !!       ncnt=mlr(ilr)%norbinlr
-       !!       tt=dnrm2(ncnt, vec(1,iorb), 1)
-       !!       call dscal(ncnt, 1/tt, vec(1,iorb), 1)
-       !!       !!do jorb=1,ncnt
-       !!       !!    write(400+iiorb,*) iorb,jorb,vec(jorb,iorb)
-       !!       !!end do
-       !!    end do
-       !! 
-       !! end do
-    
         iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
         deallocate(vecOvrlp, stat=istat)
         call memocc(istat, iall, 'vecOvrlp', subname)
@@ -2413,9 +2385,6 @@ do it=1,nItOrtho
        ncnt=mlr(ilr)%norbinlr
        tt=dnrm2(ncnt, vec(1,iorb), 1)
        call dscal(ncnt, 1/tt, vec(1,iorb), 1)
-       !!do jorb=1,ncnt
-       !!    write(500+iiorb,*) iorb,jorb,vec(jorb,iorb)
-       !!end do
     end do
 
 end do
@@ -2430,239 +2399,224 @@ end subroutine orthonormalizeVectors
 
 
 subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, orbs, &
-  onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace, &
-  collcom, orthpar, bpo)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => orthoconstraintVectors
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, norbmax
-integer,intent(in):: norbp, isorb, nlr, newComm
-type(orbitals_data),intent(in):: orbs
-integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
-integer,dimension(0:nproc-1),intent(in):: isorb_par
-type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
-real(8),intent(out):: trace
-type(collective_comms),intent(in):: collcom
-type(orthon_data),intent(in):: orthpar
-type(basis_performance_options),intent(in):: bpo
-
-! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb, ist
-real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
-character(len=*),parameter:: subname='orthoconstraintVectors'
-real(8):: ddot
-real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
-real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, vec_compr, grad_compr
-
-allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
-allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, ovrlp, 'ovrlp', subname)
-allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, lagmat, 'lagmat', subname)
-
-
-if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-    
-    noverlaps=0
-    ilrold=0
-    do iorb=1,norbp
-      iiorb=isorb+iorb
-      ilr=onWhichAtom(iiorb)
-      if(ilr/=ilrold) then
-         !noverlaps=noverlaps+comom%noverlap(ilr)
-         noverlaps=noverlaps+comom%noverlap(iiorb)
-      end if
-      ilrold=ilr
-    end do
-    allocate(gradOvrlp(norbmax,noverlaps), stat=istat)
-    call memocc(istat, gradOvrlp, 'gradOvrlp', subname)
-    allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
-    call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
-    
-    call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
-    
-    !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-    !call gatherVectors(iproc, nproc, newComm, comom)
-    call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-    call gatherVectorsNew(iproc, nproc, comom)
-    
-    call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
-    
-    ! Calculate the Lagrange multiplier matrix <vec|grad>.
-    call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
-        gradOvrlp, newComm, lagmat)
-    !subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec,&
-    !           vecOvrlp, newComm, ovrlp)
-    
-    ! Now we also have to calculate the overlap matrix.
-    call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-    !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-    !call gatherVectors(iproc, nproc, newComm, comom)
-    call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-    call gatherVectorsNew(iproc, nproc, comom)
-    call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
-    call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
-        vecOvrlp, newComm, ovrlp)
-
-else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-
-    allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
-    call memocc(istat, vec_compr, 'vec_compr', subname)
-    allocate(grad_compr(collcom%ndimpsi_c), stat=istat)
-    call memocc(istat, grad_compr, 'grad_compr', subname)
-    ist=1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
-        call dcopy(mlr(ilr)%norbinlr, grad(1,iorb), 1, grad_compr(ist), 1)
-        ist=ist+mlr(ilr)%norbinlr
-    end do
-
-    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, psit_c, 'psit_c', subname)
-    allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, psit_f, 'psit_f', subname)
-    allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-    call memocc(istat, hpsit_c, 'hpsit_c', subname)
-    allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-    call memocc(istat, hpsit_f, 'hpsit_f', subname)
-    call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
-    call transpose_localized(iproc, nproc, orbs, collcom, grad_compr, hpsit_c, hpsit_f)
-    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
-
-end if
-    
-    ! Now apply the orthoconstraint.
-    call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
-        bpo%blocksize_pdgemm, newComm, orbs%norb, &
-        norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
-        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
-    
-if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-
-    ilrold=-1
-    ijorb=0
-    do iorb=1,norbp
+           onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace, &
+           collcom, orthpar, bpo)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => orthoconstraintVectors
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, norbmax
+  integer,intent(in):: norbp, isorb, nlr, newComm
+  type(orbitals_data),intent(in):: orbs
+  integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
+  integer,dimension(0:nproc-1),intent(in):: isorb_par
+  type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
+  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+  real(8),intent(out):: trace
+  type(collective_comms),intent(in):: collcom
+  type(orthon_data),intent(in):: orthpar
+  type(basis_performance_options),intent(in):: bpo
+  
+  ! Local variables
+  integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb, ist
+  real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
+  character(len=*),parameter:: subname='orthoconstraintVectors'
+  real(8):: ddot
+  real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, vec_compr, grad_compr
+  
+  allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+  allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
+  allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, lagmat, 'lagmat', subname)
+  
+  
+  if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      
+      noverlaps=0
+      ilrold=0
+      do iorb=1,norbp
         iiorb=isorb+iorb
         ilr=onWhichAtom(iiorb)
-        if(ilr==ilrold) then
-            ! Set back the index of lphiovrlp, since we again need the same orbitals.
-            !ijorb=ijorb-comom%noverlap(ilr)
-            ijorb=ijorb-comom%noverlap(iiorb)
+        if(ilr/=ilrold) then
+           noverlaps=noverlaps+comom%noverlap(iiorb)
         end if
-        ncount=mlr(ilr)%norbinlr
-        !do jorb=1,comom%noverlap(ilr)
-        do jorb=1,comom%noverlap(iiorb)
-            ijorb=ijorb+1
-            !jjorb=comom%overlaps(jorb,ilr)
-            jjorb=comom%overlaps(jorb,iiorb)
-            call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-            call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-        end do
         ilrold=ilr
-    end do
-
-    iall=-product(shape(gradOvrlp))*kind(gradOvrlp)
-    deallocate(gradOvrlp, stat=istat)
-    call memocc(istat, iall, 'gradOvrlp', subname)
-    
-    iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
-    deallocate(vecOvrlp, stat=istat)
-    call memocc(istat, iall, 'vecOvrlp', subname)
-
-else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-
-    !!! Now apply the orthoconstraint.
-    !!call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
-    !!    bpo%blocksize_pdgemm, newComm, orbs%norb, &
-    !!    norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
-    !!    ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
-
-
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
-          end do
       end do
-      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+      allocate(gradOvrlp(norbmax,noverlaps), stat=istat)
+      call memocc(istat, gradOvrlp, 'gradOvrlp', subname)
+      allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
+      call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
       
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
-          end do
+      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
+      
+      call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+      call gatherVectorsNew(iproc, nproc, comom)
+      
+      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
+      
+      ! Calculate the Lagrange multiplier matrix <vec|grad>.
+      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+          gradOvrlp, newComm, lagmat)
+      
+      ! Now we also have to calculate the overlap matrix.
+      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+      call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+      call gatherVectorsNew(iproc, nproc, comom)
+      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+          vecOvrlp, newComm, ovrlp)
+  
+  else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+  
+      allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
+      call memocc(istat, vec_compr, 'vec_compr', subname)
+      allocate(grad_compr(collcom%ndimpsi_c), stat=istat)
+      call memocc(istat, grad_compr, 'grad_compr', subname)
+      ist=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
+          call dcopy(mlr(ilr)%norbinlr, grad(1,iorb), 1, grad_compr(ist), 1)
+          ist=ist+mlr(ilr)%norbinlr
       end do
-      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
-
-    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
-    call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)
-
-
-    ist=1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        call dcopy(mlr(ilr)%norbinlr, vec_compr(ist), 1, vec(1,iorb), 1)
-        call dcopy(mlr(ilr)%norbinlr, grad_compr(ist), 1, grad(1,iorb), 1)
-        ist=ist+mlr(ilr)%norbinlr
-    end do
-
-    iall=-product(shape(vec_compr))*kind(vec_compr)
-    deallocate(vec_compr, stat=istat)
-    call memocc(istat, iall, 'vec_compr', subname)
-    iall=-product(shape(grad_compr))*kind(grad_compr)
-    deallocate(grad_compr, stat=istat)
-    call memocc(istat, iall, 'grad_compr', subname)
-
-    iall=-product(shape(psit_c))*kind(psit_c)
-    deallocate(psit_c, stat=istat)
-    call memocc(istat, iall, 'psit_c', subname)
-    iall=-product(shape(psit_f))*kind(psit_f)
-    deallocate(psit_f, stat=istat)
-    call memocc(istat, iall, 'psit_f', subname)
-    iall=-product(shape(hpsit_c))*kind(hpsit_c)
-    deallocate(hpsit_c, stat=istat)
-    call memocc(istat, iall, 'hpsit_c', subname)
-    iall=-product(shape(hpsit_f))*kind(hpsit_f)
-    deallocate(hpsit_f, stat=istat)
-    call memocc(istat, iall, 'hpsit_f', subname)
-
-end if
-
-trace=0.d0
-do iorb=1,orbs%norb
-  trace=trace+lagmat(iorb,iorb)
-  !!if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
-end do
-
-!call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
-!call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
-
-iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-deallocate(ovrlp_minus_one_lagmat, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
-
-iall=-product(shape(lagmat))*kind(lagmat)
-deallocate(lagmat, stat=istat)
-call memocc(istat, iall, 'lagmat', subname)
-
-iall=-product(shape(ovrlp))*kind(ovrlp)
-deallocate(ovrlp, stat=istat)
-call memocc(istat, iall, 'ovrlp', subname)
-
+  
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
+      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
+      call transpose_localized(iproc, nproc, orbs, collcom, grad_compr, hpsit_c, hpsit_f)
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  
+  end if
+      
+  ! Now apply the orthoconstraint.
+  !!!call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
+  !!!     bpo%blocksize_pdgemm, newComm, orbs%norb, &
+  !!!     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
+  !!!     ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, bpo%blocksize_pdgemm, &
+           correctionOrthoconstraint, orbs, &
+           lagmat, ovrlp, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+      
+  if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+  
+      ilrold=-1
+      ijorb=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          ilr=onWhichAtom(iiorb)
+          if(ilr==ilrold) then
+              ! Set back the index of lphiovrlp, since we again need the same orbitals.
+              !ijorb=ijorb-comom%noverlap(ilr)
+              ijorb=ijorb-comom%noverlap(iiorb)
+          end if
+          ncount=mlr(ilr)%norbinlr
+          !do jorb=1,comom%noverlap(ilr)
+          do jorb=1,comom%noverlap(iiorb)
+              ijorb=ijorb+1
+              !jjorb=comom%overlaps(jorb,ilr)
+              jjorb=comom%overlaps(jorb,iiorb)
+              call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+              call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+          end do
+          ilrold=ilr
+      end do
+  
+      iall=-product(shape(gradOvrlp))*kind(gradOvrlp)
+      deallocate(gradOvrlp, stat=istat)
+      call memocc(istat, iall, 'gradOvrlp', subname)
+      
+      iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
+      deallocate(vecOvrlp, stat=istat)
+      call memocc(istat, iall, 'vecOvrlp', subname)
+  
+  else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+  
+        do iorb=1,orbs%norb
+            do jorb=1,orbs%norb
+                ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+            end do
+        end do
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+        
+        do iorb=1,orbs%norb
+            do jorb=1,orbs%norb
+                ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+            end do
+        end do
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+  
+      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
+      call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)
+  
+  
+      ist=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call dcopy(mlr(ilr)%norbinlr, vec_compr(ist), 1, vec(1,iorb), 1)
+          call dcopy(mlr(ilr)%norbinlr, grad_compr(ist), 1, grad(1,iorb), 1)
+          ist=ist+mlr(ilr)%norbinlr
+      end do
+  
+      iall=-product(shape(vec_compr))*kind(vec_compr)
+      deallocate(vec_compr, stat=istat)
+      call memocc(istat, iall, 'vec_compr', subname)
+      iall=-product(shape(grad_compr))*kind(grad_compr)
+      deallocate(grad_compr, stat=istat)
+      call memocc(istat, iall, 'grad_compr', subname)
+  
+      iall=-product(shape(psit_c))*kind(psit_c)
+      deallocate(psit_c, stat=istat)
+      call memocc(istat, iall, 'psit_c', subname)
+      iall=-product(shape(psit_f))*kind(psit_f)
+      deallocate(psit_f, stat=istat)
+      call memocc(istat, iall, 'psit_f', subname)
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+  
+  end if
+  
+  trace=0.d0
+  do iorb=1,orbs%norb
+    trace=trace+lagmat(iorb,iorb)
+  end do
+  
+  
+  iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+  deallocate(ovrlp_minus_one_lagmat, stat=istat)
+  call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+  iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+  deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+  call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+  
+  iall=-product(shape(lagmat))*kind(lagmat)
+  deallocate(lagmat, stat=istat)
+  call memocc(istat, iall, 'lagmat', subname)
+  
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
 
 end subroutine orthoconstraintVectors
 
@@ -3146,157 +3100,142 @@ end subroutine orthonormalLinearCombinations
 
 
 
-subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
-           comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, &
-           lagmat, comom, mlr, mad, orbs, grad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => applyOrthoconstraintVectors
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm
-integer,intent(in):: comm, norb, norbmax, norbp, isorb, nlr, noverlaps
-integer,dimension(norb),intent(in):: onWhichAtom
-real(8),dimension(norb,norb),intent(in):: ovrlp
-real(8),dimension(norb,norb),intent(inout):: lagmat
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
-type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-type(matrixDescriptors),intent(in):: mad
-type(orbitals_data),intent(in):: orbs
-real(8),dimension(norbmax,norbp),intent(inout):: grad
-real(8),dimension(norb,norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
-
-! Local variables
-integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
-real(8),dimension(:,:),allocatable:: ovrlp2
-real(8):: tt
-character(len=*),parameter:: subname='applyOrthoconstraintVectors'
-
-
-!!allocate(ovrlp_minus_one_lagmat(norb,norb), stat=istat)
-!!call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-!!allocate(ovrlp_minus_one_lagmat_trans(norb,norb), stat=istat)
-!!call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
-allocate(ovrlp2(norb,norb), stat=istat)
-call memocc(istat, ovrlp2, 'ovrlp2', subname)
-
-call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
-!!! Invert the overlap matrix
-!!call dpotrf('l', norb, ovrlp2(1,1), norb, info)
-!!if(info/=0) then
-!!    write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
-!!    stop
-!!end if
-!!call dpotri('l', norb, ovrlp2(1,1), norb, info)
-!!if(info/=0) then
-!!    write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
-!!    stop
-!!end if
-
-correctionIf: if(correctionOrthoconstraint==0) then
-    ! Invert the overlap matrix
-    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, orbs, ovrlp2)
-    
-    ! Multiply the Lagrange multiplier matrix with S^-1/2.
-    ! First fill the upper triangle.
-    do iorb=1,norb
-        do jorb=1,iorb-1
-            ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
-        end do
-    end do
-    if(blocksize_pdgemm<0) then
-        !!call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-        !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-        !!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-        !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
-        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-        !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-        ovrlp_minus_one_lagmat=0.d0
-        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
-             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-        !ovrlp_minus_one_lagmat=lagmat
-        ! Transpose lagmat
-        do iorb=1,norb
-            do jorb=iorb+1,norb
-                tt=lagmat(jorb,iorb)
-                lagmat(jorb,iorb)=lagmat(iorb,jorb)
-                lagmat(iorb,jorb)=tt
-            end do
-        end do
-        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-        !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
-        !ovrlp_minus_one_lagmat_trans=lagmat
-        ovrlp_minus_one_lagmat_trans=0.d0
-        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
-             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-    
-    else
-        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), &
-             norb, lagmat(1,1), norb, &
-             0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-        ! Transpose lagmat
-        do iorb=1,norb
-            do jorb=iorb+1,norb
-                tt=lagmat(jorb,iorb)
-                lagmat(jorb,iorb)=lagmat(iorb,jorb)
-                lagmat(iorb,jorb)=tt
-            end do
-        end do
-        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, &
-            lagmat(1,1), norb, 0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
-    end if
-else if(correctionOrthoconstraint==1) then correctionIf
-    do iorb=1,norb
-        do jorb=1,norb
-            ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
-            ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
-        end do
-    end do
-end if correctionIf
-
-
-!!ilrold=-1
-!!ijorb=0
-!!do iorb=1,norbp
-!!    iiorb=isorb+iorb
-!!    ilr=onWhichAtom(iiorb)
-!!    if(ilr==ilrold) then
-!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-!!        !ijorb=ijorb-comom%noverlap(ilr)
-!!        ijorb=ijorb-comom%noverlap(iiorb)
-!!    end if
-!!    ncount=mlr(ilr)%norbinlr
-!!    !do jorb=1,comom%noverlap(ilr)
-!!    do jorb=1,comom%noverlap(iiorb)
-!!        ijorb=ijorb+1
-!!        !jjorb=comom%overlaps(jorb,ilr)
-!!        jjorb=comom%overlaps(jorb,iiorb)
-!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-!!    end do
-!!    ilrold=ilr
-!!end do
-
-
-!!iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-!!deallocate(ovrlp_minus_one_lagmat, stat=istat)
-!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-!!iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-!!deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
-iall=-product(shape(ovrlp2))*kind(ovrlp2)
-deallocate(ovrlp2, stat=istat)
-call memocc(istat, iall, 'ovrlp2', subname)
-
-
-end subroutine applyOrthoconstraintVectors
+!!!!!!subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
+!!!!!!           comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, &
+!!!!!!           lagmat, comom, mlr, mad, orbs, grad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+!!!!!!use module_base
+!!!!!!use module_types
+!!!!!!use module_interfaces, exceptThisOne => applyOrthoconstraintVectors
+!!!!!!implicit none
+!!!!!!
+!!!!!!! Calling arguments
+!!!!!!integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm
+!!!!!!integer,intent(in):: comm, norb, norbmax, norbp, isorb, nlr, noverlaps
+!!!!!!integer,dimension(norb),intent(in):: onWhichAtom
+!!!!!!real(8),dimension(norb,norb),intent(in):: ovrlp
+!!!!!!real(8),dimension(norb,norb),intent(inout):: lagmat
+!!!!!!type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+!!!!!!type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+!!!!!!type(matrixDescriptors),intent(in):: mad
+!!!!!!type(orbitals_data),intent(in):: orbs
+!!!!!!real(8),dimension(norbmax,norbp),intent(inout):: grad
+!!!!!!real(8),dimension(norb,norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+!!!!!!
+!!!!!!! Local variables
+!!!!!!integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
+!!!!!!real(8),dimension(:,:),allocatable:: ovrlp2
+!!!!!!real(8):: tt
+!!!!!!character(len=*),parameter:: subname='applyOrthoconstraintVectors'
+!!!!!!
+!!!!!!
+!!!!!!allocate(ovrlp2(norb,norb), stat=istat)
+!!!!!!call memocc(istat, ovrlp2, 'ovrlp2', subname)
+!!!!!!
+!!!!!!call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+!!!!!!
+!!!!!!correctionIf: if(correctionOrthoconstraint==0) then
+!!!!!!    ! Invert the overlap matrix
+!!!!!!    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, orbs, ovrlp2)
+!!!!!!    
+!!!!!!    ! Multiply the Lagrange multiplier matrix with S^-1/2.
+!!!!!!    ! First fill the upper triangle.
+!!!!!!    do iorb=1,norb
+!!!!!!        do jorb=1,iorb-1
+!!!!!!            ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
+!!!!!!        end do
+!!!!!!    end do
+!!!!!!    if(blocksize_pdgemm<0) then
+!!!!!!        !!call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!!!!!!        !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+!!!!!!        !!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!!!!!!        !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+!!!!!!        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!!!!!!        !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+!!!!!!        ovrlp_minus_one_lagmat=0.d0
+!!!!!!        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+!!!!!!        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+!!!!!!        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
+!!!!!!             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+!!!!!!             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+!!!!!!        !ovrlp_minus_one_lagmat=lagmat
+!!!!!!        ! Transpose lagmat
+!!!!!!        do iorb=1,norb
+!!!!!!            do jorb=iorb+1,norb
+!!!!!!                tt=lagmat(jorb,iorb)
+!!!!!!                lagmat(jorb,iorb)=lagmat(iorb,jorb)
+!!!!!!                lagmat(iorb,jorb)=tt
+!!!!!!            end do
+!!!!!!        end do
+!!!!!!        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!!!!!!        !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+!!!!!!        !ovrlp_minus_one_lagmat_trans=lagmat
+!!!!!!        ovrlp_minus_one_lagmat_trans=0.d0
+!!!!!!        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+!!!!!!        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+!!!!!!        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
+!!!!!!             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+!!!!!!             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+!!!!!!    
+!!!!!!    else
+!!!!!!        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), &
+!!!!!!             norb, lagmat(1,1), norb, &
+!!!!!!             0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+!!!!!!        ! Transpose lagmat
+!!!!!!        do iorb=1,norb
+!!!!!!            do jorb=iorb+1,norb
+!!!!!!                tt=lagmat(jorb,iorb)
+!!!!!!                lagmat(jorb,iorb)=lagmat(iorb,jorb)
+!!!!!!                lagmat(iorb,jorb)=tt
+!!!!!!            end do
+!!!!!!        end do
+!!!!!!        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, &
+!!!!!!            lagmat(1,1), norb, 0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+!!!!!!    end if
+!!!!!!else if(correctionOrthoconstraint==1) then correctionIf
+!!!!!!    do iorb=1,norb
+!!!!!!        do jorb=1,norb
+!!!!!!            ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
+!!!!!!            ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+!!!!!!        end do
+!!!!!!    end do
+!!!!!!end if correctionIf
+!!!!!!
+!!!!!!
+!!!!!!!!ilrold=-1
+!!!!!!!!ijorb=0
+!!!!!!!!do iorb=1,norbp
+!!!!!!!!    iiorb=isorb+iorb
+!!!!!!!!    ilr=onWhichAtom(iiorb)
+!!!!!!!!    if(ilr==ilrold) then
+!!!!!!!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+!!!!!!!!        !ijorb=ijorb-comom%noverlap(ilr)
+!!!!!!!!        ijorb=ijorb-comom%noverlap(iiorb)
+!!!!!!!!    end if
+!!!!!!!!    ncount=mlr(ilr)%norbinlr
+!!!!!!!!    !do jorb=1,comom%noverlap(ilr)
+!!!!!!!!    do jorb=1,comom%noverlap(iiorb)
+!!!!!!!!        ijorb=ijorb+1
+!!!!!!!!        !jjorb=comom%overlaps(jorb,ilr)
+!!!!!!!!        jjorb=comom%overlaps(jorb,iiorb)
+!!!!!!!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+!!!!!!!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+!!!!!!!!    end do
+!!!!!!!!    ilrold=ilr
+!!!!!!!!end do
+!!!!!!
+!!!!!!
+!!!!!!!!iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+!!!!!!!!deallocate(ovrlp_minus_one_lagmat, stat=istat)
+!!!!!!!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+!!!!!!!!iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+!!!!!!!!deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+!!!!!!!!call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+!!!!!!iall=-product(shape(ovrlp2))*kind(ovrlp2)
+!!!!!!deallocate(ovrlp2, stat=istat)
+!!!!!!call memocc(istat, iall, 'ovrlp2', subname)
+!!!!!!
+!!!!!!
+!!!!!!end subroutine applyOrthoconstraintVectors
 
 
 

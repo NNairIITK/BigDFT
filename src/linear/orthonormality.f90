@@ -228,8 +228,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
  end if
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-       orbs, lzd, op, comon, lagmat, ovrlp, mad, &
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 0, &
+       orbs, lagmat, ovrlp, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -2298,19 +2298,17 @@ end subroutine globalLoewdin
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lzd, &
-     op, comon, lagmat, ovrlp, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
+           correction_orthoconstraint, orbs, &
+           lagmat, ovrlp, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => applyOrthoconstraintNonorthogonal2
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
   type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(in):: op
-  type(p2pComms),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
   type(matrixDescriptors),intent(in):: mad
@@ -2322,12 +2320,12 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   real(8),dimension(:,:),allocatable:: ovrlp2
   character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
 
-  !!allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
-  !!call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-  !!allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
-  !!call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  call timing(iproc,'lagmat_orthoco','ON')
+
   allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp2, 'ovrlp2', subname)
+
+correctionIf: if(correction_orthoconstraint==0) then
 
   call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
@@ -2335,22 +2333,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   call mpi_barrier(mpi_comm_world, ierr)
   call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
 
-  call timing(iproc,'lagmat_orthoco','ON')
 
-!!!! test: replace ovrlp2 by unity ##########################
-!!!write(*,*) 'ATTENTION: test: replace ovrlp2 by unity'
-!!!write(*,*) 'ATTENTION: test: delete off-diagonal elements of lagmat'
-!!!do iorb=1,orbs%norb
-!!!    do jorb=1,orbs%norb
-!!!        if(iorb==jorb) then
-!!!            ovrlp2(jorb,iorb)=1.d0
-!!!        else
-!!!            ovrlp2(jorb,iorb)=0.d0
-!!!            lagmat(jorb,iorb)=0.d0
-!!!        end if
-!!!    end do
-!!!end do
-!!!! end test ###############################################
 
 
   ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -2361,7 +2344,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
      end do
   end do
   if(blocksize_pdgemm<0) then
-     !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARITY
+     !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARSITY
      !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
 
      !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
@@ -2434,6 +2417,14 @@ end if
 call cpu_time(t2)
 time_dsymm=t2-t1
 
+else if(correction_orthoconstraint==1) then correctionIf
+    do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+            ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
+            ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+        end do
+    end do
+end if correctionIf
 
   call timing(iproc,'lagmat_orthoco','OF')
 

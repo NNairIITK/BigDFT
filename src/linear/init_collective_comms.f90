@@ -689,11 +689,6 @@ end subroutine assign_weight_to_process2
 
 
 
-
-
-
-
-
 subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
            istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, nptsp_c, nptsp_f, &
