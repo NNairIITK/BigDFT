@@ -2422,15 +2422,16 @@ end subroutine orthonormalizeVectors
 
 
 
-subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, orbs, &
-  onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace)
+subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, orbs, &
+  onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace, &
+  collcom, orthpar, bpo)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthoconstraintVectors
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, norbmax
+integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, norbmax
 integer,intent(in):: norbp, isorb, nlr, newComm
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
@@ -2440,95 +2441,195 @@ type(matrixDescriptors),intent(in):: mad
 real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
 type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 real(8),intent(out):: trace
+type(collective_comms),intent(in):: collcom
+type(orthon_data),intent(in):: orthpar
+type(basis_performance_options),intent(in):: bpo
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb, ist
 real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
 character(len=*),parameter:: subname='orthoconstraintVectors'
 real(8):: ddot
 real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, vec_compr, grad_compr
 
 allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
 allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
-
-noverlaps=0
-ilrold=0
-do iorb=1,norbp
-  iiorb=isorb+iorb
-  ilr=onWhichAtom(iiorb)
-  if(ilr/=ilrold) then
-     !noverlaps=noverlaps+comom%noverlap(ilr)
-     noverlaps=noverlaps+comom%noverlap(iiorb)
-  end if
-  ilrold=ilr
-end do
-allocate(gradOvrlp(norbmax,noverlaps), stat=istat)
-call memocc(istat, gradOvrlp, 'gradOvrlp', subname)
-allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
-call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
-allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, lagmat, 'lagmat', subname)
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
+allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, lagmat, 'lagmat', subname)
 
-call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
 
-!call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-!call gatherVectors(iproc, nproc, newComm, comom)
-call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-call gatherVectorsNew(iproc, nproc, comom)
+if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+    
+    noverlaps=0
+    ilrold=0
+    do iorb=1,norbp
+      iiorb=isorb+iorb
+      ilr=onWhichAtom(iiorb)
+      if(ilr/=ilrold) then
+         !noverlaps=noverlaps+comom%noverlap(ilr)
+         noverlaps=noverlaps+comom%noverlap(iiorb)
+      end if
+      ilrold=ilr
+    end do
+    allocate(gradOvrlp(norbmax,noverlaps), stat=istat)
+    call memocc(istat, gradOvrlp, 'gradOvrlp', subname)
+    allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
+    call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
+    
+    call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
+    
+    !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+    !call gatherVectors(iproc, nproc, newComm, comom)
+    call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+    call gatherVectorsNew(iproc, nproc, comom)
+    
+    call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
+    
+    ! Calculate the Lagrange multiplier matrix <vec|grad>.
+    call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+        gradOvrlp, newComm, lagmat)
+    !subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec,&
+    !           vecOvrlp, newComm, ovrlp)
+    
+    ! Now we also have to calculate the overlap matrix.
+    call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+    !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+    !call gatherVectors(iproc, nproc, newComm, comom)
+    call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+    call gatherVectorsNew(iproc, nproc, comom)
+    call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+    call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+        vecOvrlp, newComm, ovrlp)
+    
+    ! Now apply the orthoconstraint.
+    call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
+        bpo%blocksize_pdgemm, newComm, orbs%norb, &
+        norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
+        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+    
+    ilrold=-1
+    ijorb=0
+    do iorb=1,norbp
+        iiorb=isorb+iorb
+        ilr=onWhichAtom(iiorb)
+        if(ilr==ilrold) then
+            ! Set back the index of lphiovrlp, since we again need the same orbitals.
+            !ijorb=ijorb-comom%noverlap(ilr)
+            ijorb=ijorb-comom%noverlap(iiorb)
+        end if
+        ncount=mlr(ilr)%norbinlr
+        !do jorb=1,comom%noverlap(ilr)
+        do jorb=1,comom%noverlap(iiorb)
+            ijorb=ijorb+1
+            !jjorb=comom%overlaps(jorb,ilr)
+            jjorb=comom%overlaps(jorb,iiorb)
+            call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+            call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+        end do
+        ilrold=ilr
+    end do
 
-call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
+    iall=-product(shape(gradOvrlp))*kind(gradOvrlp)
+    deallocate(gradOvrlp, stat=istat)
+    call memocc(istat, iall, 'gradOvrlp', subname)
+    
+    iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
+    deallocate(vecOvrlp, stat=istat)
+    call memocc(istat, iall, 'vecOvrlp', subname)
 
-! Calculate the Lagrange multiplier matrix <vec|grad>.
-call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
-    gradOvrlp, newComm, lagmat)
-!subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec,&
-!           vecOvrlp, newComm, ovrlp)
+else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+
+    allocate(vec_compr(collcom%ndimpsi_c), stat=istat)
+    call memocc(istat, vec_compr, 'vec_compr', subname)
+    allocate(grad_compr(collcom%ndimpsi_c), stat=istat)
+    call memocc(istat, grad_compr, 'grad_compr', subname)
+    ist=1
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        call dcopy(mlr(ilr)%norbinlr, vec(1,iorb), 1, vec_compr(ist), 1)
+        call dcopy(mlr(ilr)%norbinlr, grad(1,iorb), 1, grad_compr(ist), 1)
+        ist=ist+mlr(ilr)%norbinlr
+    end do
+
+    allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+    call memocc(istat, psit_c, 'psit_c', subname)
+    allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+    call memocc(istat, psit_f, 'psit_f', subname)
+    allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+    call memocc(istat, hpsit_c, 'hpsit_c', subname)
+    allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+    call memocc(istat, hpsit_f, 'hpsit_f', subname)
+    call transpose_localized(iproc, nproc, orbs, collcom, vec_compr, psit_c, psit_f)
+    call transpose_localized(iproc, nproc, orbs, collcom, grad_compr, hpsit_c, hpsit_f)
+    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+    call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+
+    ! Now apply the orthoconstraint.
+    call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
+        bpo%blocksize_pdgemm, newComm, orbs%norb, &
+        norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
+        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+
+
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+          end do
+      end do
+      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+      
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+          end do
+      end do
+      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+
+    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
+    call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)
+
+
+    ist=1
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        call dcopy(mlr(ilr)%norbinlr, vec_compr(ist), 1, vec(1,iorb), 1)
+        call dcopy(mlr(ilr)%norbinlr, grad_compr(ist), 1, grad(1,iorb), 1)
+        ist=ist+mlr(ilr)%norbinlr
+    end do
+
+    iall=-product(shape(vec_compr))*kind(vec_compr)
+    deallocate(vec_compr, stat=istat)
+    call memocc(istat, iall, 'vec_compr', subname)
+    iall=-product(shape(grad_compr))*kind(grad_compr)
+    deallocate(grad_compr, stat=istat)
+    call memocc(istat, iall, 'grad_compr', subname)
+
+    iall=-product(shape(psit_c))*kind(psit_c)
+    deallocate(psit_c, stat=istat)
+    call memocc(istat, iall, 'psit_c', subname)
+    iall=-product(shape(psit_f))*kind(psit_f)
+    deallocate(psit_f, stat=istat)
+    call memocc(istat, iall, 'psit_f', subname)
+    iall=-product(shape(hpsit_c))*kind(hpsit_c)
+    deallocate(hpsit_c, stat=istat)
+    call memocc(istat, iall, 'hpsit_c', subname)
+    iall=-product(shape(hpsit_f))*kind(hpsit_f)
+    deallocate(hpsit_f, stat=istat)
+    call memocc(istat, iall, 'hpsit_f', subname)
+
+end if
+
 trace=0.d0
 do iorb=1,orbs%norb
   trace=trace+lagmat(iorb,iorb)
   !!if(iproc==0) write(*,'(a,i6,es12.5)') 'iorb, lagmat(iorb,iorb)', iorb, lagmat(iorb,iorb)
-end do
-
-! Now we also have to calculate the overlap matrix.
-call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-!call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-!call gatherVectors(iproc, nproc, newComm, comom)
-call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-call gatherVectorsNew(iproc, nproc, comom)
-call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
-call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
-    vecOvrlp, newComm, ovrlp)
-
-! Now apply the orthoconstraint.
-call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
-    blocksize_pdgemm, newComm, orbs%norb, &
-    norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
-    ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
-
-ilrold=-1
-ijorb=0
-do iorb=1,norbp
-    iiorb=isorb+iorb
-    ilr=onWhichAtom(iiorb)
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        !ijorb=ijorb-comom%noverlap(ilr)
-        ijorb=ijorb-comom%noverlap(iiorb)
-    end if
-    ncount=mlr(ilr)%norbinlr
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iiorb)
-        ijorb=ijorb+1
-        !jjorb=comom%overlaps(jorb,ilr)
-        jjorb=comom%overlaps(jorb,iiorb)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
-    end do
-    ilrold=ilr
 end do
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
@@ -2545,17 +2646,10 @@ iall=-product(shape(lagmat))*kind(lagmat)
 deallocate(lagmat, stat=istat)
 call memocc(istat, iall, 'lagmat', subname)
 
-iall=-product(shape(gradOvrlp))*kind(gradOvrlp)
-deallocate(gradOvrlp, stat=istat)
-call memocc(istat, iall, 'gradOvrlp', subname)
-
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
 call memocc(istat, iall, 'ovrlp', subname)
 
-iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
-deallocate(vecOvrlp, stat=istat)
-call memocc(istat, iall, 'vecOvrlp', subname)
 
 end subroutine orthoconstraintVectors
 
@@ -3040,7 +3134,7 @@ end subroutine orthonormalLinearCombinations
 
 
 subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
-           comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
+           comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, &
            lagmat, comom, mlr, mad, orbs, grad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 use module_base
 use module_types
@@ -3051,7 +3145,6 @@ implicit none
 integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm
 integer,intent(in):: comm, norb, norbmax, norbp, isorb, nlr, noverlaps
 integer,dimension(norb),intent(in):: onWhichAtom
-real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
 real(8),dimension(norb,norb),intent(in):: ovrlp
 real(8),dimension(norb,norb),intent(inout):: lagmat
 type(p2pCommsOrthonormalityMatrix),intent(in):: comom
@@ -3900,10 +3993,9 @@ type(collective_comms):: collcom_vectors
       ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
       ! multiplier matrix.
       call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
-           input%lin%blocksize_pdgemm, &
            lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, &
            matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
-           matmin%mlr, mad, lcoeff, lgrad, comom, trace)
+           matmin%mlr, mad, lcoeff, lgrad, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
       ! Calculate the gradient norm.
       fnrm=0.d0
       do iorb=1,lorbs%norbp
