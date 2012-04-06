@@ -51,7 +51,8 @@ character(len=*),parameter:: subname='get_coeff'
       allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
       call memocc(istat, psit_f, 'psit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, &
+           psit_c, psit_f, psit_f, ovrlp)
       call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
       iall=-product(shape(psit_c))*kind(psit_c)
       deallocate(psit_c, stat=istat)
@@ -129,8 +130,10 @@ character(len=*),parameter:: subname='get_coeff'
       allocate(hpsit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
-      call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, lhphi, hpsit_c, hpsit_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, hpsit_c, psit_f, hpsit_f, matrixElements)
+      call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
+           lhphi, hpsit_c, hpsit_f, lzd)
+      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, &
+           psit_c, hpsit_c, psit_f, hpsit_f, matrixElements)
       call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
       ! not necessary to untranpose hpsit...
       iall=-product(shape(psit_c))*kind(psit_c)
@@ -147,7 +150,8 @@ character(len=*),parameter:: subname='get_coeff'
       call memocc(istat, iall, 'hpsit_f', subname)
   else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
-      call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, lhphi, tmbmix%mad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
+           lhphi, tmbmix%mad, matrixElements)
       call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
   else
       stop 'wrong communication_strategy_overlap'
