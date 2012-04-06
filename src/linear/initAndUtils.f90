@@ -2092,6 +2092,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   type(orbitals_data):: orbs_tmp
   character(len=*),parameter:: subname='redefine_locregs_quantities'
 
+  tag=1
   if(tmbmix%wfnmd%bs%use_derivative_basis) then
       call nullify_orbitals_data(orbs_tmp)
       call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
@@ -2112,7 +2113,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
       call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   else
-      tag=1
       call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
       call deallocate_p2pComms(tmbmix%comsr, subname)
       call nullify_p2pComms(tmbmix%comsr)
