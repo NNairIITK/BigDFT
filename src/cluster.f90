@@ -688,7 +688,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs,.false.)
+                KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv, &
+                in%kptv(:,sum(in%nkptsv_group(1:igroup - 1)) + 1:sum(in%nkptsv_group(1:igroup))), &
+                wkptv,VTwfn%orbs,.false.)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 

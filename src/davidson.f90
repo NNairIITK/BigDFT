@@ -1927,11 +1927,12 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
    integer :: ikpt
 
    if (orbs%nkpts /= orbsv%nkpts) then
+      return
       stop 'HL gap with Band structure not implemented yet'
    end if
 
    !depending on nspin
-   orbs%HLgap=1.e100_gp
+   orbs%HLgap=UNINITIALIZED(orbs%HLgap)
    if (orbs%nspin==1) then
       !the minimum wrt all the k-points
       do ikpt=1,orbs%nkpts
