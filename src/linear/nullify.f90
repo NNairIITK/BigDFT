@@ -210,27 +210,27 @@ end subroutine nullify_overlapParameters
 
 
 
-subroutine nullify_linearInputGuess(lig)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_linearInputGuess
-  implicit none
-
-  ! Calling argument
-  type(linearInputGuess),intent(out):: lig
-
-  call nullify_local_zone_descriptors(lig%lzdig)
-  call nullify_local_zone_descriptors(lig%lzdGauss)
-  call nullify_orbitals_data(lig%orbsig)
-  call nullify_orbitals_data(lig%orbsGauss)
-  !call nullify_p2pCommsOrthonormality(lig%comon)
-  call nullify_p2pComms(lig%comon)
-  call nullify_overlapParameters(lig%op)
-  !call nullify_p2pCommsGatherPot(lig%comgp)
-  call nullify_p2pComms(lig%comgp)
-  call nullify_matrixDescriptors(lig%mad)
-
-end subroutine nullify_linearInputGuess
+!!subroutine nullify_linearInputGuess(lig)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_linearInputGuess
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(linearInputGuess),intent(out):: lig
+!!
+!!  call nullify_local_zone_descriptors(lig%lzdig)
+!!  call nullify_local_zone_descriptors(lig%lzdGauss)
+!!  call nullify_orbitals_data(lig%orbsig)
+!!  call nullify_orbitals_data(lig%orbsGauss)
+!!  !call nullify_p2pCommsOrthonormality(lig%comon)
+!!  call nullify_p2pComms(lig%comon)
+!!  call nullify_overlapParameters(lig%op)
+!!  !call nullify_p2pCommsGatherPot(lig%comgp)
+!!  call nullify_p2pComms(lig%comgp)
+!!  call nullify_matrixDescriptors(lig%mad)
+!!
+!!end subroutine nullify_linearInputGuess
 
 
 subroutine nullify_matrixDescriptors(mad)

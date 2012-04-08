@@ -4137,12 +4137,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(overlapParameters),intent(out):: op
     end subroutine nullify_overlapParameters
 
-    subroutine nullify_linearInputGuess(lig)
-      use module_base
-      use module_types
-      implicit none
-      type(linearInputGuess),intent(out):: lig
-    end subroutine nullify_linearInputGuess
+    !!!subroutine nullify_linearInputGuess(lig)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  type(linearInputGuess),intent(out):: lig
+    !!!end subroutine nullify_linearInputGuess
 
     subroutine nullify_matrixDescriptors(mad)
       use module_base

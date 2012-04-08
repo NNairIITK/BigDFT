@@ -751,15 +751,15 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-  type,public:: linearInputGuess
-      type(local_zone_descriptors):: lzdig, lzdGauss
-      type(orbitals_data):: orbsig, orbsGauss
-      type(p2pComms):: comon
-      type(overlapParameters):: op
-      type(p2pComms):: comgp
-      type(matrixDescriptors):: mad
-      type(collective_comms):: collcom
-  end type linearInputGuess
+  !!!type,public:: linearInputGuess
+  !!!    type(local_zone_descriptors):: lzdig, lzdGauss
+  !!!    type(orbitals_data):: orbsig, orbsGauss
+  !!!    type(p2pComms):: comon
+  !!!    type(overlapParameters):: op
+  !!!    type(p2pComms):: comgp
+  !!!    type(matrixDescriptors):: mad
+  !!!    type(collective_comms):: collcom
+  !!!end type linearInputGuess
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
