@@ -754,10 +754,8 @@ end type linear_scaling_control_variables
   type,public:: linearInputGuess
       type(local_zone_descriptors):: lzdig, lzdGauss
       type(orbitals_data):: orbsig, orbsGauss
-      !type(p2pCommsOrthonormality):: comon
       type(p2pComms):: comon
       type(overlapParameters):: op
-      !type(p2pCommsGatherPot):: comgp
       type(p2pComms):: comgp
       type(matrixDescriptors):: mad
       type(collective_comms):: collcom
