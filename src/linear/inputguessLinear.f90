@@ -1,5 +1,5 @@
 subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-           Glr, input, hx, hy, hz, lin, lig, tmbig, tmbgauss, rxyz, nscatterarr, tag)
+           Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr, tag)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -18,7 +18,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   type(locreg_descriptors),intent(in) :: Glr
   type(input_variables)::input
   type(linearInputParameters),intent(inout):: lin
-  type(linearInputGuess),intent(inout):: lig
   type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
   integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp),dimension(3,at%nat),intent(in):: rxyz
@@ -314,7 +313,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
   real(dp),dimension(6) :: xcstr
-  type(linearInputGuess):: lig
   type(DFT_wavefunction):: tmbig, tmbgauss
   real(8):: ehart, eexcu, vexcu, ebs
 
@@ -326,7 +324,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Initialize evrything
   tag=1
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
-       lig, tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr, tag)
+       tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr, tag)
 
   !!!! not ideal place here for this...
   !!!if(lorbs%norb/=tmbig%orbs%norb) then
@@ -1201,7 +1199,6 @@ type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
 integer,intent(inout):: tagout
-!logical,dimension(lig%lzdig%nlr,0:nproc-1),intent(in):: skipGlobal
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables

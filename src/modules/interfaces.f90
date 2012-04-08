@@ -4467,7 +4467,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, lig, tmbig, tmbgauss, rxyz, nscatterarr, tag)
+                Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr, tag)
        use module_base
        use module_types
        implicit none
@@ -4480,7 +4480,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(locreg_descriptors),intent(in) :: Glr
        type(input_variables)::input
        type(linearInputParameters),intent(inout):: lin
-       type(linearInputGuess),intent(inout):: lig
        type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(gp),dimension(3,at%nat),intent(in):: rxyz
