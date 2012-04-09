@@ -1192,8 +1192,8 @@ type(input_variables),intent(in):: input
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 !real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
 !real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
-real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)),intent(in):: lchi
-real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp),ndim_lhchi),intent(in):: lhchi
+real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+real(8),dimension(orbsig%npsidim_orbs,ndim_lhchi),intent(in):: lhchi
 logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
@@ -2199,7 +2199,6 @@ allocate(comom%requests(max(comom%nrecv,comom%nsend),2), stat=istat)
 call memocc(istat, comom%requests, 'comom%requests', subname)
 
 end subroutine initCommsMatrixOrtho
-
 
 
 
@@ -3690,8 +3689,8 @@ type(local_zone_descriptors),intent(in):: lzd
 type(local_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
-real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+real(8),dimension(orbsig%npsidim_orbs):: lchi
+real(8),dimension(lorbs%npsidim_orbs):: lphi
 !real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(3,lzdig%nlr):: locregCenter
 real(8),dimension(3,at%nat):: rxyz
@@ -3810,8 +3809,6 @@ type(collective_comms):: collcom_vectors
                   tt = (rxyz(1,iiiat)-locregCenter(1,jjAt))**2 + &
                        (rxyz(2,iiiat)-locregCenter(2,jjAt))**2 + &
                        (rxyz(3,iiiat)-locregCenter(3,jjAt))**2
-                  !!write(*,'(a,3i5,2es12.4)') 'jproc, iorb, jorb, tt, cut', jproc, iorb, jorb, tt, cut
-                  !!write(*,'(a,5i5,2es12.4)') 'lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut', lorbs%isorb_par(jproc)+iorb, iiiAt, iiAt, jorb, jjAt, tt, cut
                   if(tt>cut) then
                        coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                   else
@@ -3862,11 +3859,11 @@ type(collective_comms):: collcom_vectors
   end if
 
 
-  isx=1
-  if(lorbs%norbp>0) then
-      ! otherwise it makes no sense...
-      call initializeDIIS_inguess(isx, lorbs%norbp, matmin, lorbs%inwhichlocreg(lorbs%isorb+1), ldiis)
-  end if
+  !!isx=1
+  !!if(lorbs%norbp>0) then
+  !!    ! otherwise it makes no sense...
+  !!    call initializeDIIS_inguess(isx, lorbs%norbp, matmin, lorbs%inwhichlocreg(lorbs%isorb+1), ldiis)
+  !!end if
 
 
 
@@ -3888,53 +3885,16 @@ type(collective_comms):: collcom_vectors
            lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
            lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
-!!if(it==1) then
-!!  ii=0
-!!  do iorb=1,lorbs%norb
-!!      if(lorbs%norb==14) then
-!!          if(iorb/=7 .and. iorb/=11) then
-!!              ii=ii+1
-!!              jj=0
-!!              do jorb=1,14
-!!                  jj=jj+1
-!!                   write(1000+ii,*) lcoeff(jj,iorb)
-!!              end do
-!!          end if
-!!      else
-!!          ii=ii+1
-!!          jj=0
-!!          do jorb=1,14
-!!              jj=jj+1
-!!               read(1000+ii,*) lcoeff(jj,iorb)
-!!          end do
-!!      end if
-!!  end do
-!!end if
-
 
       ! Calculate the gradient grad.
       ilrold=0
       iilr=0
       do iorb=1,lorbs%norbp
-          !!write(*,*) 'attention debug'
-          !!if(lorbs%norb==14 .and. (lorbs%isorb+iorb==7 .or. lorbs%isorb+iorb==11)) then
-          !!    lcoeff(:,iorb)=0.d0
-          !!end if
           ilr=onWhichAtomPhi(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
-          !!write(200+lorbs%isorb+iorb,'(a,3i5,es14.6)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
-          !!write(*,'(a,3i6,es12.5)') 'lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)', lorbs%isorb+iorb, ilr, iilr, hamextract(1,1,iilr)
-          !!write(*,'(a,4i7,es14.5)') 'lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)', lorbs%isorb+iorb, lorbs%onwhichatom(lorbs%isorb+iorb), iilr, iorb, hamextract(1,1,iilr)
       end do
-      !!do iorb=1,lorbs%norb
-      !!    ilr=onWhichAtomPhi(lorbs%isorb+iorb)
-      !!    do jorb=1,matmin%mlr(ilr)%norbinlr
-      !!        write(100+lorbs%isorb+iorb,'(i4,2es14.6)') jorb, lcoeff(jorb,iorb), lgrad(jorb,iorb)
-      !!    end do
-      !!    write(300,'(a,i5,es13.5)') 'iorb, ddot', iorb, ddot(14, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-      !!end do
 
   
       if(it>1) then
@@ -4047,7 +4007,7 @@ type(collective_comms):: collcom_vectors
 
   end do iterLoop
 
-  if(lorbs%norbp>0) call deallocateDIIS(ldiis)
+  !!if(lorbs%norbp>0) call deallocateDIIS(ldiis)
 
 
   if(iproc==0) write(*,'(1x,a)') '===================================================================================='

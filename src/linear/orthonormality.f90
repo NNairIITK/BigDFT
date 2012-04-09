@@ -15,7 +15,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(collective_comms),intent(in):: collcom
   type(orthon_data),intent(in):: orthpar
   type(basis_performance_options),intent(in):: bpo
-  real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: lphi
+  real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
@@ -23,6 +23,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
   real(8):: maxError, tt1, tt2, tt3, tt, dnrm2
+
 
 
 
