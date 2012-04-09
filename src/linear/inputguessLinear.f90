@@ -957,12 +957,12 @@ type(matrixDescriptors),intent(in):: mad
 type(collective_comms),intent(in):: collcom
 type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
-real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
+real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
 
 ! Local variables
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, tag, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
-character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
+character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
 ! Initialize the communication parameters.
@@ -3582,90 +3582,90 @@ end subroutine buildLinearCombinations_new
 
 
 
-subroutine buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, tag, lphi)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => buildLinearCombinationsVariable
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzdig, lzd
-type(orbitals_data),intent(in):: orbsig, orbs
-type(input_variables),intent(in):: input
-real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
-real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-integer,intent(inout):: tag
-real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
-
-! Local variables
-integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, ii
-type(overlapParameters):: op
-type(p2pComms):: comon
-real(8),dimension(:),allocatable:: lchiovrlp
-character(len=*),parameter:: subname='buildLinearCombinationsVariable'
-
-!tag=10000
-call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)
-allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
-call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
-
-call allocateCommuncationBuffersOrtho(comon, subname)
-call extractOrbital2Variable(iproc, nproc, orbs, orbsig, orbsig%npsidim_orbs, lzdig, op, lchi, comon)
-call postCommsOverlap(iproc, nproc, comon)
-call gatherOrbitals2(iproc, nproc, comon)
-!call mpi_barrier(mpi_comm_world, ist)
-!stop
-call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
-
-call deallocateCommuncationBuffersOrtho(comon, subname)
-
-
-
-lphi=0.d0
-
-ist=1
-jst=1
-ilrold=-1
-do iorb=1,orbs%norbp
-    iiorb=orbs%isorb+iorb
-    ilr=orbs%inWhichLocreg(iiorb)
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        jst=jst-op%noverlaps(iiorb-1)*ncount
-    end if
-    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
-        !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
-        call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
-        jst=jst+ncount
-    end do
-
-    ist=ist+ncount
-    ilrold=ilr
-
-end do
-
-if(ist/=orbs%npsidim_orbs+1) then
-    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,&
-         ': ist/=orbsig%npsidim+1',ist,orbsig%npsidim_orbs+1
-    stop
-end if
-
-
-
-call deallocate_overlapParameters(op, subname)
-call deallocate_p2pComms(comon, subname)
-
-
-iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
-deallocate(lchiovrlp, stat=istat)
-call memocc(istat, iall, 'lchiovrlp', subname)
-
-
-
-end subroutine buildLinearCombinationsVariable
+!!!!subroutine buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, tag, lphi)
+!!!!use module_base
+!!!!use module_types
+!!!!use module_interfaces, exceptThisOne => buildLinearCombinationsVariable
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: iproc, nproc
+!!!!type(local_zone_descriptors),intent(in):: lzdig, lzd
+!!!!type(orbitals_data),intent(in):: orbsig, orbs
+!!!!type(input_variables),intent(in):: input
+!!!!real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+!!!!real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+!!!!integer,intent(inout):: tag
+!!!!real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+!!!!
+!!!!! Local variables
+!!!!integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, ii
+!!!!type(overlapParameters):: op
+!!!!type(p2pComms):: comon
+!!!!real(8),dimension(:),allocatable:: lchiovrlp
+!!!!character(len=*),parameter:: subname='buildLinearCombinationsVariable'
+!!!!
+!!!!!tag=10000
+!!!!call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)
+!!!!allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
+!!!!call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
+!!!!
+!!!!call allocateCommuncationBuffersOrtho(comon, subname)
+!!!!call extractOrbital2Variable(iproc, nproc, orbs, orbsig, orbsig%npsidim_orbs, lzdig, op, lchi, comon)
+!!!!call postCommsOverlap(iproc, nproc, comon)
+!!!!call gatherOrbitals2(iproc, nproc, comon)
+!!!!!call mpi_barrier(mpi_comm_world, ist)
+!!!!!stop
+!!!!call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
+!!!!
+!!!!call deallocateCommuncationBuffersOrtho(comon, subname)
+!!!!
+!!!!
+!!!!
+!!!!lphi=0.d0
+!!!!
+!!!!ist=1
+!!!!jst=1
+!!!!ilrold=-1
+!!!!do iorb=1,orbs%norbp
+!!!!    iiorb=orbs%isorb+iorb
+!!!!    ilr=orbs%inWhichLocreg(iiorb)
+!!!!    if(ilr==ilrold) then
+!!!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+!!!!        jst=jst-op%noverlaps(iiorb-1)*ncount
+!!!!    end if
+!!!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!!!    do jorb=1,op%noverlaps(iiorb)
+!!!!        jjorb=op%overlaps(jorb,iiorb)
+!!!!        !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
+!!!!        call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
+!!!!        jst=jst+ncount
+!!!!    end do
+!!!!
+!!!!    ist=ist+ncount
+!!!!    ilrold=ilr
+!!!!
+!!!!end do
+!!!!
+!!!!if(ist/=orbs%npsidim_orbs+1) then
+!!!!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,&
+!!!!         ': ist/=orbsig%npsidim+1',ist,orbsig%npsidim_orbs+1
+!!!!    stop
+!!!!end if
+!!!!
+!!!!
+!!!!
+!!!!call deallocate_overlapParameters(op, subname)
+!!!!call deallocate_p2pComms(comon, subname)
+!!!!
+!!!!
+!!!!iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
+!!!!deallocate(lchiovrlp, stat=istat)
+!!!!call memocc(istat, iall, 'lchiovrlp', subname)
+!!!!
+!!!!
+!!!!
+!!!!end subroutine buildLinearCombinationsVariable
 
 
 
@@ -4078,32 +4078,23 @@ type(collective_comms):: collcom_vectors
   !!! Send lorbs%norb_par and ip%norbtot to all processes.
   allocate(norb_par(0:nproc-1), stat=istat)
   call memocc(istat, norb_par, 'norb_par', subname)
-  if(iproc==0) then
-      do jproc=0,nproc-1
-          norb_par(jproc)=lorbs%norb_par(jproc,0)
-      end do
-      norbtot=ip%norbtot
-  end if
-  call mpi_bcast(norb_par(0), nproc, mpi_integer, 0, mpi_comm_world, ierr)
-  call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
+  !!if(iproc==0) then
+  !!    do jproc=0,nproc-1
+  !!        norb_par(jproc)=lorbs%norb_par(jproc,0)
+  !!    end do
+  !!    norbtot=ip%norbtot
+  !!end if
+  !!call mpi_bcast(norb_par(0), nproc, mpi_integer, 0, mpi_comm_world, ierr)
+  !!call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
   
   ! Define the parameters, for the mpi_allgatherv.
   ii=0
   do jproc=0,nproc-1
-      recvcounts(jproc)=norbtot*norb_par(jproc)
+      recvcounts(jproc)=ip%norbtot*lorbs%norb_par(jproc,0)
       displs(jproc)=ii
       ii=ii+recvcounts(jproc)
   end do
-  do jproc=nproc,nproc-1
-      recvcounts(jproc)=0
-      displs(jproc)=ii
-      ii=ii+recvcounts(jproc)
-  end do
-  if(iproc<nproc) then
-      sendcount=ip%norbtot*lorbs%norbp
-  else
-      sendcount=0
-  end if
+  sendcount=ip%norbtot*lorbs%norbp
 
   ! Gather the coefficients.
   if (nproc > 1) then

@@ -4502,7 +4502,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(collective_comms),intent(in):: collcom
       type(orthon_data),intent(in):: orthpar
       type(basis_performance_options),intent(in):: bpo
-      real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
+      real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 

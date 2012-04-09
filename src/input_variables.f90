@@ -711,7 +711,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   !number of iterations for the input guess
   comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false

@@ -2913,207 +2913,207 @@ end subroutine getMatrixElements2
 
 
 
-subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => initCommsOrthoVariable
-implicit none
+!!!subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, exceptThisOne => initCommsOrthoVariable
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+!!!type(input_variables),intent(in):: input
+!!!type(overlapParameters),intent(out):: op
+!!!type(p2pComms),intent(out):: comon
+!!!integer,intent(inout):: tag
+!!!
+!!!! Local variables
+!!!integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
+!!!integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
+!!!integer::  je3, istat, i1, i2
+!!!logical:: ovrlpx, ovrlpy, ovrlpz
+!!!character(len=*),parameter:: subname='initCommsOrthoVariable'
+!!!
+!!!allocate(comon%noverlaps(0:nproc-1), stat=istat)
+!!!call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
+!!!allocate(op%noverlaps(orbs%norb), stat=istat)
+!!!call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
+!!!
+!!!! Count how many overlaping regions each orbital / process has.
+!!!call countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+!!!
+!!!op%noverlapsmax=maxval(op%noverlaps)
+!!!allocate(op%overlaps(op%noverlapsmax,orbs%norb), stat=istat)
+!!!call memocc(istat, op%overlaps, 'op%overlaps', subname)
+!!!comon%noverlapsmax=maxval(comon%noverlaps)
+!!!!!allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
+!!!!!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+!!!allocate(op%indexInRecvBuf(orbs%norbp,orbsig%norb), stat=istat)
+!!!call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+!!!allocate(op%indexInSendBuf(orbsig%norbp,orbsig%norb), stat=istat)
+!!!call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
+!!!
+!!!! Determine the overlapping orbitals.
+!!!call determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+!!!
+!!!!!allocate(op%olr(op%noverlapsmax,orbs%norb), stat=istat)
+!!!!!!do i2=1,orbs%norbp
+!!!!!do i2=1,orbs%norb
+!!!!!    do i1=1,op%noverlapsmax
+!!!!!        call nullify_locreg_descriptors(op%olr(i1,i2))
+!!!!!    end do
+!!!!!end do
+!!!
+!!!! Set the orbital descriptors for the overlap regions.
+!!!!call determineOverlapDescriptorsVariable(iproc, nproc, orbs, orbsig, lzd, lzd%Glr, onWhichAtomAll, op)
+!!! call determineOverlapDescriptorsVariable2(orbs, orbsig, lzd, op)
+!!!
+!!!allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
+!!!call memocc(istat, comon%comarr, 'comon%comarr', subname)
+!!!allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
+!!!call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
+!!!call setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
+!!!
+!!!
+!!!!DONT NEED THIS ANYMORE
+!!!!!! Initialize the index arrays for the transformations from overlap region
+!!!!!! to ordinary localization region.
+!!!!!allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
+!!!!!call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
+!!!!!call indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
+!!!!!
+!!!!!! Initialize the index arrays for the transformations from the ordinary localization region
+!!!!!! to the overlap region.
+!!!!!allocate(op%indexExtract(comon%nsendBuf), stat=istat)
+!!!!!call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
+!!!!!call indicesForExtractionVariable(iproc, nproc, orbs, orbsig, orbs%npsidim_orbs, lzd, op, comon)
+!!!
+!!!end subroutine initCommsOrthoVariable
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs, orbsig
-integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-type(input_variables),intent(in):: input
-type(overlapParameters),intent(out):: op
-type(p2pComms),intent(out):: comon
-integer,intent(inout):: tag
-
-! Local variables
-integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
-integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
-integer::  je3, istat, i1, i2
-logical:: ovrlpx, ovrlpy, ovrlpz
-character(len=*),parameter:: subname='initCommsOrthoVariable'
-
-allocate(comon%noverlaps(0:nproc-1), stat=istat)
-call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
-allocate(op%noverlaps(orbs%norb), stat=istat)
-call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
-
-! Count how many overlaping regions each orbital / process has.
-call countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-
-op%noverlapsmax=maxval(op%noverlaps)
-allocate(op%overlaps(op%noverlapsmax,orbs%norb), stat=istat)
-call memocc(istat, op%overlaps, 'op%overlaps', subname)
-comon%noverlapsmax=maxval(comon%noverlaps)
-!!allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
-!!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
-allocate(op%indexInRecvBuf(orbs%norbp,orbsig%norb), stat=istat)
-call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-allocate(op%indexInSendBuf(orbsig%norbp,orbsig%norb), stat=istat)
-call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
-
-! Determine the overlapping orbitals.
-call determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-
-!!allocate(op%olr(op%noverlapsmax,orbs%norb), stat=istat)
-!!!do i2=1,orbs%norbp
-!!do i2=1,orbs%norb
-!!    do i1=1,op%noverlapsmax
-!!        call nullify_locreg_descriptors(op%olr(i1,i2))
-!!    end do
-!!end do
-
-! Set the orbital descriptors for the overlap regions.
-!call determineOverlapDescriptorsVariable(iproc, nproc, orbs, orbsig, lzd, lzd%Glr, onWhichAtomAll, op)
- call determineOverlapDescriptorsVariable2(orbs, orbsig, lzd, op)
-
-allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%comarr, 'comon%comarr', subname)
-allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-call setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
 
 
-!DONT NEED THIS ANYMORE
-!!! Initialize the index arrays for the transformations from overlap region
-!!! to ordinary localization region.
-!!allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
-!!call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
-!!call indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
+!!!! Count for each orbital and each process the number of overlapping orbitals.
+!!!subroutine countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!type(overlapParameters),intent(out):: op
+!!!type(p2pComms),intent(out):: comon
+!!!
+!!!! Local variables
+!!!integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+!!!logical:: isoverlap
+!!!!integer:: is1, ie1, is2, ie2, is3, ie3
+!!!!integer:: js1, je1, js2, je2, js3, je3
+!!!!logical:: ovrlpx, ovrlpy, ovrlpz
+!!!
+!!!iiorb=0
+!!!do jproc=0,nproc-1
+!!!    ioverlapMPI=0 ! counts the overlaps for the given MPI process.
+!!!    ilrold=-1
+!!!    do iorb=1,orbs%norb_par(jproc,0)
+!!!        ioverlaporb=0 ! counts the overlaps for the given orbital.
+!!!        iiorb=iiorb+1 ! counts the total orbitals
+!!!        ilr=orbs%inWhichLocreg(iiorb)
+!!!!        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!!        do jorb=1,orbsig%norb
+!!!            jlr=orbsig%inWhichLocreg(jorb)
+!!!!            call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!!!!            ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!!!            ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!!!            ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!!!            if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!!             call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
+!!!             if(isoverlap) then
+!!!                ioverlaporb=ioverlaporb+1
+!!!                if(ilr/=ilrold) then
+!!!                    ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
+!!!                    ! would get the same orbitals again. Therefore the counter is not increased
+!!!                    ! in that case.
+!!!                    ioverlapMPI=ioverlapMPI+1
+!!!                end if
+!!!            end if
+!!!        end do 
+!!!        op%noverlaps(iiorb)=ioverlaporb
+!!!        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+!!!        ilrold=ilr
+!!!    end do
+!!!    comon%noverlaps(jproc)=ioverlapMpi
+!!!    !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
+!!!end do
+!!!
+!!!end subroutine countOverlapsVariable
+
+
+
+
+!!subroutine determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+!!use module_base
+!!use module_types
+!!implicit none
 !!
-!!! Initialize the index arrays for the transformations from the ordinary localization region
-!!! to the overlap region.
-!!allocate(op%indexExtract(comon%nsendBuf), stat=istat)
-!!call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
-!!call indicesForExtractionVariable(iproc, nproc, orbs, orbsig, orbs%npsidim_orbs, lzd, op, comon)
-
-end subroutine initCommsOrthoVariable
-
-
-
-! Count for each orbital and each process the number of overlapping orbitals.
-subroutine countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(out):: op
-type(p2pComms),intent(out):: comon
-
-! Local variables
-integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
-logical:: isoverlap
-!integer:: is1, ie1, is2, ie2, is3, ie3
-!integer:: js1, je1, js2, je2, js3, je3
-!logical:: ovrlpx, ovrlpy, ovrlpz
-
-iiorb=0
-do jproc=0,nproc-1
-    ioverlapMPI=0 ! counts the overlaps for the given MPI process.
-    ilrold=-1
-    do iorb=1,orbs%norb_par(jproc,0)
-        ioverlaporb=0 ! counts the overlaps for the given orbital.
-        iiorb=iiorb+1 ! counts the total orbitals
-        ilr=orbs%inWhichLocreg(iiorb)
-!        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-        do jorb=1,orbsig%norb
-            jlr=orbsig%inWhichLocreg(jorb)
-!            call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!            ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!            ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!            ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-!            if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-             call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
-             if(isoverlap) then
-                ioverlaporb=ioverlaporb+1
-                if(ilr/=ilrold) then
-                    ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
-                    ! would get the same orbitals again. Therefore the counter is not increased
-                    ! in that case.
-                    ioverlapMPI=ioverlapMPI+1
-                end if
-            end if
-        end do 
-        op%noverlaps(iiorb)=ioverlaporb
-        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
-        ilrold=ilr
-    end do
-    comon%noverlaps(jproc)=ioverlapMpi
-    !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
-end do
-
-end subroutine countOverlapsVariable
-
-
-
-
-subroutine determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(out):: op
-type(p2pComms),intent(out):: comon
-
-! Local variables
-integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
-logical:: isoverlap
-!integer :: is1, ie1, is2, ie2, is3, ie3
-!integer:: js1, je1, js2, je2, js3, je3
-!logical:: ovrlpx, ovrlpy, ovrlpz
-
-
-  ! Initialize to some value which will never be used.
-  op%overlaps=-1
-  !!comon%overlaps=-1
-
-  iiorb=0
-  do jproc=0,nproc-1
-      ioverlapMPI=0 ! counts the overlaps for the given MPI process.
-      ilrold=-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          ioverlaporb=0 ! counts the overlaps for the given orbital.
-          iiorb=iiorb+1 ! counts the total orbitals
-          ilr=orbs%inWhichLocreg(iiorb)
-!          call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-          do jorb=1,orbsig%norb
-              jlr=orbsig%inWhichLocreg(jorb)
-               call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
-!              call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!              ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!              ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!              ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-!              if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-               if(isoverlap) then
-                  ioverlaporb=ioverlaporb+1
-                  op%overlaps(ioverlaporb,iiorb)=jorb
-                  if(ilr/=ilrold) then
-                      ! if ilr==ilrold, we are in th same localization region, so the MPI prosess
-                      ! would get the same orbitals again. Therefore the counter is not increased
-                      ! in that case.
-                      ioverlapMPI=ioverlapMPI+1
-                      !!comon%overlaps(ioverlapMPI,jproc)=jorb
-                  end if
-              end if
-          end do 
-          !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'iiorb, op%overlaps', iiorb, op%overlaps(:,iiorb) 
-          ilrold=ilr
-      end do
-      !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'jproc, comon%overlaps', jproc, comon%overlaps(:,jproc) 
-  end do
-
-end subroutine determineOverlapsVariable
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!type(orbitals_data),intent(in):: orbs, orbsig
+!!type(local_zone_descriptors),intent(in):: lzd
+!!type(overlapParameters),intent(out):: op
+!!type(p2pComms),intent(out):: comon
+!!
+!!! Local variables
+!!integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+!!logical:: isoverlap
+!!!integer :: is1, ie1, is2, ie2, is3, ie3
+!!!integer:: js1, je1, js2, je2, js3, je3
+!!!logical:: ovrlpx, ovrlpy, ovrlpz
+!!
+!!
+!!  ! Initialize to some value which will never be used.
+!!  op%overlaps=-1
+!!  !!comon%overlaps=-1
+!!
+!!  iiorb=0
+!!  do jproc=0,nproc-1
+!!      ioverlapMPI=0 ! counts the overlaps for the given MPI process.
+!!      ilrold=-1
+!!      do iorb=1,orbs%norb_par(jproc,0)
+!!          ioverlaporb=0 ! counts the overlaps for the given orbital.
+!!          iiorb=iiorb+1 ! counts the total orbitals
+!!          ilr=orbs%inWhichLocreg(iiorb)
+!!!          call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!          do jorb=1,orbsig%norb
+!!              jlr=orbsig%inWhichLocreg(jorb)
+!!               call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
+!!!              call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!!!              ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!!              ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!!              ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!!              if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!               if(isoverlap) then
+!!                  ioverlaporb=ioverlaporb+1
+!!                  op%overlaps(ioverlaporb,iiorb)=jorb
+!!                  if(ilr/=ilrold) then
+!!                      ! if ilr==ilrold, we are in th same localization region, so the MPI prosess
+!!                      ! would get the same orbitals again. Therefore the counter is not increased
+!!                      ! in that case.
+!!                      ioverlapMPI=ioverlapMPI+1
+!!                      !!comon%overlaps(ioverlapMPI,jproc)=jorb
+!!                  end if
+!!              end if
+!!          end do 
+!!          !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'iiorb, op%overlaps', iiorb, op%overlaps(:,iiorb) 
+!!          ilrold=ilr
+!!      end do
+!!      !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'jproc, comon%overlaps', jproc, comon%overlaps(:,jproc) 
+!!  end do
+!!
+!!end subroutine determineOverlapsVariable
 
 
 
@@ -3146,156 +3146,156 @@ end subroutine determineOverlapsVariable
 !!
 !!end subroutine determineOverlapDescriptorsVariable
 
-subroutine determineOverlapDescriptorsVariable2(orbs, orbsig, lzd, op)
-use module_base
-use module_types
-implicit none
+!!subroutine determineOverlapDescriptorsVariable2(orbs, orbsig, lzd, op)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!type(orbitals_data),intent(in):: orbs, orbsig
+!!type(local_zone_descriptors),intent(in):: lzd
+!!type(overlapParameters),intent(inout):: op
+!!
+!!! Local variables
+!!integer:: iorb, jorb, jjorb, ilr, jlr, iiorb, istat
+!!logical :: isoverlap,isoverlapf
+!!character(len=*),parameter:: subname='determineOverlapDescriptorsVariable2'
+!!
+!!allocate(op%wfd_overlap(orbs%norb,orbs%norbp), stat=istat)
+!!
+!!do iiorb=1,orbs%norb
+!!    ilr=orbs%inWhichLocreg(iiorb)
+!!    do jorb=1,op%noverlaps(iiorb)
+!!        call nullify_wavefunctions_descriptors(op%wfd_overlap(iiorb,jorb))
+!!        jjorb=op%overlaps(jorb,iiorb)
+!!        jlr=orbsig%inWhichLocreg(jjorb)
+!!        !Get number of coarse segments
+!!        call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
+!!                 lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1), &
+!!                 isoverlap, op%wfd_overlap(iiorb,jorb)%nseg_c)
+!!        !Get number of fine segments
+!!        call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f,&
+!!                 lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c), &
+!!                 isoverlapf, op%wfd_overlap(iiorb,jorb)%nseg_f)
+!!        ! Allocate the keys
+!!        call allocate_wfd(op%wfd_overlap(iiorb,jorb),subname)
+!!        ! Get the coarse part
+!!        call get_overlap_from_descriptors_periodic(lzd%Llr(ilr)%wfd%nseg_c, lzd%Llr(jlr)%wfd%nseg_c,&
+!!           lzd%Llr(ilr)%wfd%keyglob(1,1), lzd%Llr(jlr)%wfd%keyglob(1,1), &                                                                                                      
+!!           isoverlap,op%wfd_overlap(iiorb,jorb)%nseg_c, op%wfd_overlap(iiorb,jorb)%nvctr_c, &
+!!           op%wfd_overlap(iiorb,jorb)%keyglob(1,1), op%wfd_overlap(iiorb,jorb)%keyvglob(1))
+!!        !Get fine part
+!!        if(op%wfd_overlap(iiorb,jorb)%nseg_f > 0)then
+!!        call get_overlap_from_descriptors_periodic(lzd%Llr(ilr)%wfd%nseg_c, lzd%Llr(jlr)%wfd%nseg_f,&
+!!           lzd%Llr(ilr)%wfd%keyglob(1,1), lzd%Llr(jlr)%wfd%keyglob(1,1+lzd%Llr(jlr)%wfd%nseg_c), &                                                                                                      
+!!           isoverlapf,op%wfd_overlap(iiorb,jorb)%nseg_f, op%wfd_overlap(iiorb,jorb)%nvctr_f, &
+!!           op%wfd_overlap(iiorb,jorb)%keyglob(1,1+op%wfd_overlap(iiorb,jorb)%nseg_c), &
+!!           op%wfd_overlap(iiorb,jorb)%keyvglob(1+op%wfd_overlap(iiorb,jorb)%nseg_c))
+!!        else
+!!           op%wfd_overlap(iiorb,jorb)%nvctr_f = 0
+!!        end if
+!!    end do
+!!end do
+!!
+!!end subroutine determineOverlapDescriptorsVariable2
 
-! Calling arguments
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(inout):: op
-
-! Local variables
-integer:: iorb, jorb, jjorb, ilr, jlr, iiorb, istat
-logical :: isoverlap,isoverlapf
-character(len=*),parameter:: subname='determineOverlapDescriptorsVariable2'
-
-allocate(op%wfd_overlap(orbs%norb,orbs%norbp), stat=istat)
-
-do iiorb=1,orbs%norb
-    ilr=orbs%inWhichLocreg(iiorb)
-    do jorb=1,op%noverlaps(iiorb)
-        call nullify_wavefunctions_descriptors(op%wfd_overlap(iiorb,jorb))
-        jjorb=op%overlaps(jorb,iiorb)
-        jlr=orbsig%inWhichLocreg(jjorb)
-        !Get number of coarse segments
-        call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
-                 lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1), &
-                 isoverlap, op%wfd_overlap(iiorb,jorb)%nseg_c)
-        !Get number of fine segments
-        call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_f,&
-                 lzd%llr(ilr)%wfd%keyglob(1,1), lzd%llr(jlr)%wfd%keyglob(1,1+lzd%llr(jlr)%wfd%nseg_c), &
-                 isoverlapf, op%wfd_overlap(iiorb,jorb)%nseg_f)
-        ! Allocate the keys
-        call allocate_wfd(op%wfd_overlap(iiorb,jorb),subname)
-        ! Get the coarse part
-        call get_overlap_from_descriptors_periodic(lzd%Llr(ilr)%wfd%nseg_c, lzd%Llr(jlr)%wfd%nseg_c,&
-           lzd%Llr(ilr)%wfd%keyglob(1,1), lzd%Llr(jlr)%wfd%keyglob(1,1), &                                                                                                      
-           isoverlap,op%wfd_overlap(iiorb,jorb)%nseg_c, op%wfd_overlap(iiorb,jorb)%nvctr_c, &
-           op%wfd_overlap(iiorb,jorb)%keyglob(1,1), op%wfd_overlap(iiorb,jorb)%keyvglob(1))
-        !Get fine part
-        if(op%wfd_overlap(iiorb,jorb)%nseg_f > 0)then
-        call get_overlap_from_descriptors_periodic(lzd%Llr(ilr)%wfd%nseg_c, lzd%Llr(jlr)%wfd%nseg_f,&
-           lzd%Llr(ilr)%wfd%keyglob(1,1), lzd%Llr(jlr)%wfd%keyglob(1,1+lzd%Llr(jlr)%wfd%nseg_c), &                                                                                                      
-           isoverlapf,op%wfd_overlap(iiorb,jorb)%nseg_f, op%wfd_overlap(iiorb,jorb)%nvctr_f, &
-           op%wfd_overlap(iiorb,jorb)%keyglob(1,1+op%wfd_overlap(iiorb,jorb)%nseg_c), &
-           op%wfd_overlap(iiorb,jorb)%keyvglob(1+op%wfd_overlap(iiorb,jorb)%nseg_c))
-        else
-           op%wfd_overlap(iiorb,jorb)%nvctr_f = 0
-        end if
-    end do
-end do
-
-end subroutine determineOverlapDescriptorsVariable2
-
-subroutine setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(inout):: op
-type(p2pComms),intent(out):: comon
-integer,intent(inout):: tag
-
-! Local variables
-integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
-integer:: ilr, ilrold, jprocold, ildim, ierr
-integer,dimension(:),allocatable:: istsourceArr, istdestArr
-character(len=*),parameter:: subname='setCommsOrtho'
-logical,dimension(:),allocatable:: receivedOrbital
-
-allocate(istsourceArr(0:nproc-1), stat=istat)
-call memocc(istat, istsourceArr, 'istsourceArr',subname)
-allocate(istdestArr(0:nproc-1), stat=istat)
-call memocc(istat, istdestArr, 'istdestArr',subname)
-allocate(receivedOrbital(orbsig%norb), stat=istat)
-call memocc(istat, receivedOrbital, 'receivedOrbital', subname)
-
-istsourceArr=1
-istdestArr=1
-
-comon%nsendBuf=0
-comon%nrecvBuf=0
-
-
-op%indexInRecvBuf=0
-op%ndim_lphiovrlp=0
-
-iiorb=0
-jprocold=-1
-do jproc=0,nproc-1
-    receivedOrbital=.false.
-    ijorb=0
-    ilrold=-1
-    do iorb=1,orbs%norb_par(jproc,0)
-       iiorb=iiorb+1 
-       ilr=orbs%inWhichLocreg(iiorb)
-       ! Check whether process jproc has already received orbital jjorb.
-       !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
-       if(ilr==ilrold) cycle
-       ildim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-       do jorb=1,op%noverlaps(iiorb)
-           jjorb=op%overlaps(jorb,iiorb)
-           !write(*,'(a,7i8)') 'iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold', iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold
-           ijorb=ijorb+1
-           mpisource=orbsig%onWhichMPI(jjorb)
-           mpidest=jproc
-           istsource=istsourceArr(mpisource)
-           istdest=istdestArr(mpidest)
-           if(iproc==jproc) then
-               ncount=op%wfd_overlap(jorb,iiorb)%nvctr_c+7*op%wfd_overlap(jorb,iiorb)%nvctr_f
-           end if
-           call mpi_bcast(ncount, 1, mpi_integer, jproc, mpi_comm_world, ierr)
-           tag=tag+1
-           receivedOrbital(jjorb)=.true.
-           call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
-           !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
-           if(iproc==mpisource) then
-               !write(*,'(5(a,i0))') 'adding ',ncount,' elements from orbital ',jjorb,' for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
-               comon%nsendBuf=comon%nsendBuf+ncount
-print *,'2: comon%nsendbuf',comon%nsendBuf
-           end if
-           if(iproc==mpidest) then
-               !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
-               op%indexInRecvBuf(iorb,jjorb)=istdest
-               comon%nrecvBuf=comon%nrecvBuf+ncount
-               op%ndim_lphiovrlp=op%ndim_lphiovrlp+ildim
-           end if
-           istsourceArr(mpisource) = istsourceArr(mpisource) + ncount
-           istdestArr(mpidest) = istdestArr(mpidest) + ncount
-       end do
-       ilrold=ilr
-    end do
-    jprocold=jproc
-end do
-   
-iall = -product(shape(istsourceArr))*kind(istsourceArr)
-deallocate(istsourceArr, stat=istat)
-call memocc(istat, iall, 'istsourceArr',subname)
-iall = -product(shape(istdestArr))*kind(istdestArr)
-deallocate(istdestArr, stat=istat)
-call memocc(istat, iall, 'istdestArr',subname)
-iall = -product(shape(receivedOrbital))*kind(receivedOrbital)
-deallocate(receivedOrbital, stat=istat)
-call memocc(istat, iall, 'receivedOrbital',subname)
-
-
-end subroutine setCommsOrthoVariable
+!!!subroutine setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!type(overlapParameters),intent(inout):: op
+!!!type(p2pComms),intent(out):: comon
+!!!integer,intent(inout):: tag
+!!!
+!!!! Local variables
+!!!integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
+!!!integer:: ilr, ilrold, jprocold, ildim, ierr
+!!!integer,dimension(:),allocatable:: istsourceArr, istdestArr
+!!!character(len=*),parameter:: subname='setCommsOrtho'
+!!!logical,dimension(:),allocatable:: receivedOrbital
+!!!
+!!!allocate(istsourceArr(0:nproc-1), stat=istat)
+!!!call memocc(istat, istsourceArr, 'istsourceArr',subname)
+!!!allocate(istdestArr(0:nproc-1), stat=istat)
+!!!call memocc(istat, istdestArr, 'istdestArr',subname)
+!!!allocate(receivedOrbital(orbsig%norb), stat=istat)
+!!!call memocc(istat, receivedOrbital, 'receivedOrbital', subname)
+!!!
+!!!istsourceArr=1
+!!!istdestArr=1
+!!!
+!!!comon%nsendBuf=0
+!!!comon%nrecvBuf=0
+!!!
+!!!
+!!!op%indexInRecvBuf=0
+!!!op%ndim_lphiovrlp=0
+!!!
+!!!iiorb=0
+!!!jprocold=-1
+!!!do jproc=0,nproc-1
+!!!    receivedOrbital=.false.
+!!!    ijorb=0
+!!!    ilrold=-1
+!!!    do iorb=1,orbs%norb_par(jproc,0)
+!!!       iiorb=iiorb+1 
+!!!       ilr=orbs%inWhichLocreg(iiorb)
+!!!       ! Check whether process jproc has already received orbital jjorb.
+!!!       !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
+!!!       if(ilr==ilrold) cycle
+!!!       ildim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!!       do jorb=1,op%noverlaps(iiorb)
+!!!           jjorb=op%overlaps(jorb,iiorb)
+!!!           !write(*,'(a,7i8)') 'iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold', iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold
+!!!           ijorb=ijorb+1
+!!!           mpisource=orbsig%onWhichMPI(jjorb)
+!!!           mpidest=jproc
+!!!           istsource=istsourceArr(mpisource)
+!!!           istdest=istdestArr(mpidest)
+!!!           if(iproc==jproc) then
+!!!               ncount=op%wfd_overlap(jorb,iiorb)%nvctr_c+7*op%wfd_overlap(jorb,iiorb)%nvctr_f
+!!!           end if
+!!!           call mpi_bcast(ncount, 1, mpi_integer, jproc, mpi_comm_world, ierr)
+!!!           tag=tag+1
+!!!           receivedOrbital(jjorb)=.true.
+!!!           call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
+!!!           !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
+!!!           if(iproc==mpisource) then
+!!!               !write(*,'(5(a,i0))') 'adding ',ncount,' elements from orbital ',jjorb,' for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
+!!!               comon%nsendBuf=comon%nsendBuf+ncount
+!!!print *,'2: comon%nsendbuf',comon%nsendBuf
+!!!           end if
+!!!           if(iproc==mpidest) then
+!!!               !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
+!!!               op%indexInRecvBuf(iorb,jjorb)=istdest
+!!!               comon%nrecvBuf=comon%nrecvBuf+ncount
+!!!               op%ndim_lphiovrlp=op%ndim_lphiovrlp+ildim
+!!!           end if
+!!!           istsourceArr(mpisource) = istsourceArr(mpisource) + ncount
+!!!           istdestArr(mpidest) = istdestArr(mpidest) + ncount
+!!!       end do
+!!!       ilrold=ilr
+!!!    end do
+!!!    jprocold=jproc
+!!!end do
+!!!   
+!!!iall = -product(shape(istsourceArr))*kind(istsourceArr)
+!!!deallocate(istsourceArr, stat=istat)
+!!!call memocc(istat, iall, 'istsourceArr',subname)
+!!!iall = -product(shape(istdestArr))*kind(istdestArr)
+!!!deallocate(istdestArr, stat=istat)
+!!!call memocc(istat, iall, 'istdestArr',subname)
+!!!iall = -product(shape(receivedOrbital))*kind(receivedOrbital)
+!!!deallocate(receivedOrbital, stat=istat)
+!!!call memocc(istat, iall, 'receivedOrbital',subname)
+!!!
+!!!
+!!!end subroutine setCommsOrthoVariable
 
 !!subroutine indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
 !!use module_base
@@ -3420,130 +3420,130 @@ end subroutine setCommsOrthoVariable
 
 
 
-subroutine extractOrbital2Variable(iproc, nproc, orbs, orbsig, sizePhi, lzd, op, phi, comon)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, sizePhi
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(inout):: op
-real(8),dimension(sizePhi),intent(in):: phi
-type(p2pComms),intent(out):: comon
-
-! Local variables
-integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-integer:: i, indSource, j, jjjlr, iiorb, iilr, iseg, istart, iend, ncount, kseg, kstart, kend, kold, start, jst, ifine, isend
-integer:: igrid
-
-indovrlp=1
-op%indexInSendBuf=0
-
-ilrold=-1
-iiprocold=-1
-do iorb=1,orbs%norb
-    ilr=orbs%inWhichLocreg(iorb)
-    iiproc=orbs%onWhichMPI(iorb)
-    if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
-    do jorb=1,op%noverlaps(iorb)
-        jjorb=op%overlaps(jorb,iorb)
-        jjlr=orbsig%inWhichLocreg(jjorb)
-        jjproc=orbsig%onWhichMPI(jjorb)
-        if(iproc==jjproc) then
-            ! Get the correct descriptors
-            ! Get an orbs-orbital in the same locreg as the orbsig-orbital jjorb.
-            do j=1,orbs%norb
-                jjjlr=orbs%inWhichLocreg(j)
-                if(jjjlr==jjlr) then
-                    korb=j
-                    exit
-                end if
-            end do
-            ! Get an orbsig-orbital in the same locreg as the orbs-orbital iorb.
-            lorb=0
-            do i=1,op%noverlaps(korb)
-                iiorb=op%overlaps(i,korb)
-                iilr=orbsig%inWhichLocreg(iiorb)
-                if(iilr==ilr) then
-                    lorb=i
-                    exit
-                end if
-            end do
-            gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
-            ldim=op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
-            ind=1
-            do kkorb=orbsig%isorb+1,jjorb-1
-                klr=orbsig%inWhichLocreg(kkorb)
-                ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
-            end do
-!!            do i=0,ldim-1
-!!                indSource=ind+op%indexExtract(indovrlp+i)-1
-!!                comon%sendBuf(indovrlp+i)=phi(indSource)
-!!            end do
-              !! THIS IS THE NEWEST VERSION (NOT OPTIMIZED, could probably store the keyv once and for all)
-              jst=0
-              kold = 1
-              do iseg=1,op%wfd_overlap(lorb,korb)%nseg_c
-                  istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg)
-                  iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg)
-                  ncount=iend-istart+1  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
-                  inner_loop: do kseg=kold,lzd%llr(jjlr)%wfd%nseg_c
-                     kstart = lzd%llr(jjlr)%wfd%keyglob(1,kseg)
-                     kend   = lzd%llr(jjlr)%wfd%keyglob(2,kseg)
-                     if(kstart <= iend .and. kend >= istart) then  
-                        kold = kseg
-                        start = lzd%llr(jjlr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
-                        call dcopy(ncount, phi(ind+start-1), 1, comon%sendBuf(indovrlp+jst), 1)
-                        jst=jst+ncount
-                        exit inner_loop
-                     end if
-                  end do inner_loop
-              end do
-              if(jst .ne. op%wfd_overlap(lorb,korb)%nvctr_c) then
-                 print *,'extractOrbital2V:jst = ',jst,'not equal to ldim = ',op%wfd_overlap(lorb,korb)%nvctr_c
-                 stop
-              end if
-              !DO FINE GRID 
-              jst=0
-              kold = 1
-              do iseg=1,op%wfd_overlap(lorb,korb)%nseg_f
-                  istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
-                  iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
-                  ncount=7*(iend-istart+1)  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
-                  inner_loop2: do kseg=kold,lzd%llr(jjlr)%wfd%nseg_f
-                     kstart = lzd%llr(jjlr)%wfd%keyglob(1,kseg+lzd%llr(jjlr)%wfd%nseg_c)
-                     kend   = lzd%llr(jjlr)%wfd%keyglob(2,kseg+lzd%llr(jjlr)%wfd%nseg_c)
-                     if(kstart <= iend .and. kend >= istart) then  
-                        kold = kseg
-                        start = lzd%llr(jjlr)%wfd%nvctr_c+(lzd%llr(jjlr)%wfd%keyvglob(kseg+lzd%llr(jjlr)%wfd%nseg_c) +&
-                                max(0,istart-kstart)-1)*7
-                        call dcopy(ncount,phi(ind+start),1,&
-                                comon%sendBuf(indovrlp+jst+op%wfd_overlap(lorb,korb)%nvctr_c),1)
-                        jst=jst+ncount
-                        exit inner_loop2
-                     end if
-                  end do inner_loop2
-              end do
-              if(jst .ne. 7*op%wfd_overlap(lorb,korb)%nvctr_f) then
-                 print *,'extractOrbital2V:jst = ',jst,'not equal to ldim = ',7*op%wfd_overlap(lorb,korb)%nvctr_f
-                 stop
-              end if
-            op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
-            indovrlp=indovrlp+op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
-        end if
-    end do
-    ilrold=ilr
-    iiprocold=iiproc
-end do
-
-if(indovrlp/=comon%nsendBuf+1) then
-    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
-    stop
-end if
-
-end subroutine extractOrbital2Variable
+!!!!subroutine extractOrbital2Variable(iproc, nproc, orbs, orbsig, sizePhi, lzd, op, phi, comon)
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: iproc, nproc, sizePhi
+!!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!!type(local_zone_descriptors),intent(in):: lzd
+!!!!type(overlapParameters),intent(inout):: op
+!!!!real(8),dimension(sizePhi),intent(in):: phi
+!!!!type(p2pComms),intent(out):: comon
+!!!!
+!!!!! Local variables
+!!!!integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
+!!!!integer:: i, indSource, j, jjjlr, iiorb, iilr, iseg, istart, iend, ncount, kseg, kstart, kend, kold, start, jst, ifine, isend
+!!!!integer:: igrid
+!!!!
+!!!!indovrlp=1
+!!!!op%indexInSendBuf=0
+!!!!
+!!!!ilrold=-1
+!!!!iiprocold=-1
+!!!!do iorb=1,orbs%norb
+!!!!    ilr=orbs%inWhichLocreg(iorb)
+!!!!    iiproc=orbs%onWhichMPI(iorb)
+!!!!    if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+!!!!    do jorb=1,op%noverlaps(iorb)
+!!!!        jjorb=op%overlaps(jorb,iorb)
+!!!!        jjlr=orbsig%inWhichLocreg(jjorb)
+!!!!        jjproc=orbsig%onWhichMPI(jjorb)
+!!!!        if(iproc==jjproc) then
+!!!!            ! Get the correct descriptors
+!!!!            ! Get an orbs-orbital in the same locreg as the orbsig-orbital jjorb.
+!!!!            do j=1,orbs%norb
+!!!!                jjjlr=orbs%inWhichLocreg(j)
+!!!!                if(jjjlr==jjlr) then
+!!!!                    korb=j
+!!!!                    exit
+!!!!                end if
+!!!!            end do
+!!!!            ! Get an orbsig-orbital in the same locreg as the orbs-orbital iorb.
+!!!!            lorb=0
+!!!!            do i=1,op%noverlaps(korb)
+!!!!                iiorb=op%overlaps(i,korb)
+!!!!                iilr=orbsig%inWhichLocreg(iiorb)
+!!!!                if(iilr==ilr) then
+!!!!                    lorb=i
+!!!!                    exit
+!!!!                end if
+!!!!            end do
+!!!!            gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
+!!!!            ldim=op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
+!!!!            ind=1
+!!!!            do kkorb=orbsig%isorb+1,jjorb-1
+!!!!                klr=orbsig%inWhichLocreg(kkorb)
+!!!!                ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
+!!!!            end do
+!!!!!!            do i=0,ldim-1
+!!!!!!                indSource=ind+op%indexExtract(indovrlp+i)-1
+!!!!!!                comon%sendBuf(indovrlp+i)=phi(indSource)
+!!!!!!            end do
+!!!!              !! THIS IS THE NEWEST VERSION (NOT OPTIMIZED, could probably store the keyv once and for all)
+!!!!              jst=0
+!!!!              kold = 1
+!!!!              do iseg=1,op%wfd_overlap(lorb,korb)%nseg_c
+!!!!                  istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg)
+!!!!                  iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg)
+!!!!                  ncount=iend-istart+1  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
+!!!!                  inner_loop: do kseg=kold,lzd%llr(jjlr)%wfd%nseg_c
+!!!!                     kstart = lzd%llr(jjlr)%wfd%keyglob(1,kseg)
+!!!!                     kend   = lzd%llr(jjlr)%wfd%keyglob(2,kseg)
+!!!!                     if(kstart <= iend .and. kend >= istart) then  
+!!!!                        kold = kseg
+!!!!                        start = lzd%llr(jjlr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+!!!!                        call dcopy(ncount, phi(ind+start-1), 1, comon%sendBuf(indovrlp+jst), 1)
+!!!!                        jst=jst+ncount
+!!!!                        exit inner_loop
+!!!!                     end if
+!!!!                  end do inner_loop
+!!!!              end do
+!!!!              if(jst .ne. op%wfd_overlap(lorb,korb)%nvctr_c) then
+!!!!                 print *,'extractOrbital2V:jst = ',jst,'not equal to ldim = ',op%wfd_overlap(lorb,korb)%nvctr_c
+!!!!                 stop
+!!!!              end if
+!!!!              !DO FINE GRID 
+!!!!              jst=0
+!!!!              kold = 1
+!!!!              do iseg=1,op%wfd_overlap(lorb,korb)%nseg_f
+!!!!                  istart=op%wfd_overlap(lorb,korb)%keyglob(1,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
+!!!!                  iend=op%wfd_overlap(lorb,korb)%keyglob(2,iseg+op%wfd_overlap(lorb,korb)%nseg_c)
+!!!!                  ncount=7*(iend-istart+1)  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
+!!!!                  inner_loop2: do kseg=kold,lzd%llr(jjlr)%wfd%nseg_f
+!!!!                     kstart = lzd%llr(jjlr)%wfd%keyglob(1,kseg+lzd%llr(jjlr)%wfd%nseg_c)
+!!!!                     kend   = lzd%llr(jjlr)%wfd%keyglob(2,kseg+lzd%llr(jjlr)%wfd%nseg_c)
+!!!!                     if(kstart <= iend .and. kend >= istart) then  
+!!!!                        kold = kseg
+!!!!                        start = lzd%llr(jjlr)%wfd%nvctr_c+(lzd%llr(jjlr)%wfd%keyvglob(kseg+lzd%llr(jjlr)%wfd%nseg_c) +&
+!!!!                                max(0,istart-kstart)-1)*7
+!!!!                        call dcopy(ncount,phi(ind+start),1,&
+!!!!                                comon%sendBuf(indovrlp+jst+op%wfd_overlap(lorb,korb)%nvctr_c),1)
+!!!!                        jst=jst+ncount
+!!!!                        exit inner_loop2
+!!!!                     end if
+!!!!                  end do inner_loop2
+!!!!              end do
+!!!!              if(jst .ne. 7*op%wfd_overlap(lorb,korb)%nvctr_f) then
+!!!!                 print *,'extractOrbital2V:jst = ',jst,'not equal to ldim = ',7*op%wfd_overlap(lorb,korb)%nvctr_f
+!!!!                 stop
+!!!!              end if
+!!!!            op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
+!!!!            indovrlp=indovrlp+op%wfd_overlap(lorb,korb)%nvctr_c+7*op%wfd_overlap(lorb,korb)%nvctr_f
+!!!!        end if
+!!!!    end do
+!!!!    ilrold=ilr
+!!!!    iiprocold=iiproc
+!!!!end do
+!!!!
+!!!!if(indovrlp/=comon%nsendBuf+1) then
+!!!!    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+!!!!    stop
+!!!!end if
+!!!!
+!!!!end subroutine extractOrbital2Variable
 
 
 
