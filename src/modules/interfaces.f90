@@ -3281,7 +3281,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
        type(basis_performance_options),intent(in):: bpo
-       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: lphi
+       real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine orthonormalizeLocalized
 
@@ -4502,7 +4502,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(collective_comms),intent(in):: collcom
       type(orthon_data),intent(in):: orthpar
       type(basis_performance_options),intent(in):: bpo
-      real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
+      real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 
@@ -4522,8 +4522,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(local_zone_descriptors),intent(inout):: lzdig
       integer,dimension(at%ntypes):: norbsPerType
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-      real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
-      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+      real(8),dimension(orbsig%npsidim_orbs):: lchi
+      real(8),dimension(lorbs%npsidim_orbs):: lphi
       !real(8),dimension(3,at%nat):: rxyz
       real(8),dimension(3,lzdig%nlr):: locregCenter
       real(8),dimension(3,at%nat):: rxyz
@@ -5358,8 +5358,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(orbitals_data),intent(in):: orbsig, orbs
          type(input_variables),intent(in):: input
          integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-         real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)),intent(in):: lchi
-         real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp),ndim_lhchi),intent(in):: lhchi
+         real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+         real(8),dimension(orbsig%npsidim_orbs,ndim_lhchi),intent(in):: lhchi
          logical,dimension(lzd%nlr),intent(in):: skip
          type(matrixDescriptors),intent(in):: mad
          integer,intent(in):: memoryForCommunOverlapIG
