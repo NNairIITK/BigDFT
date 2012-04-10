@@ -6295,6 +6295,58 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
        end subroutine psi_to_vlocpsi
 
+       subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc, iformat
+         type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
+         type(atoms_data), intent(in) :: at
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         character(len=*), intent(in) :: filename
+         type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+         integer, dimension(orbs%norb), optional :: orblist
+       end subroutine initialize_linear_from_file
+
+       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
+       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
+       & locrad, locregCenter, confPotOrder, confPotprefac)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: unitwf
+         logical, intent(in) :: formatted
+         integer, intent(out) :: iorb_old
+         integer, intent(out) :: n1_old, n2_old, n3_old
+         real(gp), intent(out) :: hx_old, hy_old, hz_old
+         logical, intent(out) :: lstat
+         real(wp), intent(out) :: eval
+         integer, intent(out) :: confPotOrder
+         real(gp), intent(out) :: locrad, confPotprefac
+         real(gp), dimension(3), intent(out) :: locregCenter
+         character(len =256), intent(out) :: error
+         ! Optional arguments
+         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+         integer, intent(in), optional :: nat
+         real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+       end subroutine io_read_descr_linear
+
+       subroutine readmywaves_linear(iproc,filename,iformat,Lzd,orbs,at,rxyz_old,rxyz,  &
+           psi,orblist)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, iformat
+         type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
+         type(local_zone_descriptors), intent(in) :: Lzd
+         type(atoms_data), intent(in) :: at
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
+         character(len=*), intent(in) :: filename
+         integer, dimension(orbs%norb), optional :: orblist
+        end subroutine readmywaves_linear
+
    end interface
 
 END MODULE module_interfaces

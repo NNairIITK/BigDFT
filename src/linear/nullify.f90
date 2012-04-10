@@ -263,7 +263,7 @@ subroutine nullify_local_zone_descriptors(lzd)
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
  
-  nullify(lzd%rxyz)
+  !nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
