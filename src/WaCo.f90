@@ -1032,9 +1032,9 @@ program WaCo
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
            else
              if(trim(outputype)=='bin') then
-                call open_filename_of_iorb(ifile,(iformat == WF_FORMAT_BINARY),'TMB', &
-                   & wannorbs,iiwann,1,iwann_out)
-                !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
+                !call open_filename_of_iorb(ifile,(iformat == WF_FORMAT_BINARY),'TMB', &
+                !   & wannorbs,iiwann,1,iwann_out)
+                open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
                 if(hamilana .and. linear) then
                    ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                    gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
