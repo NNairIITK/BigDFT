@@ -486,7 +486,7 @@ module module_types
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
 !     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
-     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+!     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
      logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
