@@ -1486,7 +1486,7 @@ END SUBROUTINE input_wf_disk
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
-     orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
+     orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
      nspin,symObj,GPU,input)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -1503,12 +1503,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
    integer, intent(inout) :: nspin,nvirt
-   real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(inout) :: orbs
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
+   type(energy_terms), intent(inout) :: energs
+   type(orbitals_data), intent(inout) :: orbs
    type(DFT_local_fields), intent(inout) :: denspot
    type(GPU_pointers), intent(in) :: GPU
    type(input_variables), intent(in) :: input
@@ -1525,7 +1525,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
-   type(energy_terms) :: energs
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -1567,9 +1566,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
    call memocc(i_stat,orbse%eval,'orbse%eval',subname)
 
-   hxh=.5_gp*hx
-   hyh=.5_gp*hy
-   hzh=.5_gp*hz
+   hxh=.5_gp*Lzd%hgrids(1)
+   hyh=.5_gp*Lzd%hgrids(2)
+   hzh=.5_gp*Lzd%hgrids(3)
 
    !check the communication distribution
   !call check_communications(iproc,nproc,orbse,Lzd%Glr,commse)
@@ -1588,7 +1587,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!experimental part for building the localisation regions
 ! ###################################################################
    call nullify_local_zone_descriptors(Lzde)
-   call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+   call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,&
+        Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,at,orbse,rxyz,Lzde)
 
    if(iproc==0 .and. Lzde%linear)  write(*,'(1x,A)') 'Entering the Linear IG'
 
@@ -1605,7 +1605,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      switchOCLconv=.false.
      if (GPUconv) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-             hx,hy,hz,Lzde%Glr%wfd,orbse,GPUe)
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
      else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
@@ -1946,7 +1946,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-     denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+     denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
      wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   use module_defs
   use module_types
@@ -1963,6 +1963,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !type(communications_arrays), intent(in) :: comms
   type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+  type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(wp), dimension(:), pointer :: psi_old
   integer, intent(out) :: inputpsi, norbv
@@ -2061,8 +2062,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,denspot,&
-          KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),rxyz,&
+          KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,atoms%sym,GPU,in)
   case(INPUT_PSI_MEMORY_WVL)

@@ -4,6 +4,16 @@ module yaml_output
   implicit none
   private 
 
+  !yaml events for dump routine
+  integer, parameter :: DOCUMENT_START = -1001
+  integer, parameter :: DOCUMENT_END   = -1002
+  integer, parameter :: MAPPING_START  = -1003
+  integer, parameter :: MAPPING_END    = -1004
+  integer, parameter :: SEQUENCE_START = -1005
+  integer, parameter :: SEQUENCE_END   = -1006
+  integer, parameter :: SCALAR         = -1007
+  integer, parameter :: COMMENT        = -1008
+  integer, parameter :: MAPPING        = -1009
 
   integer, parameter :: stdout=70 !<unit for the stdout
   integer, parameter :: max_value_length=50,max_record_length=95,tab=5 !> tabbing size
@@ -16,7 +26,7 @@ module yaml_output
   integer :: icursor=1 !> running position of the cursor on the line
   integer :: itab_active=0 !> number of active tabbings for the line in flowrite
   integer :: itab=0 !> tabbing to have a look on
-  integer :: icomma=0 !> comma has been already written
+  integer :: icomma=0 !> if zero, no comma has to be placed if the flow continues
   integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
   integer :: icommentline=0 !> Active if the line being written is a comment
   integer, dimension(max_record_length/tab), save :: linetab !>value of the tabbing in the line
@@ -27,18 +37,235 @@ module yaml_output
   public :: yaml_toa,yaml_map,yaml_indent_map,yaml_close_indent_map
   public :: yaml_flow_map,yaml_close_flow_map,yaml_flow_newline,yaml_flow_sequence,yaml_close_flow_sequence
   public :: yaml_sequence_element,yaml_close_sequence_element,yaml_comment
- 
-  contains
 
-    subroutine dump(message)
+contains
+
+  subroutine dump(message,fmt,advance,event)
+    implicit none
+    character(len=*), intent(in) :: message
+    character(len=*), intent(in), optional :: fmt
+    character(len=*), intent(in), optional :: advance
+    integer, intent(in), optional :: event
+    !local variables
+    logical :: ladv,change_line,reset_line
+    integer :: lgt,evt,indent,msg_lgt,shift_lgt,prefix_lgt,iscpos
+    integer :: ianchor_pos,tabeff,towrite_lgt
+    character(len=3) :: adv
+    character(len=5) :: prefix
+    character(len=max_record_length) :: towrite
+
+    if (present(event)) then
+       evt=event
+    else !default event: scalar value
+       evt=SCALAR
+    end if
+
+    !decide whether to write advanced or not
+    !decide if advanced output or not (no by default)
+    adv='no '
+    ladv=.false.
+    if (present(advance)) then
+       if (trim(advance)=='no' .or. trim(advance)=='NO') then
+          ladv=.false.
+       else if (trim(advance)=='yes' .or. trim(advance)=='YES') then
+          ladv=.true.
+       end if
+    end if
+    if (ladv) adv='yes'
+
+    !decide whether the line has to be reset (no by default)
+    reset_line=.false.
+
+    !decide whether the line has to be continuated (no by default)
+    change_line=.false.
+
+    !calculate the number of objects to be written before
+    !these objects should go to the active line in case of a new line
+    prefix_lgt=0
+    !initialize it
+    prefix=repeat(' ',len(prefix))
+
+    !check if comma have to be written
+    if (icomma==1) then
+       call buffer_string(prefix,len(prefix),',',prefix_lgt)
+    end if
+
+    !string length, and message body
+    !initialize it
+    towrite=repeat(' ',len(towrite))
+    msg_lgt=0
+    call buffer_string(towrite,len(towrite),message,msg_lgt)
+
+    !possible indentation (depending of the event) and of the cursor
+    if (icursor > 1) then
+       indent=0
+    else !other conditions have to be added here
+       indent=max(yaml_indent,0) !to prevent bugs
+    end if
+
+    !set module variables according to the event
+    select case(evt)
+    case(SEQUENCE_START)
+
+    case(SEQUENCE_END)
+
+    case(MAPPING_START)
+
+    case(MAPPING_END)
+
+    case(COMMENT)
+       if (icommentline==0) then !no comment active
+          call buffer_string(prefix,len(prefix),' #',prefix_lgt)
+       end if
+       if (.not. ladv) then
+          icommentline=1
+       else
+          reset_line=.true.
+       end if
+
+    case(MAPPING)
+
+       iscpos=index(message,':')
+       shift_lgt=0
+       ianchor_pos=icursor+indent+prefix_lgt+iscpos-1
+       call closest_tab(ianchor_pos,tabeff)
+       !first attempt to see if the line enters
+       shift_lgt=tabeff-ianchor_pos
+       !see if the line enters
+       if (icursor+msg_lgt+prefix_lgt+shift_lgt+indent >= max_record_length) then
+          !restart again 
+          change_line=.true.
+          !reset newly created tab
+          if (itab==itab_active .and. itab > 1) itab_active=itab_active-1
+          itab=1
+          ianchor_pos=indent+iscpos
+          call closest_tab(ianchor_pos,tabeff)
+
+          shift_lgt=tabeff-ianchor_pos
+       end if
+
+       !at this point we know the size of the message.
+       !we know also whether to write it or to pass to the following line
+
+       !once the tabbing has been decided, adjust the message to the anchor
+       call align_message((flowrite ==0),max_record_length,&
+            shift_lgt,':',towrite)
+
+    end select
+
+    !standard writing,
+    if (change_line) then
+       !first write prefix, if needed
+       if (prefix_lgt>0) then
+          write(stdout,'(a)')prefix(1:prefix_lgt)
+       else
+          !change line
+          write(stdout,*)
+       end if
+       icursor=1
+       towrite_lgt=msg_lgt
+    else
+       call shiftstr(towrite,prefix_lgt)
+       if (prefix_lgt > 0)towrite(1:prefix_lgt)=prefix(1:prefix_lgt)
+       towrite_lgt=prefix_lgt+msg_lgt
+    end if
+
+    if (present(fmt)) then
+       write(stdout,fmt,advance=trim(adv))repeat(' ',indent)//towrite(1:towrite_lgt)
+    else
+       write(stdout,'(a)',advance=trim(adv))repeat(' ',indent)//towrite(1:towrite_lgt)
+    end if
+
+    !if advancing i/o cursor is again one
+    if (ladv) then
+       icursor=1
+    else
+       !cursor after writing
+       icursor=icursor+indent+towrite_lgt
+    end if
+
+    if (reset_line) call carriage_return()
+
+  end subroutine dump
+
+  !>calculate the reference tabular value
+  subroutine closest_tab(ianchor_pos,tabeff)
       implicit none
-      character(len=*), intent(in) :: message
+      integer, intent(in) :: ianchor_pos
+      integer, intent(out) :: tabeff
+
+      if (flowrite /= 0) then
+         !first check that the tabbing is already done, otherwise add another tab
+         if (itab<itab_active) then
+            !realign the value to the tabbing
+            do 
+               if (ianchor_pos <= linetab(itab) .or. itab==itab_active) exit
+               itab=itab+1
+            end do
+         end if
+
+         if (itab<itab_active) then
+            tabeff=linetab(itab)
+         else
+            tabeff=ianchor_pos
+            itab=itab+1
+            itab_active=itab_active+1
+            linetab(itab_active)=tabeff
+         end if
+      else
+         !for the moment do not check compatibility of the line
+         tabeff=max(tabmain,ianchor_pos)
+      end if
+    end subroutine closest_tab
+
+
+    !> Add a buffer to a string and increase its length
+    subroutine buffer_string(string,string_lgt,buffer,string_pos)
+      implicit none
+      integer, intent(in) :: string_lgt
+      integer, intent(inout) :: string_pos
+      character(len=*), intent(in) :: buffer
+      character(len=string_lgt), intent(inout) :: string
       !local variables
-      integer :: lgt
+      integer :: lgt_add
 
-    end subroutine dump
+      lgt_add=len(buffer)
 
-    !> Reset the line control quantities
+      string(string_pos+1:string_pos+lgt_add)=buffer(1:lgt_add)
+      
+      string_pos=string_pos+lgt_add
+
+    end subroutine buffer_string
+
+    !> add the spaces necessary to align the first occurrence of a given anchor
+    !! into a tabular value. Can be done either by moving rigidly the message or 
+    !! by adding spaces between the anchor and the rest of the message
+    subroutine align_message(rigid,maxlen,tabval,anchor,message)
+      implicit none
+      logical, intent(in) :: rigid
+      integer, intent(in) :: maxlen
+      integer, intent(in) :: tabval
+      character(len=1), intent(in) :: anchor
+      character(len=maxlen), intent(inout) :: message
+      !local variables
+      integer :: iscpos,ishift
+
+      !cannot align, tabular too far
+      if (tabval>maxlen) return
+
+      iscpos=index(message,anchor)      
+      ishift=tabval-iscpos
+      if (rigid) then
+         call shiftstr(message,ishift)
+      else
+         message=message(1:iscpos-1)//repeat(' ',ishift)//anchor//&
+              message(iscpos+1:maxlen-ishift)  ! shift right 
+      end if
+
+    end subroutine align_message
+    
+
+    !> Reset the line control quantities, and reset the indentation
     subroutine carriage_return()
       implicit none
       !if a yaml_comment is called put the has in front
@@ -59,7 +286,8 @@ module yaml_output
          call yaml_warning("Indentation error. Yaml Document has not been closed correctly")
          yaml_indent=1
       end if
-      write(stdout,'(3a)')'---'
+      call dump('---',fmt='(3a)')
+      !write(stdout,'(3a)')'---'
     end subroutine yaml_new_document
   
     subroutine yaml_warning(message,level)
@@ -69,46 +297,56 @@ module yaml_output
       integer, optional, intent(in) :: level
       !local variables
       integer :: ierr
-      write(stdout,'(1x,a,a)')'#WARNING:',trim(message)
+      call dump('#WARNING:'//trim(message),fmt='(1x,a)')
+      !write(stdout,'(1x,a,a)')'#WARNING:',trim(message)
       if (present(level)) then
          if (level <= Wall) then
-            write(stdout,'(1x,a)')'Critical warning level reached, aborting...'
+            call dump('Critical warning level reached, aborting...',fmt='(1x,a)')
+            !write(stdout,'(1x,a)')'Critical warning level reached, aborting...'
             call MPI_ABORT(MPI_COMM_WORLD,ierr)
          end if
       end if
     end subroutine yaml_warning
 
-    subroutine yaml_comment(comment,advance)
+    subroutine yaml_comment(message,advance)
       implicit none
-      character(len=*), intent(in) :: comment
+      character(len=*), intent(in) :: message
       character(len=*), intent(in), optional :: advance
-      if (icommentline == 0) then !no comment active
-         if (present(advance)) then
-            write(stdout,'(a)',advance=advance)' #'//trim(comment)
-            if (advance=='no') then
-               icursor=icursor+len(trim(comment))+2
-               icommentline=1
-            else
-               call carriage_return()
-            end if
-         else
-            write(stdout,'(a)')' #'//trim(comment)
-            call carriage_return()
-         end if
+
+      !comment to be written
+      if (present(advance)) then
+         call dump(trim(message),advance=advance,event=COMMENT)
       else
-         if (present(advance)) then
-            write(stdout,'(a)',advance=advance)trim(comment)
-            if (advance=='no') then
-               icursor=icursor+len(trim(comment))
-               icommentline=1
-            else
-               call carriage_return()
-            end if
-         else
-            write(stdout,'(a)')trim(comment)
-            call carriage_return()
-         end if
+         call dump(trim(message),advance='yes',event=COMMENT)
       end if
+
+!!$      if (icommentline == 0) then !no comment active
+!!$         if (present(advance)) then
+!!$            write(stdout,'(a)',advance=advance)' #'//trim(message)
+!!$            if (advance=='no') then
+!!$               icursor=icursor+len(trim(message))+2
+!!$               icommentline=1
+!!$            else
+!!$               call carriage_return()
+!!$            end if
+!!$         else
+!!$            write(stdout,'(a)')' #'//trim(message)
+!!$            call carriage_return()
+!!$         end if
+!!$      else
+!!$         if (present(advance)) then
+!!$            write(stdout,'(a)',advance=advance)trim(message)
+!!$            if (advance=='no') then
+!!$               icursor=icursor+len(trim(message))
+!!$               icommentline=1
+!!$            else
+!!$               call carriage_return()
+!!$            end if
+!!$         else
+!!$            write(stdout,'(a)')trim(message)
+!!$            call carriage_return()
+!!$         end if
+!!$      end if
     end subroutine yaml_comment
 
     !> Open a indented map
@@ -119,6 +357,16 @@ module yaml_output
       !character(len=3), optional, intent(in) :: verbatim
       !local variables
 
+      !check for flowrite absent
+
+      !tentative solution
+      if (present(label)) then
+         call dump(mapname//': &'//label,advance='yes',event=MAPPING_START)
+      else
+         call dump(mapname//':',advance='yes',event=MAPPING_START)
+      end if
+      
+      
       if (present(label)) then
          call yaml_map(mapname,label=label)
       else
@@ -130,7 +378,12 @@ module yaml_output
 
     !Adjust the indentation for a indented map
     subroutine yaml_close_indent_map()
-      yaml_indent=max(yaml_indent-yaml_level,0)
+
+      !tentative solution (check for flowrite)
+      call dump(' ',advance='yes',event=MAPPING_END)
+
+      call close_indent_level()
+      !yaml_indent=yaml_indent-yaml_level
     end subroutine yaml_close_indent_map
       
     subroutine open_flow_level()
@@ -174,13 +427,7 @@ module yaml_output
       end if
       write(stdout,'(a)',advance='no')' {'
       icursor=icursor+2
-
       call open_flow_level()
-!!$      flowrite=-1 !start to write
-!!$      if (iflowlevel==0) yaml_indent_previous=yaml_indent
-!!$      iflowlevel=iflowlevel+1
-!!$
-!!$      yaml_indent=1
 
     end subroutine yaml_flow_map
 
@@ -232,16 +479,18 @@ module yaml_output
          call close_flow_level()
          call carriage_return()
       end if
+      !no commas at the end
+      icomma=0
     end subroutine yaml_close_flow_sequence
 
     !> Add a new line in the flow 
-    !! this routine has a effect only if flowrite is active
+    !! this routine has a effect only if a flow writing is active
     subroutine yaml_flow_newline()
       implicit none
       if (flowrite ==-1) then !flowrite had just been opened
          write(stdout,'(a)')' '
       else if (flowrite==1) then !just close the last field
-         if (icomma==0) then
+         if (icomma==1) then
             write(stdout,'(a)')', '
          else
             write(stdout,'(a)')' '
@@ -253,6 +502,14 @@ module yaml_output
       call carriage_return()
     end subroutine yaml_flow_newline
 
+    subroutine open_indent_level()
+      implicit none
+      yaml_indent=yaml_indent+yaml_level
+    end subroutine open_indent_level
+
+    subroutine close_indent_level()
+      yaml_indent=max(yaml_indent-yaml_level,0) !to prevent bugs
+    end subroutine close_indent_level
 
     subroutine yaml_sequence_element(label,advance)
       implicit none
@@ -276,32 +533,35 @@ module yaml_output
                write(stdout,'(a)')repeat(' ',yaml_indent)//'-'
             end if
          end if
-         yaml_indent=yaml_indent+yaml_level
+         call open_indent_level()
+         !yaml_indent=yaml_indent+yaml_level
       end if
       !comma should be placed after
-      icomma=0
+      icomma=1
     end subroutine yaml_sequence_element
     
     subroutine yaml_close_sequence_element(advance)
       implicit none
       character(len=*), optional, intent(in) :: advance
       if (flowrite==0 .and. iflowlevel==0) then
-         yaml_indent=max(yaml_indent-yaml_level,0)
+         call close_indent_level()
+         !yaml_indent=max(yaml_indent-yaml_level,0)
       else
          if(present(advance)) then
             if (advance=='no') then
-               if (icomma==0) write(stdout,'(a)',advance='no')','
+               if (icomma==1) write(stdout,'(a)',advance='no')','
                icursor=icursor+1
-               icomma=1
+               icomma=0
             else
                write(stdout,'(a)')','
                icursor=1
                itab=0
+               icomma=0
             end if
          else
-            if (icomma==0) write(stdout,'(a)',advance='no')','
+            if (icomma==1) write(stdout,'(a)',advance='no')','
             icursor=icursor+1
-            icomma=1
+            icomma=0
          end if
       end if
     end subroutine yaml_close_sequence_element

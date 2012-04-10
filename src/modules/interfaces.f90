@@ -484,7 +484,7 @@ module module_interfaces
        END SUBROUTINE input_wf_disk
 
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
-            orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
+            orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
             nspin,symObj,GPU,input)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -497,12 +497,12 @@ module module_interfaces
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
          integer, intent(inout) :: nspin,nvirt
-         real(gp), intent(in) :: hx,hy,hz
          type(atoms_data), intent(in) :: at
-         type(orbitals_data), intent(inout) :: orbs
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(local_zone_descriptors), intent(in) :: Lzd
          type(communications_arrays), intent(in) :: comms
+         type(orbitals_data), intent(inout) :: orbs
+         type(energy_terms), intent(inout) :: energs
          type(DFT_local_fields), intent(inout) :: denspot
          type(GPU_pointers), intent(in) :: GPU
          type(input_variables):: input
@@ -514,7 +514,7 @@ module module_interfaces
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-            denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+            denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
             wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
          use module_defs
          use module_types
@@ -527,6 +527,7 @@ module module_interfaces
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+         type(energy_terms), intent(inout) :: energs !<energies of the system
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: inputpsi, norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd

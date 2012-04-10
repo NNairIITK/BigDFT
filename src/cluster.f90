@@ -347,7 +347,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+          denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   else
      inputpsi = in%inputPsiId
