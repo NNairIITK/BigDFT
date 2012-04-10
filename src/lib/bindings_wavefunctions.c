@@ -366,7 +366,7 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc)
 {
-  guint i, n, ispinor_, nspinor;
+  guint i, n, ispinor_, nspin, orbSize;
   int iorbp, jproc;
   double *psic;
 
@@ -383,9 +383,12 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                            &ikpt, &iorb, &ispin, &ispinor_);
   if (iorbp < 0 || iproc != jproc)
     return (double*)0;
-  FC_FUNC_(glr_get_psi_size, GLR_GET_PSI_SIZE)(wf->lzd->parent.data, psiSize);
+  FC_FUNC_(glr_get_psi_size, GLR_GET_PSI_SIZE)(wf->lzd->parent.data, &orbSize);
+  *psiSize = orbSize;
+  if (ispinor == BIGDFT_PARTIAL_DENSITY && wf->parent.nspinor == 2)
+    *psiSize *= 2;
 
-  return wf->psi->data + (iorbp * *psiSize);
+  return wf->psi->data + (iorbp * orbSize);
 }
 double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                  BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc)
@@ -403,7 +406,7 @@ double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
     {
       if (wf->parent.nspinor == 2)
         {
-          psii = bigdft_locreg_convert_to_isf(&wf->lzd->parent, psic + psiSize);
+          psii = bigdft_locreg_convert_to_isf(&wf->lzd->parent, psic + psiSize / 2);
           for(i = 0; i < n; i++)
             psir[i] = psir[i] * psir[i] + psii[i] * psii[i];
           g_free(psii);
