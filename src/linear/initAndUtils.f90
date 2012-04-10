@@ -2011,7 +2011,7 @@ end subroutine init_orbitals_data_for_linear
 
 
 
-subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs, derorbs, lzd)
+subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, orbs, derorbs, lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_local_zone_descriptors
@@ -2019,6 +2019,7 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc
+  real(gp),intent(in) :: hx, hy, hz
   type(input_variables),intent(in):: input
   type(locreg_descriptors),intent(in):: glr
   type(atoms_data),intent(in):: at
@@ -2054,7 +2055,7 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   end do
   
   
-  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, input%hx, input%hy, input%hz, lzd, orbs, &
+  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, hx, hy, hz, lzd, orbs, &
        glr, input%lin%locrad, input%lin%locregShape, derorbs)
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
@@ -2065,9 +2066,9 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, orbs,
   call nullify_locreg_descriptors(lzd%Glr)
   call copy_locreg_descriptors(Glr, lzd%Glr, subname)
 
-  lzd%hgrids(1)=input%hx
-  lzd%hgrids(2)=input%hy
-  lzd%hgrids(3)=input%hz
+  lzd%hgrids(1)=hx
+  lzd%hgrids(2)=hy
+  lzd%hgrids(3)=hz
 
 end subroutine init_local_zone_descriptors
 

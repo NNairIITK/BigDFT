@@ -3,7 +3,7 @@ subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
     hx,hy,hz,SIC,tmbmix)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => get_coeff
+use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
 use Poisson_Solver
 implicit none
 
@@ -29,11 +29,16 @@ integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+!real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
+real(8):: tt
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+type(energy_terms) :: energs
 character(len=*),parameter:: subname='get_coeff'
-
+!For debug
+integer :: ldim,istart
+character(len=1) :: num
+real(8),dimension(:),allocatable :: Gphi, Ghphi
 
 
   ! Allocate the local arrays.  
@@ -98,9 +103,15 @@ character(len=*),parameter:: subname='get_coeff'
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
        proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
-       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+       energs,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
+!DEBUG
+!if (iproc==0) then
+!   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!   ekin_sum,epot_sum,eproj_sum
+!endif                                                                                                                                                                       
+!END DEBUG
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
@@ -116,7 +127,6 @@ character(len=*),parameter:: subname='get_coeff'
 
   !!! Deallocate the buffers needed for the communication of the potential.
   !!call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-
 
 
   ! Calculate the matrix elements <phi|H|phi>.
@@ -157,6 +167,47 @@ character(len=*),parameter:: subname='get_coeff'
       stop 'wrong communication_strategy_overlap'
   end if
 
+! DEBUG
+!  if(iproc==0)then
+!  print *,'Hamiltonian matrix in the TMB basis'
+!  allocate(Gphi(lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f))
+!  allocate(Ghphi(lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f))
+!  istart = 0
+!  do istat = 1, llborbs%norb
+!     Gphi = 0.0d0
+!     Ghphi = 0.0d0
+!     write(num,'(I1)'),istat
+!     ilr = llborbs%inwhichlocreg(istat)
+!     ldim = lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+!     call Lpsi_to_global2(iproc, nproc, ldim, lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f, llborbs%norb, 1, 1, Lzd%Glr,&
+!          Lzd%Llr(ilr), wfnmd%phi(istart+1), Gphi)
+!     call Lpsi_to_global2(iproc, nproc, ldim, lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f, llborbs%norb, 1, 1, Lzd%Glr,&
+!          Lzd%Llr(ilr), lhphi(istart+1), Ghphi)
+!     open(11,file='TMB_'//trim(num),status='unknown')
+!     call writeonewave(11,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
+!          lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
+!          lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
+!          lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
+!          Gphi(1),Gphi(1+lzd%Glr%wfd%nvctr_c),1.0d0)
+!     istart = istart + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+!     close(11)
+!     open(11,file='HTMB_'//trim(num),status='unknown')
+!     call writeonewave(11,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
+!          lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
+!          lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
+!          lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
+!          Ghphi(1),Ghphi(1+lzd%Glr%wfd%nvctr_c),1.0d0)
+!     close(11)
+!     do iall = 1, llborbs%norb
+!        print *,istat,llborbs%inwhichlocreg(istat),iall,llborbs%inwhichlocreg(iall),matrixElements(istat,iall,1)
+!     end do
+!print *,'size(lhphi):',llborbs%npsidim_orbs,istart
+!  end do
+!  deallocate(Gphi)
+!  end if
+!call mpi_finalize(istat)
+!stop
+!END DEBUG
 
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -299,9 +350,9 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 
 ! Local variables
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC,fnrm,fnrmMax,meanAlpha
+!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor
+real(8):: trHold, factor, fnrmMax, fnrm, meanAlpha
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
@@ -315,6 +366,7 @@ real(8),dimension(:),pointer:: lhphiopt,lhphioldopt
 type(local_zone_descriptors):: lzdlarge
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
+type(energy_terms) :: energs
 
 
 
@@ -389,12 +441,12 @@ type(DFT_wavefunction),pointer:: tmbopt
 
   ! Initialize largestructures if required
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+print *,'ENTERING VARIABLE LOCREG'
       do iorb=1,tmb%orbs%norb
           ilr=tmb%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
       end do
       locregCenterTemp=locregCenter
-
       ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
@@ -417,6 +469,7 @@ type(DFT_wavefunction),pointer:: tmbopt
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
+      ! PB: This if seems to be never reachable since variable_locregs must be true for outer if
       if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
 
@@ -435,13 +488,16 @@ type(DFT_wavefunction),pointer:: tmbopt
 
   ! Do a first orthonormalization
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+print *,'ENTERING Small ortho'
       ! Do a standard orthonormalization
       tmbopt => tmb
   else
+print *,'ENTERING Large ortho'
       ! Go to large localization region and do the orthonormalization there.
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       tmbopt => tmblarge
   end if
+
   call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
        tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
        tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
@@ -535,12 +591,18 @@ type(DFT_wavefunction),pointer:: tmbopt
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
       end if
+!print *,'nlpspd%nprojel',nlpspd%nprojel
+!open(22,file='proj',status='unknown')
+!do iall = 1,nlpspd%nprojel
+!   write(22,*)proj(iall)
+!end do 
+!close(22)
+!stop
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+           energs,SIC,GPU,&
            pkernel=denspot%pkernelseq)
-
 
       iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
       deallocate(tmb%lzd%doHamAppl,stat=istat)
@@ -585,11 +647,10 @@ type(DFT_wavefunction),pointer:: tmbopt
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
-
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
+      !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
       if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
           if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &

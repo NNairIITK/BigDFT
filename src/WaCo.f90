@@ -48,12 +48,12 @@ program WaCo
    character(len=8) :: string
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon
    integer, dimension(:), allocatable :: ConstList
-   integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:)
+   integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal
-   real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:)
+   real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:),amn(:,:),tmatrix(:,:)
    integer :: i, j, k, i_all
    character(len=16) :: seedname
-   integer :: n_occ, n_virt, n_virt_tot
+   integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
    logical :: file_exist,idemp
@@ -113,6 +113,7 @@ program WaCo
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
    call standard_inputfile_names(input,radical)
+
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
         outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff)
 
@@ -316,7 +317,7 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,4x,A,3x,A,3x,A)') 'WF','Spr(ang^2)','Nc','Atom numbers:'
+      if(iproc == 0) write(*,'(3x,A,x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0
@@ -330,7 +331,8 @@ program WaCo
             end if
          end do
          if(iproc == 0) then
-           write(*,'(I4,F14.6,2x,I4,6(2x,I4))') iwann, sprd(iwann), ncenters(iwann), (Zatoms(i_all,iwann),i_all=1,iat)
+           write(*,'(2I4,F14.6,2x,I4,6(2x,I4))') wann_list(iwann),iwann, sprd(iwann), ncenters(iwann),&
+                (Zatoms(i_all,iwann),i_all=1,iat)
          end if
       end do
 
@@ -343,7 +345,7 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-print *,'total number of electrons: ',2*sum(wannocc)
+     print *,'total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
@@ -388,6 +390,49 @@ print *,'total number of electrons: ',2*sum(wannocc)
       end do
       close(22)
 
+!Character analysis
+      call read_amn_header(seedname,nproj,nband_old,nkpt_old)
+
+      allocate(amn(nband,nproj),stat=i_stat)
+      call memocc(i_stat,amn,'amn',subname)
+      allocate(tmatrix(nwann,nproj),stat=i_stat)
+      call memocc(i_stat,tmatrix,'tmatrix',subname)
+      allocate(l(nproj),stat=i_stat)
+      call memocc(i_stat,l,'l',subname)
+      allocate(mr(nproj),stat=i_stat)
+      call memocc(i_stat,mr,'mr',subname)
+
+      call read_amn(seedname,amn,nproj,nband,nkpt_old)
+      call read_proj(seedname, nkpt_old, nproj, l, mr)
+
+      call dgemm('N','N',nwann,nproj,nband,1.0d0,umn(1,1),max(1,nwann),&
+      &        amn(1,1),max(1,nband),0.0d0,tmatrix(1,1),max(1,nwann))
+
+!DEBUG
+!print *,(sum(tmatrix(iat,:)),iat=1,nwann)
+!do iat=1,nwann
+!   tel = 0.0d0
+!   do i_all =1, nproj
+!      tel = tel + tmatrix(iat,i_all)**2
+!   end do
+!   print *,tel
+!end do
+!DEBUG
+
+      call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+
+      i_all = -product(shape(l))*kind(l)
+      deallocate(l,stat=i_stat)
+      call memocc(i_stat,i_all,'l',subname)   
+      i_all = -product(shape(mr))*kind(mr)
+      deallocate(mr,stat=i_stat)
+      call memocc(i_stat,i_all,'mr',subname)   
+      i_all = -product(shape(amn))*kind(amn)
+      deallocate(amn,stat=i_stat)
+      call memocc(i_stat,i_all,'amn',subname)   
+      i_all = -product(shape(tmatrix))*kind(tmatrix)
+      deallocate(tmatrix,stat=i_stat)
+      call memocc(i_stat,i_all,'tmatrix',subname)   
       i_all = -product(shape(distw))*kind(distw)
       deallocate(distw,stat=i_stat)
       call memocc(i_stat,i_all,'distw',subname)   
@@ -552,8 +597,9 @@ print *,'total number of electrons: ',2*sum(wannocc)
       allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3))
 
       ! Do stereographic projection of atoms and Wannier centers
-      call stereographic_projection(atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
-      call stereographic_projection(plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
+      call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
+      ! TO DO: CNeglectPoint should be a vector...
+      call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
       call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
       call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
 
@@ -593,8 +639,8 @@ print *,'total number of electrons: ',2*sum(wannocc)
       if(CNeglectPoint .ne. 0) then
          write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
          write(*,*) 'Surfaces will be deformed'
-         call mpi_finalize(ierr)
-         stop
+!         call mpi_finalize(ierr)
+!         stop
       end if
 
       call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
@@ -640,7 +686,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
      end if
 
   end if
-  if (HamilAna) then
+  if (hamilAna) then
      if(iproc==0) then
         write(*,*) '!==================================!'
         write(*,*) '!     Hamiltonian Analysis :       !' 
@@ -723,6 +769,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
            end do
         end do
 
+     !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
      i_all=-product(shape(buf))*kind(buf)
      deallocate(buf,stat=i_stat)
      call memocc(i_stat,i_all,'buf',subname)
@@ -793,9 +840,6 @@ print *,'total number of electrons: ',2*sum(wannocc)
       i_all=-product(shape(hamr))*kind(hamr)
       deallocate(hamr,stat=i_stat)
       call memocc(i_stat,i_all,'hamr',subname)
-      i_all=-product(shape(ham))*kind(ham)
-      deallocate(ham,stat=i_stat)
-      call memocc(i_stat,i_all,'ham',subname)
       i_all=-product(shape(diag))*kind(diag)
       deallocate(diag,stat=i_stat)
       call memocc(i_stat,i_all,'diag',subname)
@@ -990,10 +1034,17 @@ print *,'total number of electrons: ',2*sum(wannocc)
            else
              if(trim(outputype)=='bin') then
                 open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='unformatted')
+                if(hamilana) then
                 call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
-                     wann(1),wann(Glr%wfd%nvctr_c+1), 0.d0)
+                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                     wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                else
+                call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
+                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                     wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
+                end if
              else
                 stop 'ETSF not implemented yet'                
                 ! should be write_wave_etsf  (only one orbital)
@@ -1036,9 +1087,16 @@ print *,'total number of electrons: ',2*sum(wannocc)
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
-  i_all = -product(shape(buf))*kind(buf)
-  deallocate(buf,stat=i_stat)
-  call memocc(i_stat,i_all,'buf',subname)
+  if(bondana .or. hamilana) then
+     i_all = -product(shape(buf))*kind(buf)
+     deallocate(buf,stat=i_stat)
+     call memocc(i_stat,i_all,'buf',subname)
+  end if
+  if(hamilana) then
+     i_all=-product(shape(ham))*kind(ham)
+     deallocate(ham,stat=i_stat)
+     call memocc(i_stat,i_all,'ham',subname)
+  end if
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
   call memocc(i_stat,i_all,'wann_list',subname)
@@ -1402,12 +1460,13 @@ subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_
 
    ! now read the spreads (the additionnal last value is total sprd)
    if(readsprd) then
+   print *,'plotwann',plotwann
       do iiwann = 1, plotwann+1
          read(11, *) char1, sprd(iiwann)
       end do
    end if
    close(11)
-end subroutine
+end subroutine read_centers
 
 subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
    implicit none
@@ -1699,11 +1758,12 @@ subroutine init_random_seed(shuffler)
   deallocate(seed)
 end subroutine init_random_seed
 
-subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, dcp)
+subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
    use Poisson_Solver
    use module_interfaces
    implicit none
+   integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
    real(gp), dimension(3,natom), intent(in) :: rxyz
    real(gp), dimension(3), intent(inout) :: refpos, CM
@@ -1797,8 +1857,7 @@ subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, 
       if(norm2 < 1.0d-10) norm2 = 1.0d-10
 
       if(norm2 < 1.0d-1 .and. abs(dotprod/(norm*norm2)) < 1.0d-2) then
-
-        if(dcp .ne. 0) stop 'This should not happen'
+        if(dcp .ne. 0 .and. mode == 0) stop 'This should not happen'
         dcp = iat
       end if
    end do
@@ -1995,7 +2054,7 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
    integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters)-1)/2,3),intent(in) :: vertex
    real(gp), dimension(3), intent(in) :: normal
    ! Local variables
-   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly
+   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly, num_poly_tot
    character(len=14) :: surfname
    character(len=20) :: forma
    logical :: condition
@@ -2011,14 +2070,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
 
    nsurftot = 0
    npts = 0
-   num_poly = 0
+   num_poly_tot = 0
    do isurf = 1, nsurf
+      num_poly = 0
       !MUST eliminate the wanniers that are less then 3 centers
       if(ncenters(isurf) < 3) cycle
       ! or the 3 centers containing the neglected point
       condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint )
       if(ncenters(isurf) == 3 .and. condition) cycle
-      nsurftot = nsurftot + 1
       ! Must eliminate the neglected point from other surfaces
       do ipts = 1, npoly(isurf)
          condition = .false.
@@ -2026,12 +2085,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
             condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
          end do
          if(.not. condition) num_poly = num_poly + 1
+         if(.not. condition) num_poly_tot = num_poly_tot + 1
       end do
-      npts = npts + ncenters(isurf) + 1
+      if(num_poly > 0)nsurftot = nsurftot + 1
+      if(num_poly > 0)npts = npts + ncenters(isurf) + 1
    end do
 
    !Fourth line: number of surfaces, total num_polys, total num_points
-   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly, npts
+   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly_tot, npts
 
    do isurf = 1, nsurf
       !MUST eliminate the wanniers that are less then 3 centers
@@ -2050,11 +2111,9 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
       end do
       write(forma,'(I1)') ndecimal
       forma = '(I'//trim(forma)//')'
-
       !Name of the surface
       write(surfname,forma) ncenters(isurf)
       surfname = '2e - '//trim(surfname)//'centers'
-      write(23,'(A)') trim(surfname)
 
       !num_polys and num_points (Must eliminate the neglected point from other surfaces)
       condition = .false.
@@ -2066,42 +2125,48 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
          end do
          if(.not. condition)num_poly = num_poly + 1
       end do
-      if(condition) then
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf)
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      else
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf) + 1
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      end if
 
-      do ipts = 1, ncenters(isurf)
-      !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
-         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-         write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
-              (normal(i), i=1,3)
-      end do
-      write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
-              (normal(i), i=1,3)
+      if(num_poly > 0) then
+         !Write the surface only if there is some polygones
+         write(23,'(A)') trim(surfname)
+
+         if(condition) then
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf)
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         else
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf) + 1
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         end if
+
+         do ipts = 1, ncenters(isurf)
+         !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
+            !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
+            write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
+                 (normal(i), i=1,3)
+         end do
+         write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
+                 (normal(i), i=1,3)
+      end if !on num_poly
    end do
    close(23)
 
@@ -2278,7 +2343,7 @@ integer :: ikpt,iorb,iiorb,iikpt,ierr
 
 inquire(file=filename,exist=file_exist)
 if (.not. file_exist) then
-   write(*,'(A)') 'ERROR : Input file, input.inter, not found !'
+   write(*,'(A)') 'ERROR : Input file,',filename,',not found !'
    write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
    call mpi_finalize(ierr)
    stop
@@ -2294,6 +2359,294 @@ close(22)
 
 end subroutine read_eigenvalues
 
+subroutine read_amn_header(filename,nproj,nband,nkpt)
+use module_types
+use module_interfaces
+implicit none
+character(len=*),intent(in) :: filename
+integer, intent(out) :: nproj,nband,nkpt
+!Local variables
+logical :: file_exist
+integer :: ierr
+
+inquire(file=trim(filename)//'.amn',exist=file_exist)
+if (.not. file_exist) then
+   write(*,'(A)') 'ERROR : Input file,',trim(filename)//'.amn',', not found !'
+   write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
+   call mpi_finalize(ierr)
+   stop
+end if
+
+open(22,file=trim(filename)//'.amn',status='old')
+read(22,*) ! skip first line which is a comment
+read(22,*) nband, nkpt, nproj
+close(22)
+end subroutine read_amn_header
+
+subroutine read_amn(filename,amn,nproj,nband,nkpt)
+use module_types
+use module_interfaces
+implicit none
+character(len=*),intent(in) :: filename
+integer, intent(in) :: nproj, nband, nkpt
+real(gp),dimension(nband,nproj), intent(out) :: amn
+!Local variables
+logical :: file_exist
+integer :: int1, int2, int3, int4, nk, np, nb
+integer :: ierr
+real(gp) :: r1
+
+inquire(file=trim(filename)//'.amn',exist=file_exist)
+if (.not. file_exist) then
+   write(*,'(A)') 'ERROR : Input file,',trim(filename)//'.amn',', not found !'
+   write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
+   call mpi_finalize(ierr)
+   stop
+end if
+
+open(22,file=trim(filename)//'.amn',status='old')
+read(22,*) ! skip first line which is a comment
+read(22,*) !skip this line: nband, nkpt, nproj
+do nk=1, nkpt 
+   do np=1, nproj
+      do nb=1, nband
+         read(22,*) int2, int3, int4, amn(nb,np), r1
+      end do
+   end do
+end do
+close(22)
+
+end subroutine read_amn
+
+!>  This routine reads an .nnkp file and returns the types of projectors
+subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
+   implicit none
+   ! I/O variables
+   character(len=16),intent(in) :: seedname
+   integer, intent(in) :: n_kpts, n_proj
+   integer, dimension(n_proj), intent(out) :: l, mr
+   ! Local variables
+   integer :: i, j
+   character *16 :: char1, char2, char3, char4
+   logical :: calc_only_A
+   real :: real_latt(3,3), recip_latt(3,3)
+   real, dimension(n_kpts,3) :: kpts
+   real(kind=8), dimension(n_proj,3) :: ctr_proj, x_proj, z_proj
+   integer, dimension(n_proj) :: rvalue
+   real, dimension(n_proj) :: zona
+
+
+   OPEN(11, FILE=trim(seedname)//'.nnkp', STATUS='OLD')
+   READ(11,*) ! skip first line
+
+
+   !=====calc_only_A=====!
+   READ(11,*) char1, char2, char3
+   if (char3 .eq. 'T') then 
+      calc_only_A=.TRUE.
+   else 
+      if (char3 .eq. 'F') then 
+         calc_only_A=.FALSE.
+      end if
+   end if
+
+   !=====real_lattice=====!
+   READ(11,*) char1, char2 ! skip "begin real_lattice"
+   READ(11,*) ((real_latt(i,j), j=1,3), i=1,3)
+   READ(11,*) char3, char4 ! skip "end real_lattice"
+
+   !=====recip_lattice=====!
+   READ(11,*) char1, char2 ! skip "begin recip_lattice"
+   READ(11,*) ((recip_latt(i,j), j=1,3), i=1,3)
+   READ(11,*) char3, char4 ! skip "end recip_lattice"
+
+   !=====kpoints=====!
+   READ(11,*) char1, char2 ! skip "begin kpoints"
+   READ(11,*) char3
+   if (char3 .ne. 'end') then ! verify that there are kpoints
+      BACKSPACE 11
+      READ(11,*) ! skip n_kpts
+      READ(11,*) ((kpts(i,j), j=1,3), i=1,n_kpts)
+      READ(11,*) char3, char4 ! skip "end kpoints"
+   end if
+
+   !=====projections=====!
+   READ(11,*) char1, char2 ! skip "begin projections"
+   READ(11,*) char3
+   if (char3 .ne. 'end') then ! verify that there are projections
+      BACKSPACE 11
+      READ(11,*) ! skip n_proj
+      READ(11,*) ((ctr_proj(i,j), j=1,3), l(i), mr(i), rvalue(i), (z_proj(i,j), j=1,3), (x_proj(i,j), j=1,3), zona(i), i=1,n_proj)
+      READ(11,*) char3, char4 ! skip "end projections"
+   end if
+
+   close(11)
+
+END SUBROUTINE read_proj
+
+subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
+   use BigDFT_API
+   use module_types
+   use module_interfaces
+   implicit none
+   ! I/O variables
+   integer, intent(in) :: nwann, nproj,plotwann
+   integer, dimension(nproj), intent(in) :: l, mr
+   real(gp), dimension(nwann,nproj), intent(in) :: tmatrix
+   integer, dimension(plotwann), intent(in) :: ncenters
+   integer, dimension(nwann),intent(in) :: wann_list
+   !Local variables
+   character(len=*),parameter :: subname='character_list'
+   character(len=2) :: num
+   character(len=27):: forma
+   character(len=10), dimension(nproj) :: label
+   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat, i_all
+   real(gp), dimension(:,:), allocatable :: Wpweight
+   real(gp), dimension(:), allocatable :: norm 
+   character(len=10),dimension(:), allocatable :: Wplabel
+   integer, dimension(nproj) :: l_used, mr_used
+
+   !Start by finding the projector labels
+   do np = 1, nproj
+      if (l(np)==0) then   ! s orbital
+         label(np) = 's'
+      end if
+      if (l(np)==1) then   ! p orbitals
+         if (mr(np)==1) label(np) = 'pz'
+         if (mr(np)==2) label(np) = 'px'
+         if (mr(np)==3) label(np) = 'py'
+      end if
+      if (l(np)==2) then   ! d orbitals
+         if (mr(np)==1) label(np) = 'dz2'
+         if (mr(np)==2) label(np) = 'dxz'
+         if (mr(np)==3) label(np) = 'dyz'
+         if (mr(np)==4) label(np) = 'dx2-y2'
+         if (mr(np)==5) label(np) = 'dxy'
+      endif
+      if (l(np)==3) then   ! f orbitals
+         if (mr(np)==1) label(np) = 'fz3'  
+         if (mr(np)==2) label(np) = 'fxz2'
+         if (mr(np)==3) label(np) = 'fyz2'
+         if (mr(np)==4) label(np) = 'fz(x2-y2)'
+         if (mr(np)==5) label(np) = 'fxyz'
+         if (mr(np)==6) label(np) = 'fx(x2-3y2)'
+         if (mr(np)==7) label(np) = 'fy(3x2-y2)'
+      endif
+      if (l(np)==-1) then  !  sp hybrids
+         if (mr(np)==1) label(np) = 'sp-1' 
+         if (mr(np)==2) label(np) = 'sp-2'
+      end if
+      if (l(np)==-2) then  !  sp2 hybrids 
+         if (mr(np)==1) label(np) = 'sp2-1' 
+         if (mr(np)==2) label(np) = 'sp2-2'
+         if (mr(np)==3) label(np) = 'sp2-3'
+      end if
+      if (l(np)==-3) then  !  sp3 hybrids
+         if (mr(np)==1) label(np) = 'sp3-1'
+         if (mr(np)==2) label(np) = 'sp3-2'
+         if (mr(np)==3) label(np) = 'sp3-3'
+         if (mr(np)==4) label(np) = 'sp3-4'
+      end if
+      if (l(np)==-4) then  !  sp3d hybrids
+         if (mr(np)==1) label(np) = 'sp3d-1'
+         if (mr(np)==2) label(np) = 'sp3d-2'
+         if (mr(np)==3) label(np) = 'sp3d-3'
+         if (mr(np)==4) label(np) = 'sp3d-4'
+         if (mr(np)==5) label(np) = 'sp3d-5'
+      end if
+      if (l(np)==-5) then  ! sp3d2 hybrids
+         if (mr(np)==1) label(np) = 'sp3d2-1'
+         if (mr(np)==2) label(np) = 'sp3d2-2'
+         if (mr(np)==3) label(np) = 'sp3d2-3'
+         if (mr(np)==4) label(np) = 'sp3d2-4'
+         if (mr(np)==5) label(np) = 'sp3d2-5'
+         if (mr(np)==6) label(np) = 'sp3d2-6'
+      end if
+   end do   
+
+   ! count the number of projector types
+   ntype = 0
+   l_used = -99
+   mr_used =-99
+   loop_np1: do np = 1, nproj
+      !Check wether we have already used this projector type
+      do np2 = 1,nproj
+         if(l(np) == l_used(np2) .and. mr(np) == mr_used(np2)) then
+            cycle loop_np1
+         end if
+      end do
+      ntype=ntype+1
+      l_used(ntype) = l(np)
+      mr_used(ntype) = mr(np)
+   end do loop_np1
+
+   allocate(Wpweight(nwann,ntype),stat=i_stat)
+   call memocc(i_stat,Wpweight,'Wpweight',subname)
+   allocate(Wplabel(ntype),stat=i_stat)
+   call memocc(i_stat,Wplabel,'Wplabel',subname)
+
+   ! Construct the weights of each type
+   ii = 0
+   l_used = -99
+   mr_used =-99
+   Wpweight = 0.0d0
+   Wplabel = 'unspec'
+   loop_np: do np = 1, nproj
+      !Check wether we have already used this projector type
+      do np2 = 1,nproj
+         if(l(np) == l_used(np2) .and. mr(np) == mr_used(np2)) then
+            cycle loop_np
+         end if
+      end do
+      ii=ii+1
+      l_used(ii) = l(np)
+      mr_used(ii) = mr(np)
+      do np2 = 1, nproj
+         if(l(np2) == l(np) .and. mr(np2) == mr(np)) then
+            do iwann = 1, nwann
+              Wpweight(iwann,ii) = Wpweight(iwann,ii) + tmatrix(iwann,np2)**2
+              Wplabel(ii) = label(np)
+            end do
+         end if
+      end do
+   end do loop_np
+
+   allocate(norm(nwann), stat=i_stat)
+   call memocc(i_stat,norm,'norm',subname)
+
+   !calcualte norm
+   norm = 0.0d0
+   do iwann=1,nwann
+      do np=1,ntype
+         norm(iwann) = norm(iwann) + Wpweight(iwann,np)**2
+      end do
+      norm(iwann) = sqrt(norm(iwann))
+   end do
+
+   ! Print the information
+!   if(iproc==0) then
+     write(*,*) 'Analysis of the symmetry types of the Wannier functions'
+     write(num,'(I2)') ntype
+     forma = '(15x,'//trim(num)//'(A,6x))'
+     write(*,trim(forma))(Wplabel(ii),ii=1,ntype)
+     forma = '(I3,2x,I3,2x,'//trim(num)//'(E14.6,2x))'
+     do iwann = 1, plotwann
+        iiwann = wann_list(iwann)
+        write(*,trim(forma)) iiwann, iwann, (Wpweight(iiwann,ii)/norm(iiwann), ii=1,ntype)
+     end do
+!   end if
+
+    i_all = -product(shape(norm))*kind(norm)
+    deallocate(norm,stat=i_stat)
+    call memocc(i_stat,i_all,'norm',subname)
+    i_all = -product(shape(Wpweight))*kind(Wpweight)
+    deallocate(Wpweight,stat=i_stat)
+    call memocc(i_stat,i_all,'Wpweight',subname)
+    i_all = -product(shape(Wplabel))*kind(Wplabel)
+    deallocate(Wplabel,stat=i_stat)
+    call memocc(i_stat,i_all,'Wplabel',subname)
+
+end subroutine character_list
 
 !!$subroutine build_stereographic_graph(natoms,proj,nsurf,ncenters,Zatoms,normal,NeglectPoint)
 !!$   use module_interfaces

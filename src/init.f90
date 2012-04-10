@@ -326,6 +326,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
    allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,proj,'proj',subname)
+   call to_zero(nlpspd%nprojel,proj(1))
 
    ! After having determined the size of the projector descriptor arrays fill them
    do iat=1,at%nat
@@ -1818,7 +1819,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-        energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,input%SIC,GPUe,&
+        energs,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))

@@ -291,7 +291,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg,tag
-  real(gp) :: hxh,hyh,hzh,eks,epot_sum,ekin_sum,eexctX,eproj_sum,eSIC_DC,t1,t2,time,tt,ddot,dsum
+  real(gp) :: hxh,hyh,hzh,eks,t1,t2,time,tt,ddot,dsum
   integer, dimension(:,:), allocatable :: norbsc_arr
   !real(wp), dimension(:), allocatable :: potxc
   !real(dp), dimension(:,:), pointer :: rho_p
@@ -304,7 +304,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   logical,dimension(:),allocatable:: covered
   !real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
+  logical:: withConfinement, isoverlap, ovrlpx, ovrlpy, ovrlpz
   logical,dimension(:),allocatable:: doNotCalculate, skip
   integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp
   integer :: ldim,gdim,ierr,jlr,kk,iiorb,ndim_lhchi,ii_orbs,ii_comp
@@ -312,9 +312,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer:: norbTarget,norbpTemp,isorbTemp, ncount, infoCoeff
   !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
+  type(energy_terms) :: energs
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
-  real(8):: ehart, eexcu, vexcu, ebs
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -478,7 +478,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
-  !print *,'here',tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp
   allocate(lchi2(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp)),stat=istat)
   call memocc(istat,lchi2,'lchi2',subname)
   lchi2=0.d0
@@ -592,7 +591,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call deallocate_local_zone_descriptors(tmbgauss%lzd, subname)
 
-  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,ehart,eexcu,vexcu)
+  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,&
+       energs%eh,energs%exc,energs%evxc)
 
 !!$  
 !!$  if(orbs%nspinor==4) then
@@ -644,10 +644,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
-
-
   !call dcopy(tmbig%orbs%npsidim,psi,1,hpsi,1)
-  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
+  if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
   
   ! Set localnorb, i.e. the number of orbitals a given process has in a specific loalization region.
@@ -683,17 +681,21 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ndim_lhchi=0
   !do ilr=1,tmbig%lzd%nlr
   do ilr=1,lzd%nlr
-      call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+      !call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,tmbig%orbs%norbp
           onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbig%orbs%inwhichlocreg(ilr)
           jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
           if(tmbig%orbs%inWhichlocreg(jorb+tmbig%orbs%isorb)/=jlr) stop 'this should not happen'
           call getIndices(tmbig%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(ilr),tmbig%lzd%llr(jlr),isoverlap)
+          !call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+          !ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+          !ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+          !ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+          !if((ovrlpx .and. ovrlpy .and. ovrlpz) .neqv. isoverlap) print *,'ilr, jlr,ovrlps',ilr,jlr,ovrlpx,ovrlpy,ovrlpz ,isoverlap
+          !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+           if(isoverlap) then
               skip(ilr)=.false.
           end if
       end do
@@ -739,10 +741,15 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           onWhichAtomTemp(tmbig%orbs%isorb+jorb)=lorbs%onwhichatom(ilr)
           jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
           call getIndices(tmbig%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          !!call check_overlap_cubic_periodic(tmbig%lzd%Glr,tmbig%lzd%llr(tmbig%orbs%inwhichlocreg(ilr)),&
+          !!     tmbig%lzd%llr(jlr),isoverlap)
+          call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(lorbs%inwhichlocreg(ilr)),&
+               tmbig%lzd%llr(jlr),isoverlap)
+          !ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+          !ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+          !ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+         !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          if(isoverlap) then
               doNotCalculate(jlr)=.false.
               tmbig%lzd%doHamAppl(jlr)=.true.
               skip(ilr)=.false.
@@ -765,11 +772,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
                   tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
-                  ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
+                  energs,input%SIC,GPU,.false.,&
                   pkernel=denspot%pkernelseq)
              call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                   rxyz,&
-                  proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),eproj_sum)
+                  proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
              deallocate(confdatarr)
           end if
       else
@@ -778,6 +785,18 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       if(iproc==0) write(*,'(a)') 'done.'
   end do
 
+!!open(22,file='lchi',status='unknown')
+!!do jproc=1,max(lig%orbsig%npsidim_orbs,lig%orbsig%npsidim_comp)
+!!write(22,*)lchi(jproc)
+!!end do
+!!close(22)
+!!open(22,file='lhchi',status='unknown')
+!!do jproc=1,max(lig%orbsig%npsidim_orbs,lig%orbsig%npsidim_comp)
+!!do jorb=1,ndim_lhchi
+!!write(22,*)lhchi(jproc,jorb)
+!!end do
+!!end do
+!!close(22)
 
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(tmbig%comgp, subname)
@@ -789,7 +808,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(denspot%pot_full, stat=istat)
   call memocc(istat, iall, 'denspot%pot_full', subname)
    if(ii/=ndim_lhchi) then
-      write(*,'(a,i0,a,2i9)') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if
   call mpi_barrier(mpi_comm_world, ierr)
@@ -830,7 +849,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
            nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
   end if
 
-
   iall=-product(shape(lhchi))*kind(lhchi)
   deallocate(lhchi, stat=istat)
   call memocc(istat, iall, 'lhchi',subname)
@@ -847,7 +865,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb)
   ! Deallocate the buffers needed for the communication of the potential.
@@ -4110,10 +4128,11 @@ type(collective_comms):: collcom_vectors
       !!     comonig, opig, madig, lphi)
       call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
            comonig, opig, madig, collcomig, collcom, lphi)
-  !!else
-  !!    !! THIS WAS THE ORIGINAL, BUT NOT WORKING.
-  !!    call buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, tag, lphi)
-  !!end if
+      if(lzdig%Glr%geocode /= 'F') then
+         write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
+         call mpi_finalize(iall)
+         stop
+      end if
 
   ! Deallocate the remaining local array.
   iall=-product(shape(coeff))*kind(coeff)

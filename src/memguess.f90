@@ -1328,6 +1328,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       read(filename(i+1:i+1),*) code
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
+!ispinor = 1; ispin = 1 ; ikpt=1 
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else

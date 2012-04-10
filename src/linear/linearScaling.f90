@@ -59,13 +59,14 @@ real(8):: ddot, tt1, tt2, tt3
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmb%orbs, tmb%comms)
+
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmbder%orbs, tmbder%comms)
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
-  call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+  call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
 
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
@@ -173,6 +174,7 @@ real(8):: ddot, tt1, tt2, tt3
   tmb%wfnmd%bs%update_phi=.false.
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
   !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)

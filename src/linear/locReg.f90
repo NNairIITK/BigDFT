@@ -684,7 +684,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          ln3 = iez-isz
     
     
-         ! Localization regions should always have free boundary conditions
+         ! Localization regions should have free boundary conditions by default
          Llr(ilr)%geocode='F'
     
          !assign the starting/ending points and outofzone for the different
@@ -730,7 +730,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
             end if
-
             if(xperiodic .and. zperiodic) then
               Llr(ilr)%geocode = 'S'
             end if    
@@ -921,7 +920,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
 
-   !starting point of locreg (always inside locreg)
+   !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
    isdir(3) = Llr(ilr)%ns3
@@ -1001,7 +1000,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
-
 
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd,subname)
