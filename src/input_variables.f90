@@ -7,38 +7,58 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine set_inputfile(filename, radical, ext)
+  implicit none
+  character(len = 100), intent(out) :: filename
+  character(len = *), intent(in) :: radical, ext
+  
+  logical :: exists
+
+  write(filename, "(A)") ""
+  if (trim(radical) == "") then
+     write(filename, "(A,A,A)") "input", ".", trim(ext)
+  else
+     write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+  end if
+
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+       & write(filename, "(A,A,A)") "default", ".", trim(ext)
+end subroutine set_inputfile
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs, radical)
+subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
+  use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
+  integer, intent(in) :: nproc
 
-  character(len = 128) :: rad
+  integer :: ierr
 
-  write(rad, "(A)") ""
-  write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
+  call set_inputfile(inputs%file_dft, radical,    "dft")
+  call set_inputfile(inputs%file_geopt, radical,  "geopt")
+  call set_inputfile(inputs%file_kpt, radical,    "kpt")
+  call set_inputfile(inputs%file_perf, radical,   "perf")
+  call set_inputfile(inputs%file_tddft, radical,  "tddft")
+  call set_inputfile(inputs%file_mix, radical,    "mix")
+  call set_inputfile(inputs%file_sic, radical,    "sic")
+  call set_inputfile(inputs%file_occnum, radical, "occ")
+  call set_inputfile(inputs%file_igpop, radical,  "occup")
+  call set_inputfile(inputs%file_lin, radical,    "lin")
 
-  inputs%file_dft=trim(rad) // '.dft'
-  inputs%file_geopt=trim(rad) // '.geopt'
-  inputs%file_kpt=trim(rad) // '.kpt'
-  inputs%file_perf=trim(rad) // '.perf'
-  inputs%file_tddft=trim(rad) // '.tddft'
-  inputs%file_mix=trim(rad) // '.mix'
-  inputs%file_sic=trim(rad) // '.sic'
-  inputs%file_occnum=trim(rad) // '.occ'
-  inputs%file_igpop=trim(rad) // '.occup'
-  inputs%file_lin=trim(rad) // '.lin'
-
-  if (trim(rad) == "input") then
+  if (trim(radical) == "input") then
      inputs%dir_output="data"
   else
-     inputs%dir_output="data-"//trim(rad)
+     inputs%dir_output="data-"//trim(radical)
   end if
 
   inputs%files = INPUTS_NONE
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
@@ -397,7 +417,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
@@ -414,7 +434,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   call input_free((iproc == 0) .and. dump)
 
   !put the startmix if the mixing has to be done
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
 
@@ -1690,13 +1710,13 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               !end if
               stop
@@ -1707,7 +1727,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      end do
      if (verb) then
         write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
+             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 

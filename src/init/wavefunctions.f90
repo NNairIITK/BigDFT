@@ -15,7 +15,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
-  integer :: mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
@@ -592,7 +591,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, iiorb, iorb, ierr, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -643,7 +642,7 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -666,3 +665,51 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 
 
 end subroutine repartitionOrbitals2
+
+subroutine lzd_set_hgrids(Lzd, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: Lzd
+  real(gp), intent(in) :: hgrids(3)
+  !initial values
+  Lzd%hgrids = hgrids
+end subroutine lzd_set_hgrids
+
+subroutine inputs_parse_params(in, iproc, dump)
+  use module_types
+  use module_xc
+  implicit none
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+
+  ! Parse all values independant from atoms.
+  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
+  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
+  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
+  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
+  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+end subroutine inputs_parse_params
+
+subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  type(symmetry_data), intent(in) :: sym
+  character, intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+
+  ! Read k-points input variables (if given)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
+end subroutine inputs_parse_add

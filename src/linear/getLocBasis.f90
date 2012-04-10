@@ -89,7 +89,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   end if
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmbmix%comgp)
+  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -102,7 +102,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,tmbmix%psi,lhphi,&
+       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
        energs,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
@@ -119,9 +119,9 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
 
 
 
-  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  deallocate(denspot%pot_full, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_full', subname)
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
@@ -419,7 +419,7 @@ type(energy_terms) :: energs
 
       ! Build the required potential
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
 
 
@@ -589,7 +589,7 @@ print *,'ENTERING Large ortho'
 
           ! Build the required potential
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
+          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
 !print *,'nlpspd%nprojel',nlpspd%nprojel
 !open(22,file='proj',status='unknown')
@@ -600,7 +600,7 @@ print *,'ENTERING Large ortho'
 !stop
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
+           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
            energs,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 
@@ -611,9 +611,9 @@ print *,'ENTERING Large ortho'
    
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Deallocate potential
-          iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-          deallocate(denspot%pot_full, stat=istat)
-          call memocc(istat, iall, 'denspot%pot_full', subname)
+          iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+          deallocate(denspot%pot_work, stat=istat)
+          call memocc(istat, iall, 'denspot%pot_work', subname)
       end if
 
   
@@ -647,6 +647,7 @@ print *,'ENTERING Large ortho'
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
+  
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
@@ -716,9 +717,9 @@ print *,'ENTERING Large ortho'
 
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Deallocate potential
-      iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-      deallocate(denspot%pot_full, stat=istat)
-      call memocc(istat, iall, 'denspot%pot_full', subname)
+      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work, stat=istat)
+      call memocc(istat, iall, 'denspot%pot_work', subname)
   end if
 
 

@@ -4,6 +4,12 @@ subroutine memocc_report()
   call mreport()
 end subroutine memocc_report
 
+subroutine memocc_verbose()
+  use m_profiling, only: mstate => memocc_set_state
+  implicit none
+  call mstate(2)
+end subroutine memocc_verbose
+
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -193,16 +199,22 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
-subroutine lzd_new(lzd, glr)
+subroutine lzd_new(lzd)
   use module_types
   implicit none
   type(local_zone_descriptors), pointer :: lzd
-  type(locreg_descriptors), pointer :: glr
 
   allocate(lzd)
-  glr => lzd%glr
-  call nullify_local_zone_descriptors(lzd)
 end subroutine lzd_new
+subroutine lzd_init(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), target, intent(inout) :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  call nullify_local_zone_descriptors(lzd)
+  glr => lzd%glr
+end subroutine lzd_init
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -211,6 +223,13 @@ subroutine lzd_free(lzd)
   call deallocate_local_zone_descriptors(lzd, "lzd_free")
   deallocate(lzd)
 end subroutine lzd_free
+subroutine lzd_empty(lzd)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: lzd
+
+  call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
+END SUBROUTINE lzd_empty
 
 subroutine inputs_new(in)
   use module_types
@@ -228,11 +247,11 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_radical(in, rad, ln)
+subroutine inputs_set_radical(in, nproc, rad, ln)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: ln
+  integer, intent(in) :: ln, nproc
   character, intent(in) :: rad(ln)
 
   character(len = 1024) :: rad_
@@ -242,44 +261,9 @@ subroutine inputs_set_radical(in, rad, ln)
   do i = 1, ln
      write(rad_(i:i), "(A1)") rad(i)
   end do
-  call standard_inputfile_names(in, rad_)
+  call standard_inputfile_names(in, rad_, nproc)
 end subroutine inputs_set_radical
-subroutine inputs_parse_params(in, iproc, dump)
-  use module_types
-  use module_xc
-  implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
 
-  ! Parse all values independant from atoms.
-  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
-  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
-  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
-  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
-  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
-  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
-
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
-end subroutine inputs_parse_params
-subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  type(symmetry_data), intent(in) :: sym
-  character, intent(in) :: geocode
-  real(gp), intent(in) :: alat(3)
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
-end subroutine inputs_parse_add
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
@@ -380,25 +364,50 @@ subroutine orbs_new(orbs)
   type(orbitals_data), pointer :: orbs
 
   allocate(orbs)
-  call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_new
+subroutine orbs_init(orbs)
+  use module_types
+  implicit none
+  type(orbitals_data), intent(inout) :: orbs
+
+  call nullify_orbitals_data(orbs)
+END SUBROUTINE orbs_init
 subroutine orbs_free(orbs)
   use module_types
   use m_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
+  deallocate(orbs)
+END SUBROUTINE orbs_free
+subroutine orbs_empty(orbs)
+  use module_types
+  use m_profiling
+  implicit none
+  type(orbitals_data), intent(inout) :: orbs
+
   integer :: i_all, i_stat
 
-  call deallocate_orbs(orbs,"orbs_free")
+  if (associated(orbs%norb_par)) then
+     call deallocate_orbs(orbs,"orbs_empty")
+  end if
   if (associated(orbs%eval)) then
      i_all=-product(shape(orbs%eval))*kind(orbs%eval)
      deallocate(orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%eval',"orbs_free")
+     call memocc(i_stat,i_all,'orbs%eval',"orbs_empty")
   end if
-  deallocate(orbs)
-END SUBROUTINE orbs_free
-subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
+END SUBROUTINE orbs_empty
+subroutine orbs_comm_new(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), pointer :: comms
+
+  allocate(comms)
+  nullify(comms%nvctr_par)
+end subroutine orbs_comm_new
+subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
   use module_interfaces
@@ -406,11 +415,10 @@ subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), pointer :: comms
+  type(communications_arrays), intent(inout) :: comms
 
-  allocate(comms)
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
-end subroutine orbs_comm
+end subroutine orbs_comm_init
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
@@ -418,9 +426,19 @@ subroutine orbs_comm_free(comms)
   implicit none
   type(communications_arrays), pointer :: comms
 
-  call deallocate_comms(comms,"orbs_comm_free")
   deallocate(comms)
 end subroutine orbs_comm_free
+subroutine orbs_comm_empty(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), intent(inout) :: comms
+
+  if (associated(comms%nvctr_par)) then
+     call deallocate_comms(comms,"orbs_comm_empty")
+  end if
+end subroutine orbs_comm_empty
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types
@@ -441,6 +459,38 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   isorb = orbs%isorb
   iskpts = orbs%iskpts
 END SUBROUTINE orbs_get_dimensions
+subroutine orbs_get_eval(orbs, eval)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(wp), dimension(:), pointer :: eval
+  
+  eval => orbs%eval
+END SUBROUTINE orbs_get_eval
+subroutine orbs_get_occup(orbs, occup)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:), pointer :: occup
+  
+  occup => orbs%occup
+END SUBROUTINE orbs_get_occup
+subroutine orbs_get_kpts(orbs, kpts)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:,:), pointer :: kpts
+  
+  kpts => orbs%kpts
+END SUBROUTINE orbs_get_kpts
+subroutine orbs_get_kwgts(orbs, kwgts)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  real(gp), dimension(:), pointer :: kwgts
+  
+  kwgts => orbs%kwgts
+END SUBROUTINE orbs_get_kwgts
 
 subroutine proj_new(nlpspd)
   use module_types
@@ -473,9 +523,10 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
-subroutine localfields_new(denspotd, rhod, dpcom)
+subroutine localfields_new(self, denspotd, rhod, dpcom)
   use module_types
   implicit none
+  double precision, intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
   type(denspot_distribution), pointer :: dpcom
   type(rho_descriptors), pointer :: rhod
@@ -483,6 +534,7 @@ subroutine localfields_new(denspotd, rhod, dpcom)
   allocate(denspotd)
   rhod => denspotd%rhod
   dpcom => denspotd%dpcom
+  denspotd%c_obj = self
 END SUBROUTINE localfields_new
 subroutine localfields_free(denspotd)
   use module_types
@@ -602,6 +654,75 @@ subroutine gpu_free(GPU)
   deallocate(GPU)
 END SUBROUTINE gpu_free
 
+subroutine wf_new(self, wf, orbs, comm, lzd)
+  use module_types
+  implicit none
+  double precision, intent(in) :: self
+  type(DFT_wavefunction), pointer :: wf
+  type(orbitals_data), pointer :: orbs
+  type(communications_arrays), pointer :: comm
+  type(local_zone_descriptors), pointer :: lzd
+
+  allocate(wf)
+  wf%c_obj = self
+  nullify(wf%psi)
+  nullify(wf%hpsi)
+  nullify(wf%psit)
+  nullify(wf%spsi)
+  orbs => wf%orbs
+  comm => wf%comms
+  nullify(wf%comms%nvctr_par)
+  lzd => wf%Lzd
+end subroutine wf_new
+subroutine wf_empty(wf)
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: wf
+
+  integer :: i_all, i_stat
+
+  if (associated(wf%psi)) then
+     i_all=-product(shape(wf%psi))*kind(wf%psi)
+     deallocate(wf%psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi', "wf_empty")
+  end if
+  if (associated(wf%psit)) then
+     i_all=-product(shape(wf%psit))*kind(wf%psit)
+     deallocate(wf%psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit', "wf_empty")
+  end if
+  if (associated(wf%hpsi)) then
+     i_all=-product(shape(wf%hpsi))*kind(wf%hpsi)
+     deallocate(wf%hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi', "wf_empty")
+  end if
+END SUBROUTINE wf_empty
+subroutine wf_free(wf)
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_wavefunction), pointer :: wf
+
+  call orbs_comm_empty(wf%comms)
+  call orbs_empty(wf%orbs)
+  call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
+  deallocate(wf)
+end subroutine wf_free
+subroutine wf_get_psi(wf, psi)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(in) :: wf
+  double precision, intent(out) :: psi
+
+  interface
+     subroutine inquire_address1(add, pt_f)
+       double precision, dimension(:), pointer :: pt_f
+       double precision, intent(out) :: add
+     end subroutine inquire_address1
+  end interface
+  call inquire_address1(psi, wf%psi)
+end subroutine wf_get_psi
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
   implicit none
@@ -636,12 +757,12 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
   integer :: iorbtot
 
   iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
-  if (ispin == 0) iorbp = iorbp + (iorb - 1) * orbs%nspinor
-  if (ispin == 1) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
-  iorbp = iorbp + ispinor
+  if (ispin == 1) iorbp = iorbp + (iorb - 1) * orbs%nspinor
+  if (ispin == 2) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
+  iorbp = iorbp + ispinor - 1
 
   iorbtot = 0
-  do iproc = 0, size(orbs%norb_par, 1), 1
+  do iproc = 0, size(orbs%norb_par, 1) - 1, 1
      if (iorbp >= iorbtot .and. iorbp < orbs%norb_par(iproc, 0)) then
         iorbp = iorbp - iorbtot
         return
@@ -657,6 +778,46 @@ subroutine glr_get_psi_size(glr, psisize)
   implicit none
   type(locreg_descriptors), intent(in) :: glr
   integer, intent(out) :: psisize
-  
+
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
+
+subroutine energs_new(self, energs)
+  use module_types
+  implicit none
+  double precision, intent(in) :: self
+  type(energy_terms), pointer :: energs
+
+  allocate(energs)
+  energs%c_obj = self
+END SUBROUTINE energs_new
+subroutine energs_free(energs)
+  use module_types
+  implicit none
+  type(energy_terms), pointer :: energs
+
+  deallocate(energs)
+END SUBROUTINE energs_free
+subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
+     & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
+  use module_types
+  implicit none
+  type(energy_terms), intent(in) :: energs
+  real(gp), intent(out) :: eh, exc, evxc, eion, edisp, ekin, epot, eproj, &
+       & eexctX, ebs, eKS, trH, evsum, evsic
+
+  eh     = energs%eh
+  exc    = energs%exc
+  evxc   = energs%evxc
+  eion   = energs%eion
+  edisp  = energs%edisp
+  ekin   = energs%ekin
+  epot   = energs%epot
+  eproj  = energs%eproj
+  eexctX = energs%eexctX
+  ebs    = energs%ebs
+  eKS    = energs%eKS
+  trH    = energs%trH
+  evsum  = energs%evsum
+  evsic  = energs%evsic
+END SUBROUTINE energs_copy_data

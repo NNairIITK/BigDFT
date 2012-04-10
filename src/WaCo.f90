@@ -117,7 +117,7 @@ program WaCo
    !###################################################################
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
-   call standard_inputfile_names(input,radical)
+   call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
         outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff)

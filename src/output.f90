@@ -195,7 +195,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   end if
 
   ! Printing for mixing parameters.
-  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      if (input%iscf < 10) then
         write(potden, "(A)") "potential"
      else
@@ -381,7 +381,7 @@ subroutine write_input_parameters(in)!,atoms)
 !  yaml_indent=yaml_indent-3
 
 
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
      !yaml_indent=yaml_indent+3
        if (in%iscf < 10) then

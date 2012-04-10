@@ -12,6 +12,7 @@
 !!  and the routines of allocations and de-allocations
 module module_types
 
+  use m_ab6_mixing, only : ab6_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized
   implicit none
 
@@ -247,6 +248,8 @@ module module_types
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
+
+     double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -862,7 +865,9 @@ end type linear_scaling_control_variables
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is 
+     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is
+     
+     type(ab6_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !local fields which are associated to their name
      !normally given in parallel distribution
      real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN
@@ -872,7 +877,7 @@ end type linear_scaling_control_variables
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
      !temporary arrays
-     real(wp), dimension(:), pointer :: rho_full,pot_full !<full grid arrays
+     real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
      integer :: rhov_is
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
@@ -883,6 +888,7 @@ end type linear_scaling_control_variables
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
+     double precision :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -918,6 +924,7 @@ end type linear_scaling_control_variables
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
+     double precision :: c_obj !< Storage of the C wrapper object.
   end type DFT_wavefunction
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -1078,6 +1085,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
+    rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 
@@ -1191,7 +1199,7 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyglob',subname)
        nullify(wfd%keyglob)
     else
-       if(associated(wfd%keygloc)) then
+       if(associated(wfd%keyglob)) then
           i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
           deallocate(wfd%keyglob,stat=i_stat)
           call memocc(i_stat,i_all,'wfd%keyglob',subname)

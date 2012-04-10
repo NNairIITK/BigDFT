@@ -1788,6 +1788,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   nbx=0
   lmax=0
   ipg=0
+  ishell=0
   for_ngx: do
      if (ityp > ntypes) exit for_ngx
      read(35,'(a100)')line
@@ -2164,6 +2165,7 @@ function myshift(symbol)
   implicit none
   character(len=5), intent(in) :: symbol
   integer :: myshift
+  myshift=0
   if (symbol(2:2)=='s') then
      myshift=0
   else if (symbol(2:2)=='p') then
