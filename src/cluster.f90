@@ -382,7 +382,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
-          energy,fxyz)
+          energy)
 
      ! debug
 
@@ -392,8 +392,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!return
 
      !temporary allocation of the density
-     allocate(denspot%rho_full(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
-          denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug),stat=i_stat)
+     allocate(denspot%rho_full(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
+          denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug,1)),stat=i_stat)
      call memocc(i_stat,denspot%rho_full,'rho',subname)
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
           denspot%rhov(1),1,denspot%rho_full(1),1)

@@ -75,6 +75,8 @@ module module_types
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
   integer,parameter:: DECREASE_LINEAR=0
   integer,parameter:: DECREASE_ABRUPT=1
+  integer,parameter:: COMMUNICATION_COLLECTIVE=0
+  integer,parameter:: COMMUNICATION_P2P=1
   
 
   !> Type used for the orthogonalisation parameter
@@ -129,11 +131,11 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: confinement_decrease_mode
+    integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy
+    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
@@ -564,9 +566,9 @@ module module_types
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+    real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray, noverlapsmax, nrecv, nsend
+    integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
     logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
@@ -675,6 +677,18 @@ module module_types
       integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
   end type collectiveComms
 
+  type:: collective_comms
+    integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+    integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
+    integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
+    integer:: nptsp_c, ndimpsi_c
+    integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+    integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
+    integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
+    integer:: nptsp_f, ndimpsi_f
+  end type collective_comms
+
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -708,21 +722,29 @@ type,public:: workarrays_quartic_convolutions
   real(wp),dimension(:,:,:,:),pointer:: y_f
 end type workarrays_quartic_convolutions
 
+type:: linear_scaling_control_variables
+  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
+  real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg, self_consistent
+  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop, variable_locregs, compare_outer_loop
+  logical:: reduce_convergence_tolerance
+  real(8),dimension(:),allocatable:: locrad
+end type linear_scaling_control_variables
 
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
-    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
-    integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+    integer:: norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
+    integer,dimension(:),pointer:: nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
     !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
+    integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
     real(8):: trmin, trold, alphaSD, alphaDIIS
-    logical:: switchSD
+    logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
   type,public:: mixrhopotDIISParameters
@@ -731,16 +753,15 @@ end type workarrays_quartic_convolutions
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-  type,public:: linearInputGuess
-      type(local_zone_descriptors):: lzdig, lzdGauss
-      type(orbitals_data):: orbsig, orbsGauss
-      !type(p2pCommsOrthonormality):: comon
-      type(p2pComms):: comon
-      type(overlapParameters):: op
-      !type(p2pCommsGatherPot):: comgp
-      type(p2pComms):: comgp
-      type(matrixDescriptors):: mad
-  end type linearInputGuess
+  !!!type,public:: linearInputGuess
+  !!!    type(local_zone_descriptors):: lzdig, lzdGauss
+  !!!    type(orbitals_data):: orbsig, orbsGauss
+  !!!    type(p2pComms):: comon
+  !!!    type(overlapParameters):: op
+  !!!    type(p2pComms):: comgp
+  !!!    type(matrixDescriptors):: mad
+  !!!    type(collective_comms):: collcom
+  !!!end type linearInputGuess
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
@@ -797,6 +818,7 @@ end type workarrays_quartic_convolutions
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
     integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
+    integer:: communication_strategy_overlap
   end type basis_performance_options
 
   type,public:: wfn_metadata
@@ -895,6 +917,7 @@ end type workarrays_quartic_convolutions
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
+     type(collective_comms):: collcom ! describes collective communication
   end type DFT_wavefunction
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -1018,6 +1041,9 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
+    deallocate(orbs%onwhichatom,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)

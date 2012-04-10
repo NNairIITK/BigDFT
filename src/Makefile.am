@@ -372,6 +372,8 @@ low_level = \
 	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
+	linear/init_collective_comms.f90 \
+	linear/init_collective_comms_vectors.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

@@ -1080,3 +1080,26 @@ subroutine copy_orthon_data(odin, odout, subname)
   odout%blocksize_pdgemm=odin%blocksize_pdgemm
 
 end subroutine copy_orthon_data
+
+
+
+subroutine copy_basis_performance_options(bpoin, bpoout, subname)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(basis_performance_options),intent(in):: bpoin
+  type(basis_performance_options),intent(out):: bpoout
+  character(len=*),intent(in):: subname
+  
+  
+  bpoout%blocksize_pdgemm=bpoin%blocksize_pdgemm
+  bpoout%blocksize_pdsyev=bpoin%blocksize_pdsyev
+  bpoout%nproc_pdsyev=bpoin%nproc_pdsyev
+  bpoout%communication_strategy_overlap=bpoin%communication_strategy_overlap
+  
+end subroutine copy_basis_performance_options
+
+
+
