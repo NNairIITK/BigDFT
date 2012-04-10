@@ -246,6 +246,8 @@ module module_types
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
+
+     double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -907,6 +909,8 @@ end type linear_scaling_control_variables
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
+
+     double precision :: c_obj !< Storage of the C wrapper object.
   end type DFT_wavefunction
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -1067,6 +1071,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
+    rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 

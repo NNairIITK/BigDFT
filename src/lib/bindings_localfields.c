@@ -86,6 +86,7 @@ static void bigdft_localfields_finalize(GObject *obj)
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->finalize(obj);
+  /* g_debug("Freeing localfields object %p done.\n", obj); */
 #endif
 }
 void FC_FUNC_(denspot_emit_rhov, DENSPOT_EMIT_RHOV)(BigDFT_LocalFields **denspot,

@@ -4,6 +4,12 @@ subroutine memocc_report()
   call mreport()
 end subroutine memocc_report
 
+subroutine memocc_verbose()
+  use m_profiling, only: mstate => memocc_set_state
+  implicit none
+  call mstate(2)
+end subroutine memocc_verbose
+
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -217,6 +223,13 @@ subroutine lzd_free(lzd)
   call deallocate_local_zone_descriptors(lzd, "lzd_free")
   deallocate(lzd)
 end subroutine lzd_free
+subroutine lzd_empty(lzd)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: lzd
+
+  call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
+END SUBROUTINE lzd_empty
 
 subroutine inputs_new(in)
   use module_types
@@ -375,7 +388,9 @@ subroutine orbs_empty(orbs)
 
   integer :: i_all, i_stat
 
-  call deallocate_orbs(orbs,"orbs_empty")
+  if (associated(orbs%norb_par)) then
+     call deallocate_orbs(orbs,"orbs_empty")
+  end if
   if (associated(orbs%eval)) then
      i_all=-product(shape(orbs%eval))*kind(orbs%eval)
      deallocate(orbs%eval,stat=i_stat)
@@ -390,6 +405,7 @@ subroutine orbs_comm_new(comms)
   type(communications_arrays), pointer :: comms
 
   allocate(comms)
+  nullify(comms%nvctr_par)
 end subroutine orbs_comm_new
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
@@ -417,9 +433,11 @@ subroutine orbs_comm_empty(comms)
   use module_types
   use module_interfaces
   implicit none
-  type(communications_arrays), pointer :: comms
+  type(communications_arrays), intent(inout) :: comms
 
-  call deallocate_comms(comms,"orbs_comm_empty")
+  if (associated(comms%nvctr_par)) then
+     call deallocate_comms(comms,"orbs_comm_empty")
+  end if
 end subroutine orbs_comm_empty
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
@@ -636,54 +654,58 @@ subroutine gpu_free(GPU)
   deallocate(GPU)
 END SUBROUTINE gpu_free
 
-subroutine wf_new(wf, orbs, comm, lzd)
+subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
   implicit none
+  double precision, intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
   type(communications_arrays), pointer :: comm
   type(local_zone_descriptors), pointer :: lzd
 
   allocate(wf)
+  wf%c_obj = self
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
   nullify(wf%spsi)
   orbs => wf%orbs
   comm => wf%comms
+  nullify(wf%comms%nvctr_par)
   lzd => wf%Lzd
 end subroutine wf_new
-subroutine wf_free(wf)
+subroutine wf_empty(wf)
   use module_types
   use m_profiling
   implicit none
-  type(DFT_wavefunction), pointer :: wf
+  type(DFT_wavefunction), intent(inout) :: wf
 
   integer :: i_all, i_stat
 
   if (associated(wf%psi)) then
      i_all=-product(shape(wf%psi))*kind(wf%psi)
      deallocate(wf%psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi', "wf_free")
+     call memocc(i_stat,i_all,'psi', "wf_empty")
   end if
   if (associated(wf%psit)) then
      i_all=-product(shape(wf%psit))*kind(wf%psit)
      deallocate(wf%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit', "wf_free")
+     call memocc(i_stat,i_all,'psit', "wf_empty")
   end if
   if (associated(wf%hpsi)) then
      i_all=-product(shape(wf%hpsi))*kind(wf%hpsi)
      deallocate(wf%hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi', "wf_free")
+     call memocc(i_stat,i_all,'hpsi', "wf_empty")
   end if
-  call deallocate_diis_objects(wf%diis, "wf_free")
-  call deallocate_comms(wf%comms, "wf_free")
-  if (associated(wf%orbs%eval)) then
-     i_all=-product(shape(wf%orbs%eval))*kind(wf%orbs%eval)
-     deallocate(wf%orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'eval', "wf_free")
-  end if
-  call deallocate_orbs(wf%orbs, "wf_free")
+END SUBROUTINE wf_empty
+subroutine wf_free(wf)
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_wavefunction), pointer :: wf
+
+  call orbs_comm_empty(wf%comms)
+  call orbs_empty(wf%orbs)
   call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
   deallocate(wf)
 end subroutine wf_free
@@ -759,3 +781,43 @@ subroutine glr_get_psi_size(glr, psisize)
 
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
+
+subroutine energs_new(self, energs)
+  use module_types
+  implicit none
+  double precision, intent(in) :: self
+  type(energy_terms), pointer :: energs
+
+  allocate(energs)
+  energs%c_obj = self
+END SUBROUTINE energs_new
+subroutine energs_free(energs)
+  use module_types
+  implicit none
+  type(energy_terms), pointer :: energs
+
+  deallocate(energs)
+END SUBROUTINE energs_free
+subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
+     & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
+  use module_types
+  implicit none
+  type(energy_terms), intent(in) :: energs
+  real(gp), intent(out) :: eh, exc, evxc, eion, edisp, ekin, epot, eproj, &
+       & eexctX, ebs, eKS, trH, evsum, evsic
+
+  eh     = energs%eh
+  exc    = energs%exc
+  evxc   = energs%evxc
+  eion   = energs%eion
+  edisp  = energs%edisp
+  ekin   = energs%ekin
+  epot   = energs%epot
+  eproj  = energs%eproj
+  eexctX = energs%eexctX
+  ebs    = energs%ebs
+  eKS    = energs%eKS
+  trH    = energs%trH
+  evsum  = energs%evsum
+  evsic  = energs%evsic
+END SUBROUTINE energs_copy_data

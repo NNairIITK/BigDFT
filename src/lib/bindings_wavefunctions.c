@@ -46,7 +46,6 @@ static void bigdft_orbs_dispose(GObject *obj)
     return;
   orbs->dispose_has_run = TRUE;
 
-  g_object_unref(G_OBJECT(orbs->glr));
   if (orbs->data)
     FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
   if (orbs->comm)
@@ -70,11 +69,9 @@ static void bigdft_orbs_finalize(GObject *obj)
 #endif
 }
 
-BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
-                             guint iproc, guint nproc, guint *nelec)
+BigDFT_Orbs* bigdft_orbs_new()
 {
   BigDFT_Orbs *orbs;
-  int nelec_, verb = 0;
 
 #ifdef HAVE_GLIB
   orbs = BIGDFT_ORBS(g_object_new(BIGDFT_ORBS_TYPE, NULL));
@@ -85,9 +82,6 @@ BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
 
   FC_FUNC_(orbs_new, ORBS_NEW)(&orbs->data);
   FC_FUNC_(orbs_init, ORBS_INIT)(orbs->data);
-  nelec_ = bigdft_orbs_define(orbs, lzd, in, iproc, nproc);
-  if (nelec)
-    *nelec = nelec_;
   
   return orbs;
 }
@@ -100,24 +94,20 @@ void bigdft_orbs_free(BigDFT_Orbs *orbs)
   g_free(orbs);
 #endif
 }
-guint bigdft_orbs_define(BigDFT_Orbs *orbs,
-                         const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
+guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
                          guint iproc, guint nproc)
 {
   int nelec_, verb = 0;
 
   orbs->in = in;
-#ifdef HAVE_GLIB
-  if (orbs->glr)
-    g_object_unref(G_OBJECT(orbs->glr));
-  g_object_ref(G_OBJECT(BIGDFT_LOCREG(lzd)));
-#endif
-  orbs->glr = BIGDFT_LOCREG(lzd);
+  FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
   FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
                                                            lzd->parent.parent.data,
                                                            orbs->data, &nelec_);
   if (!orbs->comm)
     FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(&orbs->comm);
+  else
+    FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(orbs->comm);
   FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(orbs->comm, orbs->data,
                                            BIGDFT_LOCREG(lzd)->data, &iproc, &nproc);
   
@@ -131,10 +121,6 @@ guint bigdft_orbs_define(BigDFT_Orbs *orbs,
   GET_ATTR_DBL   (orbs, ORBS, kwgts, KWGTS);
   GET_ATTR_DBL_2D(orbs, ORBS, kpts,  KPTS);
 
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, in->data, lzd->data, lzd->parent.parent.data,
-     orbs->data, lzd->parent.parent.rxyz.data);
-  
   return nelec_;
 }
 
@@ -227,13 +213,15 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
 
 static void bigdft_wf_init(BigDFT_Wf *obj)
 {
+  double self;
+
 #ifdef HAVE_GLIB
   memset((void*)((char*)obj + sizeof(BigDFT_Orbs)), 0, sizeof(BigDFT_Wf) - sizeof(BigDFT_Orbs));
 #else
   memset(obj, 0, sizeof(BigDFT_Wf));
 #endif
-  
-  FC_FUNC_(wf_new, WF_NEW)(&obj->data, &obj->parent.data, &obj->parent.comm,
+  self = *((double*)&obj);
+  FC_FUNC_(wf_new, WF_NEW)(&self, &obj->data, &obj->parent.data, &obj->parent.comm,
                            &obj->data_lzd);
   FC_FUNC_(orbs_init, ORBS_INIT)(obj->parent.data);
   FC_FUNC_(wf_get_psi, WF_GET_PSI)(obj->data, &obj->psi);
@@ -254,6 +242,8 @@ static void bigdft_wf_dispose(GObject *obj)
   wf->lzd->data = (void*)0;
   g_object_unref(G_OBJECT(wf->lzd));
 
+  FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
+
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_wf_parent_class)->dispose(obj);
 #endif
@@ -266,7 +256,15 @@ static void bigdft_wf_finalize(GObject *obj)
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_wf_parent_class)->finalize(obj);
+  /* g_debug("Freeing wf object %p done.\n", obj); */
 #endif
+}
+void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
+{
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(*wf), bigdft_wf_signals[PSI_READY_SIGNAL],
+                0 /* details */, *istep, NULL);
+#endif  
 }
 
 BigDFT_Wf* bigdft_wf_new()
@@ -293,6 +291,21 @@ void bigdft_wf_free(BigDFT_Wf *wf)
   g_free(wf);
 #endif
 }
+guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
+{
+  int nelec;
+
+  nelec = bigdft_orbs_define(&wf->parent, wf->lzd, in, iproc, nproc);
+  
+  FC_FUNC_(lzd_empty, LZD_EMPTY)(wf->lzd->data);
+  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+    (&iproc, &nproc, in->data, wf->lzd->data, wf->lzd->parent.parent.data,
+     wf->parent.data, wf->lzd->parent.parent.rxyz.data);
+
+  FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
+
+  return nelec;
+}
 void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT_Proj *proj,
                               guint iproc, guint nproc)
 {
@@ -316,6 +329,38 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[PSI_READY_SIGNAL],
 		0 /* details */, 0, NULL);
 #endif
+}
+guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                  BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                  guint iproc, guint nproc, BigDFT_optLoopParams *params)
+{
+  guint infocode, itrp, icycle, iter;
+  guint inputpsi = 0;
+  double xcstr[6];
+  void *GPU;
+  BigDFT_optLoopParams p;
+
+  if (params)
+    p = *params;
+  else
+    bigdft_optloopparams_init(&p);
+  FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
+  FC_FUNC_(kswfn_optimization_loop, KSWFN_OPTIMIZATION_LOOP)
+    (&infocode, &itrp, &icycle, &iter, &iproc, &nproc,
+     &p.iscf, &p.itrpmax, &p.nrepmax, &p.itermax, &p.gnrm_cv, &p.rpnrm_cv,
+     &p.gnrm_startmix, &p.alphamix, &p.idsx, &inputpsi,
+     wf->data, denspot->data, proj->nlpspd, &proj->proj,
+     energs->data, BIGDFT_ATOMS(wf->lzd)->data, BIGDFT_ATOMS(wf->lzd)->rxyz.data,
+     GPU, xcstr, wf->parent.in->data);
+  FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
+    (energs->data, &energs->eh, &energs->exc,
+     &energs->evxc, &energs->eion, &energs->edisp,
+     &energs->ekin, &energs->epot, &energs->eproj,
+     &energs->eexctX, &energs->ebs, &energs->eKS,
+     &energs->trH, &energs->evsum, &energs->evsic);
+  FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
+
+  return infocode;
 }
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
@@ -377,6 +422,7 @@ typedef struct bigdft_data
   BigDFT_Proj         *proj;
   BigDFT_LocalFields  *denspot;
   BigDFT_Wf           *wf;
+  BigDFT_Energs       *energs;
 } BigDFT_Data;
 static gpointer wf_optimization_thread(gpointer data)
 {
@@ -384,17 +430,20 @@ static gpointer wf_optimization_thread(gpointer data)
   
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->in, ct->iproc, ct->nproc);
   bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->iproc, ct->nproc);
+  bigdft_wf_optimization_loop(ct->wf, ct->denspot, ct->proj, ct->energs,
+                              ct->iproc, ct->nproc, (BigDFT_optLoopParams*)0);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(ct->wf));
   g_object_unref(G_OBJECT(ct->denspot));
-  /* g_object_unref(G_OBJECT(ct->proj)); */
+  g_object_unref(G_OBJECT(ct->energs));
+  g_object_unref(G_OBJECT(ct->proj));
 #endif
   g_free(ct);
-  
+
   return (gpointer)0;
 }
 void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
-                            const BigDFT_Inputs *in,
+                            BigDFT_Energs *energs, const BigDFT_Inputs *in,
                             gboolean threaded, guint iproc, guint nproc)
 {
   BigDFT_Data *ct;
@@ -410,9 +459,12 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
   ct->in      = in;
   ct->proj    = proj;
   ct->wf      = wf;
+  ct->energs  = energs;
 #ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(wf));
   g_object_ref(G_OBJECT(denspot));
+  g_object_ref(G_OBJECT(proj));
+  g_object_ref(G_OBJECT(energs));
 #endif
 #ifdef G_THREADS_ENABLED
   if (threaded)
@@ -422,4 +474,17 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
 #else
   wf_optimization_thread(ct);
 #endif
+}
+
+void bigdft_optloopparams_init(BigDFT_optLoopParams *params)
+{
+  params->iscf = 0;
+  params->itrpmax = 1;
+  params->nrepmax = 1;
+  params->itermax = 50;
+  params->gnrm_cv = 1e-4;
+  params->rpnrm_cv = 1e-4;
+  params->gnrm_startmix = 0.;
+  params->alphamix = 0.;
+  params->idsx = 6;
 }

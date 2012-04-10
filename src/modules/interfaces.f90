@@ -71,6 +71,28 @@ module module_interfaces
         real(gp), dimension(3*at%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
+      subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
+           & iscf, itrpmax, nrepmax, itermax, gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix, idsx, &
+           & inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
+           & in)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(out) :: infocode, itrp, icycle, iter
+        real(dp), dimension(6), intent(out) :: xcstr
+        integer, intent(in) :: iproc, nproc, itrpmax, nrepmax, itermax, iscf, idsx, inputpsi
+        real(gp), intent(in) :: gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix
+        type(DFT_wavefunction), intent(inout) :: KSwfn
+        type(DFT_local_fields), intent(inout) :: denspot
+        type(energy_terms), intent(inout) :: energs
+        type(atoms_data), intent(in) :: atoms
+        type(GPU_pointers), intent(inout) :: GPU
+        type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+        real(kind=8), dimension(:), pointer :: proj
+        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+        type(input_variables), intent(in) :: in !<todo: Remove me
+      END SUBROUTINE kswfn_optimization_loop
+
      subroutine timing(iproc,category,action)
        implicit none
        integer, intent(in) :: iproc
@@ -720,11 +742,11 @@ module module_interfaces
          real(wp), dimension(:), pointer, optional :: psivirt
       END SUBROUTINE DiagHam
 
-      subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
+      subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc
+        integer, intent(in) :: iproc,nproc,iter
         real(wp), intent(out) :: evsum
         type(DFT_wavefunction), intent(inout) :: wfn
         logical, optional :: opt_keeppsit
@@ -5788,7 +5810,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 
-       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,ixc,&
+       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
             nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
             energs,rpnrm,xcstr)
          use module_base
@@ -5796,7 +5818,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          use m_ab6_mixing
          implicit none
          logical, intent(in) :: scf
-         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms

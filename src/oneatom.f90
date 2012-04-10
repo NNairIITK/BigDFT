@@ -232,7 +232,7 @@ program oneatom
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
           energs,in%SIC,GPU)
 
-     call total_energies(energs)
+     call total_energies(energs, iter)
      energy=energs%eKS
 
      !check for convergence or whether max. numb. of iterations exceeded

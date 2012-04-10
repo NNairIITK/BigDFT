@@ -15,7 +15,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
-  integer :: mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
@@ -592,7 +591,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, iiorb, iorb, ierr, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -643,7 +642,7 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, jproc
   real(8):: tt
 
   ! Determine norb_par

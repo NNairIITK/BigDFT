@@ -21,6 +21,7 @@ typedef struct bigdft_data
   BigDFT_Proj        *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Wf          *wf;
+  BigDFT_Energs      *energs;
 
 #ifdef HAVE_GLIB
   GMainLoop *loop;
@@ -32,6 +33,7 @@ typedef struct bigdft_data
 static gboolean exit_loop(gpointer data);
 static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
 static void onDensReady(BigDFT_LocalFields *denspot, guint istep, gpointer data);
+static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data);
 #endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
@@ -113,6 +115,7 @@ int main(guint argc, char **argv)
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Data *data;
+  BigDFT_Energs *energs;
 #ifdef HAVE_GLIB
   GMainLoop *loop;
 #endif
@@ -126,8 +129,22 @@ int main(guint argc, char **argv)
   loop = g_main_loop_new(NULL, FALSE);
 #endif
 
-  fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
-  atoms = bigdft_atoms_new();
+  FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
+
+  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
+  wf = bigdft_wf_new();
+  atoms = BIGDFT_ATOMS(wf->lzd);
+
+  atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
+  if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "truc"))
+    {
+      bigdft_wf_free(wf);
+
+      wf = bigdft_wf_new();
+      atoms = BIGDFT_ATOMS(wf->lzd);
+    }
+  fprintf(stdout, " Ok\n");
+
   atoms->comment = strdup("Test from memory generation.");
   fprintf(stdout, "Test BigDFT_Atoms structure set n types.\n");
   bigdft_atoms_set_n_types(atoms, 2);
@@ -163,17 +180,11 @@ int main(guint argc, char **argv)
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential on the fly.\n");
   bigdft_atoms_set_psp(atoms, 1, 1, (const gchar*)0);
   radii = bigdft_atoms_get_radii(atoms, 0., 0., 0.);
-  for (i = 0; i < atoms->ntypes; i++)
-    fprintf(stdout, " Type %d, radii %f %f %f\n", i,
-            radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
+  bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
   g_free(radii);
-  fprintf(stdout, "Test BigDFT_Atoms free.\n");
-#ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(atoms));
-#else
-  bigdft_atoms_free(atoms);
-#endif
-  fprintf(stdout, " Ok\n");
+  bigdft_lzd_set_size(wf->lzd, h, CRMULT, FRMULT);
+  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
+  output_locreg(BIGDFT_LOCREG(wf->lzd));
 
   if (argc > 1)
     chdir(argv[1]);
@@ -183,9 +194,11 @@ int main(guint argc, char **argv)
   in = bigdft_inputs_new("test");
   output_inputs(in);
 
-  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new();
+  bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
+  bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  nelec = bigdft_wf_define(wf, in, 0, 1);
 
+  /* Test restarting the wavefunction definition. */
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
@@ -206,7 +219,7 @@ int main(guint argc, char **argv)
   bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
   output_locreg(BIGDFT_LOCREG(wf->lzd));
 
-  nelec = bigdft_orbs_define(BIGDFT_ORBS(wf), wf->lzd, in, 0, 1);
+  nelec = bigdft_wf_define(wf, in, 0, 1);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
@@ -232,12 +245,15 @@ int main(guint argc, char **argv)
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
   data = run_bigdft(in, proj, denspot, wf, loop);
-  g_timeout_add(10000, exit_loop, (gpointer)loop);
+  g_timeout_add(100000, exit_loop, (gpointer)loop);
   g_main_loop_run(loop);
 #else
   data = run_bigdft(in, proj, denspot, wf, (gpointer)0);
 #endif
+  energs = data->energs;
   g_free(data);
+
+  fprintf(stdout, " Total energy after relaxation is %gHt.\n", energs->eKS);
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -253,6 +269,10 @@ int main(guint argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Inputs free.\n");
   bigdft_inputs_free(in);
+  fprintf(stdout, " Ok\n");
+
+  fprintf(stdout, "Test BigDFT_Energs free.\n");
+  bigdft_energs_free(energs);
   fprintf(stdout, " Ok\n");
 
   if (argc > 2)
@@ -327,6 +347,48 @@ static gboolean exit_loop(gpointer data)
 }
 #endif
 
+static gpointer optimize_psi_thread(gpointer data)
+{
+  BigDFT_Data *container = (BigDFT_Data*)data;
+  BigDFT_optLoopParams p;
+  
+  fprintf(stdout, " Calculation of optimization started.\n");
+  bigdft_optloopparams_init(&p);
+  p.itermax = 2;
+  bigdft_wf_optimization_loop(container->wf, container->denspot, container->proj,
+                              container->energs, 0, 1, &p);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(container->wf));
+  g_object_unref(G_OBJECT(container->denspot));
+  /* g_object_unref(G_OBJECT(container->proj)); */
+  g_idle_add((GSourceFunc)g_main_loop_quit, container->loop);
+#endif
+  fprintf(stdout, " Calculation of optimization finished.\n");
+
+  return (gpointer)0;
+}
+static gboolean optimize_psi(gpointer data)
+{
+  BigDFT_Data *ct = (BigDFT_Data*)data;
+#ifdef G_THREADS_ENABLED
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(ct->denspot));
+  g_object_ref(G_OBJECT(ct->wf));
+  /* g_object_ref(G_OBJECT(ct->proj)); */
+#endif
+#ifdef G_THREADS_ENABLED
+  ld_thread = g_thread_create(optimize_psi_thread, ct, FALSE, &error);
+#else
+  optimize_psi_thread(ct);
+#endif
+
+  return FALSE;
+}
+
 static gpointer calculate_psi_0_thread(gpointer data)
 {
   BigDFT_Data *container = (BigDFT_Data*)data;
@@ -337,7 +399,8 @@ static gpointer calculate_psi_0_thread(gpointer data)
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));
   /* g_object_unref(G_OBJECT(container->proj)); */
-  g_idle_add((GSourceFunc)g_main_loop_quit, container->loop);
+  /* Chain up with the SCF loop. */
+  g_idle_add(optimize_psi, data);
 #endif
   fprintf(stdout, " Calculation of input guess finished.\n");
 
@@ -420,6 +483,10 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);
 }
+static void onEksReady(BigDFT_Energs *energs, guint iter, gpointer data)
+{
+  fprintf(stdout, "Callback for 'eks-ready' signal at iter %d -> %gHt.\n", iter, energs->eKS);
+}
 #endif
 
 static gpointer calculate_ionic_pot_thread(gpointer data)
@@ -464,6 +531,7 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
   ct->in      = in;
   ct->proj    = proj;
   ct->wf      = wf;
+  ct->energs  = bigdft_energs_new();
 #ifdef HAVE_GLIB
   ct->loop    = (GMainLoop*)data;
   g_signal_connect(G_OBJECT(ct->denspot), "v-ext-ready",
@@ -472,6 +540,8 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
                    G_CALLBACK(onDensReady), (gpointer)ct);
   g_signal_connect(G_OBJECT(ct->wf), "psi-ready",
                    G_CALLBACK(onPsiReady), (gpointer)ct);
+  g_signal_connect(G_OBJECT(ct->energs), "eks-ready",
+                   G_CALLBACK(onEksReady), (gpointer)ct);
   g_idle_add(calculate_ionic_pot, (gpointer)ct);
 #else
   calculate_ionic_pot((gpointer)ct);
