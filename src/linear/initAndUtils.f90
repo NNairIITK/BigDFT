@@ -2199,27 +2199,27 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
 
   allocate(orbsperlocreg(lzd%nlr), stat=istat)
   call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
-  do iorb=1,lzd%nlr
-      if(useDerivativeBasisFunctions) then
-          orbsperlocreg(iorb)=4
-      else
-          orbsperlocreg(iorb)=1
-      end if
-  end do
-
-  iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
-  deallocate(llborbs%inWhichLocreg, stat=istat)
-  call memocc(istat, iall, 'llborbs%inWhichLocreg', subname)
-
+!!!  do iorb=1,lzd%nlr
+!!!      if(useDerivativeBasisFunctions) then
+!!!          orbsperlocreg(iorb)=4
+!!!      else
+!!!          orbsperlocreg(iorb)=1
+!!!      end if
+!!!  end do
+!!!
+!!!  iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
+!!!  deallocate(llborbs%inWhichLocreg, stat=istat)
+!!!  call memocc(istat, iall, 'llborbs%inWhichLocreg', subname)
+!!!
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   do ilr=1,lzd%nlr
       locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
   end do
-
-  call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
-       nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
-
+!!!
+!!!  call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
+!!!       nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
+!!!
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
       norb=4
@@ -2233,11 +2233,11 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
           llborbs%inwhichlocreg(ii)=orbs_tmp%inwhichlocreg(iorb)
       end do
   end do
-
-  ! Copy back onwhichatom
-  !!allocate(llborbs%onwhichatom(llborbs%norb), stat=istat)
-  !!call memocc(istat, llborbs%onwhichatom, 'llborbs%onwhichatom', subname)
-  call vcopy(llborbs%norb, onwhichatom(1), 1, llborbs%onwhichatom(1), 1)
+!!!
+!!!  ! Copy back onwhichatom
+!!!  !!allocate(llborbs%onwhichatom(llborbs%norb), stat=istat)
+!!!  !!call memocc(istat, llborbs%onwhichatom, 'llborbs%onwhichatom', subname)
+!!!  call vcopy(llborbs%norb, onwhichatom(1), 1, llborbs%onwhichatom(1), 1)
 
   ! Recreate lzd, since it has to contain the bounds also for the derivatives
   ! First copy to some temporary structure
