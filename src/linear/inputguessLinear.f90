@@ -1131,7 +1131,6 @@ do iat=1,lzd%nlr
 
         ! jj indicates how many matrices ar eto be communicated.
         jj=mod(iat-1,noverlaps)+1
-        if(iproc==0) write(*,*) 'jj', jj
 
         ! nshift indicates how much the following loops do i=1,jj deviate from the outer loop on iat.
         nshift=iat-jj
@@ -1327,109 +1326,35 @@ allocate(mlr(nlr), stat=istat)
 do ilr=1,nlr
   call nullify_matrixLocalizationRegion(mlr(ilr))
 end do
-
-!!!! THIS WAS THE ORIGINAL
-!!! Count for each localization region the number of matrix elements within the cutoff.
-!!do ilr=1,nlr
-!!    mlr(ilr)%norbinlr=0
-!!    call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-!!    do jorb=1,norb
-!!        jlr=onWhichAtomAll(jorb)
-!!        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!!        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!!        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!!        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-!!        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-!!            mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
-!!        end if
-!!    end do
-!!    !if(iproc==0) write(*,'(a,2i8)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
-!!    allocate(mlr(ilr)%indexInGlobal(mlr(ilr)%norbinlr), stat=istat)
-!!    call memocc(istat, mlr(ilr)%indexInGlobal, 'mlr(ilr)%indexInGlobal', subname)
-!!    !if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
-!!end do
-!!
-!!
-!!! Now determine the indices of the elements with an overlap.
-!!do ilr=1,nlr
-!!    ii=0
-!!    call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-!!    do jorb=1,norb
-!!        jlr=onWhichAtomAll(jorb)
-!!        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!!        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!!        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!!        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-!!        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-!!            ii=ii+1
-!!            mlr(ilr)%indexInGlobal(ii)=jorb
-!!            !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
-!!        end if
-!!    end do
-!!    if(ii/=mlr(ilr)%norbinlr) then
-!!        write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
-!!    end if
-!!    !if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
-!!end do
-
-!! THIS IS NEW
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
   mlr(ilr)%norbinlr=0
-!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
-!     call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!     js1=floor(rxyz(1,jlr)/hx)
-!     je1=ceiling(rxyz(1,jlr)/hx)
-!     js2=floor(rxyz(2,jlr)/hy)
-!     je2=ceiling(rxyz(2,jlr)/hy)
-!     js3=floor(rxyz(3,jlr)/hz)
-!     je3=ceiling(rxyz(3,jlr)/hz)
-!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
      call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzdig%Llr(jlr),isoverlap)     
-!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
      if(isoverlap) then
         mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
      end if
   end do
-  !if(iproc==0) write(*,'(a,2i8)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
   allocate(mlr(ilr)%indexInGlobal(mlr(ilr)%norbinlr), stat=istat)
   call memocc(istat, mlr(ilr)%indexInGlobal, 'mlr(ilr)%indexInGlobal', subname)
-  !if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
 end do
 
 
 ! Now determine the indices of the elements with an overlap.
 do ilr=1,nlr
   ii=0
-  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
-     !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-!     js1=floor(rxyz(1,jlr)/hx)
-!     je1=ceiling(rxyz(1,jlr)/hx)
-!     js2=floor(rxyz(2,jlr)/hy)
-!     je2=ceiling(rxyz(2,jlr)/hy)
-!     js3=floor(rxyz(3,jlr)/hz)
-!     je3=ceiling(rxyz(3,jlr)/hz)
-!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
       call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzdig%Llr(jlr),isoverlap)
-!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
       if(isoverlap) then
         ii=ii+1
         mlr(ilr)%indexInGlobal(ii)=jorb
-        !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
       end if
   end do
   if(ii/=mlr(ilr)%norbinlr) then
      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
   end if
-  !if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
 end do
 
 end subroutine determineLocalizationRegions
@@ -1513,7 +1438,6 @@ do jorb=1,norb
            do jnd=1,matmin%mlr(jlr)%norbinlr
               jndlarge=matmin%mlr(jlr)%indexInGlobal(jnd)
               hamextract(jnd,ind,jjlr)=ham(jndlarge,indlarge,jjlr)
-              !!write(30000+iproc,'(6i8,es20.10)') jnd,ind,jjlr,jndlarge,indlarge,jjlr,hamextract(jnd,ind,jjlr)
            end do
         end do
         jlrold=jlr
@@ -2196,10 +2120,6 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
   end if
       
   ! Now apply the orthoconstraint.
-  !!!call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
-  !!!     bpo%blocksize_pdgemm, newComm, orbs%norb, &
-  !!!     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, ovrlp, lagmat, comom, mlr, mad, orbs, grad, &
-  !!!     ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, bpo%blocksize_pdgemm, &
            correctionOrthoconstraint, orbs, &
            lagmat, ovrlp, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
@@ -2213,14 +2133,11 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
           ilr=onWhichAtom(iiorb)
           if(ilr==ilrold) then
               ! Set back the index of lphiovrlp, since we again need the same orbitals.
-              !ijorb=ijorb-comom%noverlap(ilr)
               ijorb=ijorb-comom%noverlap(iiorb)
           end if
           ncount=mlr(ilr)%norbinlr
-          !do jorb=1,comom%noverlap(ilr)
           do jorb=1,comom%noverlap(iiorb)
               ijorb=ijorb+1
-              !jjorb=comom%overlaps(jorb,ilr)
               jjorb=comom%overlaps(jorb,iiorb)
               call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
               call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
