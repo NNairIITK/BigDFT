@@ -989,91 +989,91 @@ call memocc(istat, iall, 'ovrlp', subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, orbsig
-integer,intent(in):: newComm
-type(inguessParameters),intent(inout):: ip
-
-! Local variables
-integer:: ii, kk, jproc, istat, ierr, norbTarget, iorb, iiorb
-real(8):: tt
-character(len=*),parameter:: subname='initializeInguessParameters'
-
-
-  ip%norb=orbs%norb
-  ip%norbtot=orbsig%norb
-
-  ! In order to symplify the transposing/untransposing, the orbitals are padded with zeros such that 
-  ! they can be distributed evenly over all processes when being transposed. The new length of the 
-  ! orbitals after this padding is then given by ip%norbtotPad.
-  ip%norbtotPad=ip%norbtot
-  do
-      if(mod(ip%norbtotPad, nproc)==0) exit
-      ip%norbtotPad=ip%norbtotPad+1
-  end do
-
-
-
-  ! Calculate the number of elements that each process has when the vectors are transposed.
-  ! nvctrp is the total number, nvctrp_nz is the nonzero numbers.
-  allocate(ip%nvctrp_nz(0:nproc-1), stat=istat)
-  call memocc(istat, ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
-  tt=ip%norbtot/dble(nproc)
-  ii=floor(tt)
-  ! ii is now the number of elements that every process has. Distribute the remaining ones.
-  ip%nvctrp_nz=ii
-  kk=ip%norbtot-nproc*ii
-  ip%nvctrp_nz(0:kk-1)=ii+1
-  ! Check wheter this distribution is correct
-  ii=0
-  do jproc=0,nproc-1
-     ii=ii+ip%nvctrp_nz(jproc)
-  end do
-  if(ii/=ip%norbtot) then
-     if(iproc==0) write(*,'(3x,a)') 'ERROR: wrong partition of ip%norbtot!'
-     call mpi_barrier(newComm, ierr)
-     stop
-  end if
-
-  ! With the padded zeros, the elements can be distributed evenly.
-  ip%nvctrp=ip%norbtotPad/nproc
-
-  ! Define the values for the mpi_alltoallv.
-  ! sendcounts: number of elements that a given  process sends to another process.
-  ! senddispls: offset of the starting index on a given process for the send operation to another process.
-  allocate(ip%sendcounts(0:nproc-1), stat=istat)
-  call memocc(istat, ip%sendcounts, 'ip%sendcounts', subname)
-  allocate(ip%senddispls(0:nproc-1), stat=istat)
-  call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
-  ii=0
-  do jproc=0,nproc-1
-      ip%sendcounts(jproc)=ip%nvctrp*orbs%norb_par(iproc,0)
-      ip%senddispls(jproc)=ii
-      ii=ii+ip%sendcounts(jproc)
-  end do
-  ! recvcounts: number of elements that a given process receives from another process.
-  ! recvdispls: offset of the starting index on a given process for the receive operation from another process.
-  allocate(ip%recvcounts(0:nproc-1), stat=istat)
-  call memocc(istat, ip%recvcounts, 'ip%recvcounts', subname)
-  allocate(ip%recvdispls(0:nproc-1), stat=istat)
-  call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
-  ii=0
-  do jproc=0,nproc-1
-      ip%recvcounts(jproc)=ip%nvctrp*orbs%norb_par(jproc,0)
-      ip%recvdispls(jproc)=ii
-      ii=ii+ip%recvcounts(jproc)
-  end do
-
-  ! Determine the size of the work array needed for the transposition.
-  ip%sizeWork=max(ip%norbtotPad*orbs%norb_par(iproc,0),sum(ip%recvcounts(:)))
-
-end subroutine initializeInguessParameters
+!!!subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!integer,intent(in):: newComm
+!!!type(inguessParameters),intent(inout):: ip
+!!!
+!!!! Local variables
+!!!integer:: ii, kk, jproc, istat, ierr, norbTarget, iorb, iiorb
+!!!real(8):: tt
+!!!character(len=*),parameter:: subname='initializeInguessParameters'
+!!!
+!!!
+!!!  !!ip%norb=orbs%norb
+!!!  !!ip%norbtot=orbsig%norb
+!!!
+!!!  ! In order to symplify the transposing/untransposing, the orbitals are padded with zeros such that 
+!!!  ! they can be distributed evenly over all processes when being transposed. The new length of the 
+!!!  ! orbitals after this padding is then given by ip%norbtotPad.
+!!!  !!ip%norbtotPad=orbsig%norb
+!!!  !!do
+!!!  !!    if(mod(ip%norbtotPad, nproc)==0) exit
+!!!  !!    ip%norbtotPad=ip%norbtotPad+1
+!!!  !!end do
+!!!
+!!!
+!!!
+!!!  !!!! Calculate the number of elements that each process has when the vectors are transposed.
+!!!  !!!! nvctrp is the total number, nvctrp_nz is the nonzero numbers.
+!!!  !!!allocate(ip%nvctrp_nz(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
+!!!  !!!tt=ip%norbtot/dble(nproc)
+!!!  !!!ii=floor(tt)
+!!!  !!!! ii is now the number of elements that every process has. Distribute the remaining ones.
+!!!  !!!ip%nvctrp_nz=ii
+!!!  !!!kk=ip%norbtot-nproc*ii
+!!!  !!!ip%nvctrp_nz(0:kk-1)=ii+1
+!!!  !!!! Check wheter this distribution is correct
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!   ii=ii+ip%nvctrp_nz(jproc)
+!!!  !!!end do
+!!!  !!!if(ii/=ip%norbtot) then
+!!!  !!!   if(iproc==0) write(*,'(3x,a)') 'ERROR: wrong partition of ip%norbtot!'
+!!!  !!!   call mpi_barrier(newComm, ierr)
+!!!  !!!   stop
+!!!  !!!end if
+!!!
+!!!  ! With the padded zeros, the elements can be distributed evenly.
+!!!  !!!ip%nvctrp=ip%norbtotPad/nproc
+!!!
+!!!  ! Define the values for the mpi_alltoallv.
+!!!  ! sendcounts: number of elements that a given  process sends to another process.
+!!!  ! senddispls: offset of the starting index on a given process for the send operation to another process.
+!!!  !!!allocate(ip%sendcounts(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%sendcounts, 'ip%sendcounts', subname)
+!!!  !!!allocate(ip%senddispls(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!    ip%sendcounts(jproc)=ip%nvctrp*orbs%norb_par(iproc,0)
+!!!  !!!    ip%senddispls(jproc)=ii
+!!!  !!!    ii=ii+ip%sendcounts(jproc)
+!!!  !!!end do
+!!!  !!!! recvcounts: number of elements that a given process receives from another process.
+!!!  !!!! recvdispls: offset of the starting index on a given process for the receive operation from another process.
+!!!  !!!allocate(ip%recvcounts(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%recvcounts, 'ip%recvcounts', subname)
+!!!  !!!allocate(ip%recvdispls(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!    ip%recvcounts(jproc)=ip%nvctrp*orbs%norb_par(jproc,0)
+!!!  !!!    ip%recvdispls(jproc)=ii
+!!!  !!!    ii=ii+ip%recvcounts(jproc)
+!!!  !!!end do
+!!!
+!!!  !!!! Determine the size of the work array needed for the transposition.
+!!!  !!!ip%sizeWork=max(ip%norbtotPad*orbs%norb_par(iproc,0),sum(ip%recvcounts(:)))
+!!!
+!!!end subroutine initializeInguessParameters
 
 
 
@@ -3122,7 +3122,7 @@ real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
 !!integer,dimension(:),allocatable:: newID
 integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
-type(inguessParameters):: ip
+!!type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
@@ -3145,8 +3145,8 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
 
 
-  ! Initialize the parameters for performing tha calculations in parallel.
-  call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
+  !!! Initialize the parameters for performing tha calculations in parallel.
+  !!call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
 
 
   ! Allocate the local arrays.
@@ -3207,7 +3207,7 @@ type(collective_comms):: collcom_vectors
           ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
           !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
           cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
-          do jorb=1,ip%norbtot
+          do jorb=1,orbsig%norb
               ii=ii+1
               ttreal=builtin_rand(ii)
               if(iproc==jproc) then
@@ -3216,9 +3216,9 @@ type(collective_comms):: collcom_vectors
                        (rxyz(2,iiiat)-locregCenter(2,jjAt))**2 + &
                        (rxyz(3,iiiat)-locregCenter(3,jjAt))**2
                   if(tt>cut) then
-                       coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
+                       coeffPad((iorb-1)*orbsig%norb+jorb)=0.d0
                   else
-                      coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
+                      coeffPad((iorb-1)*orbsig%norb+jorb)=dble(ttreal)
                   end if
               end if
           end do
@@ -3245,7 +3245,7 @@ type(collective_comms):: collcom_vectors
                'THIS IS STRANGE -- iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)',&
                iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)
       end if
-      call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+      call vectorGlobalToLocal(orbsig%norb, matmin%mlr(ilr), coeffPad((iorb-1)*orbsig%norb+1), lcoeff(1,iorb))
   end do
 
 
@@ -3348,7 +3348,7 @@ type(collective_comms):: collcom_vectors
 
      ! Determine the mean step size for steepest descent iterations.
      call mpiallred(meanAlpha, 1, mpi_sum, mpi_comm_world, ierr)
-     meanAlpha=meanAlpha/dble(ip%norb)
+     meanAlpha=meanAlpha/dble(lorbs%norb)
 
       ! Precondition the gradient.
       do iorb=1,lorbs%norbp
@@ -3371,7 +3371,7 @@ type(collective_comms):: collcom_vectors
           ! Transform back to global ragion.
           do iorb=1,lorbs%norbp
               ilr=matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+              call vectorLocalToGlobal(orbsig%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*orbsig%norb+1))
           end do
           exit
       end if
@@ -3385,7 +3385,7 @@ type(collective_comms):: collcom_vectors
           ! Transform back to global region.
           do iorb=1,lorbs%norbp
               ilr=matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+              call vectorLocalToGlobal(orbsig%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*orbsig%norb+1))
           end do
           exit
       end if
@@ -3406,10 +3406,10 @@ type(collective_comms):: collcom_vectors
 
 
   ! Cut out the zeros
-  allocate(coeff2(max(ip%norbtot*lorbs%norbp,1)), stat=istat)
+  allocate(coeff2(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
   call memocc(istat, coeff2, 'coeff2', subname)
   do iorb=1,lorbs%norbp
-      call dcopy(ip%norbtot, coeffPad((iorb-1)*ip%norbtotPad+1), 1, coeff2((iorb-1)*ip%norbtot+1), 1)
+      call dcopy(orbsig%norb, coeffPad((iorb-1)*orbsig%norb+1), 1, coeff2((iorb-1)*orbsig%norb+1), 1)
   end do
 
   call deallocateArrays()
@@ -3442,11 +3442,11 @@ type(collective_comms):: collcom_vectors
   ! Define the parameters, for the mpi_allgatherv.
   ii=0
   do jproc=0,nproc-1
-      recvcounts(jproc)=ip%norbtot*lorbs%norb_par(jproc,0)
+      recvcounts(jproc)=orbsig%norb*lorbs%norb_par(jproc,0)
       displs(jproc)=ii
       ii=ii+recvcounts(jproc)
   end do
-  sendcount=ip%norbtot*lorbs%norbp
+  sendcount=orbsig%norb*lorbs%norbp
 
   ! Gather the coefficients.
   if (nproc > 1) then
@@ -3465,7 +3465,7 @@ type(collective_comms):: collcom_vectors
 
   ! Deallocate stuff which is not needed any more.
   !if(iproc<nproc) then
-      call deallocate_inguessParameters(ip, subname)
+      !!call deallocate_inguessParameters(ip, subname)
       call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
       call deallocate_matrixMinimization(matmin,subname)
 
@@ -3546,17 +3546,17 @@ type(collective_comms):: collcom_vectors
   contains
 
     subroutine allocateArrays()
-      allocate(coeffPad(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
+      allocate(coeffPad(orbsig%norb*lorbs%norbp), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      allocate(grad(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
+      allocate(grad(orbsig%norb*lorbs%norbp), stat=istat)
       call memocc(istat, grad, 'grad', subname)
-      allocate(gradOld(max(ip%norbtotPad*lorbs%norbp, ip%nvctrp*ip%norb)), stat=istat)
+      allocate(gradOld(orbsig%norb*lorbs%norbp), stat=istat)
       call memocc(istat, gradOld, 'gradOld', subname)
-      allocate(fnrmArr(ip%norb), stat=istat)
+      allocate(fnrmArr(lorbs%norb), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)
-      allocate(fnrmOvrlpArr(ip%norb), stat=istat)
+      allocate(fnrmOvrlpArr(lorbs%norb), stat=istat)
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-      allocate(fnrmOldArr(ip%norb), stat=istat)
+      allocate(fnrmOldArr(lorbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
       allocate(alpha(lorbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)

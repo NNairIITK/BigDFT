@@ -3065,15 +3065,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      !!end subroutine applyprojector
 
 
-     subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs, orbsig
-       integer,intent(in):: newComm
-       type(inguessParameters),intent(inout):: ip
-     end subroutine initializeInguessParameters
+     !!!subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
+     !!!  use module_base
+     !!!  use module_types
+     !!!  implicit none
+     !!!  integer,intent(in):: iproc, nproc
+     !!!  type(orbitals_data),intent(in):: orbs, orbsig
+     !!!  integer,intent(in):: newComm
+     !!!  type(inguessParameters),intent(inout):: ip
+     !!!end subroutine initializeInguessParameters
 
      subroutine updatePotential(iproc,nproc,geocode,ixc,nspin,hxh,hyh,hzh,Glr,denspot,ehart,eexcu,vexcu)
        use module_base
@@ -4289,13 +4289,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       character(len=*),intent(in):: subname
     end subroutine deallocate_overlapParameters
 
-    subroutine deallocate_inguessParameters(ip, subname)
-      use module_base
-      use module_types
-      implicit none
-      type(inguessParameters),intent(inout):: ip
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_inguessParameters
+    !!subroutine deallocate_inguessParameters(ip, subname)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(inguessParameters),intent(inout):: ip
+    !!  character(len=*),intent(in):: subname
+    !!end subroutine deallocate_inguessParameters
 
     subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
       use module_base

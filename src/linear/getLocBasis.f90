@@ -441,7 +441,6 @@ type(energy_terms) :: energs
 
   ! Initialize largestructures if required
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-print *,'ENTERING VARIABLE LOCREG'
       do iorb=1,tmb%orbs%norb
           ilr=tmb%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
@@ -488,11 +487,9 @@ print *,'ENTERING VARIABLE LOCREG'
 
   ! Do a first orthonormalization
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-print *,'ENTERING Small ortho'
       ! Do a standard orthonormalization
       tmbopt => tmb
   else
-print *,'ENTERING Large ortho'
       ! Go to large localization region and do the orthonormalization there.
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       tmbopt => tmblarge
