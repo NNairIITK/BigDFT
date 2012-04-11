@@ -3529,11 +3529,6 @@ type(collective_comms):: collcom_vectors
       !!     comonig, opig, madig, lphi)
       call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
            comonig, opig, madig, collcomig, collcom, lphi)
-      if(lzdig%Glr%geocode /= 'F') then
-         write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
-         call mpi_finalize(iall)
-         stop
-      end if
 
   ! Deallocate the remaining local array.
   iall=-product(shape(coeff))*kind(coeff)
