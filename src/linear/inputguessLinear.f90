@@ -793,11 +793,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call buildLinearCombinationsLocalized3(iproc, nproc, tmbig%orbs, lorbs, &
-       at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
-       tmbig%orbs%inWhichLocreg, lchi, lphi, locregCenter, rxyz, &
-       lzd, tmbig%lzd, nlocregPerMPI, tag, ham3, &
-       tmbig%collcom, tmb%collcom, tmb)
+  call buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
+  !!call buildLinearCombinationsLocalized3(iproc, nproc, tmbig%orbs, lorbs, &
+  !!     at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
+  !!     tmbig%orbs%inWhichLocreg, lchi, lphi, locregCenter, rxyz, &
+  !!     lzd, tmbig%lzd, nlocregPerMPI, tag, ham3, &
+  !!     tmbig%collcom, tmb%collcom, tmb)
 
   ! Calculate the coefficients
   ! Calculate the coefficients
@@ -2646,10 +2648,8 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, c
 end subroutine buildLinearCombinations_new
 
 
-subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
-           onWhichAtom, lchi, lphi, locregCenter, rxyz, lzd, lzdig, nlocregPerMPI, tag, ham3, &
-           collcomig, collcom, tmb)
-!
+subroutine buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => buildLinearCombinationsLocalized3
@@ -2658,29 +2658,22 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nlocregPerMPI
 real(gp), intent(in) :: hx, hy, hz
-type(orbitals_data),intent(in):: orbsig, lorbs
+type(DFT_wavefunction),intent(in):: tmb, tmbig
 type(atoms_data),intent(in):: at
-type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
-type(local_zone_descriptors),intent(in):: lzd
-type(local_zone_descriptors),intent(inout):: lzdig
-integer,dimension(at%ntypes):: norbsPerType
-integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-real(8),dimension(orbsig%npsidim_orbs):: lchi
-real(8),dimension(lorbs%npsidim_orbs):: lphi
-real(8),dimension(3,lzdig%nlr):: locregCenter
-real(8),dimension(3,at%nat):: rxyz
-integer,intent(inout):: tag
-real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
-type(collective_comms),intent(in):: collcomig, collcom
-type(DFT_wavefunction),intent(in):: tmb
+real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
+real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham
+real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
-integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb, jj
-real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, fnrmArr, fnrmOvrlpArr, fnrmOldArr
+integer:: iorb, jorb, iall, istat, ierr, infoCoeff
+integer:: it, iiAt, jjAt, methTransformOverlap, tag
+real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, tt2
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
 real(4):: ttreal, builtin_rand
@@ -2689,7 +2682,6 @@ integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
-logical:: same
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
 type(collective_comms):: collcom_vectors
@@ -2699,6 +2691,7 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
   call nullify_matrixMinimization(matmin)
+  tag=1
 
 
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
@@ -2707,30 +2700,30 @@ type(collective_comms):: collcom_vectors
   ! Allocate the local arrays.
   call allocateArrays()
 
-  call determineLocalizationRegions(iproc, nproc, lzd%nlr, orbsig%norb, at, onWhichAtom, &
-       input%lin%locrad, locregCenter, lzd, lzdig, hx, hy, hz, matmin%mlr)
-  call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, lorbs%inwhichlocreg, &
-       lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
+  call determineLocalizationRegions(iproc, nproc, tmb%lzd%nlr, tmbig%orbs%norb, at, tmbig%orbs%inwhichlocreg, &
+       input%lin%locrad, locregCenter, tmb%lzd, tmbig%lzd, hx, hy, hz, matmin%mlr)
+  call extractMatrix3(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmbig%orbs, tmb%orbs%inwhichlocreg, &
+       tmb%orbs%onwhichmpi, nlocregPerMPI, ham, matmin, hamextract)
 
-  call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
-       onWhichAtom, lorbs%inwhichlocreg, comom)
+  call determineOverlapRegionMatrix(iproc, nproc, tmb%lzd, matmin%mlr, tmb%orbs, tmbig%orbs, &
+       tmbig%orbs%inwhichlocreg, tmb%orbs%inwhichlocreg, comom)
 
-  call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, lorbs%norb_par, lorbs%isorb_par, &
-       lorbs%inwhichlocreg, lorbs%onwhichmpi, tag, comom)
+  call initCommsMatrixOrtho(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, tmb%orbs%isorb_par, &
+       tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tag, comom)
 
   call nullify_matrixDescriptors(mad)
-  call initMatrixCompression(iproc, nproc, lzdig%nlr, lorbs, comom%noverlap, comom%overlaps, mad)
-  call initCompressedMatmul3(lorbs%norb, mad)
+  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmb%orbs, comom%noverlap, comom%overlaps, mad)
+  call initCompressedMatmul3(tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)
-  call init_collective_comms_vectors(iproc, nproc, lzd%nlr, lorbs, orbsig, matmin%mlr, collcom_vectors)
+  call init_collective_comms_vectors(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmbig%orbs, matmin%mlr, collcom_vectors)
 
 
-  allocate(lcoeff(matmin%norbmax,lorbs%norbp), stat=istat)
+  allocate(lcoeff(matmin%norbmax,tmb%orbs%norbp), stat=istat)
   call memocc(istat, lcoeff, 'lcoeff', subname)
-  allocate(lgrad(matmin%norbmax,lorbs%norbp), stat=istat)
+  allocate(lgrad(matmin%norbmax,tmb%orbs%norbp), stat=istat)
   call memocc(istat, lgrad, 'lgrad', subname)
-  allocate(lgradold(matmin%norbmax,lorbs%norbp), stat=istat)
+  allocate(lgradold(matmin%norbmax,tmb%orbs%norbp), stat=istat)
   call memocc(istat, lgradold, 'lgradold', subname)
 
   ! Initialize the coefficient vectors. Put random number to places where it is
@@ -2743,24 +2736,24 @@ type(collective_comms):: collcom_vectors
   coeffPad=0.d0
   ii=0
   do jproc=0,nproc-1
-      do iorb=1,lorbs%norb_par(jproc,0)
-          iiAt=lorbs%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
-          iiiAt=lorbs%onwhichatom(lorbs%isorb_par(jproc)+iorb)
+      do iorb=1,tmb%orbs%norb_par(jproc,0)
+          iiAt=tmb%orbs%inwhichlocreg(tmb%orbs%isorb_par(jproc)+iorb)
+          iiiAt=tmb%orbs%onwhichatom(tmb%orbs%isorb_par(jproc)+iorb)
           ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
           !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
           cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
-          do jorb=1,orbsig%norb
+          do jorb=1,tmbig%orbs%norb
               ii=ii+1
               ttreal=builtin_rand(ii)
               if(iproc==jproc) then
-                  jjAt=onWhichAtom(jorb)
+                  jjAt=tmbig%orbs%inwhichlocreg(jorb)
                   tt = (rxyz(1,iiiat)-locregCenter(1,jjAt))**2 + &
                        (rxyz(2,iiiat)-locregCenter(2,jjAt))**2 + &
                        (rxyz(3,iiiat)-locregCenter(3,jjAt))**2
                   if(tt>cut) then
-                       coeffPad((iorb-1)*orbsig%norb+jorb)=0.d0
+                       coeffPad((iorb-1)*tmbig%orbs%norb+jorb)=0.d0
                   else
-                      coeffPad((iorb-1)*orbsig%norb+jorb)=dble(ttreal)
+                      coeffPad((iorb-1)*tmbig%orbs%norb+jorb)=dble(ttreal)
                   end if
               end if
           end do
@@ -2780,14 +2773,14 @@ type(collective_comms):: collcom_vectors
   ! The optimization loop.
 
   ! Transform to localization regions
-  do iorb=1,lorbs%norbp
+  do iorb=1,tmb%orbs%norbp
       ilr=matmin%inWhichLocregExtracted(iorb)
-      if(ilr/=lorbs%inWhichLocreg(iorb+lorbs%isorb)) then
+      if(ilr/=tmb%orbs%inWhichLocreg(iorb+tmb%orbs%isorb)) then
           write(*,'(a,2i6,3x,2i8)') &
-               'THIS IS STRANGE -- iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)',&
-               iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)
+               'THIS IS STRANGE -- iproc, iorb, ilr, tmb%orbs%inWhichLocreg(iorb+tmb%orbs%isorb)',&
+               iproc, iorb, ilr, tmb%orbs%inWhichLocreg(iorb+tmb%orbs%isorb)
       end if
-      call vectorGlobalToLocal(orbsig%norb, matmin%mlr(ilr), coeffPad((iorb-1)*orbsig%norb+1), lcoeff(1,iorb))
+      call vectorGlobalToLocal(tmbig%orbs%norb, matmin%mlr(ilr), coeffPad((iorb-1)*tmbig%orbs%norb+1), lcoeff(1,iorb))
   end do
 
 
@@ -2796,15 +2789,15 @@ type(collective_comms):: collcom_vectors
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
-           lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
 
   !!isx=1
-  !!if(lorbs%norbp>0) then
+  !!if(tmb%orbs%norbp>0) then
   !!    ! otherwise it makes no sense...
-  !!    call initializeDIIS_inguess(isx, lorbs%norbp, matmin, lorbs%inwhichlocreg(lorbs%isorb+1), ldiis)
+  !!    call initializeDIIS_inguess(isx, tmb%orbs%norbp, matmin, tmb%orbs%inwhichlocreg(tmb%orbs%isorb+1), ldiis)
   !!end if
 
 
@@ -2824,15 +2817,15 @@ type(collective_comms):: collcom_vectors
 
       ! Orthonormalize the coefficients.
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
-           lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
 
       ! Calculate the gradient grad.
       ilrold=0
       iilr=0
-      do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+      do iorb=1,tmb%orbs%norbp
+          ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
@@ -2847,28 +2840,28 @@ type(collective_comms):: collcom_vectors
       ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
       ! multiplier matrix.
       call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
-           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, &
-           matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
+           matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), tmb%lzd%nlr, mpi_comm_world, &
            matmin%mlr, mad, lcoeff, lgrad, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
       ! Calculate the gradient norm.
       fnrm=0.d0
-      do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+      do iorb=1,tmb%orbs%norbp
+          ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
 
           if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgradold(1,iorb), 1)
       end do
-      if(lorbs%norbp>0) call dcopy(lorbs%norbp*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
+      if(tmb%orbs%norbp>0) call dcopy(tmb%orbs%norbp*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
 
       ! Keep the gradient for the next iteration.
-      if(it>1 .and. (lorbs%norbp>0)) then
-          call dcopy(lorbs%norbp, fnrmArr(1), 1, fnrmOldArr(1), 1)
+      if(it>1 .and. (tmb%orbs%norbp>0)) then
+          call dcopy(tmb%orbs%norbp, fnrmArr(1), 1, fnrmOldArr(1), 1)
       end if
 
       fnrmMax=0.d0
       meanAlpha=0.d0
-      do iorb=1,lorbs%norbp
+      do iorb=1,tmb%orbs%norbp
 
           fnrm=fnrm+fnrmArr(iorb)
           if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
@@ -2890,11 +2883,11 @@ type(collective_comms):: collcom_vectors
 
      ! Determine the mean step size for steepest descent iterations.
      call mpiallred(meanAlpha, 1, mpi_sum, mpi_comm_world, ierr)
-     meanAlpha=meanAlpha/dble(lorbs%norb)
+     meanAlpha=meanAlpha/dble(tmb%orbs%norb)
 
       ! Precondition the gradient.
-      do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+      do iorb=1,tmb%orbs%norbp
+          ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
       end do
@@ -2911,9 +2904,9 @@ type(collective_comms):: collcom_vectors
           converged=.true.
           infoCoeff=it
           ! Transform back to global ragion.
-          do iorb=1,lorbs%norbp
+          do iorb=1,tmb%orbs%norbp
               ilr=matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(orbsig%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*orbsig%norb+1))
+              call vectorLocalToGlobal(tmbig%orbs%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*tmbig%orbs%norb+1))
           end do
           exit
       end if
@@ -2925,16 +2918,16 @@ type(collective_comms):: collcom_vectors
           if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
           infoCoeff=-1
           ! Transform back to global region.
-          do iorb=1,lorbs%norbp
+          do iorb=1,tmb%orbs%norbp
               ilr=matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(orbsig%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*orbsig%norb+1))
+              call vectorLocalToGlobal(tmbig%orbs%norb, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*tmbig%orbs%norb+1))
           end do
           exit
       end if
 
       ! Improve the coefficients (by steepet descent).
-      do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+      do iorb=1,tmb%orbs%norbp
+          ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
           call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
       end do
 
@@ -2961,14 +2954,14 @@ type(collective_comms):: collcom_vectors
   ! Define the parameters, for the mpi_allgatherv.
   ii=0
   do jproc=0,nproc-1
-      recvcounts(jproc)=orbsig%norb*lorbs%norb_par(jproc,0)
+      recvcounts(jproc)=tmbig%orbs%norb*tmb%orbs%norb_par(jproc,0)
       displs(jproc)=ii
       ii=ii+recvcounts(jproc)
   end do
-  sendcount=orbsig%norb*lorbs%norbp
+  sendcount=tmbig%orbs%norb*tmb%orbs%norbp
 
   ! Allocate the local arrays that are hold by all processes.
-  allocate(coeff(orbsig%norb,lorbs%norb), stat=istat)
+  allocate(coeff(tmbig%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, coeff, 'coeff', subname)
 
   ! Gather the coefficients.
@@ -2976,7 +2969,7 @@ type(collective_comms):: collcom_vectors
      call mpi_allgatherv(coeffPad(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
           displs, mpi_double_precision, mpi_comm_world, ierr)
   else
-     call vcopy(sendcount,coeff2(1),1,coeff(1,1),1)
+     call vcopy(sendcount,coeffPad(1),1,coeff(1,1),1)
   end if
 
   call deallocateArrays()
@@ -3007,9 +3000,9 @@ type(collective_comms):: collcom_vectors
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, coeff, lchi, &
-       collcomig, collcom, lphi)
-  if(lzdig%Glr%geocode /= 'F') then
+  call buildLinearCombinations_new(iproc, nproc, tmbig%lzd, tmb%lzd, tmbig%orbs, tmb%orbs, coeff, lchi, &
+       tmbig%collcom, tmb%collcom, lphi)
+  if(tmbig%lzd%Glr%geocode /= 'F') then
      write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
      call mpi_finalize(iall)
      stop
@@ -3026,17 +3019,17 @@ type(collective_comms):: collcom_vectors
   contains
 
     subroutine allocateArrays()
-      allocate(coeffPad(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
+      allocate(coeffPad(max(tmbig%orbs%norb*tmb%orbs%norbp,1)), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      allocate(fnrmArr(lorbs%norb), stat=istat)
+      allocate(fnrmArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)
-      allocate(fnrmOvrlpArr(lorbs%norb), stat=istat)
+      allocate(fnrmOvrlpArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-      allocate(fnrmOldArr(lorbs%norb), stat=istat)
+      allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
-      allocate(alpha(lorbs%norb), stat=istat)
+      allocate(alpha(tmb%orbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
-      allocate(lagMat(lorbs%norb,lorbs%norb), stat=istat)
+      allocate(lagMat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, lagMat, 'lagMat', subname)
     end subroutine allocateArrays
 

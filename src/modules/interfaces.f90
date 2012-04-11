@@ -4495,30 +4495,21 @@ module module_interfaces
       real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
-               onWhichAtom, lchi, lphi, locregCenter, rxyz, lzd, lzdig, nlocregPerMPI, tag, ham3, &
-               collcomig, collcom, tmb)
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+               tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
       real(gp), intent(in) :: hx, hy, hz
-      type(orbitals_data),intent(in):: orbsig, lorbs
+      type(DFT_wavefunction),intent(in):: tmb, tmbig
       type(atoms_data),intent(in):: at
-      type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
-      type(local_zone_descriptors),intent(in):: lzd
-      type(local_zone_descriptors),intent(inout):: lzdig
-      integer,dimension(at%ntypes):: norbsPerType
-      integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-      real(8),dimension(orbsig%npsidim_orbs):: lchi
-      real(8),dimension(lorbs%npsidim_orbs):: lphi
-      real(8),dimension(3,lzdig%nlr):: locregCenter
-      real(8),dimension(3,at%nat):: rxyz
-      integer,intent(inout):: tag
-      real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
-      type(collective_comms),intent(in):: collcomig, collcom
-      type(DFT_wavefunction),intent(in):: tmb
+      real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
+      real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
+      real(8),dimension(3,at%nat),intent(in):: rxyz
+      real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham
+      real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
     end subroutine buildLinearCombinationsLocalized3
 
 
