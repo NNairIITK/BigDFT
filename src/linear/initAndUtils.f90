@@ -2094,32 +2094,65 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   character(len=*),parameter:: subname='redefine_locregs_quantities'
 
   tag=1
-  if(tmbmix%wfnmd%bs%use_derivative_basis) then
+  write(*,*) 'tmbmix%wfnmd%bs%use_derivative_basis',tmbmix%wfnmd%bs%use_derivative_basis
+  !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
+  !!    call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+  !!    call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+
+  !!    ! Reallocate tmbmix%psi, since it might have a new shape
+  !!    iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+  !!    deallocate(tmbmix%psi, stat=istat)
+  !!    call memocc(istat, iall, 'tmbmix%psi', subname)
+  !!    allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+  !!    call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
+  !!end if
+  !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
       call nullify_orbitals_data(orbs_tmp)
       call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-      call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
-           orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
-           tmbmix%collcom)
+      !if(tmbmix%wfnmd%bs%use_derivative_basis) then
+          call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+               orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
+               tmbmix%collcom)
+          !!call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+          !!call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+
+      if(tmbmix%wfnmd%bs%use_derivative_basis) then
+          ! Reallocate tmbmix%psi, since it might have a new shape
+          iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+          deallocate(tmbmix%psi, stat=istat)
+          call memocc(istat, iall, 'tmbmix%psi', subname)
+          allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+          call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
+
+          call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+          call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+      !else
+      !    call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
+      !    call deallocate_p2pComms(tmbmix%comsr, subname)
+      !    call nullify_p2pComms(tmbmix%comsr)
+      !    call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
+      !         call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
+      end if
       call deallocate_orbitals_data(orbs_tmp, subname)
 
       tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
 
-      ! Reallocate tmbmix%psi, since it might have a new shape
-      iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-      deallocate(tmbmix%psi, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psi', subname)
-      allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
+      !!! Reallocate tmbmix%psi, since it might have a new shape
+      !!iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+      !!deallocate(tmbmix%psi, stat=istat)
+      !!call memocc(istat, iall, 'tmbmix%psi', subname)
+      !!allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+      !!call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
 
-      call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
-      call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  else
-      call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
-      call deallocate_p2pComms(tmbmix%comsr, subname)
-      call nullify_p2pComms(tmbmix%comsr)
-      call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
-      call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
-  end if
+      !!call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+      !!call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  !!else
+  !!    call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
+  !!    call deallocate_p2pComms(tmbmix%comsr, subname)
+  !!    call nullify_p2pComms(tmbmix%comsr)
+  !!    call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, tmbmix%orbs, tag, tmbmix%comsr)
+  !!    call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
+  !!end if
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call nullify_p2pComms(tmbmix%comgp)
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
