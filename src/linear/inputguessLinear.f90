@@ -3384,14 +3384,13 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(1x,a)') '===================================================================================='
 
 
-  ! Cut out the zeros
-  allocate(coeff2(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
-  call memocc(istat, coeff2, 'coeff2', subname)
-  do iorb=1,lorbs%norbp
-      call dcopy(orbsig%norb, coeffPad((iorb-1)*orbsig%norb+1), 1, coeff2((iorb-1)*orbsig%norb+1), 1)
-  end do
+  !!! Cut out the zeros
+  !!allocate(coeff2(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
+  !!call memocc(istat, coeff2, 'coeff2', subname)
+  !!do iorb=1,lorbs%norbp
+  !!    call dcopy(orbsig%norb, coeffPad((iorb-1)*orbsig%norb+1), 1, coeff2((iorb-1)*orbsig%norb+1), 1)
+  !!end do
 
-  call deallocateArrays()
 
   iall=-product(shape(hamextract))*kind(hamextract)
   deallocate(hamextract, stat=istat)
@@ -3417,12 +3416,13 @@ type(collective_comms):: collcom_vectors
 
   ! Gather the coefficients.
   if (nproc > 1) then
-     call mpi_allgatherv(coeff2(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
+     call mpi_allgatherv(coeffPad(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
           displs, mpi_double_precision, mpi_comm_world, ierr)
   else
      call vcopy(sendcount,coeff2(1),1,coeff(1,1),1)
   end if
 
+  call deallocateArrays()
 
   ! Deallocate stuff which is not needed any more.
   call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
@@ -3440,9 +3440,9 @@ type(collective_comms):: collcom_vectors
   deallocate(lgradold, stat=istat)
   call memocc(istat, iall, 'lgradold', subname)
 
-  iall=-product(shape(coeff2))*kind(coeff2)
-  deallocate(coeff2, stat=istat)
-  call memocc(istat, iall, 'coeff2', subname)
+  !!iall=-product(shape(coeff2))*kind(coeff2)
+  !!deallocate(coeff2, stat=istat)
+  !!call memocc(istat, iall, 'coeff2', subname)
 
   iall=-product(shape(recvcounts))*kind(recvcounts)
   deallocate(recvcounts, stat=istat)
@@ -3495,7 +3495,7 @@ type(collective_comms):: collcom_vectors
   contains
 
     subroutine allocateArrays()
-      allocate(coeffPad(orbsig%norb*lorbs%norbp), stat=istat)
+      allocate(coeffPad(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
       !!allocate(grad(orbsig%norb*lorbs%norbp), stat=istat)
       !!call memocc(istat, grad, 'grad', subname)
