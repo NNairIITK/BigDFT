@@ -588,13 +588,6 @@ type(energy_terms) :: energs
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,tmb%comgp)
       end if
-!print *,'nlpspd%nprojel',nlpspd%nprojel
-!open(22,file='proj',status='unknown')
-!do iall = 1,nlpspd%nprojel
-!   write(22,*)proj(iall)
-!end do 
-!close(22)
-!stop
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,tmb%psi,lhphi,&
@@ -620,8 +613,8 @@ type(energy_terms) :: energs
       end if
 
 
-      ! Calculate the overlap matrix.
-      call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
+      !!! Calculate the overlap matrix.
+      !!call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb

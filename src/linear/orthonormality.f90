@@ -172,7 +172,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(collective_comms),intent(in):: collcom
   type(orthon_data),intent(in):: orthpar
   type(basis_performance_options),intent(in):: bpo
-  real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+  real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi !inout due to tranposition...
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
@@ -212,6 +212,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
       call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
@@ -223,6 +224,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
       call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
            comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
+      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
            lhphi, comon%nsendBuf, comon%sendBuf)
       call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &

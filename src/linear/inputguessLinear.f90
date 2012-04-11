@@ -395,7 +395,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ilr=0
   do iat=1,at%nat
       ityp=at%iatype(iat)
-      !do iorb=1,input%lin%norbsPerType(ityp)
       do iorb=1,norbsPerAt(iat)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
@@ -416,7 +415,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ! Search the corresponding entry in inwhichlocreg
           do jorb=1,tmbgauss%orbs%norb
               if(covered(jorb)) cycle
-              !jlr=tmbig%orbs%inwhichlocreg(jorb)
               jlr=tmbgauss%orbs%inwhichlocreg(jorb)
               if( tmbgauss%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
                   tmbgauss%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
@@ -633,7 +631,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Post the messages for the communication of the potential.
-  !ndimpot = lzd%lzd%glr%d%n1i*lzd%lzd%glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
 
@@ -795,13 +792,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
            tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
-  !!call buildLinearCombinationsLocalized3(iproc, nproc, tmbig%orbs, lorbs, &
-  !!     at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
-  !!     tmbig%orbs%inWhichLocreg, lchi, lphi, locregCenter, rxyz, &
-  !!     lzd, tmbig%lzd, nlocregPerMPI, tag, ham3, &
-  !!     tmbig%collcom, tmb%collcom, tmb)
 
-  ! Calculate the coefficients
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
