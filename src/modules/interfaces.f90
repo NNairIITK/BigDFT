@@ -3648,27 +3648,19 @@ module module_interfaces
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
      end subroutine buildLinearCombinations
 
-
-      subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
-                 tag, comonig, opig, madig, collcomig, collcom, lphi)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc
-        type(local_zone_descriptors),intent(in):: lzdig, lzd
-        type(orbitals_data),intent(in):: orbsig, orbs
-        type(input_variables),intent(in):: input
-        real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
-        real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-        character(len=1),intent(in):: locregShape
-        integer,intent(inout):: tag
-        type(p2pComms):: comonig
-        type(overlapParameters):: opig
-        type(matrixDescriptors):: madig
-        type(collective_comms),intent(in):: collcomig, collcom
-        real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
-      end subroutine buildLinearCombinations_new
-
+     subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, coeff, lchi, &
+                collcomig, collcom, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(local_zone_descriptors),intent(in):: lzdig, lzd
+       type(orbitals_data),intent(in):: orbsig, orbs
+       real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+       real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+       type(collective_comms),intent(in):: collcomig, collcom
+       real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+     end subroutine buildLinearCombinations_new
 
      subroutine postCommunicationsPotential(iproc, nproc, ndimpot, pot, comgp)
        use module_base
@@ -4503,16 +4495,15 @@ module module_interfaces
       real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input,hx,hy,hz, norbsPerType, &
-               onWhichAtom, lchi, lphi, locregCenter, rxyz, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, &
-               comonig, opig, madig, collcomig, collcom, tmb)
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
+               onWhichAtom, lchi, lphi, locregCenter, rxyz, lzd, lzdig, nlocregPerMPI, tag, ham3, &
+               collcomig, collcom, tmb)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
       real(gp), intent(in) :: hx, hy, hz
-      type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
+      type(orbitals_data),intent(in):: orbsig, lorbs
       type(atoms_data),intent(in):: at
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
@@ -4522,16 +4513,10 @@ module module_interfaces
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
       real(8),dimension(orbsig%npsidim_orbs):: lchi
       real(8),dimension(lorbs%npsidim_orbs):: lphi
-      !real(8),dimension(3,at%nat):: rxyz
       real(8),dimension(3,lzdig%nlr):: locregCenter
       real(8),dimension(3,at%nat):: rxyz
-      integer,dimension(lorbs%norb):: onWhichAtomPhi
-      !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
       integer,intent(inout):: tag
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
-      type(p2pComms):: comonig
-      type(overlapParameters):: opig
-      type(matrixDescriptors):: madig
       type(collective_comms),intent(in):: collcomig, collcom
       type(DFT_wavefunction),intent(in):: tmb
     end subroutine buildLinearCombinationsLocalized3

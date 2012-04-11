@@ -793,11 +793,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call buildLinearCombinationsLocalized3(iproc, nproc, tmbig%orbs, tmbgauss%orbs, lorbs, &
+  call buildLinearCombinationsLocalized3(iproc, nproc, tmbig%orbs, lorbs, &
        at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
-       tmbig%orbs%inWhichLocreg, lchi, lphi, locregCenter, rxyz, lorbs%inWhichLocreg, &
+       tmbig%orbs%inWhichLocreg, lchi, lphi, locregCenter, rxyz, &
        lzd, tmbig%lzd, nlocregPerMPI, tag, ham3, &
-       tmbig%comon, tmbig%op, tmbig%mad, tmbig%collcom, tmb%collcom, tmb)
+       tmbig%collcom, tmb%collcom, tmb)
 
   ! Calculate the coefficients
   ! Calculate the coefficients
@@ -2549,8 +2549,8 @@ end subroutine orthonormalLinearCombinations
 
 
 
-subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
-           tag, comonig, opig, madig, collcomig, collcom, lphi)
+subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, coeff, lchi, &
+           collcomig, collcom, lphi)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => buildLinearCombinations_new
@@ -2560,14 +2560,8 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, i
   integer,intent(in):: iproc, nproc
   type(local_zone_descriptors),intent(in):: lzdig, lzd
   type(orbitals_data),intent(in):: orbsig, orbs
-  type(input_variables),intent(in):: input
   real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
   real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-  character(len=1),intent(in):: locregShape
-  integer,intent(inout):: tag
-  type(p2pComms):: comonig
-  type(overlapParameters):: opig
-  type(matrixDescriptors):: madig
   type(collective_comms),intent(in):: collcomig, collcom
   real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
   
@@ -2652,9 +2646,9 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, i
 end subroutine buildLinearCombinations_new
 
 
-subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
-           onWhichAtom, lchi, lphi, locregCenter, rxyz, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, &
-           opig, madig, collcomig, collcom, tmb)
+subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
+           onWhichAtom, lchi, lphi, locregCenter, rxyz, lzd, lzdig, nlocregPerMPI, tag, ham3, &
+           collcomig, collcom, tmb)
 !
 use module_base
 use module_types
@@ -2664,7 +2658,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nlocregPerMPI
 real(gp), intent(in) :: hx, hy, hz
-type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
+type(orbitals_data),intent(in):: orbsig, lorbs
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
@@ -2676,12 +2670,8 @@ real(8),dimension(orbsig%npsidim_orbs):: lchi
 real(8),dimension(lorbs%npsidim_orbs):: lphi
 real(8),dimension(3,lzdig%nlr):: locregCenter
 real(8),dimension(3,at%nat):: rxyz
-integer,dimension(lorbs%norb):: onWhichAtomPhi
 integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
-type(p2pComms):: comonig
-type(overlapParameters):: opig
-type(matrixDescriptors):: madig
 type(collective_comms),intent(in):: collcomig, collcom
 type(DFT_wavefunction),intent(in):: tmb
 
@@ -2719,14 +2709,14 @@ type(collective_comms):: collcom_vectors
 
   call determineLocalizationRegions(iproc, nproc, lzd%nlr, orbsig%norb, at, onWhichAtom, &
        input%lin%locrad, locregCenter, lzd, lzdig, hx, hy, hz, matmin%mlr)
-  call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, onWhichAtomPhi, &
+  call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, lorbs%inwhichlocreg, &
        lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
 
   call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
-       onWhichAtom, onWhichAtomPhi, comom)
+       onWhichAtom, lorbs%inwhichlocreg, comom)
 
   call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, lorbs%norb_par, lorbs%isorb_par, &
-       onWhichAtomPhi, lorbs%onwhichmpi, tag, comom)
+       lorbs%inwhichlocreg, lorbs%onwhichmpi, tag, comom)
 
   call nullify_matrixDescriptors(mad)
   call initMatrixCompression(iproc, nproc, lzdig%nlr, lorbs, comom%noverlap, comom%overlaps, mad)
@@ -2754,7 +2744,7 @@ type(collective_comms):: collcom_vectors
   ii=0
   do jproc=0,nproc-1
       do iorb=1,lorbs%norb_par(jproc,0)
-          iiAt=onWhichAtomPhi(lorbs%isorb_par(jproc)+iorb)
+          iiAt=lorbs%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
           iiiAt=lorbs%onwhichatom(lorbs%isorb_par(jproc)+iorb)
           ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
           !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
@@ -2806,7 +2796,7 @@ type(collective_comms):: collcom_vectors
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
+           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
            lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
@@ -2834,7 +2824,7 @@ type(collective_comms):: collcom_vectors
 
       ! Orthonormalize the coefficients.
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
+           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), &
            lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
 
@@ -2842,7 +2832,7 @@ type(collective_comms):: collcom_vectors
       ilrold=0
       iilr=0
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
@@ -2857,13 +2847,13 @@ type(collective_comms):: collcom_vectors
       ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
       ! multiplier matrix.
       call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
-           lorbs, onWhichAtomPhi, lorbs%onwhichmpi, lorbs%isorb_par, &
+           lorbs, lorbs%inwhichlocreg, lorbs%onwhichmpi, lorbs%isorb_par, &
            matmin%norbmax, lorbs%norbp, lorbs%isorb_par(iproc), lzd%nlr, mpi_comm_world, &
            matmin%mlr, mad, lcoeff, lgrad, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
       ! Calculate the gradient norm.
       fnrm=0.d0
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
 
@@ -2904,7 +2894,7 @@ type(collective_comms):: collcom_vectors
 
       ! Precondition the gradient.
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
       end do
@@ -2944,7 +2934,7 @@ type(collective_comms):: collcom_vectors
 
       ! Improve the coefficients (by steepet descent).
       do iorb=1,lorbs%norbp
-          ilr=onWhichAtomPhi(lorbs%isorb+iorb)
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
       end do
 
@@ -3017,8 +3007,8 @@ type(collective_comms):: collcom_vectors
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
-       comonig, opig, madig, collcomig, collcom, lphi)
+  call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, coeff, lchi, &
+       collcomig, collcom, lphi)
   if(lzdig%Glr%geocode /= 'F') then
      write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
      call mpi_finalize(iall)

@@ -1852,10 +1852,10 @@ subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, 
   iisend=0
   iirecv=0
   do jproc=0,nproc-1
-      call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
+      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
       ist_c=ist_c+collcom%nsendcounts_c(jproc)
       ist=ist+collcom%nsendcounts_c(jproc)
-      call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
+      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
       ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
       ist=ist+7*collcom%nsendcounts_f(jproc)
       nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -1885,10 +1885,10 @@ subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, 
   ist_c=1
   ist_f=1
   do jproc=0,nproc-1
-      call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
+      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
       ist_c=ist_c+collcom%nrecvcounts_c(jproc)
       ist=ist+collcom%nrecvcounts_c(jproc)
-      call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
+      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
       ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
       ist=ist+7*collcom%nrecvcounts_f(jproc)
   end do
@@ -2033,10 +2033,10 @@ subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c
   iisend=0
   iirecv=0
   do jproc=0,nproc-1
-      call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
+      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
       ist_c=ist_c+collcom%nrecvcounts_c(jproc)
       ist=ist+collcom%nrecvcounts_c(jproc)
-      call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
+      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
       ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
       ist=ist+7*collcom%nrecvcounts_f(jproc)
       nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -2062,10 +2062,10 @@ subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c
   ist_c=1
   ist_f=1
   do jproc=0,nproc-1
-      call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
+      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
       ist_c=ist_c+collcom%nsendcounts_c(jproc)
       ist=ist+collcom%nsendcounts_c(jproc)
-      call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
+      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
       ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
       ist=ist+7*collcom%nsendcounts_f(jproc)
   end do
