@@ -326,12 +326,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr, tag)
 
-  !!!! not ideal place here for this...
-  !!!if(lorbs%norb/=tmbig%orbs%norb) then
-  !!!    write(*,*) 'ERROR: lorbs%norb/=tmbig%orbs%norb not implemented!'
-  !!!    !stop
-  !!!end if
-
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
   call memocc(istat,norbsc_arr,'norbsc_arr',subname)
@@ -346,9 +340,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(inversemapping(tmbig%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
-  !!! Number of localization regions.
-  !!tmbig%lzd%nlr=at%nat
-  !!tmbgauss%lzd%nlr=at%nat
 
   ! Spin for inputguess orbitals
   if (input%nspin == 4) then
@@ -432,7 +423,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   tmbgauss%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
                   covered(jorb)=.true.
                   mapping(iiorb)=jorb
-                  !if(iproc==0) write(666,*) iiorb, mapping(iiorb)
                   exit
               end if
           end do
@@ -444,7 +434,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       do jorb=1,tmbgauss%orbs%norb
           if(mapping(jorb)==iorb) then
               inversemapping(iorb)=jorb
-              !if(iproc==0) write(888,*) iorb, inversemapping(iorb)
               exit
           end if
       end do
@@ -458,17 +447,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
-       !write(*,'(a,i5,4x,100i5)') 'iproc, tmbgauss%orbs%inwhichlocreg', iproc, tmbgauss%orbs%inwhichlocreg
   ! Since inputguess_gaussian_orbitals overwrites tmbig%orbs,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
        tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
-
-  !!! Maybe this could be moved to another subroutine? Or be omitted at all?
-  !!allocate(tmbig%orbs%eval(lorbs%norb), stat=istat)
-  !!call memocc(istat, tmbig%orbs%eval, 'tmbig%orbs%eval', subname)
-  !!tmbig%orbs%eval=-.5d0
 
 
   !dimension of the wavefunctions
@@ -516,7 +499,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ind1=1
   ind2=1
   do iorb=1,tmbgauss%orbs%norbp
-      !ilr = tmbig%orbs%inWhichLocregp(iorb)
       ilrl = tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+iorb)
       ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
       ldim=tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
@@ -556,22 +538,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
 
-  !!! copy the occupation numbers
-  !!do iorb=1,tmbig%orbs%norbp
-  !!    tmbig%orbs%occup(iorb)=tmbgauss%orbs%occup(iorb)
-  !!end do
 
-  !!call sumrho(iproc,nproc,tmbig%orbs,tmbig%lzd,&
-  !!     hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
-  !!     GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
        hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
        denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
-  !!do istat=1,size(denspot%rhov)
-  !!    write(4000+iproc,*) istat, denspot%rhov(istat)
-  !!end do 
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -679,9 +651,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Determine for how many localization regions we need a Hamiltonian application.
   ndim_lhchi=0
-  !do ilr=1,tmbig%lzd%nlr
   do ilr=1,lzd%nlr
-      !call getIndices(lig%lzdig%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,tmbig%orbs%norbp
           onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbig%orbs%inwhichlocreg(ilr)
@@ -689,12 +659,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           if(tmbig%orbs%inWhichlocreg(jorb+tmbig%orbs%isorb)/=jlr) stop 'this should not happen'
           call getIndices(tmbig%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
           call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(ilr),tmbig%lzd%llr(jlr),isoverlap)
-          !call getIndices(lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
-          !ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          !ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          !ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-          !if((ovrlpx .and. ovrlpy .and. ovrlpz) .neqv. isoverlap) print *,'ilr, jlr,ovrlps',ilr,jlr,ovrlpx,ovrlpy,ovrlpz ,isoverlap
-          !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
            if(isoverlap) then
               skip(ilr)=.false.
           end if
@@ -729,26 +693,15 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
   withConfinement=.true.
   ii=0
-  !do ilr=1,tmbig%lzd%nlr
   do ilr=1,lzd%nlr
       doNotCalculate=.true.
       tmbig%lzd%doHamAppl=.false.
-      !call getIndices(tmbig%lzd%llr(tmbig%orbs%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
-      call getIndices(lzd%llr(lorbs%inwhichlocreg(ilr)), is1, ie1, is2, ie2, is3, ie3)
       skip(ilr)=.true.
       do jorb=1,tmbig%orbs%norbp
-          !onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbgauss%orbs%inwhichlocreg(ilr)
           onWhichAtomTemp(tmbig%orbs%isorb+jorb)=lorbs%onwhichatom(ilr)
           jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
-          call getIndices(tmbig%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-          !!call check_overlap_cubic_periodic(tmbig%lzd%Glr,tmbig%lzd%llr(tmbig%orbs%inwhichlocreg(ilr)),&
-          !!     tmbig%lzd%llr(jlr),isoverlap)
           call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(lorbs%inwhichlocreg(ilr)),&
                tmbig%lzd%llr(jlr),isoverlap)
-          !ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-          !ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-          !ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-         !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
           if(isoverlap) then
               doNotCalculate(jlr)=.false.
               tmbig%lzd%doHamAppl(jlr)=.true.
@@ -759,8 +712,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           end if
       end do
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
-      !!if(iproc==0) write(*,'(a,100i5)') 'onwhichatomtemp',onwhichatomtemp
-      !!if(iproc==0) write(*,'(a,100i5)') 'tmbgauss%orbs%inwhichlocreg', tmbgauss%orbs%inwhichlocreg
 
       if(.not.skip(ilr)) then
           ii=ii+1
@@ -785,23 +736,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       if(iproc==0) write(*,'(a)') 'done.'
   end do
 
-!!open(22,file='lchi',status='unknown')
-!!do jproc=1,max(lig%orbsig%npsidim_orbs,lig%orbsig%npsidim_comp)
-!!write(22,*)lchi(jproc)
-!!end do
-!!close(22)
-!!open(22,file='lhchi',status='unknown')
-!!do jproc=1,max(lig%orbsig%npsidim_orbs,lig%orbsig%npsidim_comp)
-!!do jorb=1,ndim_lhchi
-!!write(22,*)lhchi(jproc,jorb)
-!!end do
-!!end do
-!!close(22)
 
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(tmbig%comgp, subname)
   ! Deallocate the parameters needed for the communication of the potential.
-  !call deallocate_p2pCommsGatherPot(tmbig%comgp, subname)
   call deallocate_p2pComms(tmbig%comgp, subname)
 
   iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
@@ -972,8 +910,6 @@ character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
 ! Initialize the communication parameters.
-!tag=5000
-!call initCommsOrtho(iproc, nproc, lzd, orbs, orbs%inWhichLocreg, input, op, comon, tag)
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
@@ -984,8 +920,6 @@ iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
 call memocc(istat, iall, 'ovrlp', subname)
 
-!call deallocate_overlapParameters(op, subname)
-!call deallocate_p2pCommsOrthonormality(comon, subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
@@ -1125,18 +1059,14 @@ allocate(displs(0:nproc-1), stat=istat)
 call memocc(istat, displs, 'displs', subname)
 
 call getCommunArraysMatrixCompression(iproc, nproc, orbsig, mad, sendcounts, displs)
-!!write(*,'(a,i4,2x,100i5)') 'getHamiltonianMatrix6: iproc, sendcounts', iproc, sendcounts
-!!write(*,'(a,i4,2x,100i5)') 'getHamiltonianMatrix6: iproc, displs', iproc, displs
 availableMemory=memoryForCommunOverlapIG*1048576
 availableMemory=availableMemory/8 ! double precision
 ii=maxval(sendcounts)
 noverlaps=max(availableMemory/ii,1)
 if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
-!noverlaps=min(noverlaps,lzdig%nlr)
 noverlaps=min(noverlaps,lzd%nlr)
 
 
-!allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
 allocate(hamTempCompressed(max(sendcounts(iproc),1),noverlaps), stat=istat)
 call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 allocate(hamTempCompressed2(mad%nvctr,nlocregPerMPI), stat=istat)
@@ -1155,12 +1085,9 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
-!call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
 call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, lzdig, op, op, &
      lchi, comon%nsendBuf, comon%sendBuf)
-!!call postCommsOverlap(iproc, nproc, comon)
 call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
-!call gatherOrbitals2(iproc, nproc, comon)
 call collectnew(iproc, nproc, comon, mad, op, orbsig, lzdig, comon%nsendbuf, &
      comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
 
@@ -1188,15 +1115,7 @@ do iat=1,lzd%nlr
              lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
         call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
              comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
-        !!do istat=1,orbsig%norb
-        !!    do iall=1,orbsig%norb
-        !!        write(40000+1000*iproc+iat,*) istat,iall,hamTemp(iall,istat)
-        !!    end do
-        !!end do
         call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
-        !!do istat=1,orbsig%norb**2
-        !!        write(50000+1000*iproc+iat,*) istat,iall,hamTempCompressed(istat,ioverlap)
-        !!end do
 
     else
         call razero(sendcounts(iproc), hamTempCompressed(1,ioverlap))
@@ -1266,49 +1185,33 @@ do iat=1,lzd%nlr
                 iiat=iioverlap+nshift
                 ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
                 ! in calculating the input guess, this check has to be done only for those processes.
-                !!write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
-                if(iproc<nproc) then
-                    if(ilr==ilrold .and. jjproc==jjprocold) cycle
-                    if(ilr==iiat) then
-                        ! Send to process jproc
-                       if(iproc==jjproc .and. nproc > 1) then
-                          imat=imat+1
-                          do jproc=0,nproc-1
-                             if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
-                             tag=tag0+jproc
-                             irecv=irecv+1
-                             !write(*,'(3(a,i0))') 'process ',iproc,' receives data from process ',jproc,' with tag ',tag
-                             call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
-                                  mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
-                          end do
-                          tag=tag0+iproc
-                          isend=isend+1
-                          !write(*,'(3(a,i0))') 'process ',iproc,' sends data to process ',jjproc,' with tag ',tag
-                          !!call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
-                          !!     mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                          call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                               mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                       !else if (nproc ==1) then
-                       !   call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
-                        !       hamTempCompressed2(displs(jproc)+1,imat),1)
-                       else if (nproc >1) then
-                          tag=tag0+iproc
-                          isend=isend+1
-                          !write(*,'(3(a,i0))') 'Aprocess ',iproc,' sends data to process ',jjproc,' with tag ',tag
-                          !call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
-                          !     mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                          call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                               mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                       else if (nproc == 1) then
-                          imat=imat+1
-                          !write(*,'(a,3i9)') 'iioverlap, ilr, imat', iioverlap, ilr, imat
-                          !call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
-                          !     hamTempCompressed2(displs(iproc)+1,imat),1)
-                          call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
-                               hamTempCompressed2(displs(iproc)+1,imat),1)
-                       end if
-                        tag0=tag0+1
-                    end if
+                if(ilr==ilrold .and. jjproc==jjprocold) cycle
+                if(ilr==iiat) then
+                   ! Send to process jproc
+                   if(iproc==jjproc .and. nproc > 1) then
+                      imat=imat+1
+                      do jproc=0,nproc-1
+                         if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                         tag=tag0+jproc
+                         irecv=irecv+1
+                         call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
+                              mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
+                      end do
+                      tag=tag0+iproc
+                      isend=isend+1
+                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
+                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                   else if (nproc >1) then
+                      tag=tag0+iproc
+                      isend=isend+1
+                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
+                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                   else if (nproc == 1) then
+                      imat=imat+1
+                      call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
+                           hamTempCompressed2(displs(iproc)+1,imat),1)
+                   end if
+                    tag0=tag0+1
                 end if
             end do
             ilrold=ilr
@@ -1340,10 +1243,6 @@ do iat=1,lzd%nlr
 
      ! Uncompress the matrices
      do i=imatold,imat
-        !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
-        !!do istat=1,orbsig%norb**2
-        !!        write(60000+1000*iproc+i,*) istat,iall,hamTempCompressed2(istat,i)
-        !!end do
         call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
@@ -1367,11 +1266,6 @@ end do
 
 call mpi_barrier(mpi_comm_world, ierr)
 
-
-!!if(imat/=ndim_lhchi) then
-!!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': imat/=ndim_lhchi',imat,ndim_lhchi
-!!    stop
-!!end if
 
 if(imat/=nlocregPerMPI .and. nproc >1) then
   write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': imat/=nlocregPerMPI',imat,nlocregPerMPI
