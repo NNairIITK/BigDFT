@@ -1,150 +1,150 @@
-subroutine checkLinearParameters(iproc, nproc, lin)
-!
-! Purpose:
-! ========
-!  Checks some values contained in the variable lin on errors.
-!
-use module_base
-use module_types
-implicit none
+!!!subroutine checkLinearParameters(iproc, nproc, lin)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!  Checks some values contained in the variable lin on errors.
+!!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(linearParameters),intent(inout):: lin
+!!!
+!!!! Local variables
+!!!integer:: norbTarget, nprocIG, ierr
+!!!
+!!!
+!!!  if(lin%DIISHistMin>lin%DIISHistMax) then
+!!!      if(iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
+!!!      & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  !!if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
+!!!  !!    if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
+!!!  !!        & but we found '", trim(lin%getCoeff), "'!"
+!!!  !!    call mpi_barrier(mpi_comm_world, ierr)
+!!!  !!    stop
+!!!  !!end if
+!!!
+!!!  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
+!!!      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
+!!!                               lin%methTransformOverlap,'.'
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  !!if(trim(lin%getCoeff)=='diag') then
+!!!  !!    if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
+!!!  !!        if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
+!!!  !!            & but we found '", trim(lin%diagMethod), "'!"
+!!!  !!        call mpi_barrier(mpi_comm_world, ierr)
+!!!  !!        stop
+!!!  !!    end if
+!!!  !!end if
+!!!
+!!!  if(lin%confPotOrder/=4 .and. lin%confPotOrder/=6) then
+!!!      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
+!!!          & but we found ', lin%confPotOrder, '!'
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!
+!!!  ! Determine the number of processes we need for the minimization of the trace in the input guess.
+!!!  if(lin%norbsPerProcIG>lin%orbs%norb) then
+!!!      norbTarget=lin%orbs%norb
+!!!  else
+!!!      norbTarget=lin%norbsperProcIG
+!!!  end if
+!!!  nprocIG=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
+!!!  nprocIG=min(nprocIG,nproc)
+!!!
+!!!  if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (lin%blocksize_pdsyev>0 .or. lin%blocksize_pdgemm>0)) .or. &
+!!!      (lin%methTransformOverlap==1 .and. lin%blocksize_pdgemm>0)) ) then
+!!!      if(iproc==0) then
+!!!          write(*,'(1x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
+!!!                     &involved in these calls, which is not the case here.'
+!!!          write(*,'(1x,a)') 'To avoid this problem you have several possibilities:'
+!!!          write(*,'(3x,a,i0,a)') "-set 'lin%norbsperProcIG' to a value not greater than ",floor(dble(lin%orbs%norb)/dble(nproc)), &
+!!!              ' (recommended; probably only little influence on performance)'
+!!!          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'lin%blocksize_pdgemm' to a negative value &
+!!!              &(may heavily affect performance)"
+!!!          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'lin%blocksize_pdsyev' and 'lin%blocksize_pdsyev' &
+!!!              &to negative values (may very heavily affect performance)"
+!!!      end if
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  if(lin%nproc_pdsyev>nproc) then
+!!!      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  if(lin%nproc_pdgemm>nproc) then
+!!!      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  if(lin%locregShape/='c' .and. lin%locregShape/='s') then
+!!!      if(iproc==0) write(*,*) "ERROR: lin%locregShape must be 's' or 'c'!"
+!!!      call mpi_barrier(mpi_comm_world, ierr)
+!!!      stop
+!!!  end if
+!!!
+!!!  if(lin%mixedmode .and. .not.lin%useDerivativeBasisFunctions) then
+!!!      if(iproc==0) write(*,*) 'WARNING: will set lin%useDerivativeBasisFunctions to true, &
+!!!                               &since this is required if lin%mixedmode is true!'
+!!!      lin%useDerivativeBasisFunctions=.true.
+!!!  end if
+!!!
+!!!
+!!!
+!!!end subroutine checkLinearParameters
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
-
-! Local variables
-integer:: norbTarget, nprocIG, ierr
-
-
-  if(lin%DIISHistMin>lin%DIISHistMax) then
-      if(iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
-      & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  !!if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
-  !!    if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
-  !!        & but we found '", trim(lin%getCoeff), "'!"
-  !!    call mpi_barrier(mpi_comm_world, ierr)
-  !!    stop
-  !!end if
-
-  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
-      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
-                               lin%methTransformOverlap,'.'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  !!if(trim(lin%getCoeff)=='diag') then
-  !!    if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
-  !!        if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
-  !!            & but we found '", trim(lin%diagMethod), "'!"
-  !!        call mpi_barrier(mpi_comm_world, ierr)
-  !!        stop
-  !!    end if
-  !!end if
-
-  if(lin%confPotOrder/=4 .and. lin%confPotOrder/=6) then
-      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
-          & but we found ', lin%confPotOrder, '!'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-
-  ! Determine the number of processes we need for the minimization of the trace in the input guess.
-  if(lin%norbsPerProcIG>lin%orbs%norb) then
-      norbTarget=lin%orbs%norb
-  else
-      norbTarget=lin%norbsperProcIG
-  end if
-  nprocIG=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
-  nprocIG=min(nprocIG,nproc)
-
-  if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (lin%blocksize_pdsyev>0 .or. lin%blocksize_pdgemm>0)) .or. &
-      (lin%methTransformOverlap==1 .and. lin%blocksize_pdgemm>0)) ) then
-      if(iproc==0) then
-          write(*,'(1x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
-                     &involved in these calls, which is not the case here.'
-          write(*,'(1x,a)') 'To avoid this problem you have several possibilities:'
-          write(*,'(3x,a,i0,a)') "-set 'lin%norbsperProcIG' to a value not greater than ",floor(dble(lin%orbs%norb)/dble(nproc)), &
-              ' (recommended; probably only little influence on performance)'
-          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'lin%blocksize_pdgemm' to a negative value &
-              &(may heavily affect performance)"
-          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'lin%blocksize_pdsyev' and 'lin%blocksize_pdsyev' &
-              &to negative values (may very heavily affect performance)"
-      end if
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  if(lin%nproc_pdsyev>nproc) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  if(lin%nproc_pdgemm>nproc) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  if(lin%locregShape/='c' .and. lin%locregShape/='s') then
-      if(iproc==0) write(*,*) "ERROR: lin%locregShape must be 's' or 'c'!"
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-
-  if(lin%mixedmode .and. .not.lin%useDerivativeBasisFunctions) then
-      if(iproc==0) write(*,*) 'WARNING: will set lin%useDerivativeBasisFunctions to true, &
-                               &since this is required if lin%mixedmode is true!'
-      lin%useDerivativeBasisFunctions=.true.
-  end if
-
-
-
-end subroutine checkLinearParameters
-
-subroutine deallocateLinear(iproc, lin, lphi, coeff)
-!
-! Purpose:
-! ========
-!   Deallocates all array related to the linear scaling version which have not been 
-!   deallocated so far.
-!
-! Calling arguments:
-! ==================
-!
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => deallocateLinear
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc
-type(linearParameters),intent(inout):: lin
-real(8),dimension(:),pointer,intent(inout):: lphi
-real(8),dimension(:,:),pointer,intent(inout):: coeff
-
-! Local variables
-integer:: istat, iall
-character(len=*),parameter:: subname='deallocateLinear'
-
-
-  iall=-product(shape(lphi))*kind(lphi)
-  deallocate(lphi, stat=istat)
-  call memocc(istat, iall, 'lphi', subname)
-
-  iall=-product(shape(coeff))*kind(coeff)
-  deallocate(coeff, stat=istat)
-  call memocc(istat, iall, 'coeff', subname)
-
-  call deallocate_linearParameters(lin, subname)
-
-end subroutine deallocateLinear
+!!!subroutine deallocateLinear(iproc, lin, lphi, coeff)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Deallocates all array related to the linear scaling version which have not been 
+!!!!   deallocated so far.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, exceptThisOne => deallocateLinear
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc
+!!!type(linearParameters),intent(inout):: lin
+!!!real(8),dimension(:),pointer,intent(inout):: lphi
+!!!real(8),dimension(:,:),pointer,intent(inout):: coeff
+!!!
+!!!! Local variables
+!!!integer:: istat, iall
+!!!character(len=*),parameter:: subname='deallocateLinear'
+!!!
+!!!
+!!!  iall=-product(shape(lphi))*kind(lphi)
+!!!  deallocate(lphi, stat=istat)
+!!!  call memocc(istat, iall, 'lphi', subname)
+!!!
+!!!  iall=-product(shape(coeff))*kind(coeff)
+!!!  deallocate(coeff, stat=istat)
+!!!  call memocc(istat, iall, 'coeff', subname)
+!!!
+!!!  call deallocate_linearParameters(lin, subname)
+!!!
+!!!end subroutine deallocateLinear
 
 
 
@@ -383,72 +383,72 @@ end subroutine initializeCommsSumrho
 
 
 
-subroutine allocateBasicArrays(lin, ntypes)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(linearParameters),intent(inout):: lin
-  integer, intent(in) :: ntypes
-  
-  ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='allocateBasicArrays'
-  
-  allocate(lin%norbsPerType(ntypes), stat=istat)
-  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-  
-  allocate(lin%potentialPrefac(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+!!subroutine allocateBasicArrays(lin, ntypes)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(linearParameters),intent(inout):: lin
+!!  integer, intent(in) :: ntypes
+!!  
+!!  ! Local variables
+!!  integer:: istat
+!!  character(len=*),parameter:: subname='allocateBasicArrays'
+!!  
+!!  allocate(lin%norbsPerType(ntypes), stat=istat)
+!!  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+!!  
+!!  allocate(lin%potentialPrefac(ntypes), stat=istat)
+!!  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+!!
+!!  allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
+!!  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
+!!
+!!  allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
+!!  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
+!!
+!!  allocate(lin%locrad(lin%nlr),stat=istat)
+!!  call memocc(istat,lin%locrad,'lin%locrad',subname)
+!!
+!!end subroutine allocateBasicArrays
 
-  allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
-
-  allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
-
-  allocate(lin%locrad(lin%nlr),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
-
-end subroutine allocateBasicArrays
-
-subroutine deallocateBasicArrays(lin)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(linearParameters),intent(inout):: lin
-  
-  ! Local variables
-  integer:: i_stat,i_all
-  character(len=*),parameter:: subname='deallocateBasicArrays'
- 
-  if(associated(lin%potentialPrefac)) then
-    !print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
-    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    !print *,'i_all',i_all
-    deallocate(lin%potentialPrefac,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
-    nullify(lin%potentialPrefac)
-  end if 
-  if(associated(lin%norbsPerType)) then
-    !print *,'lin%norbsPerType',associated(lin%norbsPerType)
-    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
-    deallocate(lin%norbsPerType,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
-    nullify(lin%norbsPerType)
-  end if 
-  if(associated(lin%locrad)) then
-    !print *,'lin%locrad',associated(lin%locrad)
-    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
-    deallocate(lin%locrad,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad',subname)
-    nullify(lin%locrad)
-  end if 
-
-end subroutine deallocateBasicArrays
+!!!subroutine deallocateBasicArrays(lin)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  type(linearParameters),intent(inout):: lin
+!!!  
+!!!  ! Local variables
+!!!  integer:: i_stat,i_all
+!!!  character(len=*),parameter:: subname='deallocateBasicArrays'
+!!! 
+!!!  if(associated(lin%potentialPrefac)) then
+!!!    !print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
+!!!    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+!!!    !print *,'i_all',i_all
+!!!    deallocate(lin%potentialPrefac,stat=i_stat)
+!!!    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
+!!!    nullify(lin%potentialPrefac)
+!!!  end if 
+!!!  if(associated(lin%norbsPerType)) then
+!!!    !print *,'lin%norbsPerType',associated(lin%norbsPerType)
+!!!    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
+!!!    deallocate(lin%norbsPerType,stat=i_stat)
+!!!    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
+!!!    nullify(lin%norbsPerType)
+!!!  end if 
+!!!  if(associated(lin%locrad)) then
+!!!    !print *,'lin%locrad',associated(lin%locrad)
+!!!    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
+!!!    deallocate(lin%locrad,stat=i_stat)
+!!!    call memocc(i_stat,i_all,'lin%locrad',subname)
+!!!    nullify(lin%locrad)
+!!!  end if 
+!!!
+!!!end subroutine deallocateBasicArrays
 
 
 subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
@@ -679,40 +679,40 @@ lzd%linear=.true.
 end subroutine initLocregs
 
 
-!> Allocate the coefficients for the linear combinations of the  orbitals and initialize
-!! them at random.
-!! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
-subroutine initCoefficients(iproc, orbs, lin, coeff)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc
-  type(orbitals_data),intent(in):: orbs
-  type(linearParameters),intent(in):: lin
-  real(8),dimension(:,:),pointer,intent(out):: coeff
-  
-  ! Local variables
-  integer:: iorb, jorb, istat
-  real:: ttreal
-  character(len=*),parameter:: subname='initCoefficients'
-  
-  
-  allocate(coeff(lin%lb%orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, coeff, 'coeff', subname)
-  
-  call initRandomSeed(0, 1)
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-         do jorb=1,lin%lb%orbs%norb
-            call random_number(ttreal)
-            coeff(jorb,iorb)=real(ttreal,kind=8)
-         end do
-      end do
-  end if
-
-end subroutine initCoefficients
+!!!!> Allocate the coefficients for the linear combinations of the  orbitals and initialize
+!!!!! them at random.
+!!!!! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
+!!!subroutine initCoefficients(iproc, orbs, lin, coeff)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  integer,intent(in):: iproc
+!!!  type(orbitals_data),intent(in):: orbs
+!!!  type(linearParameters),intent(in):: lin
+!!!  real(8),dimension(:,:),pointer,intent(out):: coeff
+!!!  
+!!!  ! Local variables
+!!!  integer:: iorb, jorb, istat
+!!!  real:: ttreal
+!!!  character(len=*),parameter:: subname='initCoefficients'
+!!!  
+!!!  
+!!!  allocate(coeff(lin%lb%orbs%norb,orbs%norb), stat=istat)
+!!!  call memocc(istat, coeff, 'coeff', subname)
+!!!  
+!!!  call initRandomSeed(0, 1)
+!!!  if(iproc==0) then
+!!!      do iorb=1,orbs%norb
+!!!         do jorb=1,lin%lb%orbs%norb
+!!!            call random_number(ttreal)
+!!!            coeff(jorb,iorb)=real(ttreal,kind=8)
+!!!         end do
+!!!      end do
+!!!  end if
+!!!
+!!!end subroutine initCoefficients
 
 
 

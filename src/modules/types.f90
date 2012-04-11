@@ -731,14 +731,6 @@ type:: linear_scaling_control_variables
 end type linear_scaling_control_variables
 
 
-  !!!> Contains the parameters for the parallel input guess for the O(N) version.
-  !!type,public:: inguessParameters
-  !!  !!integer:: norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
-  !!  !!integer:: norbtotPad
-  !!  !!integer,dimension(:),pointer:: nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
-  !!  !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
-  !!end type inguessParameters
-
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
@@ -754,52 +746,43 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-  !!!type,public:: linearInputGuess
-  !!!    type(local_zone_descriptors):: lzdig, lzdGauss
-  !!!    type(orbitals_data):: orbsig, orbsGauss
-  !!!    type(p2pComms):: comon
-  !!!    type(overlapParameters):: op
-  !!!    type(p2pComms):: comgp
-  !!!    type(matrixDescriptors):: mad
-  !!!    type(collective_comms):: collcom
-  !!!end type linearInputGuess
 
 !> Contains all parameters related to the linear scaling version.
-  type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItPrecond
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
-    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
-    integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
-    integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
-    real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
-    real(8):: lowaccuray_converged
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
-    real(8),dimension(:),pointer:: lphiold
-    real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    type(orbitals_data):: orbs, gorbs
-    type(communications_arrays):: comms, gcomms
-    integer,dimension(:),pointer:: norbsPerType
-    !type(arraySizes):: as
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
-    logical:: newgradient, mixedmode
-    character(len=4):: mixingMethod
-    !type(p2pCommsSumrho):: comsr
-    type(p2pComms):: comsr
-    !type(p2pCommsGatherPot):: comgp
-    type(p2pComms):: comgp
-    type(largeBasis):: lb
-    type(local_zone_descriptors):: lzd
-    !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon
-    type(overlapParameters):: op
-    type(matrixDescriptors):: mad
-    character(len=1):: locregShape
-    type(collectiveComms):: collComms
-  end type linearParameters
+  !!!type,public:: linearParameters
+  !!!  integer:: DIISHistMin, DIISHistMax, nItPrecond
+  !!!  integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
+  !!!  integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
+  !!!  integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+  !!!  integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+  !!!  integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
+  !!!  integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
+  !!!  integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+  !!!  real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
+  !!!  real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
+  !!!  real(8):: lowaccuray_converged
+  !!!  real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
+  !!!  real(8),dimension(:),pointer:: lphiold
+  !!!  real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+  !!!  type(orbitals_data):: orbs, gorbs
+  !!!  type(communications_arrays):: comms, gcomms
+  !!!  integer,dimension(:),pointer:: norbsPerType
+  !!!  !type(arraySizes):: as
+  !!!  logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
+  !!!  logical:: newgradient, mixedmode
+  !!!  character(len=4):: mixingMethod
+  !!!  !type(p2pCommsSumrho):: comsr
+  !!!  type(p2pComms):: comsr
+  !!!  !type(p2pCommsGatherPot):: comgp
+  !!!  type(p2pComms):: comgp
+  !!!  type(largeBasis):: lb
+  !!!  type(local_zone_descriptors):: lzd
+  !!!  !type(p2pCommsOrthonormality):: comon
+  !!!  type(p2pComms):: comon
+  !!!  type(overlapParameters):: op
+  !!!  type(matrixDescriptors):: mad
+  !!!  character(len=1):: locregShape
+  !!!  type(collectiveComms):: collComms
+  !!!end type linearParameters
 
   type,public:: basis_specifications
     logical:: update_phi !<shall phi be optimized or not
