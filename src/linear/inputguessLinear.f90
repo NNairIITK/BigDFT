@@ -3097,11 +3097,9 @@ integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 real(8),dimension(orbsig%npsidim_orbs):: lchi
 real(8),dimension(lorbs%npsidim_orbs):: lphi
-!real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(3,lzdig%nlr):: locregCenter
 real(8),dimension(3,at%nat):: rxyz
 integer,dimension(lorbs%norb):: onWhichAtomPhi
-!!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
 type(p2pComms):: comonig
@@ -3112,7 +3110,7 @@ type(DFT_wavefunction),intent(in):: tmb
 
 ! Local variables
 integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb, jj
-real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, gradOld, fnrmArr, fnrmOvrlpArr, fnrmOldArr, grad
+real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, fnrmArr, fnrmOvrlpArr, fnrmOldArr
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, tt2
@@ -3120,9 +3118,7 @@ logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
 real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
-!!integer,dimension(:),allocatable:: newID
 integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
-!!type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
@@ -3145,10 +3141,6 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
 
 
-  !!! Initialize the parameters for performing tha calculations in parallel.
-  !!call initializeInguessParameters(iproc, nproc, lorbs, orbsig, mpi_comm_world, ip)
-
-
   ! Allocate the local arrays.
   call allocateArrays()
 
@@ -3156,20 +3148,10 @@ type(collective_comms):: collcom_vectors
        input%lin%locrad, locregCenter, lzd, lzdig, hx, hy, hz, matmin%mlr)
   call extractMatrix3(iproc, nproc, lorbs%norb, lorbs%norbp, orbsig, onWhichAtomPhi, &
        lorbs%onwhichmpi, nlocregPerMPI, ham3, matmin, hamextract)
- !!if(iproc==0) write(*,'(a,100i5)') 'onwhichatomphi',onwhichatomphi
- !!if(iproc==0) write(*,'(a,100i5)') 'lorbs%inwhichlocreg', lorbs%inwhichlocreg
- !!if(iproc==0) write(*,'(a,100i5)') 'lorbs%onwhichmpi', lorbs%onwhichmpi
- !!write(*,'(a,100i5)') 'matmin%inwhichlocregonmpi', matmin%inwhichlocregonmpi
 
   call determineOverlapRegionMatrix(iproc, nproc, lzd, matmin%mlr, lorbs, orbsig, &
        onWhichAtom, onWhichAtomPhi, comom)
-       !!if(iproc==0) then
-       !!    do iorb=1,lorbs%norb
-       !!        do jorb=1,comom%noverlap(iorb)
-       !!            write(*,'(a,2i7,i10)') 'iorb,jorb,comom%overlaps(jorb,iorb)',iorb,jorb,comom%overlaps(jorb,iorb)
-       !!        end do
-       !!    end do
-       !!end if
+
   call initCommsMatrixOrtho(iproc, nproc, lorbs%norb, lorbs%norb_par, lorbs%isorb_par, &
        onWhichAtomPhi, lorbs%onwhichmpi, tag, comom)
 
@@ -3399,9 +3381,6 @@ type(collective_comms):: collcom_vectors
 
   end do iterLoop
 
-  !!if(lorbs%norbp>0) call deallocateDIIS(ldiis)
-
-
   if(iproc==0) write(*,'(1x,a)') '===================================================================================='
 
 
@@ -3427,18 +3406,6 @@ type(collective_comms):: collcom_vectors
   allocate(displs(0:nproc-1), stat=istat)
   call memocc(istat, displs, 'displs', subname)
   
-  !!! Send lorbs%norb_par and ip%norbtot to all processes.
-  allocate(norb_par(0:nproc-1), stat=istat)
-  call memocc(istat, norb_par, 'norb_par', subname)
-  !!if(iproc==0) then
-  !!    do jproc=0,nproc-1
-  !!        norb_par(jproc)=lorbs%norb_par(jproc,0)
-  !!    end do
-  !!    norbtot=ip%norbtot
-  !!end if
-  !!call mpi_bcast(norb_par(0), nproc, mpi_integer, 0, mpi_comm_world, ierr)
-  !!call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
-  
   ! Define the parameters, for the mpi_allgatherv.
   ii=0
   do jproc=0,nproc-1
@@ -3456,35 +3423,22 @@ type(collective_comms):: collcom_vectors
      call vcopy(sendcount,coeff2(1),1,coeff(1,1),1)
   end if
 
-  !!do iorb=1,lorbs%norb
-  !!    do jorb=1,ip%norbtot
-  !!        !write(600+iproc,*) coeff(jorb,iorb), iorb, jorb
-  !!        read(600+iproc,*) coeff(jorb,iorb), istat, iall
-  !!    end do
-  !!end do
 
   ! Deallocate stuff which is not needed any more.
-  !if(iproc<nproc) then
-      !!call deallocate_inguessParameters(ip, subname)
-      call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
-      call deallocate_matrixMinimization(matmin,subname)
+  call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  call deallocate_matrixMinimization(matmin,subname)
 
-      iall=-product(shape(lcoeff))*kind(lcoeff)
-      deallocate(lcoeff, stat=istat)
-      call memocc(istat, iall, 'lcoeff', subname)
+  iall=-product(shape(lcoeff))*kind(lcoeff)
+  deallocate(lcoeff, stat=istat)
+  call memocc(istat, iall, 'lcoeff', subname)
 
-      iall=-product(shape(lgrad))*kind(lgrad)
-      deallocate(lgrad, stat=istat)
-      call memocc(istat, iall, 'lgrad', subname)
+  iall=-product(shape(lgrad))*kind(lgrad)
+  deallocate(lgrad, stat=istat)
+  call memocc(istat, iall, 'lgrad', subname)
 
-      iall=-product(shape(lgradold))*kind(lgradold)
-      deallocate(lgradold, stat=istat)
-      call memocc(istat, iall, 'lgradold', subname)
-  !end if
-
-  !!iall=-product(shape(newID))*kind(newID)
-  !!deallocate(newID, stat=istat)
-  !!call memocc(istat, iall, 'newID', subname)
+  iall=-product(shape(lgradold))*kind(lgradold)
+  deallocate(lgradold, stat=istat)
+  call memocc(istat, iall, 'lgradold', subname)
 
   iall=-product(shape(coeff2))*kind(coeff2)
   deallocate(coeff2, stat=istat)
@@ -3498,9 +3452,6 @@ type(collective_comms):: collcom_vectors
   deallocate(displs, stat=istat)
   call memocc(istat, iall, 'displs', subname)
 
-  iall=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par, stat=istat)
-  call memocc(istat, iall, 'norb_par', subname)
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
@@ -3524,16 +3475,14 @@ type(collective_comms):: collcom_vectors
   else
       same=.false.
   end if
-  !!if(same) then
-      !!call buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
-      !!     comonig, opig, madig, lphi)
-      call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
-           comonig, opig, madig, collcomig, collcom, lphi)
-      if(lzdig%Glr%geocode /= 'F') then
-         write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
-         call mpi_finalize(iall)
-         stop
-      end if
+
+  call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
+       comonig, opig, madig, collcomig, collcom, lphi)
+  if(lzdig%Glr%geocode /= 'F') then
+     write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
+     call mpi_finalize(iall)
+     stop
+  end if
 
   ! Deallocate the remaining local array.
   iall=-product(shape(coeff))*kind(coeff)
@@ -3548,10 +3497,10 @@ type(collective_comms):: collcom_vectors
     subroutine allocateArrays()
       allocate(coeffPad(orbsig%norb*lorbs%norbp), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      allocate(grad(orbsig%norb*lorbs%norbp), stat=istat)
-      call memocc(istat, grad, 'grad', subname)
-      allocate(gradOld(orbsig%norb*lorbs%norbp), stat=istat)
-      call memocc(istat, gradOld, 'gradOld', subname)
+      !!allocate(grad(orbsig%norb*lorbs%norbp), stat=istat)
+      !!call memocc(istat, grad, 'grad', subname)
+      !!allocate(gradOld(orbsig%norb*lorbs%norbp), stat=istat)
+      !!call memocc(istat, gradOld, 'gradOld', subname)
       allocate(fnrmArr(lorbs%norb), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)
       allocate(fnrmOvrlpArr(lorbs%norb), stat=istat)
@@ -3566,13 +3515,13 @@ type(collective_comms):: collcom_vectors
 
 
     subroutine deallocateArrays()
-      iall=-product(shape(grad))*kind(grad)
-      deallocate(grad, stat=istat)
-      call memocc(istat, iall, 'grad', subname)
+      !!iall=-product(shape(grad))*kind(grad)
+      !!deallocate(grad, stat=istat)
+      !!call memocc(istat, iall, 'grad', subname)
 
-      iall=-product(shape(gradOld))*kind(gradOld)
-      deallocate(gradOld, stat=istat)
-      call memocc(istat, iall, 'gradOld', subname)
+      !!iall=-product(shape(gradOld))*kind(gradOld)
+      !!deallocate(gradOld, stat=istat)
+      !!call memocc(istat, iall, 'gradOld', subname)
 
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
