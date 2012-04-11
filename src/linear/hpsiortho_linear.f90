@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -20,7 +20,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: ovrlp
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
@@ -49,7 +48,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo,  ovrlp, tmbopt%psi, lhphiopt, lagmat)
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat)
 
 
   ! Calculate trace (or band structure energy, resp.)

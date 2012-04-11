@@ -613,9 +613,6 @@ type(energy_terms) :: energs
       end if
 
 
-      !!! Calculate the overlap matrix.
-      !!call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
-
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
@@ -636,7 +633,7 @@ type(energy_terms) :: energs
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH

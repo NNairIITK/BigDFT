@@ -4811,7 +4811,7 @@ module module_interfaces
       !!end subroutine initMatrixCompression
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
-                 ovrlp, lphi, lhphi, lagmat)
+                 lphi, lhphi, lagmat)
         use module_base
         use module_types
         implicit none
@@ -4824,7 +4824,6 @@ module module_interfaces
         type(collective_comms),intent(in):: collcom
         type(orthon_data),intent(in):: orthpar
         type(basis_performance_options),intent(in):: bpo
-        real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
@@ -6183,7 +6182,7 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
          use module_base
          use module_types
          implicit none
@@ -6199,7 +6198,6 @@ module module_interfaces
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine copy_basis_specifications(bsin, bsout, subname)
