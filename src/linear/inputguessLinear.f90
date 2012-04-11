@@ -1721,19 +1721,9 @@ call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 !do ilr=1,lzd%nlr
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
-!!!! THIS IS THE ORIGINAL
-     !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     !!ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-     !!    novrlp=novrlp+1
-     !!end if
-     !! THIS IS NEW ############################
      ! Check whether there is a common element.
      outloop1: do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1746,35 +1736,18 @@ do iorbout=1,orbs%norb
         end do
      end do outloop1
   end do
-  !comom%noverlap(ilr)=novrlp
   comom%noverlap(iorbout)=novrlp
-  !!if(iproc==0) write(*,*) 'ilr, comom%noverlap(ilr)', ilr, comom%noverlap(ilr) 
 end do
 
 
-!allocate(comom%overlaps(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
 allocate(comom%overlaps(maxval(comom%noverlap(:)),orbs%norb), stat=istat)
 call memocc(istat, comom%overlaps, 'comom%overlaps', subname)
-!do ilr=1,lzd%nlr
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-  !comom%overlaps(:,ilr)=0
   comom%overlaps(:,iorbout)=0
-!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
-!!!! THIS IS THE ORIGINAL
-     !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     !!ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-     !!    novrlp=novrlp+1
-     !!    comom%overlaps(novrlp,ilr)=jorbout
-     !!    if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorbout
-     !!end if
-     ! THIS IS NEW ############################
      ! Check whether there is a common element.
      outloop2: do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1782,15 +1755,12 @@ do iorbout=1,orbs%norb
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               novrlp=novrlp+1
-              !comom%overlaps(novrlp,ilr)=jorbout
               comom%overlaps(novrlp,iorbout)=jorbout
-              !if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorbout
               exit outloop2
            end if
         end do
      end do outloop2
   end do
-  !!if(iproc==0) write(*,'(a,i4,3x,100i5)') 'ilr, comom%overlaps(,ilr)', ilr, comom%overlaps(:,ilr) 
 end do
 
 allocate(comom%olr(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
@@ -1803,39 +1773,15 @@ end do
 
 
 ! Now determine which orbitals (corresponding to basis functions) will be in the overlap localization region.
-!do ilr=1,lzd%nlr
 ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-!!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
-  !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
-     !jjorb=comom%overlaps(jorbout,ilr)
      jjorb=comom%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
-!!!! THIS IS THE ORIGINAL
-     !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     !!do korb=1,mlr(jlr)%norbinlr
-     !!    lorb=mlr(jlr)%indexInGlobal(korb)
-     !!    klr=onWhichAtom(lorb)
-     !!    call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
-     !!    ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
-     !!    ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
-     !!    ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
-     !!    ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
-     !!    ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
-     !!    ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
-     !!    ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
-     !!    ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
-     !!    ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
-     !!    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-     !!        comom%olr(jorbout,ilr)%norbinlr=comom%olr(jorbout,ilr)%norbinlr+1
-     !!    end if
-     !!end do
-     ! THIS IS NEW ############################
      ! Check whether there is a common element.
      do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1853,50 +1799,17 @@ do iorbout=1,orbs%norb
   end do
 end do
 
-!!do ilr=1,lzd%nlr
-!!    do jorb=1,comom%noverlap(ilr)
-!!        if(iproc==0) write(*,'(a,2i5,2i8)') 'ilr, jjorb, comom%overlaps(jorb,ilr), comom%olr(jorb,ilr)%norbinlr', ilr, jorb, comom%overlaps(jorb,ilr), comom%olr(jorb,ilr)%norbinlr
-!!    end do
-!!end do
 
 
 ! Determine the indices to switch from global region to localization region.
-!do ilr=1,lzd%nlr
 ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-  !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
-     !jjorb=comom%overlaps(jorbout,ilr)
      jjorb=comom%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
-!!!! THIS IS THE ORIGINAL
-     !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     !!kkorb=0
-     !!comom%olr(jorbout,ilr)%indexInGlobal(:)=0
-     !!do korb=1,mlr(jlr)%norbinlr
-     !!    lorb=mlr(jlr)%indexInGlobal(korb)
-     !!    klr=onWhichAtom(lorb)
-     !!    call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
-     !!    ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
-     !!    ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
-     !!    ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
-     !!    ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
-     !!    ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
-     !!    ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
-     !!    ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
-     !!    ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
-     !!    ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
-     !!    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-     !!        kkorb=kkorb+1
-     !!        comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=korb
-     !!        !if(iproc==0) write(*,'(a,4i9)') 'orbitals in overlap region: ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)', ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)
-     !!    end if
-     !!end do
-     ! THIS IS NEW ############################
      ! Check whether there is a common element.
      kkorb=0
      do iorb=1,mlr(ilr)%norbinlr
@@ -1905,11 +1818,7 @@ do iorbout=1,orbs%norb
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               kkorb=kkorb+1
-              !comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=iiorb
-              !comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=iorb
               comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=jorb
-              !if(iproc==0) write(*,'(a,4i9)') 'orbitals in overlap region: ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)', ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)
-              !exit
            end if
         end do
      end do
@@ -1927,31 +1836,22 @@ end do
 allocate(comom%olrForExpansion(2,maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
 call memocc(istat, comom%olrForExpansion, 'comom%olrForExpansion', subname)
 comom%olrForExpansion=55555
-!do ilr=1,lzd%nlr
 ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  !do iorb=1,comom%noverlap(ilr)
   do iorb=1,comom%noverlap(iorbout)
-     !jorb=comom%overlaps(iorb,ilr)
      jorb=comom%overlaps(iorb,iorbout)
-     !jlr=onWhichAtom(jorb)
      jlr=onWhichAtomPhi(jorb)
      comom%olrForExpansion(1,iorb,ilr)=jlr
-     !do korb=1,comom%noverlap(jlr)
      do korb=1,comom%noverlap(jorb)
-        !kkorb=comom%overlaps(korb,jlr)
         kkorb=comom%overlaps(korb,jorb)
-        !klr=onWhichAtom(kkorb)
         klr=onWhichAtomPhi(kkorb)
-        !if(iproc==0) write(*,'(a,5i9)') 'ilr, iorb, jlr, korb, klr', ilr, iorb, jlr, korb, klr
         if(klr==ilr) then
            comom%olrForExpansion(2,iorb,ilr)=korb
         end if
      end do
-     !if(iproc==0) write(*,'(a,4i8)') 'ilr, iorb, comom%olrForExpansion(1,iorb,ilr), comom%olrForExpansion(2,iorb,ilr)', ilr, iorb, comom%olrForExpansion(1,iorb,ilr), comom%olrForExpansion(2,iorb,ilr)
   end do
 end do
 
@@ -2005,7 +1905,6 @@ do jproc=0,nproc-1
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     !do korb=1,comom%noverlap(jlr)
      do korb=1,comom%noverlap(jjorb)
         comom%noverlapProc(jproc)=comom%noverlapProc(jproc)+1
      end do
@@ -2029,10 +1928,8 @@ do jproc=0,nproc-1
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     !do korb=1,comom%noverlap(jlr)
      do korb=1,comom%noverlap(jjorb)
         jkorb=jkorb+1
-        !kkorb=comom%overlaps(korb,jlr)
         kkorb=comom%overlaps(korb,jjorb)
         mpidest=jproc
         mpisource=onWhichMPI(kkorb)
@@ -2044,10 +1941,8 @@ do jproc=0,nproc-1
         call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comom%comarr(1,jkorb,jproc))
         if(iproc==mpisource) then
            comom%nsendBuf=comom%nsendBuf+ncount
-           !write(*,'(3(a,i0),6x,a,4i8)') 'process ',iproc,' adds ',ncount,' elements to comom%nsendBuf. Value after that: ',comom%nsendBuf,'. jjorb, jlr, korb, kkorb', jjorb, jlr, korb, kkorb
         end if
         if(iproc==mpidest) then
-           !write(*,'(2(a,i0),a)') 'process ',iproc,' adds ',ncount,' elements to comom%nrecvBuf.'
            comom%nrecvbuf=comom%nrecvbuf+ncount
            comom%indexInRecvBuf(korb,jproc)=istdest
         end if
@@ -2845,233 +2740,104 @@ end subroutine orthonormalLinearCombinations
 
 subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
            tag, comonig, opig, madig, collcomig, collcom, lphi)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => buildLinearCombinations_new
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzdig, lzd
-type(orbitals_data),intent(in):: orbsig, orbs
-type(input_variables),intent(in):: input
-real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
-real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-character(len=1),intent(in):: locregShape
-integer,intent(inout):: tag
-type(p2pComms):: comonig
-type(overlapParameters):: opig
-type(matrixDescriptors):: madig
-type(collective_comms),intent(in):: collcomig, collcom
-real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
-
-! Local variables
-integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr, iwa, kwa
-integer:: i0, ipt, ii, jj, i, j, j0
-!type(overlapParameters):: op
-!type(p2pCommsOrthonormality):: comon
-real(8),dimension(:),allocatable:: lchiovrlp, lchiovrlp2, chit_c, chit_f, phit_c, phit_f
-character(len=*),parameter:: subname='buildLinearCombinations'
-!type(matrixDescriptors):: mad !just for calling collectnew, not really needed
-real(8),dimension(:,:),allocatable:: ttmat
-real(8):: tt1, tt2, tt3
-type(p2pComms):: comon_tmb_ig, comon_ig_tmb
-type(overlapParameters):: op_tmb_ig, op_ig_tmb
-
-!!! new
-allocate(chit_c(sum(collcomig%nrecvcounts_c)), stat=istat)
-call memocc(istat, chit_c, 'chit_c', subname)
-allocate(chit_f(7*sum(collcomig%nrecvcounts_f)), stat=istat)
-call memocc(istat, chit_f, 'chit_f', subname)
-call transpose_localized(iproc, nproc, orbsig, collcomig, lchi, chit_c, chit_f, lzdig)
-
-allocate(phit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-call memocc(istat, phit_c, 'phit_c', subname)
-allocate(phit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-call memocc(istat, phit_f, 'phit_f', subname)
-
-phit_c=0.d0
-phit_f=0.d0
-
-i0=0
-j0=0
-do ipt=1,collcom%nptsp_c 
-    ii=collcom%norb_per_gridpoint_c(ipt) 
-    jj=collcomig%norb_per_gridpoint_c(ipt) 
-    do i=1,ii
-        iiorb=collcom%indexrecvorbital_c(i0+i)
-        do j=1,jj
-            jjorb=collcomig%indexrecvorbital_c(j0+j)
-            phit_c(i0+i)=phit_c(i0+i)+coeff(jjorb,iiorb)*chit_c(j0+j)
-        end do
-    end do
-    i0=i0+ii
-    j0=j0+jj
-end do
-
-i0=0
-j0=0
-do ipt=1,collcom%nptsp_f
-    ii=collcom%norb_per_gridpoint_f(ipt)
-    jj=collcomig%norb_per_gridpoint_f(ipt)
-    do i=1,ii
-        iiorb=collcom%indexrecvorbital_f(i0+i)
-        do j=1,jj
-            jjorb=collcomig%indexrecvorbital_f(j0+j)
-            phit_f(7*(i0+i)-6)=phit_f(7*(i0+i)-6)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-6)
-            phit_f(7*(i0+i)-5)=phit_f(7*(i0+i)-5)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-5)
-            phit_f(7*(i0+i)-4)=phit_f(7*(i0+i)-4)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-4)
-            phit_f(7*(i0+i)-3)=phit_f(7*(i0+i)-3)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-3)
-            phit_f(7*(i0+i)-2)=phit_f(7*(i0+i)-2)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-2)
-            phit_f(7*(i0+i)-1)=phit_f(7*(i0+i)-1)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-1)
-            phit_f(7*(i0+i)-0)=phit_f(7*(i0+i)-0)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-0)
-        end do
-    end do
-    i0=i0+ii
-    j0=j0+jj
-end do
-
-call untranspose_localized(iproc, nproc, orbs, collcom, phit_c, phit_f, lphi, lzd)
-
-
-
-iall=-product(shape(chit_c))*kind(chit_c)
-deallocate(chit_c, stat=istat)
-call memocc(istat, iall, 'chit_c', subname)
-iall=-product(shape(chit_f))*kind(chit_f)
-deallocate(chit_f, stat=istat)
-call memocc(istat, iall, 'chit_f', subname)
-
-iall=-product(shape(phit_c))*kind(phit_c)
-deallocate(phit_c, stat=istat)
-call memocc(istat, iall, 'phit_c', subname)
-iall=-product(shape(phit_f))*kind(phit_f)
-deallocate(phit_f, stat=istat)
-call memocc(istat, iall, 'phit_f', subname)
-
-
-
-
-
-
-!!!call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, lzdig, &
-!!!     orbs, orbsig, orbs%inwhichlocreg, 's', op_tmb_ig, comon_tmb_ig, tag)
-!!!call initCommsOrtho(iproc, nproc, input%nspin, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzdig, lzd, &
-!!!     orbsig, orbs, orbsig%inwhichlocreg, 's', op_ig_tmb, comon_ig_tmb, tag)
-!!!
-!!!! For the moment this is a test
-!!!allocate(lchiovrlp2(op_tmb_ig%ndim_lphiovrlp), stat=istat)
-!!!call memocc(istat, lchiovrlp2, 'lchiovrlp2',subname)
-!!!call allocateCommuncationBuffersOrtho(comon_tmb_ig, subname)
-!!!call allocateCommuncationBuffersOrtho(comon_ig_tmb, subname)
-!!!call allocateCommuncationBuffersOrtho(comonig, subname)
-!!!call extractOrbital3(iproc,nproc,orbsig,orbs,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
-!!!     lzdig,lzd,op_ig_tmb,op_tmb_ig,lchi,comon_ig_tmb%nsendBuf,comon_ig_tmb%sendBuf)
-!!!call postCommsOverlapNew(iproc, nproc, orbsig, op_tmb_ig, lzdig, lchi, comon_tmb_ig, tt1, tt2)
-!!!call collectnew(iproc, nproc, comon_tmb_ig, madig, op_tmb_ig, orbsig, lzdig, comon_tmb_ig%nsendbuf, &
-!!!     comon_tmb_ig%sendbuf, comon_tmb_ig%nrecvbuf, comon_tmb_ig%recvbuf, tt1, tt2, tt3)
-!!!call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op_tmb_ig, comon_tmb_ig, lchiovrlp2)
-!!!call deallocateCommuncationBuffersOrtho(comonig, subname)
-!!!call deallocateCommuncationBuffersOrtho(comon_tmb_ig, subname)
-!!!call deallocateCommuncationBuffersOrtho(comon_ig_tmb, subname)
-!!!
-!!!
-!!!
-!!!!tag=10000
-!!!!call initCommsOrtho(iproc, nproc, lzdig, orbsig, orbsig%inWhichLocreg, input, locregShape, op, comon, tag)
-!!!allocate(lchiovrlp(opig%ndim_lphiovrlp), stat=istat)
-!!!call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
-!!!
-!!!call allocateCommuncationBuffersOrtho(comonig, subname)
-!!!!call extractOrbital2(iproc,nproc,orbsig,orbsig%npsidim,orbsig%inWhichLocreg,lzdig,op,lchi,comon)
-!!!call extractOrbital3(iproc,nproc,orbsig,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
-!!!     lzdig,lzdig,opig,opig,lchi,comonig%nsendBuf,comonig%sendBuf)
-!!!!call postCommsOverlap(iproc, nproc, comon)
-!!!call postCommsOverlapNew(iproc, nproc, orbsig, opig, lzdig, lchi, comonig, tt1, tt2)
-!!!!call gatherOrbitals2(iproc, nproc, comon)
-!!!!!allocate(ttmat(orbsig%norb,orbsig%norb))
-!!!call collectnew(iproc, nproc, comonig, madig, opig, orbsig, lzdig, comonig%nsendbuf, &
-!!!     comonig%sendbuf, comonig%nrecvbuf, comonig%recvbuf, tt1, tt2, tt3)
-!!!!!deallocate(ttmat)
-!!!call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, opig, comonig, lchiovrlp)
-!!!call deallocateCommuncationBuffersOrtho(comonig, subname)
-!!!
-!!!
-!!!
-!!!lphi=0.d0
-!!!
-!!!ist=1
-!!!jst=1
-!!!ilrold=-1
-!!!do iorb=1,orbs%norbp
-!!!    iiorb=orbs%isorb+iorb
-!!!    !ilr=orbs%inWhichLocreg(iiorb)
-!!!    iwa=orbs%onwhichatom(iiorb)
-!!!
-!!!    !!! Search an orbital of the inguess orbitals which is in the same locreg as iiorb
-!!!    ! Search an orbital of the inguess orbitals which is centered on the same atom as iiorb
-!!!    do korb=1,orbsig%norb
-!!!        !klr=orbsig%inwhichlocreg(korb)
-!!!        kwa=orbsig%onwhichatom(korb)
-!!!        !if(klr==ilr) then
-!!!        if(kwa==iwa) then
-!!!            kkorb=korb
-!!!            ilr=orbsig%inwhichlocreg(korb)
-!!!            exit
-!!!        end if
-!!!    end do
-!!!    !!if(ilr==ilrold) then
-!!!    !!    ! Set back the index of lphiovrlp, since we again need the same orbitals.
-!!!    !!    !jst=jst-opig%noverlaps(iiorb-1)*ncount
-!!!    !!    jst=jst-opig%noverlaps(kkorb-1)*ncount
-!!!    !!end if
-!!!    !write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
-!!!    ncount=lzdig%llr(ilr)%wfd%nvctr_c+7*lzdig%llr(ilr)%wfd%nvctr_f
-!!!    !do jorb=1,opig%noverlaps(iiorb)
-!!!    do jorb=1,opig%noverlaps(kkorb)
-!!!        !jjorb=opig%overlaps(jorb,iiorb)
-!!!        jjorb=opig%overlaps(jorb,kkorb)
-!!!        !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
-!!!        !!write(*,'(a,5i7)') 'iiorb, jjorb, ilr, ilrold, iwa', iiorb, jjorb, ilr, ilrold, iwa
-!!!        !!write(*,'(a,2i5,3x,es12.5,3x,2i6,2es12.4)') 'iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)', iiorb, jjorb, coeff(jjorb,iiorb), jst, ist, lchiovrlp(jst), lphi(ist)
-!!!        call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
-!!!        jst=jst+ncount
-!!!    end do
-!!!
-!!!    ist=ist+ncount
-!!!    ilrold=ilr
-!!!
-!!!end do
-!!!
-!!!!!if(ist/=orbs%npsidim+1) then
-!!!!!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbs%npsidim+1',ist,orbs%npsidim+1
-!!!!!    stop
-!!!!!end if
-!!!if(ist>orbs%npsidim_orbs+1) then
-!!!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbs%npsidim_orbs+1',ist,orbs%npsidim_orbs+1
-!!!    stop
-!!!end if
-!!!
-!!!
-!!!
-!!!!call deallocate_overlapParameters(op, subname)
-!!!!call deallocate_p2pCommsOrthonormality(comon, subname)
-!!!
-!!!
-!!!iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
-!!!deallocate(lchiovrlp, stat=istat)
-!!!call memocc(istat, iall, 'lchiovrlp', subname)
-!!!
-!!!iall=-product(shape(lchiovrlp2))*kind(lchiovrlp2)
-!!!deallocate(lchiovrlp2, stat=istat)
-!!!call memocc(istat, iall, 'lchiovrlp2', subname)
-!!!
-!!!call deallocate_p2pComms(comon_tmb_ig, subname)
-!!!call deallocate_overlapParameters(op_tmb_ig, subname)
-!!!call deallocate_p2pComms(comon_ig_tmb, subname)
-!!!call deallocate_overlapParameters(op_ig_tmb, subname)
-
-
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => buildLinearCombinations_new
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(local_zone_descriptors),intent(in):: lzdig, lzd
+  type(orbitals_data),intent(in):: orbsig, orbs
+  type(input_variables),intent(in):: input
+  real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+  real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
+  character(len=1),intent(in):: locregShape
+  integer,intent(inout):: tag
+  type(p2pComms):: comonig
+  type(overlapParameters):: opig
+  type(matrixDescriptors):: madig
+  type(collective_comms),intent(in):: collcomig, collcom
+  real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+  
+  ! Local variables
+  integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr, iwa, kwa
+  integer:: i0, ipt, ii, jj, i, j, j0
+  real(8),dimension(:),allocatable:: lchiovrlp, lchiovrlp2, chit_c, chit_f, phit_c, phit_f
+  character(len=*),parameter:: subname='buildLinearCombinations_new'
+  real(8),dimension(:,:),allocatable:: ttmat
+  real(8):: tt1, tt2, tt3
+  type(p2pComms):: comon_tmb_ig, comon_ig_tmb
+  type(overlapParameters):: op_tmb_ig, op_ig_tmb
+  
+  allocate(chit_c(sum(collcomig%nrecvcounts_c)), stat=istat)
+  call memocc(istat, chit_c, 'chit_c', subname)
+  allocate(chit_f(7*sum(collcomig%nrecvcounts_f)), stat=istat)
+  call memocc(istat, chit_f, 'chit_f', subname)
+  call transpose_localized(iproc, nproc, orbsig, collcomig, lchi, chit_c, chit_f, lzdig)
+  
+  allocate(phit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, phit_c, 'phit_c', subname)
+  allocate(phit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, phit_f, 'phit_f', subname)
+  
+  phit_c=0.d0
+  phit_f=0.d0
+  
+  i0=0
+  j0=0
+  do ipt=1,collcom%nptsp_c 
+      ii=collcom%norb_per_gridpoint_c(ipt) 
+      jj=collcomig%norb_per_gridpoint_c(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_c(i0+i)
+          do j=1,jj
+              jjorb=collcomig%indexrecvorbital_c(j0+j)
+              phit_c(i0+i)=phit_c(i0+i)+coeff(jjorb,iiorb)*chit_c(j0+j)
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+  
+  i0=0
+  j0=0
+  do ipt=1,collcom%nptsp_f
+      ii=collcom%norb_per_gridpoint_f(ipt)
+      jj=collcomig%norb_per_gridpoint_f(ipt)
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_f(i0+i)
+          do j=1,jj
+              jjorb=collcomig%indexrecvorbital_f(j0+j)
+              phit_f(7*(i0+i)-6)=phit_f(7*(i0+i)-6)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-6)
+              phit_f(7*(i0+i)-5)=phit_f(7*(i0+i)-5)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-5)
+              phit_f(7*(i0+i)-4)=phit_f(7*(i0+i)-4)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-4)
+              phit_f(7*(i0+i)-3)=phit_f(7*(i0+i)-3)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-3)
+              phit_f(7*(i0+i)-2)=phit_f(7*(i0+i)-2)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-2)
+              phit_f(7*(i0+i)-1)=phit_f(7*(i0+i)-1)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-1)
+              phit_f(7*(i0+i)-0)=phit_f(7*(i0+i)-0)+coeff(jjorb,iiorb)*chit_f(7*(j0+j)-0)
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+  
+  call untranspose_localized(iproc, nproc, orbs, collcom, phit_c, phit_f, lphi, lzd)
+  
+  iall=-product(shape(chit_c))*kind(chit_c)
+  deallocate(chit_c, stat=istat)
+  call memocc(istat, iall, 'chit_c', subname)
+  iall=-product(shape(chit_f))*kind(chit_f)
+  deallocate(chit_f, stat=istat)
+  call memocc(istat, iall, 'chit_f', subname)
+  
+  iall=-product(shape(phit_c))*kind(phit_c)
+  deallocate(phit_c, stat=istat)
+  call memocc(istat, iall, 'phit_c', subname)
+  iall=-product(shape(phit_f))*kind(phit_f)
+  deallocate(phit_f, stat=istat)
+  call memocc(istat, iall, 'phit_f', subname)
+  
 end subroutine buildLinearCombinations_new
 
 
@@ -3131,10 +2897,6 @@ type(collective_comms):: collcom_vectors
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
-  ! Allocate the local arrays that are hold by all processes.
-  allocate(coeff(orbsig%norb,lorbs%norb), stat=istat)
-  call memocc(istat, coeff, 'coeff', subname)
-
   call nullify_matrixMinimization(matmin)
 
 
@@ -3179,12 +2941,9 @@ type(collective_comms):: collcom_vectors
 
   coeffPad=0.d0
   ii=0
-  !!write(*,'(a,100i6)') 'orbsGauss%inwhichlocreg', orbsGauss%inwhichlocreg
-  !!write(*,'(a,100i6)') 'lorbs%onwhichatom', lorbs%onwhichatom
   do jproc=0,nproc-1
       do iorb=1,lorbs%norb_par(jproc,0)
           iiAt=onWhichAtomPhi(lorbs%isorb_par(jproc)+iorb)
-          !iiiAt=orbsGauss%inwhichlocreg(lorbs%isorb_par(jproc)+iorb)
           iiiAt=lorbs%onwhichatom(lorbs%isorb_par(jproc)+iorb)
           ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
           !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
@@ -3384,13 +3143,6 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(1x,a)') '===================================================================================='
 
 
-  !!! Cut out the zeros
-  !!allocate(coeff2(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
-  !!call memocc(istat, coeff2, 'coeff2', subname)
-  !!do iorb=1,lorbs%norbp
-  !!    call dcopy(orbsig%norb, coeffPad((iorb-1)*orbsig%norb+1), 1, coeff2((iorb-1)*orbsig%norb+1), 1)
-  !!end do
-
 
   iall=-product(shape(hamextract))*kind(hamextract)
   deallocate(hamextract, stat=istat)
@@ -3413,6 +3165,10 @@ type(collective_comms):: collcom_vectors
       ii=ii+recvcounts(jproc)
   end do
   sendcount=orbsig%norb*lorbs%norbp
+
+  ! Allocate the local arrays that are hold by all processes.
+  allocate(coeff(orbsig%norb,lorbs%norb), stat=istat)
+  call memocc(istat, coeff, 'coeff', subname)
 
   ! Gather the coefficients.
   if (nproc > 1) then
@@ -3440,10 +3196,6 @@ type(collective_comms):: collcom_vectors
   deallocate(lgradold, stat=istat)
   call memocc(istat, iall, 'lgradold', subname)
 
-  !!iall=-product(shape(coeff2))*kind(coeff2)
-  !!deallocate(coeff2, stat=istat)
-  !!call memocc(istat, iall, 'coeff2', subname)
-
   iall=-product(shape(recvcounts))*kind(recvcounts)
   deallocate(recvcounts, stat=istat)
   call memocc(istat, iall, 'recvcounts', subname)
@@ -3454,28 +3206,6 @@ type(collective_comms):: collcom_vectors
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  ! Do this in a localized way -- TEST
-  !call buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, lphi)
-  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, lphi)
-
-  ! Now every process has all coefficients, so we can build the linear combinations.
-  ! If the number of atomic orbitals is the same as the number of trace minimizing orbitals, we can use the
-  ! first one (uses less memory for the overlap descriptors), otherwise the second one.
-  ! So first check which version we have to use.
-  same=.true.
-  if(orbsig%norb==lorbs%norb) then
-      do iorb=1,orbsig%norb
-          ilr=orbsig%inWhichLocreg(iorb)
-          jlr=lorbs%inWhichLocreg(iorb)
-          if(ilr/=jlr) then
-              same=.false.
-              exit
-          end if
-      end do
-  else
-      same=.false.
-  end if
-
   call buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
        comonig, opig, madig, collcomig, collcom, lphi)
   if(lzdig%Glr%geocode /= 'F') then
@@ -3497,10 +3227,6 @@ type(collective_comms):: collcom_vectors
     subroutine allocateArrays()
       allocate(coeffPad(max(orbsig%norb*lorbs%norbp,1)), stat=istat)
       call memocc(istat, coeffPad, 'coeffPad', subname)
-      !!allocate(grad(orbsig%norb*lorbs%norbp), stat=istat)
-      !!call memocc(istat, grad, 'grad', subname)
-      !!allocate(gradOld(orbsig%norb*lorbs%norbp), stat=istat)
-      !!call memocc(istat, gradOld, 'gradOld', subname)
       allocate(fnrmArr(lorbs%norb), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)
       allocate(fnrmOvrlpArr(lorbs%norb), stat=istat)
@@ -3515,14 +3241,6 @@ type(collective_comms):: collcom_vectors
 
 
     subroutine deallocateArrays()
-      !!iall=-product(shape(grad))*kind(grad)
-      !!deallocate(grad, stat=istat)
-      !!call memocc(istat, iall, 'grad', subname)
-
-      !!iall=-product(shape(gradOld))*kind(gradOld)
-      !!deallocate(gradOld, stat=istat)
-      !!call memocc(istat, iall, 'gradOld', subname)
-
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
       call memocc(istat, iall, 'alpha', subname)
