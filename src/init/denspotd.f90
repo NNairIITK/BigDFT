@@ -12,14 +12,14 @@ subroutine initialize_DFT_local_fields(denspot)
   use module_base
   use module_types
   implicit none
-  type(DFT_local_fields), intent(out) :: denspot
+  type(DFT_local_fields), intent(inout) :: denspot
   !local variables
   integer :: i
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
   nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
-  nullify(denspot%f_XC,denspot%rho_full,denspot%pot_full,denspot%rhov)
+  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
 
   denspot%psoffset=0.0_gp
 
@@ -35,6 +35,7 @@ subroutine initialize_DFT_local_fields(denspot)
   call initialize_rho_descriptors(denspot%rhod)
   call initialize_denspot_distribution(denspot%dpcom)
 
+  nullify(denspot%mix)
 end subroutine initialize_DFT_local_fields
 
 subroutine initialize_denspot_distribution(dpcom)
@@ -72,6 +73,51 @@ subroutine initialize_rho_descriptors(rhod)
   nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
 
 end subroutine initialize_rho_descriptors
+
+subroutine denspot_set_hgrids(denspot, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  real(gp), intent(in) :: hgrids(3)
+
+  denspot%hgrids(1)=hgrids(1)
+  denspot%hgrids(2)=hgrids(2)
+  denspot%hgrids(3)=hgrids(3)
+end subroutine denspot_set_hgrids
+
+!>todo: remove n1i and n2i
+subroutine denspot_set_history(denspot, iscf, nspin, &
+     & n1i, n2i) !to be removed arguments when denspot has dimensions
+  use module_base
+  use module_types
+  use m_ab6_mixing
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  integer, intent(in) :: iscf, n1i, n2i, nspin
+  
+  integer :: potden, npoints, ierr
+  character(len=500) :: errmess
+
+  if (iscf < 10) then
+     potden = AB6_MIXING_POTENTIAL
+     npoints = n1i*n2i*denspot%dpcom%n3p
+     if (denspot%dpcom%n3p==0) npoints=1
+  else
+     potden = AB6_MIXING_DENSITY
+     npoints = n1i*n2i*denspot%dpcom%n3d
+     if (denspot%dpcom%n3d==0) npoints=1
+  end if
+  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+     allocate(denspot%mix)
+     call ab6_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+          AB6_MIXING_REAL_SPACE, npoints, nspin, 0, &
+          ierr, errmess, useprec = .false.)
+     call ab6_mixing_eval_allocate(denspot%mix)
+  else
+     nullify(denspot%mix)
+  end if
+end subroutine denspot_set_history
 
 subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
   use module_base
@@ -124,13 +170,27 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
   dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
   dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
        dpcom%nrhodim
-
 end subroutine denspot_communications
+
+subroutine denspot_set_rhov_status(denspot, status, istep)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  integer, intent(in) :: status, istep
+
+  denspot%rhov_is = status
+  
+  if (denspot%c_obj /= 0) then
+     call denspot_emit_rhov(denspot%c_obj, istep)
+  end if
+end subroutine denspot_set_rhov_status
 
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
   use module_interfaces, except_this_one => allocateRhoPot
+  use m_ab6_mixing
   implicit none
   integer, intent(in) :: iproc,nspin
   type(locreg_descriptors), intent(in) :: Glr
@@ -175,7 +235,7 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
        denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
        denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
-  
+
 !!$  !calculate the XC energy of rhocore
 !!$  call XC_potential(atoms%geocode,'D',iproc,nproc,&
 !!$       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&

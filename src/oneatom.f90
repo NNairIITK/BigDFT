@@ -63,7 +63,7 @@ program oneatom
 
 
   !initalise the variables for the calculation
-  call standard_inputfile_names(in,radical)
+  call standard_inputfile_names(in,radical,nproc)
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
@@ -232,7 +232,7 @@ program oneatom
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
           energs,in%SIC,GPU)
 
-     call total_energies(energs)
+     call total_energies(energs, iter)
      energy=energs%eKS
 
      !check for convergence or whether max. numb. of iterations exceeded

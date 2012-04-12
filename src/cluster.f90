@@ -209,20 +209,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
   character(len=*), parameter :: subname='cluster'
-  character(len=5) :: gridformat, wfformat, final_out
-  character(len=500) :: errmess
-  logical :: endloop,endlooprp,refill_proj !,potential_from_disk=.false.
-  logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
-  integer :: icycle,potden
-  integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: i,npoints
+  character(len=5) :: gridformat, wfformat
+  logical :: refill_proj !,potential_from_disk=.false.
+  logical :: DoDavidson,DoLastRunThings=.false.,scpot
+  integer :: icycle
+  integer :: nvirt,norbv
+  integer :: i
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(energy_terms) :: energs
-  real(gp) :: rpnrm,gnrm,gnrm_zero,pressure
+  real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -232,7 +231,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
   real(gp), dimension(:,:), pointer :: fdisp,fion
   ! Charge density/potential,ionic potential, pkernel
-  type(ab6_mixing_object) :: mix
   type(DFT_local_fields) :: denspot
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -242,7 +240,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
-  integer :: nkptv, nvirtu, nvirtd, linflag
+  integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
 
   ! ----------------------------------
@@ -324,14 +322,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call system_initialization(iproc,nproc,in,atoms,rxyz,&
        KSwfn%orbs,KSwfn%Lzd,denspot,nlpspd,KSwfn%comms,shift,proj,radii_cf)
 
-!!$  hx=hgrids(1)
-!!$  hy=hgrids(2)
-!!$  hz=hgrids(3)
-
   !variables substitution for the PSolver part
-  !hxh=0.5d0*hx
-  !hyh=0.5d0*hy
-  !hzh=0.5d0*hz
 
   n1i=KSwfn%Lzd%Glr%d%n1i
   n2i=KSwfn%Lzd%Glr%d%n2i
@@ -356,7 +347,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+          denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   else
      inputpsi = in%inputPsiId
@@ -392,12 +383,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!return
 
      !temporary allocation of the density
-     allocate(denspot%rho_full(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
+     allocate(denspot%rho_work(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
           denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug,1)),stat=i_stat)
-     call memocc(i_stat,denspot%rho_full,'rho',subname)
+     call memocc(i_stat,denspot%rho_work,'rho',subname)
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
-          denspot%rhov(1),1,denspot%rho_full(1),1)
+          denspot%rhov(1),1,denspot%rho_work(1),1)
 
+     if (nproc > 1) then
+        i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
+        deallocate(KSwfn%psit,stat=i_stat)
+        call memocc(i_stat,i_all,'KSwfn%psit',subname)
+     else
+        nullify(KSwfn%psit)
+     end if
      ! denspot%rho_full => denspot%rhov
 
   end if
@@ -421,308 +419,34 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Skip the following part in the linear scaling case.
   skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR) then
 
-     energy=1.d10
-     gnrm=1.d10
-     rpnrm=1.d10
-     gnrm_zero=0.0d0
-     energs%eexctX=0.0_gp
-
-     !number of switching betweed DIIS and SD during self-consistent loop
-     ndiis_sd_sw=0
-     !previous value of idsx_actual to control if switching has appeared
-     idsx_actual_before=KSwfn%diis%idsx
-
-     !Davidson is set to false first because used in deallocate_before_exiting
-     DoDavidson= .false.
-
-     !allocate the rhopot_old array needed for mixing
-     if (in%iscf < 10) then
-        potden = AB6_MIXING_POTENTIAL
-        npoints = n1i*n2i*denspot%dpcom%n3p
-        if (denspot%dpcom%n3p==0) npoints=1
-     else
-        potden = AB6_MIXING_DENSITY
-        npoints = n1i*n2i*denspot%dpcom%n3d
-        if (denspot%dpcom%n3d==0) npoints=1
-     end if
-     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-        call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
-             AB6_MIXING_REAL_SPACE, npoints, in%nspin, 0, &
-             ierr, errmess, useprec = .false.)
-        call ab6_mixing_eval_allocate(mix)
-        !stop if the iscf is not compatible 
-        if (in%iscf == 0) then
-           write(*,*)'ERROR: the iscf code is not compatible with the mixing routines'
-           stop
-        end if
-     end if
-     endlooprp=.false.
-
-     !if we are in the last_run case, validate the last_run only for the last cycle
-     !nrepmax=0 is needed for the Band Structure calculations
-     DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) !do the last_run things regardless of infocode
-
      !end of the initialization part
      call timing(iproc,'INIT','PR')
 
-     !normal infocode, if everything go through smoothly we should keep this
-     infocode=0
-     !yaml output
-     if (iproc==0) then
-        call yaml_indent_map('Ground State Optimization')
+     energs%eexctX=0.0_gp
+     call kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
+     & in%iscf, in%itrpmax, in%nrepmax, in%itermax, in%gnrm_cv, in%rpnrm_cv, &
+     & in%gnrm_startmix, in%alphamix, in%idsx, inputpsi, &
+     & KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
+     & in)
+
+     !if we are in the last_run case, validate the last_run only for the last cycle
+     !do the last_run things regardless of infocode
+     !nrepmax=0 is needed for the Band Structure calculations
+     DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) .or. &
+          & (in%last_run == 1 .and. icycle == in%nrepmax)
+              !print the energies only if they are meaningful
+     energy = energs%eKS
+     !Davidson is set to false first because used in deallocate_before_exiting
+     DoDavidson= .false.
+
+     ! Treat the info code from the optimization routine.
+     if (infocode == 2 .or. infocode == 3) then
+        call deallocate_before_exiting
+        return
      end if
-     rhopot_loop: do itrp=1,in%itrpmax
-        !yaml output 
-        if (iproc==0) then
-           call yaml_sequence_element(advance='no')
-           call yaml_map("Hamiltonian Optimization",label='itrp'//adjustl(yaml_toa(itrp,fmt='(i4.4)')))
-        end if
-        !set the infocode to the value it would have in the case of no convergence
-        infocode=1
-        subd_loop : do icycle=1,in%nrepmax
-           !yaml output 
-           if (iproc==0) then
-              call yaml_sequence_element(advance='no')
-              call yaml_map("Subspace Optimization",label='itrep'//adjustl(yaml_toa(icycle,fmt='(i4.4)')))
-           end if
-
-           !if we are in the last_run case, validate the last_run only for the last cycle
-           DoLastRunThings=(in%last_run == 1 .and. icycle == in%nrepmax) !do the last_run things regardless of infocode
-
-           !yaml output
-           if (iproc==0) then
-              call yaml_indent_map("Wavefunctions Iterations")
-           end if
-           wfn_loop: do iter=1,in%itermax
-
-              !control whether the minimisation iterations should end after the hamiltionian application
-              endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax
-
-              if (iproc == 0 .and. verbose > 0) then 
-                 write( *,'(1x,a,i0)') &
-                      &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
-                 !test for yaml output
-
-                 if (endloop) then
-                    call yaml_sequence_element(label='last',advance='no')
-                    !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
-                 else
-                    call yaml_sequence_element(advance='no')
-                    !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
-                 end if
-                 call yaml_flow_map()
-                 call yaml_flow_newline()
-              endif
-
-              !control how many times the DIIS has switched into SD
-              if (KSwfn%diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
-
-              !let SD runs if the DIIS did not work the second time
-              if (ndiis_sd_sw > 1) then
-                 KSwfn%diis%switchSD=.false.
-              end if
-
-              !stop the partial timing counter if necessary
-              if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-              !logical flag for the self-consistent potential
-              scpot=(in%iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1) .or. & !mixing to be done
-                   (in%iscf == SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
-                   (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
-              !allocate the potential in the full box
-              linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
-              if(in%linear == 'OFF') linflag = 0
-              if(in%linear == 'TMO') linflag = 2
-
-              call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,in%iscf,in%alphamix,mix,in%ixc,&
-                   nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
-
-              endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
-
-              call total_energies(energs)
-              energy=energs%eKS
-
-              !check for convergence or whether max. numb. of iterations exceeded
-              if (endloop) then
-                 if (gnrm < in%gnrm_cv) infocode=0
-                 exit wfn_loop 
-              endif
-
-              !evaluate the functional of the wavefunctions and put it into the diis structure
-              !the energy values is printed out in this routine
-              call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,&
-                   energs,KSwfn,gnrm,gnrm_zero)
-
-              !control the previous value of idsx_actual
-              idsx_actual_before=KSwfn%diis%idsx
-
-              call hpsitopsi(iproc,nproc,iter,in%idsx,KSwfn)
-
-              if (inputpsi == INPUT_PSI_LCAO) then
-                 if ((gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
-                      &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. gnrm > 10.d0)) then
-                    if (iproc == 0) then
-                       write( *,'(1x,a)')&
-                            &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
-                    end if
-                    infocode=3
-                    call deallocate_before_exiting
-                    return
-                 end if
-              else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
-                 if (gnrm > 1.d0) then
-                    if (iproc == 0) then
-                       write( *,'(1x,a)')&
-                            &   'The norm of the residue is too large, need to recalculate input wavefunctions'
-                    end if
-                    infocode=2
-                    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                    call deallocate_before_exiting
-                    return
-                 end if
-              end if
-              !flush all writings on standart output
-              if (iproc==0) then
-                 !yaml output
-                 call yaml_close_flow_map()
-                 call yaml_close_sequence_element()
-                 call bigdft_utils_flush(unit=6)
-              end if
-           end do wfn_loop
-
-           if (iproc == 0) then 
-              if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-              write( *,'(1x,a)') &
-                   &   '--------------------------------------------------- End of Wavefunction Optimisation'
-              if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
-                 write(final_out, "(A5)") "FINAL"
-              else
-                 write(final_out, "(A5)") "final"
-              end if
-              call write_energies(iter,0,energs,gnrm,gnrm_zero,final_out)
-              call yaml_close_flow_map()
-              call yaml_close_sequence_element()
-
-              if (in%itrpmax >1) then
-                 if ( KSwfn%diis%energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                      'WARNING: Found an energy value lower than the ' // final_out // &
-                      ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
-              else
-                 !write this warning only if the system is closed shell
-                 call check_closed_shell(KSwfn%orbs,lcs)
-                 if (lcs) then
-                    if ( energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                         'WARNING: Found an energy value lower than the FINAL energy, delta:',&
-                         energy-KSwfn%diis%energy_min
-                 end if
-              end if
-           end if
-
-           if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
-                &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
-           if (iproc==0) call yaml_close_indent_map() !wfn iterations
-
-           call last_orthon(iproc,nproc,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
-
-           !exit if the infocode is correct
-           if (infocode == 0) then
-              if (iproc==0)call yaml_close_sequence_element() !itrep
-!              yaml_indent=yaml_indent-3 !end list element
-              exit subd_loop
-           else
-              if(iproc==0) then
-                 write(*,*)&
-                      &   ' WARNING: Wavefunctions not converged after cycle',icycle
-                 if (icycle < in%nrepmax) write(*,*)' restart after diagonalisation'
-              end if
-              gnrm=1.d10
-           end if
-
-           if (in%itrpmax == 1 .and. in%norbsempty > 0) then
-              !recalculate orbitals occupation numbers
-              call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
-
-              gnrm =1.d10
-              KSwfn%diis%energy_min=1.d10
-              KSwfn%diis%alpha=2.d0
-           end if
-
-           if (iproc==0) then
-              !yaml output
-              call yaml_close_sequence_element() !itrep
-              !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
-!              yaml_indent=yaml_indent-3 !end list element
-           end if
-        end do subd_loop
-
-        if (in%itrpmax > 1) then
-           !stop the partial timing counter if necessary
-           if (endlooprp .and. in%itrpmax >1) then
-              call timing(iproc,'WFN_OPT','PR')
-              call yaml_close_sequence_element() !itrp
-              exit rhopot_loop
-           end if
-
-           !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
-
-           gnrm =1.d10
-           KSwfn%diis%energy_min=1.d10
-           KSwfn%diis%alpha=2.d0
-        end if
-
-        if (iproc == 0) then
-           !yaml output
-           call yaml_close_sequence_element() !itrp
-!           yaml_indent=yaml_indent-2 !end list element
-           !reassume the key elements in the itrp element
-           !      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
-           !      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
-        end if
- 
-     end do rhopot_loop 
- 
-     !yaml output
-     if (iproc==0) call yaml_close_indent_map() !Ground State Optimization
-
-     !!do i_all=1,size(rhopot)
-     !!    write(10000+iproc,*) rhopot(i_all)
-     !!end do
-     !!do i_all=1,size(psi)
-     !!    write(11000+iproc,*) psi(i_all)
-     !!end do
-     !!do i_all=1,size(psi)
-     !!    write(12000+iproc,*) psi(i_all)
-     !!end do
-
-     call deallocate_diis_objects(KSwfn%diis,subname)
-
-     if (inputpsi /= INPUT_PSI_EMPTY) then
-        energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
-         if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
-          &   'Difference:evsum,energybs',energs%evsum,energs%ebs
-     end if
-
-     i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-     deallocate(KSwfn%hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi',subname)
   else
-     ! put the infocode to 0, which means success
-     infocode=0
-  end if skip_if_linear !end of linear if
-
-
-  !deallocate psit and hpsi since it is not anymore done
-  !if (nproc > 1 .or. inputpsi == INPUT_PSI_LINEAR) then
-  if (nproc > 1) then
-     i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-     deallocate(KSwfn%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'KSwfn%psit',subname)
-  else
-     nullify(KSwfn%psit)
-  end if
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-     call ab6_mixing_deallocate(mix)
-  end if
+     infocode = 0
+  end if skip_if_linear
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -833,7 +557,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,i_all,'denspot%V_ext',subname)
   nullify(denspot%V_ext)
 
-  if (inputpsi /= -1000) then
+  if (inputpsi /= INPUT_PSI_EMPTY) then
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc == 0) then
@@ -854,7 +578,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call density_and_hpot(iproc,nproc,atoms%geocode,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
           denspot%dpcom%nscatterarr,&
-          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_full,denspot%pot_full,hstrten)
+          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
@@ -866,7 +590,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call calc_dipole(iproc,nproc,KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpcom%n3p,in%nspin,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-             atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_full)
+             atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
@@ -875,7 +599,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_full)
+                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
            
            if (associated(denspot%rho_C)) then
               if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
@@ -891,7 +615,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%pot_full)
+                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%pot_work)
         end if
      end if
 
@@ -911,17 +635,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call calculate_forces(iproc,nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
-          in%nspin,refill_proj,denspot%dpcom%ngatherarr,denspot%rho_full,&
-          denspot%pot_full,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+          in%nspin,refill_proj,denspot%dpcom%ngatherarr,denspot%rho_work,&
+          denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
 
-     i_all=-product(shape(denspot%rho_full))*kind(denspot%rho_full)
-     deallocate(denspot%rho_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rho_full',subname)
-     i_all=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-     deallocate(denspot%pot_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_full',subname)
-     nullify(denspot%rho_full,denspot%pot_full)
+     i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+     deallocate(denspot%rho_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%rho_work',subname)
+     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+     deallocate(denspot%pot_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+     nullify(denspot%rho_work,denspot%pot_work)
      call timing(iproc,'Forces        ','OF')
      !!stop
   end if
@@ -1060,8 +784,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
            call communicate_density(iproc,nproc,KSwfn%orbs%nspin,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),KSwfn%Lzd,&
-                denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
-           denspot%rhov_is=ELECTRONIC_DENSITY
+                denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
 
            if (OCLconv) then
               call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
@@ -1080,7 +804,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
-           denspot%rhov_is=CHARGE_DENSITY
+           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1)
 
            !select the active space if needed
 
@@ -1181,23 +905,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     allocate(denspot%pot_full(n1i*n2i*n3i*in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%pot_full,'denspot%pot_full',subname)
+     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpcom%n3p,&
-             &   mpidtypd,denspot%pot_full(1),denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
+             &   mpidtypd,denspot%pot_work(1),denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
              mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpcom%n3p),n1i*n2i*denspot%dpcom%n3p,&
-                mpidtypd,denspot%pot_full(1+n1i*n2i*n3i),&
+                mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
                 denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
                 mpidtypd,MPI_COMM_WORLD,ierr)
         end if
      else
-        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_full,1)
+        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
      end if
 
      call deallocate_denspot_distribution(denspot%dpcom, subname)
@@ -1212,13 +936,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
-          KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_full,KSwfn%Lzd%hgrids(1),&
+          KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_work,KSwfn%Lzd%hgrids(1),&
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
           proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
-     i_all=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-     deallocate(denspot%pot_full,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_full',subname)
+     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+     deallocate(denspot%pot_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%pot_work',subname)
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp
@@ -1265,20 +989,7 @@ contains
   subroutine deallocate_before_exiting
 
     !when this condition is verified we are in the middle of the SCF cycle
-    if (infocode /=0 .and. infocode /=1 .and. inputpsi /=INPUT_PSI_EMPTY) then
-
-       call deallocate_diis_objects(KSwfn%diis,subname)
-
-       if (nproc > 1) then
-          i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-          deallocate(KSwfn%psit,stat=i_stat)
-          call memocc(i_stat,i_all,'psit',subname)
-       end if
-
-       i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-       deallocate(KSwfn%hpsi,stat=i_stat)
-       call memocc(i_stat,i_all,'hpsi',subname)
-
+    if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
        deallocate(denspot%V_ext,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_ext',subname)
@@ -1312,19 +1023,7 @@ contains
        i_all=-product(shape(fdisp))*kind(fdisp)
        deallocate(fdisp,stat=i_stat)
        call memocc(i_stat,i_all,'fdisp',subname)
-
     end if
-
-    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-         KSwfn%Lzd%Glr%bounds,subname)
-
-    !    call deallocate_local_zone_descriptors(Lzd, subname)
-    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
-
 
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
@@ -1333,36 +1032,35 @@ contains
        call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
     end if
 
-    call deallocate_comms(KSwfn%comms,subname)
-
-    call deallocate_orbs(KSwfn%orbs,subname)
-
-    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
-
-    i_all=-product(shape(radii_cf))*kind(radii_cf)
-    deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf',subname)
-
-    call deallocate_proj_descr(nlpspd,subname)
-
-    !free the rhodsc pointers if they were allocated
+    ! Free all remaining parts of denspot
     call deallocate_rho_descriptors(denspot%rhod,subname)
-
-    i_all=-product(shape(proj))*kind(proj)
-    deallocate(proj,stat=i_stat)
-    call memocc(i_stat,i_all,'proj',subname)
-
-    !deallocate the core density if it has been allocated
     if(associated(denspot%rho_C)) then
        i_all=-product(shape(denspot%rho_C))*kind(denspot%rho_C)
        deallocate(denspot%rho_C,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%rho_C',subname)
     end if
 
-    !deallocate the mixing
-    if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-       call ab6_mixing_deallocate(mix)
-    end if
+    ! Free all remaining parts of KSwfn
+    call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
+         KSwfn%Lzd%Glr%bounds,subname)
+    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Glr%projflg',subname)
+    call deallocate_comms(KSwfn%comms,subname)
+    call deallocate_orbs(KSwfn%orbs,subname)
+    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
+
+    ! Free radii_cf
+    i_all=-product(shape(radii_cf))*kind(radii_cf)
+    deallocate(radii_cf,stat=i_stat)
+    call memocc(i_stat,i_all,'radii_cf',subname)
+
+    ! Free projectors.
+    call deallocate_proj_descr(nlpspd,subname)
+    i_all=-product(shape(proj))*kind(proj)
+    deallocate(proj,stat=i_stat)
+    call memocc(i_stat,i_all,'proj',subname)
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')
@@ -1383,3 +1081,297 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE cluster
+
+
+subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
+     & iscf, itrpmax, nrepmax, itermax, gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix, idsx, &
+     & inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
+     & in)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => kswfn_optimization_loop
+  use yaml_output
+  use m_ab6_mixing
+  implicit none
+  integer, intent(out) :: infocode, itrp, icycle, iter
+  real(dp), dimension(6), intent(out) :: xcstr
+  integer, intent(in) :: iproc, nproc, itrpmax, nrepmax, itermax, iscf, idsx, inputpsi
+  real(gp), intent(in) :: gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix
+  type(DFT_wavefunction), intent(inout) :: KSwfn
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(energy_terms), intent(inout) :: energs
+  type(atoms_data), intent(in) :: atoms
+  type(GPU_pointers), intent(inout) :: GPU
+  type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+  real(kind=8), dimension(:), pointer :: proj
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  type(input_variables), intent(in) :: in !<todo: Remove me
+
+  character(len = *), parameter :: subname = "kswfn_optimization_loop"
+  logical :: endloop, scpot, endlooprp, lcs
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr
+  real(gp) :: gnrm_zero, gnrm, rpnrm
+  character(len=5) :: final_out
+
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=KSwfn%diis%idsx
+
+  ! Setup the mixing, if necessary
+  call denspot_set_history(denspot,iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+
+  ! allocate arrays necessary for DIIS convergence acceleration
+  call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
+       KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
+
+  gnrm_zero=0.0d0
+  gnrm=1.d10
+  rpnrm=1.d10
+  endlooprp=.false.
+
+  !normal infocode, if everything go through smoothly we should keep this
+  infocode=0
+  !yaml output
+  if (iproc==0) then
+     call yaml_indent_map('Ground State Optimization')
+  end if
+  rhopot_loop: do itrp=1,itrpmax
+     !yaml output 
+     if (iproc==0) then
+        call yaml_sequence_element(advance='no')
+        call yaml_map("Hamiltonian Optimization",label='itrp'//adjustl(yaml_toa(itrp,fmt='(i4.4)')))
+     end if
+     !set the infocode to the value it would have in the case of no convergence
+     infocode=1
+     subd_loop : do icycle=1,nrepmax
+        !yaml output 
+        if (iproc==0) then
+           call yaml_sequence_element(advance='no')
+           call yaml_map("Subspace Optimization",label='itrep'//adjustl(yaml_toa(icycle,fmt='(i4.4)')))
+        end if
+
+        !yaml output
+        if (iproc==0) then
+           call yaml_indent_map("Wavefunctions Iterations")
+        end if
+        wfn_loop: do iter=1,itermax
+
+           !control whether the minimisation iterations should end after the hamiltionian application
+           endloop= gnrm <= gnrm_cv .or. iter == itermax
+
+           if (iproc == 0 .and. verbose > 0) then 
+              write( *,'(1x,a,i0)') &
+                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+              !test for yaml output
+
+              if (endloop) then
+                 call yaml_sequence_element(label='last',advance='no')
+                 !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+              else
+                 call yaml_sequence_element(advance='no')
+                 !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+              end if
+              call yaml_flow_map()
+              call yaml_flow_newline()
+           endif
+
+           !control how many times the DIIS has switched into SD
+           if (KSwfn%diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+
+           !let SD runs if the DIIS did not work the second time
+           if (ndiis_sd_sw > 1) then
+              KSwfn%diis%switchSD=.false.
+           end if
+
+           !stop the partial timing counter if necessary
+           if (endloop .and. itrpmax==1) call timing(iproc,'WFN_OPT','PR')
+           !logical flag for the self-consistent potential
+           scpot=(iscf > SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1) .or. & !mixing to be done
+                (iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
+                (itrp==1 .and. itrpmax/=1 .and. gnrm > gnrm_startmix)  !startmix condition (hard-coded, always true by default)
+           !allocate the potential in the full box
+           !temporary, should change the use of flag in full_local_potential2
+           linflag = 1                                 
+           if(in%linear == 'OFF') linflag = 0
+           if(in%linear == 'TMO') linflag = 2
+           call psitohpsi(iproc,nproc,atoms,scpot,denspot,itrp,iter,iscf,alphamix,in%ixc,&
+                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,rpnrm,xcstr)
+
+           endlooprp= (itrp > 1 .and. rpnrm <= rpnrm_cv) .or. itrp == itrpmax
+
+           call total_energies(energs, iter)
+
+           !check for convergence or whether max. numb. of iterations exceeded
+           if (endloop) then
+              if (gnrm < gnrm_cv) infocode=0
+              exit wfn_loop 
+           endif
+
+           !evaluate the functional of the wavefunctions and put it into the diis structure
+           !the energy values is printed out in this routine
+           call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,iscf,&
+                energs,KSwfn,gnrm,gnrm_zero)
+
+           !control the previous value of idsx_actual
+           idsx_actual_before=KSwfn%diis%idsx
+
+           call hpsitopsi(iproc,nproc,iter,idsx,KSwfn)
+
+           if (inputpsi == INPUT_PSI_LCAO) then
+              if ((gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
+                   &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. gnrm > 10.d0)) then
+                 if (iproc == 0) then
+                    write( *,'(1x,a)')&
+                         &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
+                 end if
+                 infocode=3
+              end if
+           else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
+              if (gnrm > 1.d0) then
+                 if (iproc == 0) then
+                    write( *,'(1x,a)')&
+                         &   'The norm of the residue is too large, need to recalculate input wavefunctions'
+                 end if
+                 infocode=2
+              end if
+           end if
+           !flush all writings on standart output
+           if (iproc==0) then
+              !yaml output
+              call yaml_close_flow_map()
+              call yaml_close_sequence_element()
+              call bigdft_utils_flush(unit=6)
+           end if
+           ! Emergency exit case
+           if (infocode == 2 .or. infocode == 3) then
+              if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+              call kswfn_free_scf_data(KSwfn, (nproc > 1))
+              if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+                 call ab6_mixing_deallocate(denspot%mix)
+                 deallocate(denspot%mix)
+              end if
+              !>todo: change this return into a clean out of the routine, so the YAML is clean.
+              return
+           end if
+        end do wfn_loop
+
+        if (iproc == 0) then 
+           if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+           write( *,'(1x,a)') &
+                &   '--------------------------------------------------- End of Wavefunction Optimisation'
+           if ((itrpmax >1 .and. endlooprp) .or. itrpmax == 1) then
+              write(final_out, "(A5)") "FINAL"
+           else
+              write(final_out, "(A5)") "final"
+           end if
+           call write_energies(iter,0,energs,gnrm,gnrm_zero,final_out)
+           call yaml_close_flow_map()
+           call yaml_close_sequence_element()
+
+           if (itrpmax >1) then
+              if ( KSwfn%diis%energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                   'WARNING: Found an energy value lower than the ' // final_out // &
+                   ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
+           else
+              !write this warning only if the system is closed shell
+              call check_closed_shell(KSwfn%orbs,lcs)
+              if (lcs) then
+                 if ( energs%eKS > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                      'WARNING: Found an energy value lower than the FINAL energy, delta:',&
+                      energs%eKS-KSwfn%diis%energy_min
+              end if
+           end if
+        end if
+
+        if (iter == itermax .and. iproc == 0 .and. infocode/=0) &
+             &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+        if (iproc==0) call yaml_close_indent_map() !wfn iterations
+
+        call last_orthon(iproc,nproc,iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
+
+        !exit if the infocode is correct
+        if (infocode == 0) then
+           if (iproc==0)call yaml_close_sequence_element() !itrep
+           !              yaml_indent=yaml_indent-3 !end list element
+           exit subd_loop
+        else
+           if(iproc==0) then
+              write(*,*)&
+                   &   ' WARNING: Wavefunctions not converged after cycle',icycle
+              if (icycle < nrepmax) write(*,*)' restart after diagonalisation'
+           end if
+           gnrm=1.d10
+        end if
+
+        if (itrpmax == 1 .and. in%norbsempty > 0) then
+           !recalculate orbitals occupation numbers
+           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
+           gnrm =1.d10
+           KSwfn%diis%energy_min=1.d10
+           KSwfn%diis%alpha=2.d0
+        end if
+
+        if (iproc==0) then
+           !yaml output
+           call yaml_close_sequence_element() !itrep
+           !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
+           !              yaml_indent=yaml_indent-3 !end list element
+        end if
+     end do subd_loop
+
+     if (itrpmax > 1) then
+        !stop the partial timing counter if necessary
+        if (endlooprp .and. itrpmax >1) then
+           call timing(iproc,'WFN_OPT','PR')
+           call yaml_close_sequence_element() !itrp
+           exit rhopot_loop
+        end if
+
+        !recalculate orbitals occupation numbers
+        call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
+        gnrm =1.d10
+        KSwfn%diis%energy_min=1.d10
+        KSwfn%diis%alpha=2.d0
+     end if
+
+     if (iproc == 0) then
+        !yaml output
+        call yaml_close_sequence_element() !itrp
+        !           yaml_indent=yaml_indent-2 !end list element
+        !reassume the key elements in the itrp element
+        !      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
+        !      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
+     end if
+
+  end do rhopot_loop
+
+  !yaml output
+  if (iproc==0) call yaml_close_indent_map() !Ground State Optimization
+
+  !!do i_all=1,size(rhopot)
+  !!    write(10000+iproc,*) rhopot(i_all)
+  !!end do
+  !!do i_all=1,size(psi)
+  !!    write(11000+iproc,*) psi(i_all)
+  !!end do
+  !!do i_all=1,size(psi)
+  !!    write(12000+iproc,*) psi(i_all)
+  !!end do
+
+  if (inputpsi /= INPUT_PSI_EMPTY) then
+     energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
+     if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
+          &   'Difference:evsum,energybs',energs%evsum,energs%ebs
+  end if
+
+  ! Clean KSwfn parts only needed in the SCF loop.
+  call kswfn_free_scf_data(KSwfn, (nproc > 1))
+
+  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+     call ab6_mixing_deallocate(denspot%mix)
+     deallocate(denspot%mix)
+  end if
+end subroutine kswfn_optimization_loop

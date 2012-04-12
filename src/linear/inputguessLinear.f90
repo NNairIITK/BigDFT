@@ -541,7 +541,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -679,7 +679,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-       denspot%dpcom,denspot%rhov,denspot%pot_full,tmbig%comgp)
+       denspot%dpcom,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
   tmbig%lzd%hgrids(1)=hx
   tmbig%lzd%hgrids(2)=hy
@@ -719,7 +719,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                  tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
+                  tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
                   energs,input%SIC,GPU,.false.,&
                   pkernel=denspot%pkernelseq)
              call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
@@ -739,9 +739,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate the parameters needed for the communication of the potential.
   call deallocate_p2pComms(tmbig%comgp, subname)
 
-  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
-  deallocate(denspot%pot_full, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_full', subname)
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
    if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
@@ -2993,11 +2993,6 @@ type(collective_comms):: collcom_vectors
   ! Now every process has all coefficients, so we can build the linear combinations.
   call buildLinearCombinations_new(iproc, nproc, tmbig%lzd, tmb%lzd, tmbig%orbs, tmb%orbs, coeff, lchi, &
        tmbig%collcom, tmb%collcom, lphi)
-  if(tmbig%lzd%Glr%geocode /= 'F') then
-     write(*,*)'ENTERING NON PERIODIC PART while system is periodic.'
-     call mpi_finalize(iall)
-     stop
-  end if
 
   ! Deallocate the remaining local array.
   iall=-product(shape(coeff))*kind(coeff)

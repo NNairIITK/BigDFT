@@ -63,19 +63,16 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, co
                                         const double *hx, const double *hy, const double *hz,
                                         int *grid);
 
-void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(void *denspotd,
+void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
 void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd);
 void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
-                                             const void *glr, const double *hxh,
-                                             const double *hyh, const double *hzh,
-                                             const void *in, const void *atoms,
-                                             const double *rxyz,
+                                             const void *glr, const int *nspin,
+                                             const void *atoms, const double *rxyz,
                                              void *denspotd);
 void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
      (const guint *iproc, const guint *nproc, const guint *verb,
-      const gchar *geocode, const void *d, const double *hh, 
-      const void *in, void *denspot);
+      const gchar *geocode, const void *d, const void *in, void *denspot);
 
 
 void FC_FUNC_(glr_new, GLR_NEW)(void *glr);
@@ -91,10 +88,10 @@ void FC_FUNC_(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
-void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd, void *glr);
+void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd);
+void FC_FUNC_(lzd_init, LZD_INIT)(void *lzd, void *glr);
 void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-     (const guint *iproc, const guint *nproc, const void *in, const double *hx,
-      const double *hy, const double *hz, void *lzd,
+     (const guint *iproc, const guint *nproc, const void *in, void *lzd,
       const void *atoms, void *orbs, double *rxyz);
 
 
@@ -125,14 +122,10 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,
                                   const void *atoms, const double *rxyz,
-                                  const void *lzd, const double *hx,
-                                  const double *hy, const double *hz,
                                   void *denspot, const void *nlpspd,
-                                  const f90_pointer_double *proj,
-                                  void *orbs, void *comms, f90_pointer_double *psi,
-                                  f90_pointer_double *hpsi, f90_pointer_double *psit,
+                                  const f90_pointer_double *proj, void *wf,
                                   int *inputpsi, guint *norbv,
-                                  void *gbd, void *gaucoeffs, void *wfd_old, void *psi_old,
+                                  void *wfd_old, void *psi_old,
                                   void *d_old, const double *hx_old, const double *hy_old,
                                   const double *hz_old, double *rxyz_old);
 #endif

@@ -274,6 +274,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
+      call total_energies(energs, iter)
      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
           VTwfn,gnrm,gnrm_zero)
 
@@ -309,7 +310,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    call deallocate_diis_objects(VTwfn%diis,subname)
 
    !this deallocates also hpsivirt and psitvirt
-   call last_orthon(iproc,nproc,VTwfn,energs%evsum)
+   call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
 
    !resize work array before final transposition
    if(nproc > 1)then

@@ -383,8 +383,6 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
   epot=0.0_gp
   ishift=(/0,0,0/)
 
-!!$  select case(lr%geocode)
-!!$  case('F')
   if (present(confdata) .and. confdata%potorder /=0) then
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -407,10 +405,6 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
              ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
              ibyyzz_r=lr%bounds%ibyyzz_r)
-
-!!$     call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,nspinor,npot,vpsir,&
-!!$          pot,epot,&
-!!$          lr%bounds%ibyyzz_r) !optional
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -418,16 +412,6 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
              nspinor,npot,vpsir,pot,epot)
      end if
   end if
-!!$case('P') 
-!!$   !here the hybrid BC act the same way
-!!$   call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,nspinor,npot,vpsir,&
-!!$        pot,epot)
-!!$   
-!!$case('S')
-!!$   
-!!$   call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,nspinor,npot,vpsir,&
-!!$        pot,epot)
-!!$end select
 
 end subroutine psir_to_vpsi
 

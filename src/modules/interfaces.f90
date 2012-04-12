@@ -71,6 +71,28 @@ module module_interfaces
         real(gp), dimension(3*at%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
+      subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
+           & iscf, itrpmax, nrepmax, itermax, gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix, idsx, &
+           & inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
+           & in)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(out) :: infocode, itrp, icycle, iter
+        real(dp), dimension(6), intent(out) :: xcstr
+        integer, intent(in) :: iproc, nproc, itrpmax, nrepmax, itermax, iscf, idsx, inputpsi
+        real(gp), intent(in) :: gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix
+        type(DFT_wavefunction), intent(inout) :: KSwfn
+        type(DFT_local_fields), intent(inout) :: denspot
+        type(energy_terms), intent(inout) :: energs
+        type(atoms_data), intent(in) :: atoms
+        type(GPU_pointers), intent(inout) :: GPU
+        type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+        real(kind=8), dimension(:), pointer :: proj
+        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+        type(input_variables), intent(in) :: in !<todo: Remove me
+      END SUBROUTINE kswfn_optimization_loop
+
      subroutine timing(iproc,category,action)
        implicit none
        integer, intent(in) :: iproc
@@ -116,11 +138,12 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical)
+      subroutine standard_inputfile_names(inputs, radical, nproc)
          use module_types
          implicit none
          type(input_variables), intent(out) :: inputs
          character(len = *), intent(in) :: radical
+         integer, intent(in) :: nproc
       END SUBROUTINE standard_inputfile_names
 
       subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
@@ -483,9 +506,9 @@ module module_interfaces
        END SUBROUTINE input_wf_disk
 
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
-            orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
+            orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,potshortcut,symObj,GPU,input)
+            nspin,symObj,GPU,input)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -496,12 +519,12 @@ module module_interfaces
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
          integer, intent(inout) :: nspin,nvirt
-         real(gp), intent(in) :: hx,hy,hz
          type(atoms_data), intent(in) :: at
-         type(orbitals_data), intent(inout) :: orbs
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(local_zone_descriptors), intent(in) :: Lzd
          type(communications_arrays), intent(in) :: comms
+         type(orbitals_data), intent(inout) :: orbs
+         type(energy_terms), intent(inout) :: energs
          type(DFT_local_fields), intent(inout) :: denspot
          type(GPU_pointers), intent(in) :: GPU
          type(input_variables):: input
@@ -510,11 +533,10 @@ module module_interfaces
          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
-         integer, intent(in) ::potshortcut
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-            denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+            denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
             wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
          use module_defs
          use module_types
@@ -527,6 +549,7 @@ module module_interfaces
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+         type(energy_terms), intent(inout) :: energs !<energies of the system
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: inputpsi, norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -604,10 +627,11 @@ module module_interfaces
       END SUBROUTINE sumrho
 
       !starting point for the communication routine of the density
-      subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+      subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho,keep_rhop)
         use module_base
         use module_types
         implicit none
+        logical, intent(in) :: keep_rhop !< preserves the total density in the rho_p array
         integer, intent(in) :: iproc,nproc,nspin
         real(gp), intent(in) :: hxh,hyh,hzh
         type(local_zone_descriptors), intent(in) :: Lzd
@@ -718,11 +742,11 @@ module module_interfaces
          real(wp), dimension(:), pointer, optional :: psivirt
       END SUBROUTINE DiagHam
 
-      subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
+      subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc
+        integer, intent(in) :: iproc,nproc,iter
         real(wp), intent(out) :: evsum
         type(DFT_wavefunction), intent(inout) :: wfn
         logical, optional :: opt_keeppsit
@@ -5788,7 +5812,8 @@ module module_interfaces
          real(dp), dimension(:), pointer :: pkernel,pkernelseq
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
-       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
+
+       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
             nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
             energs,rpnrm,xcstr)
          use module_base
@@ -5796,12 +5821,11 @@ module module_interfaces
          use m_ab6_mixing
          implicit none
          logical, intent(in) :: scf
-         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-         type(ab6_mixing_object), intent(in) :: mix
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn
@@ -6287,7 +6311,6 @@ module module_interfaces
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
        end subroutine psi_to_vlocpsi
-
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
                   input, tmb, tmbder, denspot, ldiis, lscv)
          use module_base

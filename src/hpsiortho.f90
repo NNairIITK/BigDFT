@@ -10,7 +10,7 @@
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
-subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
+subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
      nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
      energs,rpnrm,xcstr)
   use module_base
@@ -20,12 +20,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
   use m_ab6_mixing
   implicit none
   logical, intent(in) :: scf
-  integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+  integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: alphamix
   type(atoms_data), intent(in) :: atoms
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(ab6_mixing_object), intent(in) :: mix
   type(DFT_local_fields), intent(inout) :: denspot
   type(energy_terms), intent(inout) :: energs
   type(DFT_wavefunction), intent(inout) :: wfn
@@ -38,12 +37,22 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
   !real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
-  logical :: unblock_comms_den,unblock_comms_pot,whilepot
-  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin
+  logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields,correcth
+  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,i_all,i_stat
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
+
+  !flag for saving the local fields (rho,vxc,vh)
+  savefields= (iscf==SCF_KIND_GENERALIZED_DIRMIN)
+  correcth=.false.
+  !do not do that if rho_work is already associated
+  if (savefields .and. associated(denspot%rho_work)) then
+     !flag for correcting the hamiltonian (either is false or toggles savefields)
+     correcth=.true.
+     savefields=.false.
+  end if
 
   nthread_max=1
   ithread=0
@@ -62,11 +71,15 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
 
   !calculate the self-consistent potential
   if (scf) then
+     !print *,'here',savefields,correcth,energs%ekin,energs%epot,dot(wfn%orbs%npsidim_orbs,wfn%psi(1),1,wfn%psi(1),1)
      ! Potential from electronic charge density 
      call sumrho(iproc,nproc,wfn%orbs,wfn%Lzd,&
           denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),denspot%dpcom%nscatterarr,&
           GPU,atoms%sym,denspot%rhod,wfn%psi,denspot%rho_psi)
-
+     !print *,'here',wfn%orbs%occup(:),'there',savefields,correcth,energs%ekin,energs%epot,&
+     !     dot(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*wfn%orbs%nspin,&
+     !     denspot%rho_psi(1,1),1,denspot%rho_psi(1,1),1)
+     !stop
      !initialize nested approach 
      !this has always to be done for using OMP parallelization in the 
      !projector case
@@ -89,7 +102,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
         call communicate_density(iproc,nproc,wfn%orbs%nspin,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              wfn%Lzd,&
-             denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+             denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
      if (ithread > 0 .or. nthread==1 .and. .not. whilepot) then
@@ -113,14 +126,13 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
      !$   call OMP_SET_NUM_THREADS(nthread_max)
      ithread=0
      nthread=1
-  
 
      !here the density can be mixed
-     if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-        if (mix%kind == AB6_MIXING_DENSITY) then
-           call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
+     if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+        if (denspot%mix%kind == AB6_MIXING_DENSITY) then
+           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
-                product(wfn%Lzd%hgrids),&!hx*hy*hz,&
+                atoms%alat1*atoms%alat2*atoms%alat3,&!hx*hy*hz,& !volume should be used
                 rpnrm,denspot%dpcom%nscatterarr)
            
            if (iproc == 0 .and. itrp > 1) then
@@ -133,11 +145,12 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
-     denspot%rhov_is=ELECTRONIC_DENSITY
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn)
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
      !copy the density contiguously since the GGA is calculated inside the NK routines
+     !with the savefield scheme, this can be avoided in the future
      if (wfn%SIC%approach=='NK') then !here the density should be copied somewhere else
         irhotot_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpcom%i3xcsh+1
         irho_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpcom%n3d*wfn%orbs%nspin+1
@@ -161,13 +174,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,ixc,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        denspot%rhov_is=CHARGE_DENSITY
+        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn)
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
-        denspot%rhov_is=HARTREE_POTENTIAL
+        !this is not true, there is also Vext
+        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
@@ -183,19 +197,51 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
      end if
 
      !here the potential can be mixed
-     if (mix%kind == AB6_MIXING_POTENTIAL .and. iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-        call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
-             denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
-             product(wfn%Lzd%hgrids),&!hx*hy*hz,&
-             rpnrm,denspot%dpcom%nscatterarr)
-        if (iproc == 0 .and. itrp > 1) then
-           write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-           !yaml output
-           !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+     if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+        if (denspot%mix%kind == AB6_MIXING_POTENTIAL) then
+           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
+                denspot%rhov,itrp,wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
+                product(wfn%Lzd%hgrids),&!hx*hy*hz,&
+                rpnrm,denspot%dpcom%nscatterarr)
+           if (iproc == 0 .and. itrp > 1) then
+              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                   &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+              !yaml output
+              !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+           end if
         end if
      end if
-     denspot%rhov_is=KS_POTENTIAL
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn)
+
+     if (savefields) then
+        if (associated(denspot%rho_work)) then
+           write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
+           stop
+        end if
+
+        allocate(denspot%rho_work(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*&
+             denspot%dpcom%n3p*wfn%orbs%nspin+ndebug),stat=i_stat)
+        call dcopy(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*wfn%orbs%nspin,denspot%rhov(1),1,&
+             denspot%rho_work(1),1)
+     end if
+
+     !if the hamiltonian should have to be just updated, perform the difference between potentials
+     if (correcth) then
+        if (.not. associated(denspot%rho_work)) then
+           write(*,*)'ERROR: need a reference potential to correct the hamiltonian!'
+           stop
+        end if
+        !subtract the previous potential from the new one
+        call axpy(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*wfn%orbs%nspin,&
+             -1.0_dp,denspot%rho_work(1),1,denspot%rhov(1),1)
+
+        !deallocation should be deplaced
+        i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+        deallocate(denspot%rho_work,stat=i_stat)
+        call memocc(i_stat,i_all,'denspot%rho_work',subname)
+        nullify(denspot%rho_work)
+     end if
+
 
   end if
 
@@ -226,7 +272,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
   ! thread 0 does mpi communication 
   if (ithread == 0) then
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
-          denspot%dpcom,denspot%rhov,denspot%pot_full)
+          denspot%dpcom,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
   end if
   if (ithread > 0 .or. nthread==1 .and. whilepot) then
@@ -252,15 +298,15 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,iscf,alphamix,mix,ixc,&
   nthread=1
  
   !here exctxpar might be passed
+  !choose to just add the potential if needed
   call LocalHamiltonianApplication(iproc,nproc,atoms,wfn%orbs,&
-       wfn%Lzd,wfn%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,wfn%psi,wfn%hpsi,&
-       energs,wfn%SIC,GPU,.false.,pkernel=denspot%pkernelseq)
-
+       wfn%Lzd,wfn%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,wfn%psi,wfn%hpsi,&
+       energs,wfn%SIC,GPU,correcth,pkernel=denspot%pkernelseq)
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
   !deallocate potential
-  call free_full_potential(nproc,linflag,denspot%pot_full,subname)
+  call free_full_potential(nproc,linflag,denspot%pot_work,subname)
   !----
 end subroutine psitohpsi
 
@@ -292,8 +338,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
-
-  integer:: i
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
@@ -357,10 +401,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
-   integer :: i_stat,n3p,ispot,ipotmethod,iorb,i_all
+   integer :: i_stat,n3p,ispot,ipotmethod
    real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
-   real(dp), dimension(:), allocatable :: fake_pot
    
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
@@ -766,7 +809,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
+   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr
    integer:: istl, ist, size_Lpot, i3s, i3e
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
@@ -1011,17 +1054,21 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 END SUBROUTINE free_full_potential
 
 !> Calculate total energies from the energy terms
-subroutine total_energies(energs)
+subroutine total_energies(energs, iter)
   use module_types
   implicit none
   type(energy_terms), intent(inout) :: energs
-  
+  integer, intent(in) :: iter
+
   !band structure energy calculated with occupation numbers
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
        energs%eexctX-energs%evsic+energs%eion+energs%edisp
-  
+
+  if (energs%c_obj /= 0) then
+     call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
+  end if
 end subroutine total_energies
 
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
@@ -1043,8 +1090,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
-  real(gp) :: rzeroorbs,tt,scpr
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  real(gp) :: rzeroorbs,tt
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 
@@ -1059,7 +1106,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 !!$  energy=energy-eTS
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-  call total_energies(energs)
 !!$  !band structure energy calculated with occupation numbers
 !!$  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
 !!$  !this is the Kohn-Sham energy
@@ -1261,7 +1307,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
-
    if (nproc == 1) then
       nullify(wfn%psit)
    end if
@@ -1269,6 +1314,11 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    if (iproc == 0 .and. verbose > 1) then
       write(*,'(1x,a)')&
          &   'done.'
+   end if
+
+   ! Emit that new wavefunctions are ready.
+   if (iproc == 0 .and. wfn%c_obj /= 0) then
+      call wf_emit_psi(wfn%c_obj, iter)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1431,12 +1481,12 @@ END SUBROUTINE first_orthon
 
 
 !>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
+subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    use module_base
    use module_types
    use module_interfaces, except_this_one_C => last_orthon
    implicit none
-   integer, intent(in) :: iproc,nproc
+   integer, intent(in) :: iproc,nproc,iter
    real(wp), intent(out) :: evsum
    type(DFT_wavefunction), intent(inout) :: wfn
    logical, optional :: opt_keeppsit
@@ -1464,6 +1514,10 @@ subroutine last_orthon(iproc,nproc,wfn,evsum,opt_keeppsit)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+   ! Emit that new wavefunctions are ready.
+   if (iproc == 0 .and. wfn%c_obj /= 0) then
+      call wf_emit_psi(wfn%c_obj, iter)
+   end if
 
    if(.not.  keeppsit) then
       if (nproc > 1  ) then
@@ -1534,6 +1588,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
 
    orbs%eTS=0.0_gp  
 
+   a = 0.d0
    select case (occopt)
    case  (SMEARING_DIST_ERF  )
    case  (SMEARING_DIST_FERMI)
@@ -1604,32 +1659,35 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
                   f =1.d0/(1.d0+exp(arg)) 
                   df=-1.d0/(2.d0+exp(arg)+exp(-arg)) 
                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
-                  &  occopt == SMEARING_DIST_METPX ) then
-               x= -arg
-               call derf_ab(res,x)
-               f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-               df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
-            end if
-            electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
-            dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
-            !if(iproc==0) write(*,*) arg,   f , df
+                    &  occopt == SMEARING_DIST_METPX ) then
+                  x= -arg
+                  call derf_ab(res,x)
+                  f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+                  df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
+               else
+                  f  = 0.d0
+                  df = 0.d0
+               end if
+               electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
+               dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
+               !if(iproc==0) write(*,*) arg,   f , df
+            enddo
          enddo
-      enddo
-
-      dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
-      diff=-real(melec,gp)/full+electrons
-      if (abs(diff) < 1.d-12) exit loop_fermi
-      if (abs(dlectrons) <= 1d-45) then
-         corr=wf
-      else
-         corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
-      end if
-      !if (iproc==0) write(*,'(i5,3e,i4,e)') ii,electrons,ef,dlectrons,melec,corr
-      if (corr > 1.d0*wf) corr=1.d0*wf
-      if (corr < -1.d0*wf) corr=-1.d0*wf
-      if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
-      if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-      ef=ef-corr  ! Ef=Ef_guess+corr.
+         
+         dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
+         diff=-real(melec,gp)/full+electrons
+         if (abs(diff) < 1.d-12) exit loop_fermi
+         if (abs(dlectrons) <= 1d-45) then
+            corr=wf
+         else
+            corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+         end if
+         !if (iproc==0) write(*,'(i5,3e,i4,e)') ii,electrons,ef,dlectrons,melec,corr
+         if (corr > 1.d0*wf) corr=1.d0*wf
+         if (corr < -1.d0*wf) corr=-1.d0*wf
+         if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
+         if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
+         ef=ef-corr  ! Ef=Ef_guess+corr.
 
    end do loop_fermi
 

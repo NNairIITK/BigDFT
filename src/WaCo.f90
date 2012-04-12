@@ -29,7 +29,7 @@ program WaCo
    real :: tcpu0,tcpu1
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
-   real(gp) :: dist,rad,sprdfact,sprddiff,enediff
+   real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
    integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
@@ -48,14 +48,14 @@ program WaCo
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
    character(len=60) :: radical, filename
-   logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear
+   logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
    integer :: i, j, k, i_all
    character(len=16) :: seedname
-   integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old 
+   integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
    integer, parameter :: nbandCon=15
@@ -87,7 +87,6 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   linear=.true.
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
    call MPI_INIT(ierr)
@@ -117,10 +116,10 @@ program WaCo
    !###################################################################
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
-   call standard_inputfile_names(input,radical)
+   call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
-        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff)
+        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,sprdmult)
 
    allocate(ConstList(nwannCon))
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList) 
@@ -846,14 +845,21 @@ program WaCo
        call memocc(i_stat,locrad,'locrad',subname)
 
        call read_centers(iproc,nwann,nwannCon,atoms%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
-      
+
        do iwann = 1, nwannCon
-          locrad(iwann) = 3*(sprd(iwann)/(b2a*b2a))
+          locrad(iwann) = sprdmult*(sprd(iwann)/(b2a*b2a))
           if(iproc == 0) then
              print *,'Wannier center for iwann ',iwann,'  :  ',(cxyz(i,iwann),i=1,3)
              print *,'Locrad of iwann ',iwann, '  :  ', locrad(iwann)
           end if
        end do
+
+       i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
+       deallocate(rxyz_wann,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_wann',subname)
+       i_all = -product(shape(sprd))*kind(sprd)
+       deallocate(sprd,stat=i_stat)
+       call memocc(i_stat,i_all,'sprd',subname)
  
      ! Should construct a proper Lzd for each Wannier, then use global -> local transformation
        call nullify_local_zone_descriptors(Lzd)
@@ -1030,45 +1036,44 @@ program WaCo
               !Put it in interpolating scaling functions
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+           else if(trim(outputype)=='bin') then
+              call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
+              !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
+              if(hamilana .and. linear) then
+                 ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
+                 gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+                 allocate(lwann(ldim),stat=i_stat)
+                 call memocc(i_stat,lwann,'lwann',subname)
+                 call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
+                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
+                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),input%lin%confPotOrder,0.0d0,atoms%nat,rxyz,  & 
+                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
+                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                  i_all = -product(shape(lwann))*kind(lwann)
+                  deallocate(lwann,stat=i_stat)
+                  call memocc(i_stat,i_all,'lwann',subname)
+              else if(hamilana) then
+                 call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
+                   atoms%nat,rxyz,  & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                   wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
+              else
+                 call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
+                   atoms%nat,rxyz,  & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                   wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
+              end if
+              close(ifile)
            else
-             if(trim(outputype)=='bin') then
-                !call open_filename_of_iorb(ifile,(iformat == WF_FORMAT_BINARY),'TMB', &
-                !   & wannorbs,iiwann,1,iwann_out)
-                open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
-                if(hamilana .and. linear) then
-                   ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
-                   gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
-                   allocate(lwann(ldim),stat=i_stat)
-                   call memocc(i_stat,lwann,'lwann',subname)
-                   call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
-                   call writeonewave_linear(ifile,.true.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
-                     (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),input%lin%confPotOrder,0.0d0,atoms%nat,rxyz,  & 
-                     Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
-                     Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
-                     Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
-                     Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
-                     lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
-                    i_all = -product(shape(lwann))*kind(lwann)
-                    deallocate(lwann,stat=i_stat)
-                    call memocc(i_stat,i_all,'lwann',subname)
-                else if(hamilana) then
-                   call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
-                     wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
-                else
-                   call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                     Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
-                     wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
-                end if
-                close(ifile)
-             else
-                stop 'ETSF not implemented yet'                
-                ! should be write_wave_etsf  (only one orbital)
-                call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-                     input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
-             end if 
+              stop 'ETSF not implemented yet'                
+              ! should be write_wave_etsf  (only one orbital)
+              call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+                   input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
            end if
         end if
      end do  ! closing loop on iwann
@@ -1103,63 +1108,78 @@ program WaCo
 
 !DEBUG WRITE AND READ OF LINEAR WAVEFUNCTIONS
 ! Fake TMB orbs
-  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
-       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
-  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
-
-! First must initialize Lzd (must contain Glr and hgrids)
-  call nullify_local_zone_descriptors(Lzd)
-  call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
-  lzd%hgrids(1)=input%hx
-  lzd%hgrids(2)=input%hy
-  lzd%hgrids(3)=input%hz
-
-! Then allocate some stuff
-  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
-
-  call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
-
-
-  do ilr=1,Lzd%nlr
-     if (iproc == 0) then
-        write(*,*)'Description of zone:',ilr
-        write(*,*)'ns:',Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3
-        write(*,*)'ne:',Lzd%Llr(ilr)%ns1+Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%ns2+Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%ns3+Lzd%Llr(ilr)%d%n3
-        write(*,*)'n:',Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3
-        write(*,*)'nfl:',Lzd%Llr(ilr)%d%nfl1,Lzd%Llr(ilr)%d%nfl2,Lzd%Llr(ilr)%d%nfl3
-        write(*,*)'nfu:',Lzd%Llr(ilr)%d%nfu1,Lzd%Llr(ilr)%d%nfu2,Lzd%Llr(ilr)%d%nfu3
-        write(*,*)'ni:',Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i
-        write(*,*)'outofzone',ilr,':',Lzd%Llr(ilr)%outofzone(:)
-        write(*,*)'center: ',(Lzd%Llr(ilr)%locregCenter(i),i=1,3)
-        write(*,*)'locrad: ',Lzd%Llr(ilr)%locrad
-        write(*,*)'wfd dimensions: ',Lzd%Llr(ilr)%wfd%nseg_c, Lzd%Llr(ilr)%wfd%nseg_f, Lzd%Llr(ilr)%wfd%nvctr_c,&
-                   Lzd%Llr(ilr)%wfd%nvctr_f
-     end if
-  end do
-
-  call wavefunction_dimension(Lzd,wannorbs)
-  !npsidim = 0
-  !do iorb=1,orbs%norbp
-  !   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  !   npsidim = nspidim + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
-  !end do
-
-  allocate(psi2(wannorbs%npsidim_orbs),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
-  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
- 
-  print *,'before reading the TMBs'
-  call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
-    psi2)
-  print *,'after reading the TMBs', sum(psi2)
-  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-  deallocate(rxyz_old,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_old',subname)
-
+!!  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
+!!       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
+!!  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
+!!
+!!! First must initialize Lzd (must contain Glr and hgrids)
+!!  call nullify_local_zone_descriptors(Lzd)
+!!  call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+!!  lzd%hgrids(1)=input%hx
+!!  lzd%hgrids(2)=input%hy
+!!  lzd%hgrids(3)=input%hz
+!!
+!!! Then allocate some stuff
+!!  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+!!  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+!!
+!!  call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
+!!
+!!
+!!  do ilr=1,Lzd%nlr
+!!     if (iproc == 0) then
+!!        write(*,*)'Description of zone:',ilr
+!!        write(*,*)'ns:',Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3
+!!        write(*,*)'ne:',Lzd%Llr(ilr)%ns1+Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%ns2+Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%ns3+Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'n:',Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'nfl:',Lzd%Llr(ilr)%d%nfl1,Lzd%Llr(ilr)%d%nfl2,Lzd%Llr(ilr)%d%nfl3
+!!        write(*,*)'nfu:',Lzd%Llr(ilr)%d%nfu1,Lzd%Llr(ilr)%d%nfu2,Lzd%Llr(ilr)%d%nfu3
+!!        write(*,*)'ni:',Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i
+!!        write(*,*)'outofzone',ilr,':',Lzd%Llr(ilr)%outofzone(:)
+!!        write(*,*)'center: ',(Lzd%Llr(ilr)%locregCenter(i),i=1,3)
+!!        write(*,*)'locrad: ',Lzd%Llr(ilr)%locrad
+!!        write(*,*)'wfd dimensions: ',Lzd%Llr(ilr)%wfd%nseg_c, Lzd%Llr(ilr)%wfd%nseg_f, Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!                   Lzd%Llr(ilr)%wfd%nvctr_f
+!!     end if
+!!  end do
+!!
+!!  call wavefunction_dimension(Lzd,wannorbs)
+!!  !npsidim = 0
+!!  !do iorb=1,orbs%norbp
+!!  !   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!  !   npsidim = nspidim + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!!  !end do
+!!
+!!  allocate(psi2(wannorbs%npsidim_orbs),stat=i_stat)
+!!  call memocc(i_stat,psi,'psi',subname)
+!!  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
+!!  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
+!! 
+!!  print *,'before reading the TMBs'
+!!  call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
+!!    psi2)
+!!  print *,'after reading the TMBs', sum(psi2)
+!!  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
+!!  deallocate(rxyz_old,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz_old',subname)
+!!
 !END DEBUG
 
+     if(linear)then
+        call deallocate_local_zone_descriptors(Lzd, subname)
+        i_all = -product(shape(locrad))*kind(locrad)
+        deallocate(locrad,stat=i_stat)
+        call memocc(i_stat,i_all,'locrad',subname)
+        i_all = -product(shape(cxyz))*kind(cxyz)
+        deallocate(cxyz,stat=i_stat)
+        call memocc(i_stat,i_all,'cxyz',subname)
+        i_all = -product(shape(umnt))*kind(umnt)
+        deallocate(umnt,stat=i_stat)
+        call memocc(i_stat,i_all,'umnt',subname)
+        i_all = -product(shape(calcbounds))*kind(calcbounds)
+        deallocate(calcbounds,stat=i_stat)
+        call memocc(i_stat,i_all,'calcbounds',subname)
+     end if
      call deallocate_work_arrays_sumrho(w)
      call deallocate_orbs(orbsv,subname)
      call deallocate_orbs(orbsw,subname)
@@ -1182,20 +1202,6 @@ program WaCo
      deallocate(virt_list,stat=i_stat)
      call memocc(i_stat,i_all,'virt_list',subname)    
   end if
-  if(linear)then
-     i_all = -product(shape(locrad))*kind(locrad)
-     deallocate(locrad,stat=i_stat)
-     call memocc(i_stat,i_all,'locrad',subname)
-  end if
-  i_all = -product(shape(cxyz))*kind(cxyz)
-  deallocate(cxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'cxyz',subname)
-  i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
-  deallocate(rxyz_wann,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_wann',subname)
-  i_all = -product(shape(sprd))*kind(sprd)
-  deallocate(sprd,stat=i_stat)
-  call memocc(i_stat,i_all,'sprd',subname)
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
@@ -1242,17 +1248,17 @@ program WaCo
 end program Waco
 
 subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilAna,WannCon,filetype,nwannCon,refpos,units,&
-           sprdfact,sprddiff,enediff)
+           sprdfact,sprddiff,enediff,iformat,linear,sprdmult)
    use module_base
    use module_types
    use module_input
    implicit none
    integer, intent(in) :: iproc
    character(len=*), intent(in) :: filename
-   logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon
+   logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon, iformat, linear
    character(len=4), intent(out) :: filetype,units
-   integer, intent(out) :: nband,nwann,nwannCon 
-   real(gp), intent(out) :: sprdfact,sprddiff,enediff
+   integer, intent(out) :: nband,nwann,nwannCon
+   real(gp), intent(out) :: sprdfact,sprddiff,enediff,sprdmult
    real(gp), dimension(3), intent(out) :: refpos
    ! Local variable
    logical :: exists
@@ -1282,7 +1288,10 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
 
    ! Check for the wannier construction
    call input_var(WannCon,'F')
-   call input_var(filetype,'cube', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
+   call input_var(filetype,'cube')
+   call input_var(iformat,'F', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
+   call input_var(linear,'F')
+   call input_var(sprdmult,'3.0',comment='!Ouput as minimal basis, spread factor for minimal basis construction')
    call input_var(nwannCon,'1',comment='! number of Wannier to construct (if 0 do all) followed by Wannier list on next &
    &     line (optional)')
    
@@ -1302,7 +1311,7 @@ subroutine read_input_waco(filename,nwannCon,Constlist)
 
   open(22, file=trim(filename),status='old')
   ! Skip first lines
-  do i=1,6
+  do i=1,7
      read(22,*)
   end do
 
