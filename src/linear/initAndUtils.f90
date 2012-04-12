@@ -2169,103 +2169,103 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
 end subroutine redefine_locregs_quantities
 
-subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => update_locreg2
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr
-  logical,intent(in):: useDerivativeBasisFunctions
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(8),intent(in):: hx, hy, hz
-  real(8),dimension(nlr),intent(in):: locrad
-  type(orbitals_data),intent(in):: orbs_tmp
-  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
-  real(8),dimension(3,nlr),intent(in):: locregCenter
-  type(locreg_descriptors):: glr_tmp
-  type(local_zone_descriptors),intent(inout):: lzd
-  type(orbitals_data),intent(inout):: llborbs
-  type(overlapParameters),intent(inout):: lbop
-  type(p2pComms),intent(inout):: lbcomon
-  type(p2pComms),intent(inout):: lbcomgp
-  type(p2pComms),intent(inout):: comsr
-  type(matrixDescriptors),intent(inout):: lbmad
-  type(collective_comms),intent(inout):: lbcollcom
-  
-  ! Local variables
-  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
-  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
-  character(len=*),parameter:: subname='update_locreg'
-
-
-  call nullify_orbitals_data(llborbs)
-  call nullify_overlapParameters(lbop)
-  call nullify_p2pComms(lbcomon)
-  call nullify_matrixDescriptors(lbmad)
-  call nullify_collective_comms(lbcollcom)
-  call nullify_p2pComms(lbcomgp)
-  call nullify_local_zone_descriptors(lzd)
-  tag=1
-  if(.not.useDerivativeBasisFunctions) then
-      norbu=orbs_tmp%norb
-  else
-      norbu=4*orbs_tmp%norb
-  end if
-  norb=norbu
-  norbd=0
-  nspin=1
-  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-
-  ! Assign inwhichlocreg manually
-  if(useDerivativeBasisFunctions) then
-      norb=4
-  else
-      norb=1
-  end if
-  ii=0
-  do iorb=1,orbs_tmp%norb
-      do i=1,norb
-          ii=ii+1
-          llborbs%inwhichlocreg(ii)=inwhichlocreg_reference(iorb)
-      end do
-  end do
-
-  lzd%nlr=nlr
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
-  call nullify_locreg_descriptors(lzd%glr)
-  call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-!!  call deallocate_locreg_descriptors(glr_tmp, subname)
-!!
-!!  npsidim = 0
-!!  do iorb=1,llborbs%norbp
-!!   ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
-!!   npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-!!  end do
-  allocate(llborbs%eval(llborbs%norb), stat=istat)
-  call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
-  llborbs%eval=-.5d0
-!!  llborbs%npsidim_orbs=max(npsidim,1)
-!!  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
-!!       's', lbop, lbcomon, tag)
-!!  call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
-!!       lbop%noverlaps, lbop%overlaps, lbmad)
-!!  call initCompressedMatmul3(llborbs%norb, lbmad)
-!!
-!!  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
-!!
-!!
-!!  call nullify_p2pComms(comsr)
-!!  call initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, llborbs, tag, comsr)
-!!  call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
-!!       lzd, lbcomgp, llborbs%inWhichLocreg, tag)
-
-
-end subroutine update_locreg2
+!!!subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+!!!           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+!!!           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
+!!!  use module_base
+!!!  use module_types
+!!!  use module_interfaces, except_this_one => update_locreg2
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  integer,intent(in):: iproc, nproc, nlr
+!!!  logical,intent(in):: useDerivativeBasisFunctions
+!!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!  real(8),intent(in):: hx, hy, hz
+!!!  real(8),dimension(nlr),intent(in):: locrad
+!!!  type(orbitals_data),intent(in):: orbs_tmp
+!!!  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+!!!  real(8),dimension(3,nlr),intent(in):: locregCenter
+!!!  type(locreg_descriptors):: glr_tmp
+!!!  type(local_zone_descriptors),intent(inout):: lzd
+!!!  type(orbitals_data),intent(inout):: llborbs
+!!!  type(overlapParameters),intent(inout):: lbop
+!!!  type(p2pComms),intent(inout):: lbcomon
+!!!  type(p2pComms),intent(inout):: lbcomgp
+!!!  type(p2pComms),intent(inout):: comsr
+!!!  type(matrixDescriptors),intent(inout):: lbmad
+!!!  type(collective_comms),intent(inout):: lbcollcom
+!!!  
+!!!  ! Local variables
+!!!  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
+!!!  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
+!!!  character(len=*),parameter:: subname='update_locreg'
+!!!
+!!!
+!!!  call nullify_orbitals_data(llborbs)
+!!!  call nullify_overlapParameters(lbop)
+!!!  call nullify_p2pComms(lbcomon)
+!!!  call nullify_matrixDescriptors(lbmad)
+!!!  call nullify_collective_comms(lbcollcom)
+!!!  call nullify_p2pComms(lbcomgp)
+!!!  call nullify_local_zone_descriptors(lzd)
+!!!  tag=1
+!!!  if(.not.useDerivativeBasisFunctions) then
+!!!      norbu=orbs_tmp%norb
+!!!  else
+!!!      norbu=4*orbs_tmp%norb
+!!!  end if
+!!!  norb=norbu
+!!!  norbd=0
+!!!  nspin=1
+!!!  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+!!!       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
+!!!
+!!!  ! Assign inwhichlocreg manually
+!!!  if(useDerivativeBasisFunctions) then
+!!!      norb=4
+!!!  else
+!!!      norb=1
+!!!  end if
+!!!  ii=0
+!!!  do iorb=1,orbs_tmp%norb
+!!!      do i=1,norb
+!!!          ii=ii+1
+!!!          llborbs%inwhichlocreg(ii)=inwhichlocreg_reference(iorb)
+!!!      end do
+!!!  end do
+!!!
+!!!  lzd%nlr=nlr
+!!!  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
+!!!  call nullify_locreg_descriptors(lzd%glr)
+!!!  call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
+!!!!!  call deallocate_locreg_descriptors(glr_tmp, subname)
+!!!!!
+!!!  npsidim = 0
+!!!  do iorb=1,llborbs%norbp
+!!!   ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
+!!!   npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!!  end do
+!!!  allocate(llborbs%eval(llborbs%norb), stat=istat)
+!!!  call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
+!!!  llborbs%eval=-.5d0
+!!!  llborbs%npsidim_orbs=max(npsidim,1)
+!!!  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
+!!!       's', lbop, lbcomon, tag)
+!!!  call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
+!!!       lbop%noverlaps, lbop%overlaps, lbmad)
+!!!  call initCompressedMatmul3(llborbs%norb, lbmad)
+!!!
+!!!  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
+!!!
+!!!
+!!!  call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
+!!!       lzd, lbcomgp, llborbs%inWhichLocreg, tag)
+!!!
+!!!  call nullify_p2pComms(comsr)
+!!!  call initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, llborbs, tag, comsr)
+!!!
+!!!end subroutine update_locreg2
 
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
@@ -2338,7 +2338,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-  call deallocate_locreg_descriptors(glr_tmp, subname)
+  !!call deallocate_locreg_descriptors(glr_tmp, subname)
 
   npsidim = 0
   do iorb=1,llborbs%norbp
@@ -2394,6 +2394,7 @@ type(DFT_wavefunction),intent(out):: tmb
 integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
 integer,dimension(:),allocatable:: orbsperlocreg
 character(len=*),parameter:: subname='create_new_locregs'
+logical:: reallocate
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
@@ -2406,9 +2407,19 @@ character(len=*),parameter:: subname='create_new_locregs'
    call nullify_collective_comms(tmb%collcom)
    !!call nullify_p2pComms(tmb%comsr)
 
-   call update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
+   if(associated(tmb%comsr%recvbuf)) then
+       reallocate=.true.
+   else
+       reallocate=.false.
+   end if
+   call deallocate_p2pComms(tmb%comsr, subname)
+   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
         withder, nscatterarr, hx, hy, hz, &
         lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+   call deallocate_p2pComms(tmb%comsr, subname)
+   if(reallocate) then
+       call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+   end if
    if(withder) stop 'withder is true'
 
 !!!   tag=1
@@ -2431,29 +2442,29 @@ character(len=*),parameter:: subname='create_new_locregs'
 !!!   tmb%orbs%inwhichlocreg = inwhichlocreg_reference
 !!!
 !!!   call initLocregs(iproc, nproc, tmb%lzd%nlr, locregCenter, hx, hy, hz, tmb%lzd, tmb%orbs, Glr, locrad, 's')
-!!   call nullify_locreg_descriptors(tmb%lzd%Glr)
-!!   call copy_locreg_descriptors(Glr, tmb%lzd%Glr, subname)
-   npsidim = 0
-   do iorb=1,tmb%orbs%norbp
-    ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-    npsidim = npsidim + tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-   end do
-   !!allocate(tmb%orbs%eval(tmb%orbs%norb), stat=istat)
-   !!call memocc(istat, tmb%orbs%eval, 'tmb%orbs%eval', subname)
-   !!tmb%orbs%eval=-.5d0
-   tmb%orbs%npsidim_orbs=max(npsidim,1)
-   write(*,*) 'iproc, tmb%orbs%npsidim_orbs', iproc, tmb%orbs%npsidim_orbs
-   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%lzd, tmb%orbs, tmb%orbs, tmb%orbs%inWhichLocreg,&
-        's', tmb%op, tmb%comon, tag)
-   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, &
-        tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
-   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
+!!!  call nullify_locreg_descriptors(tmb%lzd%Glr)
+!!!  call copy_locreg_descriptors(Glr, tmb%lzd%Glr, subname)
+!!!   npsidim = 0
+!!!   do iorb=1,tmb%orbs%norbp
+!!!    ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+!!!    npsidim = npsidim + tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!!   end do
+!!!   allocate(tmb%orbs%eval(tmb%orbs%norb), stat=istat)
+!!!   call memocc(istat, tmb%orbs%eval, 'tmb%orbs%eval', subname)
+!!!   tmb%orbs%eval=-.5d0
+!!!   tmb%orbs%npsidim_orbs=max(npsidim,1)
+!!!   write(*,*) 'iproc, tmb%orbs%npsidim_orbs', iproc, tmb%orbs%npsidim_orbs
+!!!   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, tmb%lzd, tmb%lzd, tmb%orbs, tmb%orbs, tmb%orbs%inWhichLocreg,&
+!!!        's', tmb%op, tmb%comon, tag)
+!!!   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, &
+!!!        tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+!!!   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
+!!!
+!!!   call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
+!!!
+!!!   call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
 
-   call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
-
-   call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
-
-write(*,*) 'associated(tmb%lzd%glr%projflg)', associated(tmb%lzd%glr%projflg)
+!!write(*,*) 'associated(tmb%lzd%glr%projflg)', associated(tmb%lzd%glr%projflg)
 
    iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
    deallocate(ldiis%phiHist, stat=istat)

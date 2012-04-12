@@ -459,7 +459,9 @@ real(8):: ddot, tt1, tt2, tt3
           end if
       end do
 
+      write(*,*) 'linearScaling: before deallocating tmb%comsr'
       call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      write(*,*) 'linearScaling: before deallocating tmbder%comsr'
       call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
       ! Print out values related to two iterations of the outer loop.

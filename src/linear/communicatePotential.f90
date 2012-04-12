@@ -103,7 +103,7 @@ do jproc=0,nproc-1
         end if
     end do
     comgp%noverlaps(jproc)=ioverlap
-    if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
+    !!if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
 end do
 
 ! Determine the parameters for the communications.
@@ -289,8 +289,8 @@ destLoop: do jproc=0,nproc-1
         !!else
             if(mpisource/=mpidest) then
                 if(iproc==mpisource) then
-                    write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', &
-                        istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    !!write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', &
+                    !!    istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                     !!call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                     !!     comgp%comarr(7,kproc,jproc), ierr)
                     nsends=nsends+1
@@ -298,8 +298,8 @@ destLoop: do jproc=0,nproc-1
                          comgp%requests(nsends,1), ierr)
                     comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                 else if(iproc==mpidest) then
-                   write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
-                       ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+                   !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     !!call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                     !!     comgp%comarr(8,kproc,jproc), ierr)
                     nreceives=nreceives+1
@@ -312,8 +312,8 @@ destLoop: do jproc=0,nproc-1
                 end if
             else
                 if(iproc==mpisource) then
-                   write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
-                       ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+                   !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     nsends=nsends+1
                     call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                          comgp%requests(nsends,1), ierr)
@@ -346,8 +346,6 @@ if(iproc==0) write(*,'(a)') 'done.'
 
 comgp%nsend=nsends
 comgp%nrecv=nreceives
-write(*,*) 'iproc, comgp%nsend', iproc, comgp%nsend
-write(*,*) 'iproc, comgp%nrecv', iproc, comgp%nrecv
 
 if(nreceives/=comgp%noverlaps(iproc)) then
     write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comgp%noverlaps(iproc)',&
@@ -382,24 +380,19 @@ logical:: sendComplete, receiveComplete, received
 ! Wait for the sends to complete.
 !!if (nproc > 1) then
    nsend=0
-   write(*,*) 'comgp%nsend', comgp%nsend
-   write(*,*) 'comgp%nrecv', comgp%nrecv
    if(comgp%nsend>0) then
        waitLoopSend: do
           !!call mpi_waitsome(comgp%nsend, comgp%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
           !!nsend=nsend+ncomplete
           !!if(nsend==comgp%nsend) exit waitLoopSend
           call mpi_waitany(comgp%nsend-nsend, comgp%requests(1,1), ind, mpi_status_ignore, ierr)
-          write(*,*) 'comgp%nsend-nsend, ind', comgp%nsend-nsend, ind
           nsend=nsend+1
           do i=ind,comgp%nsend-nsend
              comgp%requests(i,1)=comgp%requests(i+1,1)
           end do
-          write(*,*) 'check: nsend, comgp%nsend', nsend, comgp%nsend
           if(nsend==comgp%nsend) exit waitLoopSend
        end do waitLoopSend
    end if
-   write(*,*) 'after wait send loop'
 
 
    nrecv=0
