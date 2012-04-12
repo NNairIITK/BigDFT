@@ -2,11 +2,19 @@
 
 SUBDIRS = 
 
-check_PROGRAMS = check_lib_c
+check_PROGRAMS = check_lib_c check_signals check_client_signals
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
+
+check_signals_SOURCES = check_signals.f90
+check_signals_FCFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
+check_signals_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
+
+check_client_signals_SOURCES = check_client_signals.c
+check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@
+check_client_signals_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 EXTRA_DIST = bindings.out.ref posinp.ascii test.dft
 CLEANFILES = bindings.out bindings.report output.ascii

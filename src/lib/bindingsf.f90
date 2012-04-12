@@ -155,6 +155,14 @@ subroutine glr_init(glr, d)
   call nullify_locreg_descriptors(glr)
   d => glr%d
 end subroutine glr_init
+subroutine glr_get_data(glr, d)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout), target :: glr
+  type(grid_dimensions), pointer :: d
+
+  d => glr%d
+end subroutine glr_get_data
 subroutine glr_free(glr)
   use module_types
   implicit none
@@ -215,6 +223,14 @@ subroutine lzd_init(lzd, glr)
   call nullify_local_zone_descriptors(lzd)
   glr => lzd%glr
 end subroutine lzd_init
+subroutine lzd_get_data(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), target, intent(inout) :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  glr => lzd%glr
+end subroutine lzd_get_data
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -709,15 +725,34 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
 
   allocate(wf)
   wf%c_obj = self
+  call wf_init(wf)
+  orbs => wf%orbs
+  comm => wf%comms
+  lzd => wf%Lzd
+end subroutine wf_new
+subroutine wf_init(wf)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: wf
+
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
   nullify(wf%spsi)
+  nullify(wf%comms%nvctr_par)
+end subroutine wf_init
+subroutine wf_get_data(wf, orbs, comm, lzd)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), target, intent(in) :: wf
+  type(orbitals_data), pointer :: orbs
+  type(communications_arrays), pointer :: comm
+  type(local_zone_descriptors), pointer :: lzd
+
   orbs => wf%orbs
   comm => wf%comms
-  nullify(wf%comms%nvctr_par)
   lzd => wf%Lzd
-end subroutine wf_new
+end subroutine wf_get_data
 subroutine wf_empty(wf)
   use module_types
   use m_profiling
@@ -807,7 +842,7 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
 
   iorbtot = 0
   do iproc = 0, size(orbs%norb_par, 1) - 1, 1
-     if (iorbp >= iorbtot .and. iorbp < orbs%norb_par(iproc, 0)) then
+     if (iorbp >= iorbtot .and. iorbp < iorbtot + orbs%norb_par(iproc, 0)) then
         iorbp = iorbp - iorbtot
         return
      end if
@@ -817,14 +852,6 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
   iorbp = -1;
   iproc = -1;
 END SUBROUTINE orbs_get_iorbp
-subroutine glr_get_psi_size(glr, psisize)
-  use module_types
-  implicit none
-  type(locreg_descriptors), intent(in) :: glr
-  integer, intent(out) :: psisize
-
-  psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
-END SUBROUTINE glr_get_psi_size
 
 subroutine energs_new(self, energs)
   use module_types

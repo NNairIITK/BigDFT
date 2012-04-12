@@ -29,6 +29,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   character(len=40) :: comment
   logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
+  double precision :: gmainloop
 
   !temporary interface
   interface
@@ -80,6 +81,19 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
   verbose=in%verbosity
+
+  !Create C wrappers on Fortran objects,
+  ! and start a GMainLoop.
+  if (in%signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call bigdft_signals_init()
+        call wf_new_wrapper(rst%KSwfn%c_obj, rst%KSwfn)
+        call bigdft_signals_start(gmainloop, rst%KSwfn%c_obj)
+     else
+        rst%KSwfn%c_obj = UNINITIALIZED(rst%KSwfn%c_obj)
+     end if
+  end if
 
   inputPsiId_orig=in%inputPsiId
 
@@ -154,6 +168,13 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
      end if
 
   end do loop_cluster
+
+  !Destroy C wrappers on Fortran objects,
+  ! and stop the GMainLoop.
+  if (in%signaling .and. iproc == 0) then
+     call wf_free_wrapper(rst%KSwfn%c_obj)
+     call bigdft_signals_stop(gmainloop)
+  end if
 
   !preserve the previous value
   in%inputPsiId=inputPsiId_orig

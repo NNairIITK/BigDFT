@@ -266,6 +266,23 @@ BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd)
 
   return lzd;
 }
+BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd)
+{
+  BigDFT_Lzd *lzd;
+
+#ifdef HAVE_GLIB
+  lzd = BIGDFT_LZD(g_object_new(BIGDFT_LZD_TYPE, NULL));
+#else
+  lzd = g_malloc(sizeof(BigDFT_Lzd));
+  bigdft_lzd_init(lzd);
+#endif
+
+  lzd->data = fortran_lzd;
+  FC_FUNC_(lzd_get_data, LZD_GET_DATA)(lzd->data, &lzd->parent.data);
+  FC_FUNC_(glr_get_data, GLR_GET_DATA)(lzd->parent.data, &lzd->parent.d);
+
+  return lzd;
+}
 void bigdft_lzd_free(BigDFT_Lzd *lzd)
 {
 #ifdef HAVE_GLIB

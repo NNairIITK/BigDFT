@@ -218,8 +218,9 @@ struct BigDFT_lzd_
   /* Private. */
   void *data;
 };
-BigDFT_Lzd* bigdft_lzd_new ();
+BigDFT_Lzd* bigdft_lzd_new();
 BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd);
+BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
 void        bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
                                 double crmult, double frmult);
@@ -328,6 +329,7 @@ typedef struct BigDFT_optLoopParams_
 void bigdft_optloopparams_init(BigDFT_optLoopParams *params);
 
 BigDFT_Wf* bigdft_wf_new ();
+BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
@@ -338,6 +340,9 @@ guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspo
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc);
+gboolean   bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                       BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                       guint iproc, gdouble *psic, guint psiSize);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,

@@ -186,9 +186,21 @@ bindings_files = lib/bindings_api.h \
 	lib/bindings_regions.c \
 	lib/bindings_wavefunctions.c \
 	lib/bindings_localfields.c \
+	lib/bindings_signals.c \
 	lib/bindingsf.f90
 else
 bindings_files = lib/bindingsf_fake.f90
+endif
+if HAVE_GDBUS
+bindings_files += lib/bindings_dbus.c lib/bindings_dbus.h
+
+lib/bindings_dbus.h: lib/bindings_dbus.c
+lib/bindings_dbus.c: lib/bindings_dbus.xml
+	gdbus-codegen --interface-prefix eu.etsf.bigdft.dbus. \
+                      --generate-c-code $(srcdir)/lib/bindings_dbus \
+                      --c-namespace BigdftDBus \
+                      --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
+
 endif
 
 if HAVE_FC_FLUSH

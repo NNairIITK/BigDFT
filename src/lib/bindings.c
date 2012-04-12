@@ -3,6 +3,9 @@
 #ifdef HAVE_GLIB
 #include <glib-object.h>
 #endif
+#ifdef HAVE_GDBUS
+#include <gio/gio.h>
+#endif
 
 #include "bigdft.h"
 #include "bindings.h"
@@ -373,4 +376,3 @@ double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_I
                                             &in->iscf, &peak);
   return peak;
 }
-

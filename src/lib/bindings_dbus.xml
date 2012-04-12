@@ -1,0 +1,21 @@
+<node>
+  <interface name="eu.etsf.bigdft.dbus.wf">
+    <method name="get_psi_compress">
+      <arg direction="in"  name="ikpt"    type="u"  />
+      <arg direction="in"  name="iorb"    type="u"  />
+      <arg direction="in"  name="ispin"   type="u"  />
+      <arg direction="in"  name="ispinor" type="u"  />
+      <arg direction="out" name="psi"     type="ad" />
+      <arg direction="out" name="psiSize" type="u"  />
+    </method>
+
+    <property name="nPsiReady" type="u" access="read" />
+    <property name="refPsiReady" type="u" access="read" />
+    <signal name="PsiReady">
+      <arg type="u" name="iter"/>
+    </signal>
+    <method name="registerPsiReady" />
+    <method name="unregisterPsiReady" />
+    <method name="donePsiReady" />
+  </interface>
+</node>

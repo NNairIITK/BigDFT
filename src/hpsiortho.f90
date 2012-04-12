@@ -1319,8 +1319,8 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    end if
 
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
-      call wf_emit_psi(wfn%c_obj, iter)
+   if (wfn%c_obj /= 0) then
+      call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1517,8 +1517,8 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
-      call wf_emit_psi(wfn%c_obj, iter)
+   if (wfn%c_obj /= 0) then
+      call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 
    if(.not.  keeppsit) then

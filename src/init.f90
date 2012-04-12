@@ -2172,4 +2172,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
   end if
 
+   ! Emit that new wavefunctions are ready.
+   if (KSwfn%c_obj /= 0) then
+      call kswfn_emit_psi(KSwfn, 0, iproc, nproc)
+   end if
+
 END SUBROUTINE input_wf
