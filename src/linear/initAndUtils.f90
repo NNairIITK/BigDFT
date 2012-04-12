@@ -2099,7 +2099,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
 
   tag=1
   if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+      !call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+      call gatherPotential(iproc, nproc, tmbmix%comgp)
       call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   end if
 

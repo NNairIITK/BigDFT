@@ -576,6 +576,7 @@ module module_types
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
+    logical:: communication_complete
   end type p2pComms
 
 !!!!> Contains the parameters needed for the point to point communications

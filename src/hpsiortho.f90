@@ -880,7 +880,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
          end if
       end if
    else
-      call gatherPotential(iproc, nproc, comgp)
+       if(.not.comgp%communication_complete) call gatherPotential(iproc, nproc, comgp)
    end if
 
 

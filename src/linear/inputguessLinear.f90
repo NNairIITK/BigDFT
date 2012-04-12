@@ -678,6 +678,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
 
+  tmbig%comgp%communication_complete=.false.
   call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
        denspot%dpcom,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
@@ -794,6 +795,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
            tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
 
   ! Calculate the coefficients
+  write(*,*) 'in inguess...'
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
@@ -801,6 +803,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        hx,hy,hz,input%SIC,tmb)
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
 
@@ -2780,7 +2783,8 @@ type(collective_comms):: collcom_vectors
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
+           matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
@@ -2808,7 +2812,8 @@ type(collective_comms):: collcom_vectors
 
       ! Orthonormalize the coefficients.
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
+           matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
 

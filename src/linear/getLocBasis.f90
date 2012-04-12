@@ -83,11 +83,17 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
   !if(.not.updatePhi .or. newgradient) then
+  !!if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+  !!    .or. tmbmix%wfnmd%bs%use_derivative_basis) then
+  !!    call gatherPotential(iproc, nproc, tmbmix%comgp)
+  !!end if
+
   if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
       .or. tmbmix%wfnmd%bs%use_derivative_basis) then
-      call gatherPotential(iproc, nproc, tmbmix%comgp)
+      tmbmix%comgp%communication_complete=.false.
+  else
+      tmbmix%comgp%communication_complete=.true.
   end if
-
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
@@ -415,9 +421,10 @@ type(energy_terms) :: energs
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
       ! The messages for this point ', to point communication have been posted in the subroutine linearScaling.
-      call gatherPotential(iproc, nproc, tmb%comgp)
+      !!call gatherPotential(iproc, nproc, tmb%comgp)
 
       ! Build the required potential
+      tmb%comgp%communication_complete=.false.
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
@@ -582,9 +589,10 @@ type(energy_terms) :: energs
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
           ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-          call gatherPotential(iproc, nproc, tmb%comgp)
+          !!call gatherPotential(iproc, nproc, tmb%comgp)
 
           ! Build the required potential
+          tmb%comgp%communication_complete=.false.
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
