@@ -2089,11 +2089,13 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   type(DFT_local_fields),intent(inout):: denspot
   
   ! Local variables
-  integer:: iall, istat, tag, nlr
+  integer:: iall, istat, tag, nlr, ilr
   type(orbitals_data):: orbs_tmp
   character(len=*),parameter:: subname='redefine_locregs_quantities'
   real(8),dimension(:),allocatable:: locrad
+  real(8),dimension(:,:),allocatable:: locregCenter
   integer,dimension(:),allocatable:: inwhichlocreg_reference
+  type(locreg_descriptors):: glr_tmp
 
   tag=1
   if(tmbmix%wfnmd%bs%use_derivative_basis) then
@@ -2108,10 +2110,17 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   call memocc(istat, locrad, 'locrad', subname)
   allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
   call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
+  allocate(locregCenter(3,nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
   locrad=lzd%llr(:)%locrad
   inwhichlocreg_reference=tmb%orbs%inwhichlocreg
+  do ilr=1,nlr
+      locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+  end do
+  call nullify_locreg_descriptors(glr_tmp)
+  call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
 
-  call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
+  call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
        tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
@@ -2122,6 +2131,9 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
   deallocate(inwhichlocreg_reference, stat=istat)
   call memocc(istat, iall, 'inwhichlocreg_reference', subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
   call deallocate_orbitals_data(orbs_tmp, subname)
   tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
 
@@ -2144,7 +2156,7 @@ end subroutine redefine_locregs_quantities
 
 
 
-subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
+subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, denspot, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
@@ -2160,6 +2172,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
   real(8),dimension(nlr),intent(in):: locrad
   type(orbitals_data),intent(inout):: orbs_tmp
   integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+  real(8),dimension(3,nlr),intent(in):: locregCenter
+  type(locreg_descriptors):: glr_tmp
   type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(inout):: llborbs
   type(overlapParameters),intent(inout):: lbop
@@ -2171,10 +2185,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
   
   ! Local variables
   integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
-  real(8),dimension(:,:),allocatable:: locregCenter
   !!real(8),dimension(:),allocatable:: locrad
   integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
-  type(locreg_descriptors):: glr_tmp
   character(len=*),parameter:: subname='update_locreg'
 
 
@@ -2228,11 +2240,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
 !!!  deallocate(llborbs%inWhichLocreg, stat=istat)
 !!!  call memocc(istat, iall, 'llborbs%inWhichLocreg', subname)
 !!!
-  allocate(locregCenter(3,nlr), stat=istat)
-  call memocc(istat, locregCenter, 'locregCenter', subname)
-  do ilr=1,nlr
-      locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
-  end do
+  !!allocate(locregCenter(3,nlr), stat=istat)
+  !!call memocc(istat, locregCenter, 'locregCenter', subname)
+  !!do ilr=1,nlr
+  !!    locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+  !!end do
 !!!
 !!!  call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
 !!!       nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
@@ -2261,8 +2273,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
   ! First copy to some temporary structure
   !!allocate(locrad(lzd%nlr), stat=istat)
   !!call memocc(istat, locrad, 'locrad', subname)
-  call nullify_locreg_descriptors(glr_tmp)
-  call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
+  !!call nullify_locreg_descriptors(glr_tmp)
+  !!call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
   !!nlr=lzd%nlr
   !!locrad=lzd%llr(:)%locrad
   call deallocate_local_zone_descriptors(lzd, subname)
@@ -2275,9 +2287,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
   !!deallocate(locrad, stat=istat)
   !!call memocc(istat, iall, 'locrad', subname)
 
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
+  !!iall=-product(shape(locregCenter))*kind(locregCenter)
+  !!deallocate(locregCenter, stat=istat)
+  !!call memocc(istat, iall, 'locregCenter', subname)
   iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
   deallocate(orbsperlocreg, stat=istat)
   call memocc(istat, iall, 'orbsperlocreg', subname)

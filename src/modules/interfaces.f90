@@ -6061,7 +6061,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, denspot, hx, hy, hz, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
@@ -6074,6 +6074,8 @@ module module_interfaces
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(inout):: orbs_tmp
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+         real(8),dimension(3,nlr),intent(in):: locregCenter
+         type(locreg_descriptors):: glr_tmp
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
