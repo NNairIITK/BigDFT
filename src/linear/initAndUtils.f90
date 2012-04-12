@@ -194,7 +194,7 @@ do jproc=0,nproc-1
         !For periodicity
         if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
           i3s = Lzd%Glr%nsi3
-          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+          i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
           if(i3s<=ie .and. i3e>=is) then
               ioverlap=ioverlap+1
           end if
@@ -250,13 +250,13 @@ do jproc=0,nproc-1
       !For periodicity
       if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
          i3s = Lzd%Glr%nsi3
-         i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+         i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
          if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+            is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
             if(jproc == iproc) then
                comsr%startingindex(ioverlap,1) = max(is,i3s) 
                comsr%startingindex(ioverlap,2) = min(ie,i3e)
@@ -273,13 +273,13 @@ do jproc=0,nproc-1
          !For periodicity
          if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
             i3s = Lzd%Glr%nsi3
-            i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+            i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
             if(i3s<=ie .and. i3e>=is) then
                ioverlap=ioverlap+1
                tag=tag+1
                is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
                n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-               is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+               is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
                if(jproc == iproc) then
                   comsr%startingindex(ioverlap,1) = max(is,i3s) 
                   comsr%startingindex(ioverlap,2) = min(ie,i3e)

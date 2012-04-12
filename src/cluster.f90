@@ -1044,9 +1044,9 @@ contains
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
          KSwfn%Lzd%Glr%bounds,subname)
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
+!    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+!    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+!    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
     if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)

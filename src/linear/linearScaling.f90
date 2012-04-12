@@ -66,8 +66,17 @@ real(8):: ddot, tt1, tt2, tt3
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
-  call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
-
+  if(input%inputPsiId == INPUT_PSI_LINEAR) then
+      call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+  else if(input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+      call nullify_local_zone_descriptors(tmb%lzd)
+      call copy_locreg_descriptors(glr, tmb%lzd%glr, subname)
+      lzd%hgrids(1)=hx
+      lzd%hgrids(2)=hy
+      lzd%hgrids(3)=hz
+      ! for this routine, Lzd must already have Glr and hgrids
+      call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,tmb%lzd,tmb%orbs,at,rxyz)
+  end if
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
 
@@ -172,9 +181,12 @@ real(8):: ddot, tt1, tt2, tt3
 
   ! Generate the input guess for the TMB
   tmb%wfnmd%bs%update_phi=.false.
-  call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
-       nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
-
+  if(input%inputPsiId == INPUT_PSI_LINEAR) then
+     call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
+          nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+  else if(input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+     call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,tmb%lzd,tmb%orbs,at,rxyz_old,rxyz,tmb%psi)
+  end if
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
   !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)

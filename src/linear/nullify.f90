@@ -220,7 +220,7 @@ subroutine nullify_locreg_descriptors(lr)
 
 
   !if(associated(lr%projflg)) then
-     nullify(lr%projflg)
+  !   nullify(lr%projflg)
   !end if
 
   call nullify_wavefunctions_descriptors(lr%wfd)

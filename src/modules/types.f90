@@ -27,6 +27,8 @@ module module_types
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR       = 100
+  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+
   integer, dimension(10), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
@@ -307,7 +309,7 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
+!     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -1451,11 +1453,11 @@ END SUBROUTINE deallocate_orbs
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
-    if (associated(lr%projflg)) then
-       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-       deallocate(lr%projflg,stat=i_stat)
-       call memocc(i_stat,i_all,'lr%projflg',subname)
-    end if
+!    if (associated(lr%projflg)) then
+!       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+!       deallocate(lr%projflg,stat=i_stat)
+!       call memocc(i_stat,i_all,'lr%projflg',subname)
+!    end if
   END SUBROUTINE deallocate_lr
 
   subroutine deallocate_denspot_distribution(denspotd, subname)

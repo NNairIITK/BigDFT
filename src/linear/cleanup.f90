@@ -890,7 +890,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: istat, iall, iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
+!  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
@@ -899,7 +899,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
      iie1=ubound(lzd%llr,1)
      !write(*,*) 'iis1,iie1',iis1,iie1
      do i1=iis1,iie1
-         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
@@ -951,7 +951,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
          !if(associated(lzd%llr(i1)%projflg)) then
          !    nullify(lzd%llr(i1)%projflg)
          !end if
-         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
@@ -1021,7 +1021,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
+!  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 
@@ -1040,7 +1040,7 @@ subroutine deallocate_locreg_descriptors2(lr,subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+!  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 !  call deallocate_convolutions_bounds(lr%bounds, subname)
