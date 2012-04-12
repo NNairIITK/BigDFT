@@ -398,6 +398,11 @@ typedef enum
     BIGDFT_RHO_IS_KS_POTENTIAL       = -1977,
     BIGDFT_RHO_IS_HARTREE_POTENTIAL  = -1976
   } BigDFT_RhoIs;
+typedef enum
+  {
+    BIGDFT_DENSPOT_DENSITY,
+    BIGDFT_DENSPOT_V_EXT
+  } BigDFT_DensPotIds;
 
 #ifdef GLIB_MAJOR_VERSION
 #define BIGDFT_LOCALFIELDS_TYPE    (bigdft_localfields_get_type())
@@ -449,6 +454,11 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 /********************************/
 /* BigDFT_Energs data structure */
 /********************************/
+typedef enum
+  {
+    BIGDFT_ENERGS_EKS
+  } BigDFT_EnergsIds;
+
 #ifdef GLIB_MAJOR_VERSION
 #define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
 #define BIGDFT_ENERGS(obj)                                               \
@@ -462,10 +472,6 @@ GType bigdft_energs_get_type(void);
 #define BIGDFT_ENERGS_TYPE    (999)
 #define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
 #endif
-typedef enum
-  {
-    BIGDFT_E_KS
-  } BigDFT_EnergsKind;
 struct BigDFT_Energs_
 {
 #ifdef GLIB_MAJOR_VERSION
@@ -480,6 +486,7 @@ struct BigDFT_Energs_
   void *data;
 };
 BigDFT_Energs* bigdft_energs_new();
+BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
 void           bigdft_energs_free(BigDFT_Energs *energs);
 
 

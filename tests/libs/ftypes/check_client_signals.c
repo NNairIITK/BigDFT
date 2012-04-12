@@ -90,6 +90,26 @@ static void onPsiReady(BigdftDBusWf *wf, guint iter, gpointer data)
   if (BIGDFT_ORBS(wf_)->nspinor == 2)
     g_free(psii);
 }
+static void onEnergReady(BigdftDBusEnergs *energs, guint iter,
+                         BigDFT_EnergsIds kind, gpointer data)
+{
+  GError *error;
+
+  switch (kind)
+    {
+    case BIGDFT_ENERGS_EKS:
+      g_print("Callback for 'eks-ready' signal at iter %d -> %gHt.\n", iter,
+              bigdft_dbus_energs_get_e_ks(energs));
+      break;
+    }
+  /* Finishing signal, raising lock. */
+  error = (GError*)0;
+  if (!bigdft_dbus_energs_call_done_energ_ready_sync(energs, NULL, &error))
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+    }
+}
 
 static void on_object_added(GDBusObjectManager *manager, GDBusObject *object,
                             gpointer user_data)
@@ -98,6 +118,7 @@ static void on_object_added(GDBusObjectManager *manager, GDBusObject *object,
   GDBusInterface *interface;
   GError *error;
 
+  g_print ("- Object at %s\n", g_dbus_object_get_object_path(object));
   interfaces = g_dbus_object_get_interfaces(G_DBUS_OBJECT(object));
   for (ll = interfaces; ll != NULL; ll = ll->next)
     {
@@ -115,14 +136,26 @@ static void on_object_added(GDBusObjectManager *manager, GDBusObject *object,
           g_signal_connect(interface, "psi-ready",
                            G_CALLBACK(onPsiReady), user_data);
         }
+      if (BIGDFT_DBUS_IS_ENERGS(interface))
+        {
+          error = (GError*)0;
+          if (!bigdft_dbus_energs_call_register_energ_ready_sync
+              (BIGDFT_DBUS_ENERGS(interface), NULL, &error))
+            {
+              g_warning("%s", error->message);
+              g_error_free(error);
+            }
+          g_signal_connect(interface, "energ-ready",
+                           G_CALLBACK(onEnergReady), NULL);
+        }
     }
   g_list_free_full(interfaces, g_object_unref);
 }
 
 int main(int argc, const char **argv)
 {
-  GMainLoop *loop;
   GDBusObjectManager *manager;
+  GMainLoop *loop;
   GError *error;
   BigDFT_Inputs *in;
   BigDFT_Wf *wf;
@@ -149,8 +182,7 @@ int main(int argc, const char **argv)
   error = NULL;
   manager = bigdft_dbus_object_manager_client_new_for_bus_sync
     (G_BUS_TYPE_SESSION, G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
-     "eu.etsf.BigDFT", "/outputs",
-     NULL, &error);
+     "eu.etsf.BigDFT", "/outputs", NULL, &error);
 
   g_signal_connect(manager, "object-added",
                    G_CALLBACK(on_object_added), (gpointer)wf);

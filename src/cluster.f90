@@ -33,7 +33,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   !temporary interface
   interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+     subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
           rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
@@ -41,6 +41,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
+       double precision, intent(in) :: gmainloop
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
        !type(local_zone_descriptors), intent(inout) :: Lzd
@@ -87,9 +88,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   if (in%signaling) then
      ! Only iproc 0 has the C wrappers.
      if (iproc == 0) then
-        call bigdft_signals_init()
+        call bigdft_signals_init(gmainloop)
         call wf_new_wrapper(rst%KSwfn%c_obj, rst%KSwfn)
-        call bigdft_signals_start(gmainloop, rst%KSwfn%c_obj)
+        call bigdft_signals_add_wf(gmainloop, rst%KSwfn%c_obj)
      else
         rst%KSwfn%c_obj = UNINITIALIZED(rst%KSwfn%c_obj)
      end if
@@ -116,7 +117,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
         in%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
+     call cluster(nproc,iproc,gmainloop,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
           rst%KSwfn,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
      if (exists) then
@@ -173,7 +174,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   ! and stop the GMainLoop.
   if (in%signaling .and. iproc == 0) then
      call wf_free_wrapper(rst%KSwfn%c_obj)
-     call bigdft_signals_stop(gmainloop)
+     call bigdft_signals_free(gmainloop)
   end if
 
   !preserve the previous value
@@ -204,7 +205,7 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
      rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
@@ -217,6 +218,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use yaml_output
   implicit none
   integer, intent(in) :: nproc,iproc
+  double precision, intent(in) :: gmainloop
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -241,7 +243,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
-  type(energy_terms) :: energs
+  type(energy_terms), target :: energs ! Target attribute is mandatory for C wrappers
   real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
@@ -332,6 +334,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
 
+  end if
+
+  if (in%signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call energs_new_wrapper(energs%c_obj, energs)
+        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
+        call bigdft_signals_start(gmainloop)
+     end if
   end if
 
   ! grid spacing (same in x,y and z direction)
@@ -991,6 +1002,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   endif
   ! --- End if of tail calculation
 
+  if (in%signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call energs_free_wrapper(energs%c_obj)
+        call bigdft_signals_rm_energs(gmainloop)
+        call bigdft_signals_rm_wf(gmainloop)
+        call bigdft_signals_stop(gmainloop)
+     end if
+  end if
 
   !?!   !Finally, we add the entropic contribution to the energy from non-integer occnums
   !?!   if(orbs%eTS>0_gp) then 
