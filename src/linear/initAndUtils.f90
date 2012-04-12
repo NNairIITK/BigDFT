@@ -2094,6 +2094,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   character(len=*),parameter:: subname='redefine_locregs_quantities'
 
   tag=1
+  if(tmbmix%wfnmd%bs%use_derivative_basis) then
+      call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
+      call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  end if
+
   call nullify_orbitals_data(orbs_tmp)
   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
   call update_locreg(iproc, nproc, tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
@@ -2109,17 +2114,14 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call memocc(istat, iall, 'tmbmix%psi', subname)
       allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-
-      call cancelCommunicationPotential(iproc, nproc, tmbmix%comgp)
-      call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   end if
 
-  call deallocate_p2pComms(tmbmix%comgp, subname)
-  call nullify_p2pComms(tmbmix%comgp)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
-       lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
-  call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+  !!call deallocate_p2pComms(tmbmix%comgp, subname)
+  !!call nullify_p2pComms(tmbmix%comgp)
+  !!call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
+  !!     lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
+  !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
 end subroutine redefine_locregs_quantities
 
 
@@ -2286,6 +2288,13 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   iall=-product(shape(onwhichatom))*kind(onwhichatom)
   deallocate(onwhichatom, stat=istat)
   call memocc(istat, iall, 'onwhichatom', subname)
+
+  call deallocate_p2pComms(lbcomgp, subname)
+  call nullify_p2pComms(lbcomgp)
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
+       lzd, lbcomgp, llborbs%inWhichLocreg, tag)
+  call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
 
 
 end subroutine update_locreg
