@@ -6061,18 +6061,19 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, &
+                  useDerivativeBasisFunctions, denspot, hx, hy, hz, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
          use module_types
          implicit none
-         
-         ! Calling arguments
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, nlr
          logical,intent(in):: useDerivativeBasisFunctions
          type(DFT_local_fields), intent(in) :: denspot
          real(8),intent(in):: hx, hy, hz
+         real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(inout):: orbs_tmp
+         integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
@@ -6082,7 +6083,6 @@ module module_interfaces
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
        end subroutine update_locreg
-
 
        subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
          use module_base
