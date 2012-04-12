@@ -237,6 +237,7 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
 
 !!$  !calculate the XC energy of rhocore
+!!$  call xc_init_rho(denspot%dpcom%nrhodim,denspot%rhov,1)
 !!$  call XC_potential(atoms%geocode,'D',iproc,nproc,&
 !!$       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
 !!$       denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
