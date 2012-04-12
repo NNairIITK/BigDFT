@@ -6087,6 +6087,31 @@ module module_interfaces
          type(collective_comms),intent(inout):: lbcollcom
        end subroutine update_locreg
 
+subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
+  use module_base
+  use module_types
+  implicit none
+  integer,intent(in):: iproc, nproc, nlr
+  logical,intent(in):: useDerivativeBasisFunctions
+  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(8),intent(in):: hx, hy, hz
+  real(8),dimension(nlr),intent(in):: locrad
+  type(orbitals_data),intent(in):: orbs_tmp
+  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+  real(8),dimension(3,nlr),intent(in):: locregCenter
+  type(locreg_descriptors):: glr_tmp
+  type(local_zone_descriptors),intent(inout):: lzd
+  type(orbitals_data),intent(inout):: llborbs
+  type(overlapParameters),intent(inout):: lbop
+  type(p2pComms),intent(inout):: lbcomon
+  type(p2pComms),intent(inout):: lbcomgp
+  type(p2pComms),intent(inout):: comsr
+  type(matrixDescriptors),intent(inout):: lbmad
+  type(collective_comms),intent(inout):: lbcollcom
+end subroutine update_locreg2
+
        subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
          use module_base
          use module_types
