@@ -58,8 +58,8 @@ program WaCo
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
-   integer, parameter :: nbandCon=15
-   integer, dimension(nbandCon) :: bandlist
+   integer :: nbandCon
+   integer, dimension(:),allocatable :: bandlist
    logical :: file_exist,idemp
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
@@ -119,10 +119,15 @@ program WaCo
    call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
-        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,sprdmult)
+        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,nbandCon,sprdmult)
 
-   allocate(ConstList(nwannCon))
-   call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList) 
+   if(.not.linear) nbandCon=1
+   allocate(ConstList(nwannCon),stat=i_stat)
+   call memocc(i_stat, ConstList,'ConstList',subname)
+   allocate(bandlist(nbandCon),stat=i_stat)
+   call memocc(i_stat, bandlist,'bandlist',subname)
+
+   call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
    call read_input_variables(iproc,'posinp',input, atoms, rxyz)
 
@@ -871,10 +876,8 @@ program WaCo
        allocate(calcbounds(nwannCon),stat=i_stat)
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
-       do iwann = 1,nwannCon
-          call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
+       call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
                Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
-       end do     
      end if
 
 
@@ -1083,7 +1086,6 @@ program WaCo
         ! First construct the appropriate coefficient matrix
         allocate(umnt(nwannCon,nband),stat=i_stat)
         call memocc(i_stat,umnt,'umnt',subname)
-        bandlist = (/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15/)
         do iiwann = 1, nwannCon
            iwann = ConstList(iiwann)
            if(iwann == 0) stop 'Umnt construction: this should not happen'
@@ -1093,9 +1095,13 @@ program WaCo
            end do
         end do
         ! write the coefficients to file
-        open(99, file=trim(seedname)//'_coeff.bin', status='unknown',form='formatted')
-        call writeLinearCoefficients(99,.true.,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
-           nband,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        if(outformat) then
+           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='formatted')
+        else 
+           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
+        end if
+        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
+           nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
         close(99)
      end if
 
@@ -1202,6 +1208,12 @@ program WaCo
      deallocate(virt_list,stat=i_stat)
      call memocc(i_stat,i_all,'virt_list',subname)    
   end if
+  i_all = -product(shape(Constlist))*kind(Constlist)
+  deallocate(Constlist,stat=i_stat)
+  call memocc(i_stat,i_all,'Constlist',subname)
+  i_all = -product(shape(bandlist))*kind(bandlist)
+  deallocate(bandlist,stat=i_stat)
+  call memocc(i_stat,i_all,'bandlist',subname)
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
@@ -1248,7 +1260,7 @@ program WaCo
 end program Waco
 
 subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilAna,WannCon,filetype,nwannCon,refpos,units,&
-           sprdfact,sprddiff,enediff,iformat,linear,sprdmult)
+           sprdfact,sprddiff,enediff,iformat,linear,nbandmB,sprdmult)
    use module_base
    use module_types
    use module_input
@@ -1257,7 +1269,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    character(len=*), intent(in) :: filename
    logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon, iformat, linear
    character(len=4), intent(out) :: filetype,units
-   integer, intent(out) :: nband,nwann,nwannCon
+   integer, intent(out) :: nband,nwann,nwannCon, nbandmB
    real(gp), intent(out) :: sprdfact,sprddiff,enediff,sprdmult
    real(gp), dimension(3), intent(out) :: refpos
    ! Local variable
@@ -1291,6 +1303,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    call input_var(filetype,'cube')
    call input_var(iformat,'F', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
    call input_var(linear,'F')
+   call input_var(nbandmB,'1')
    call input_var(sprdmult,'3.0',comment='!Ouput as minimal basis, spread factor for minimal basis construction')
    call input_var(nwannCon,'1',comment='! number of Wannier to construct (if 0 do all) followed by Wannier list on next &
    &     line (optional)')
@@ -1300,12 +1313,15 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
 
 end subroutine Waco_input_variables
 
-subroutine read_input_waco(filename,nwannCon,Constlist)
+subroutine read_input_waco(filename,nwannCon,Constlist,linear,nbandmB,bandlist)
   use module_base
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: nwannCon
+  logical, intent(in) :: linear
+  integer, intent(in) :: nwannCon,nbandmB
   integer, dimension(nwannCon), intent(out) :: Constlist
+  integer, dimension(nbandmB), intent(out) :: bandlist
+ 
   ! Local variable
   integer :: i,ierr
 
@@ -1318,11 +1334,22 @@ subroutine read_input_waco(filename,nwannCon,Constlist)
   ! read the Constlist
   read(22,*,iostat=ierr) (Constlist(i),i=1,nwannCon)
   close(22)
-
   if(ierr < 0) then  !reached the end of file and no Constlist, so generate the trivial one
     do i= 1, nwannCon
        Constlist(i) = i
     end do
+  end if
+
+  !read the bandlist
+  if(linear)then
+    read(22,*,iostat=ierr) (bandlist(i),i=1,nbandmB)
+    if(ierr < 0) then  !reached the end of file and no bandlist, so generate the trivial one
+      do i= 1, nbandmB
+         bandlist(i) = i
+      end do
+    end if
+  else
+    bandlist = 0
   end if
   
 
