@@ -2120,9 +2120,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   call nullify_locreg_descriptors(glr_tmp)
   call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
 
+  !!call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
+  call deallocate_p2pComms(tmbmix%comsr, subname)
   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
        tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
-       orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
+       orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
   iall=-product(shape(locrad))*kind(locrad)
@@ -2148,6 +2150,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
 
   call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+  call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   !!call deallocate_p2pComms(tmbmix%comgp, subname)
   !!call nullify_p2pComms(tmbmix%comgp)
@@ -2161,7 +2164,7 @@ end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
+           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -2173,7 +2176,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(8),intent(in):: hx, hy, hz
   real(8),dimension(nlr),intent(in):: locrad
-  type(orbitals_data),intent(inout):: orbs_tmp
+  type(orbitals_data),intent(in):: orbs_tmp
   integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
   real(8),dimension(3,nlr),intent(in):: locregCenter
   type(locreg_descriptors):: glr_tmp
@@ -2181,7 +2184,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(orbitals_data),intent(inout):: llborbs
   type(overlapParameters),intent(inout):: lbop
   type(p2pComms),intent(inout):: lbcomon
-  type(p2pComms),intent(inout):: comgp, lbcomgp
+  type(p2pComms),intent(inout):: lbcomgp
   type(p2pComms),intent(inout):: comsr
   type(matrixDescriptors),intent(inout):: lbmad
   type(collective_comms),intent(inout):: lbcollcom
@@ -2193,10 +2196,10 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   character(len=*),parameter:: subname='update_locreg'
 
 
-  ! Keep llborbs%onwhichatom
-  allocate(onwhichatom(llborbs%norb), stat=istat)
-  call memocc(istat, onwhichatom, 'onwhichatom', subname)
-  call vcopy(llborbs%norb, llborbs%onwhichatom(1), 1, onwhichatom(1), 1)
+  !!! Keep llborbs%onwhichatom
+  !!allocate(onwhichatom(llborbs%norb), stat=istat)
+  !!call memocc(istat, onwhichatom, 'onwhichatom', subname)
+  !!call vcopy(llborbs%norb, llborbs%onwhichatom(1), 1, onwhichatom(1), 1)
 
   ! Create new types for large basis...
   call deallocate_orbitals_data(llborbs, subname)
@@ -2282,6 +2285,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
   !!nlr=lzd%nlr
   !!locrad=lzd%llr(:)%locrad
+  lzd%nlr=nlr
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
@@ -2316,15 +2320,15 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
 
   tag=1
-  call deallocateCommunicationbufferSumrho(comsr, subname)
-  call deallocate_p2pComms(comsr, subname)
+  !!call deallocateCommunicationbufferSumrho(comsr, subname)
+  !!call deallocate_p2pComms(comsr, subname)
   call nullify_p2pComms(comsr)
   call initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, llborbs, tag, comsr)
-  call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  !!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
 
-  iall=-product(shape(onwhichatom))*kind(onwhichatom)
-  deallocate(onwhichatom, stat=istat)
-  call memocc(istat, iall, 'onwhichatom', subname)
+  !!iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  !!deallocate(onwhichatom, stat=istat)
+  !!call memocc(istat, iall, 'onwhichatom', subname)
 
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
        lzd, lbcomgp, llborbs%inWhichLocreg, tag)
@@ -2372,7 +2376,11 @@ character(len=*),parameter:: subname='create_new_locregs'
    call nullify_matrixDescriptors(tmb%mad)
    call nullify_p2pComms(tmb%comgp)
    call nullify_collective_comms(tmb%collcom)
+   !call nullify_p2pComms(tmb%comsr)
 
+!!   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
+!!        withder, nscatterarr, hx, hy, hz, &
+!!        lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
 
    tag=1
    tmb%lzd%nlr=nlr

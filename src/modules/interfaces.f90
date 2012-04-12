@@ -6064,7 +6064,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-                  orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
          use module_types
          implicit none
@@ -6073,7 +6073,7 @@ module module_interfaces
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
          real(8),dimension(nlr),intent(in):: locrad
-         type(orbitals_data),intent(inout):: orbs_tmp
+         type(orbitals_data),intent(in):: orbs_tmp
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors):: glr_tmp
@@ -6081,7 +6081,7 @@ module module_interfaces
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
          type(p2pComms),intent(inout):: lbcomon
-         type(p2pComms),intent(inout):: comgp, lbcomgp
+         type(p2pComms),intent(inout):: lbcomgp
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
