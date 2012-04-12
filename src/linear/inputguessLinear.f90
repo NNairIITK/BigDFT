@@ -184,7 +184,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(linearParameters),intent(inout):: lin
   type(orbitals_data),intent(in):: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   integer,intent(inout):: tag
   real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi

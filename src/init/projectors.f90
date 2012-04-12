@@ -465,6 +465,8 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
      !number of terms for every projector:
      nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx
      allocate(proj_tmp(nc))
+     !call to_zero(nc,proj_tmp)
+     !proj_tmp=0.d0
 
      !decide the loop bounds
      i_g=0
@@ -851,6 +853,8 @@ subroutine crtproj(geocode,nterm,lr, &
   !wproj is complex for PAW and kpoints.
   ncplx_wproj=max(ncplx_g,ncplx_k,1)
 
+  if(ncplx_wproj==2 .or. nterm>1) proj=0.d0 !initialize to zero in this cases
+
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
   call memocc(i_stat,work,'work',subname)
 
@@ -1031,7 +1035,9 @@ subroutine crtproj(geocode,nterm,lr, &
      end if
      !$omp end parallel
 
-  else if (ncplx_k==2) then
+  else if (ncplx_wproj==2) then
+     !Here accumulate only the REAL part,
+     !The imaginary part is done below
 
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
@@ -1057,6 +1063,7 @@ subroutine crtproj(geocode,nterm,lr, &
         i1=i0+j1-j0
         do i=i0,i1
            ind_c=i-i0+jj
+           !write(15,*)ind_c,(mvctr_c+7*mvctr_f)*ncplx
            mvctr=mvctr+1
            proj(ind_c)=&
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
@@ -1085,6 +1092,7 @@ subroutine crtproj(geocode,nterm,lr, &
         i1=i0+j1-j0
         do i=i0,i1
            ind_f=mvctr_c+7*(i-i0+jj-1)
+           !write(16,*)ind_f,(mvctr_c+7*mvctr_f)*ncplx
            mvctr=mvctr+1
            proj(ind_f+1)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
@@ -1166,6 +1174,9 @@ subroutine crtproj(geocode,nterm,lr, &
 
      if(ncplx_k==2) then
         !now the imaginary part, only for complex projectors
+        !when ncplx_g==2 and ncplx_k==1 the projectors are real.
+        !so we skip this part.
+        !
         !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
         ! coarse part
         mvctr=0
@@ -1211,6 +1222,7 @@ subroutine crtproj(geocode,nterm,lr, &
            i1=i0+j1-j0
            do i=i0,i1
               ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
+              !write(18,*)ind_f,(mvctr_c+7*mvctr_f)*ncplx
               mvctr=mvctr+1
               proj(ind_f+1)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
               proj(ind_f+2)=im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))

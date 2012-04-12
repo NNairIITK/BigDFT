@@ -608,7 +608,7 @@ call to_zero(6,wbstr(1))
 END SUBROUTINE XC_potential
 
 subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,use_dvxcdrho,dvxcdrho)
+     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
   use module_base
   use Poisson_Solver
   implicit none
@@ -618,14 +618,15 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
-  real(wp), dimension(:), pointer :: rhocore !associated if useful
+  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
+  real(dp), dimension(6), intent(out) :: xcstr
   real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
   logical,intent(in)::use_rhocore,use_dvxcdrho
   !local variables
   character(len=*), parameter :: subname='XC_potential_test'
   logical :: wrtmsg
-  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,i,j
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
@@ -637,8 +638,11 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
-
+  real(dp), dimension(6) :: wbstr
   call timing(iproc,'Exchangecorr  ','ON')
+
+call to_zero(6,xcstr(1))
+call to_zero(6,wbstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -657,8 +661,13 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'W') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
-     stop 'PSolver: geometry code not admitted'
+     stop 'XC potential: geometry code not admitted'
   end if
 
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -696,16 +705,16 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
      call timing(iproc,'Exchangecorr  ','OF')
      return
   end if
-
+  
   !if rhocore is associated we should add it on the charge density
   if (use_rhocore) then
      if (nspin == 1) then
         !sum the complete core density for non-spin polarised calculations
-        call axpy(m1*m3*nxt,1.0_wp,rhocore(1),1,rho(1),1)
+        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
      else if (nspin==2) then
         !for spin-polarised calculation consider half per spin index
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1),1)
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1+m1*m3*nxt),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
      end if
   end if
 
@@ -774,14 +783,13 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
   !end if
-
   if (istart+1 <= m2) then 
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift 
-        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+        !allocation of an auxiliary array for avoiding the shift
+        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
            do i3=1,nxt
@@ -798,9 +806,9 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
         deallocate(rho_G,stat=i_stat)
         call memocc(i_stat,i_all,'rho_G',subname)
      else
-        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
      !presumably the vxc should be initialised
@@ -808,7 +816,6 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
      eexcuLOC=0.0_dp
      vexcuLOC=0.0_dp
   end if
-   
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
@@ -838,14 +845,25 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   if (use_rhocore) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
-     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
      vexcuRC=0.0_gp
-     do i=1,nxc*m3*m1
-        vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i)
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              !do i=1,nxc*m3*m1
+              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+           end do
+        end do
      end do
      if (nspin==2) then
-        do i=1,nxc*m3*m1
-           vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+        do i3=1,nxc
+           do i2=1,m3
+              do i1=1,m1
+                 !do i=1,nxc*m3*m1
+                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+              end do
+           end do
         end do
         !divide the results per two because of the spin multiplicity
         vexcuRC=0.5*vexcuRC
@@ -871,6 +889,13 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
+!XC-stress term
+  if (geocode == 'P') then
+     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     wbstr=wbstr/real(n01*n02*n03,dp)
+     xcstr(:)=xcstr(:)+wbstr(:)
+  end if
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
      call memocc(i_stat,i_all,'energies_mpi',subname)
@@ -924,6 +949,14 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   else
      exc=real(eexcuLOC,gp)
      vxc=real(vexcuLOC,gp)
+
+!XC-stress term
+   if (geocode == 'P') then
+    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+    wbstr=wbstr/real(n01*n02*n03,dp)
+    xcstr(:)=xcstr(:)+wbstr(:)
+   end if
+
   end if
 
   i_all=-product(shape(vxci))*kind(vxci)
@@ -937,6 +970,7 @@ subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,
   end if
 
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
 
 END SUBROUTINE XC_potential_test
 

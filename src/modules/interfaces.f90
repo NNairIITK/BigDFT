@@ -1396,6 +1396,24 @@ module module_interfaces
          real(dp),dimension(6),intent(out) :: xcstr
       END SUBROUTINE XC_potential
 
+
+subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: datacode
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(out) :: exc,vxc
+  real(dp), dimension(*), intent(inout) :: rho
+  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+  real(wp), dimension(*), intent(out) :: potxc
+  real(dp), dimension(6), intent(out) :: xcstr
+  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+  logical,intent(in)::use_rhocore,use_dvxcdrho
+end subroutine XC_potential_test
+
       subroutine direct_minimization(iproc,nproc,in,at,& 
            orbs,orbsv,nvirt,Lzd,comms,commsv,&
            hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
@@ -2457,7 +2475,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(linearParameters),intent(inout):: lin
       type(orbitals_data),intent(in):: orbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
-      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
       integer,intent(inout):: tag
       real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi

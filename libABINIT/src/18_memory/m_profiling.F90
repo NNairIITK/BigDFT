@@ -30,7 +30,8 @@
 
     ! Save values for memocc.
 #if defined DEBUG_MODE
-    integer, parameter :: ndebug = 5
+!    integer, parameter :: ndebug = 5
+    integer, parameter :: ndebug = 0
 #else
     integer, parameter :: ndebug = 0
 #endif
