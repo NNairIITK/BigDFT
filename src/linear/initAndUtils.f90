@@ -2121,7 +2121,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
 
   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-       tmbmix%wfnmd%bs%use_derivative_basis, denspot, hx, hy, hz, &
+       tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmb%comgp, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
@@ -2146,6 +2146,9 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
       call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
   end if
 
+  call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+
   !!call deallocate_p2pComms(tmbmix%comgp, subname)
   !!call nullify_p2pComms(tmbmix%comgp)
   !!call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
@@ -2157,7 +2160,7 @@ end subroutine redefine_locregs_quantities
 
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
@@ -2167,7 +2170,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   ! Calling arguments
   integer,intent(in):: iproc, nproc, nlr
   logical,intent(in):: useDerivativeBasisFunctions
-  type(DFT_local_fields), intent(in) :: denspot
+  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(8),intent(in):: hx, hy, hz
   real(8),dimension(nlr),intent(in):: locrad
   type(orbitals_data),intent(inout):: orbs_tmp
@@ -2201,7 +2204,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call deallocate_p2pComms(lbcomon, subname)
   call deallocate_matrixDescriptors(lbmad, subname)
   call deallocate_collective_comms(lbcollcom, subname)
-  !!call deallocate_p2pComms(lbcomgp, subname)
+  call deallocate_p2pComms(lbcomgp, subname)
+  call deallocate_local_zone_descriptors(lzd, subname)
 
 
   call nullify_orbitals_data(llborbs)
@@ -2209,7 +2213,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_p2pComms(lbcomon)
   call nullify_matrixDescriptors(lbmad)
   call nullify_collective_comms(lbcollcom)
-  !!call nullify_p2pComms(lbcomgp)
+  call nullify_p2pComms(lbcomgp)
+  call nullify_local_zone_descriptors(lzd)
   tag=1
   if(.not.useDerivativeBasisFunctions) then
       norbu=orbs_tmp%norb
@@ -2226,8 +2231,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
        orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
 
-  allocate(orbsperlocreg(nlr), stat=istat)
-  call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
+!!!  allocate(orbsperlocreg(nlr), stat=istat)
+!!!  call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
 !!!  do iorb=1,lzd%nlr
 !!!      if(useDerivativeBasisFunctions) then
 !!!          orbsperlocreg(iorb)=4
@@ -2277,8 +2282,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
   !!nlr=lzd%nlr
   !!locrad=lzd%llr(:)%locrad
-  call deallocate_local_zone_descriptors(lzd, subname)
-  call nullify_local_zone_descriptors(lzd)
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
@@ -2290,9 +2293,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!iall=-product(shape(locregCenter))*kind(locregCenter)
   !!deallocate(locregCenter, stat=istat)
   !!call memocc(istat, iall, 'locregCenter', subname)
-  iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
-  deallocate(orbsperlocreg, stat=istat)
-  call memocc(istat, iall, 'orbsperlocreg', subname)
+!!!  iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
+!!!  deallocate(orbsperlocreg, stat=istat)
+!!!  call memocc(istat, iall, 'orbsperlocreg', subname)
 
   npsidim = 0
   do iorb=1,llborbs%norbp
@@ -2316,19 +2319,17 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call deallocateCommunicationbufferSumrho(comsr, subname)
   call deallocate_p2pComms(comsr, subname)
   call nullify_p2pComms(comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
+  call initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, llborbs, tag, comsr)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
 
   iall=-product(shape(onwhichatom))*kind(onwhichatom)
   deallocate(onwhichatom, stat=istat)
   call memocc(istat, iall, 'onwhichatom', subname)
 
-  call deallocate_p2pComms(lbcomgp, subname)
-  call nullify_p2pComms(lbcomgp)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
        lzd, lbcomgp, llborbs%inWhichLocreg, tag)
-  call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+  !!call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
 
 
 end subroutine update_locreg
@@ -2371,6 +2372,7 @@ character(len=*),parameter:: subname='create_new_locregs'
    call nullify_matrixDescriptors(tmb%mad)
    call nullify_p2pComms(tmb%comgp)
    call nullify_collective_comms(tmb%collcom)
+
 
    tag=1
    tmb%lzd%nlr=nlr

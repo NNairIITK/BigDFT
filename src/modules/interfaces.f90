@@ -5935,7 +5935,8 @@ module module_interfaces
        end subroutine MLWFnew
 
 
-       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
+       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, &
+                  locrad, nscatterarr, withder, &
                   inwhichlocreg_reference, ldiis, &
                   lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
          use module_base
@@ -6062,14 +6063,14 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          logical,intent(in):: useDerivativeBasisFunctions
-         type(DFT_local_fields), intent(in) :: denspot
+         integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(inout):: orbs_tmp
