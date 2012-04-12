@@ -2120,8 +2120,15 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   call nullify_locreg_descriptors(glr_tmp)
   call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
 
-  !!call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
+!!  !!call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
   call deallocate_p2pComms(tmbmix%comsr, subname)
+  call deallocate_orbitals_data(tmbmix%orbs, subname)
+  call deallocate_overlapParameters(tmbmix%op, subname)
+  call deallocate_p2pComms(tmbmix%comon, subname)
+  call deallocate_matrixDescriptors(tmbmix%mad, subname)
+  call deallocate_collective_comms(tmbmix%collcom, subname)
+  call deallocate_p2pComms(tmbmix%comgp, subname)
+  call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
        tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
@@ -2201,14 +2208,14 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!call memocc(istat, onwhichatom, 'onwhichatom', subname)
   !!call vcopy(llborbs%norb, llborbs%onwhichatom(1), 1, onwhichatom(1), 1)
 
-  ! Create new types for large basis...
-  call deallocate_orbitals_data(llborbs, subname)
-  call deallocate_overlapParameters(lbop, subname)
-  call deallocate_p2pComms(lbcomon, subname)
-  call deallocate_matrixDescriptors(lbmad, subname)
-  call deallocate_collective_comms(lbcollcom, subname)
-  call deallocate_p2pComms(lbcomgp, subname)
-  call deallocate_local_zone_descriptors(lzd, subname)
+  !!! Create new types for large basis...
+  !!call deallocate_orbitals_data(llborbs, subname)
+  !!call deallocate_overlapParameters(lbop, subname)
+  !!call deallocate_p2pComms(lbcomon, subname)
+  !!call deallocate_matrixDescriptors(lbmad, subname)
+  !!call deallocate_collective_comms(lbcollcom, subname)
+  !!call deallocate_p2pComms(lbcomgp, subname)
+  !!call deallocate_local_zone_descriptors(lzd, subname)
 
 
   call nullify_orbitals_data(llborbs)
@@ -2376,7 +2383,7 @@ character(len=*),parameter:: subname='create_new_locregs'
    call nullify_matrixDescriptors(tmb%mad)
    call nullify_p2pComms(tmb%comgp)
    call nullify_collective_comms(tmb%collcom)
-   !call nullify_p2pComms(tmb%comsr)
+   !!call nullify_p2pComms(tmb%comsr)
 
 !!   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
 !!        withder, nscatterarr, hx, hy, hz, &
