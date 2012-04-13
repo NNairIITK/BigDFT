@@ -363,36 +363,36 @@ subroutine default_confinement_data(confdatarr,norbp)
   end do
 end subroutine default_confinement_data
 
-subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
-           confpotorder,potentialprefac,Lzd,confinementCenter)
+subroutine define_confinement_data(confdatarr,orbs,hx,hy,hz,&
+           confpotorder,potentialprefac,Lzd)!,confinementCenter)
   use module_base
   use module_types
   implicit none
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
+  !type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   !!type(linearParameters), intent(in) :: lin
   integer,intent(in):: confpotorder
-  real(gp),dimension(at%ntypes),intent(in):: potentialprefac
+  real(gp),dimension(orbs%norb),intent(in):: potentialprefac
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  integer, dimension(orbs%norb), intent(in) :: confinementCenter
+  !real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  !integer, dimension(orbs%norb), intent(in) :: confinementCenter
   type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
   !local variables
-  integer :: iorb,nl1,nl2,nl3,icenter,ilr
+  integer :: iorb,nl1,nl2,nl3,ilr!,icenter
 
   !initialize the confdatarr
   do iorb=1,orbs%norbp
      ilr=orbs%inWhichlocreg(orbs%isorb+iorb)
-     icenter=confinementCenter(orbs%isorb+iorb)
+     !icenter=confinementCenter(orbs%isorb+iorb)
      !!confdatarr(iorb)%potorder=lin%confpotorder
      !!confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
      confdatarr(iorb)%potorder=confpotorder
-     confdatarr(iorb)%prefac=potentialprefac(at%iatype(icenter))
+     confdatarr(iorb)%prefac=potentialprefac(orbs%isorb+iorb)
      confdatarr(iorb)%hh(1)=.5_gp*hx
      confdatarr(iorb)%hh(2)=.5_gp*hy
      confdatarr(iorb)%hh(3)=.5_gp*hz
-     confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)
+     confdatarr(iorb)%rxyzConf(1:3)=Lzd%Llr(ilr)%locregCenter(1:3)!rxyz(1:3,icenter)
      call geocode_buffers(Lzd%Llr(ilr)%geocode,nl1,nl2,nl3)
      confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
      confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1

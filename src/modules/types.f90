@@ -444,7 +444,7 @@ module module_types
      integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,potentialPrefac!onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1050,9 +1050,12 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
-    deallocate(orbs%onwhichatom,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
+    !!i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
+    !!deallocate(orbs%onwhichatom,stat=i_stat)
+    !!call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
+    i_all=-product(shape(orbs%potentialPrefac))*kind(orbs%potentialPrefac)
+    deallocate(orbs%potentialPrefac,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%potentialPrefac',subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)

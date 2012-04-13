@@ -6070,20 +6070,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
        end subroutine rminusmu_operator
 
-       subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
-                  confpotorder,potentialprefac,Lzd,confinementCenter)
+       subroutine define_confinement_data(confdatarr,orbs,hx,hy,hz,&
+                  confpotorder,potentialprefac,Lzd)!,confinementCenter)
          use module_base
          use module_types
          implicit none
          real(gp), intent(in) :: hx,hy,hz
-         type(atoms_data), intent(in) :: at
+         !type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
          !!type(linearParameters), intent(in) :: lin
          integer,intent(in):: confpotorder
          real(gp),dimension(at%ntypes),intent(in):: potentialprefac
          type(local_zone_descriptors), intent(in) :: Lzd
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         integer, dimension(orbs%norb), intent(in) :: confinementCenter
+         !real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         !integer, dimension(orbs%norb), intent(in) :: confinementCenter
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
@@ -6734,12 +6734,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,orblist)
+       subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
+           psi,coeff,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc, iformat
+         integer, intent(in) :: iproc, iformat,norb
          type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
          type(local_zone_descriptors), intent(in) :: Lzd
          type(atoms_data), intent(in) :: at
@@ -6747,9 +6747,27 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
          character(len=*), intent(in) :: filename
+         real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
+        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
+            & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: unitwf                                                                                                                                                                                                             
+         logical, intent(in) :: formatted
+         integer, intent(out) :: norb_old, ntmb_old
+         integer, intent(out) :: n1_old, n2_old, n3_old
+         real(gp), intent(out) :: hx_old, hy_old, hz_old
+         logical, intent(out) :: lstat
+         character(len =256), intent(out) :: error
+         ! Optional arguments                                                                                                                                                                                                                      
+         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+         integer, intent(in), optional :: nat
+         real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+        end subroutine io_read_descr_coeff
    end interface
 
 END MODULE module_interfaces

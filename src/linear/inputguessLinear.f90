@@ -766,9 +766,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ii=ii+1
           if(input%lin%nItInguess>0) then
              allocate(confdatarr(tmbig%orbs%norbp))
-             call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
+             call define_confinement_data(confdatarr,tmbig%orbs,&
                   hx,hy,hz,input%lin%confpotorder,&
-                  input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
+                  input%lin%potentialprefac_lowaccuracy,tmbig%lzd)
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
                   tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&

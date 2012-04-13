@@ -36,12 +36,17 @@ type(localizedDIISParameters):: ldiis
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used
+logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
-real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
-integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
 real(8):: ddot, tt1, tt2, tt3
-
+!FOR DEBUG ONLY
+integer :: ind1, ind2
+real(gp):: hamil,overlap
+type(confpot_data), dimension(:), allocatable :: confdatarr
+real(8),dimension(:),allocatable::  lhchi
+type(energy_terms) :: energs
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -66,16 +71,35 @@ real(8):: ddot, tt1, tt2, tt3
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
-  if(input%inputPsiId == INPUT_PSI_LINEAR) then
+  ! Test if the files are there for initialization via reading files
+  inputpsi=input%inputPsiId
+  if (input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+     inputpsi=INPUT_PSI_MEMORY_LINEAR
+     input_wf_format = WF_FORMAT_NONE
+     ! Test ETSF file.
+     inquire(file=trim(input%dir_output)//"minBasis.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format= WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(input%dir_output)//"minBasis",tmb%orbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LINEAR
+     end if
+  end if
+
+  if(inputpsi == INPUT_PSI_LINEAR) then
       call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
-  else if(input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+  else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
       call nullify_local_zone_descriptors(tmb%lzd)
       call copy_locreg_descriptors(glr, tmb%lzd%glr, subname)
-      lzd%hgrids(1)=hx
-      lzd%hgrids(2)=hy
-      lzd%hgrids(3)=hz
+      tmb%lzd%hgrids(1)=hx
+      tmb%lzd%hgrids(2)=hy
+      tmb%lzd%hgrids(3)=hz
       ! for this routine, Lzd must already have Glr and hgrids
-      call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,tmb%lzd,tmb%orbs,at,rxyz)
+      call initialize_linear_from_file(iproc,nproc,trim(input%dir_output)//'minBasis',input_wf_format,tmb%lzd,tmb%orbs,at,rxyz)
+      !what to do with derivatives?
   end if
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
@@ -127,13 +151,13 @@ real(8):: ddot, tt1, tt2, tt3
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
   allocate(tmb%confdatarr(tmb%orbs%norbp))
-  call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
+  call define_confinement_data(tmb%confdatarr,tmb%orbs,&
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd)
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
-  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
+  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,&
-       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+       input%lin%potentialprefac_lowaccuracy,tmb%lzd)
 
   call nullify_collective_comms(tmb%collcom)
   call nullify_collective_comms(tmbder%collcom)
@@ -176,16 +200,72 @@ real(8):: ddot, tt1, tt2, tt3
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
-
-
-
   ! Generate the input guess for the TMB
   tmb%wfnmd%bs%update_phi=.false.
-  if(input%inputPsiId == INPUT_PSI_LINEAR) then
+  if(inputpsi == INPUT_PSI_LINEAR) then
+     ! By doing an LCAO input guess
      call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
           nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
-  else if(input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,tmb%lzd,tmb%orbs,at,rxyz_old,rxyz,tmb%psi)
+  else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     ! By reading the basis functions and coefficients from file
+     allocate(rxyz_old(3,at%nat),stat=istat)
+     call memocc(istat,rxyz_old,'rxyz_old',subname)
+     call readmywaves_linear(iproc,trim(input%dir_output)//'minBasis',input_wf_format,orbs%norb,tmb%lzd,tmb%orbs, &
+         at,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+     iall = -product(shape(rxyz_old))*kind(rxyz_old)
+     deallocate(rxyz_old,stat=istat)
+     call memocc(istat,iall,'rxyz_old',subname)
+     ! Now need to calculate the charge density and the potential related to this inputguess
+     call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+     call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+     call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+          tmb%lzd, input, hx, hy ,hz, tmb%orbs, tmb%comsr, &
+          tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+          denspot%rhov, at, denspot%dpcom%nscatterarr)
+     call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+     call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
+     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+     call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
+          denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
+     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+! DEBUG (SEE IF HAMILTONIAN IS GOOD)
+     allocate(confdatarr(tmb%orbs%norbp))
+     call define_confinement_data(confdatarr,tmb%orbs,hx,hy,hz,input%lin%confpotorder,&
+          input%lin%potentialprefac_lowaccuracy,tmb%lzd)
+     allocate(lhchi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)),stat=istat)
+     allocate(tmb%lzd%doHamAppl(tmb%lzd%nlr))
+     tmb%lzd%doHamAppl = .true.
+     call memocc(istat, lhchi, 'lhchi', subname)
+     call to_zero(tmb%orbs%npsidim_orbs,lhchi(1))
+     call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
+          tmb%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,tmb%psi,lhchi(1),&
+          energs,input%SIC,GPU,.false.,&
+          pkernel=denspot%pkernelseq)
+     call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,&
+          rxyz,proj,tmb%lzd,nlpspd,tmb%psi,lhchi(1),energs%eproj)
+    call total_energies(energs,1)
+    print *,'ebs,ekin,epot,eproj',energs%ebs,energs%ekin,energs%epot,energs%eproj
+    ind1 = 1
+    print *,'Hamiltonian matrix:'
+    do iall = 1, tmb%lzd%nlr
+       ind2 = 1
+       do istat = 1, tmb%lzd%nlr
+          call wpdot_wrap(1,tmb%lzd%Llr(iall)%wfd%nvctr_c,tmb%Lzd%Llr(iall)%wfd%nvctr_f,tmb%Lzd%Llr(iall)%wfd%nseg_c,&
+               tmb%Lzd%Llr(iall)%wfd%nseg_f,tmb%Lzd%Llr(iall)%wfd%keyvglob,tmb%Lzd%Llr(iall)%wfd%keyglob,tmb%psi(ind1),&
+               tmb%Lzd%Llr(istat)%wfd%nvctr_c,tmb%Lzd%Llr(istat)%wfd%nvctr_f,tmb%Lzd%Llr(istat)%wfd%nseg_c,&
+               tmb%Lzd%Llr(istat)%wfd%nseg_f,tmb%Lzd%Llr(istat)%wfd%keyvglob,tmb%Lzd%Llr(istat)%wfd%keyglob,tmb%psi(ind2),overlap)
+          call wpdot_wrap(1,tmb%lzd%Llr(iall)%wfd%nvctr_c,tmb%Lzd%Llr(iall)%wfd%nvctr_f,tmb%Lzd%Llr(iall)%wfd%nseg_c,&
+               tmb%Lzd%Llr(iall)%wfd%nseg_f,tmb%Lzd%Llr(iall)%wfd%keyvglob,tmb%Lzd%Llr(iall)%wfd%keyglob,tmb%psi(ind1),&
+               tmb%Lzd%Llr(istat)%wfd%nvctr_c,tmb%Lzd%Llr(istat)%wfd%nvctr_f,tmb%Lzd%Llr(istat)%wfd%nseg_c,&
+               tmb%Lzd%Llr(istat)%wfd%nseg_f,tmb%Lzd%Llr(istat)%wfd%keyvglob,tmb%Lzd%Llr(istat)%wfd%keyglob,lhchi(ind2),hamil)
+          ind2 = ind2 + tmb%Lzd%Llr(istat)%wfd%nvctr_c + 7*tmb%Lzd%Llr(istat)%wfd%nvctr_f
+          print *,iall,istat,overlap,hamil
+       end do
+       ind1 = ind1+tmb%lzd%Llr(iall)%wfd%nvctr_c+7*tmb%Lzd%Llr(iall)%wfd%nvctr_f
+    end do
+!END DEBUG
+stop
   end if
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
@@ -463,6 +543,7 @@ real(8):: ddot, tt1, tt2, tt3
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
+print *,'BEFORE GETLOCALIZEDBASIS'
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
@@ -520,9 +601,9 @@ real(8):: ddot, tt1, tt2, tt3
               end if
           end if
 
-
           ! Calculate the coefficients
           call mpi_barrier(mpi_comm_world, istat)
+print *,'BEFORE GETCOEFF'
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
