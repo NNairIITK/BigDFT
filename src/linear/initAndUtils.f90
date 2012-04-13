@@ -2305,20 +2305,20 @@ logical:: reallocate
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
 
-   if(associated(tmb%comsr%recvbuf)) then
-       reallocate=.true.
-   else
-       reallocate=.false.
-   end if
-   write(*,*) 'reallocate',reallocate
+   !!if(associated(tmb%comsr%recvbuf)) then
+   !!    reallocate=.true.
+   !!else
+   !!    reallocate=.false.
+   !!end if
+   !!write(*,*) 'reallocate',reallocate
    call deallocate_p2pComms(tmb%comsr, subname)
    call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
         withder, nscatterarr, hx, hy, hz, &
         lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
    call deallocate_p2pComms(tmb%comsr, subname)
-   if(reallocate) then
-       call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-   end if
+   !!if(reallocate) then
+   !!    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+   !!end if
    if(withder) stop 'withder is true'
 
 
