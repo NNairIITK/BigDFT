@@ -37,6 +37,10 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
+real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
+real(8):: ddot, tt1, tt2, tt3
 
 
   if(iproc==0) then
@@ -62,7 +66,7 @@ logical:: check_whether_derivatives_to_be_used
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
-  call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+  call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
 
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
@@ -81,9 +85,11 @@ logical:: check_whether_derivatives_to_be_used
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
   tag=0
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
        input%lin%locregShape, tmb%op, tmb%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
   call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
@@ -117,7 +123,13 @@ logical:: check_whether_derivatives_to_be_used
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
   call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+       input%hx,input%hy,input%hz,input%lin%confpotorder,&
+       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+
+  call nullify_collective_comms(tmb%collcom)
+  call nullify_collective_comms(tmbder%collcom)
+  call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+  call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
 
@@ -156,10 +168,13 @@ logical:: check_whether_derivatives_to_be_used
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
 
+
+
   ! Generate the input guess for the TMB
   tmb%wfnmd%bs%update_phi=.false.
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
   !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
@@ -379,6 +394,7 @@ logical:: check_whether_derivatives_to_be_used
 
 
           ! Calculate the coefficients
+          call mpi_barrier(mpi_comm_world, istat)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)

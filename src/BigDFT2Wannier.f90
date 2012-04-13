@@ -332,6 +332,7 @@ program BigDFT2Wannier
          call memocc(i_stat,amnk_guess,'amnk_guess',subname)
          allocate(sph_daub(npsidim2), stat=i_stat)
          call memocc(i_stat,sph_daub,'sph_daub',subname)
+         call to_zero(npsidim2,sph_daub(1))
 
          ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals to use to compute the actual Amnk matrix :
          if (iproc==0) then
@@ -548,7 +549,7 @@ program BigDFT2Wannier
          Glr%wfd,psi_etsf(1,1))
    end if
    ! For bin files, the eigenvalues are distributed, so reduce them
-   if(filetype == 'bin' .or. filetype == 'BIN') then
+   if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
      call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
    end if
    ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
@@ -562,20 +563,20 @@ program BigDFT2Wannier
    deallocate(orbs%eval,stat=i_stat)
    call memocc(i_stat,i_all,'orbs%eval',subname)
 
-      ! For the non-occupied orbitals, need to change norbp,isorb
-      orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
-      if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
-      if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
-      orbsv%isorb = 0
-      if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
-      if(associated(orbsv%iokpt)) then
-         i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-         deallocate(orbsv%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%iokpt',subname)
-      end if
-      allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-      call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
-      orbsv%iokpt=1
+   ! For the non-occupied orbitals, need to change norbp,isorb
+   orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
+   if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
+   if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
+   orbsv%isorb = 0
+   if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
+   if(associated(orbsv%iokpt)) then
+      i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
+      deallocate(orbsv%iokpt,stat=i_stat)
+      call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+   end if
+   allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
+   call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+   orbsv%iokpt=1
 
       ! read unoccupied wavefunctions
    if(associated(orbsv%eval)) nullify(orbsv%eval)
@@ -726,7 +727,9 @@ program BigDFT2Wannier
          &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsb%norb)
 
       ! Construction of the whole Amnk matrix.
-      call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+      if(nproc > 0) then
+         call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+      end if
 
       if (iproc==0) then
          ! Check normalisation (the amnk_tot value must tend to 1).
@@ -824,8 +827,10 @@ program BigDFT2Wannier
          ! 2- multiply psi by the cos(.) and sin(.) factor at each point of the real space to get real and imaginary parts,
          ! 3- convert back to the Daubechies representation for real and imaginary parts.
          pshft = 0
-         call razero(nx*ny*nz,psir_re)
-         call razero(nx*ny*nz,psir_im)
+         call to_zero(nx*ny*nz,psir_re(1))
+         call to_zero(nx*ny*nz,psir_im(1))
+         call to_zero(npsidim,psi_daub_re(1))
+         call to_zero(npsidim,psi_daub_im(1))
          do nb1=1,orbsb%norbp
             call daub_to_isf(Glr,w,psi_etsf(1,nb1),psir)
             do k=1,nz
@@ -842,19 +847,22 @@ program BigDFT2Wannier
             end do
             call isf_to_daub(Glr,w,psir_re(1),psi_daub_re(1+pshft))
             call isf_to_daub(Glr,w,psir_im(1),psi_daub_im(1+pshft))
-            pshft = pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsb%ncntt(iproc)/orbsb%norbp)
+            !pshft = pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsb%ncntt(iproc)/orbsb%norbp)
+            pshft = pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
          end do
 
          ! Tranposition of distribution : orbitals -> components
-         call timing(iproc,'Input_comput  ','OF')
-         allocate(pwork(npsidim),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
-         call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_re,work=pwork)
-         call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_im,work=pwork)
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         call timing(iproc,'Input_comput  ','ON')
+         if(nproc>0 .or. orbsb%nspinor /=1) then
+            call timing(iproc,'Input_comput  ','OF')
+            allocate(pwork(npsidim),stat=i_stat)
+            call memocc(i_stat,pwork,'pwork',subname)
+            call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_re,work=pwork)
+            call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_im,work=pwork)
+            i_all = -product(shape(pwork))*kind(pwork)
+            deallocate(pwork,stat=i_stat)
+            call memocc(i_stat,i_all,'pwork',subname)
+            call timing(iproc,'Input_comput  ','ON')
+         end if
 
          ! Scalar product to compute the overlap matrix
          nvctrp=commsb%nvctr_par(iproc,1)

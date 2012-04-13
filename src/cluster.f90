@@ -383,8 +383,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!return
 
      !temporary allocation of the density
-     allocate(denspot%rho_work(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
-          denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug),stat=i_stat)
+     allocate(denspot%rho_work(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
+          denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug,1)),stat=i_stat)
      call memocc(i_stat,denspot%rho_work,'rho',subname)
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
           denspot%rhov(1),1,denspot%rho_work(1),1)

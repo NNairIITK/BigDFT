@@ -325,17 +325,17 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
-  integer, dimension(orbs%norb) :: orblist2
+  !integer, dimension(orbs%norb) :: orblist2
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
-     do nb1 = 1, orbs%norb
-     orblist2(nb1) = nb1
-     if(present(orblist)) orblist2(nb1) = orblist(nb1) 
-     end do
+     !do nb1 = 1, orbs%norb
+     !orblist2(nb1) = nb1
+     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+     !end do
 
      call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
           wfd,psi)

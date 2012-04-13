@@ -359,8 +359,6 @@ low_level = \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/locReg_projectors.f90 \
-	linear/LinearForces.f90 \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
@@ -379,6 +377,8 @@ low_level = \
 	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
+	linear/init_collective_comms.f90 \
+	linear/init_collective_comms_vectors.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

@@ -17,16 +17,19 @@ program WaCo
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
-   type(orbitals_data) :: orbs,orbsw,orbsv
+   type(orbitals_data) :: orbs,orbsw,orbsv,wannorbs
    type(atoms_data) :: atoms
    type(input_variables) :: input
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: commsw
+   type(communications_arrays), target :: commsw, wanncomms
+   type(local_zone_descriptors) :: Lzd   !debug only
+   integer :: ilr,iiband,ldim,gdim  !debug only
+   logical, dimension(:),allocatable :: calcbounds !Debug only
    real(gp), parameter :: b2a=0.5291772108_dp
    real :: tcpu0,tcpu1
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
-   real(gp) :: dist,rad,sprdfact,sprddiff,enediff
+   real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
    integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
@@ -39,23 +42,24 @@ program WaCo
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), types(:,:)
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
-   real(gp), allocatable :: sprd(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
-   real(wp), allocatable :: psi(:,:),wann(:),wannr(:)
+   real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
+   real(wp), allocatable :: psi(:,:),psi2(:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
    character(len=60) :: radical, filename
-   character(len=8) :: string
-   logical :: notocc, bondAna,Stereo,hamilAna,WannCon
+   logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
-   integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:)
+   integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal
-   real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:)
+   real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
    integer :: i, j, k, i_all
    character(len=16) :: seedname
-   integer :: n_occ, n_virt, n_virt_tot
+   integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
+   integer, parameter :: nbandCon=15
+   integer, dimension(nbandCon) :: bandlist
    logical :: file_exist,idemp
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
@@ -113,8 +117,9 @@ program WaCo
    ! Read input files and initialise the variables for the wavefunctions
    !###################################################################
    call standard_inputfile_names(input,radical,nproc)
+
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
-        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff)
+        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,sprdmult)
 
    allocate(ConstList(nwannCon))
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList) 
@@ -143,20 +148,15 @@ program WaCo
    call memocc(i_stat,i_all,'radii_cf',subname)
 
    !#################################################################
-   ! Read the input.inter file
+   ! Read Other files
    !#################################################################
+   !input.inter
    call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
    allocate(virt_list(n_virt),stat=i_stat)
    call memocc(i_stat,virt_list,'virt_list',subname)
    if (n_virt .ne. 0) then
       call read_inter_list(iproc, n_virt, virt_list)
    end if 
-
-   !#####################################################################
-   ! Read the Umn file
-   !#####################################################################
-!   nwann = n_occ + n_virt             !for now, only square matrices
-!   nband = n_occ + n_virt
 
    if ((nband .ne. n_occ+n_virt) .and. iproc == 0) then
       write(*,*) 'Number of bands in the .waco file : ',nband
@@ -165,9 +165,25 @@ program WaCo
       stop
    end if
 
+   ! seedname.umn
    allocate(umn(nwann,nband),stat=i_stat)
    call memocc(i_stat,umn,'umn',subname)
    call read_umn(iproc,nwann,nband,seedname,umn)
+
+   !seedname.dat
+   allocate(wann_list(nwann),stat=i_stat)
+   call memocc(i_stat,wann_list,'wann_list',subname)
+   call read_spread_file(iproc,seedname,nwann,plotwann,wann_list)
+
+   ! Read Wannier centers
+   allocate(cxyz(3,plotwann),stat=i_stat)
+   call memocc(i_stat,cxyz,'cxyz',subname)
+   allocate(rxyz_wann(3,atoms%nat),stat=i_stat)
+   call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
+   allocate(sprd(plotwann+1),stat=i_stat)
+   call memocc(i_stat,sprd,'sprd',subname)
+   call read_centers(iproc,nwann,plotwann,atoms%nat,seedname,wann_list,cxyz,rxyz_wann,.true.,sprd)
+
    call timing(iproc,'Precondition  ','OF')
 
    !###################################################################
@@ -239,55 +255,7 @@ program WaCo
    deallocate(rho,stat=i_stat)
    call memocc(i_stat,i_all,'rho',subname)
 
-   !#########################################################
-   ! Read seedname.dat to make the Wannier plot list
-   !#########################################################
-   if(iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '!     Reading .dat :               !'
-      write(*,*) '!==================================!'
-   end if
-
-   inquire(file=trim(seedname)//'.dat',exist=file_exist)
-   if (.not. file_exist) then
-      if (iproc==0) then
-         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'.dat, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
-      end if
-      call mpi_finalize(i)
-      stop
-   end if
-
-   !wann_list will contain the list of occupied Wannier functions
-   allocate(wann_list(nwann),stat=i_stat)
-   call memocc(i_stat,wann_list,'wann_list',subname)
-   wann_list = 0
-
-   open(11, file=trim(seedname)//'.dat', status='OLD')
-
-   ! Check if the line is commented
-   plotwann = 0
-   do i = 1 ,nwann
-      read(11,*) string
-      if(VERIFY(string, ' #', .false.) == 0) cycle
-      plotwann = plotwann +1
-      wann_list(plotwann) = i
-   end do
-
-   close(11)
-
-   if(iproc == 0) then
-      write(*,'(A)') 'Occupied/Plotted Wannier functions are:'
-      do i=1, plotwann, 6
-         write(*,'(6(2x,I4))') (wann_list(j), j=i,min(i+5,size(wann_list)))
-      end do
-   end if
-
-   if(iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '!     Reading .dat : DONE          !'
-      write(*,*) '!==================================!'
-   end if
+   
 
    !########################################################
    ! Bonding analysis
@@ -301,22 +269,15 @@ program WaCo
 
 
       !wann_list will contain the list of occupied Wannier functions
-      allocate(cxyz(3,plotwann),stat=i_stat)
-      call memocc(i_stat,cxyz,'cxyz',subname)
-      allocate(rxyz_wann(3,atoms%nat),stat=i_stat)
-      call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
-      allocate(sprd(plotwann+1),stat=i_stat)
-      call memocc(i_stat,sprd,'sprd',subname)
       allocate(Zatoms(atoms%nat,plotwann),stat=i_stat)
       call memocc(i_stat,Zatoms,'Zatoms',subname)  
       allocate(ncenters(plotwann),stat=i_stat)
       call memocc(i_stat,ncenters,'ncenters',subname)
 
-      call read_centers(iproc,nwann,plotwann,atoms%nat,seedname,wann_list,cxyz,rxyz_wann,.true.,sprd)
 
       ! Now calculate the bonding distances and ncenters
       if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,4x,A,3x,A,3x,A)') 'WF','Spr(ang^2)','Nc','Atom numbers:'
+      if(iproc == 0) write(*,'(3x,A,x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0
@@ -330,7 +291,8 @@ program WaCo
             end if
          end do
          if(iproc == 0) then
-           write(*,'(I4,F14.6,2x,I4,6(2x,I4))') iwann, sprd(iwann), ncenters(iwann), (Zatoms(i_all,iwann),i_all=1,iat)
+           write(*,'(2I4,F14.6,2x,I4,6(2x,I4))') wann_list(iwann),iwann, sprd(iwann), ncenters(iwann),&
+                (Zatoms(i_all,iwann),i_all=1,iat)
          end if
       end do
 
@@ -343,7 +305,7 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-print *,'total number of electrons: ',2*sum(wannocc)
+     print *,'total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
@@ -388,6 +350,49 @@ print *,'total number of electrons: ',2*sum(wannocc)
       end do
       close(22)
 
+!Character analysis
+      call read_amn_header(seedname,nproj,nband_old,nkpt_old)
+
+      allocate(amn(nband,nproj),stat=i_stat)
+      call memocc(i_stat,amn,'amn',subname)
+      allocate(tmatrix(nwann,nproj),stat=i_stat)
+      call memocc(i_stat,tmatrix,'tmatrix',subname)
+      allocate(l(nproj),stat=i_stat)
+      call memocc(i_stat,l,'l',subname)
+      allocate(mr(nproj),stat=i_stat)
+      call memocc(i_stat,mr,'mr',subname)
+
+      call read_amn(seedname,amn,nproj,nband,nkpt_old)
+      call read_proj(seedname, nkpt_old, nproj, l, mr)
+
+      call dgemm('N','N',nwann,nproj,nband,1.0d0,umn(1,1),max(1,nwann),&
+      &        amn(1,1),max(1,nband),0.0d0,tmatrix(1,1),max(1,nwann))
+
+!DEBUG
+!print *,(sum(tmatrix(iat,:)),iat=1,nwann)
+!do iat=1,nwann
+!   tel = 0.0d0
+!   do i_all =1, nproj
+!      tel = tel + tmatrix(iat,i_all)**2
+!   end do
+!   print *,tel
+!end do
+!DEBUG
+
+      call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+
+      i_all = -product(shape(l))*kind(l)
+      deallocate(l,stat=i_stat)
+      call memocc(i_stat,i_all,'l',subname)   
+      i_all = -product(shape(mr))*kind(mr)
+      deallocate(mr,stat=i_stat)
+      call memocc(i_stat,i_all,'mr',subname)   
+      i_all = -product(shape(amn))*kind(amn)
+      deallocate(amn,stat=i_stat)
+      call memocc(i_stat,i_all,'amn',subname)   
+      i_all = -product(shape(tmatrix))*kind(tmatrix)
+      deallocate(tmatrix,stat=i_stat)
+      call memocc(i_stat,i_all,'tmatrix',subname)   
       i_all = -product(shape(distw))*kind(distw)
       deallocate(distw,stat=i_stat)
       call memocc(i_stat,i_all,'distw',subname)   
@@ -552,8 +557,9 @@ print *,'total number of electrons: ',2*sum(wannocc)
       allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3))
 
       ! Do stereographic projection of atoms and Wannier centers
-      call stereographic_projection(atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
-      call stereographic_projection(plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
+      call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
+      ! TO DO: CNeglectPoint should be a vector...
+      call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
       call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
       call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
 
@@ -593,8 +599,8 @@ print *,'total number of electrons: ',2*sum(wannocc)
       if(CNeglectPoint .ne. 0) then
          write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
          write(*,*) 'Surfaces will be deformed'
-         call mpi_finalize(ierr)
-         stop
+!         call mpi_finalize(ierr)
+!         stop
       end if
 
       call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
@@ -609,18 +615,18 @@ print *,'total number of electrons: ',2*sum(wannocc)
 
       call output_stereographic_graph(atoms%nat,proj,projC,plotwann,ncenters,Zatoms,nfacets,facets,vertex,normal,NeglectPoint)
 
-      i_all = -product(shape(sprd))*kind(sprd)
-      deallocate(sprd,stat=i_stat)
-      call memocc(i_stat,i_all,'sprd',subname)
       i_all = -product(shape(cxyz))*kind(cxyz)
       deallocate(cxyz,stat=i_stat)
       call memocc(i_stat,i_all,'cxyz',subname)
-      i_all = -product(shape(Zatoms))*kind(Zatoms)
-      deallocate(Zatoms,stat=i_stat)
-      call memocc(i_stat,i_all,'Zatoms',subname)
       i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
       deallocate(rxyz_wann,stat=i_stat)
       call memocc(i_stat,i_all,'rxyz_wann',subname)
+      i_all = -product(shape(sprd))*kind(sprd)
+      deallocate(sprd,stat=i_stat)
+      call memocc(i_stat,i_all,'sprd',subname)
+      i_all = -product(shape(Zatoms))*kind(Zatoms)
+      deallocate(Zatoms,stat=i_stat)
+      call memocc(i_stat,i_all,'Zatoms',subname)
       i_all = -product(shape(proj))*kind(proj)
       deallocate(proj,stat=i_stat)
       call memocc(i_stat,i_all,'proj',subname)
@@ -640,7 +646,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
      end if
 
   end if
-  if (HamilAna) then
+  if (hamilAna) then
      if(iproc==0) then
         write(*,*) '!==================================!'
         write(*,*) '!     Hamiltonian Analysis :       !' 
@@ -723,6 +729,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
            end do
         end do
 
+     !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
      i_all=-product(shape(buf))*kind(buf)
      deallocate(buf,stat=i_stat)
      call memocc(i_stat,i_all,'buf',subname)
@@ -793,9 +800,6 @@ print *,'total number of electrons: ',2*sum(wannocc)
       i_all=-product(shape(hamr))*kind(hamr)
       deallocate(hamr,stat=i_stat)
       call memocc(i_stat,i_all,'hamr',subname)
-      i_all=-product(shape(ham))*kind(ham)
-      deallocate(ham,stat=i_stat)
-      call memocc(i_stat,i_all,'ham',subname)
       i_all=-product(shape(diag))*kind(diag)
       deallocate(diag,stat=i_stat)
       call memocc(i_stat,i_all,'diag',subname)
@@ -813,6 +817,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
 
   end if
   if(WannCon) then
+
      !###########################################################################
      ! Set-up number of states used in the Wannier construction
      !###########################################################################
@@ -828,6 +833,50 @@ print *,'total number of electrons: ',2*sum(wannocc)
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
          & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+
+     if(linear)then
+       allocate(cxyz(3,nwannCon),stat=i_stat)
+       call memocc(i_stat,cxyz,'cxyz',subname)
+       allocate(rxyz_wann(3,atoms%nat),stat=i_stat)
+       call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
+       allocate(sprd(nwannCon+1),stat=i_stat)
+       call memocc(i_stat,sprd,'sprd',subname)
+       allocate(locrad(nwannCon),stat=i_stat)
+       call memocc(i_stat,locrad,'locrad',subname)
+
+       call read_centers(iproc,nwann,nwannCon,atoms%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
+
+       do iwann = 1, nwannCon
+          locrad(iwann) = sprdmult*(sprd(iwann)/(b2a*b2a))
+          if(iproc == 0) then
+             print *,'Wannier center for iwann ',iwann,'  :  ',(cxyz(i,iwann),i=1,3)
+             print *,'Locrad of iwann ',iwann, '  :  ', locrad(iwann)
+          end if
+       end do
+
+       i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
+       deallocate(rxyz_wann,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_wann',subname)
+       i_all = -product(shape(sprd))*kind(sprd)
+       deallocate(sprd,stat=i_stat)
+       call memocc(i_stat,i_all,'sprd',subname)
+ 
+     ! Should construct a proper Lzd for each Wannier, then use global -> local transformation
+       call nullify_local_zone_descriptors(Lzd)
+       call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+       lzd%hgrids(1)=input%hx
+       lzd%hgrids(2)=input%hy
+       lzd%hgrids(3)=input%hz
+       allocate(Lzd%Llr(nwannCon))
+       allocate(calcbounds(nwannCon),stat=i_stat)
+       call memocc(i_stat,calcbounds,'calcbounds',subname)
+       calcbounds =.false.  
+       do iwann = 1,nwannCon
+          call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
+               Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+       end do     
+     end if
+
 
      !##########################################################################
      ! Read the Wavefunctions
@@ -987,22 +1036,68 @@ print *,'total number of electrons: ',2*sum(wannocc)
               !Put it in interpolating scaling functions
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
-           else
-             if(trim(outputype)=='bin') then
-                open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='unformatted')
-                call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
+           else if(trim(outputype)=='bin') then
+              call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
+              !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
+              if(hamilana .and. linear) then
+                 ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
+                 gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+                 allocate(lwann(ldim),stat=i_stat)
+                 call memocc(i_stat,lwann,'lwann',subname)
+                 call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
+                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
+                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),input%lin%confPotOrder,0.0d0,atoms%nat,rxyz,  & 
+                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
+                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                  i_all = -product(shape(lwann))*kind(lwann)
+                  deallocate(lwann,stat=i_stat)
+                  call memocc(i_stat,i_all,'lwann',subname)
+              else if(hamilana) then
+                 call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
+                   atoms%nat,rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
-                     wann(1),wann(Glr%wfd%nvctr_c+1), 0.d0)
-             else
-                stop 'ETSF not implemented yet'                
-                ! should be write_wave_etsf  (only one orbital)
-                call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-                     input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
-             end if 
+                   wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
+              else
+                 call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
+                   atoms%nat,rxyz,  & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                   wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
+              end if
+              close(ifile)
+           else
+              stop 'ETSF not implemented yet'                
+              ! should be write_wave_etsf  (only one orbital)
+              call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+                   input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
            end if
         end if
      end do  ! closing loop on iwann
+
+     !Now if linear, write the coefficients
+     if(linear .and. iproc == 0)then
+        ! First construct the appropriate coefficient matrix
+        allocate(umnt(nwannCon,nband),stat=i_stat)
+        call memocc(i_stat,umnt,'umnt',subname)
+        bandlist = (/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15/)
+        do iiwann = 1, nwannCon
+           iwann = ConstList(iiwann)
+           if(iwann == 0) stop 'Umnt construction: this should not happen'
+           do iiband = 1, nbandCon
+              iband = bandlist(iiband)
+              umnt(iiwann,iiband) = umn(iwann,iband) 
+           end do
+        end do
+        ! write the coefficients to file
+        open(99, file=trim(seedname)//'_coeff.bin', status='unknown',form='formatted')
+        call writeLinearCoefficients(99,.true.,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
+           nband,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        close(99)
+     end if
 
      if(iproc==0) then
         write(*,*) '!==================================!'
@@ -1011,6 +1106,80 @@ print *,'total number of electrons: ',2*sum(wannocc)
      end if
 
 
+!DEBUG WRITE AND READ OF LINEAR WAVEFUNCTIONS
+! Fake TMB orbs
+!!  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
+!!       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
+!!  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
+!!
+!!! First must initialize Lzd (must contain Glr and hgrids)
+!!  call nullify_local_zone_descriptors(Lzd)
+!!  call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+!!  lzd%hgrids(1)=input%hx
+!!  lzd%hgrids(2)=input%hy
+!!  lzd%hgrids(3)=input%hz
+!!
+!!! Then allocate some stuff
+!!  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+!!  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+!!
+!!  call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
+!!
+!!
+!!  do ilr=1,Lzd%nlr
+!!     if (iproc == 0) then
+!!        write(*,*)'Description of zone:',ilr
+!!        write(*,*)'ns:',Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3
+!!        write(*,*)'ne:',Lzd%Llr(ilr)%ns1+Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%ns2+Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%ns3+Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'n:',Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'nfl:',Lzd%Llr(ilr)%d%nfl1,Lzd%Llr(ilr)%d%nfl2,Lzd%Llr(ilr)%d%nfl3
+!!        write(*,*)'nfu:',Lzd%Llr(ilr)%d%nfu1,Lzd%Llr(ilr)%d%nfu2,Lzd%Llr(ilr)%d%nfu3
+!!        write(*,*)'ni:',Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i
+!!        write(*,*)'outofzone',ilr,':',Lzd%Llr(ilr)%outofzone(:)
+!!        write(*,*)'center: ',(Lzd%Llr(ilr)%locregCenter(i),i=1,3)
+!!        write(*,*)'locrad: ',Lzd%Llr(ilr)%locrad
+!!        write(*,*)'wfd dimensions: ',Lzd%Llr(ilr)%wfd%nseg_c, Lzd%Llr(ilr)%wfd%nseg_f, Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!                   Lzd%Llr(ilr)%wfd%nvctr_f
+!!     end if
+!!  end do
+!!
+!!  call wavefunction_dimension(Lzd,wannorbs)
+!!  !npsidim = 0
+!!  !do iorb=1,orbs%norbp
+!!  !   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!  !   npsidim = nspidim + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!!  !end do
+!!
+!!  allocate(psi2(wannorbs%npsidim_orbs),stat=i_stat)
+!!  call memocc(i_stat,psi,'psi',subname)
+!!  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
+!!  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
+!! 
+!!  print *,'before reading the TMBs'
+!!  call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
+!!    psi2)
+!!  print *,'after reading the TMBs', sum(psi2)
+!!  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
+!!  deallocate(rxyz_old,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz_old',subname)
+!!
+!END DEBUG
+
+     if(linear)then
+        call deallocate_local_zone_descriptors(Lzd, subname)
+        i_all = -product(shape(locrad))*kind(locrad)
+        deallocate(locrad,stat=i_stat)
+        call memocc(i_stat,i_all,'locrad',subname)
+        i_all = -product(shape(cxyz))*kind(cxyz)
+        deallocate(cxyz,stat=i_stat)
+        call memocc(i_stat,i_all,'cxyz',subname)
+        i_all = -product(shape(umnt))*kind(umnt)
+        deallocate(umnt,stat=i_stat)
+        call memocc(i_stat,i_all,'umnt',subname)
+        i_all = -product(shape(calcbounds))*kind(calcbounds)
+        deallocate(calcbounds,stat=i_stat)
+        call memocc(i_stat,i_all,'calcbounds',subname)
+     end if
      call deallocate_work_arrays_sumrho(w)
      call deallocate_orbs(orbsv,subname)
      call deallocate_orbs(orbsw,subname)
@@ -1036,9 +1205,16 @@ print *,'total number of electrons: ',2*sum(wannocc)
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
-  i_all = -product(shape(buf))*kind(buf)
-  deallocate(buf,stat=i_stat)
-  call memocc(i_stat,i_all,'buf',subname)
+  if(bondana .or. hamilana) then
+     i_all = -product(shape(buf))*kind(buf)
+     deallocate(buf,stat=i_stat)
+     call memocc(i_stat,i_all,'buf',subname)
+  end if
+  if(hamilana) then
+     i_all=-product(shape(ham))*kind(ham)
+     deallocate(ham,stat=i_stat)
+     call memocc(i_stat,i_all,'ham',subname)
+  end if
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
   call memocc(i_stat,i_all,'wann_list',subname)
@@ -1072,17 +1248,17 @@ print *,'total number of electrons: ',2*sum(wannocc)
 end program Waco
 
 subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilAna,WannCon,filetype,nwannCon,refpos,units,&
-           sprdfact,sprddiff,enediff)
+           sprdfact,sprddiff,enediff,iformat,linear,sprdmult)
    use module_base
    use module_types
    use module_input
    implicit none
    integer, intent(in) :: iproc
    character(len=*), intent(in) :: filename
-   logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon
+   logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon, iformat, linear
    character(len=4), intent(out) :: filetype,units
-   integer, intent(out) :: nband,nwann,nwannCon 
-   real(gp), intent(out) :: sprdfact,sprddiff,enediff
+   integer, intent(out) :: nband,nwann,nwannCon
+   real(gp), intent(out) :: sprdfact,sprddiff,enediff,sprdmult
    real(gp), dimension(3), intent(out) :: refpos
    ! Local variable
    logical :: exists
@@ -1112,7 +1288,10 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
 
    ! Check for the wannier construction
    call input_var(WannCon,'F')
-   call input_var(filetype,'cube', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
+   call input_var(filetype,'cube')
+   call input_var(iformat,'F', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
+   call input_var(linear,'F')
+   call input_var(sprdmult,'3.0',comment='!Ouput as minimal basis, spread factor for minimal basis construction')
    call input_var(nwannCon,'1',comment='! number of Wannier to construct (if 0 do all) followed by Wannier list on next &
    &     line (optional)')
    
@@ -1128,17 +1307,25 @@ subroutine read_input_waco(filename,nwannCon,Constlist)
   integer, intent(in) :: nwannCon
   integer, dimension(nwannCon), intent(out) :: Constlist
   ! Local variable
-  integer :: i
+  integer :: i,ierr
 
   open(22, file=trim(filename),status='old')
   ! Skip first lines
-  do i=1,6
+  do i=1,7
      read(22,*)
   end do
+
   ! read the Constlist
-  read(22,*) (Constlist(i),i=1,nwannCon)
+  read(22,*,iostat=ierr) (Constlist(i),i=1,nwannCon)
   close(22)
+
+  if(ierr < 0) then  !reached the end of file and no Constlist, so generate the trivial one
+    do i= 1, nwannCon
+       Constlist(i) = i
+    end do
+  end if
   
+
 end subroutine read_input_waco
 
 !>
@@ -1402,12 +1589,22 @@ subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_
 
    ! now read the spreads (the additionnal last value is total sprd)
    if(readsprd) then
-      do iiwann = 1, plotwann+1
-         read(11, *) char1, sprd(iiwann)
+      iiwann = 0
+      do iwann = 1, nwann
+         commented = .true.
+         do i = 1, plotwann
+            if(iwann == wann_list(i)) commented = .false.
+         end do
+         if(.not. commented) then
+           iiwann = iiwann + 1
+           read(11, *) char1, sprd(iiwann)
+         else
+           read(11, *) ! just skip line
+         end if
       end do
    end if
    close(11)
-end subroutine
+end subroutine read_centers
 
 subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
    implicit none
@@ -1699,11 +1896,12 @@ subroutine init_random_seed(shuffler)
   deallocate(seed)
 end subroutine init_random_seed
 
-subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, dcp)
+subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
    use Poisson_Solver
    use module_interfaces
    implicit none
+   integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
    real(gp), dimension(3,natom), intent(in) :: rxyz
    real(gp), dimension(3), intent(inout) :: refpos, CM
@@ -1797,8 +1995,7 @@ subroutine stereographic_projection(natom, rxyz, refpos, CM, rad, proj, normal, 
       if(norm2 < 1.0d-10) norm2 = 1.0d-10
 
       if(norm2 < 1.0d-1 .and. abs(dotprod/(norm*norm2)) < 1.0d-2) then
-
-        if(dcp .ne. 0) stop 'This should not happen'
+        if(dcp .ne. 0 .and. mode == 0) stop 'This should not happen'
         dcp = iat
       end if
    end do
@@ -1995,7 +2192,7 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
    integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters)-1)/2,3),intent(in) :: vertex
    real(gp), dimension(3), intent(in) :: normal
    ! Local variables
-   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly
+   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly, num_poly_tot
    character(len=14) :: surfname
    character(len=20) :: forma
    logical :: condition
@@ -2011,14 +2208,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
 
    nsurftot = 0
    npts = 0
-   num_poly = 0
+   num_poly_tot = 0
    do isurf = 1, nsurf
+      num_poly = 0
       !MUST eliminate the wanniers that are less then 3 centers
       if(ncenters(isurf) < 3) cycle
       ! or the 3 centers containing the neglected point
       condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint )
       if(ncenters(isurf) == 3 .and. condition) cycle
-      nsurftot = nsurftot + 1
       ! Must eliminate the neglected point from other surfaces
       do ipts = 1, npoly(isurf)
          condition = .false.
@@ -2026,12 +2223,14 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
             condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
          end do
          if(.not. condition) num_poly = num_poly + 1
+         if(.not. condition) num_poly_tot = num_poly_tot + 1
       end do
-      npts = npts + ncenters(isurf) + 1
+      if(num_poly > 0)nsurftot = nsurftot + 1
+      if(num_poly > 0)npts = npts + ncenters(isurf) + 1
    end do
 
    !Fourth line: number of surfaces, total num_polys, total num_points
-   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly, npts
+   write(23,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly_tot, npts
 
    do isurf = 1, nsurf
       !MUST eliminate the wanniers that are less then 3 centers
@@ -2050,11 +2249,9 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
       end do
       write(forma,'(I1)') ndecimal
       forma = '(I'//trim(forma)//')'
-
       !Name of the surface
       write(surfname,forma) ncenters(isurf)
       surfname = '2e - '//trim(surfname)//'centers'
-      write(23,'(A)') trim(surfname)
 
       !num_polys and num_points (Must eliminate the neglected point from other surfaces)
       condition = .false.
@@ -2066,42 +2263,48 @@ subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,np
          end do
          if(.not. condition)num_poly = num_poly + 1
       end do
-      if(condition) then
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf)
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      else
-         write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
-         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-         do ipts = 1, npoly(isurf)
-            condition = .false.
-            do i = 1, 3
-               condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
-            end do
-            if(condition) cycle
-            write(forma,'(I4)') ncenters(isurf) + 1
-            forma = '(I4,'//trim(forma)//'(2x,I4))'
-            write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
-         end do
-      end if
 
-      do ipts = 1, ncenters(isurf)
-      !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
-         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-         write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
-              (normal(i), i=1,3)
-      end do
-      write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
-              (normal(i), i=1,3)
+      if(num_poly > 0) then
+         !Write the surface only if there is some polygones
+         write(23,'(A)') trim(surfname)
+
+         if(condition) then
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf)
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         else
+            write(23,'(I4, 2x, I4)') num_poly, ncenters(isurf) + 1
+            !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
+            do ipts = 1, npoly(isurf)
+               condition = .false.
+               do i = 1, 3
+                  condition = condition .or. poly(isurf,ipts,i) == NeglectPoint
+               end do
+               if(condition) cycle
+               write(forma,'(I4)') ncenters(isurf) + 1
+               forma = '(I4,'//trim(forma)//'(2x,I4))'
+               write(23,trim(forma)) 3, (vertex(isurf,ipts,i),i=1,3) ! Only triangles
+            end do
+         end if
+
+         do ipts = 1, ncenters(isurf)
+         !   if(Zatoms(ipts,isurf) == NeglectPoint) cycle
+            !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
+            write(23,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
+                 (normal(i), i=1,3)
+         end do
+         write(23,'(5(E14.6, 2x),E14.6)') projC(isurf,1), projC(isurf,2), projC(isurf,3),&
+                 (normal(i), i=1,3)
+      end if !on num_poly
    end do
    close(23)
 
@@ -2278,7 +2481,7 @@ integer :: ikpt,iorb,iiorb,iikpt,ierr
 
 inquire(file=filename,exist=file_exist)
 if (.not. file_exist) then
-   write(*,'(A)') 'ERROR : Input file, input.inter, not found !'
+   write(*,'(A)') 'ERROR : Input file,',filename,',not found !'
    write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
    call mpi_finalize(ierr)
    stop
@@ -2294,892 +2497,1064 @@ close(22)
 
 end subroutine read_eigenvalues
 
+subroutine read_amn_header(filename,nproj,nband,nkpt)
+use module_types
+use module_interfaces
+implicit none
+character(len=*),intent(in) :: filename
+integer, intent(out) :: nproj,nband,nkpt
+!Local variables
+logical :: file_exist
+integer :: ierr
 
-!!$subroutine build_stereographic_graph(natoms,proj,nsurf,ncenters,Zatoms,normal,NeglectPoint)
-!!$   use module_interfaces
-!!$   use module_types
-!!$   implicit none
-!!$   integer, intent(in) :: natoms, nsurf, NeglectPoint
-!!$   real(gp), dimension(natoms,3), intent(in) :: proj
-!!$   integer, dimension(nsurf), intent(in) :: ncenters
-!!$   integer, dimension(natoms,nsurf),intent(in) :: Zatoms
-!!$   real(gp), dimension(3), intent(in) :: normal
-!!$   ! Local variables
-!!$   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent
-!!$   character(len=14) :: surfname
-!!$   character(len=20) :: forma
-!!$   logical :: condition
-!!$
-!!$
-!!$   open(22,file='proj.surf', status='unknown')
-!!$
-!!$   !First line is just a comment 
-!!$   write(22,'(A)') 'Stereographic graph'
-!!$
-!!$   !Write the dimensions of the box (simple cubic)
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') maxval(proj(:,1))-minval(proj(:,1)), 0.0, maxval(proj(:,2))-minval(proj(:,2))  !dxx dyx dyy
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') 0.0, 0.0,  maxval(proj(:,3))-minval(proj(:,3))                                   !dzx dzy dzz
-!!$
-!!$   nsurftot = 0
-!!$   npts = 0
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$      nsurftot = nsurftot + 1
-!!$      ! Must eliminate the neglected point from other surfaces
-!!$      condition = .false.
-!!$      do ipts = 1, ncenters(isurf)
-!!$         condition = condition .or. Zatoms(ipts,isurf) == NeglectPoint
-!!$      end do
-!!$      if(condition) then
-!!$         npts = npts + ncenters(isurf)-1
-!!$      else
-!!$         npts = npts + ncenters(isurf)
-!!$      end if
-!!$   end do
-!!$   !Fourth line: number of surfaces, total num_polys, total num_points
-!!$   write(22,'(I4, 2x, I4, 2x, I4)') nsurftot, nsurftot, npts
-!!$
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$
-!!$      ! Determining the format (number of integers) for surface name 
-!!$      ndecimal = 1
-!!$      ncent = ncenters(isurf)
-!!$      do
-!!$        if(int(ncent / 10) == 0) exit
-!!$        ncent = ncent / 10
-!!$        ndecimal = ndecimal + 1
-!!$      end do
-!!$      write(forma,'(I1)') ndecimal
-!!$      forma = '(I'//trim(forma)//')'
-!!$
-!!$      !Name of the surface
-!!$      write(surfname,forma) ncenters(isurf)
-!!$      surfname = '2e - '//trim(surfname)//'centers'
-!!$      write(22,'(A)') trim(surfname)
-!!$
-!!$      !num_polys and num_points (Must eliminate the neglected point from other surfaces)
-!!$      condition = .false.
-!!$      do ipts = 1, ncenters(isurf)
-!!$         condition = condition .or. Zatoms(ipts,isurf) == NeglectPoint
-!!$      end do
-!!$      if(condition) then
-!!$         write(22,'(I4, 2x, I4)') 1, ncenters(isurf)-1
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         write(forma,'(I4)') ncenters(isurf) - 1
-!!$         forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$         write(22,trim(forma)) ncenters(isurf) - 1, (i,i=1,ncenters(isurf) - 1 )!(Zatoms(i,isurf),i=1,ncenters(isurf))
-!!$      else
-!!$         write(22,'(I4, 2x, I4)') 1, ncenters(isurf)
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         write(forma,'(I4)') ncenters(isurf)
-!!$         forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$         write(22,trim(forma)) ncenters(isurf), (i,i=1,ncenters(isurf))!(Zatoms(i,isurf),i=1,ncenters(isurf))
-!!$      end if
-!!$
-!!$      do ipts = 1, ncenters(isurf)
-!!$         if(Zatoms(ipts,isurf) == NeglectPoint) cycle
-!!$         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-!!$         write(22,'(5(E14.6, 2x),E14.6)') proj(Zatoms(ipts,isurf),1), proj(Zatoms(ipts,isurf),2), proj(Zatoms(ipts,isurf),3),&
-!!$              (normal(i), i=1,3)
-!!$      end do
-!!$   end do
-!!$
-!!$end subroutine build_stereographic_graph
+inquire(file=trim(filename)//'.amn',exist=file_exist)
+if (.not. file_exist) then
+   write(*,'(A)') 'ERROR : Input file,',trim(filename)//'.amn',', not found !'
+   write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
+   call mpi_finalize(ierr)
+   stop
+end if
+
+open(22,file=trim(filename)//'.amn',status='old')
+read(22,*) ! skip first line which is a comment
+read(22,*) nband, nkpt, nproj
+close(22)
+end subroutine read_amn_header
+
+subroutine read_amn(filename,amn,nproj,nband,nkpt)
+use module_types
+use module_interfaces
+implicit none
+character(len=*),intent(in) :: filename
+integer, intent(in) :: nproj, nband, nkpt
+real(gp),dimension(nband,nproj), intent(out) :: amn
+!Local variables
+logical :: file_exist
+integer :: int1, int2, int3, int4, nk, np, nb
+integer :: ierr
+real(gp) :: r1
+
+inquire(file=trim(filename)//'.amn',exist=file_exist)
+if (.not. file_exist) then
+   write(*,'(A)') 'ERROR : Input file,',trim(filename)//'.amn',', not found !'
+   write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
+   call mpi_finalize(ierr)
+   stop
+end if
+
+open(22,file=trim(filename)//'.amn',status='old')
+read(22,*) ! skip first line which is a comment
+read(22,*) !skip this line: nband, nkpt, nproj
+do nk=1, nkpt 
+   do np=1, nproj
+      do nb=1, nband
+         read(22,*) int2, int3, int4, amn(nb,np), r1
+      end do
+   end do
+end do
+close(22)
+
+end subroutine read_amn
+
+!>  This routine reads an .nnkp file and returns the types of projectors
+subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
+   implicit none
+   ! I/O variables
+   character(len=16),intent(in) :: seedname
+   integer, intent(in) :: n_kpts, n_proj
+   integer, dimension(n_proj), intent(out) :: l, mr
+   ! Local variables
+   integer :: i, j
+   character *16 :: char1, char2, char3, char4
+   logical :: calc_only_A
+   real :: real_latt(3,3), recip_latt(3,3)
+   real, dimension(n_kpts,3) :: kpts
+   real(kind=8), dimension(n_proj,3) :: ctr_proj, x_proj, z_proj
+   integer, dimension(n_proj) :: rvalue
+   real, dimension(n_proj) :: zona
 
 
-!!$subroutine output_stereographic_graph(natoms,proj,nsurf,ncenters,Zatoms,nvertex,vertex,npoly,poly,normal,NeglectPoint) 
-!!$   use module_interfaces
-!!$   use module_types
-!!$   implicit none
-!!$   integer, intent(in) :: natoms, nsurf, NeglectPoint
-!!$   real(gp), dimension(natoms,3), intent(in) :: proj
-!!$   integer, dimension(nsurf), intent(in) :: ncenters, npoly, nvertex
-!!$   integer, dimension(natoms,nsurf) :: Zatoms                          ! indexes of all the atoms spanned by the Wannier function
-!!$   integer, dimension(nsurf,maxval(npoly),3),intent(in) :: poly
-!!$   integer, dimension(maxval(nvertex),nsurf), intent(in) :: vertex     ! indexes of the vertex (on the convex hull) of the surface
-!!$   real(gp), dimension(3), intent(in) :: normal
-!!$   ! Local variables
-!!$   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly
-!!$   character(len=14) :: surfname   
-!!$   character(len=20) :: forma
-!!$   logical :: condition
-!!$   
-!!$   
-!!$   open(22,file='proj.surf', status='unknown')
-!!$   
-!!$   !First line is just a comment 
-!!$   write(22,'(A)') 'Stereographic graph'
-!!$   
-!!$   !Write the dimensions of the box (simple cubic)
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') maxval(proj(:,1))-minval(proj(:,1)), 0.0, maxval(proj(:,2))-minval(proj(:,2))  !dxx dyx dyy
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') 0.0, 0.0,  maxval(proj(:,3))-minval(proj(:,3))                                   !dzx dzy dzz
-!!$
-!!$   nsurftot = 0
-!!$   npts = 0
-!!$   num_poly = 0
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$      nsurftot = nsurftot + 1
-!!$      ! Must eliminate the neglected point from other surfaces
-!!$      do ipts = 1, npoly(isurf)
-!!$         condition = .false.
-!!$         do i = 1, 3
-!!$            condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$         end do
-!!$         if(.not. condition) num_poly = num_poly + 1
-!!$      end do
-!!$      if(condition) then
-!!$         npts = npts + nvertex(isurf)-1
-!!$      else
-!!$         npts = npts + nvertex(isurf)
-!!$      end if
-!!$   end do
-!!$
-!!$   !Fourth line: number of surfaces, total num_polys, total num_points
-!!$   write(22,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly, npts
-!!$
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$
-!!$      ! Determining the format (number of integers) for surface name 
-!!$      ndecimal = 1
-!!$      ncent = ncenters(isurf)
-!!$      do
-!!$        if(int(ncent / 10) == 0) exit
-!!$        ncent = ncent / 10
-!!$        ndecimal = ndecimal + 1
-!!$      end do
-!!$      write(forma,'(I1)') ndecimal
-!!$      forma = '(I'//trim(forma)//')'
-!!$
-!!$      !Name of the surface
-!!$      write(surfname,forma) ncenters(isurf)
-!!$      surfname = '2e - '//trim(surfname)//'centers'
-!!$      write(22,'(A)') trim(surfname)
-!!$
-!!$      !num_polys and num_points (Must eliminate the neglected point from other surfaces)
-!!$      condition = .false.
-!!$      num_poly = 0
-!!$      do ipts = 1, npoly(isurf)
-!!$         condition = .false.
-!!$         do i = 1, 3
-!!$            condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$         end do
-!!$         if(.not. condition)num_poly = num_poly + 1
-!!$      end do
-!!$      if(condition) then
-!!$         write(22,'(I4, 2x, I4)') num_poly, nvertex(isurf)-1
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         do ipts = 1, npoly(isurf)
-!!$            condition = .false.
-!!$            do i = 1, 3
-!!$               condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$            end do
-!!$            if(condition) cycle
-!!$            write(forma,'(I4)') nvertex(isurf) - 1
-!!$            forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$            write(22,trim(forma)) 3, (poly(ipts,i,isurf),i=1,3) ! Only triangles
-!!$         end do
-!!$      else
-!!$         write(22,'(I4, 2x, I4)') num_poly, nvertex(isurf)
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         do ipts = 1, npoly(isurf)
-!!$            condition = .false.
-!!$            do i = 1, 3
-!!$               condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$            end do
-!!$            if(condition) cycle
-!!$            write(forma,'(I4)') ncenters(isurf)
-!!$            forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$            write(22,trim(forma)) 3, (poly(ipts,i,isurf),i=1,3) ! Only triangles
-!!$         end do
-!!$      end if
-!!$
-!!$      do ipts = 1, nvertex(isurf)
-!!$         if(vertex(ipts,isurf) == NeglectPoint) cycle
-!!$         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-!!$         write(22,'(5(E14.6, 2x),E14.6)') proj(vertex(ipts,isurf),1), proj(vertex(ipts,isurf),2), proj(vertex(ipts,isurf),3),&
-!!$              (normal(i), i=1,3)
-!!$      end do
-!!$   end do
-!!$
-!!$end subroutine output_stereographic_graph
+   OPEN(11, FILE=trim(seedname)//'.nnkp', STATUS='OLD')
+   READ(11,*) ! skip first line
 
 
-!!$subroutine build_stereographic_surface(nsurf,atoms,rxyz,ncenters,list)
-!!$   use module_types
-!!$   implicit none
-!!$   integer, intent(in) :: nsurf
-!!$   type(atoms_data), intent(in) :: atoms
-!!$   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!!$   integer, dimension(nsurf), intent(in) :: ncenters
-!!$   integer, dimension(atoms%nat,nsurf),intent(in) :: list
-!!$   !Local variables
-!!$   logical :: inverted
-!!$   integer :: iat, i, j, isurf, ifacet, NeglectPoint, SNeglectPoint
-!!$   integer :: npts, nfacets, ifcts, iisurf, ipoly, numdim
-!!$   real(gp) :: rad, dist, norm
-!!$   real(gp), dimension(atoms%nat,3) :: projN, projS      ! atom positions in the projections
-!!$   real(gp), allocatable :: proj(:,:)
-!!$   real(gp), dimension(3) :: CM, refpos, normal, southref, newpt
-!!$   integer, dimension(nsurf) :: npoly
-!!$   integer, dimension(2,3) :: newfct
-!!$   integer, allocatable :: facets(:,:), newFacets(:,:), tmp2(:,:), tmp3 (:,:,:), poly(:,:,:)
-!!$   integer, allocatable :: nvertex(:), vertex(:,:)
-!!$   real(gp), allocatable :: tmp(:,:)
-!!$
-!!$!!$ Should change this
-!!$   ! For now choosing the reference point by hand
-!!$    refpos(1) = rxyz(1,78) ; refpos(2) = rxyz(2,78) ; refpos(3) = rxyz(3,78)
-!!$!   refpos(1) = (rxyz(1,22) + rxyz(1,43) + rxyz(1,39) + rxyz(1,26) + rxyz(1,6)) / 5.0
-!!$!   refpos(2) = (rxyz(2,22) + rxyz(2,43) + rxyz(2,39) + rxyz(2,26) + rxyz(2,6)) / 5.0
-!!$!   refpos(3) = (rxyz(3,22) + rxyz(3,43) + rxyz(3,39) + rxyz(3,26) + rxyz(3,6)) / 5.0
-!!$!!$ END SHOULD CHANGE THIS
-!!$
-!!$   open(22,file='pos_ref.xyz', status='unknown')
-!!$   write(22,'(I4)') atoms%nat+1
-!!$   write(22,*) !skip this line
-!!$   write(22,'(A,3(2x,E14.6))'), 'X',(refpos(i),i=1,3)
-!!$   do i = 1, atoms%nat
-!!$      write(22,'(A,3(2x,E14.6))'),atoms%atomnames(atoms%iatype(i)),rxyz(1,i),rxyz(2,i),rxyz(3,i) 
-!!$   end do
-!!$   close(22)
-!!$
-!!$   ! Calculate Center of mass
-!!$   CM = 0.0
-!!$   do iat = 1, atoms%nat
-!!$      do j = 1, 3
-!!$         CM(j) = CM(j) + rxyz(j,iat) / atoms%nat
-!!$      end do
-!!$   end do
-!!$
-!!$   !Calculate the radius of the sphere (choose it to be the biggest distance from the CM)
-!!$   rad= 0.0
-!!$   do iat = 1, atoms%nat
-!!$      dist = 0.0
-!!$      do j = 1, 3
-!!$         dist = dist + (rxyz(j,iat) - CM(j))**2
-!!$      end do
-!!$      rad = max(dist, rad)
-!!$   end do
-!!$   rad =sqrt(rad)
-!!$
-!!$
-!!$   ! calculate northern projection
-!!$   call stereographic_projection(atoms%nat, rxyz, refpos, CM, rad, projN, normal, NeglectPoint)
-!!$   
-!!$   ! Copy projN to proj
-!!$   allocate(proj(atoms%nat, 3))
-!!$   do iat = 1, atoms%nat
-!!$      do i = 1, 3
-!!$         proj(iat,i) = projN(iat,i)
-!!$      end do
-!!$   end do
-!!$
-!!$   call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint)
-!!$ 
-!!$   ! Calculate the southern pole
-!!$   do i = 1, 3
-!!$      southref(i) = (CM(i) - refpos(i))
-!!$   end do
-!!$   norm = sqrt(southref(1)**2 + southref(2)**2 + southref(3)**2 )
-!!$   do i = 1, 3
-!!$      southref(i) = southref(i)*rad/norm + CM(i)
-!!$   end do
-!!$
-!!$   ! Calculate the southern projection
-!!$   call stereographic_projection(atoms%nat, rxyz, southref, CM, rad, projS, normal, SNeglectPoint)
-!!$
-!!$
-!!$   open(22,file='Spos_ref.xyz', status='unknown')
-!!$   write(22,'(I4)') atoms%nat+1
-!!$   write(22,*) !skip this line
-!!$   write(22,'(A,3(2x,E14.6))'), 'X',(southref(i),i=1,3)
-!!$   do i = 1, atoms%nat
-!!$      write(22,'(A,3(2x,E14.6))'),atoms%atomnames(atoms%iatype(i)),rxyz(1,i),rxyz(2,i),rxyz(3,i) 
-!!$   end do
-!!$   close(22)
-!!$
-!!$   call write_stereographic_projection(22, 'Sproj.xyz   ', atoms, projS, SNeglectPoint)
-!!$
-!!$   allocate(nvertex(nsurf)) 
-!!$   allocate(vertex(maxval(ncenters),nsurf))
-!!$   vertex = 0
-!!$
-!!$   npts = atoms%nat
-!!$   do isurf = 1, nsurf
-!!$
-!!$      numdim = ncenters(isurf)*(ncenters(isurf)-1)*(ncenters(isurf)-2)/6
-!!$      if(allocated(facets))deallocate(facets)
-!!$      allocate(facets(numdim,3))
-!!$ 
-!!$!      call convex_hull_construction_3D_CS1989(natoms,rxyz,ncenters,list,nvertex,vertex,nfacets,facets)
-!!$      ! Don't really need the convex hull (only worth it to eliminate points in the interior)
-!!$      ! Make all the possible triangles, without permutations (n!/3!(n-3)!)
-!!$      call make_facets(ncenters(isurf),list(1,isurf),nvertex(isurf),vertex(1,isurf),nfacets,facets)
-!!$
-!!$      ! Copy facets to newFacets
-!!$      if(allocated(newFacets))deallocate(newFacets)
-!!$      allocate(newFacets(nfacets, 3))
-!!$      do iat = 1, nfacets
-!!$         do i = 1, 3
-!!$            newFacets(iat,i) = facets(iat,i)
-!!$         end do
-!!$      end do
-!!$   
-!!$      ! For the triangles not completly in the northern hemisphere
-!!$      ! Calculate the interior normal of the edges of the triangles for north hemisphere projection (reference point)
-!!$      ! Calculate the interior normal of the edges of the triangles for south hemisphere projection
-!!$      ! Compare the two, if normal does not inverts itself(change of pole should induce a 180 rotation), should divide this edge in two (recursif)
-!!$      npoly(isurf) = nfacets
-!!$      do ifacet = 1, nfacets
-!!$         call build_correct_triangles_for_projection(atoms%nat, rxyz, projN, projS, facets(ifacet,1),&
-!!$              refpos, southref, CM, rad, inverted, newpt)
-!!$
-!!$         newfct(1,1) = npts + 1; newfct(1,2) = facets(ifacet,1) ; newfct(1,3) = facets(ifacet,3)
-!!$         newfct(2,1) = npts + 1; newfct(2,2) = facets(ifacet,2) ; newfct(2,3) = facets(ifacet,3) 
-!!$   
-!!$         if(inverted) then
-!!$           ! Must add the extra point to the atom positions in the projection
-!!$           ! Always add at the end, such that we do not change the previous indexes in facets
-!!$           if(allocated(tmp)) deallocate(tmp)
-!!$           allocate(tmp(npts,3))
-!!$           do iat = 1, npts 
-!!$              do i = 1, 3
-!!$                 tmp(iat,i) = proj(iat,i)
-!!$              end do
-!!$           end do
-!!$           if(allocated(proj)) deallocate(proj)
-!!$           allocate(proj(npts+1,3))
-!!$           do iat = 1, npts 
-!!$              do i = 1, 3
-!!$                 proj(iat,i) = tmp(iat,i)
-!!$              end do
-!!$           end do
-!!$           do i = 1, 3
-!!$              proj(npts + 1,i) = newpt(i)
-!!$           end do
-!!$           npts = npts + 1
-!!$   
-!!$           ! Must change facets accordingly
-!!$           if(allocated(tmp2)) deallocate(tmp2)
-!!$           allocate(tmp2(npoly(isurf),3))
-!!$           do iat = 1, npoly(isurf)
-!!$              do i = 1, 3
-!!$                 tmp2(iat,i) = newFacets(iat,i)
-!!$              end do
-!!$           end do
-!!$           if(allocated(newfacets)) deallocate(newfacets)
-!!$           allocate(newFacets(npoly(isurf)+1,3))
-!!$           i = 0
-!!$           do ifcts = 1, npoly(isurf)
-!!$              if(ifcts == ifacet) cycle
-!!$              i = i + 1
-!!$              do j = 1, 3
-!!$                 newFacets(i,j) = tmp2(ifcts,j)
-!!$              end do
-!!$           end do
-!!$           ! Add the two new facets
-!!$           do i = 0 , 1
-!!$              do j = 1, 3 
-!!$                 newFacets(npoly(isurf)+i,j) = newfct(1+i,j)   
-!!$              end do
-!!$           end do
-!!$           npoly(isurf) = npoly(isurf) + 1
-!!$         end if
-!!$      end do  ! loop on facets
-!!$
-!!$      ! Must conserve the information for each surface
-!!$      if (isurf >= 2) then
-!!$         ! To do this, check that npoly is not greater then the one used to allocate
-!!$         ! If it is the case, we must resize the array
-!!$         if(npoly(isurf) > maxval(npoly(1:isurf-1))) then
-!!$            if(allocated(tmp3)) deallocate(tmp3)
-!!$            allocate(tmp3(nsurf,maxval(npoly(1:isurf-1)),3))
-!!$            tmp3 = 0.0
-!!$            do iisurf = 1, isurf-1
-!!$               do ipoly = 1, maxval(npoly(1:isurf-1))
-!!$                  do i = 1, 3
-!!$                     tmp3(iisurf,ipoly,i) = poly(iisurf,ipoly,i)
-!!$                  end do
-!!$               end do
-!!$            end do 
-!!$            if(allocated(poly)) deallocate(poly)
-!!$            allocate(poly(nsurf,npoly(isurf),3))
-!!$            poly = 0.0
-!!$            do iisurf = 1, isurf-1
-!!$               do ipoly = 1, maxval(npoly(1:isurf-1))
-!!$                  do i = 1, 3
-!!$                     poly(iisurf,ipoly,i) = tmp3(iisurf,ipoly,i)
-!!$                  end do
-!!$               end do
-!!$            end do 
-!!$            do ipoly = 1, npoly(isurf)
-!!$               do i = 1, 3
-!!$                  poly(isurf,ipoly,i) = newFacets(ipoly,i)
-!!$               end do
-!!$            end do
-!!$         else !just add the information at the correct place
-!!$            do ipoly = 1, npoly(isurf)
-!!$               do i = 1, 3
-!!$                  poly(isurf,ipoly,i) = newFacets(ipoly,i)
-!!$               end do
-!!$            end do
-!!$         end if
-!!$      else
-!!$          allocate(poly(nsurf,npoly(isurf),3))
-!!$          poly = 0.0
-!!$          do ipoly = 1, npoly(isurf)
-!!$             do i = 1, 3
-!!$                poly(isurf,ipoly,i) = newFacets(ipoly,i)
-!!$             end do
-!!$          end do
-!!$      end if
-!!$   end do ! loop on surfaces
-!!$   
-!!$   ! Output the surfaces
-!!$   call build_stereographic_graph(npts,proj,nsurf,ncenters,nvertex,vertex,npoly,poly,normal,NeglectPoint)
-!!$
-!!$end subroutine build_stereographic_surface
+   !=====calc_only_A=====!
+   READ(11,*) char1, char2, char3
+   if (char3 .eq. 'T') then 
+      calc_only_A=.TRUE.
+   else 
+      if (char3 .eq. 'F') then 
+         calc_only_A=.FALSE.
+      end if
+   end if
+
+   !=====real_lattice=====!
+   READ(11,*) char1, char2 ! skip "begin real_lattice"
+   READ(11,*) ((real_latt(i,j), j=1,3), i=1,3)
+   READ(11,*) char3, char4 ! skip "end real_lattice"
+
+   !=====recip_lattice=====!
+   READ(11,*) char1, char2 ! skip "begin recip_lattice"
+   READ(11,*) ((recip_latt(i,j), j=1,3), i=1,3)
+   READ(11,*) char3, char4 ! skip "end recip_lattice"
+
+   !=====kpoints=====!
+   READ(11,*) char1, char2 ! skip "begin kpoints"
+   READ(11,*) char3
+   if (char3 .ne. 'end') then ! verify that there are kpoints
+      BACKSPACE 11
+      READ(11,*) ! skip n_kpts
+      READ(11,*) ((kpts(i,j), j=1,3), i=1,n_kpts)
+      READ(11,*) char3, char4 ! skip "end kpoints"
+   end if
+
+   !=====projections=====!
+   READ(11,*) char1, char2 ! skip "begin projections"
+   READ(11,*) char3
+   if (char3 .ne. 'end') then ! verify that there are projections
+      BACKSPACE 11
+      READ(11,*) ! skip n_proj
+      READ(11,*) ((ctr_proj(i,j), j=1,3), l(i), mr(i), rvalue(i), (z_proj(i,j), j=1,3), (x_proj(i,j), j=1,3), zona(i), i=1,n_proj)
+      READ(11,*) char3, char4 ! skip "end projections"
+   end if
+
+   close(11)
+
+END SUBROUTINE read_proj
+
+subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
+   use BigDFT_API
+   use module_types
+   use module_interfaces
+   implicit none
+   ! I/O variables
+   integer, intent(in) :: nwann, nproj,plotwann
+   integer, dimension(nproj), intent(in) :: l, mr
+   real(gp), dimension(nwann,nproj), intent(in) :: tmatrix
+   integer, dimension(plotwann), intent(in) :: ncenters
+   integer, dimension(nwann),intent(in) :: wann_list
+   !Local variables
+   character(len=*),parameter :: subname='character_list'
+   character(len=2) :: num
+   character(len=27):: forma
+   character(len=10), dimension(nproj) :: label
+   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat, i_all
+   real(gp), dimension(:,:), allocatable :: Wpweight
+   real(gp), dimension(:), allocatable :: norm 
+   character(len=10),dimension(:), allocatable :: Wplabel
+   integer, dimension(nproj) :: l_used, mr_used
+
+   !Start by finding the projector labels
+   do np = 1, nproj
+      if (l(np)==0) then   ! s orbital
+         label(np) = 's'
+      end if
+      if (l(np)==1) then   ! p orbitals
+         if (mr(np)==1) label(np) = 'pz'
+         if (mr(np)==2) label(np) = 'px'
+         if (mr(np)==3) label(np) = 'py'
+      end if
+      if (l(np)==2) then   ! d orbitals
+         if (mr(np)==1) label(np) = 'dz2'
+         if (mr(np)==2) label(np) = 'dxz'
+         if (mr(np)==3) label(np) = 'dyz'
+         if (mr(np)==4) label(np) = 'dx2-y2'
+         if (mr(np)==5) label(np) = 'dxy'
+      endif
+      if (l(np)==3) then   ! f orbitals
+         if (mr(np)==1) label(np) = 'fz3'  
+         if (mr(np)==2) label(np) = 'fxz2'
+         if (mr(np)==3) label(np) = 'fyz2'
+         if (mr(np)==4) label(np) = 'fz(x2-y2)'
+         if (mr(np)==5) label(np) = 'fxyz'
+         if (mr(np)==6) label(np) = 'fx(x2-3y2)'
+         if (mr(np)==7) label(np) = 'fy(3x2-y2)'
+      endif
+      if (l(np)==-1) then  !  sp hybrids
+         if (mr(np)==1) label(np) = 'sp-1' 
+         if (mr(np)==2) label(np) = 'sp-2'
+      end if
+      if (l(np)==-2) then  !  sp2 hybrids 
+         if (mr(np)==1) label(np) = 'sp2-1' 
+         if (mr(np)==2) label(np) = 'sp2-2'
+         if (mr(np)==3) label(np) = 'sp2-3'
+      end if
+      if (l(np)==-3) then  !  sp3 hybrids
+         if (mr(np)==1) label(np) = 'sp3-1'
+         if (mr(np)==2) label(np) = 'sp3-2'
+         if (mr(np)==3) label(np) = 'sp3-3'
+         if (mr(np)==4) label(np) = 'sp3-4'
+      end if
+      if (l(np)==-4) then  !  sp3d hybrids
+         if (mr(np)==1) label(np) = 'sp3d-1'
+         if (mr(np)==2) label(np) = 'sp3d-2'
+         if (mr(np)==3) label(np) = 'sp3d-3'
+         if (mr(np)==4) label(np) = 'sp3d-4'
+         if (mr(np)==5) label(np) = 'sp3d-5'
+      end if
+      if (l(np)==-5) then  ! sp3d2 hybrids
+         if (mr(np)==1) label(np) = 'sp3d2-1'
+         if (mr(np)==2) label(np) = 'sp3d2-2'
+         if (mr(np)==3) label(np) = 'sp3d2-3'
+         if (mr(np)==4) label(np) = 'sp3d2-4'
+         if (mr(np)==5) label(np) = 'sp3d2-5'
+         if (mr(np)==6) label(np) = 'sp3d2-6'
+      end if
+   end do   
+
+   ! count the number of projector types
+   ntype = 0
+   l_used = -99
+   mr_used =-99
+   loop_np1: do np = 1, nproj
+      !Check wether we have already used this projector type
+      do np2 = 1,nproj
+         if(l(np) == l_used(np2) .and. mr(np) == mr_used(np2)) then
+            cycle loop_np1
+         end if
+      end do
+      ntype=ntype+1
+      l_used(ntype) = l(np)
+      mr_used(ntype) = mr(np)
+   end do loop_np1
+
+   allocate(Wpweight(nwann,ntype),stat=i_stat)
+   call memocc(i_stat,Wpweight,'Wpweight',subname)
+   allocate(Wplabel(ntype),stat=i_stat)
+   call memocc(i_stat,Wplabel,'Wplabel',subname)
+
+   ! Construct the weights of each type
+   ii = 0
+   l_used = -99
+   mr_used =-99
+   Wpweight = 0.0d0
+   Wplabel = 'unspec'
+   loop_np: do np = 1, nproj
+      !Check wether we have already used this projector type
+      do np2 = 1,nproj
+         if(l(np) == l_used(np2) .and. mr(np) == mr_used(np2)) then
+            cycle loop_np
+         end if
+      end do
+      ii=ii+1
+      l_used(ii) = l(np)
+      mr_used(ii) = mr(np)
+      do np2 = 1, nproj
+         if(l(np2) == l(np) .and. mr(np2) == mr(np)) then
+            do iwann = 1, nwann
+              Wpweight(iwann,ii) = Wpweight(iwann,ii) + tmatrix(iwann,np2)**2
+              Wplabel(ii) = label(np)
+            end do
+         end if
+      end do
+   end do loop_np
+
+   allocate(norm(nwann), stat=i_stat)
+   call memocc(i_stat,norm,'norm',subname)
+
+   !calcualte norm
+   norm = 0.0d0
+   do iwann=1,nwann
+      do np=1,ntype
+         norm(iwann) = norm(iwann) + Wpweight(iwann,np)**2
+      end do
+      norm(iwann) = sqrt(norm(iwann))
+   end do
+
+   ! Print the information
+!   if(iproc==0) then
+     write(*,*) 'Analysis of the symmetry types of the Wannier functions'
+     write(num,'(I2)') ntype
+     forma = '(15x,'//trim(num)//'(A,6x))'
+     write(*,trim(forma))(Wplabel(ii),ii=1,ntype)
+     forma = '(I3,2x,I3,2x,'//trim(num)//'(E14.6,2x))'
+     do iwann = 1, plotwann
+        iiwann = wann_list(iwann)
+        write(*,trim(forma)) iiwann, iwann, (Wpweight(iiwann,ii)/norm(iiwann), ii=1,ntype)
+     end do
+!   end if
+
+    i_all = -product(shape(norm))*kind(norm)
+    deallocate(norm,stat=i_stat)
+    call memocc(i_stat,i_all,'norm',subname)
+    i_all = -product(shape(Wpweight))*kind(Wpweight)
+    deallocate(Wpweight,stat=i_stat)
+    call memocc(i_stat,i_all,'Wpweight',subname)
+    i_all = -product(shape(Wplabel))*kind(Wplabel)
+    deallocate(Wplabel,stat=i_stat)
+    call memocc(i_stat,i_all,'Wplabel',subname)
+
+end subroutine character_list
 
 
-!!$subroutine output_stereographic_graph(natoms,proj,nsurf,ncenters,Zatoms,nvertex,vertex,npoly,poly,normal,NeglectPoint)
-!!$   use module_interfaces
-!!$   use module_types
-!!$   implicit none
-!!$   integer, intent(in) :: natoms, nsurf, NeglectPoint
-!!$   real(gp), dimension(natoms,3), intent(in) :: proj
-!!$   integer, dimension(nsurf), intent(in) :: ncenters, npoly, nvertex
-!!$   integer, dimension(natoms,nsurf) :: Zatoms                          ! indexes of all the atoms spanned by the Wannier function
-!!$   integer, dimension(nsurf,maxval(npoly),3),intent(in) :: poly
-!!$   integer, dimension(maxval(nvertex),nsurf), intent(in) :: vertex     ! indexes of the vertex (on the convex hull) of the surface
-!!$   real(gp), dimension(3), intent(in) :: normal
-!!$   ! Local variables
-!!$   integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly
-!!$   character(len=14) :: surfname   
-!!$   character(len=20) :: forma
-!!$   logical :: condition
-!!$   
-!!$   
-!!$   open(22,file='proj.surf', status='unknown')
-!!$   
-!!$   !First line is just a comment 
-!!$   write(22,'(A)') 'Stereographic graph'
-!!$   
-!!$   !Write the dimensions of the box (simple cubic)
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') maxval(proj(:,1))-minval(proj(:,1)), 0.0, maxval(proj(:,2))-minval(proj(:,2))  !dxx dyx dyy
-!!$   write(22,'(E14.6, 2x, E14.6, 2x, E14.6)') 0.0, 0.0,  maxval(proj(:,3))-minval(proj(:,3))                                   !dzx dzy dzz
-!!$   
-!!$   nsurftot = 0
-!!$   npts = 0
-!!$   num_poly = 0
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$      nsurftot = nsurftot + 1
-!!$      ! Must eliminate the neglected point from other surfaces
-!!$      do ipts = 1, npoly(isurf)
-!!$         condition = .false.
-!!$         do i = 1, 3
-!!$            condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$         end do
-!!$         if(.not. condition) num_poly = num_poly + 1 
-!!$      end do
-!!$      if(condition) then
-!!$         npts = npts + nvertex(isurf)-1
-!!$      else
-!!$         npts = npts + nvertex(isurf)
-!!$      end if
-!!$   end do
-!!$
-!!$   !Fourth line: number of surfaces, total num_polys, total num_points
-!!$   write(22,'(I4, 2x, I4, 2x, I4)') nsurftot, num_poly, npts
-!!$   
-!!$   do isurf = 1, nsurf
-!!$      !MUST eliminate the wanniers that are less then 3 centers
-!!$      if(ncenters(isurf) < 3) cycle
-!!$      ! or the 3 centers containing the neglected point
-!!$      condition = (Zatoms(1,isurf) == NeglectPoint .or. Zatoms(2,isurf) == NeglectPoint .or. Zatoms(3,isurf) == NeglectPoint)
-!!$      if(ncenters(isurf) == 3 .and. condition) cycle
-!!$
-!!$      ! Determining the format (number of integers) for surface name 
-!!$      ndecimal = 1
-!!$      ncent = ncenters(isurf)
-!!$      do
-!!$        if(int(ncent / 10) == 0) exit
-!!$        ncent = ncent / 10
-!!$        ndecimal = ndecimal + 1
-!!$      end do
-!!$      write(forma,'(I1)') ndecimal
-!!$      forma = '(I'//trim(forma)//')'
-!!$
-!!$      !Name of the surface
-!!$      write(surfname,forma) ncenters(isurf)
-!!$      surfname = '2e - '//trim(surfname)//'centers'
-!!$      write(22,'(A)') trim(surfname)
-!!$   
-!!$      !num_polys and num_points (Must eliminate the neglected point from other surfaces)
-!!$      condition = .false.
-!!$      num_poly = 0
-!!$      do ipts = 1, npoly(isurf)
-!!$         condition = .false.
-!!$         do i = 1, 3
-!!$            condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$         end do
-!!$         if(.not. condition)num_poly = num_poly + 1
-!!$      end do
-!!$      if(condition) then
-!!$         write(22,'(I4, 2x, I4)') num_poly, nvertex(isurf)-1
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         do ipts = 1, npoly(isurf)
-!!$            condition = .false.
-!!$            do i = 1, 3
-!!$               condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$            end do
-!!$            if(condition) cycle
-!!$            write(forma,'(I4)') nvertex(isurf) - 1
-!!$            forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$            write(22,trim(forma)) 3, (poly(ipts,i,isurf),i=1,3) ! Only triangles
-!!$         end do
-!!$      else
-!!$         write(22,'(I4, 2x, I4)') num_poly, nvertex(isurf)
-!!$         !number of vertices, i_1 i_2 i_3 ... i_n (index of the vertices)
-!!$         do ipts = 1, npoly(isurf)
-!!$            condition = .false.
-!!$            do i = 1, 3
-!!$               condition = condition .or. poly(ipts,i,isurf) == NeglectPoint
-!!$            end do
-!!$            if(condition) cycle
-!!$            write(forma,'(I4)') ncenters(isurf)
-!!$            forma = '(I4,'//trim(forma)//'(2x,I4))'
-!!$            write(22,trim(forma)) 3, (poly(ipts,i,isurf),i=1,3) ! Only triangles
-!!$         end do
-!!$      end if
-!!$
-!!$      do ipts = 1, nvertex(isurf)
-!!$         if(vertex(ipts,isurf) == NeglectPoint) cycle
-!!$         !coordinates of the vertices (x y z) and the normal to the surface at these vertices (nx ny nz)
-!!$         write(22,'(5(E14.6, 2x),E14.6)') proj(vertex(ipts,isurf),1), proj(vertex(ipts,isurf),2), proj(vertex(ipts,isurf),3),&
-!!$              (normal(i), i=1,3)
-!!$      end do
-!!$   end do
-!!$
-!!$end subroutine output_stereographic_graph
+subroutine read_spread_file(iproc,seedname,nwann,plotwann,wann_list)
+implicit none
+character(len=16),intent(in) :: seedname
+integer, intent(in) :: iproc, nwann
+integer, intent(out) :: plotwann
+integer, dimension(nwann),intent(out) :: wann_list
+!Local variables
+character(len=8) :: string
+logical :: file_exist
+integer :: i,j
 
-!!$
-!!$
-!!$subroutine convex_hull_construction_3D_CS1989(natoms,rxyz,ncenters,list,nvertex,vertex,nfacets,facets)
-!!$   use module_interfaces
-!!$   use module_types
-!!$   implicit none
-!!$   integer, intent(in) :: natoms, ncenters
-!!$   integer, dimension(ncenters),intent(in) :: list
-!!$   real(gp), dimension(3,natoms), intent(in) :: rxyz
-!!$   integer, intent(out) :: nvertex,nfacets
-!!$   integer, dimension(ncenters) :: vertex
-!!$   integer, dimension(999,3), intent(out) :: facets
-!!$   ! Local variables
-!!$   logical :: allcoplanar, collinear, allcollinear
-!!$   integer :: i, j, stat,
-!!$
-!!$
-!!$   !Only build the correct facet for ncenters == 3
-!!$   if(ncenters < 2) then
-!!$      nfacets = 0
-!!$      return
-!!$   else if(ncenters == 3) then
-!!$      nfacets = 1
-!!$      do i = 1, 3
-!!$         facets(1,i) = list(i)
-!!$      end do 
-!!$      return
-!!$   end if
-!!$
-!!$   !1) Construct a tetrahedron by connecting first four points
-!!$   !a) Initialize inipts
-!!$   do i = 1, 4
-!!$      do j = 1, 3
-!!$         inipts(j,i) = rxyz(j,list(i))
-!!$      end do
-!!$    end do
-!!$
-!!$   !b) Test coplanarity
-!!$   !   To do this check that volume of tetrahedron in not zero
-!!$   call volume_tetrahedron(inipts,volume,stat)
-!!$
-!!$   if(stat == 0) 
-!!$   else if(stat == 1) then
-!!$      ! Coplanar because last point is inside the plane spanned by first three
-!!$      if(ncenters > 4) then ! else we search for a tetrahedron by going through the list of points
-!!$         do i = 5, ncenters
-!!$            do j = 1, 3
-!!$               initpts(4,j) = rxyz(j,list(i))
-!!$            end do
-!!$            call volume_tetrahedron(inipts,volume,stat)
-!!$            if(stat == 0) exit  !we have found our point
-!!$            if(stat .ne. 0 and i == ncenters) allcoplanar = .true.
-!!$         end do
-!!$      end if
-!!$      if(ncenters == 4 .or. allcoplanar) then
-!!$         ! if there is only four points, use graham algorithm 2D
-!!$         call graham_convex_hull()
-!!$      end if
-!!$   else if(stat == 2) then
-!!$      ! Coplanar because first three points are collinear
-!!$      if(ncenters > 4) then !change the third point
-!!$         do i = 5, ncenters
-!!$            do j = 1, 3
-!!$               initpts(3,j) = rxyz(j,list(i))
-!!$            end do
-!!$            call volume_tetrahedron(inipts,volume,stat)
-!!$            if(stat == 0) exit  !we have found our point
-!!$            if(stat .ne. 0 and i == ncenters) collinear = .true.
-!!$         end do        
-!!$      end if
-!!$      if(ncenters == 4 .or. collinear) then !we have a triangle
-!!$      nfacets = 1
-!!$      call graham_convex_hull()  !find the extremum points of the line
-!!$      do i = 1, 3
-!!$         facets(1,i) = list(i)
-!!$      end do 
-!!$      end if
-!!$    else if(stat == 3) then !all four points are collinear
-!!$!!      Should never happen so code it another time
-!!$!!      if(ncenter >= 7) then
-!!$!!      end if
-!!$!!      if(ncenter < 6) then
-!!$!!        nfacets = 0
-!!$!!        return
-!!$!!      end if
-!!$!!        
-!!$!!         if(ncenter == 7) then
-!!$!!           
-!!$!!      end if
-!!$      stop 'All initial points are collinear!'        
-!!$   end if
-!!$      
-!!$
-!!$   do ipts =  1, ncenter - 4
-!!$   !2) For each remaining points
-!!$
-!!$      !a) determine the set of facets visible by the point
-!!$      !   For this, only need to check the normal of the planes
-!!$      
-!!$
-!!$      !b) determine the set of horizon edges
-!!$
-!!$      !c) For each horizon edge construct a new triangular facet connecting edge and point p
-!!$
-!!$      !d) Discard all facets previously visible to p
-!!$    end do
-!!$
-!!$end subroutine convex_hull_construction_3D_CS1989
+   if(iproc==0) then
+      write(*,*) '!==================================!'
+      write(*,*) '!     Reading .dat :               !'
+      write(*,*) '!==================================!'
+   end if
 
-!!$subroutine volume_tetrahedron(rxyz,volume,stat)
-!!$   use module_types
-!!$   implicit none
-!!$   real(gp), dimension(3,4), intent(in) :: rxyz
-!!$   real(gp), intent(out) :: volume
-!!$   integer, intent(out) :: stat   ! = 0 volume not zero, = 1 if crossprod is zero, = 2 dot prod gives zero, =3 all points collinear
-!!$   !Local variables
-!!$   integer :: i
-!!$   real(gp), dimension(3) :: vec1, vec2, vec3, crossprod
-!!$   real(gp) :: proj1, proj2, proj3
-!!$
-!!$   ! Initialize stat has all ok
-!!$   stat = 0
-!!$
-!!$   !   volume = (x_3 - x_1) dot [(x_2 - x_1) cross (x_4 - x_3)]
-!!$   do i = 1, 3
-!!$      vec1(i) = rxyz(i,3) - rxyz(i,1)
-!!$      vec2(i) = rxyz(i,2) - rxyz(i,1)
-!!$      vec3(i) = rxyz(i,4) - rxyz(i,3)
-!!$   end do
-!!$
-!!$   crossprod(1) = vec2(2)*vec3(3) - vec2(3)*vec3(2)
-!!$   crossprod(2) = vec2(3)*vec3(1) - vec2(1)*vec3(3)
-!!$   crossprod(3) = vec2(1)*vec3(2) - vec2(2)*vec3(1)
-!!$ 
-!!$   if(crossprod(1)**2+crossprod(2)**2+crossprod(3)**2 < 1.0d-6) stat = 2
-!!$
-!!$   volume = 0.0
-!!$   do i = 1, 3
-!!$      volume =  volume + vec1(i)*crossprod(i)
-!!$   end do
-!!$
-!!$   if(volume < 1.0d-6 .and. stat .ne. 1) stat = 1
-!!$
-!!$   !Should check if all points are collinear
-!!$   proj1 = 0.0
-!!$   proj2 = 0.0
-!!$   proj3 = 0.0
-!!$   do i = 1, 3
-!!$      proj1 = proj1 + vec1(i)*vec2(i) / (sqrt(vec1(1)**2+vec1(2)**2+vec1(3)**2)*sqrt(vec2(1)**2+vec2(2)**2+vec2(3)**2))
-!!$      proj2 = proj2 + vec1(i)*vec3(i) / (sqrt(vec1(1)**2+vec1(2)**2+vec1(3)**2)*sqrt(vec3(1)**2+vec3(2)**2+vec3(3)**2))
-!!$      proj3 = proj3 + vec2(i)*vec3(i) / (sqrt(vec2(1)**2+vec2(2)**2+vec2(3)**2)*sqrt(vec3(1)**2+vec3(2)**2+vec3(3)**2))
-!!$   end do
-!!$
-!!$   if(abs(proj1)-1.0 < 1.0d-6 .and. abs(proj2)-1.0 < 1.0d-6 .and. abs(proj3)-1.0 < 1.0d-6) stat = 3
-!!$
-!!$end subroutine volume_tetrahedron
-!!$
-!!$
-!!$subroutine build_correct_triangles_for_projection(natom, rxyz, projN, projS, facet,refpos, southref, CM, rad, inverted, pts)
-!!$use module_types
-!!$implicit none
-!!$integer, intent(in) :: natom                              ! Number of atoms 
-!!$real(gp),intent(in) :: rad                                ! radius of the sphere for projection
-!!$real(gp), dimension(3),intent(in) :: refpos, southref,CM
-!!$real(gp), dimension(3, natom), intent(in) :: rxyz         ! Position fo atoms before projection
-!!$real(gp), dimension(natom, 3), intent(in) :: projN        ! atom positions in the northern projection
-!!$real(gp), dimension(natom, 3), intent(in) :: projS        ! atom positions in the southern projection
-!!$integer, dimension(3), intent(in) :: facet                ! atom index of the triangles forming the surface
-!!$logical, intent(out) :: inverted
-!!$real(gp), dimension(3), intent(out) :: pts
-!!$!Local variables
-!!$logical :: check
-!!$integer :: iface, i, j, l, NeglectPoint
-!!$integer, dimension(3,2) :: pairs
-!!$real(gp), dimension(3) :: normal
-!!$real(gp), dimension(3,3) :: Nnormals, Snormals
-!!$real(gp), dimension(4,3) :: New_pts, new_projN, new_projS
-!!$
-!!$print *,'facet: ',facet
-!!$
-!!$! Index of the points defining the three edges of the triangles
-!!$pairs(1,1) = 1 ; pairs(1,2) = 2
-!!$pairs(2,1) = 1 ; pairs(2,2) = 3
-!!$pairs(3,1) = 2 ; pairs(3,2) = 3
-!!$
-!!$! Calculate interior normals for the northern projection
-!!$call calculate_interior_normals(natom, projN, facet, Nnormals)
-!!$
-!!$! Calculate the interior normal of the edges for the southern projection
-!!$call calculate_interior_normals(natom, projS, facet, Snormals)  
-!!$do i = 1, 3
-!!$print *,'ProjN: ',projN(facet(i),:)
-!!$print *,'ProjS: ',projS(facet(i),:)
-!!$end do
-!!$print *,'NORMALS TEST:', dot_product(Nnormals(1,:),Snormals(1,:)) > 0,&
-!!$        dot_product(Nnormals(2,:),Snormals(2,:)) > 0 ,&
-!!$        dot_product(Nnormals(3,:),Snormals(3,:)) > 0
-!!$do i=1,3
-!!$print *,'Normals:', Nnormals(i,:),Snormals(i,:)
-!!$end do
-!!$
-!!$! Compare the two, if it does not invert, divide the triangle along this edge 
-!!$! They either completly invert, or they do not
-!!$! Use greater then zero, because switching poles incures a 180 rotation
-!!$if(dot_product(Nnormals(1,:),Snormals(1,:)) > 0 .or. dot_product(Nnormals(2,:),Snormals(2,:)) > 0 .or.&
-!!$    dot_product(Nnormals(3,:),Snormals(3,:)) > 0) then
-!!$   ! Must select the edge to split
-!!$   ! FOR NOW: try splitting edge by edge until we find the one opposite the concave point (the one which builds 2 proprer oriented triangles)
-!!$   loop_edge : do i = 1, 3
-!!$
-!!$         ! Split the triangle with respect to this edge
-!!$         do j = 1, 3
-!!$            New_pts(1,j) = (rxyz(j,facet(pairs(i,1))) + rxyz(j,facet(pairs(i,2))))/2
-!!$            do l = 1, 3
-!!$               New_pts(l+1,j) = rxyz(j,facet(l))
-!!$            end do
-!!$         end do
-!!$
-!!$         ! Now project the new points
-!!$         call stereographic_projection(4, New_pts, refpos, CM, rad, new_projN, normal, NeglectPoint)
-!!$         if(NeglectPoint .ne. 0) stop 'Neglecting one of the points'
-!!$         call stereographic_projection(4, New_pts, southref, CM, rad, new_projS, normal, NeglectPoint)
-!!$         if(NeglectPoint .ne. 0) stop 'Neglecting one of the points'
-!!$
-!!$         ! Check if the new triangles solved the problem
-!!$         ! First triangle
-!!$         call calculate_interior_normals(4, new_projN, (/ 1, 2, 4/), Nnormals)
-!!$         call calculate_interior_normals(4, new_projS, (/ 1, 2, 4 /), Snormals)
-!!$         check = dot_product(Nnormals(i,:),Snormals(i,:)) > 0
-!!$         ! Second triangle
-!!$         call calculate_interior_normals(4, new_projN, (/ 1, 3, 4/), Nnormals)
-!!$         call calculate_interior_normals(4, new_projS, (/ 1, 3, 4 /), Snormals)
-!!$         check = check .and. dot_product(Nnormals(i,:),Snormals(i,:)) > 0
-!!$
-!!$         ! If the triangles are now well behaving, keep this configuration
-!!$         if(check) then
-!!$            inverted = .true.
-!!$            do j = 1, 3 
-!!$               pts(j) = new_projN(1,j)
-!!$            end do
-!!$            exit loop_edge
-!!$         end if
-!!$         if(.not. check .and. i==3) stop 'Could not find a correct convex representation for the stereographic graph!'
-!!$   end do loop_edge
-!!$
-!!$else
-!!$   inverted = .false.
-!!$   pts = (/ 1.0, 1.0, 1.0 /)      
-!!$end if
-!!$
-!!$end subroutine build_correct_triangles_for_projection
-!!$
-!!$subroutine calculate_interior_normals(natom, proj, facet, normals)
-!!$use module_types
-!!$implicit none
-!!$integer, intent(in) :: natom                         ! Number of atoms 
-!!$real(gp), dimension(natom, 3), intent(in) :: proj    ! atom positions in the projection
-!!$integer, dimension(3), intent(in) :: facet           ! atom index of the triangle forming the surface
-!!$real(gp), dimension(3,3), intent(out) :: normals
-!!$! Local variables
-!!$integer :: i, j, k, l, pt1, pt2
-!!$real(gp), dimension(3) :: norm
-!!$real(gp), dimension(3,3) :: edges
-!!$print *,'cin:facet',facet
-!!$   ! Calculate the edges for the northern projection
-!!$   l = 0
-!!$   do i = 1, 3
-!!$      do j = i, 3
-!!$         if (i == j) cycle
-!!$         l = l + 1
-!!$         pt1 = facet(i)
-!!$         pt2 = facet(j)
-!!$         do k = 1, 3
-!!$            edges(l,k) = proj(pt2,k)-proj(pt1,k)   !numbering of the edges 1=1-2, 2=1-3, 3=2-3 
-!!$         end do
-!!$      end do
-!!$   end do
-!!$
-!!$   !calculate norms
-!!$   do i =1, 3
-!!$     do j = 1,3
-!!$        norm(i) = norm(i) + edges(i,j)**2 
-!!$     end do
-!!$   end do
-!!$
-!!$   ! The interior normals to these edges are defined by
-!!$   do j = 1, 3
-!!$      normals(1,j) = proj(facet(3),j) - edges(1,j)*dot_product(edges(2,:),edges(1,:))&!(edges(2,1)*edges(1,1)+edges(2,2)*edges(1,2)+edges(2,3)*edges(1,3))&
-!!$                     / norm(1) - proj(facet(1),j)
-!!$      normals(2,j) = proj(facet(2),j) - edges(2,j)*(edges(2,1)*edges(1,1)+edges(2,2)*edges(1,2)+edges(2,3)*edges(1,3))&
-!!$                     / norm(2) - proj(facet(1),j)
-!!$      normals(3,j) = proj(facet(1),j) - edges(3,j)*(-edges(1,1)*edges(3,1)-edges(1,2)*edges(3,2)-edges(1,3)*edges(3,3))&
-!!$                     / norm(3) - proj(facet(2),j) 
-!!$   end do
-!!$
-!!$end subroutine calculate_interior_normals
+   inquire(file=trim(seedname)//'.dat',exist=file_exist)
+   if (.not. file_exist) then
+      if (iproc==0) then
+         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'.dat, not found !'
+         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
+      end if
+      call mpi_finalize(i)
+      stop
+   end if
 
+   !Initialize wann_list
+   wann_list = 0
+
+   open(11, file=trim(seedname)//'.dat', status='OLD')
+
+   ! Check if the line is commented
+   plotwann = 0
+   do i = 1 ,nwann
+      read(11,*) string
+      if(VERIFY(string, ' #', .false.) == 0) cycle
+      plotwann = plotwann +1
+      wann_list(plotwann) = i
+   end do
+
+   close(11)
+
+   if(iproc == 0) then
+      write(*,'(A)') 'Occupied/Plotted Wannier functions are:'
+      do i=1, plotwann, 6
+         write(*,'(6(2x,I4))') (wann_list(j), j=i,min(i+5,size(wann_list)))
+      end do
+   end if
+
+   if(iproc==0) then
+      write(*,*) '!==================================!'
+      write(*,*) '!     Reading .dat : DONE          !'
+      write(*,*) '!==================================!'
+   end if
+END SUBROUTINE read_spread_file
+
+subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,locregCenter,&
+     locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
+     nseg_f,nvctr_f,keyg_f,keyv_f, &
+     psi_c,psi_f,eval)
+  use module_base
+  implicit none
+  logical, intent(in) :: useFormattedOutput
+  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
+  real(gp), intent(in) :: hx,hy,hz,locrad,confPotprefac
+  real(wp), intent(in) :: eval
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(nvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3), intent(in) :: locregCenter
+  !local variables
+  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
+  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+
+  if (useFormattedOutput) then
+     write(unitwf,*) iorb,eval
+     write(unitwf,*) hx,hy,hz
+     write(unitwf,*) n1,n2,n3
+     write(unitwf,*) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
+     write(unitwf,*) nat
+     do iat=1,nat
+     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+     enddo
+     write(unitwf,*) nvctr_c, nvctr_f
+  else
+     write(unitwf) iorb,eval
+     write(unitwf) hx,hy,hz
+     write(unitwf) n1,n2,n3
+     write(unitwf) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
+     write(unitwf) nat
+     do iat=1,nat
+     write(unitwf) (rxyz(j,iat),j=1,3)
+     enddo
+     write(unitwf) nvctr_c, nvctr_f
+  end if
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        tt=psi_c(i-i0+jj)
+        if (useFormattedOutput) then
+           write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
+        else
+           write(unitwf) i,i2,i3,tt
+        end if
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        t1=psi_f(1,i-i0+jj)
+        t2=psi_f(2,i-i0+jj)
+        t3=psi_f(3,i-i0+jj)
+        t4=psi_f(4,i-i0+jj)
+        t5=psi_f(5,i-i0+jj)
+        t6=psi_f(6,i-i0+jj)
+        t7=psi_f(7,i-i0+jj)
+        if (useFormattedOutput) then
+           write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        else
+           write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        end if
+     enddo
+  enddo
+
+  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+
+END SUBROUTINE writeonewave_linear
+
+subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
+           norb,ntmb,nvctr_c,nvctr_f,coeff)
+  use module_base
+  implicit none
+  logical, intent(in) :: useFormattedOutput
+  integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
+  real(gp), intent(in) :: hx,hy,hz
+  real(wp), dimension(ntmb,norb), intent(in) :: coeff
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  !local variables
+  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
+  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+
+  ! Write the Header
+  if (useFormattedOutput) then
+     write(unitwf,*) norb,ntmb
+     write(unitwf,*) hx,hy,hz
+     write(unitwf,*) n1,n2,n3
+     write(unitwf,*) nat
+     do iat=1,nat
+     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+     enddo
+     write(unitwf,*) nvctr_c, nvctr_f
+  else
+     write(unitwf) norb, ntmb
+     write(unitwf) hx,hy,hz
+     write(unitwf) n1,n2,n3
+     write(unitwf) nat
+     do iat=1,nat
+     write(unitwf) (rxyz(j,iat),j=1,3)
+     enddo
+     write(unitwf) nvctr_c, nvctr_f
+  end if
+
+  ! Now write the coefficients
+  do i = 1, norb
+     do j = 1, ntmb
+        tt = coeff(j,i)
+        if (useFormattedOutput) then
+           write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
+        else
+           write(unitwf) i,j,tt
+        end if
+     end do
+  end do  
+
+  if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+
+END SUBROUTINE writeLinearCoefficients
+
+!>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
+subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff)
+  use module_types
+  use module_base
+  use module_interfaces, except_this_one => writeonewave
+  implicit none
+  integer, intent(in) :: iproc,iformat
+  integer, intent(in) :: norb   !< number of orbitals, not basis functions
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi  ! Should be the real linear dimension and not the global
+  real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
+  character(len=*), intent(in) :: filename
+  !Local variables
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+
+  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+
+  if (iformat == WF_FORMAT_ETSF) then
+      stop 'Linear scaling with ETSF writing not implemented yet'
+!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
+
+     ! Write the TMBs in the Plain BigDFT files.
+     do iorb=1,orbs%norbp
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        do ispinor=1,orbs%nspinor
+           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                & orbs,iorb,ispinor,iorb_out)
+           call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
+                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+                at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
+                psi(1,ispinor,iorb),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1,ispinor,iorb),orbs%eval(iorb+orbs%isorb))
+           close(99)
+        end do
+     enddo
+
+    ! Now write the coefficients to file
+    ! Must be careful, the orbs%norb is the number of basis functions
+    ! while the norb is the number of orbitals.
+    if(iproc == 0) then
+      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
+           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+    end if
+     call cpu_time(tr1)
+     call system_clock(ncount2,ncount_rate,ncount_max)
+     tel=dble(ncount2-ncount1)/dble(ncount_rate)
+     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+  end if
+
+END SUBROUTINE writemywaves_linear
+
+subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+     & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
+     & confPotprefac,psi,eval,psifscf)
+  use module_base
+  use module_types
+  use internal_io
+  use module_interfaces
+  implicit none
+  logical, intent(in) :: useFormattedInput
+  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, intent(out) :: confPotOrder
+  real(gp), intent(out) :: locrad, confPotprefac
+  real(wp), intent(out) :: eval
+  real(gp), dimension(3), intent(out) :: locregCenter
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+  
+  !local variables
+  character(len=*), parameter :: subname='readonewave_linear'
+  character(len = 256) :: error
+  logical :: perx,pery,perz,lstat
+  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
+  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+
+  !write(*,*) 'INSIDE readonewave'
+  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
+       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,&
+       & locrad, locregCenter, confPotOrder, confPotprefac)
+  if (.not. lstat) call io_error(trim(error))
+  if (iorb_old /= iorb) stop 'readonewave_linear'
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  tx=0.0_gp
+  ty=0.0_gp
+  tz=0.0_gp
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  enddo
+  displ=sqrt(tx+ty+tz)
+
+  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
+
+     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
+     if (.not. lstat) call io_error(trim(error))
+
+  else
+
+     if (iproc == 0 .and. iorb == 1) then
+        write(*,*) 'wavefunctions need reformatting'
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
+             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
+             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+     end if
+
+! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
+if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
+call mpi_finalize(i_all)
+stop 
+
+!!     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+!!     call memocc(i_stat,psigold,'psigold',subname)
+!!
+!!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+!!     do iel=1,nvctr_c_old
+!!        if (useFormattedInput) then
+!!           read(unitwf,*) i1,i2,i3,tt
+!!        else
+!!           read(unitwf) i1,i2,i3,tt
+!!        end if
+!!        psigold(i1,1,i2,1,i3,1)=tt
+!!     enddo
+!!     do iel=1,nvctr_f_old
+!!        if (useFormattedInput) then
+!!           read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!        else
+!!           read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!        end if
+!!        psigold(i1,2,i2,1,i3,1)=t1
+!!        psigold(i1,1,i2,2,i3,1)=t2
+!!        psigold(i1,2,i2,2,i3,1)=t3
+!!        psigold(i1,1,i2,1,i3,2)=t4
+!!        psigold(i1,2,i2,1,i3,2)=t5
+!!        psigold(i1,1,i2,2,i3,2)=t6
+!!        psigold(i1,2,i2,2,i3,2)=t7
+!!     enddo
+!!
+!!     ! I put nat = 1 here, since only one position is saved in wavefunction files.
+!!     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+!!          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+!!
+!!     i_all=-product(shape(psigold))*kind(psigold)
+!!     deallocate(psigold,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psigold',subname)
+!!
+  endif
+
+END SUBROUTINE readonewave_linear                                                     
+
+subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
+       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
+       & locrad, locregCenter, confPotOrder, confPotprefac)
+    use module_base
+    use module_types
+    use internal_io
+    implicit none
+
+    integer, intent(in) :: unitwf
+    logical, intent(in) :: formatted
+    integer, intent(out) :: iorb_old
+    integer, intent(out) :: n1_old, n2_old, n3_old
+    real(gp), intent(out) :: hx_old, hy_old, hz_old
+    logical, intent(out) :: lstat
+    real(wp), intent(out) :: eval
+    integer, intent(out) :: confPotOrder
+    real(gp), intent(out) :: locrad, confPotprefac
+    real(gp), dimension(3), intent(out) :: locregCenter
+    character(len =256), intent(out) :: error
+    ! Optional arguments
+    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+    integer, intent(in), optional :: nat
+    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+
+    character(len = *), parameter :: subname = "io_read_descr_linear"
+    integer :: i, iat, i_stat, nat_
+    real(gp) :: rxyz(3)
+
+    lstat = .false.
+    write(error, "(A)") "cannot read psi description."
+    if (formatted) then
+       read(unitwf,*,iostat=i_stat) iorb_old,eval
+       if (i_stat /= 0) return
+       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
+       if (i_stat /= 0) return
+       read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
+       if (i_stat /= 0) return
+       read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
+       if (i_stat /= 0) return
+       !write(*,*) 'reading ',nat,' atomic positions'
+       if (present(nat) .And. present(rxyz_old)) then
+          read(unitwf,*,iostat=i_stat) nat_
+          if (i_stat /= 0) return
+          ! Sanity check
+          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
+          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+          do iat=1,nat
+             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
+             if (i_stat /= 0) return
+          enddo
+       else
+          read(unitwf,*,iostat=i_stat) nat_
+          if (i_stat /= 0) return
+          do iat=1,nat_
+             read(unitwf,*,iostat=i_stat)
+             if (i_stat /= 0) return
+          enddo
+       end if
+       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
+          if (i_stat /= 0) return
+       else
+          read(unitwf,*,iostat=i_stat) i, iat
+          if (i_stat /= 0) return
+       end if
+    else
+       read(unitwf,iostat=i_stat) iorb_old,eval
+       if (i_stat /= 0) return
+       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
+       if (i_stat /= 0) return
+       read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
+       if (i_stat /= 0) return
+       read(unitwf,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
+       if (i_stat /= 0) return
+       if (present(nat) .And. present(rxyz_old)) then
+          read(unitwf,iostat=i_stat) nat_
+          if (i_stat /= 0) return
+          ! Sanity check
+          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
+          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+          do iat=1,nat
+             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
+             if (i_stat /= 0) return
+          enddo
+       else
+          read(unitwf,iostat=i_stat) nat_
+          if (i_stat /= 0) return
+          do iat=1,nat_
+             read(unitwf,iostat=i_stat) rxyz
+             if (i_stat /= 0) return
+          enddo
+       end if
+       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
+          if (i_stat /= 0) return
+       else
+          read(unitwf,iostat=i_stat) i, iat
+          if (i_stat /= 0) return
+       end if
+    end if
+    lstat = .true.
+END SUBROUTINE io_read_descr_linear
+
+!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
+!!  have changed
+subroutine readmywaves_linear(iproc,filename,iformat,Lzd,orbs,at,rxyz_old,rxyz,  & 
+    psi,orblist)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => readmywaves_linear
+  implicit none
+  integer, intent(in) :: iproc, iformat
+  type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
+  character(len=*), intent(in) :: filename
+  integer, dimension(orbs%norb), optional :: orblist
+  !Local variables
+  character(len=*), parameter :: subname='readmywaves_linear'
+  logical :: perx,pery,perz
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
+  integer :: iorb_out,ispinor,ilr,ind
+  integer :: confPotOrder
+  real(gp) :: locrad, confPotprefac
+  real(gp), dimension(3) :: locregCenter
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+  real(wp), dimension(:,:,:), allocatable :: psifscf
+  !integer, dimension(orbs%norb) :: orblist2
+
+  call cpu_time(tr0)
+  call system_clock(ncount1,ncount_rate,ncount_max)
+
+  if (iformat == WF_FORMAT_ETSF) then
+     stop 'Linear scaling with ETSF writing not implemented yet'
+     !construct the orblist or use the one in argument
+     !do nb1 = 1, orbs%norb
+     !orblist2(nb1) = nb1
+     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+     !end do
+
+     !call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     !     wfd,psi)
+  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
+     !conditions for periodicity in the three directions
+     !perx=(at%geocode /= 'F')
+     !pery=(at%geocode == 'P')
+     !perz=(at%geocode /= 'F')
+
+     !buffers related to periodicity
+     !WARNING: the boundary conditions are not assumed to change between new and old
+     !call ext_buffers_coarse(perx,nb1)
+     !call ext_buffers_coarse(pery,nb2)
+     !call ext_buffers_coarse(perz,nb3)
+     !allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+     !call memocc(i_stat,psifscf,'psifscf',subname)
+     allocate(psifscf(1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,psifscf,'psifscf',subname)
+     ind = 0
+     do iorb=1,orbs%norbp!*orbs%nspinor
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        do ispinor=1,orbs%nspinor
+           if(present(orblist)) then
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+           else
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out)
+           end if           
+           call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
+                Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
+                Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
+                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
+           close(99)
+           ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+        end do
+
+     end do
+
+     i_all=-product(shape(psifscf))*kind(psifscf)
+     deallocate(psifscf,stat=i_stat)
+     call memocc(i_stat,i_all,'psifscf',subname)
+
+  else
+     write(0,*) "Unknown wavefunction file format from filename."
+     stop
+  end if
+
+  call cpu_time(tr1)
+  call system_clock(ncount2,ncount_rate,ncount_max)
+  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+END SUBROUTINE readmywaves_linear
+
+
+subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+  use module_base
+  use module_types
+  use module_defs
+  use module_interfaces, except_this_one => initialize_linear_from_file
+  implicit none
+  integer, intent(in) :: iproc, nproc, iformat
+  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  character(len=*), intent(in) :: filename
+  type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+  integer, dimension(orbs%norb), optional :: orblist
+  !Local variables
+  character(len=*), parameter :: subname='initialize_linear_from_file'
+  character(len =256) :: error
+  logical :: lstat, consistent, perx, pery, perz
+  integer :: ilr, ierr, iorb_old, iorb, jorb, ispinor, iorb_out, n1_old, n2_old, n3_old
+  integer :: nlr, nvctr_c_old, nvctr_f_old, i_stat, i_all,confPotOrder, confPotOrder_old
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel,dx,dy,dz,dist,eval
+  real(gp) :: hx_old, hy_old, hz_old, mindist
+  real(gp), dimension(orbs%norb):: locrad, confPotprefac
+  real(gp), dimension(3,at%nat) :: rxyz_old
+  real(gp), dimension(3,orbs%norb) :: locregCenter
+  integer, dimension(:), allocatable :: lrtable
+  integer, dimension(orbs%norb) :: nvctr_c, nvctr_f
+  real(gp), dimension(:), allocatable :: lrad
+  real(gp), dimension(:,:), allocatable :: cxyz
+  logical, dimension(:), allocatable :: calcbounds
+
+  ! NOTES:
+  ! The orbs%norb family must be all constructed before this routine
+  ! This can be done from the input.lin since the number of basis functions should be fixed.
+
+  call to_zero(3*orbs%norb,locregCenter(1,1))
+  call to_zero(orbs%norb,locrad(1))
+  call to_zero(orbs%norb,confPotprefac(1))
+
+  ! First read the headers (reading is distributed) and then the information is communicated to all procs.
+  ! Then each proc generates a group of lrs that are communicated to all others.
+  if (iformat == WF_FORMAT_ETSF) then
+     stop 'Linear scaling with ETSF writing not implemented yet'
+  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
+     do iorb=1,orbs%norbp!*orbs%nspinor
+        do ispinor=1,orbs%nspinor
+           if(present(orblist)) then
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+           else
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out)
+           end if          
+           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
+                & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
+                & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
+                & confPotprefac(iorb+orbs%isorb))
+           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
+           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
+           close(99)
+!TO DO: confPotOrder_old should be read from input.lin
+           if(iorb==1) confPotOrder_old = confPotOrder
+           call check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
+                rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
+           if(.not. consistent) then
+             write(*,*) 'Inconsistency in file, iorb=',iorb_out
+             call mpi_finalize(ierr)
+             stop
+           end if
+           confPotOrder_old = confPotOrder
+        end do
+     end do
+  else
+     write(0,*) "Unknown wavefunction file format from filename."
+     stop
+  end if
+
+  ! Communication of the quantities
+   call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+  ! Now that each processor has all the information, we can build the locregs
+  ! Find the number of inequivalent locregs
+  allocate(lrtable(orbs%norb),stat=i_stat)
+  call memocc(i_stat,ilr,'ilr',subname)
+  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
+  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+
+  nlr = 0
+  lrtable = 0
+  outer_loop: do iorb = 1, orbs%norb
+     do jorb = iorb+1, orbs%norb
+        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+        dist=sqrt(dx+dy+dz)
+        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+           confPotprefac(iorb) == confPotprefac(jorb)) then
+           cycle outer_loop
+        end if
+     end do
+     nlr = nlr + 1
+     lrtable(nlr) = iorb
+  end do outer_loop
+
+  Lzd%nlr = nlr
+  allocate(Lzd%Llr(nlr),stat=i_stat)
+  allocate(lrad(nlr),stat=i_stat)
+  call memocc(i_stat,lrad,'lrad',subname)
+  allocate(cxyz(3,nlr),stat=i_stat)
+  call memocc(i_stat,cxyz,'cxyz',subname)
+  allocate(calcbounds(nlr),stat=i_stat)
+  call memocc(i_stat,calcbounds,'calcbounds',subname)
+  
+  
+  do ilr=1,nlr
+     iorb = lrtable(ilr)
+     lrad(ilr) = locrad(iorb)
+     cxyz(1,ilr) = locregCenter(1,iorb)
+     cxyz(2,ilr) = locregCenter(2,iorb)
+     cxyz(3,ilr) = locregCenter(3,iorb)
+     calcbounds(ilr) = .true.
+     do jorb = 1, orbs%norb
+        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+        dist=sqrt(dx+dy+dz)
+        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+           confPotprefac(iorb) == confPotprefac(jorb)) then
+           orbs%inwhichlocreg(jorb) = ilr
+        end if
+     end do
+  end do
+
+  i_all = -product(shape(lrtable))*kind(lrtable)
+  deallocate(lrtable,stat=i_stat)
+  call memocc(i_stat,i_all,'lrtable',subname)
+
+!TO DO: CUBIC LOCREGS
+  call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
+       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+  
+END SUBROUTINE initialize_linear_from_file
+
+subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
+           rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: confPotOrder,confPotOrder_old, n1_old, n2_old, n3_old
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx_old, hy_old, hz_old
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz, rxyz_old
+  type(local_zone_descriptors), intent(in) :: Lzd !< must already contain Glr and hgrids
+  logical, intent(out) :: consistent
+  ! Local variables
+  logical :: perx, pery, perz
+  integer :: iat
+  real(gp):: tx, ty, tz, displ, mindist  
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  tx=0.0_gp
+  ty=0.0_gp
+  tz=0.0_gp
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  enddo
+  displ=sqrt(tx+ty+tz)
+  consistent = .true.
+  if(hx_old /= Lzd%hgrids(1) .or. hy_old /= Lzd%hgrids(2) .or. hz_old /= Lzd%hgrids(3)) then
+    write(*,"(1x,A,6F14.10)") 'Stopping because hgrid_old /= hgrid',hx_old,hy_old,hz_old,&
+         Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3)
+    consistent = .false.
+  else if (n1_old /= Lzd%Glr%d%n1  .or. n2_old /= Lzd%Glr%d%n2 .or. n3_old /= Lzd%Glr%d%n3 ) then
+    write(*,"(1x,A,6F14.10)") 'Stopping because global cell size',&
+    n1_old,Lzd%Glr%d%n1,n2_old,Lzd%Glr%d%n2,n3_old,Lzd%Glr%d%n3
+    consistent = .false.
+  else if(displ > 1.d-3 ) then
+    write(*,*) 'Stopping because of large displacement of molecule',displ
+    consistent = .false.
+  else if(confpotOrder /= confPotOrder_old) then
+    write(*,*) 'Stopping because of inconsistent confPotOrder',confPotOrder,confPotOrder_old 
+    consistent = .false.
+  end if
+
+END SUBROUTINE check_consistency

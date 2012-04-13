@@ -630,6 +630,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
+  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
@@ -670,9 +671,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
   call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/),comment=comments)
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
@@ -729,7 +731,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   !number of iterations for the input guess
   comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
@@ -796,6 +798,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
               locradType(jtype)=lrl
+              in%lin%locrad_type(jtype)=lrl
               locradType_lowaccur(jtype)=lrl
               locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)
