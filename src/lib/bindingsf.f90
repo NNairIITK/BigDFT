@@ -523,17 +523,17 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
-subroutine localfields_new(self, denspotd, rhod, dpcom)
+subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
   double precision, intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
-  type(denspot_distribution), pointer :: dpcom
+  type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
 
   allocate(denspotd)
   rhod => denspotd%rhod
-  dpcom => denspotd%dpcom
+  dpbox => denspotd%dpbox
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
 subroutine localfields_free(denspotd)
@@ -546,7 +546,7 @@ subroutine localfields_free(denspotd)
   integer :: i_stat, i_all
 
   call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call deallocate_denspot_distribution(denspotd%dpcom, subname)
+  call deallocate_denspot_distribution(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
      i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
@@ -595,7 +595,7 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
-  hgrid = denspot%hgrids
+  hgrid = denspot%dpbox%hgrids
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 subroutine localfields_get_rhov(denspot, rhov)

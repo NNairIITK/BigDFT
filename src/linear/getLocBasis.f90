@@ -88,8 +88,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
       call gatherPotential(iproc, nproc, tmbmix%comgp)
   end if
 
-  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -102,7 +102,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+       proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
        energs,SIC,GPU,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
@@ -418,8 +418,8 @@ type(energy_terms) :: energs
       call gatherPotential(iproc, nproc, tmb%comgp)
 
       ! Build the required potential
-      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
+      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
 
 
@@ -449,7 +449,7 @@ type(energy_terms) :: energs
       ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-           locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+           locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
@@ -458,7 +458,7 @@ type(energy_terms) :: energs
       call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-           locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+           locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmb%psi, lhphi, lhphiold, lphiold, tmb)
       call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
       call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
@@ -475,7 +475,7 @@ type(energy_terms) :: energs
       locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-           locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+           locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
@@ -519,7 +519,7 @@ type(energy_terms) :: energs
           call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
           call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-               locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+               locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                tmb%psi, lhphi, lhphiold, lphiold, tmb)
           call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
           call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
@@ -529,7 +529,7 @@ type(energy_terms) :: energs
       end if
 
 
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
 
       ! Transform back to small locreg
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
@@ -544,7 +544,7 @@ type(energy_terms) :: energs
           locrad_tmp=factor*locrad
           call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-               locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+               locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
           call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
           call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
@@ -585,12 +585,12 @@ type(energy_terms) :: energs
           call gatherPotential(iproc, nproc, tmb%comgp)
 
           ! Build the required potential
-          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
+          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
            energs,SIC,GPU,&
            pkernel=denspot%pkernelseq)
 

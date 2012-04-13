@@ -433,7 +433,7 @@ struct BigDFT_LocalFields_
   void *data;
 };
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                             const BigDFT_Inputs *in,
                                             guint iproc, guint nproc);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);

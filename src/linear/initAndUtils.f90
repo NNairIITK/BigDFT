@@ -2116,10 +2116,10 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
 
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call nullify_p2pComms(tmbmix%comgp)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, tmbmix%orbs, &
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpbox%nscatterarr, tmbmix%orbs, &
        lzd, tmbmix%comgp, tmbmix%orbs%inWhichLocreg, tag)
   call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbmix%comgp)
 end subroutine redefine_locregs_quantities
 
 
@@ -2280,7 +2280,7 @@ subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx,
   call deallocateCommunicationbufferSumrho(comsr, subname)
   call deallocate_p2pComms(comsr, subname)
   call nullify_p2pComms(comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpbox%nscatterarr, lzd, llborbs, tag, comsr)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
 
   iall=-product(shape(onwhichatom))*kind(onwhichatom)
@@ -2508,7 +2508,7 @@ end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
+     locrad, denspot%dpbox%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
@@ -2516,7 +2516,7 @@ call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%o
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
+     locrad, denspot%dpbox%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphi, lhphi, lhphiold, lphiold, tmb)
 !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)

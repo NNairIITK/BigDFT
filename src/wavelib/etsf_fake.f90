@@ -9,13 +9,13 @@
 
 
 !> Write a field in the ISF basis in the ETSF format
-subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,x)
+subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x)
   !n(c) use module_base
   use module_types
 
   implicit none
   character(len=*), intent(in) :: filename,message
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i
+  integer, intent(in) :: n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i), intent(in) :: x
@@ -41,8 +41,8 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(in) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer, intent(out) :: rho
-  real(gp), dimension(:,:), pointer, intent(out), optional :: rxyz
+  real(dp), dimension(:,:), pointer,  :: rho
+  real(gp), dimension(:,:), pointer,  optional :: rxyz
   integer, intent(out), optional ::  nat
 
   write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."

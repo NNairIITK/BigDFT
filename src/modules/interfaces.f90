@@ -850,7 +850,7 @@ module module_interfaces
 
       subroutine davidson(iproc,nproc,in,at,&
            orbs,orbsv,nvirt,Lzd,comms,commsv,&
-           rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
+           rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpbox,GPU)
         use module_base
         use module_types
         implicit none
@@ -862,7 +862,7 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
-        type(denspot_distribution), intent(in) :: dpcom
+        type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(dp), dimension(:), pointer :: pkernel
@@ -1126,7 +1126,7 @@ module module_interfaces
       END SUBROUTINE correct_hartree_potential
 
       subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-           radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+           radii_cf,nlpspd,proj,Lzd,dpbox,potential,&
            energs,nspin,GPU,in_iat_absorber,&
            in , PAWD , orbs )
         use module_base
@@ -1137,11 +1137,11 @@ module module_interfaces
         type(atoms_data), intent(in), target :: at
         type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
         type(local_zone_descriptors), intent(in), target :: Lzd
-        type(denspot_distribution), intent(in), target :: dpcom
+        type(denspot_distribution), intent(in), target :: dpbox
         real(gp), dimension(3,at%nat), intent(in), target :: rxyz
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
-        real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+        real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
         type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber
@@ -1218,7 +1218,7 @@ module module_interfaces
       END SUBROUTINE abs_generator_modified
 
       subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
-           &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+           &   radii_cf,nlpspd,proj,Lzd,dpbox,potential,&
            &   energs,nspin,GPU,in_iat_absorber,&
            &   in , rhoXanes, PAWD , PPD, orbs )
         use module_base
@@ -1230,12 +1230,12 @@ module module_interfaces
         type(nonlocal_psp_descriptors), target :: nlpspd
         type(local_zone_descriptors), target :: Lzd
         type(pcproj_data_type), target ::PPD
-        type(denspot_distribution), intent(in), target :: dpcom
+        type(denspot_distribution), intent(in), target :: dpbox
         real(gp), dimension(3,at%nat), target :: rxyz
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), target :: proj
-        real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
-        real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
+        real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
+        real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: rhoXanes
         type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber
@@ -1245,7 +1245,7 @@ module module_interfaces
       end subroutine xabs_cg
 
       subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-           radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
+           radii_cf,nlpspd,proj,Lzd,dpbox,potential,&
            energs,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
         use module_base
         use module_types
@@ -1255,11 +1255,11 @@ module module_interfaces
         type(atoms_data), target :: at
         type(nonlocal_psp_descriptors), target :: nlpspd
         type(local_zone_descriptors), target :: Lzd
-        type(denspot_distribution), intent(in), target :: dpcom
+        type(denspot_distribution), intent(in), target :: dpbox
         real(gp), dimension(3,at%nat), target :: rxyz
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
         real(wp), dimension(nlpspd%nprojel), target :: proj
-        real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+        real(wp), dimension(max(dpbox%ndimpot,1),nspin), target :: potential
         type(energy_terms), intent(inout) :: energs
         type(GPU_pointers), intent(inout) , target :: GPU
         integer, intent(in) :: in_iat_absorber 
@@ -1319,18 +1319,16 @@ module module_interfaces
       !       real(wp), dimension(:,:,:), pointer :: ads
       !     END SUBROUTINE psimix
       !
-      subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
-            &   hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
-         real(gp), intent(in) :: hxh,hyh,hzh
-         type(atoms_data), intent(in) :: at
-         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(dp), dimension(max(n1i*n2i*n3p,1),nspin), target, intent(in) :: rho
+      subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc,nproc,nspin
+        type(atoms_data), intent(in) :: at
+        type(denspot_distribution), intent(in) :: box
+        character(len=*), intent(in) :: filename
+        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
       END SUBROUTINE plot_density
 
       subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
@@ -1518,7 +1516,7 @@ module module_interfaces
       END SUBROUTINE xc_energy
 
       subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,&
-           rhopot,nlpspd,proj,pkernel,dpcom,GPU,KSwfn,VTwfn)
+           rhopot,nlpspd,proj,pkernel,dpbox,GPU,KSwfn,VTwfn)
         use module_base
         use module_types
         implicit none
@@ -1526,7 +1524,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(denspot_distribution), intent(in) :: dpcom
+        type(denspot_distribution), intent(in) :: dpbox
         type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -1593,7 +1591,7 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
 
-       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,comgp)
+       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,comgp)
          use module_base
          use module_types
          use module_xc
@@ -1601,8 +1599,8 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,iflag
          type(orbitals_data),intent(in) :: orbs
          type(local_zone_descriptors),intent(in) :: Lzd
-         type(denspot_distribution), intent(in) :: dpcom
-         real(wp), dimension(max(dpcom%ndimrhopot,orbs%nspin)), intent(in), target :: potential
+         type(denspot_distribution), intent(in) :: dpbox
+         real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), target :: potential
          real(wp), dimension(:), pointer :: pot
          !type(p2pCommsGatherPot),intent(inout), optional:: comgp
          type(p2pComms),intent(inout), optional:: comgp
@@ -1645,7 +1643,7 @@ module module_interfaces
 
       subroutine constrained_davidson(iproc,nproc,in,at,& 
            orbs,orbsv,nvirt,Lzd,comms,commsv,&
-           hx,hy,hz,rxyz,rhopot,psi,v,dpcom,GPU)
+           hx,hy,hz,rxyz,rhopot,psi,v,dpbox,GPU)
         use module_base
         use module_types
         implicit none
@@ -1656,7 +1654,7 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
-        type(denspot_distribution), intent(in) :: dpcom
+        type(denspot_distribution), intent(in) :: dpbox
         real(gp), intent(in) :: hx,hy,hz
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(dp), dimension(*), intent(in) :: rhopot
@@ -1802,7 +1800,7 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
-      subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
+      subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpbox,rhod)
         use module_base
         use module_types
         implicit none
@@ -1813,7 +1811,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: atoms
         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-        type(denspot_distribution), intent(inout) :: dpcom
+        type(denspot_distribution), intent(inout) :: dpbox
         type(rho_descriptors), intent(out) :: rhod
       end subroutine denspot_communications
 
@@ -2586,7 +2584,7 @@ module module_interfaces
       type(orbitals_data),intent(in):: lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-      real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
+      real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
       type(orbitals_data),intent(in):: orbs
       type(DFT_wavefunction),intent(inout):: tmb
@@ -5780,7 +5778,7 @@ module module_interfaces
          type(p2pComms),intent(inout):: p2pcomm
        end subroutine nullify_p2pComms
 
-       subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
+       subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpbox,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
             nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
             nspin,potshortcut,symObj,GPU,input)
@@ -5793,7 +5791,7 @@ module module_interfaces
          real(gp), intent(in) :: hx,hy,hz
          type(atoms_data), intent(inout) :: at
          type(rho_descriptors),intent(in) :: rhod
-         type(denspot_distribution), intent(in) :: dpcom
+         type(denspot_distribution), intent(in) :: dpbox
          type(orbitals_data), intent(inout) :: orbs
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(local_zone_descriptors), intent(inout) :: Lzd
@@ -6170,7 +6168,7 @@ module module_interfaces
          real(8),intent(in):: alpha_mix
          type(DFT_local_fields),intent(inout):: denspot
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
-         real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
+         real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 

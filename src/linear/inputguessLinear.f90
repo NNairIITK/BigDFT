@@ -282,7 +282,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
+  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
@@ -324,7 +324,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Initialize evrything
   tag=1
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
-       tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr, tag)
+       tmbig, tmbgauss, rxyz, denspot%dpbox%nscatterarr, tag)
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -538,10 +538,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
-       hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
+       hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+       denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -550,7 +550,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   if(trim(input%lin%mixingmethod)=='dens') then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
@@ -611,7 +611,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$  end if
 
   if(trim(input%lin%mixingmethod)=='pot') then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
   !call dcopy(tmbig%orbs%npsidim,psi,1,hpsi,1)
@@ -632,7 +632,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Post the messages for the communication of the potential.
   call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbig%comgp)
 
 
   ! Apply the Hamiltonian for each atom.
@@ -676,10 +676,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call cpu_time(t1)
 
 
-  call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
+  call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-       denspot%dpcom,denspot%rhov,denspot%pot_work,tmbig%comgp)
+       denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
   tmbig%lzd%hgrids(1)=hx
   tmbig%lzd%hgrids(2)=hy
@@ -719,7 +719,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                  tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                  tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
                   energs,input%SIC,GPU,.false.,&
                   pkernel=denspot%pkernelseq)
              call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
@@ -795,7 +795,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
   call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb)
@@ -2780,8 +2780,10 @@ type(collective_comms):: collcom_vectors
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
+           matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, &
+           collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
 
@@ -2808,8 +2810,10 @@ type(collective_comms):: collcom_vectors
 
       ! Orthonormalize the coefficients.
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
-           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi,&
+           tmb%orbs%isorb_par, matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom,&
+           collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
 
       ! Calculate the gradient grad.
