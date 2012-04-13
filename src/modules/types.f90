@@ -568,7 +568,7 @@ module module_types
 
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
-    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    integer,dimension(:),pointer:: noverlaps, overlaps
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
     integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend

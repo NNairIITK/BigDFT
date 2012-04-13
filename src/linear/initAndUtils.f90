@@ -168,7 +168,7 @@ type(p2pComms),intent(out):: comsr
 
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
-integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj
+integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr
 integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
@@ -208,11 +208,11 @@ do jproc=0,nproc-1
 end do
 
 ! Do the initialization concerning the calculation of the charge density.
-allocate(comsr%istarr(0:nproc-1),stat=istat)
-call memocc(istat,comsr%istarr,'comsr%istarr',subname)
+!!allocate(comsr%istarr(0:nproc-1),stat=istat)
+!!call memocc(istat,comsr%istarr,'comsr%istarr',subname)
 !allocate(comsr%istrarr(comsr%noverlaps(iproc)),stat=istat)
-allocate(comsr%istrarr(0:nproc-1),stat=istat)
-call memocc(istat,comsr%istrarr,'comsr%istrarr',subname)
+!!allocate(comsr%istrarr(0:nproc-1),stat=istat)
+!!call memocc(istat,comsr%istrarr,'comsr%istrarr',subname)
 allocate(comsr%overlaps(comsr%noverlaps(iproc)),stat=istat)
 call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 
@@ -223,13 +223,14 @@ call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
 allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
 call memocc(istat,comsr%requests,'comsr%requests',subname)
 
-comsr%istarr=1
-comsr%istrarr=1
+!!comsr%istarr=1
+!!comsr%istrarr=1
 comsr%nrecvBuf=0
 do jproc=0,nproc-1
    is=nscatterarr(jproc,3)
    ie=is+nscatterarr(jproc,1)-1
    ioverlap=0
+   istr=1
    do iorb=1,orbs%norb
       ilr=orbs%inWhichLocreg(iorb)
       i3s=lzd%Llr(ilr)%nsi3
@@ -244,14 +245,14 @@ do jproc=0,nproc-1
             comsr%startingindex(ioverlap,1) = max(is,i3s) 
             comsr%startingindex(ioverlap,2) = min(ie,i3e)
          end if
-         call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+         call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
               tag, lzd%nlr, lzd%Llr,&
               orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
          if(iproc==jproc) then
             comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
             comsr%overlaps(ioverlap)=iorb
          end if
-         comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+         istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
       end if
       !For periodicity
       if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
@@ -267,14 +268,14 @@ do jproc=0,nproc-1
                comsr%startingindex(ioverlap,1) = max(is,i3s) 
                comsr%startingindex(ioverlap,2) = min(ie,i3e)
             end if
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
                  tag, lzd%nlr, lzd%Llr,&
                  orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                comsr%overlaps(ioverlap)=iorb
             end if
-            comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+            istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
          end if
          !For periodicity
          if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
@@ -290,14 +291,14 @@ do jproc=0,nproc-1
                   comsr%startingindex(ioverlap,1) = max(is,i3s) 
                   comsr%startingindex(ioverlap,2) = min(ie,i3e)
                end if
-               call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+               call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
                     tag, lzd%nlr, lzd%Llr,&
                     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
                if(iproc==jproc) then
                   comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                   comsr%overlaps(ioverlap)=iorb
                end if
-               comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+               istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
             end if
          end if
       end if
