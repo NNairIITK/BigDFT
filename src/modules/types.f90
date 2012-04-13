@@ -554,80 +554,17 @@ module module_types
   end type lanczos_args
 
 
-!> Contains the dimensions of some arrays.
-  type,public:: arraySizes
-      integer:: size_rhopot
-      integer,dimension(4):: size_potxc
-      integer:: size_rhocore
-      integer:: size_pot_ion
-      integer,dimension(3):: size_phnons
-      integer,dimension(3):: size_irrzon
-      integer:: size_pkernel
-      integer:: size_pkernelseq
-  end type
-
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
-    !!logical,dimension(:,:),pointer:: communComplete, computComplete
+    integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
     logical:: communication_complete
   end type p2pComms
-
-!!!!> Contains the parameters needed for the point to point communications
-!!!!! for sumrho in the linear scaling version.
-!!!  type,public:: p2pCommsSumrho
-!!!    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-!!!    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
-!!!    integer,dimension(:,:,:),pointer:: comarr
-!!!    integer:: nsendBuf, nrecvBuf, nauxarray
-!!!    logical,dimension(:,:),pointer:: communComplete, computComplete
-!!!    integer,dimension(:,:),pointer:: startingindex
-!!!  end type p2pCommsSumrho
-!!!
-!!!!> Contains the parameters neeed for the point to point communications
-!!!!! for gathering the potential (for the application of the Hamiltonian)
-!!!   type,public:: p2pCommsGatherPot
-!!!       integer,dimension(:),pointer:: noverlaps, overlaps
-!!!       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
-!!!       integer,dimension(:,:,:),pointer:: comarr
-!!!       real(8),dimension(:),pointer:: recvBuf
-!!!       integer:: nrecvBuf
-!!!       logical,dimension(:,:),pointer:: communComplete
-!!!   end type p2pCommsGatherPot
-!!!
-!!!!> Contains the parameter needed for the point to point communication for
-!!!!! the orthonormlization.
-!!!   type,public:: p2pCommsOrthonormality
-!!!       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
-!!!       integer,dimension(:),pointer:: noverlaps
-!!!       !!integer,dimension(:,:),pointer:: overlaps
-!!!       integer,dimension(:,:,:),pointer:: comarr
-!!!       real(8),dimension(:),pointer:: sendBuf, recvBuf
-!!!       logical,dimension(:,:),pointer:: communComplete
-!!!       integer,dimension(:,:),pointer:: requests
-!!!   end type p2pCommsOrthonormality
-
-
-!!!!> Contains the parameters for the communications of the derivative orbitals
-!!!!! to match their partition.
-!!!  type,public:: p2pCommsRepartition
-!!!      integer,dimension(:,:,:),pointer:: comarr
-!!!      logical,dimension(:,:),pointer:: communComplete
-!!!      integer,dimension(:,:),pointer:: requests
-!!!      integer:: nsend, nrecv
-!!!  end type p2pCommsRepartition
-
-!  type,public:: expansionSegments
-!      integer:: nseg
-!      integer,dimension(:,:),pointer:: segborders
-!  end type expansionSegments
-
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
@@ -636,10 +573,7 @@ module module_types
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
-!      type(locregs_descriptors),dimension(:,:),pointer:: olr
       type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
-!      type(expansionSegments),dimension(:,:),pointer:: expseg
-!      type(expansionSegments),dimension(:,:),pointer:: extseg
   end type overlapParameters
 
 
@@ -654,7 +588,6 @@ module module_types
       integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc, requests
       integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
       real(8),dimension(:),pointer:: recvBuf, sendBuf
-      !!logical,dimension(:,:),pointer:: communComplete
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 
