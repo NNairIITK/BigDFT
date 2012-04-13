@@ -2436,6 +2436,7 @@ subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphila
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
+  call deallocate_p2pComms(tmb%comsr, subname)
 
 end subroutine destroy_new_locregs
 
