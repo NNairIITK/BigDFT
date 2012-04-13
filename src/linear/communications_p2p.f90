@@ -73,7 +73,6 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   else
       comm%communication_complete=.true.
   end if
-  write(*,*) 'after post: comm%communication_complete:',comm%communication_complete
 
 
 end subroutine post_p2p_communication
@@ -92,7 +91,6 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   integer:: ierr, ind, i, nsend, nrecv
   
   
-  write(*,*) 'comm%communication_complete',comm%communication_complete
   if(.not.comm%communication_complete) then
 
       ! Wait for the sends to complete.

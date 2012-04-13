@@ -332,8 +332,8 @@ end do
 
 allocate(comrp%communComplete(4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, comrp%communComplete, 'comrp%communComplete', subname)
-allocate(comrp%requests(max(4*lorbs%norbp,llborbs%norbp),2), stat=istat)
-call memocc(istat, comrp%requests, 'comrp%requests', subname)
+!!allocate(comrp%requests(max(4*lorbs%norbp,llborbs%norbp),2), stat=istat)
+!!call memocc(istat, comrp%requests, 'comrp%requests', subname)
 allocate(comrp%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comrp%noverlaps, 'comrp%noverlaps', subname)
 
@@ -370,7 +370,8 @@ do jproc=0,nproc-1
             !write(*,'(a,2(i0,a))') 'INIT: process ',iproc,' receives data from process ',mpisource,'.'
         end if
         !call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comrp%comarr(1,jorb,jproc))
-        call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comrp%comarr(1,comrp%noverlaps(mpidest),mpidest))
+        call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, &
+             tag, comrp%comarr(1,comrp%noverlaps(mpidest),mpidest))
         istsource=istsource+ncount
     end do
 end do

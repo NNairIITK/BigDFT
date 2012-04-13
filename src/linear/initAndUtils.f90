@@ -2612,6 +2612,7 @@ do iorb=1,tmb%orbs%norb
 end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
+call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)

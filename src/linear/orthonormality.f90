@@ -799,7 +799,6 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
      end do
      jprocold=jproc
   end do
-  write(*,*) 'comon%nsendBuf, comon%nrecvBuf', comon%nsendBuf, comon%nrecvBuf
 
   iall = -product(shape(istsourceArr))*kind(istsourceArr)
   deallocate(istsourceArr, stat=istat)
