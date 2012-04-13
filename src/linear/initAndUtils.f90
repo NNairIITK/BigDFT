@@ -2342,25 +2342,81 @@ logical:: reallocate
    allocate(ldiis%hphiHist(ii), stat=istat)
    call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
-   allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-   call memocc(istat, lphilarge, 'lphilarge', subname)
-   allocate(lhphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-   call memocc(istat, lhphilarge, 'lhphilarge', subname)
-   allocate(lhphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
-   call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
-   allocate(lphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
-   call memocc(istat, lphilargeold, 'lphilargeold', subname)
+   !!allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+   !!call memocc(istat, lphilarge, 'lphilarge', subname)
+   !!allocate(lhphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+   !!call memocc(istat, lhphilarge, 'lhphilarge', subname)
+   !!allocate(lhphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
+   !!call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
+   !!allocate(lphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
+   !!call memocc(istat, lphilargeold, 'lphilargeold', subname)
 
-   lphilarge=0.d0
-   lhphilarge=0.d0
-   lhphilargeold=0.d0
-   lphilargeold=0.d0
+   !!lphilarge=0.d0
+   !!lhphilarge=0.d0
+   !!lhphilargeold=0.d0
+   !!lphilargeold=0.d0
 
    tmb%lzd%hgrids(1)=hx
    tmb%lzd%hgrids(2)=hy
    tmb%lzd%hgrids(3)=hz
 
 end subroutine create_new_locregs
+
+
+subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphiold, lhphiold)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: npsidim
+  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: istat
+
+  allocate(lphi(npsidim), stat=istat)
+  call memocc(istat, lphi, 'lphi', subname)
+  allocate(lhphi(npsidim), stat=istat)
+  call memocc(istat, lhphi, 'lhphi', subname)
+  allocate(lphiold(npsidim), stat=istat)
+  call memocc(istat, lphiold, 'lphiold', subname)
+  allocate(lhphiold(npsidim), stat=istat)
+  call memocc(istat, lhphiold, 'lhphiold', subname)
+
+  lphi=0.d0
+  lhphi=0.d0
+  lphiold=0.d0
+  lhphiold=0.d0
+
+end subroutine allocate_auxiliary_basis_function
+
+
+subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lhphiold)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: istat, iall
+
+  iall=-product(shape(lphi))*kind(lphi)
+  deallocate(lphi, stat=istat)
+  call memocc(istat, iall, 'lphi', subname)
+  iall=-product(shape(lhphi))*kind(lhphi)
+  deallocate(lhphi, stat=istat)
+  call memocc(istat, iall, 'lhphi', subname)
+  iall=-product(shape(lphiold))*kind(lphiold)
+  deallocate(lphiold, stat=istat)
+  call memocc(istat, iall, 'lphiold', subname)
+  iall=-product(shape(lhphiold))*kind(lhphiold)
+  deallocate(lhphiold, stat=istat)
+  call memocc(istat, iall, 'lhphiold', subname)
+
+end subroutine deallocate_auxiliary_basis_function
 
 
 
@@ -2386,18 +2442,18 @@ subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphila
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
 
-  iall=-product(shape(lphilarge))*kind(lphilarge)
-  deallocate(lphilarge, stat=istat)
-  call memocc(istat, iall, 'lphilarge', subname)
-  iall=-product(shape(lhphilarge))*kind(lhphilarge)
-  deallocate(lhphilarge, stat=istat)
-  call memocc(istat, iall, 'lhphilarge', subname)
-  iall=-product(shape(lhphilargeold))*kind(lhphilargeold)
-  deallocate(lhphilargeold, stat=istat)
-  call memocc(istat, iall, 'lhphilargeold', subname)
-  iall=-product(shape(lphilargeold))*kind(lphilargeold)
-  deallocate(lphilargeold, stat=istat)
-  call memocc(istat, iall, 'lphilargeold', subname)
+  !!iall=-product(shape(lphilarge))*kind(lphilarge)
+  !!deallocate(lphilarge, stat=istat)
+  !!call memocc(istat, iall, 'lphilarge', subname)
+  !!iall=-product(shape(lhphilarge))*kind(lhphilarge)
+  !!deallocate(lhphilarge, stat=istat)
+  !!call memocc(istat, iall, 'lhphilarge', subname)
+  !!iall=-product(shape(lhphilargeold))*kind(lhphilargeold)
+  !!deallocate(lhphilargeold, stat=istat)
+  !!call memocc(istat, iall, 'lhphilargeold', subname)
+  !!iall=-product(shape(lphilargeold))*kind(lphilargeold)
+  !!deallocate(lphilargeold, stat=istat)
+  !!call memocc(istat, iall, 'lphilargeold', subname)
 
 end subroutine destroy_new_locregs
 
@@ -2446,13 +2502,13 @@ call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
 allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
 call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
 
-! Fake allocation
-allocate(lhphi(1), stat=istat)
-call memocc(istat, lhphi, 'lhphi', subname)
-allocate(lhphiold(1), stat=istat)
-call memocc(istat, lhphiold, 'lhphiold', subname)
-allocate(lphiold(1), stat=istat)
-call memocc(istat, lphiold, 'lphiold', subname)
+!!! Fake allocation
+!!allocate(lhphi(1), stat=istat)
+!!call memocc(istat, lhphi, 'lhphi', subname)
+!!allocate(lhphiold(1), stat=istat)
+!!call memocc(istat, lhphiold, 'lhphiold', subname)
+!!allocate(lphiold(1), stat=istat)
+!!call memocc(istat, lphiold, 'lphiold', subname)
 
 ! always use the same inwhichlocreg
 call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
@@ -2467,14 +2523,21 @@ call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
+call memocc(istat, lphilarge, 'lphilarge', subname)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
+iall=-product(shape(lphi))*kind(lphi)
+deallocate(lphi, stat=istat)
+call memocc(istat, iall, 'lphi', subname)
 call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
      locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
      lphi, lhphi, lhphiold, lphiold, tmb)
+allocate(lphi(tmb%orbs%npsidim_orbs), stat=istat)
+call memocc(istat, lphi, 'lphi', subname)
 !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
 call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -2482,6 +2545,9 @@ nphi=tmb%orbs%npsidim_orbs
 call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
 call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+iall=-product(shape(lphilarge))*kind(lphilarge)
+deallocate(lphilarge, stat=istat)
+call memocc(istat, iall, 'lphilarge', subname)
 
 iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
 deallocate(inwhichlocreg_reference, stat=istat)
@@ -2495,17 +2561,17 @@ iall=-product(shape(locregCenter))*kind(locregCenter)
 deallocate(locregCenter, stat=istat)
 call memocc(istat, iall, 'locregCenter', subname)
 
-iall=-product(shape(lhphi))*kind(lhphi)
-deallocate(lhphi, stat=istat)
-call memocc(istat, iall, 'lhphi', subname)
-
-iall=-product(shape(lhphiold))*kind(lhphiold)
-deallocate(lhphiold, stat=istat)
-call memocc(istat, iall, 'lhphiold', subname)
-
-iall=-product(shape(lphiold))*kind(lphiold)
-deallocate(lphiold, stat=istat)
-call memocc(istat, iall, 'lphiold', subname)
+!!iall=-product(shape(lhphi))*kind(lhphi)
+!!deallocate(lhphi, stat=istat)
+!!call memocc(istat, iall, 'lhphi', subname)
+!!
+!!iall=-product(shape(lhphiold))*kind(lhphiold)
+!!deallocate(lhphiold, stat=istat)
+!!call memocc(istat, iall, 'lhphiold', subname)
+!!
+!!iall=-product(shape(lphiold))*kind(lphiold)
+!!deallocate(lphiold, stat=istat)
+!!call memocc(istat, iall, 'lphiold', subname)
 
 
 end subroutine enlarge_locreg

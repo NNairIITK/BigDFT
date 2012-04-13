@@ -6769,6 +6769,21 @@ end subroutine update_locreg2
           type(p2pComms),intent(inout):: comm
         end subroutine wait_p2p_communication
 
+        subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphiold, lhphiold)
+          use module_base
+          implicit none
+          integer,intent(in):: npsidim
+          real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+          character(len=*),intent(in):: subname
+        end subroutine allocate_auxiliary_basis_function
+
+        subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lhphiold)
+          use module_base
+          implicit none
+          real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+          character(len=*),intent(in):: subname
+        end subroutine deallocate_auxiliary_basis_function
+
    end interface
 
 END MODULE module_interfaces

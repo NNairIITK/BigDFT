@@ -288,10 +288,12 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
+              call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%psi, lhphi, lhphiold, lphiold, tmb)
+              call allocate_auxiliary_basis_function(tmb%orbs%npsidim_orbs, subname, tmb%psi, lhphi, lhphiold, lphiold)     
               call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
               call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
               !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
@@ -307,11 +309,13 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+              call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+              call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
               call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
               tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
@@ -354,10 +358,12 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
+                  call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
                   call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%psi, lhphi, lhphiold, lphiold, tmb)
+                  call allocate_auxiliary_basis_function(tmb%orbs%npsidim_orbs, subname, tmb%psi, lhphi, lhphiold, lphiold)
                   call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
                   call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
                   !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
@@ -382,11 +388,13 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
                   call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
                        locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+                  call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)     
                   call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
                   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
                   tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
