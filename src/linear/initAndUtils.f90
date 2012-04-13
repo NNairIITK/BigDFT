@@ -2301,13 +2301,13 @@ logical:: reallocate
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-   call nullify_local_zone_descriptors(tmb%lzd)
-   call nullify_orbitals_data(tmb%orbs)
-   call nullify_overlapParameters(tmb%op)
-   call nullify_p2pComms(tmb%comon)
-   call nullify_matrixDescriptors(tmb%mad)
-   call nullify_p2pComms(tmb%comgp)
-   call nullify_collective_comms(tmb%collcom)
+   !!call nullify_local_zone_descriptors(tmb%lzd)
+   !!call nullify_orbitals_data(tmb%orbs)
+   !!call nullify_overlapParameters(tmb%op)
+   !!call nullify_p2pComms(tmb%comon)
+   !!call nullify_matrixDescriptors(tmb%mad)
+   !!call nullify_p2pComms(tmb%comgp)
+   !!call nullify_collective_comms(tmb%collcom)
    !!call nullify_p2pComms(tmb%comsr)
 
    if(associated(tmb%comsr%recvbuf)) then
@@ -2326,41 +2326,60 @@ logical:: reallocate
    if(withder) stop 'withder is true'
 
 
-   iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-   deallocate(ldiis%phiHist, stat=istat)
-   call memocc(istat, iall, 'ldiis%phiHist', subname)
-   iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-   deallocate(ldiis%hphiHist, stat=istat)
-   call memocc(istat, iall, 'ldiis%hphiHist', subname)
-   ii=0
-   do iorb=1,tmb%orbs%norbp
-       ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-       ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
-   end do
-   allocate(ldiis%phiHist(ii), stat=istat)
-   call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-   allocate(ldiis%hphiHist(ii), stat=istat)
-   call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
-   !!allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-   !!call memocc(istat, lphilarge, 'lphilarge', subname)
-   !!allocate(lhphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-   !!call memocc(istat, lhphilarge, 'lhphilarge', subname)
-   !!allocate(lhphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
-   !!call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
-   !!allocate(lphilargeold(tmb%orbs%npsidim_orbs), stat=istat)
-   !!call memocc(istat, lphilargeold, 'lphilargeold', subname)
-
-   !!lphilarge=0.d0
-   !!lhphilarge=0.d0
-   !!lhphilargeold=0.d0
-   !!lphilargeold=0.d0
+   !!!iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
+   !!!deallocate(ldiis%phiHist, stat=istat)
+   !!!call memocc(istat, iall, 'ldiis%phiHist', subname)
+   !!!iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
+   !!!deallocate(ldiis%hphiHist, stat=istat)
+   !!!call memocc(istat, iall, 'ldiis%hphiHist', subname)
+   !!!ii=0
+   !!!do iorb=1,tmb%orbs%norbp
+   !!!    ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+   !!!    ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
+   !!!end do
+   !!!allocate(ldiis%phiHist(ii), stat=istat)
+   !!!call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+   !!!allocate(ldiis%hphiHist(ii), stat=istat)
+   !!!call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
    tmb%lzd%hgrids(1)=hx
    tmb%lzd%hgrids(2)=hy
    tmb%lzd%hgrids(3)=hz
 
 end subroutine create_new_locregs
+
+subroutine update_ldiis_arrays(tmb, subname, ldiis)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(DFT_wavefunction),intent(in):: tmb
+  character(len=*),intent(in):: subname
+  type(localizedDIISParameters),intent(inout):: ldiis
+
+  ! Local variables
+  integer:: iall, istat, ii, iorb, ilr
+
+  iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
+  deallocate(ldiis%phiHist, stat=istat)
+  call memocc(istat, iall, 'ldiis%phiHist', subname)
+  iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
+  deallocate(ldiis%hphiHist, stat=istat)
+  call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+  ii=0
+  do iorb=1,tmb%orbs%norbp
+      ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+      ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
+  end do
+
+  allocate(ldiis%phiHist(ii), stat=istat)
+  call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+  allocate(ldiis%hphiHist(ii), stat=istat)
+  call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
+end subroutine update_ldiis_arrays
 
 
 subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphiold, lhphiold)
@@ -2442,19 +2461,6 @@ subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphila
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
 
-  !!iall=-product(shape(lphilarge))*kind(lphilarge)
-  !!deallocate(lphilarge, stat=istat)
-  !!call memocc(istat, iall, 'lphilarge', subname)
-  !!iall=-product(shape(lhphilarge))*kind(lhphilarge)
-  !!deallocate(lhphilarge, stat=istat)
-  !!call memocc(istat, iall, 'lhphilarge', subname)
-  !!iall=-product(shape(lhphilargeold))*kind(lhphilargeold)
-  !!deallocate(lhphilargeold, stat=istat)
-  !!call memocc(istat, iall, 'lhphilargeold', subname)
-  !!iall=-product(shape(lphilargeold))*kind(lphilargeold)
-  !!deallocate(lphilargeold, stat=istat)
-  !!call memocc(istat, iall, 'lphilargeold', subname)
-
 end subroutine destroy_new_locregs
 
 
@@ -2525,6 +2531,7 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, lo
      lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphilarge, 'lphilarge', subname)
+call update_ldiis_arrays(tmblarge, subname, ldiis)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
@@ -2538,6 +2545,7 @@ call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblar
      lphi, lhphi, lhphiold, lphiold, tmb)
 allocate(lphi(tmb%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
+call update_ldiis_arrays(tmb, subname, ldiis)
 !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
 call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -2560,18 +2568,6 @@ call memocc(istat, iall, 'onwhichatom_reference', subname)
 iall=-product(shape(locregCenter))*kind(locregCenter)
 deallocate(locregCenter, stat=istat)
 call memocc(istat, iall, 'locregCenter', subname)
-
-!!iall=-product(shape(lhphi))*kind(lhphi)
-!!deallocate(lhphi, stat=istat)
-!!call memocc(istat, iall, 'lhphi', subname)
-!!
-!!iall=-product(shape(lhphiold))*kind(lhphiold)
-!!deallocate(lhphiold, stat=istat)
-!!call memocc(istat, iall, 'lhphiold', subname)
-!!
-!!iall=-product(shape(lphiold))*kind(lphiold)
-!!deallocate(lphiold, stat=istat)
-!!call memocc(istat, iall, 'lphiold', subname)
 
 
 end subroutine enlarge_locreg

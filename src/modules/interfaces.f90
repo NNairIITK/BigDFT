@@ -6784,6 +6784,15 @@ end subroutine update_locreg2
           character(len=*),intent(in):: subname
         end subroutine deallocate_auxiliary_basis_function
 
+        subroutine update_ldiis_arrays(tmb, subname, ldiis)
+          use module_base
+          use module_types
+          implicit none
+          type(DFT_wavefunction),intent(in):: tmb
+          character(len=*),intent(in):: subname
+          type(localizedDIISParameters),intent(inout):: ldiis
+        end subroutine update_ldiis_arrays
+
    end interface
 
 END MODULE module_interfaces
