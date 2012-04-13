@@ -12,8 +12,8 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, comm)
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
   
   
-  ! Post the messages
-  if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for communicating the sendbufential... '
+  !!! Post the messages
+  !!if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for p2p communication'
   
   
   ! First only post receives
@@ -52,7 +52,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, comm)
       end do
   end do
   
-  if(iproc==0) write(*,'(a)') 'done.'
+  !!if(iproc==0) write(*,'(a)') 'done.'
   
   comm%nsend=nsends
   comm%nrecv=nreceives

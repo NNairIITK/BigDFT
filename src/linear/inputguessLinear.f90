@@ -632,7 +632,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Post the messages for the communication of the potential.
   call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
+  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
+  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
 
 
   ! Apply the Hamiltonian for each atom.
@@ -796,7 +797,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb)
@@ -1082,7 +1084,8 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 ! Then post the messages and gather them.
 call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, lzdig, op, op, &
      lchi, comon%nsendBuf, comon%sendBuf)
-call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
+!call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
+call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon)
 call collectnew(iproc, nproc, comon, mad, op, orbsig, lzdig, comon%nsendbuf, &
      comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
 

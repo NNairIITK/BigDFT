@@ -3180,13 +3180,13 @@ module module_interfaces
      end subroutine setCommsParameters
      
      
-     subroutine postCommsOverlap(iproc, nproc, comon)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(p2pComms),intent(inout):: comon
-     end subroutine postCommsOverlap
+     !!subroutine postCommsOverlap(iproc, nproc, comon)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  type(p2pComms),intent(inout):: comon
+     !!end subroutine postCommsOverlap
      
      
      subroutine extractOrbital(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, comon)
@@ -3686,15 +3686,15 @@ module module_interfaces
        real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
      end subroutine buildLinearCombinations_new
 
-     subroutine postCommunicationsPotential(iproc, nproc, ndimpot, pot, comgp)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc, ndimpot
-       real(8),dimension(ndimpot),intent(in):: pot
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-     end subroutine postCommunicationsPotential
+     !!subroutine postCommunicationsPotential(iproc, nproc, ndimpot, pot, comgp)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc, ndimpot
+     !!  real(8),dimension(ndimpot),intent(in):: pot
+     !!  !type(p2pCommsGatherPot),intent(inout):: comgp
+     !!  type(p2pComms),intent(inout):: comgp
+     !!end subroutine postCommunicationsPotential
 
 
      subroutine gatherPotential(iproc, nproc, comgp)
@@ -5155,18 +5155,18 @@ module module_interfaces
       !!end subroutine collectAndCalculateOverlap
 
 
-      subroutine postCommsOverlapNew(iproc, nproc, orbs, op, lzd, phi, comon, timecommun, timeextract)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc
-        type(orbitals_data),intent(in):: orbs
-        type(overlapParameters),intent(in):: op
-        type(local_zone_descriptors),intent(in):: lzd
-        real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
-        type(p2pComms),intent(inout):: comon
-        real(8),intent(out):: timecommun, timeextract
-      end subroutine postCommsOverlapNew
+      !!subroutine postCommsOverlapNew(iproc, nproc, orbs, op, lzd, phi, comon, timecommun, timeextract)
+      !!  use module_base
+      !!  use module_types
+      !!  implicit none
+      !!  integer,intent(in):: iproc, nproc
+      !!  type(orbitals_data),intent(in):: orbs
+      !!  type(overlapParameters),intent(in):: op
+      !!  type(local_zone_descriptors),intent(in):: lzd
+      !!  real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
+      !!  type(p2pComms),intent(inout):: comon
+      !!  real(8),intent(out):: timecommun, timeextract
+      !!end subroutine postCommsOverlapNew
 
       !!subroutine expandOneOrbital2(iproc, nproc, orbsource, orbdest, orbs, input, onWhichAtom, lzd, op, &
       !!     nrecvbuf, recvbuf, lphiovrlp)
