@@ -265,84 +265,94 @@ integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, 
 
 ! Post the messages
 if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
+
+
+! First only post receives
 nreceives=0
-nsends=0
-comgp%communComplete=.false.
-destLoop: do jproc=0,nproc-1
-    sourceLoop: do kproc=1,comgp%noverlaps(jproc)
+do jproc=0,nproc-1
+    do kproc=1,comgp%noverlaps(jproc)
         mpisource=comgp%comarr(1,kproc,jproc)
         istsource=comgp%comarr(2,kproc,jproc)
         ncount=comgp%comarr(3,kproc,jproc)
         mpidest=comgp%comarr(4,kproc,jproc)
         istdest=comgp%comarr(5,kproc,jproc)
         tag=comgp%comarr(6,kproc,jproc)
-        !!if(ncount==0) then
-        !!    ! No communication is needed. This should be improved in the initialization, i.e. this communication
-        !!    ! with 0 elements should be removed from comgp%noverlaps etc.
-        !!    comgp%comarr(7,kproc,jproc)=mpi_request_null
-        !!    comgp%comarr(8,kproc,jproc)=mpi_request_null
-        !!    comgp%communComplete(kproc,jproc)=.true.
-        !!    if(iproc==mpidest) then
-        !!        ! This is just to make the check at the end happy.
-        !!        nreceives=nreceives+1
-        !!    end if
-        !!else
-            if(mpisource/=mpidest) then
-                if(iproc==mpisource) then
-                    !!write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', &
-                    !!    istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                    !!call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                    !!     comgp%comarr(7,kproc,jproc), ierr)
-                    nsends=nsends+1
-                    call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                         comgp%requests(nsends,1), ierr)
-                    comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
-                else if(iproc==mpidest) then
-                   !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
-                   !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                    !!call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                    !!     comgp%comarr(8,kproc,jproc), ierr)
-                    nreceives=nreceives+1
-                    call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                         comgp%requests(nreceives,2), ierr)
-                    comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
-                else
-                    comgp%comarr(7,kproc,jproc)=mpi_request_null
-                    comgp%comarr(8,kproc,jproc)=mpi_request_null
-                end if
-            else
-                if(iproc==mpisource) then
-                   !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
-                   !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                    nsends=nsends+1
-                    call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                         comgp%requests(nsends,1), ierr)
-                    nreceives=nreceives+1
-                        call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                             comgp%requests(nreceives,2), ierr)
-                end if
-            end if
-            !!else
-            !!    ! The orbitals are on the same process, so simply copy them.
-            !!    if(iproc==mpisource) then
-            !!        !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-            !!        !if(iproc==0) write(*,'(a,es22.12)') 'pot(istsource)', pot(istsource)
-            !!        call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
-            !!        comgp%comarr(7,kproc,jproc)=mpi_request_null
-            !!        comgp%comarr(8,kproc,jproc)=mpi_request_null
-            !!        nsends=nsends+1
-            !!        nreceives=nreceives+1
-            !!        comgp%communComplete(kproc,iproc)=.true.
-            !!    else
-            !!        comgp%comarr(7,kproc,jproc)=mpi_request_null
-            !!        comgp%comarr(8,kproc,jproc)=mpi_request_null
-            !!        comgp%communComplete(kproc,jproc)=.true.
-            !!    end if
-            !!end if
-        !!end if
-    end do sourceLoop
-end do destLoop
-if(iproc==0) write(*,'(a)') 'done.'
+        if(iproc==mpidest) then
+            nreceives=nreceives+1
+            call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                 comgp%requests(nreceives,2), ierr)
+        end if
+    end do
+end do
+
+! Now the sends
+nsends=0
+do jproc=0,nproc-1
+    do kproc=1,comgp%noverlaps(jproc)
+        mpisource=comgp%comarr(1,kproc,jproc)
+        istsource=comgp%comarr(2,kproc,jproc)
+        ncount=comgp%comarr(3,kproc,jproc)
+        mpidest=comgp%comarr(4,kproc,jproc)
+        istdest=comgp%comarr(5,kproc,jproc)
+        tag=comgp%comarr(6,kproc,jproc)
+        if(iproc==mpisource) then
+            nsends=nsends+1
+            call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                 comgp%requests(nsends,1), ierr)
+        end if
+    end do
+end do
+
+
+!!!nreceives=0
+!!!nsends=0
+!!!comgp%communComplete=.false.
+!!!destLoop: do jproc=0,nproc-1
+!!!    sourceLoop: do kproc=1,comgp%noverlaps(jproc)
+!!!        mpisource=comgp%comarr(1,kproc,jproc)
+!!!        istsource=comgp%comarr(2,kproc,jproc)
+!!!        ncount=comgp%comarr(3,kproc,jproc)
+!!!        mpidest=comgp%comarr(4,kproc,jproc)
+!!!        istdest=comgp%comarr(5,kproc,jproc)
+!!!        tag=comgp%comarr(6,kproc,jproc)
+!!!        if(mpisource/=mpidest) then
+!!!            if(iproc==mpisource) then
+!!!                !!write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', &
+!!!                !!    istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+!!!                !!call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+!!!                !!     comgp%comarr(7,kproc,jproc), ierr)
+!!!                nsends=nsends+1
+!!!                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+!!!                     comgp%requests(nsends,1), ierr)
+!!!                comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
+!!!            else if(iproc==mpidest) then
+!!!               !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+!!!               !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+!!!                !!call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+!!!                !!     comgp%comarr(8,kproc,jproc), ierr)
+!!!                nreceives=nreceives+1
+!!!                call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+!!!                     comgp%requests(nreceives,2), ierr)
+!!!                comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
+!!!            else
+!!!                comgp%comarr(7,kproc,jproc)=mpi_request_null
+!!!                comgp%comarr(8,kproc,jproc)=mpi_request_null
+!!!            end if
+!!!        else
+!!!            if(iproc==mpisource) then
+!!!               !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+!!!               !!    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+!!!                nsends=nsends+1
+!!!                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+!!!                     comgp%requests(nsends,1), ierr)
+!!!                nreceives=nreceives+1
+!!!                    call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+!!!                         comgp%requests(nreceives,2), ierr)
+!!!            end if
+!!!        end if
+!!!    end do sourceLoop
+!!!end do destLoop
+!!!if(iproc==0) write(*,'(a)') 'done.'
 
 comgp%nsend=nsends
 comgp%nrecv=nreceives

@@ -795,7 +795,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
            tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
 
   ! Calculate the coefficients
-  write(*,*) 'in inguess...'
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
   call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
