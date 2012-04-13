@@ -2735,7 +2735,8 @@ type(workarr_sumrho):: w
       ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
       ! to point communication, the program will continue immediately. The messages will be gathered
       ! in the subroutine sumrhoForLocalizedBasis2.
-      call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+      !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+      call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr)
 end subroutine communicate_basis_for_density
 
 

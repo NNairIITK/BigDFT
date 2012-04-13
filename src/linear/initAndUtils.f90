@@ -167,7 +167,7 @@ integer,intent(inout):: tag
 type(p2pComms),intent(out):: comsr
 
 ! Local variables
-integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp
+integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
 integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj
 integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
 character(len=*),parameter:: subname='initializeCommsSumrho'
@@ -180,16 +180,19 @@ call ext_buffers(lzd%Glr%geocode /= 'F',nbl3,nbr3)
 ! First count the number of overlapping orbitals for each slice.
 allocate(comsr%noverlaps(0:nproc-1),stat=istat)
 call memocc(istat,comsr%noverlaps,'comsr%noverlaps',subname)
+isend=0
 do jproc=0,nproc-1
     is=nscatterarr(jproc,3) 
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,orbs%norb
         ilr=orbs%inWhichLocreg(iorb)
+        iiproc=orbs%onwhichmpi(iorb)
         i3s=lzd%Llr(ilr)%nsi3 
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1        
+            if(iproc==iiproc) isend=isend+1
         end if
         !For periodicity
         if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
@@ -197,6 +200,7 @@ do jproc=0,nproc-1
           i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
           if(i3s<=ie .and. i3e>=is) then
               ioverlap=ioverlap+1
+              if(iproc==iiproc) isend=isend+1
           end if
         end if
     end do
@@ -216,6 +220,8 @@ allocate(comsr%comarr(9,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
 allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
 call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
+call memocc(istat,comsr%requests,'comsr%requests',subname)
 
 comsr%istarr=1
 comsr%istrarr=1
