@@ -216,7 +216,7 @@ call memocc(istat,comsr%istrarr,'comsr%istrarr',subname)
 allocate(comsr%overlaps(comsr%noverlaps(iproc)),stat=istat)
 call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 
-allocate(comsr%comarr(9,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
+allocate(comsr%comarr(6,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
 allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
 call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)

@@ -1729,7 +1729,7 @@ do jproc=0,nproc-1
   end do
 end do
 
-allocate(comom%comarr(8,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
+allocate(comom%comarr(6,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%comarr, 'comom%comarr', subname)
 allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)

@@ -451,7 +451,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
 
   ! Initialize the communications.
   comon%noverlapsmax=maxval(comon%noverlaps)
-  allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
+  allocate(comon%comarr(6,comon%noverlapsmax,0:nproc-1), stat=istat)
   call memocc(istat, comon%comarr, 'comon%comarr', subname)
   allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
   call memocc(istat, comon%communComplete, 'comun%communComplete', subname)

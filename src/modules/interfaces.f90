@@ -2953,16 +2953,16 @@ module module_interfaces
      end subroutine sumrhoForLocalizedBasis2
 
 
-     subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       !type(p2pCommsSumrho),intent(inout):: comsr
-       type(p2pComms),intent(inout):: comsr
-       real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
-       real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
-     end subroutine postCommunicationSumrho2
+     !!subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  !type(p2pCommsSumrho),intent(inout):: comsr
+     !!  type(p2pComms),intent(inout):: comsr
+     !!  real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
+     !!  real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
+     !!end subroutine postCommunicationSumrho2
 
 
      !!!subroutine allocateLinArrays(lin)

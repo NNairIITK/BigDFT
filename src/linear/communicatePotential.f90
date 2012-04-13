@@ -109,7 +109,7 @@ end do
 ! Determine the parameters for the communications.
 allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
 call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
+allocate(comgp%comarr(6,maxval(comgp%noverlaps),0:nproc-1))
 call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
 allocate(comgp%ise3(2,0:nproc-1), stat=istat)
 call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
@@ -213,7 +213,7 @@ use module_base
 implicit none
 ! Calling arguments
 integer,intent(in):: mpisource, is3, ie3, ioffset, n1i, n2i, mpidest, istdest, tag
-integer,dimension(8),intent(out):: comarr
+integer,dimension(6),intent(out):: comarr
 
 ! Local variables
 integer:: istsource, ncount
