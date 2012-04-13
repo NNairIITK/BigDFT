@@ -1086,8 +1086,9 @@ call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, onWhichA
      lchi, comon%nsendBuf, comon%sendBuf)
 !call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
 call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon)
-call collectnew(iproc, nproc, comon, mad, op, orbsig, lzdig, comon%nsendbuf, &
-     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
+!!call collectnew(iproc, nproc, comon, mad, op, orbsig, lzdig, comon%nsendbuf, &
+!!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
+call wait_p2p_communication(iproc, nproc, comon)
 
 
 

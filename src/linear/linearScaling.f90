@@ -360,7 +360,8 @@ real(8):: ddot, tt1, tt2, tt3
               ! Cancel the communication of the potential for the TMB, since we need in the following
               ! only the potential for the TMB including the derivatives.
               !call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-              if(.not.tmb%wfnmd%bs%update_phi) call gatherPotential(iproc, nproc, tmb%comgp)
+              !!if(.not.tmb%wfnmd%bs%update_phi) call gatherPotential(iproc, nproc, tmb%comgp)
+              if(.not.tmb%wfnmd%bs%update_phi) call wait_p2p_communication(iproc, nproc, tmb%comgp)
               call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
@@ -488,11 +489,13 @@ real(8):: ddot, tt1, tt2, tt3
 
 
   !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-  call gatherPotential(iproc, nproc, tmb%comgp)
+  !!call gatherPotential(iproc, nproc, tmb%comgp)
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
       !!call cancelCommunicationPotential(iproc, nproc, tmbder%comgp)
-      call gatherPotential(iproc, nproc, tmbder%comgp)
+      !!call gatherPotential(iproc, nproc, tmbder%comgp)
+      call wait_p2p_communication(iproc, nproc, tmbder%comgp)
       call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
 

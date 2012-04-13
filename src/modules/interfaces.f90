@@ -5249,22 +5249,22 @@ module module_interfaces
        !!  real(8),intent(out):: trH
        !!end subroutine applyOrthoconstraintNonorthogonalCubic
 
-       subroutine collectnew(iproc, nproc, comon, mad, op, orbs, lzd, &
-                  nsendbuf, sendbuf, nrecvbuf, recvbuf, timecommunp2p, &
-                  timecommuncoll, timecompress)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-         type(p2pComms),intent(inout):: comon
-         type(matrixDescriptors),intent(in):: mad
-         type(overlapParameters),intent(in):: op
-         type(orbitals_data),intent(in):: orbs
-         type(local_zone_descriptors),intent(in):: lzd
-         real(8),dimension(nsendbuf),intent(in):: sendbuf
-         real(8),dimension(nrecvbuf),intent(inout):: recvbuf
-         real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
-       end subroutine collectnew
+       !!subroutine collectnew(iproc, nproc, comon, mad, op, orbs, lzd, &
+       !!           nsendbuf, sendbuf, nrecvbuf, recvbuf, timecommunp2p, &
+       !!           timecommuncoll, timecompress)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+       !!  type(p2pComms),intent(inout):: comon
+       !!  type(matrixDescriptors),intent(in):: mad
+       !!  type(overlapParameters),intent(in):: op
+       !!  type(orbitals_data),intent(in):: orbs
+       !!  type(local_zone_descriptors),intent(in):: lzd
+       !!  real(8),dimension(nsendbuf),intent(in):: sendbuf
+       !!  real(8),dimension(nrecvbuf),intent(inout):: recvbuf
+       !!  real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
+       !!end subroutine collectnew
 
 
        subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
@@ -6759,6 +6759,14 @@ end subroutine update_locreg2
           real(8),dimension(nsendbuf),intent(in):: sendbuf
           type(p2pComms),intent(inout):: comm
         end subroutine post_p2p_communication
+
+        subroutine wait_p2p_communication(iproc, nproc, comm)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(p2pComms),intent(inout):: comm
+        end subroutine wait_p2p_communication
 
    end interface
 
