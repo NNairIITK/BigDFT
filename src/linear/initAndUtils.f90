@@ -2242,6 +2242,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   !!call deallocate_locreg_descriptors(glr_tmp, subname)
+  lzd%hgrids(1)=hx
+  lzd%hgrids(2)=hy
+  lzd%hgrids(3)=hz
 
   npsidim = 0
   do iorb=1,llborbs%norbp
@@ -2325,26 +2328,9 @@ logical:: reallocate
    end if
    if(withder) stop 'withder is true'
 
-
-   !!!iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-   !!!deallocate(ldiis%phiHist, stat=istat)
-   !!!call memocc(istat, iall, 'ldiis%phiHist', subname)
-   !!!iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-   !!!deallocate(ldiis%hphiHist, stat=istat)
-   !!!call memocc(istat, iall, 'ldiis%hphiHist', subname)
-   !!!ii=0
-   !!!do iorb=1,tmb%orbs%norbp
-   !!!    ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-   !!!    ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
-   !!!end do
-   !!!allocate(ldiis%phiHist(ii), stat=istat)
-   !!!call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-   !!!allocate(ldiis%hphiHist(ii), stat=istat)
-   !!!call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
-   tmb%lzd%hgrids(1)=hx
-   tmb%lzd%hgrids(2)=hy
-   tmb%lzd%hgrids(3)=hz
+   !!tmb%lzd%hgrids(1)=hx
+   !!tmb%lzd%hgrids(2)=hy
+   !!tmb%lzd%hgrids(3)=hz
 
 end subroutine create_new_locregs
 
