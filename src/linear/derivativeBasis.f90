@@ -330,8 +330,8 @@ do jproc=0,nproc-1
 end do
 
 
-allocate(comrp%communComplete(4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
-call memocc(istat, comrp%communComplete, 'comrp%communComplete', subname)
+!!allocate(comrp%communComplete(4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+!!call memocc(istat, comrp%communComplete, 'comrp%communComplete', subname)
 !!allocate(comrp%requests(max(4*lorbs%norbp,llborbs%norbp),2), stat=istat)
 !!call memocc(istat, comrp%requests, 'comrp%requests', subname)
 allocate(comrp%noverlaps(0:nproc-1), stat=istat)

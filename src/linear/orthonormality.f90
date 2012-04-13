@@ -454,8 +454,8 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   comon%noverlapsmax=maxval(comon%noverlaps)
   allocate(comon%comarr(6,comon%noverlapsmax,0:nproc-1), stat=istat)
   call memocc(istat, comon%comarr, 'comon%comarr', subname)
-  allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
-  call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
+  !!allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
+  !!call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
   call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
   !DON'T need this anymore
@@ -1207,80 +1207,80 @@ end subroutine extractOrbital3
 
 
 
-subroutine gatherOrbitals2(iproc, nproc, comon)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(p2pComms),intent(inout):: comon
-
-  ! Local variables
-  integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
-  integer,dimension(mpi_status_size):: stat
-  logical:: sendComplete, receiveComplete
-
-
-!!! Check whether the communications have completed.
-  !!nfast=0
-  !!nsameproc=0
-  !!testLoop: do
-  !!    do jproc=0,nproc-1
-  !!        do jorb=1,comon%noverlaps(jproc)
-  !!            if(comon%communComplete(jorb,jproc)) cycle
-  !!            call mpi_test(comon%comarr(7,jorb,jproc), sendComplete, stat, ierr)
-  !!            call mpi_test(comon%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
-  !!            ! Attention: mpi_test is a local function.
-  !!            if(sendComplete .and. receiveComplete) comon%communComplete(jorb,jproc)=.true.
-  !!        end do
-  !!    end do
-  !!    ! If we made it until here, either all all the communication is
-  !!    ! complete or we better wait for each single orbital.
-  !!    exit testLoop
-  !!end do testLoop
-  !!
-!!! Since mpi_test is a local function, check whether the communication has completed on all processes.
-  !!call mpiallred(comon%communComplete(1,0), nproc*maxval(comon%noverlaps), mpi_land, mpi_comm_world, ierr)
-
-
-  ! Wait for the communications that have not completed yet
-  nslow=0
-  do jproc=0,nproc-1
-     do jorb=1,comon%noverlaps(jproc)
-        if(comon%communComplete(jorb,jproc)) then
-           mpisource=comon%comarr(1,jorb,jproc)
-           mpidest=comon%comarr(4,jorb,jproc)
-           if(mpisource==mpidest) then
-              !nsameproc=nsameproc+1
-           else
-              !nfast=nfast+1
-           end if
-           cycle
-        end if
-        !write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
-        nslow=nslow+1
-        !if(iproc==mpidest) call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        !if(iproc==mpisource) call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        comon%communComplete(jorb,jproc)=.true.
-     end do
-  end do
-
-  !call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-  !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
-  !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
-  !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-  !nfast=nint(dble(nfast)/dble(nproc))
-  !nfast=nint(dble(nslow)/dble(nproc))
-  !nfast=nint(dble(nsameproc)/dble(nproc))
-  !if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
-  !                       nfast, ' could be overlapped with computation.'
-  !if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
-
-
-end subroutine gatherOrbitals2
+!!!subroutine gatherOrbitals2(iproc, nproc, comon)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  integer,intent(in):: iproc, nproc
+!!!  type(p2pComms),intent(inout):: comon
+!!!
+!!!  ! Local variables
+!!!  integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
+!!!  integer,dimension(mpi_status_size):: stat
+!!!  logical:: sendComplete, receiveComplete
+!!!
+!!!
+!!!!!! Check whether the communications have completed.
+!!!  !!nfast=0
+!!!  !!nsameproc=0
+!!!  !!testLoop: do
+!!!  !!    do jproc=0,nproc-1
+!!!  !!        do jorb=1,comon%noverlaps(jproc)
+!!!  !!            if(comon%communComplete(jorb,jproc)) cycle
+!!!  !!            call mpi_test(comon%comarr(7,jorb,jproc), sendComplete, stat, ierr)
+!!!  !!            call mpi_test(comon%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
+!!!  !!            ! Attention: mpi_test is a local function.
+!!!  !!            if(sendComplete .and. receiveComplete) comon%communComplete(jorb,jproc)=.true.
+!!!  !!        end do
+!!!  !!    end do
+!!!  !!    ! If we made it until here, either all all the communication is
+!!!  !!    ! complete or we better wait for each single orbital.
+!!!  !!    exit testLoop
+!!!  !!end do testLoop
+!!!  !!
+!!!!!! Since mpi_test is a local function, check whether the communication has completed on all processes.
+!!!  !!call mpiallred(comon%communComplete(1,0), nproc*maxval(comon%noverlaps), mpi_land, mpi_comm_world, ierr)
+!!!
+!!!
+!!!  ! Wait for the communications that have not completed yet
+!!!  nslow=0
+!!!  do jproc=0,nproc-1
+!!!     do jorb=1,comon%noverlaps(jproc)
+!!!        if(comon%communComplete(jorb,jproc)) then
+!!!           mpisource=comon%comarr(1,jorb,jproc)
+!!!           mpidest=comon%comarr(4,jorb,jproc)
+!!!           if(mpisource==mpidest) then
+!!!              !nsameproc=nsameproc+1
+!!!           else
+!!!              !nfast=nfast+1
+!!!           end if
+!!!           cycle
+!!!        end if
+!!!        !write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
+!!!        nslow=nslow+1
+!!!        !if(iproc==mpidest) call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+!!!        call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+!!!        !if(iproc==mpisource) call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+!!!        call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+!!!        comon%communComplete(jorb,jproc)=.true.
+!!!     end do
+!!!  end do
+!!!
+!!!  !call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
+!!!  !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
+!!!  !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
+!!!  !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
+!!!  !nfast=nint(dble(nfast)/dble(nproc))
+!!!  !nfast=nint(dble(nslow)/dble(nproc))
+!!!  !nfast=nint(dble(nsameproc)/dble(nproc))
+!!!  !if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!!!  !                       nfast, ' could be overlapped with computation.'
+!!!  !if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+!!!
+!!!
+!!!end subroutine gatherOrbitals2
 
 subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
   use module_base

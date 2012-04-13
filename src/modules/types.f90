@@ -572,7 +572,7 @@ module module_types
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
     integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
-    logical,dimension(:,:),pointer:: communComplete, computComplete
+    !!logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
@@ -654,7 +654,7 @@ module module_types
       integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc, requests
       integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
       real(8),dimension(:),pointer:: recvBuf, sendBuf
-      logical,dimension(:,:),pointer:: communComplete
+      !!logical,dimension(:,:),pointer:: communComplete
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 

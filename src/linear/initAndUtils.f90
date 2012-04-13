@@ -308,10 +308,10 @@ end do
 comsr%nrecvbuf=max(comsr%nrecvbuf,1)
 
 
-allocate(comsr%communComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
-call memocc(istat, comsr%communComplete, 'comsr%communComplete', subname)
-allocate(comsr%computComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
-call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
+!!allocate(comsr%communComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
+!!call memocc(istat, comsr%communComplete, 'comsr%communComplete', subname)
+!!allocate(comsr%computComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
+!!call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
 
 !!is=nscatterarr(iproc,3) 
 !!ie=is+nscatterarr(iproc,1)-1

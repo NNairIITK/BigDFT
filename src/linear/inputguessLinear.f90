@@ -1736,8 +1736,8 @@ allocate(comom%comarr(6,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%comarr, 'comom%comarr', subname)
 allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)
-allocate(comom%communComplete(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
-call memocc(istat, comom%communComplete, 'comom%communComplete', subname)
+!!allocate(comom%communComplete(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
+!!call memocc(istat, comom%communComplete, 'comom%communComplete', subname)
 
 comom%nsendBuf=0
 comom%nrecvBuf=0
@@ -2243,7 +2243,7 @@ type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
 
 irecv=0
-comom%communComplete=.false.
+!!comom%communComplete=.false.
 do jproc=0,nproc-1
   do iorb=1,comom%noverlapProc(jproc)
      mpisource=comom%comarr(1,iorb,jproc)

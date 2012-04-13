@@ -198,8 +198,8 @@ end do
 
 !write(*,'(a,i4,i12)') 'iproc, comgp%nrecvBuf', iproc, comgp%nrecvBuf
 
-allocate(comgp%communComplete(maxval(comgp%noverlaps),0:nproc-1), stat=istat)
-call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
+!!allocate(comgp%communComplete(maxval(comgp%noverlaps),0:nproc-1), stat=istat)
+!!call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
 
 iall=-product(shape(iStartEnd))*kind(iStartEnd)
 deallocate(iStartEnd, stat=istat)
