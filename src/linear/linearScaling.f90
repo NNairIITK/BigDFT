@@ -310,9 +310,10 @@ real(8):: ddot, tt1, tt2, tt3
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      ! Allocate the communication arrays for the calculation of the charge density.
-      if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+      !!! Allocate the communication arrays for the calculation of the charge density.
+      !!if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+      !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+      if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
       ! Now all initializations are done...
 
@@ -323,12 +324,8 @@ real(8):: ddot, tt1, tt2, tt3
       do it_scc=1,lscv%nit_scc
           ! Do not update the TMB if it_scc>1
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
-          ! Only communicate the TMB for sumrho in the first iteration.
-          if(it_scc==1) then
-              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-          else
-              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
-          end if
+
+          !!if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
@@ -400,6 +397,20 @@ real(8):: ddot, tt1, tt2, tt3
               end if
           end if
 
+          ! Only communicate the TMB for sumrho in the first iteration.
+          if(it_scc<=lscv%nit_scc_when_optimizing) then
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+              call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+          !else if(lscv%locreg_increased) then
+          !    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+          !    tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+          else
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+          end if
+          !!if(lscv%locreg_increased) then
+          !!    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+          !!end if
 
           ! Calculate the coefficients
           call mpi_barrier(mpi_comm_world, istat)
@@ -468,10 +479,17 @@ real(8):: ddot, tt1, tt2, tt3
           else
               lscv%reduce_convergence_tolerance=.false.
           end if
+
+          if(it_scc<lscv%nit_scc_when_optimizing .or. it_scc==lscv%nit_scc) then
+              call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+              call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+          !else if(lscv%locreg_increased) then
+          !    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+          end if
       end do
 
-      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then

@@ -458,7 +458,8 @@ type(energy_terms) :: energs
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
-      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+           lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -490,7 +491,8 @@ type(energy_terms) :: energs
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
       call update_ldiis_arrays(tmblarge, subname, ldiis)
-      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+           lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
@@ -567,7 +569,8 @@ type(energy_terms) :: energs
                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
           call update_ldiis_arrays(tmblarge, subname, ldiis)
-          call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+               lhphilarge, lhphilargeold, lphilargeold)
           call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
           call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
           tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs

@@ -2304,20 +2304,13 @@ logical:: reallocate
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-   !!call nullify_local_zone_descriptors(tmb%lzd)
-   !!call nullify_orbitals_data(tmb%orbs)
-   !!call nullify_overlapParameters(tmb%op)
-   !!call nullify_p2pComms(tmb%comon)
-   !!call nullify_matrixDescriptors(tmb%mad)
-   !!call nullify_p2pComms(tmb%comgp)
-   !!call nullify_collective_comms(tmb%collcom)
-   !!call nullify_p2pComms(tmb%comsr)
 
    if(associated(tmb%comsr%recvbuf)) then
        reallocate=.true.
    else
        reallocate=.false.
    end if
+   write(*,*) 'reallocate',reallocate
    call deallocate_p2pComms(tmb%comsr, subname)
    call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
         withder, nscatterarr, hx, hy, hz, &
@@ -2328,9 +2321,6 @@ logical:: reallocate
    end if
    if(withder) stop 'withder is true'
 
-   !!tmb%lzd%hgrids(1)=hx
-   !!tmb%lzd%hgrids(2)=hy
-   !!tmb%lzd%hgrids(3)=hz
 
 end subroutine create_new_locregs
 
