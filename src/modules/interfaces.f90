@@ -6751,12 +6751,13 @@ end subroutine update_locreg2
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
-        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, comm)
+        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc, nsendbuf
+          integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
           real(8),dimension(nsendbuf),intent(in):: sendbuf
+          real(8),dimension(nrecvbuf),intent(out):: recvbuf
           type(p2pComms),intent(inout):: comm
         end subroutine post_p2p_communication
 

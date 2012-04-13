@@ -2166,7 +2166,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
 
   call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+       tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   !!call deallocate_p2pComms(tmbmix%comgp, subname)

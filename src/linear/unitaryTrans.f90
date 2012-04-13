@@ -925,7 +925,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, &
        op, op, lphi, comon%nsendBuf, comon%sendBuf)
   !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-  call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon)
+  call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
   !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
   !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
   call wait_p2p_communication(iproc, nproc, comon)

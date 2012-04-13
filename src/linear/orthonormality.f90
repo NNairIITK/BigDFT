@@ -45,7 +45,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
                lphi, comon%nsendBuf, comon%sendBuf)
           ! Post the send messages.
           !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-          call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon)
+          call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
           allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
           call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
           !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
@@ -223,7 +223,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, op, op, &
            lphi, comon%nsendBuf, comon%sendBuf)
       !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
-      call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon)
+      call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
       !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
       !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
       call wait_p2p_communication(iproc, nproc, comon)
@@ -362,7 +362,8 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,&
        lzd,lzd,op_lb,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   !call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
-  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, comon_lb)
+  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, &
+       comon_lb%nrecvbuf, comon_lb%recvbuf, comon_lb)
   !!call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
   !!     comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   call wait_p2p_communication(iproc, nproc, comon_lb)
@@ -778,8 +779,8 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
            tag=tag+1
            receivedOrbital(jjorb)=.true.
            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
-           comon%comarr(9,ijorb,jproc)=jjorb
-           comon%comarr(10,ijorb,jproc)=iiorb
+           !!comon%comarr(9,ijorb,jproc)=jjorb
+           !!comon%comarr(10,ijorb,jproc)=iiorb
            !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
            if(iproc==mpisource) then
               !write(*,'(4(a,i0))') 'adding ',ncount,' elements for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
@@ -798,6 +799,7 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
      end do
      jprocold=jproc
   end do
+  write(*,*) 'comon%nsendBuf, comon%nrecvBuf', comon%nsendBuf, comon%nrecvBuf
 
   iall = -product(shape(istsourceArr))*kind(istsourceArr)
   deallocate(istsourceArr, stat=istat)
@@ -2070,7 +2072,8 @@ type(input_variables):: input
   call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,lzd,&
        op_lb,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   !!call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
-  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, comon_lb)
+  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, &
+       comon_lb%nrecvbuf, comon_lb%recvbuf, comon_lb)
   !!call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
   !!     comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   call wait_p2p_communication(iproc, nproc, comon_lb)

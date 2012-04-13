@@ -88,12 +88,12 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   !!    call gatherPotential(iproc, nproc, tmbmix%comgp)
   !!end if
 
-  if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-      .or. tmbmix%wfnmd%bs%use_derivative_basis) then
-      tmbmix%comgp%communication_complete=.false.
-  else
-      tmbmix%comgp%communication_complete=.true.
-  end if
+  !!if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
+  !!    .or. tmbmix%wfnmd%bs%use_derivative_basis) then
+  !!    tmbmix%comgp%communication_complete=.false.
+  !!else
+  !!    tmbmix%comgp%communication_complete=.true.
+  !!end if
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
@@ -424,7 +424,7 @@ type(energy_terms) :: energs
       !!call gatherPotential(iproc, nproc, tmb%comgp)
 
       ! Build the required potential
-      tmb%comgp%communication_complete=.false.
+      !!tmb%comgp%communication_complete=.false.
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
@@ -537,7 +537,8 @@ type(energy_terms) :: energs
 
 
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+           tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
 
       ! Transform back to small locreg
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
@@ -593,7 +594,7 @@ type(energy_terms) :: energs
           !!call gatherPotential(iproc, nproc, tmb%comgp)
 
           ! Build the required potential
-          tmb%comgp%communication_complete=.false.
+          !!tmb%comgp%communication_complete=.false.
           call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
           call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
@@ -2697,46 +2698,46 @@ end subroutine check_locregCenters
 
 
 subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-use module_base
-use module_types
-use module_interfaces, except_this_one => communicate_basis_for_density
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => communicate_basis_for_density
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: llborbs
+  real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
+  type(p2pComms),intent(inout):: comsr
+  
+  ! Local variables
+  integer:: ist, istr, iorb, iiorb, ilr, ierr
+  type(workarr_sumrho):: w
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: llborbs
-real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
-type(p2pComms),intent(inout):: comsr
-
-! Local variables
-integer:: ist, istr, iorb, iiorb, ilr, ierr
-type(workarr_sumrho):: w
-
-      ! Allocate the communication buffers for the calculation of the charge density.
-      !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-      ! Transform all orbitals to real space.
-      ist=1
-      istr=1
-      do iorb=1,llborbs%norbp
-          iiorb=llborbs%isorb+iorb
-          ilr=llborbs%inWhichLocreg(iiorb)
-          call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-          call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-          call deallocate_work_arrays_sumrho(w)
-          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-      end do
-      if(istr/=comsr%nsendBuf+1) then
-          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-          stop
-      end if
-      
-      ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-      ! to point communication, the program will continue immediately. The messages will be gathered
-      ! in the subroutine sumrhoForLocalizedBasis2.
-      !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
-      call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr)
+  ! Allocate the communication buffers for the calculation of the charge density.
+  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  ! Transform all orbitals to real space.
+  ist=1
+  istr=1
+  do iorb=1,llborbs%norbp
+      iiorb=llborbs%isorb+iorb
+      ilr=llborbs%inWhichLocreg(iiorb)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+  end do
+  if(istr/=comsr%nsendBuf+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+      stop
+  end if
+  
+  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+  ! to point communication, the program will continue immediately. The messages will be gathered
+  ! in the subroutine sumrhoForLocalizedBasis2.
+  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
 end subroutine communicate_basis_for_density
 
 

@@ -40,7 +40,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
            lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
       !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
-      call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, tmbopt%comon)
+      call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
+           tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
       !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
       !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
       call wait_p2p_communication(iproc, nproc, tmbopt%comon)
@@ -368,7 +369,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
 
               !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                   tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
 
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)

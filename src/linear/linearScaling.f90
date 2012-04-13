@@ -224,13 +224,15 @@ real(8):: ddot, tt1, tt2, tt3
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+       tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+           tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
   end if
 
 
@@ -351,7 +353,8 @@ real(8):: ddot, tt1, tt2, tt3
                   if(it_scc==1) then
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
                       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-                      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+                      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                           tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
                   end if
                   tmbmix => tmbder
               end if
@@ -447,11 +450,13 @@ real(8):: ddot, tt1, tt2, tt3
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
           !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+               tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(tmbmix%wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                   tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
           end if
 
           ! Write some informations.
