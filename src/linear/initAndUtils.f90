@@ -2510,9 +2510,13 @@ call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 iall=-product(shape(lphi))*kind(lphi)
 deallocate(lphi, stat=istat)
 call memocc(istat, iall, 'lphi', subname)
-call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
-     lphi, lhphi, lhphiold, lphiold, tmb)
+!!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+!!     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
+!!     lphi, lhphi, lhphiold, lphiold, tmb)
+call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
+     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
+     tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+     tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
 allocate(lphi(tmb%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 call update_ldiis_arrays(tmb, subname, ldiis)
