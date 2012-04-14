@@ -370,10 +370,14 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
-                  call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
-                       tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-                       locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                       tmb%psi, lhphi, lhphiold, lphiold, tmb)
+                  !!call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
+                  !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
+                  !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                  !!     tmb%psi, lhphi, lhphiold, lphiold, tmb)
+                  call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
+                       .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                       tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+                       tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
                   call update_ldiis_arrays(tmb, subname, ldiis)
                   call allocate_auxiliary_basis_function(tmb%orbs%npsidim_orbs, subname, tmb%psi, lhphi, lhphiold, lphiold)
                   call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
