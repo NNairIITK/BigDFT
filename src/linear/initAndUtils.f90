@@ -2305,20 +2305,9 @@ logical:: reallocate
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
 
-   !!if(associated(tmb%comsr%recvbuf)) then
-   !!    reallocate=.true.
-   !!else
-   !!    reallocate=.false.
-   !!end if
-   !!write(*,*) 'reallocate',reallocate
-   !!call deallocate_p2pComms(tmb%comsr, subname)
    call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
         withder, nscatterarr, hx, hy, hz, &
         lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
-   !!call deallocate_p2pComms(tmb%comsr, subname)
-   !!if(reallocate) then
-   !!    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-   !!end if
    if(withder) stop 'withder is true'
 
 
@@ -2503,9 +2492,13 @@ end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
-call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
-     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
-     lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+!!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
+!!     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
+!!     lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd%glr, &
+     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
+     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphilarge, 'lphilarge', subname)
 call update_ldiis_arrays(tmblarge, subname, ldiis)
