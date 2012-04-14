@@ -454,10 +454,14 @@ type(energy_terms) :: energs
       end do
       locregCenterTemp=locregCenter
       ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-           locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+      !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
+      !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
+      !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+      !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
       call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
            lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
