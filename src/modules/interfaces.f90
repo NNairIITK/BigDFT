@@ -5935,26 +5935,26 @@ module module_interfaces
        end subroutine MLWFnew
 
 
-       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, &
-                  locrad, nscatterarr, withder, &
-                  inwhichlocreg_reference, ldiis, &
-                  lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, nlr
-         real(8),intent(in):: hx, hy, hz
-         type(orbitals_data),intent(in):: lorbs
-         type(locreg_descriptors),intent(in):: glr
-         real(8),dimension(3,nlr),intent(in):: locregCenter
-         real(8),dimension(nlr):: locrad
-         integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-         logical,intent(in):: withder
-         integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
-         type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
-         type(DFT_wavefunction),intent(out):: tmb
-       end subroutine create_new_locregs
+       !!!subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, &
+       !!!           locrad, nscatterarr, withder, &
+       !!!           inwhichlocreg_reference, ldiis, &
+       !!!           lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
+       !!!  use module_base
+       !!!  use module_types
+       !!!  implicit none
+       !!!  integer,intent(in):: iproc, nproc, nlr
+       !!!  real(8),intent(in):: hx, hy, hz
+       !!!  type(orbitals_data),intent(in):: lorbs
+       !!!  type(locreg_descriptors),intent(in):: glr
+       !!!  real(8),dimension(3,nlr),intent(in):: locregCenter
+       !!!  real(8),dimension(nlr):: locrad
+       !!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+       !!!  logical,intent(in):: withder
+       !!!  integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
+       !!!  type(localizedDIISParameters),intent(inout):: ldiis
+       !!!  real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+       !!!  type(DFT_wavefunction),intent(out):: tmb
+       !!!end subroutine create_new_locregs
 
        subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base

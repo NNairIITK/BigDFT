@@ -2274,44 +2274,44 @@ end subroutine update_locreg
 
 
 
-subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-           inwhichlocreg_reference, ldiis, &
-           lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
-use module_base
-use module_types
-use module_interfaces, except_this_one => create_new_locregs
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nlr
-real(8),intent(in):: hx, hy, hz
-type(orbitals_data),intent(in):: lorbs
-type(locreg_descriptors),intent(in):: glr
-real(8),dimension(3,nlr),intent(in):: locregCenter
-real(8),dimension(nlr):: locrad
-integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-logical,intent(in):: withder
-integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
-type(localizedDIISParameters),intent(inout):: ldiis
-real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
-type(DFT_wavefunction),intent(out):: tmb
-
-! Local variables
-integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
-integer,dimension(:),allocatable:: orbsperlocreg
-character(len=*),parameter:: subname='create_new_locregs'
-logical:: reallocate
-
-
-   if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-
-   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
-        withder, nscatterarr, hx, hy, hz, &
-        lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
-   if(withder) stop 'withder is true'
-
-
-end subroutine create_new_locregs
+!!!!subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
+!!!!           inwhichlocreg_reference, ldiis, &
+!!!!           lphilarge, lhphilarge, lhphilargeold, lphilargeold,tmb)
+!!!!use module_base
+!!!!use module_types
+!!!!use module_interfaces, except_this_one => create_new_locregs
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: iproc, nproc, nlr
+!!!!real(8),intent(in):: hx, hy, hz
+!!!!type(orbitals_data),intent(in):: lorbs
+!!!!type(locreg_descriptors),intent(in):: glr
+!!!!real(8),dimension(3,nlr),intent(in):: locregCenter
+!!!!real(8),dimension(nlr):: locrad
+!!!!integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!!logical,intent(in):: withder
+!!!!integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
+!!!!type(localizedDIISParameters),intent(inout):: ldiis
+!!!!real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+!!!!type(DFT_wavefunction),intent(out):: tmb
+!!!!
+!!!!! Local variables
+!!!!integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr, norb
+!!!!integer,dimension(:),allocatable:: orbsperlocreg
+!!!!character(len=*),parameter:: subname='create_new_locregs'
+!!!!logical:: reallocate
+!!!!
+!!!!
+!!!!   if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
+!!!!
+!!!!   call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr, &
+!!!!        withder, nscatterarr, hx, hy, hz, &
+!!!!        lorbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+!!!!   if(withder) stop 'withder is true'
+!!!!
+!!!!
+!!!!end subroutine create_new_locregs
 
 subroutine update_ldiis_arrays(tmb, subname, ldiis)
   use module_base
@@ -2492,9 +2492,6 @@ end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
-!!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmb%orbs, lzd%glr, locregCenter, &
-!!     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
-!!     lphilarge, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
 call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd%glr, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
@@ -2510,9 +2507,6 @@ call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 iall=-product(shape(lphi))*kind(lphi)
 deallocate(lphi, stat=istat)
 call memocc(istat, iall, 'lphi', subname)
-!!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-!!     locrad, denspot%dpcom%nscatterarr, withder, inwhichlocreg_reference, ldiis, &
-!!     lphi, lhphi, lhphiold, lphiold, tmb)
 call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &

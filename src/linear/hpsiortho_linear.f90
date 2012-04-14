@@ -289,10 +289,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
               call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
-              !!call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
-              !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-              !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-              !!     tmb%psi, lhphi, lhphiold, lphiold, tmb)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                    .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
@@ -316,10 +312,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
-              !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-              !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-              !!     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-              !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
               call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
                    .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
@@ -370,10 +362,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
-                  !!call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
-                  !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-                  !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                  !!     tmb%psi, lhphi, lhphiold, lphiold, tmb)
                   call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                        .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                        tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
@@ -406,10 +394,6 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
-                  !!call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-                  !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-                  !!     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                  !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
                   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
                        .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                        tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
