@@ -362,7 +362,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
                   call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
-                  call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
+                  call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
+                       inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                        .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                        tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                        tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)

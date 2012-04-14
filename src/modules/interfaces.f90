@@ -6793,6 +6793,15 @@ end subroutine update_locreg2
           type(localizedDIISParameters),intent(inout):: ldiis
         end subroutine update_ldiis_arrays
 
+        subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
+          use module_base
+          use module_types
+          implicit none
+          type(local_zone_descriptors),intent(in):: lzd_in
+          type(local_zone_descriptors),intent(out):: lzd_out
+          character(len=*),intent(in):: subname
+        end subroutine copy_local_zone_descriptors
+
    end interface
 
 END MODULE module_interfaces

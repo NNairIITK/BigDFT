@@ -2451,19 +2451,20 @@ real(8),dimension(:),pointer:: lphi
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
-type(local_zone_descriptors):: lzdlarge
-type(orbitals_data):: orbslarge
-type(p2pComms):: comonlarge, comgplarge
-type(overlapParameters):: oplarge
-type(matrixDescriptors):: madlarge
-type(localizedDIISParameters):: ldiislarge
+!!type(local_zone_descriptors):: lzdlarge
+!!type(orbitals_data):: orbslarge
+!!type(p2pComms):: comonlarge, comgplarge
+!!type(overlapParameters):: oplarge
+!!type(matrixDescriptors):: madlarge
+!!type(localizedDIISParameters):: ldiislarge
 type(orbitals_data):: orbs_tmp
 type(locreg_descriptors):: glr_tmp
+type(local_zone_descriptors):: lzd_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:,:),allocatable:: locregCenter
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 integer:: istat, iall, iorb, ilr
-type(DFT_wavefunction):: tmblarge
+!!type(DFT_wavefunction):: tmblarge
 character(len=*),parameter:: subname='enlarge_locreg'
 
 
@@ -2478,8 +2479,10 @@ call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
 
 call nullify_orbitals_data(orbs_tmp)
 call nullify_locreg_descriptors(glr_tmp)
+call nullify_local_zone_descriptors(lzd_tmp)
 call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
 call copy_locreg_descriptors(tmb%lzd%glr, glr_tmp, subname)
+call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
 
 
 ! always use the same inwhichlocreg
@@ -2490,37 +2493,42 @@ do iorb=1,tmb%orbs%norb
     locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
 end do
 
-! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
-call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
-call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd%glr, &
-     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
-     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
-call memocc(istat, lphilarge, 'lphilarge', subname)
-call update_ldiis_arrays(tmblarge, subname, ldiis)
-call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
-call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+!!!! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
+!!!call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
+!!!call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd%glr, &
+!!!     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
+!!!     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+!!!     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+!!!allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
+!!!call memocc(istat, lphilarge, 'lphilarge', subname)
+!!!call update_ldiis_arrays(tmblarge, subname, ldiis)
+!!!call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
+!!!call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+!!!call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
+!!!!!call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
+!!!!!     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
+!!!!!     tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+!!!!!     tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
-iall=-product(shape(lphi))*kind(lphi)
-deallocate(lphi, stat=istat)
-call memocc(istat, iall, 'lphi', subname)
-!!call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-!!     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
-!!     tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
-!!     tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
 call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
      tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+call memocc(istat, lphilarge, 'lphilarge', subname)
+call small_to_large_locreg(iproc, nproc, lzd_tmp, tmb%lzd, orbs_tmp, tmb%orbs, lphi, lphilarge)
+call update_ldiis_arrays(tmb, subname, ldiis)
+iall=-product(shape(lphi))*kind(lphi)
+deallocate(lphi, stat=istat)
+call memocc(istat, iall, 'lphi', subname)
 allocate(lphi(tmb%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 call update_ldiis_arrays(tmb, subname, ldiis)
-call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
+call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmb%orbs%onwhichatom(1), 1)
 nphi=tmb%orbs%npsidim_orbs
-call dcopy(tmblarge%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
-call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+!!call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+!!call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 iall=-product(shape(lphilarge))*kind(lphilarge)
 deallocate(lphilarge, stat=istat)
 call memocc(istat, iall, 'lphilarge', subname)
@@ -2539,6 +2547,7 @@ call memocc(istat, iall, 'locregCenter', subname)
 
 call deallocate_orbitals_data(orbs_tmp, subname)
 call deallocate_locreg_descriptors(glr_tmp, subname)
+call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
 
 end subroutine enlarge_locreg
