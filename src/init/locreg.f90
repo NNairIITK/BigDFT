@@ -351,6 +351,11 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
+  integer:: iproc
+  write(*,*) 'debug in locreg_bounds'
+  call mpi_comm_rank(mpi_comm_world,iproc,i_stat)
+  write(*,'(a,i0,a)') 'iproc=',iproc,': in locreg_bounds'
+
   !define logrids
   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_c,'logrid_c',subname)
@@ -358,6 +363,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call memocc(i_stat,logrid_f,'logrid_f',subname)
   
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
+  write(*,'(a,i0,a)') 'iproc=',iproc,': after calling wfd_to_logrids'
 
   !allocate and calculate kinetic bounds
   allocate(bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
@@ -375,6 +381,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
 
   call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+  write(*,'(a,i0,a)') 'iproc=',iproc,': after calling make_bounds'
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -409,12 +416,15 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
   call memocc(i_stat,bounds%ibyyzz_r,'bounds%ibyyzz_r',subname)
 
+  write(*,*) 'before calling make_all_ib, iproc', iproc
+  write(*,'(a,i0,a)') 'iproc=',iproc,': before make_all_ib'
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
        bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
        bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
+  write(*,'(a,i0,a)') 'iproc=',iproc,': after calling make_all_ib'
 
 END SUBROUTINE locreg_bounds
 

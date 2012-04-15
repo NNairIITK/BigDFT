@@ -583,9 +583,6 @@ end subroutine deallocateBasicArraysInput
 
 
 
-!> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
-!! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
-!subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
 subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
@@ -650,8 +647,10 @@ end do
  else if(locregShape=='s') then
      !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
      !!     Glr, lzd%Llr, calculateBounds)
+     write(*,*) 'calling determine_locregSphere_parallel'
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
+     write(*,*) 'after calling determine_locregSphere_parallel'
  end if
 
 
@@ -2222,6 +2221,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   nspin=1
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
        orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
+write(*,*) 'after calling orbitals_descriptors'
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -2239,6 +2239,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   lzd%nlr=nlr
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
+write(*,*) 'after calling initLocregs'
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   !!call deallocate_locreg_descriptors(glr_tmp, subname)
@@ -2481,8 +2482,14 @@ call nullify_orbitals_data(orbs_tmp)
 call nullify_locreg_descriptors(glr_tmp)
 call nullify_local_zone_descriptors(lzd_tmp)
 call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
+!!write(*,*) 'after copy_orbitals_data'
+!!call mpi_barrier(mpi_comm_world, istat)
 call copy_locreg_descriptors(tmb%lzd%glr, glr_tmp, subname)
+write(*,*) 'after copy_locreg_descriptors'
+!!call mpi_barrier(mpi_comm_world, istat)
 call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
+write(*,*) 'after copy_local_zone_descriptors'
+!!call mpi_barrier(mpi_comm_world, istat)
 
 
 ! always use the same inwhichlocreg
@@ -2510,13 +2517,16 @@ end do
 !!!!!     tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
 !!!!!     tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
+write(*,*) 'after destroy_new_locregs'
 call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
      tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+write(*,*) 'after update_locreg'
 allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
 call memocc(istat, lphilarge, 'lphilarge', subname)
 call small_to_large_locreg(iproc, nproc, lzd_tmp, tmb%lzd, orbs_tmp, tmb%orbs, lphi, lphilarge)
+write(*,*) 'update_ldiis_arrays'
 call update_ldiis_arrays(tmb, subname, ldiis)
 iall=-product(shape(lphi))*kind(lphi)
 deallocate(lphi, stat=istat)

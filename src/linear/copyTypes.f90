@@ -1,161 +1,168 @@
 subroutine copy_locreg_descriptors(glrin, glrout, subname)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => copy_locreg_descriptors
-implicit none
-
-! Calling arguments
-type(locreg_descriptors),intent(in):: glrin
-type(locreg_descriptors),intent(out):: glrout
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: iis, iie, istat, i, iall
-
-glrout%geocode = glrin%geocode
-glrout%hybrid_on = glrin%hybrid_on
-glrout%ns1 = glrin%ns1
-glrout%ns2 = glrin%ns2
-glrout%ns3 = glrin%ns3
-glrout%nsi1 = glrin%nsi1
-glrout%nsi2 = glrin%nsi2
-glrout%nsi3 = glrin%nsi3
-glrout%Localnorb = glrin%Localnorb
-
-glrout%outofzone(1) = glrin%outofzone(1)
-glrout%outofzone(2) = glrin%outofzone(2)
-glrout%outofzone(3) = glrin%outofzone(3)
-
-if(associated(glrout%projflg)) then
-    iall=-product(shape(glrout%projflg))*kind(glrout%projflg)
-    deallocate(glrout%projflg, stat=istat)
-    call memocc(istat, iall, 'glrout%projflg', subname)
-end if
-if(associated(glrin%projflg)) then
-    iis=lbound(glrin%projflg,1)
-    iie=ubound(glrin%projflg,1)
-    allocate(glrout%projflg(iis:iie), stat=istat)
-    call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
-    do i=iis,iie
-        glrout%projflg(i) = glrin%projflg(i)
-    end do
-end if
-
-call copy_grid_dimensions(glrin%d, glrout%d)
-call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
-if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then
-   call copy_convolutions_bounds(glrin%geocode, glrin%bounds, glrout%bounds, subname)
-end if
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => copy_locreg_descriptors
+  implicit none
+  
+  ! Calling arguments
+  type(locreg_descriptors),intent(in):: glrin
+  type(locreg_descriptors),intent(out):: glrout
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: iis, iie, istat, i, iall
+  
+  glrout%geocode = glrin%geocode
+  glrout%hybrid_on = glrin%hybrid_on
+  glrout%ns1 = glrin%ns1
+  glrout%ns2 = glrin%ns2
+  glrout%ns3 = glrin%ns3
+  glrout%nsi1 = glrin%nsi1
+  glrout%nsi2 = glrin%nsi2
+  glrout%nsi3 = glrin%nsi3
+  glrout%Localnorb = glrin%Localnorb
+  
+  glrout%outofzone(1) = glrin%outofzone(1)
+  glrout%outofzone(2) = glrin%outofzone(2)
+  glrout%outofzone(3) = glrin%outofzone(3)
+  
+  if(associated(glrout%projflg)) then
+      iall=-product(shape(glrout%projflg))*kind(glrout%projflg)
+      deallocate(glrout%projflg, stat=istat)
+      call memocc(istat, iall, 'glrout%projflg', subname)
+  end if
+  if(associated(glrin%projflg)) then
+      iis=lbound(glrin%projflg,1)
+      iie=ubound(glrin%projflg,1)
+      allocate(glrout%projflg(iis:iie), stat=istat)
+      call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
+      do i=iis,iie
+          glrout%projflg(i) = glrin%projflg(i)
+      end do
+  end if
+  
+  call copy_grid_dimensions(glrin%d, glrout%d)
+  call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
+  if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then
+     call copy_convolutions_bounds(glrin%geocode, glrin%bounds, glrout%bounds, subname)
+  end if
 
 end subroutine copy_locreg_descriptors
 
 
 
 subroutine copy_grid_dimensions(din, dout)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(grid_dimensions),intent(in):: din
-type(grid_dimensions),intent(out):: dout
-
-dout%n1 = din%n1
-dout%n2 = din%n2
-dout%n3 = din%n3
-dout%nfl1 = din%nfl1
-dout%nfu1 = din%nfu1
-dout%nfl2 = din%nfl2
-dout%nfu2 = din%nfu2
-dout%nfl3 = din%nfl3
-dout%nfu3 = din%nfu3
-dout%n1i = din%n1i
-dout%n2i = din%n2i
-dout%n3i = din%n3i
-
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(grid_dimensions),intent(in):: din
+  type(grid_dimensions),intent(out):: dout
+  
+  dout%n1 = din%n1
+  dout%n2 = din%n2
+  dout%n3 = din%n3
+  dout%nfl1 = din%nfl1
+  dout%nfu1 = din%nfu1
+  dout%nfl2 = din%nfl2
+  dout%nfu2 = din%nfu2
+  dout%nfl3 = din%nfl3
+  dout%nfu3 = din%nfu3
+  dout%n1i = din%n1i
+  dout%n2i = din%n2i
+  dout%n3i = din%n3i
 
 end subroutine copy_grid_dimensions
 
 
 
 subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(wavefunctions_descriptors),intent(in):: wfdin
-type(wavefunctions_descriptors),intent(out):: wfdout
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
-
-
-wfdout%nvctr_c = wfdin%nvctr_c
-wfdout%nvctr_f = wfdin%nvctr_f
-wfdout%nseg_c = wfdin%nseg_c
-wfdout%nseg_f = wfdin%nseg_f
-
-if(associated(wfdout%keygloc)) then
-    iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
-    deallocate(wfdout%keygloc, stat=istat)
-    call memocc(istat, iall, 'wfdout%keygloc', subname)
-end if
-iis1=lbound(wfdin%keygloc,1)
-iie1=ubound(wfdin%keygloc,1)
-iis2=lbound(wfdin%keygloc,2)
-iie2=ubound(wfdin%keygloc,2)
-allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
-call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
-do i2=iis2,iie2
-    do i1=iis1,iie1
-        wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
-    end do
-end do
-    
-if(associated(wfdout%keyglob)) then
-    iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
-    deallocate(wfdout%keyglob, stat=istat)
-    call memocc(istat, iall, 'wfdout%keyglob', subname)
-end if
-iis1=lbound(wfdin%keyglob,1)
-iie1=ubound(wfdin%keyglob,1)
-iis2=lbound(wfdin%keyglob,2)
-iie2=ubound(wfdin%keyglob,2)
-allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
-call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
-do i2=iis2,iie2
-    do i1=iis1,iie1
-        wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
-    end do
-end do
-
-if(associated(wfdout%keyvloc)) then
-    iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
-    deallocate(wfdout%keyvloc, stat=istat)
-    call memocc(istat, iall, 'wfdout%keyvloc', subname)
-end if
-iis1=lbound(wfdin%keyvloc,1)
-iie1=ubound(wfdin%keyvloc,1)
-allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
-call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
-do i1=iis1,iie1
-    wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
-end do
-
-if(associated(wfdout%keyvglob)) then
-    iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
-    deallocate(wfdout%keyvglob, stat=istat)
-    call memocc(istat, iall, 'wfdout%keyvglob', subname)
-end if
-iis1=lbound(wfdin%keyvglob,1)
-iie1=ubound(wfdin%keyvglob,1)
-allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
-call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
-do i1=iis1,iie1
-    wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
-end do
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(wavefunctions_descriptors),intent(in):: wfdin
+  type(wavefunctions_descriptors),intent(out):: wfdout
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+  
+  
+  wfdout%nvctr_c = wfdin%nvctr_c
+  wfdout%nvctr_f = wfdin%nvctr_f
+  wfdout%nseg_c = wfdin%nseg_c
+  wfdout%nseg_f = wfdin%nseg_f
+  
+  if(associated(wfdout%keygloc)) then
+      iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
+      deallocate(wfdout%keygloc, stat=istat)
+      call memocc(istat, iall, 'wfdout%keygloc', subname)
+  end if
+  if(associated(wfdin%keygloc)) then
+      iis1=lbound(wfdin%keygloc,1)
+      iie1=ubound(wfdin%keygloc,1)
+      iis2=lbound(wfdin%keygloc,2)
+      iie2=ubound(wfdin%keygloc,2)
+      allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
+      call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
+      do i2=iis2,iie2
+          do i1=iis1,iie1
+              wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
+          end do
+      end do
+  end if
+      
+  if(associated(wfdout%keyglob)) then
+      iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
+      deallocate(wfdout%keyglob, stat=istat)
+      call memocc(istat, iall, 'wfdout%keyglob', subname)
+  end if
+  if(associated(wfdin%keyglob)) then
+      iis1=lbound(wfdin%keyglob,1)
+      iie1=ubound(wfdin%keyglob,1)
+      iis2=lbound(wfdin%keyglob,2)
+      iie2=ubound(wfdin%keyglob,2)
+      allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
+      call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
+      do i2=iis2,iie2
+          do i1=iis1,iie1
+              wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
+          end do
+      end do
+  end if
+  
+  if(associated(wfdout%keyvloc)) then
+      iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
+      deallocate(wfdout%keyvloc, stat=istat)
+      call memocc(istat, iall, 'wfdout%keyvloc', subname)
+  end if
+  if(associated(wfdin%keyvloc)) then
+      iis1=lbound(wfdin%keyvloc,1)
+      iie1=ubound(wfdin%keyvloc,1)
+      allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
+      call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
+      do i1=iis1,iie1
+          wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
+      end do
+  end if
+  
+  if(associated(wfdout%keyvglob)) then
+      iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
+      deallocate(wfdout%keyvglob, stat=istat)
+      call memocc(istat, iall, 'wfdout%keyvglob', subname)
+  end if
+  if(associated(wfdin%keyvglob)) then
+      iis1=lbound(wfdin%keyvglob,1)
+      iie1=ubound(wfdin%keyvglob,1)
+      allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
+      call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
+      do i1=iis1,iie1
+          wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
+      end do
+  end if
 
 end subroutine copy_wavefunctions_descriptors
 
@@ -164,49 +171,49 @@ end subroutine copy_wavefunctions_descriptors
 
 
 subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
-use module_base
-use module_types
-use module_interfaces, expectThisOne => copy_convolutions_bounds
-implicit none
-
-! Calling arguments
-character(len=1),intent(in) :: geocode
-type(convolutions_bounds),intent(in):: boundsin
-type(convolutions_bounds),intent(out):: boundsout
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
-
-call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
-call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
-call copy_grow_bounds(geocode, boundsin%gb, boundsout%gb, subname)
-
-if(geocode == 'F') then
-   iis1=lbound(boundsin%ibyyzz_r,1)
-   iie1=ubound(boundsin%ibyyzz_r,1)
-   iis2=lbound(boundsin%ibyyzz_r,2)
-   iie2=ubound(boundsin%ibyyzz_r,2)
-   iis3=lbound(boundsin%ibyyzz_r,3)
-   iie3=ubound(boundsin%ibyyzz_r,3)
-   
-   if(associated(boundsout%ibyyzz_r)) then
-       iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
-       deallocate(boundsout%ibyyzz_r, stat=istat)
-       call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
-   end if
-   if(associated(boundsout%ibyyzz_r)) then
-       allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
-       do i3=iis3,iie3
-           do i2=iis2,iie2
-               do i1=iis1,iie1
-                   boundsout%ibyyzz_r(i1,i2,i3) = boundsin%ibyyzz_r(i1,i2,i3)
-               end do
-           end do
-       end do
-   end if
-end if
+  use module_base
+  use module_types
+  use module_interfaces, expectThisOne => copy_convolutions_bounds
+  implicit none
+  
+  ! Calling arguments
+  character(len=1),intent(in) :: geocode
+  type(convolutions_bounds),intent(in):: boundsin
+  type(convolutions_bounds),intent(out):: boundsout
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+  
+  call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
+  call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
+  call copy_grow_bounds(geocode, boundsin%gb, boundsout%gb, subname)
+  
+  if(geocode == 'F') then
+     if(associated(boundsout%ibyyzz_r)) then
+         iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
+         deallocate(boundsout%ibyyzz_r, stat=istat)
+         call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+     end if
+  
+     if(associated(boundsin%ibyyzz_r)) then
+         iis1=lbound(boundsin%ibyyzz_r,1)
+         iie1=ubound(boundsin%ibyyzz_r,1)
+         iis2=lbound(boundsin%ibyyzz_r,2)
+         iie2=ubound(boundsin%ibyyzz_r,2)
+         iis3=lbound(boundsin%ibyyzz_r,3)
+         iie3=ubound(boundsin%ibyyzz_r,3)
+         allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+         call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
+         do i3=iis3,iie3
+             do i2=iis2,iie2
+                 do i1=iis1,iie1
+                     boundsout%ibyyzz_r(i1,i2,i3) = boundsin%ibyyzz_r(i1,i2,i3)
+                 end do
+             end do
+         end do
+     end if
+  end if
 end subroutine copy_convolutions_bounds
 
 
@@ -936,21 +943,6 @@ if(associated(orbsin%onwhichatom)) then
         orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
     end do
 end if
-
-!!if(associated(orbsout%inWhichLocregP)) then
-!!    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)
-!!    deallocate(orbsout%inWhichLocregP, stat=istat)
-!!    call memocc(istat, iall, 'orbsout%inWhichLocregP', subname)
-!!end if
-!!iis1=lbound(orbsin%inWhichLocregP,1)
-!!iie1=ubound(orbsin%inWhichLocregP,1)
-!!allocate(orbsout%inWhichLocregP(iis1:iie1), stat=istat)
-!!call memocc(istat, orbsout%inWhichLocregP, 'orbsout%inWhichLocregP', subname)
-!!do i1=iis1,iie1
-!!    orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
-!!end do
-!!write(*,*) 'copy 6'
-!!call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%onWhichMPI)) then
     iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
