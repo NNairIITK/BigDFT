@@ -2187,7 +2187,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(orbitals_data),intent(in):: orbs_tmp
   integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
   real(8),dimension(3,nlr),intent(in):: locregCenter
-  type(locreg_descriptors):: glr_tmp
+  type(locreg_descriptors),intent(in):: glr_tmp
   type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(inout):: llborbs
   type(overlapParameters),intent(inout):: lbop
@@ -2513,7 +2513,7 @@ end do
 
 ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
 call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
-call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd%glr, &
+call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
      tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
