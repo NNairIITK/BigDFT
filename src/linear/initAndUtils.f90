@@ -2606,9 +2606,9 @@ call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locre
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
      tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
-call memocc(istat, lphilarge, 'lphilarge', subname)
-call update_ldiis_arrays(tmblarge, subname, ldiis)
+!!allocate(lphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
+!!call memocc(istat, lphilarge, 'lphilarge', subname)
+!!call update_ldiis_arrays(tmblarge, subname, ldiis)
 !!allocate(orbslarge%onwhichatom(tmb%orbs%norb), stat=istat)
 !!call memocc(istat, orbslarge%onwhichatom, 'orbslarge%onwhichatom', subname)
 !!call small_to_large_locreg(iproc, nproc, lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lphi, lphilarge)
@@ -2621,6 +2621,8 @@ call update_locreg(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locre
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
      tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+call memocc(istat, lphilarge, 'lphilarge', subname)
 call small_to_large_locreg(iproc, nproc, lzd_tmp, tmb%lzd, orbs_tmp, tmb%orbs, lphi, lphilarge)
 iall=-product(shape(lphi))*kind(lphi)
 deallocate(lphi, stat=istat)
