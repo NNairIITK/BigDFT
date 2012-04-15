@@ -1058,6 +1058,22 @@ if(associated(orbsin%kpts)) then
 end if
 
 
+if(associated(orbsout%ispot)) then
+    iall=-product(shape(orbsout%ispot))*kind(orbsout%ispot)
+    deallocate(orbsout%ispot, stat=istat)
+    call memocc(istat, iall, 'orbsout%ispot', subname)
+end if
+if(associated(orbsin%ispot)) then
+    iis1=lbound(orbsin%ispot,1)
+    iie1=ubound(orbsin%ispot,1)
+    allocate(orbsout%ispot(iis1:iie1), stat=istat)
+    call memocc(istat, orbsout%ispot, 'orbsout%ispot', subname)
+    do i1=iis1,iie1
+        orbsout%ispot(i1) = orbsin%ispot(i1)
+    end do
+end if
+
+
 end subroutine copy_orbitals_data
 
 
