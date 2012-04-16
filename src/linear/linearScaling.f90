@@ -446,7 +446,7 @@ integer,dimension(:),allocatable:: debugarr
                hx,hy,hz,input%SIC,tmbmix)
           ! Deallocate the buffers needed for the communication of the potential.
           if(lscv%withder) then
-              call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+          !!    call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
           else
           !!    call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
@@ -491,7 +491,7 @@ integer,dimension(:),allocatable:: debugarr
           call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+              !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
               !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
               call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                    tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
@@ -535,11 +535,8 @@ integer,dimension(:),allocatable:: debugarr
 
   end do outerLoop
 
-  write(*,*) 'before first'
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-  write(*,*) 'after first'
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
-  write(*,*) 'after second'
 
 
   !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
