@@ -239,16 +239,16 @@ integer,dimension(:),allocatable:: debugarr
 !!if(nproc >1) &!mpiflag /= 0) 
 !!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
 !!deallocate(debugarr, stat=istat)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-       tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+  !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
       !!call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-           tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
+      !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+      !!     tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
   end if
 
 
@@ -333,11 +333,6 @@ integer,dimension(:),allocatable:: debugarr
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      !!!!! Allocate the communication arrays for the calculation of the charge density.
-      !!if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-      !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
-      !!!!if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
       ! Now all initializations are done...
 
 
@@ -346,10 +341,16 @@ integer,dimension(:),allocatable:: debugarr
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
+
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+               tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+          if(lscv%withder) then
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                   tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
+          end if
+
           ! Do not update the TMB if it_scc>1
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
-
-          !!if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
@@ -370,23 +371,13 @@ integer,dimension(:),allocatable:: debugarr
               if(.not.lscv%withder) then
                   tmbmix => tmb
               else
-                  ! We have to communicate the potential in the first iteration
-                  if(it_scc==1) then
-                      !!call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-                      !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-                      call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-                           tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
-                  end if
+                  !!! We have to communicate the potential in the first iteration
+                  !!if(it_scc==1) then
+                  !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                  !!         tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
+                  !!end if
                   tmbmix => tmbder
               end if
-          end if
-          if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              ! Cancel the communication of the potential for the TMB, since we need in the following
-              ! only the potential for the TMB including the derivatives.
-              !call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-              !!if(.not.tmb%wfnmd%bs%update_phi) call gatherPotential(iproc, nproc, tmb%comgp)
-              if(.not.tmb%wfnmd%bs%update_phi) call wait_p2p_communication(iproc, nproc, tmb%comgp)
-              !call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -394,12 +385,10 @@ integer,dimension(:),allocatable:: debugarr
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
-                  !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
                   tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmb, denspot)
-                  !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
                   tmbmix => tmb
               end if
           end if
@@ -425,32 +414,17 @@ integer,dimension(:),allocatable:: debugarr
               end if
           end if
 
-          ! Only communicate the TMB for sumrho in the first iteration.
+          ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-              !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-              !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
-          !else if(lscv%locreg_increased) then
-          !    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-          !    tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           else
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
-          !!if(lscv%locreg_increased) then
-          !!    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-          !!end if
 
           ! Calculate the coefficients
-          !!call mpi_barrier(mpi_comm_world, istat)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
-          ! Deallocate the buffers needed for the communication of the potential.
-          if(lscv%withder) then
-          !!    call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-          else
-          !!    call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          end if
 
 
           ! Calculate the charge density.
@@ -486,17 +460,21 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
 
-          ! Post communications for gathering the potential
-          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-               tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-          if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
-              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-                   tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
+          ! Post communications for gathering the potential.
+          ! First make sure that the previous communication is complete (only do that if this check
+          ! for completeness has not been done in get_coeff)
+          if(tmbmix%wfnmd%bs%use_derivative_basis .and. .not.tmb%wfnmd%bs%update_phi) then
+              call wait_p2p_communication(iproc, nproc, tmb%comgp)
           end if
+          if(lscv%withder) then
+              call wait_p2p_communication(iproc, nproc, tmbder%comgp)
+          end if
+          !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+          !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+          !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
+          !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+          !!         tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
+          !!end if
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
@@ -508,12 +486,6 @@ integer,dimension(:),allocatable:: debugarr
               lscv%reduce_convergence_tolerance=.false.
           end if
 
-          if(it_scc<lscv%nit_scc_when_optimizing .or. it_scc==lscv%nit_scc) then
-              !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-              !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
-          !else if(lscv%locreg_increased) then
-          !    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-          end if
       end do
 
 
@@ -541,12 +513,9 @@ integer,dimension(:),allocatable:: debugarr
 
 
   !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-  !!call gatherPotential(iproc, nproc, tmb%comgp)
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
-      !!call cancelCommunicationPotential(iproc, nproc, tmbder%comgp)
-      !!call gatherPotential(iproc, nproc, tmbder%comgp)
       call wait_p2p_communication(iproc, nproc, tmbder%comgp)
       call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
