@@ -18,7 +18,7 @@ subroutine initialize_potential( )
    integer :: ierror
 
    if (energy_type == "BIG") then
-      call bigdft_init(nbr_quantum, iproc, my_gnrm,passivate,natoms )
+      call bigdft_init(nbr_quantum, iproc, nproc, my_gnrm,passivate,natoms )
       ! First force calculation.
       call calcforce( NATOMS, pos, boxref, force, total_energy, evalf_number, .false. )
       elseif (energy_type == "SWP") then
@@ -26,12 +26,12 @@ subroutine initialize_potential( )
       call calcforce( NATOMS, pos, boxref, force, total_energy, evalf_number, .false. )
       elseif (energy_type == "BSW") then
       call init_potential_SW()
-      call bigdft_init(nbr_quantum, iproc, my_gnrm,passivate,natoms )
+      call bigdft_init(nbr_quantum, iproc, nproc, my_gnrm,passivate,natoms )
       ! First force calculation.
       call calcforce( NATOMS, pos, boxref, force, total_energy, evalf_number, .false. )
       elseif (energy_type == "OTF") then
       call init_potential_SW()
-      call bigdft_init(nbr_quantum, iproc, my_gnrm,passivate,natoms )
+      call bigdft_init(nbr_quantum, iproc, nproc, my_gnrm,passivate,natoms )
       ! First force calculation.
       energy_type = "BSW"
       call calcforce( NATOMS, pos, boxref, force, total_energy, evalf_number, .false. )
@@ -42,7 +42,7 @@ subroutine initialize_potential( )
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
       elseif (energy_type == "BAY") then
       call init_potential_SW()
-      call bigdft_init(nbr_quantum, iproc, my_gnrm,passivate,natoms )
+      call bigdft_init(nbr_quantum, iproc, nproc, my_gnrm,passivate,natoms )
       ! First force calculation.
       energy_type = "BSW"
       call calcforce( NATOMS, pos, boxref, force, total_energy, evalf_number, .false. )

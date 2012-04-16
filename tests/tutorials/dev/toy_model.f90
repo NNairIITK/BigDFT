@@ -43,7 +43,7 @@ program wvl
   if (iproc==0) call print_logo()
 
   ! Setup names for input and output files.
-  call standard_inputfile_names(inputs, "toy")
+  call standard_inputfile_names(inputs, "toy",nproc)
   ! Read all input stuff, variables and atomic coordinates and pseudo.
   call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
 
@@ -61,7 +61,7 @@ program wvl
        & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs,inputs%hx,inputs%hy,inputs%hz,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz)
 
   call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5_gp*inputs%hx,0.5_gp*inputs%hy,0.5_gp*inputs%hz,&
        inputs,atoms,rxyz,radii_cf,dpcom,rhodsc)
@@ -184,7 +184,7 @@ program wvl
   call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
        GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,nscatterarr,rho_p,rhor)
+       rhodsc,nscatterarr,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 

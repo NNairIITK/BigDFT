@@ -80,7 +80,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
      call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
-     ucvol,xred,real(at%nelpsp,kind=8))
+          ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
