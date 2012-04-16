@@ -151,13 +151,13 @@ type(energy_terms) :: energs
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
   allocate(tmb%confdatarr(tmb%orbs%norbp))
-  call define_confinement_data(tmb%confdatarr,tmb%orbs,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd)
+  call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
-  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,&
+  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,input%lin%confpotorder,&
-       input%lin%potentialprefac_lowaccuracy,tmb%lzd)
+       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
 
   call nullify_collective_comms(tmb%collcom)
   call nullify_collective_comms(tmbder%collcom)
@@ -231,13 +231,13 @@ type(energy_terms) :: energs
      call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 ! DEBUG (SEE IF HAMILTONIAN IS GOOD)
      allocate(confdatarr(tmb%orbs%norbp))
-     call define_confinement_data(confdatarr,tmb%orbs,hx,hy,hz,input%lin%confpotorder,&
-          input%lin%potentialprefac_lowaccuracy,tmb%lzd)
+     call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,hx,hy,hz,input%lin%confpotorder,&
+          input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
      allocate(lhchi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)),stat=istat)
      allocate(tmb%lzd%doHamAppl(tmb%lzd%nlr))
      tmb%lzd%doHamAppl = .true.
      call memocc(istat, lhchi, 'lhchi', subname)
-     call to_zero(tmb%orbs%npsidim_orbs,lhchi(1))
+     call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),lhchi(1))
      call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
           tmb%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,tmb%psi,lhchi(1),&
           energs,input%SIC,GPU,.false.,&
@@ -543,7 +543,6 @@ stop
                       call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-print *,'BEFORE GETLOCALIZEDBASIS'
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
@@ -603,7 +602,6 @@ print *,'BEFORE GETLOCALIZEDBASIS'
 
           ! Calculate the coefficients
           call mpi_barrier(mpi_comm_world, istat)
-print *,'BEFORE GETCOEFF'
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)

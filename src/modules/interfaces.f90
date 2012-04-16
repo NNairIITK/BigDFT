@@ -6070,20 +6070,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
        end subroutine rminusmu_operator
 
-       subroutine define_confinement_data(confdatarr,orbs,hx,hy,hz,&
-                  confpotorder,potentialprefac,Lzd)!,confinementCenter)
+       subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
+                  confpotorder,potentialprefac,Lzd,confinementCenter)
          use module_base
          use module_types
          implicit none
          real(gp), intent(in) :: hx,hy,hz
-         !type(atoms_data), intent(in) :: at
+         type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
          !!type(linearParameters), intent(in) :: lin
          integer,intent(in):: confpotorder
          real(gp),dimension(at%ntypes),intent(in):: potentialprefac
          type(local_zone_descriptors), intent(in) :: Lzd
-         !real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         !integer, dimension(orbs%norb), intent(in) :: confinementCenter
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         integer, dimension(orbs%norb), intent(in) :: confinementCenter
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
