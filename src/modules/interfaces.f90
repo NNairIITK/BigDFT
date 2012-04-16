@@ -6178,7 +6178,8 @@ module module_interfaces
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, lzd, tmb, tmbmix, denspot)
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, tmbmix, denspot, &
+                  ldiis)
          use module_base
          use module_types
          implicit none
@@ -6186,25 +6187,27 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
+         logical,intent(in):: transform
          type(DFT_wavefunction),intent(inout):: tmb
          type(DFT_wavefunction),intent(inout):: tmbmix
          type(DFT_local_fields),intent(inout):: denspot
+         type(localizedDIISParameters),intent(inout),optional:: ldiis
        end subroutine redefine_locregs_quantities
 
-       subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
-                  ldiis, denspot, tmb)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         real(8),intent(in):: hx, hy, hz
-         logical,intent(in):: withder
-         type(local_zone_descriptors),intent(inout):: lzd
-         real(8),dimension(lzd%nlr),intent(in):: locrad
-         type(localizedDIISParameters),intent(inout):: ldiis
-         type(DFT_local_fields),intent(inout):: denspot
-         type(DFT_wavefunction),intent(inout):: tmb
-       end subroutine enlarge_locreg
+       !!!subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
+       !!!           ldiis, denspot, tmb)
+       !!!  use module_base
+       !!!  use module_types
+       !!!  implicit none
+       !!!  integer,intent(in):: iproc, nproc
+       !!!  real(8),intent(in):: hx, hy, hz
+       !!!  logical,intent(in):: withder
+       !!!  type(local_zone_descriptors),intent(inout):: lzd
+       !!!  real(8),dimension(lzd%nlr),intent(in):: locrad
+       !!!  type(localizedDIISParameters),intent(inout):: ldiis
+       !!!  type(DFT_local_fields),intent(inout):: denspot
+       !!!  type(DFT_wavefunction),intent(inout):: tmb
+       !!!end subroutine enlarge_locreg
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
