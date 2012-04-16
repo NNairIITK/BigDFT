@@ -5956,13 +5956,12 @@ module module_interfaces
        !!!  type(DFT_wavefunction),intent(out):: tmb
        !!!end subroutine create_new_locregs
 
-       subroutine destroy_new_locregs(iproc, nproc, tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+       subroutine destroy_new_locregs(iproc, nproc, tmb)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
-         real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
 
        subroutine get_cutoff_weight(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
@@ -6179,20 +6178,21 @@ module module_interfaces
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, lzd, tmb, tmbmix, denspot)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
          type(local_zone_descriptors),intent(inout):: lzd
+         real(8),dimension(lzd%nlr),intent(in):: locrad
          type(DFT_wavefunction),intent(inout):: tmb
          type(DFT_wavefunction),intent(inout):: tmbmix
          type(DFT_local_fields),intent(inout):: denspot
        end subroutine redefine_locregs_quantities
 
        subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
-                  ldiis, denspot, nphi, lphi, tmb)
+                  ldiis, denspot, tmb)
          use module_base
          use module_types
          implicit none
@@ -6203,8 +6203,6 @@ module module_interfaces
          real(8),dimension(lzd%nlr),intent(in):: locrad
          type(localizedDIISParameters),intent(inout):: ldiis
          type(DFT_local_fields),intent(inout):: denspot
-         integer,intent(inout):: nphi
-         real(8),dimension(:),pointer:: lphi
          type(DFT_wavefunction),intent(inout):: tmb
        end subroutine enlarge_locreg
 

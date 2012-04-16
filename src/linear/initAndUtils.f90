@@ -2078,7 +2078,7 @@ end subroutine init_local_zone_descriptors
 
 
 
-subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmix, denspot)
+subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, lzd, tmb, tmbmix, denspot)
   use module_base
   use module_types
   use module_interfaces, except_this_one => redefine_locregs_quantities
@@ -2088,6 +2088,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   integer,intent(in):: iproc, nproc
   real(8),intent(in):: hx, hy, hz
   type(local_zone_descriptors),intent(inout):: lzd
+  real(8),dimension(lzd%nlr),intent(in):: locrad
   type(DFT_wavefunction),intent(inout):: tmb
   type(DFT_wavefunction),intent(inout):: tmbmix
   type(DFT_local_fields),intent(inout):: denspot
@@ -2096,34 +2097,30 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   integer:: iall, istat, tag, nlr, ilr
   type(orbitals_data):: orbs_tmp
   character(len=*),parameter:: subname='redefine_locregs_quantities'
-  real(8),dimension(:),allocatable:: locrad
+  !!real(8),dimension(:),allocatable:: locrad
   real(8),dimension(:,:),allocatable:: locregCenter
   integer,dimension(:),allocatable:: inwhichlocreg_reference
-  type(locreg_descriptors):: glr_tmp
+  type(local_zone_descriptors):: lzd_tmp
 
   tag=1
-  !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
-      !call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-      call deallocate_p2pComms(tmbmix%comgp, subname)
-  !!end if
+  call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
+  call deallocate_p2pComms(tmbmix%comgp, subname)
+  call nullify_local_zone_descriptors(lzd_tmp)
+  call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
 
   call nullify_orbitals_data(orbs_tmp)
   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-  nlr=lzd%nlr
-  allocate(locrad(nlr), stat=istat)
-  call memocc(istat, locrad, 'locrad', subname)
+  !!allocate(locrad(lzd_tmp%nlr), stat=istat)
+  !!call memocc(istat, locrad, 'locrad', subname)
   allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
   call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
-  allocate(locregCenter(3,nlr), stat=istat)
+  allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
-  locrad=lzd%llr(:)%locrad
+  !!locrad=lzd%llr(:)%locrad
   inwhichlocreg_reference=tmb%orbs%inwhichlocreg
-  do ilr=1,nlr
+  do ilr=1,lzd_tmp%nlr
       locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
   end do
-  call nullify_locreg_descriptors(glr_tmp)
-  call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
 
   call deallocate_p2pComms(tmbmix%comsr, subname)
   call deallocate_orbitals_data(tmbmix%orbs, subname)
@@ -2133,15 +2130,14 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   call deallocate_collective_comms(tmbmix%collcom, subname)
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
-  call update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+  call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
        tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
-  call deallocate_locreg_descriptors(glr_tmp, subname)
 
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad, stat=istat)
-  call memocc(istat, iall, 'locrad', subname)
+  !!iall=-product(shape(locrad))*kind(locrad)
+  !!deallocate(locrad, stat=istat)
+  !!call memocc(istat, iall, 'locrad', subname)
   iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
   deallocate(inwhichlocreg_reference, stat=istat)
   call memocc(istat, iall, 'inwhichlocreg_reference', subname)
@@ -2165,64 +2161,9 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
        tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
+  call deallocate_local_zone_descriptors(lzd_tmp, subname)
+
 end subroutine redefine_locregs_quantities
-
-
-
-
-
-!!!subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-!!!           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-!!!           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
-!!!  use module_base
-!!!  use module_types
-!!!  use module_interfaces, except_this_one => update_locreg2
-!!!  implicit none
-!!!  
-!!!  ! Calling arguments
-!!!  integer,intent(in):: iproc, nproc, nlr
-!!!  logical,intent(in):: useDerivativeBasisFunctions
-!!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-!!!  real(8),intent(in):: hx, hy, hz
-!!!  real(8),dimension(nlr),intent(in):: locrad
-!!!  type(orbitals_data),intent(in):: orbs_tmp
-!!!  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
-!!!  real(8),dimension(3,nlr),intent(in):: locregCenter
-!!!  type(locreg_descriptors),intent(in):: glr_tmp
-!!!  type(local_zone_descriptors),intent(inout):: lzd
-!!!  type(orbitals_data),intent(inout):: llborbs
-!!!  type(overlapParameters),intent(inout):: lbop
-!!!  type(p2pComms),intent(inout):: lbcomon
-!!!  type(p2pComms),intent(inout):: lbcomgp
-!!!  type(p2pComms),intent(inout):: comsr
-!!!  type(matrixDescriptors),intent(inout):: lbmad
-!!!  type(collective_comms),intent(inout):: lbcollcom
-!!!  
-!!!  ! Local variables
-!!!  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
-!!!  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
-!!!  character(len=*),parameter:: subname='update_locreg'
-!!!
-!!!
-!!!  call nullify_orbitals_data(llborbs)
-!!!  tag=1
-!!!  if(.not.useDerivativeBasisFunctions) then
-!!!      norbu=orbs_tmp%norb
-!!!  else
-!!!      norbu=4*orbs_tmp%norb
-!!!  end if
-!!!  norb=norbu
-!!!  norbd=0
-!!!  nspin=1
-!!!  call orbitals_descriptors2(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-!!!       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-!!!
-!!!end subroutine update_locreg2
-
-
-
-
-
 
 
 
@@ -2297,7 +2238,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-  !!call deallocate_locreg_descriptors(glr_tmp, subname)
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
@@ -2460,7 +2400,7 @@ end subroutine deallocate_auxiliary_basis_function
 
 
 
-subroutine destroy_new_locregs(iproc, nproc, tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
@@ -2469,7 +2409,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb, lphilarge, lhphilarge, lhphila
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(DFT_wavefunction),intent(inout):: tmb
-  real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
 
   ! Local variables
   integer:: istat, iall
@@ -2492,102 +2431,78 @@ end subroutine destroy_new_locregs
 
 
 subroutine enlarge_locreg(iproc, nproc, hx, hy, hz, withder, lzd, locrad, &
-           ldiis, denspot, nphi, lphi, tmb)
-use module_base
-use module_types
-use module_interfaces, except_this_one => enlarge_locreg
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-real(8),intent(in):: hx, hy, hz
-logical,intent(in):: withder
-type(local_zone_descriptors),intent(inout):: lzd
-real(8),dimension(lzd%nlr),intent(in):: locrad
-type(localizedDIISParameters),intent(inout):: ldiis
-type(DFT_local_fields),intent(inout):: denspot
-integer,intent(inout):: nphi
-real(8),dimension(:),pointer:: lphi
-type(DFT_wavefunction),intent(inout):: tmb
-
-! Local variables
-type(orbitals_data):: orbs_tmp
-type(locreg_descriptors):: glr_tmp
-type(local_zone_descriptors):: lzd_tmp
-real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
-real(8),dimension(:,:),allocatable:: locregCenter
-integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
-integer:: istat, iall, iorb, ilr
-character(len=*),parameter:: subname='enlarge_locreg'
-
-
-allocate(locregCenter(3,lzd%nlr), stat=istat)
-call memocc(istat, locregCenter, 'locregCenter', subname)
-
-
-allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
-call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
-
-allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
-call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
-
-
-call nullify_orbitals_data(orbs_tmp)
-call nullify_locreg_descriptors(glr_tmp)
-call nullify_local_zone_descriptors(lzd_tmp)
-call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-call copy_locreg_descriptors(tmb%lzd%glr, glr_tmp, subname)
-call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
-
-
-! always use the same inwhichlocreg
-call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
-
-do iorb=1,tmb%orbs%norb
-    ilr=tmb%orbs%inwhichlocreg(iorb)
-    locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
-end do
-
-call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-call destroy_new_locregs(iproc, nproc, tmb, lphi, lhphi, lhphiold, lphiold)
-call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
-     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
-     orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
-     tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
-allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-call memocc(istat, lphilarge, 'lphilarge', subname)
-call small_to_large_locreg(iproc, nproc, lzd_tmp, tmb%lzd, orbs_tmp, tmb%orbs, lphi, lphilarge)
-iall=-product(shape(lphi))*kind(lphi)
-deallocate(lphi, stat=istat)
-call memocc(istat, iall, 'lphi', subname)
-allocate(lphi(tmb%orbs%npsidim_orbs), stat=istat)
-call memocc(istat, lphi, 'lphi', subname)
-call update_ldiis_arrays(tmb, subname, ldiis)
-call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
-nphi=tmb%orbs%npsidim_orbs
-call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
-call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-iall=-product(shape(lphilarge))*kind(lphilarge)
-deallocate(lphilarge, stat=istat)
-call memocc(istat, iall, 'lphilarge', subname)
-
-
-iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
-deallocate(inwhichlocreg_reference, stat=istat)
-call memocc(istat, iall, 'inwhichlocreg_reference', subname)
-
-iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
-deallocate(onwhichatom_reference, stat=istat)
-call memocc(istat, iall, 'onwhichatom_reference', subname)
-
-iall=-product(shape(locregCenter))*kind(locregCenter)
-deallocate(locregCenter, stat=istat)
-call memocc(istat, iall, 'locregCenter', subname)
-
-call deallocate_orbitals_data(orbs_tmp, subname)
-call deallocate_locreg_descriptors(glr_tmp, subname)
-call deallocate_local_zone_descriptors(lzd_tmp, subname)
-
+           ldiis, denspot, tmb)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => enlarge_locreg
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  real(8),intent(in):: hx, hy, hz
+  logical,intent(in):: withder
+  type(local_zone_descriptors),intent(inout):: lzd
+  real(8),dimension(lzd%nlr),intent(in):: locrad
+  type(localizedDIISParameters),intent(inout):: ldiis
+  type(DFT_local_fields),intent(inout):: denspot
+  type(DFT_wavefunction),intent(inout):: tmb
+  
+  ! Local variables
+  type(orbitals_data):: orbs_tmp
+  type(locreg_descriptors):: glr_tmp
+  type(local_zone_descriptors):: lzd_tmp
+  real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
+  real(8),dimension(:,:),allocatable:: locregCenter
+  integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
+  integer:: istat, iall, iorb, ilr
+  character(len=*),parameter:: subname='enlarge_locreg'
+  
+  
+  allocate(locregCenter(3,lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+  
+  call nullify_orbitals_data(orbs_tmp)
+  call nullify_locreg_descriptors(glr_tmp)
+  call nullify_local_zone_descriptors(lzd_tmp)
+  call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
+  call copy_locreg_descriptors(tmb%lzd%glr, glr_tmp, subname)
+  call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
+  
+  do iorb=1,tmb%orbs%norb
+      ilr=tmb%orbs%inwhichlocreg(iorb)
+      locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+  end do
+  
+  call destroy_new_locregs(iproc, nproc, tmb)
+  call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
+       withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
+       orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+       tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+  
+  allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+  call memocc(istat, lphilarge, 'lphilarge', subname)
+  call small_to_large_locreg(iproc, nproc, lzd_tmp, tmb%lzd, orbs_tmp, tmb%orbs, tmb%psi, lphilarge)
+  iall=-product(shape(tmb%psi))*kind(tmb%psi)
+  deallocate(tmb%psi, stat=istat)
+  call memocc(istat, iall, 'tmb%psi', subname)
+  allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
+  call memocc(istat, tmb%psi, 'tmb%psi', subname)
+  call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
+  !nphi=tmb%orbs%npsidim_orbs
+  
+  call update_ldiis_arrays(tmb, subname, ldiis)
+  call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmb%orbs%onwhichatom(1), 1)
+  iall=-product(shape(lphilarge))*kind(lphilarge)
+  deallocate(lphilarge, stat=istat)
+  call memocc(istat, iall, 'lphilarge', subname)
+  
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
+  
+  call deallocate_orbitals_data(orbs_tmp, subname)
+  call deallocate_locreg_descriptors(glr_tmp, subname)
+  call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
 end subroutine enlarge_locreg
 

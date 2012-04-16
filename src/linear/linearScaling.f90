@@ -385,11 +385,11 @@ integer,dimension(:),allocatable:: debugarr
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, tmb%lzd, tmb, tmbder, denspot)
                   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
                   tmbmix => tmbder
               else
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, tmb%lzd, tmb, tmb, denspot)
                   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
                   tmbmix => tmb
               end if
@@ -858,7 +858,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   end if
   if(lscv%locreg_increased) then
       call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
-           ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
+           ldiis, denspot, tmb)
   end if
   if(redefine_standard) then
       ! Fake allocation
@@ -866,7 +866,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
       allocate(tmb%comsr%recvbuf(1), stat=istat)
       call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, tmb%lzd, tmb, tmb, denspot)
   end if
   if(redefine_derivatives) then
       ! Fake allocation
@@ -874,7 +874,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
       allocate(tmbder%comsr%recvbuf(1), stat=istat)
       call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, tmb%lzd, tmb, tmbder, denspot)
   end if
 
 end subroutine adjust_locregs_and_confinement

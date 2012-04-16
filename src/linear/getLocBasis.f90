@@ -464,7 +464,7 @@ type(energy_terms) :: energs
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(iproc, nproc, tmb, tmb%psi, lhphi, lhphiold, lphiold)
+      call destroy_new_locregs(iproc, nproc, tmb)
       call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
            .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -478,7 +478,7 @@ type(energy_terms) :: energs
       tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
       call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(iproc, nproc, tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call destroy_new_locregs(iproc, nproc, tmblarge)
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
       ! PB: This if seems to be never reachable since variable_locregs must be true for outer if
@@ -532,7 +532,7 @@ type(energy_terms) :: energs
 
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(iproc, nproc, tmb, tmb%psi, lhphi, lhphiold, lphiold)
+          call destroy_new_locregs(iproc, nproc, tmb)
           call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -561,7 +561,7 @@ type(energy_terms) :: energs
       ! Update the localization region if required.
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(iproc, nproc, tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call destroy_new_locregs(iproc, nproc, tmblarge)
           call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
@@ -714,7 +714,7 @@ type(energy_terms) :: energs
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(iproc, nproc, tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call destroy_new_locregs(iproc, nproc, tmblarge)
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
       ! Write the locreg centers
