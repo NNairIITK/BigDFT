@@ -413,7 +413,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,potshortcut,symObj,GPU,input,proj_G)
+            nspin,potshortcut,symObj,GPU,input,proj_G,paw)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -440,6 +440,7 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,hpsi,psit
          integer, intent(in) ::potshortcut
          type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
+         type(paw_objects),intent(inout)::paw
        end subroutine input_wf_diag
 
       subroutine reformatmywaves(iproc,orbs,at,&
@@ -581,7 +582,7 @@ module module_interfaces
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
         type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
-        type(paw_objects),intent(in)::paw
+        type(paw_objects),intent(inout)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
@@ -1536,7 +1537,8 @@ end subroutine XC_potential_test
       END SUBROUTINE select_active_space
 
     subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-            &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+            &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy,&
+            &   paw)
          !n(c) use module_base
          use module_types
          implicit none
@@ -1548,6 +1550,7 @@ end subroutine XC_potential_test
          type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(out) :: gnrm,gnrm_zero,energy
          real(wp), dimension(:), pointer :: psi,psit,hpsi
+         type(paw_objects),intent(inout)::paw
       END SUBROUTINE calculate_energy_and_gradient
 
       !!    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
@@ -4928,7 +4931,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(wp), dimension(:), pointer, optional :: psirocc
        !PAW variables:
        type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
-       type(paw_objects),intent(in)::paw
+       type(paw_objects),intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
 
@@ -5737,7 +5740,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(6), intent(out) :: xcstr
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
          type(gaussian_basis),dimension(atoms%nat),intent(in)::proj_G
-         type(paw_objects),intent(in)::paw
+         type(paw_objects),intent(inout)::paw
        end subroutine psitohpsi
 
        subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)

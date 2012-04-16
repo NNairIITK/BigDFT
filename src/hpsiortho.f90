@@ -40,7 +40,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   real(gp), dimension(6), intent(out) :: xcstr
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   type(gaussian_basis),dimension(atoms%nat),intent(in)::proj_G
-  type(paw_objects),intent(in)::paw
+  type(paw_objects),intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot
@@ -288,7 +288,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) :: GPU
   !PAW variables:
   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
-  type(paw_objects),intent(in)::paw
+  type(paw_objects),intent(inout)::paw
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
@@ -507,7 +507,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    real(gp), intent(out) :: eproj_sum
    !PAW variables:
    type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
-   type(paw_objects),intent(in)::paw
+   type(paw_objects),intent(inout)::paw
    !local variables
    logical :: dosome, overlap
    integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
@@ -570,7 +570,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                call atom_projector(ikpt,iat,0,istart_c,iproj,&
                     nlpspd%nprojel,&
                     Lzd%Glr,hx,hy,hz,rxyz(1,iat),at,orbs,&
-                    nlpspd%plr(iat),proj,nwarnings,proj_G(iatype),paw)
+                    nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
 
                !apply the projector to all the orbitals belonging to the processor
                ispsi=ispsi_k
@@ -582,11 +582,19 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                      cycle
                   end if
                   istart_c=1
-                  call apply_atproj_iorb_new(iat,iorb,istart_c,&
-                       nlpspd%nprojel,&
-                       at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
-                       proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
-                       proj_G(iatype),paw)
+                  if(paw%usepaw==1) then
+                     call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,&
+                          nlpspd%nprojel,&
+                          at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
+                          proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
+                          proj_G(iatype),paw)
+                  else
+                     call apply_atproj_iorb_new(iat,iorb,istart_c,&
+                          nlpspd%nprojel,&
+                          at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
+                          proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
+                          proj_G(iatype),paw)
+                  end if
 !                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                   ispsi=ispsi+&
                        (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
@@ -618,9 +626,17 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                   !check if the atom intersect with the given localisation region
                   call check_overlap(Lzd%Llr(ilr), nlpspd%plr(iat), Lzd%Glr, overlap)
                   if(.not. overlap) stop 'ERROR all atoms should be in global'
-                  call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
-                       at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
-                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                  if(paw%usepaw==1) then
+                     call apply_atproj_iorb_paw(iat,iorb,istart_c,&
+                          nlpspd%nprojel,&
+                          at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
+                          proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
+                          proj_G(iatype),paw)
+                  else
+                     call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
+                          at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
+                          proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                  end if
                   !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                end do
                ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
@@ -1000,7 +1016,8 @@ END SUBROUTINE free_full_potential
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy,&
+     &   paw)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
@@ -1013,6 +1030,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
+  type(paw_objects),intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
@@ -1056,6 +1074,12 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 
   !transpose the hpsi wavefunction
    call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
+  
+  !PAW:
+  !transpose the spsi wavefunction
+  if(paw%usepaw==1) then
+     call transpose_v2(iproc,nproc,orbs,Lzd,comms,paw%spsi,work=psi)
+  end if
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
@@ -1067,10 +1091,22 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
+  if(paw%usepaw==1) then
+    !In PAW: spsi is used.
+    call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,paw%spsi,trH) !n(m)
+  else
+    !In NC: spsi=psi
+    call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,psit,trH) !n(m)
+  end if
 
   !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
+
+  
+  if(paw%usepaw==1) then
+   !retranspose the spsi wavefunction
+   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=psi)
+  end if
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi

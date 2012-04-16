@@ -681,7 +681,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
-  real(gp), dimension(ncplx_g)::gau_a,factor
+  real(gp), dimension(ncplx_g),intent(in)::gau_a,factor
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: nwarnings
   real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx), intent(out) :: proj
@@ -700,7 +700,6 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
 
   !fpi= 1/sqrt(pi) factor in spherical harmonics
   fpi=0.564189583547756279
-  factor(:)=fpi*factor(:)
 
   rx=rxyz(1) 
   ry=rxyz(2) 
@@ -711,25 +710,31 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   do m=1,2*l-1
     
      if (idir==0) then !normal projector calculation case
-        call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,:))
+        call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,1:nterm_max))
         do iterm=1,nterm 
-           factors(:,iterm)=factor(:)*factors(:,iterm)
+           !factor, can be complex
+           !factors has one dimension at the begginging.
+           !Here factors, can be converted to complex
+           factors(:,iterm)=factor(:)*factors(1,iterm)*fpi
         end do
      else !calculation of projector derivative
         call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
         
         nterm=nterm_arr(idir)
         do iterm=1,nterm
-           factors(:,iterm)=factor(:)*fac_arr(iterm,idir)
+           factors(:,iterm)=factor(:)*fac_arr(iterm,idir)*fpi
            lx(iterm)=lxyz_arr(1,iterm,idir)
            ly(iterm)=lxyz_arr(2,iterm,idir)
            lz(iterm)=lxyz_arr(3,iterm,idir)
         end do
      end if
 
-     call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,ncplx,ncplx_g,ncplx_k,&
-          gau_a,factors,rx,ry,rz,lx,ly,lz,&
-          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
+     call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
+          ncplx,ncplx_g,ncplx_k,&
+          gau_a,factors(1:ncplx_g,1:nterm),&
+          rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
+          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
+          proj(istart_c:istart_c+(mbvctr_c+7*mbvctr_f)*ncplx))
 
      ! testing
      !if (idir == 0) then
@@ -853,7 +858,7 @@ subroutine crtproj(geocode,nterm,lr, &
   !wproj is complex for PAW and kpoints.
   ncplx_wproj=max(ncplx_g,ncplx_k,1)
 
-  if(ncplx_wproj==2 .or. nterm>1) proj=0.d0 !initialize to zero in this cases
+  !if(ncplx_wproj==2 .or. nterm>1) proj=0.d0 !initialize to zero in this cases
 
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
   call memocc(i_stat,work,'work',subname)

@@ -311,7 +311,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
      call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,Lzd,hx,hy,hz,&
           in%ncong,in%iscf,&
           ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
-          psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
+          psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy,paw)
 
       !control the previous value of idsx_actual
       idsx_actual_before=diis%idsx
@@ -474,6 +474,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(paw_objects)::paw
 
    !Nullify PAW objects
+   paw%usepaw=0
    do iatyp=1,at%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
    end do

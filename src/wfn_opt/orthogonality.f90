@@ -150,7 +150,7 @@ END SUBROUTINE check_closed_shell
 
 !>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (arg:5)
+subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,spsi,scprsum) !n(c) wfd (arg:5)
   use module_base
   use module_types
   implicit none
@@ -159,6 +159,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
   type(communications_arrays), intent(in) :: comms
   !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
   real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
+  real(wp), dimension(orbs%npsidim_comp), intent(in) :: spsi
   real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
   real(dp), intent(out) :: scprsum
   !local variables
@@ -290,11 +291,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
         !n(c) ise=norb
 
         if(nspinor==1 .and. nvctrp /= 0) then
-           call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
+           call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
                 hpsi(ispsi),max(1,nvctrp))
         else if (nvctrp /= 0) then
-           call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
+           call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
         end if
         ispsi=ispsi+nvctrp*norb*nspinor

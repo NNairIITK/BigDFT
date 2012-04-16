@@ -1256,7 +1256,7 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,potshortcut,symObj,GPU,input,proj_G)
+     nspin,potshortcut,symObj,GPU,input,proj_G,paw)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1284,6 +1284,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
+   type(paw_objects),intent(inout)::paw
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    integer, intent(in) ::potshortcut
    !local variables
@@ -1307,15 +1308,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   integer :: i!,iorb,jorb,icplx
   real(gp), dimension(:), allocatable :: ovrlp
   real(gp), dimension(:,:), allocatable :: smat,tmp
-  type(paw_objects)::paw !This is to be filled for PAW
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
    allocate(locrad(at%nat+ndebug),stat=i_stat)
    call memocc(i_stat,locrad,'locrad',subname)
-
-   !Nullify paw object
-   !nullify(paw%paw_ij%dij)
 
    if (iproc == 0) then
       write(*,'(1x,a)')&
@@ -1422,6 +1419,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)
     
+    allocate(paw%spsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+    call memocc(i_stat,paw%spsi,'spsi',subname)
+
     !This is allocated in DiagHam
     nullify(psit)
 

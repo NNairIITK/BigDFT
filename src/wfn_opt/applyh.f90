@@ -1082,16 +1082,21 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   end do
 end subroutine build_hgh_hij_matrix
 
-subroutine applyprojector_paw(ncplx,&
+!sij_opt=1 : obtain hpsi
+!sij_opt=2 : obtain spsi
+!sij_opt=3 : obtain hpsi and spsi
+!
+subroutine applyprojector_paw(ncplx,istart_c,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
-     psi,hpsi,eproj,proj_G,paw_ij,&
-     indlmn,lmnmax,cprj_out)
+     psi,hpsi,spsi,eproj,proj_G,paw_ij,&
+     indlmn,lmnmax,cprj_out,sij_opt,sij)
   use module_base
   use module_types
   implicit none
   integer,parameter::nspinor=1  !not yet implemented
-  integer, intent(in) :: ncplx,lmnmax
+  integer, intent(inout)::istart_c
+  integer, intent(in) :: ncplx,lmnmax,sij_opt
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -1106,9 +1111,11 @@ subroutine applyprojector_paw(ncplx,&
   type(cprj_objects),intent(out)::cprj_out
   real(gp), intent(out) :: eproj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: spsi
+  real(wp), dimension(lmnmax*(lmnmax+1)/2),intent(in)::sij
   !local variables
   integer :: i_shell,j_shell,ilmn,jlmn,klmn,i0lmn,j0lmn,ispinor
-  integer :: i_l,j_l,klmnc,i_m,j_m
+  integer :: i_l,j_l,klmnc,i_m,j_m,iaux
   integer :: istart_i,istart_j,icplx,jspinor
   real(gp)::eproj_i
   real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
@@ -1126,7 +1133,6 @@ subroutine applyprojector_paw(ncplx,&
   !cprj_out(1,1:nspinor)%cp(1:ncplx,1:proj_count)=0.0_wp
   eproj=0.0_gp
   cprj=0.0_wp
-  dprj=0.0_wp
   !call to_zero(4*7*3*4,cprj(1,1,1,1))
 
   !Use special subroutines for these number of projectors
@@ -1162,7 +1168,7 @@ subroutine applyprojector_paw(ncplx,&
 
   !  deallocate(cprj_i)
   !else !use standart subroutine for projector application
-  istart_j=1
+  istart_j=istart_c
 ! Get cprj:
   jlmn=0
   do j_shell=1,proj_G%nshltot
@@ -1197,73 +1203,114 @@ subroutine applyprojector_paw(ncplx,&
   do ispinor=1,nspinor
      cprj_out%cp(ispinor,:)=cprj(ispinor,:)
   end do
-  !apply the matrix of the coefficients on the cprj array
-  jlmn=0
-  do j_shell=1,proj_G%nshltot
-     j_l=proj_G%nam(j_shell)
-     do j_m=1,2*j_l-1
-        jlmn=jlmn+1
-        j0lmn=jlmn*(jlmn-1)/2
-        !Diagonal components
-        klmn=j0lmn+jlmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-        !case of cplex_dij pending
-        dij=paw_ij%dij(klmn,1)
-        do ispinor=1,nspinor !real matrix
-           dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
-           dij*cprj(ispinor,jlmn)
-        end do
-        !Off-diagonal components
-        ilmn=0
-        do i_shell=1,j_shell-1
-           i_l=proj_G%nam(i_shell)
-           do i_m=1,2*i_l-1
-              ilmn=ilmn+1
-              klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-              dij=paw_ij%dij(klmn,1)
-              do ispinor=1,nspinor !real matrix
-                  dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
-                      dij*cprj(ispinor,ilmn)
-                  dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
-                      dij*cprj(ispinor,jlmn)
+
+  if(sij_opt==1 .or. sij_opt==3) then
+  !CALCULATE |H|PSI>
+     dprj=0.0_wp
+     iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
+     call calculate_dprj(paw_ij%dij(:,1),iaux)
+     !
+     !apply non-local operator
+     call apply_non_local_operator(hpsi,nvctr_c+7*nvctr_f,ncplx)
+     eproj=eproj+eproj_i
+  end if
+  if(sij_opt==2 .or. sij_opt==3) then
+  !CALCULATE |S|PSI>
+     dprj=0.0_wp
+     !Pending: check if it works  for cplex_dij=2
+     iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
+     call calculate_dprj(sij(1:iaux),iaux)
+     !
+     !apply non-local operator
+     call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx)
+  end if
+
+  deallocate(cprj)
+  deallocate(dprj)
+
+  contains
+
+  subroutine calculate_dprj(kij,dim1)
+     !Here we calculate:
+     !dprj(i)= sum_{j} dij <p_j|psi>
+  
+     implicit none
+     integer,intent(in)::dim1
+     real(wp),dimension(dim1),intent(in)::kij 
+
+     !apply the matrix of the coefficients on the cprj array
+     jlmn=0
+     do j_shell=1,proj_G%nshltot
+        j_l=proj_G%nam(j_shell)
+        do j_m=1,2*j_l-1
+           jlmn=jlmn+1
+           j0lmn=jlmn*(jlmn-1)/2
+           !Diagonal components
+           klmn=j0lmn+jlmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+           !case of cplex_dij pending
+           !dij=paw_ij%dij(klmn,1)
+           dij=kij(klmn)
+           do ispinor=1,nspinor !real matrix
+              dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+              dij*cprj(ispinor,jlmn)
+           end do
+           !Off-diagonal components
+           ilmn=0
+           do i_shell=1,j_shell-1
+              i_l=proj_G%nam(i_shell)
+              do i_m=1,2*i_l-1
+                 ilmn=ilmn+1
+                 klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+                 dij=paw_ij%dij(klmn,1)
+                 do ispinor=1,nspinor !real matrix
+                     dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+                         dij*cprj(ispinor,ilmn)
+                     dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
+                         dij*cprj(ispinor,jlmn)
+                 end do
               end do
            end do
         end do
      end do
-  end do
+  end subroutine calculate_dprj 
 
-  !build a single array via daxpy for the projectors
-  !apply the non-local operator on the wavefunction
-  !for the moment use the traditional waxpy instead of daxpy, for test purposes
-  eproj_i=0.0_gp
-  istart_j=1
-  jlmn=0
-  do j_shell=1,proj_G%nshltot
-     j_l=proj_G%nam(j_shell)
-     do j_m=1,2*j_l-1
-        jlmn=jlmn+1
-        do ispinor=1,nspinor,ncplx
-           do icplx=1,ncplx
-              eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj(ispinor+icplx-1,jlmn)
+  subroutine apply_non_local_operator(apham,dim1,dim2)
+
+     implicit none
+     integer,intent(in)::dim1,dim2
+     real(wp),dimension(dim1,dim2), intent(inout) :: apham
+ 
+     !build a single array via daxpy for the projectors
+     !apply the non-local operator on the wavefunction
+     !for the moment use the traditional waxpy instead of daxpy, for test purposes
+     eproj_i=0.0_gp
+     !istart_j=istart_c  !this line may not be needed.
+     jlmn=0
+     do j_shell=1,proj_G%nshltot
+        j_l=proj_G%nam(j_shell)
+        do j_m=1,2*j_l-1
+           jlmn=jlmn+1
+           do ispinor=1,nspinor,ncplx
+              do icplx=1,ncplx
+                 eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj(ispinor+icplx-1,jlmn)
+              end do
+              call waxpy_wrap(ncplx,dprj(ispinor,jlmn),&
+                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                   keyv_p,&!nlpspd%keyv_p(jseg_c),&
+                   keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+                   proj(istart_c),&
+                   nvctr_c,nvctr_f,nseg_c,nseg_f,&
+                   keyv,keyg,&
+                   apham(1,ispinor))
+              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
            end do
-           call waxpy_wrap(ncplx,dprj(ispinor,jlmn),&
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p,&!nlpspd%keyv_p(jseg_c),&
-                keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
-                proj(istart_j),&
-                nvctr_c,nvctr_f,nseg_c,nseg_f,&
-                keyv,keyg,&
-                hpsi(1,ispinor))
-           istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
         end do
      end do
-  end do
-
-  eproj=eproj+eproj_i
+  end subroutine apply_non_local_operator
 
 
-
-  deallocate(cprj)
-  deallocate(dprj)
 
 END SUBROUTINE applyprojector_paw
 
@@ -1656,13 +1703,14 @@ END SUBROUTINE apply_atproj_iorb_new
 
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
-subroutine apply_atproj_iorb_paw(iat,iorb,nprojel,at,orbs,wfd,&
+subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
      plr,proj,&
      psi,hpsi,eproj,proj_G,paw)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iat,iorb,nprojel
+  integer, intent(in) :: iat,iorb,ispsi,nprojel
+  integer, intent(inout)::istart_c
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1673,13 +1721,18 @@ subroutine apply_atproj_iorb_paw(iat,iorb,nprojel,at,orbs,wfd,&
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   type(gaussian_basis), intent(in) :: proj_G
-  type(paw_objects),intent(in)::paw
+  type(paw_objects),intent(inout)::paw
   !local variables
-  integer :: i_shell
+  integer :: i_shell,sij_opt
   integer :: ncplx,j
   character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,m,icplx
   real(gp) :: eproj_i
+
+  !Note:
+  !spsi should be in a wvl structure. 
+  !in that case spsi(ispsi) will be passed here, and 
+  !ispsi will no longer be an argument
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -1691,18 +1744,26 @@ subroutine apply_atproj_iorb_paw(iat,iorb,nprojel,at,orbs,wfd,&
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
+  !initialize to zero hpsi and spsi:
+  !in wpdot_wrap in applyprojector_paw, we do y=(a^T*x)+y
+  !with y=(hpsi or spsi)
+  hpsi(1:wfd%nvctr_c+7*wfd%nvctr_f,:)=0.0_wp  
+  paw%spsi(ispsi:ispsi+wfd%nvctr_c+7*wfd%nvctr_f*ncplx)=0.0_wp
 
   !calculate the scalar product with all the projectors of the atom
   !index for performing the calculation with all the projectors
+  
+  sij_opt=3 !get hpsi and spsi
 
-   call applyprojector_paw(ncplx,&
+   call applyprojector_paw(ncplx,istart_c,&
         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyglob,&
         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
         plr%wfd%keyv,& !nlpspd%keyv_p(jseg_c),
         plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
         proj(1),&
-        psi,hpsi,eproj_i,proj_G,paw%paw_ij(iat),&
-        paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb))  
+        psi,hpsi,paw%spsi(ispsi),eproj_i,proj_G,paw%paw_ij(iat),&
+        paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
+        sij_opt,paw%sij(:,ityp))  
 
   eproj=eproj+&
         &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i

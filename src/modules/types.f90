@@ -1021,6 +1021,8 @@ end type workarrays_quartic_convolutions
     integer,dimension(:,:,:),pointer::indlmn
     type(paw_ij_objects),dimension(:),allocatable :: paw_ij
     type(cprj_objects),dimension(:,:),allocatable :: cprj
+    real(wp),dimension(:),pointer :: spsi
+    real(wp),dimension(:,:),pointer :: sij
   end type paw_objects
 
 contains

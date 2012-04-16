@@ -306,6 +306,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
+  paw%usepaw=0
   !nullify(paw%paw_ij%dij)
 
   norbv=abs(in%norbv)
@@ -537,7 +538,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,&
           nlpspd,proj,ixc,psi,hpsi,psit,&
-          Gvirt,nspin,0,atoms%sym,GPU,in,proj_G)
+          Gvirt,nspin,0,atoms%sym,GPU,in,proj_G,paw)
      denspot%rhov_is=KS_POTENTIAL
 
      if (nvirt > norbv) then
@@ -977,7 +978,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,&
                    in%ncong,in%iscf,&
                    ekin_sum,epot_sum,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,eexctX,eion,edisp,&
-                   psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
+                   psi,psit,hpsi,gnrm,gnrm_zero,diis%energy,paw)
 
               !control the previous value of idsx_actual
               idsx_actual_before=diis%idsx
