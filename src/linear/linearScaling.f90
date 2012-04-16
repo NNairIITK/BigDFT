@@ -243,8 +243,9 @@ integer,dimension(:),allocatable:: debugarr
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
+  call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
-      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+      !!call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
       call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
            tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
@@ -371,7 +372,7 @@ integer,dimension(:),allocatable:: debugarr
               else
                   ! We have to communicate the potential in the first iteration
                   if(it_scc==1) then
-                      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+                      !!call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
                       !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
                       call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                            tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
