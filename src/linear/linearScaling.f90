@@ -352,7 +352,6 @@ integer,dimension(:),allocatable:: debugarr
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
-          write(*,*) 'before getLocalizedBasis: associated(tmb%comsr%recvbuf)', associated(tmb%comsr%recvbuf)
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
               if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
@@ -364,7 +363,6 @@ integer,dimension(:),allocatable:: debugarr
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
-          write(*,*) 'after getLocalizedBasis: associated(tmb%comsr%recvbuf)', associated(tmb%comsr%recvbuf)
 
           ! Decide whether we have to use the derivatives or not.
           if(input%lin%mixedmode) then
@@ -387,7 +385,7 @@ integer,dimension(:),allocatable:: debugarr
               !call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
               !!if(.not.tmb%wfnmd%bs%update_phi) call gatherPotential(iproc, nproc, tmb%comgp)
               if(.not.tmb%wfnmd%bs%update_phi) call wait_p2p_communication(iproc, nproc, tmb%comgp)
-              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+              !call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -450,7 +448,7 @@ integer,dimension(:),allocatable:: debugarr
           if(lscv%withder) then
               call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
           else
-              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          !!    call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
           end if
 
 
@@ -488,7 +486,7 @@ integer,dimension(:),allocatable:: debugarr
 
 
           ! Post communications for gathering the potential
-          call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
           !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
           call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
