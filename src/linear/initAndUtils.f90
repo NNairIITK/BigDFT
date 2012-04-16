@@ -2174,7 +2174,7 @@ end if
       call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
   end if
 
-  call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
@@ -2283,6 +2283,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
        lzd, lbcomgp, llborbs%inWhichLocreg, tag)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
 end subroutine update_locreg

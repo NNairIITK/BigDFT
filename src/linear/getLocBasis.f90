@@ -481,8 +481,8 @@ type(energy_terms) :: energs
       call destroy_new_locregs(iproc, nproc, tmblarge)
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
-      ! PB: This if seems to be never reachable since variable_locregs must be true for outer if
-      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      !!! PB: This if seems to be never reachable since variable_locregs must be true for outer if
+      !!if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
 
       locrad_tmp=factor*locrad
@@ -544,7 +544,7 @@ type(energy_terms) :: energs
           call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
           call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-          call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
       end if
 
 

@@ -375,7 +375,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
                   tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-                  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+                  !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
               end if
 
 
