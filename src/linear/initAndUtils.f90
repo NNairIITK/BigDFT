@@ -2104,10 +2104,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lzd, tmb, tmbmi
   type(locreg_descriptors):: glr_tmp
 
   tag=1
-  if(tmbmix%wfnmd%bs%use_derivative_basis) then
+  !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
       call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
-      call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  end if
+      !call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+      call deallocate_p2pComms(tmbmix%comgp, subname)
+  !!end if
 
   call nullify_orbitals_data(orbs_tmp)
   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
@@ -2476,13 +2477,19 @@ subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphila
   ! Local variables
   integer:: istat, iall
   character(len=*),parameter:: subname='destroy_new_locregs'
+  integer:: iproc, nproc
+  call mpi_comm_size(mpi_comm_world, nproc, istat)
+  call mpi_comm_rank(mpi_comm_world, iproc, istat)
+
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+ ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call deallocate_p2pComms(tmb%comgp, subname)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
   call deallocate_overlapParameters(tmb%op, subname)
   call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
-  call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
   call deallocate_p2pComms(tmb%comsr, subname)
 
@@ -2510,36 +2517,26 @@ real(8),dimension(:),pointer:: lphi
 type(DFT_wavefunction),intent(inout):: tmb
 
 ! Local variables
-!!type(local_zone_descriptors):: lzdlarge
-!!type(orbitals_data):: orbslarge
-!!type(p2pComms):: comonlarge, comgplarge
-!!type(overlapParameters):: oplarge
-!!type(matrixDescriptors):: madlarge
-!!type(localizedDIISParameters):: ldiislarge
 type(orbitals_data):: orbs_tmp
 type(locreg_descriptors):: glr_tmp
 type(local_zone_descriptors):: lzd_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:,:),allocatable:: locregCenter
-integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
+integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference, isorb_par
 integer:: istat, iall, iorb, ilr
-!!type(DFT_wavefunction):: tmblarge
 character(len=*),parameter:: subname='enlarge_locreg'
 
-!debug
-type(local_zone_descriptors):: lzdlarge
-type(orbitals_data):: orbslarge
-type(p2pComms):: comonlarge, comgplarge
-type(overlapParameters):: oplarge
-type(matrixDescriptors):: madlarge
-type(localizedDIISParameters):: ldiislarge
-type(DFT_wavefunction):: tmblarge
+
+!!allocate(isorb_par(0:nproc-1), stat=istat)
+!!if(nproc >1) &!mpiflag /= 0) 
+!!    call mpiallred(isorb_par(0),nproc,mpi_sum,mpi_comm_world,istat)
+!!deallocate(isorb_par, stat=istat)
 
 
-
-!!!!! NEW ################################################################################################
+!!write(*,*) 'the following should be uncommented'
 allocate(locregCenter(3,lzd%nlr), stat=istat)
 call memocc(istat, locregCenter, 'locregCenter', subname)
+
 
 allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
 call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
@@ -2547,18 +2544,13 @@ call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
 allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
 call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
 
+
 call nullify_orbitals_data(orbs_tmp)
 call nullify_locreg_descriptors(glr_tmp)
 call nullify_local_zone_descriptors(lzd_tmp)
 call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-!!write(*,*) 'after copy_orbitals_data'
-!!call mpi_barrier(mpi_comm_world, istat)
 call copy_locreg_descriptors(tmb%lzd%glr, glr_tmp, subname)
-write(*,*) 'after copy_locreg_descriptors'
-!!call mpi_barrier(mpi_comm_world, istat)
 call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
-write(*,*) 'after copy_local_zone_descriptors'
-
 
 
 ! always use the same inwhichlocreg
@@ -2569,13 +2561,6 @@ do iorb=1,tmb%orbs%norb
     locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
 end do
 
-! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
-call nullify_p2pComms(tmblarge%comsr) ! maybe nullify everything?
-call update_locreg2(iproc, nproc, lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
-     withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
-     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-!!call destroy_new_locregs(tmblarge, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
 call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
 call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
@@ -2598,11 +2583,6 @@ call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, onwhichatom_reference(1), 
 iall=-product(shape(lphilarge))*kind(lphilarge)
 deallocate(lphilarge, stat=istat)
 call memocc(istat, iall, 'lphilarge', subname)
-
-
-
-!!! END OLD ############################################################################
-
 
 
 iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)

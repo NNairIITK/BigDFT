@@ -42,6 +42,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
 real(8):: ddot, tt1, tt2, tt3
 
+integer,dimension(:),allocatable:: debugarr
+
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -56,9 +58,11 @@ real(8):: ddot, tt1, tt2, tt3
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
+
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmb%orbs, tmb%comms)
+
 
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs)
@@ -66,7 +70,9 @@ real(8):: ddot, tt1, tt2, tt3
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
+
   call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+
 
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
@@ -83,6 +89,7 @@ real(8):: ddot, tt1, tt2, tt3
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
+
 
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
@@ -132,6 +139,8 @@ real(8):: ddot, tt1, tt2, tt3
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
+
+
 
 
   ! Assign some values to orthpar
@@ -219,11 +228,17 @@ real(8):: ddot, tt1, tt2, tt3
   end if
 
 
+
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+!!write(*,*) 'debug in linearScaling'
+!!allocate(debugarr(0:nproc-1), stat=istat)
+!!if(nproc >1) &!mpiflag /= 0) 
+!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
+!!deallocate(debugarr, stat=istat)
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
@@ -268,9 +283,16 @@ real(8):: ddot, tt1, tt2, tt3
       lscv%variable_locregs=.true.
   end if
 
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+
+write(*,*) 'debug in linearScaling: itout',itout
+!!allocate(debugarr(0:nproc-1), stat=istat)
+!!if(nproc >1) &!mpiflag /= 0) 
+!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
+!!deallocate(debugarr, stat=istat)
 
       ! First to some initialization and determine the value of some control parameters.
 
@@ -303,8 +325,12 @@ real(8):: ddot, tt1, tt2, tt3
 
 
       ! Adjust the confining potential if required.
+      write(*,*) 'before calling adjust_locregs_and_confinement: associated(tmb%comsr%sendBuf)',associated(tmb%comsr%sendBuf)
+      flush(6)
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
+      write(*,*) 'after calling adjust_locregs_and_confinement: associated(tmb%comsr%sendBuf)',associated(tmb%comsr%sendBuf)
+      flush(6)
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
@@ -313,6 +339,8 @@ real(8):: ddot, tt1, tt2, tt3
       !!! Allocate the communication arrays for the calculation of the charge density.
       !!if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
       !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+      write(*,*) 'deallocate, 1'
+      call flush(6)
       if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
       ! Now all initializations are done...
@@ -369,10 +397,14 @@ real(8):: ddot, tt1, tt2, tt3
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+      write(*,*) 'deallocate, 2'
+      call flush(6)
                   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
                   tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+      write(*,*) 'deallocate, 3'
+      call flush(6)
                   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
                   tmbmix => tmb
               end if
@@ -402,7 +434,11 @@ real(8):: ddot, tt1, tt2, tt3
           ! Only communicate the TMB for sumrho in the first iteration.
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+      write(*,*) 'allocate, 4'
+      call flush(6)
               call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+      write(*,*) 'allocate, 5'
+      call flush(6)
               call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -483,7 +519,11 @@ real(8):: ddot, tt1, tt2, tt3
           end if
 
           if(it_scc<lscv%nit_scc_when_optimizing .or. it_scc==lscv%nit_scc) then
+      write(*,*) 'deallocate, 6'
+      call flush(6)
               call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      write(*,*) 'deallocate, 7'
+      call flush(6)
               call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
@@ -538,11 +578,15 @@ real(8):: ddot, tt1, tt2, tt3
 
 
   ! Allocate the communication buffers for the calculation of the charge density.
+      write(*,*) 'allocate, 8'
+      call flush(6)
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
+      write(*,*) 'deallocate, 9'
+      call flush(6)
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
   ! Build global orbitals psi (the physical ones).
@@ -794,7 +838,15 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   integer:: istat, iall
   logical:: redefine_derivatives, redefine_standard
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
+  integer,dimension(:),allocatable:: debugarr
 
+!!write(*,*) 'debug in adjust_locregs_and_confinement'
+!!allocate(debugarr(0:nproc-1), stat=istat)
+!!if(nproc >1) &!mpiflag /= 0) 
+!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
+!!deallocate(debugarr, stat=istat)
+
+write(*,*) 'debug in adjust_locregs_and_confinement: the following should be uncommented'
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
       lscv%decrease_factor_total=1.d0
   else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
@@ -843,6 +895,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
            ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
   end if
+  write(*,*) 'redefine_standard',redefine_standard
+  write(*,*) 'redefine_derivatives',redefine_derivatives
   if(redefine_standard) then
       ! Fake allocation
       allocate(tmb%comsr%sendbuf(1), stat=istat)
