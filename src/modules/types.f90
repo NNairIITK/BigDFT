@@ -1090,20 +1090,12 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_stat
 
-    integer:: iproc
-    write(*,*) 'debug in allocate_wfd'
-    call mpi_comm_rank(mpi_comm_world, iproc, i_stat)
-
-    write(*,'(a,i0,a)') 'iproc=',iproc,': allocate wfd%keyglob'
     allocate(wfd%keyglob(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-    write(*,'(a,i0,a)') 'iproc=',iproc,': allocate wfd%keygloc'
     allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    write(*,'(a,i0,a)') 'iproc=',iproc,': allocate wfd%keyvloc'
     allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-    write(*,'(a,i0,a)') 'iproc=',iproc,': allocate wfd%keycglob'
     allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 

@@ -459,7 +459,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               cutoff, llr(ilr)%locregCenter, &
                glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
-         write(*,*) 'after calling determine_boxbounds_sphere, iproc, ilr',iproc,ilr
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -633,9 +632,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
-         write(*,'(a,i0,a)') 'iproc=',iproc,': before determine_wfdSphere'
          call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
-         write(*,'(a,i0,a)') 'iproc=',iproc,': after determine_wfdSphere'
     
          ! Sould check if nfu works properly... also relative to locreg!!
          !if the localisation region is isolated build also the bounds
@@ -643,11 +640,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             ! Check whether the bounds shall be calculated. Do this only if the currect process handles
             ! orbitals in the current localization region.
             !if(calculateBounds(ilr)) then
-            write(*,'(a,i0,a)') 'iproc=',iproc,': calling locreg_bounds'
                 call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                      Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                      Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
-         write(*,*) 'after calling locreg_bounds, iproc, ilr',iproc, ilr
             !end if
          end if
      end if
@@ -705,11 +700,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
-
-  integer:: iproc
-  write(*,*) 'debug in determine_wfd_periodicity'
-  call mpi_comm_rank(mpi_comm_world,iproc,ii)
-
 
    !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -771,7 +761,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
    ! define the wavefunction descriptors inside the localisation region
    !coarse part
-   write(*,'(a,i0,a)') 'iproc=',iproc,': calling num_segkeys_sphere'
    call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
@@ -783,7 +772,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
 
    !fine part
-   write(*,'(a,i0,a)') 'iproc=',iproc,': calling num_segkeys_sphere'
    call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
@@ -795,12 +783,10 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
    !allocate the wavefunction descriptors following the needs
-   write(*,'(a,i0,a)') 'iproc=',iproc,': calling allocate_wfd'
    call allocate_wfd(Llr(ilr)%wfd,subname)
 
    !Now, fill the descriptors:
    !coarse part
-   write(*,'(a,i0,a)') 'iproc=',iproc,': calling segkeys_Sphere'
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
@@ -813,7 +799,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1))
 
    !fine part
-   write(*,'(a,i0,a)') 'iproc=',iproc,': calling segkeys_Sphere'
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &

@@ -287,7 +287,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
+              call destroy_new_locregs(iproc, nproc, tmb, tmb%psi, lhphi, lhphiold, lphiold)
               call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                    .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -309,7 +309,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-              call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+              call destroy_new_locregs(iproc, nproc, tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
@@ -360,7 +360,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
 
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-                  call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
+                  call destroy_new_locregs(iproc, nproc, tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
                   call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
                        inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
@@ -392,7 +392,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               ! Update the localization region if required.
               if(variable_locregs) then
                   call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-                  call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+                  call destroy_new_locregs(iproc, nproc, tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
                   locrad_tmp=factor*locrad
                   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &

@@ -713,32 +713,3 @@ subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
   ! Read k-points input variables (if given)
   call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
 end subroutine inputs_parse_add
-
-
-
-
-
-subroutine orbitals_descriptors2(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
-     orbs,simple,basedist)
-  use module_base
-  use module_types
-  implicit none
-  logical, intent(in) :: simple !< simple calculation of the repartition
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-  integer, intent(in) :: nspinor
-  type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(nkpt), intent(in) :: wkpt
-  real(gp), dimension(3,nkpt), intent(in) :: kpt
-  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
-  !local variables
-  character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
-  logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
-
-  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
-  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  !!if(nproc >1) &!mpiflag /= 0) 
-  !!     call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,mpi_comm_world,ierr)
-
-END SUBROUTINE orbitals_descriptors2

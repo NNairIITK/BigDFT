@@ -5956,10 +5956,11 @@ module module_interfaces
        !!!  type(DFT_wavefunction),intent(out):: tmb
        !!!end subroutine create_new_locregs
 
-       subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+       subroutine destroy_new_locregs(iproc, nproc, tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
          implicit none
+         integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs

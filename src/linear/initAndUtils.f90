@@ -647,10 +647,8 @@ end do
  else if(locregShape=='s') then
      !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
      !!     Glr, lzd%Llr, calculateBounds)
-     write(*,*) 'calling determine_locregSphere_parallel'
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
-     write(*,*) 'after calling determine_locregSphere_parallel'
  end if
 
 
@@ -2173,53 +2171,53 @@ end subroutine redefine_locregs_quantities
 
 
 
-subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => update_locreg2
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr
-  logical,intent(in):: useDerivativeBasisFunctions
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(8),intent(in):: hx, hy, hz
-  real(8),dimension(nlr),intent(in):: locrad
-  type(orbitals_data),intent(in):: orbs_tmp
-  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
-  real(8),dimension(3,nlr),intent(in):: locregCenter
-  type(locreg_descriptors),intent(in):: glr_tmp
-  type(local_zone_descriptors),intent(inout):: lzd
-  type(orbitals_data),intent(inout):: llborbs
-  type(overlapParameters),intent(inout):: lbop
-  type(p2pComms),intent(inout):: lbcomon
-  type(p2pComms),intent(inout):: lbcomgp
-  type(p2pComms),intent(inout):: comsr
-  type(matrixDescriptors),intent(inout):: lbmad
-  type(collective_comms),intent(inout):: lbcollcom
-  
-  ! Local variables
-  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
-  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
-  character(len=*),parameter:: subname='update_locreg'
-
-
-  call nullify_orbitals_data(llborbs)
-  tag=1
-  if(.not.useDerivativeBasisFunctions) then
-      norbu=orbs_tmp%norb
-  else
-      norbu=4*orbs_tmp%norb
-  end if
-  norb=norbu
-  norbd=0
-  nspin=1
-  call orbitals_descriptors2(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
-       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-
-end subroutine update_locreg2
+!!!subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
+!!!           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+!!!           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
+!!!  use module_base
+!!!  use module_types
+!!!  use module_interfaces, except_this_one => update_locreg2
+!!!  implicit none
+!!!  
+!!!  ! Calling arguments
+!!!  integer,intent(in):: iproc, nproc, nlr
+!!!  logical,intent(in):: useDerivativeBasisFunctions
+!!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!  real(8),intent(in):: hx, hy, hz
+!!!  real(8),dimension(nlr),intent(in):: locrad
+!!!  type(orbitals_data),intent(in):: orbs_tmp
+!!!  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
+!!!  real(8),dimension(3,nlr),intent(in):: locregCenter
+!!!  type(locreg_descriptors),intent(in):: glr_tmp
+!!!  type(local_zone_descriptors),intent(inout):: lzd
+!!!  type(orbitals_data),intent(inout):: llborbs
+!!!  type(overlapParameters),intent(inout):: lbop
+!!!  type(p2pComms),intent(inout):: lbcomon
+!!!  type(p2pComms),intent(inout):: lbcomgp
+!!!  type(p2pComms),intent(inout):: comsr
+!!!  type(matrixDescriptors),intent(inout):: lbmad
+!!!  type(collective_comms),intent(inout):: lbcollcom
+!!!  
+!!!  ! Local variables
+!!!  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
+!!!  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
+!!!  character(len=*),parameter:: subname='update_locreg'
+!!!
+!!!
+!!!  call nullify_orbitals_data(llborbs)
+!!!  tag=1
+!!!  if(.not.useDerivativeBasisFunctions) then
+!!!      norbu=orbs_tmp%norb
+!!!  else
+!!!      norbu=4*orbs_tmp%norb
+!!!  end if
+!!!  norb=norbu
+!!!  norbd=0
+!!!  nspin=1
+!!!  call orbitals_descriptors2(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
+!!!       orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
+!!!
+!!!end subroutine update_locreg2
 
 
 
@@ -2280,7 +2278,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   nspin=1
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
        orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-write(*,*) 'after calling orbitals_descriptors'
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -2298,7 +2295,6 @@ write(*,*) 'after calling orbitals_descriptors'
 
   lzd%nlr=nlr
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
-write(*,*) 'after calling initLocregs'
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   !!call deallocate_locreg_descriptors(glr_tmp, subname)
@@ -2464,22 +2460,20 @@ end subroutine deallocate_auxiliary_basis_function
 
 
 
-subroutine destroy_new_locregs(tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+subroutine destroy_new_locregs(iproc, nproc, tmb, lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
   implicit none
 
   ! Calling arguments
+  integer,intent(in):: iproc, nproc
   type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
 
   ! Local variables
   integer:: istat, iall
   character(len=*),parameter:: subname='destroy_new_locregs'
-  integer:: iproc, nproc
-  call mpi_comm_size(mpi_comm_world, nproc, istat)
-  call mpi_comm_rank(mpi_comm_world, iproc, istat)
 
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
  ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -2522,18 +2516,11 @@ type(locreg_descriptors):: glr_tmp
 type(local_zone_descriptors):: lzd_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:,:),allocatable:: locregCenter
-integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference, isorb_par
+integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 integer:: istat, iall, iorb, ilr
 character(len=*),parameter:: subname='enlarge_locreg'
 
 
-!!allocate(isorb_par(0:nproc-1), stat=istat)
-!!if(nproc >1) &!mpiflag /= 0) 
-!!    call mpiallred(isorb_par(0),nproc,mpi_sum,mpi_comm_world,istat)
-!!deallocate(isorb_par, stat=istat)
-
-
-!!write(*,*) 'the following should be uncommented'
 allocate(locregCenter(3,lzd%nlr), stat=istat)
 call memocc(istat, locregCenter, 'locregCenter', subname)
 
@@ -2562,7 +2549,7 @@ do iorb=1,tmb%orbs%norb
 end do
 
 call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-call destroy_new_locregs(tmb, lphi, lhphi, lhphiold, lphiold)
+call destroy_new_locregs(iproc, nproc, tmb, lphi, lhphi, lhphiold, lphiold)
 call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, inwhichlocreg_reference, locregCenter, lzd_tmp%glr, &
      withder, denspot%dpcom%nscatterarr, hx, hy, hz, &
      orbs_tmp, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &

@@ -288,11 +288,6 @@ integer,dimension(:),allocatable:: debugarr
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
-write(*,*) 'debug in linearScaling: itout',itout
-!!allocate(debugarr(0:nproc-1), stat=istat)
-!!if(nproc >1) &!mpiflag /= 0) 
-!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
-!!deallocate(debugarr, stat=istat)
 
       ! First to some initialization and determine the value of some control parameters.
 
@@ -325,12 +320,8 @@ write(*,*) 'debug in linearScaling: itout',itout
 
 
       ! Adjust the confining potential if required.
-      write(*,*) 'before calling adjust_locregs_and_confinement: associated(tmb%comsr%sendBuf)',associated(tmb%comsr%sendBuf)
-      flush(6)
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
-      write(*,*) 'after calling adjust_locregs_and_confinement: associated(tmb%comsr%sendBuf)',associated(tmb%comsr%sendBuf)
-      flush(6)
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
@@ -339,8 +330,6 @@ write(*,*) 'debug in linearScaling: itout',itout
       !!! Allocate the communication arrays for the calculation of the charge density.
       !!if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
       !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
-      write(*,*) 'deallocate, 1'
-      call flush(6)
       if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
       ! Now all initializations are done...
@@ -397,14 +386,10 @@ write(*,*) 'debug in linearScaling: itout',itout
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-      write(*,*) 'deallocate, 2'
-      call flush(6)
                   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
                   tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-      write(*,*) 'deallocate, 3'
-      call flush(6)
                   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
                   tmbmix => tmb
               end if
@@ -434,11 +419,7 @@ write(*,*) 'debug in linearScaling: itout',itout
           ! Only communicate the TMB for sumrho in the first iteration.
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-      write(*,*) 'allocate, 4'
-      call flush(6)
               call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-      write(*,*) 'allocate, 5'
-      call flush(6)
               call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -519,11 +500,7 @@ write(*,*) 'debug in linearScaling: itout',itout
           end if
 
           if(it_scc<lscv%nit_scc_when_optimizing .or. it_scc==lscv%nit_scc) then
-      write(*,*) 'deallocate, 6'
-      call flush(6)
               call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      write(*,*) 'deallocate, 7'
-      call flush(6)
               call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
@@ -578,15 +555,11 @@ write(*,*) 'debug in linearScaling: itout',itout
 
 
   ! Allocate the communication buffers for the calculation of the charge density.
-      write(*,*) 'allocate, 8'
-      call flush(6)
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
-      write(*,*) 'deallocate, 9'
-      call flush(6)
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
   ! Build global orbitals psi (the physical ones).
@@ -838,15 +811,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   integer:: istat, iall
   logical:: redefine_derivatives, redefine_standard
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
-  integer,dimension(:),allocatable:: debugarr
 
-!!write(*,*) 'debug in adjust_locregs_and_confinement'
-!!allocate(debugarr(0:nproc-1), stat=istat)
-!!if(nproc >1) &!mpiflag /= 0) 
-!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
-!!deallocate(debugarr, stat=istat)
-
-write(*,*) 'debug in adjust_locregs_and_confinement: the following should be uncommented'
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
       lscv%decrease_factor_total=1.d0
   else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
@@ -895,8 +860,6 @@ write(*,*) 'debug in adjust_locregs_and_confinement: the following should be unc
       call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
            ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
   end if
-  write(*,*) 'redefine_standard',redefine_standard
-  write(*,*) 'redefine_derivatives',redefine_derivatives
   if(redefine_standard) then
       ! Fake allocation
       allocate(tmb%comsr%sendbuf(1), stat=istat)
