@@ -284,6 +284,11 @@ integer,dimension(:),allocatable:: debugarr
   end if
 
 
+  !!! Allocate the communication arrays for the calculation of the charge density.
+  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+  call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
@@ -327,12 +332,13 @@ integer,dimension(:),allocatable:: debugarr
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      !!! Allocate the communication arrays for the calculation of the charge density.
+      !!!!! Allocate the communication arrays for the calculation of the charge density.
       !!if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
       !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
-      if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+      !!!!if(lscv%locreg_increased) call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
       ! Now all initializations are done...
+
 
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
@@ -346,6 +352,7 @@ integer,dimension(:),allocatable:: debugarr
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
+          write(*,*) 'before getLocalizedBasis: associated(tmb%comsr%recvbuf)', associated(tmb%comsr%recvbuf)
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
               if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
@@ -357,6 +364,7 @@ integer,dimension(:),allocatable:: debugarr
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
+          write(*,*) 'after getLocalizedBasis: associated(tmb%comsr%recvbuf)', associated(tmb%comsr%recvbuf)
 
           ! Decide whether we have to use the derivatives or not.
           if(input%lin%mixedmode) then
@@ -387,12 +395,12 @@ integer,dimension(:),allocatable:: debugarr
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
-                  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+                  !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
                   tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmb, denspot)
-                  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+                  !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
                   tmbmix => tmb
               end if
           end if
@@ -421,8 +429,8 @@ integer,dimension(:),allocatable:: debugarr
           ! Only communicate the TMB for sumrho in the first iteration.
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-              call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-              call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+              !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+              !!call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
           !    tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
@@ -434,7 +442,7 @@ integer,dimension(:),allocatable:: debugarr
           !!end if
 
           ! Calculate the coefficients
-          call mpi_barrier(mpi_comm_world, istat)
+          !!call mpi_barrier(mpi_comm_world, istat)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
@@ -502,15 +510,13 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
           if(it_scc<lscv%nit_scc_when_optimizing .or. it_scc==lscv%nit_scc) then
-              call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-              call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+              !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+              !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
           !else if(lscv%locreg_increased) then
           !    call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
           end if
       end do
 
-      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      !!call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -530,6 +536,12 @@ integer,dimension(:),allocatable:: debugarr
       call deallocateDIIS(ldiis)
 
   end do outerLoop
+
+  write(*,*) 'before first'
+  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+  write(*,*) 'after first'
+  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+  write(*,*) 'after second'
 
 
   !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
@@ -862,27 +874,27 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
       !!     ldiis, denspot, tmb)
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
-      iall=-product(shape(tmb%comsr%sendbuf))*kind(tmb%comsr%sendbuf)
-      deallocate(tmb%comsr%sendbuf, stat=istat)
-      call memocc(istat, iall, 'tmb%comsr%sendbuf', subname)
-      iall=-product(shape(tmb%comsr%recvbuf))*kind(tmb%comsr%recvbuf)
-      deallocate(tmb%comsr%recvbuf, stat=istat)
-      call memocc(istat, iall, 'tmb%comsr%recvbuf', subname)
+      !!iall=-product(shape(tmb%comsr%sendbuf))*kind(tmb%comsr%sendbuf)
+      !!deallocate(tmb%comsr%sendbuf, stat=istat)
+      !!call memocc(istat, iall, 'tmb%comsr%sendbuf', subname)
+      !!iall=-product(shape(tmb%comsr%recvbuf))*kind(tmb%comsr%recvbuf)
+      !!deallocate(tmb%comsr%recvbuf, stat=istat)
+      !!call memocc(istat, iall, 'tmb%comsr%recvbuf', subname)
   end if
   if(redefine_standard) then
-      ! Fake allocation
-      allocate(tmb%comsr%sendbuf(1), stat=istat)
-      call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-      allocate(tmb%comsr%recvbuf(1), stat=istat)
-      call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
+      !!! Fake allocation
+      !!allocate(tmb%comsr%sendbuf(1), stat=istat)
+      !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
+      !!allocate(tmb%comsr%recvbuf(1), stat=istat)
+      !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmb, denspot)
   end if
   if(redefine_derivatives) then
-      ! Fake allocation
-      allocate(tmbder%comsr%sendbuf(1), stat=istat)
-      call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-      allocate(tmbder%comsr%recvbuf(1), stat=istat)
-      call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
+      !!! Fake allocation
+      !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
+      !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
+      !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
+      !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmbder, denspot)
   end if
 

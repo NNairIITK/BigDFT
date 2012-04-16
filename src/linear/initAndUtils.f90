@@ -2177,7 +2177,7 @@ end if
   call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
-  call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
+  !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
@@ -2282,6 +2282,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, llborbs, tag, comsr)
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, llborbs, &
        lzd, lbcomgp, llborbs%inWhichLocreg, tag)
+  call allocateCommunicationbufferSumrho(iproc, comsr, subname)
 
 
 end subroutine update_locreg
