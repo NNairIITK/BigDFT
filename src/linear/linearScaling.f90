@@ -342,6 +342,7 @@ integer,dimension(:),allocatable:: debugarr
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
+
           call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
@@ -367,18 +368,23 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
           ! Decide whether we have to use the derivatives or not.
-          if(input%lin%mixedmode) then
-              if(.not.lscv%withder) then
-                  tmbmix => tmb
-              else
-                  !!! We have to communicate the potential in the first iteration
-                  !!if(it_scc==1) then
-                  !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-                  !!         tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
-                  !!end if
-                  tmbmix => tmbder
-              end if
+          if(lscv%withder) then
+              tmbmix => tmbder
+          else
+              tmbmix => tmb
           end if
+          !!if(input%lin%mixedmode) then
+          !!    if(.not.lscv%withder) then
+          !!        tmbmix => tmb
+          !!    else
+          !!        !!! We have to communicate the potential in the first iteration
+          !!        !!if(it_scc==1) then
+          !!        !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+          !!        !!         tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
+          !!        !!end if
+          !!        tmbmix => tmbder
+          !!    end if
+          !!end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
@@ -460,8 +466,7 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
 
-          ! Post communications for gathering the potential.
-          ! First make sure that the previous communication is complete (only do that if this check
+          ! Make sure that the previous communication is complete (only do that if this check
           ! for completeness has not been done in get_coeff)
           if(tmbmix%wfnmd%bs%use_derivative_basis .and. .not.tmb%wfnmd%bs%update_phi) then
               call wait_p2p_communication(iproc, nproc, tmb%comgp)
