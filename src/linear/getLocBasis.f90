@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix)
+    hx,hy,hz,SIC,tmbmix,tmb)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -22,7 +22,7 @@ real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
-type(DFT_wavefunction),intent(inout):: tmbmix
+type(DFT_wavefunction),intent(inout):: tmbmix, tmb
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
@@ -291,8 +291,14 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
               do korb=1,tmbmix%orbs%norb
                   tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               end do
-              tmbmix%wfnmd%coeff_proj(jjorb,iorb)=tt
+              tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
               jjorb=jjorb+1
+          end do
+      end do
+  else
+      do iorb=1,orbs%norb
+          do jorb=1,tmbmix%orbs%norb
+              tmb%wfnmd%coeff_proj(jorb,iorb)=tmbmix%wfnmd%coeff(jorb,iorb)
           end do
       end do
   end if
@@ -319,6 +325,35 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   call memocc(istat, iall, 'overlapmatrix', subname)
 
 end subroutine get_coeff
+
+
+
+!!subroutine project_coefficients
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  logical,intent(in):: withder
+!!  integer,intent(in):: norb, norb_tmb
+!!  real(8),dimension
+!!
+!!  ! Project the lb coefficients on the smaller subset
+!!  if(withder) then
+!!      do iorb=1,norb
+!!          jjorb=1
+!!          do jorb=1,norb_tmb,4
+!!              tt=0.d0
+!!              do korb=1,norb_tmb
+!!                  tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+!!              end do
+!!              tmbmix%wfnmd%coeff_proj(jjorb,iorb)=tt
+!!              jjorb=jjorb+1
+!!          end do
+!!      end do
+!!  end if
+!!
+!!end subroutine project_coefficients
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&

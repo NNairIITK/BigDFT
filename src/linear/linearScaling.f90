@@ -233,25 +233,7 @@ integer,dimension(:),allocatable:: debugarr
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-!!write(*,*) 'debug in linearScaling'
-!!allocate(debugarr(0:nproc-1), stat=istat)
-!!if(nproc >1) &!mpiflag /= 0) 
-!!    call mpiallred(debugarr(0),nproc,mpi_sum,mpi_comm_world,istat)
-!!deallocate(debugarr, stat=istat)
-  !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-  !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  ! If we also use the derivative of the basis functions, also send the potential in this case. This is
-  ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-  if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
-      !!call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-      !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-      !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-      !!     tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
-  end if
-
-
 
 
   ! Flag that indicates that the basis functions shall be improved in the following.
@@ -316,6 +298,8 @@ integer,dimension(:),allocatable:: debugarr
 
       ! Check whether the derivatives shall be used or not.
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
+      !!write(*,'(a,4l6)') 'lscv%lowaccur_converged, itout==input%lin%nit_lowaccuracy+1, lscv%pnrm_out<input%lin%lowaccuray_converged, lscv%lowaccur_converged', &
+      !!           lscv%lowaccur_converged, itout==input%lin%nit_lowaccuracy+1, lscv%pnrm_out<input%lin%lowaccuray_converged, lscv%lowaccur_converged
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -353,13 +337,24 @@ integer,dimension(:),allocatable:: debugarr
           ! Do not update the TMB if it_scc>1
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
+          if(lscv%withder) then
+              tmbmix => tmbder
+          else
+              tmbmix => tmb
+          end if
+
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
-              if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
+              !!write(*,'(a,4l6)') 'tmb%wfnmd%bs%use_derivative_basis, tmbder%wfnmd%bs%use_derivative_basis, tmbmix%wfnmd%bs%use_derivative_basis, lscv%withder', &
+              !!    tmb%wfnmd%bs%use_derivative_basis, tmbder%wfnmd%bs%use_derivative_basis, tmbmix%wfnmd%bs%use_derivative_basis, lscv%withder
+              !if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
+              !if(itout>1 .and. lscv%withder) then
+              if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
                   do iorb=1,orbs%norb
-                      call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
+                      !!call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
+                      call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
@@ -368,22 +363,10 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
           ! Decide whether we have to use the derivatives or not.
-          if(lscv%withder) then
-              tmbmix => tmbder
-          else
-              tmbmix => tmb
-          end if
-          !!if(input%lin%mixedmode) then
-          !!    if(.not.lscv%withder) then
-          !!        tmbmix => tmb
-          !!    else
-          !!        !!! We have to communicate the potential in the first iteration
-          !!        !!if(it_scc==1) then
-          !!        !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-          !!        !!         tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
-          !!        !!end if
-          !!        tmbmix => tmbder
-          !!    end if
+          !!if(lscv%withder) then
+          !!    tmbmix => tmbder
+          !!else
+          !!    tmbmix => tmb
           !!end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -428,9 +411,11 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
           ! Calculate the coefficients
+          write(*,*) 'size(tmb%wfnmd%coeff_proj,2)', size(tmb%wfnmd%coeff_proj,2)
+          write(*,*) 'size(tmbder%wfnmd%coeff_proj,2)', size(tmbder%wfnmd%coeff_proj,2)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix)
+               hx,hy,hz,input%SIC,tmbmix,tmb)
 
 
           ! Calculate the charge density.

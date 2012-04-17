@@ -2105,7 +2105,7 @@ module module_interfaces
 
     subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-               hx,hy,hz,SIC,tmbmix)
+               hx,hy,hz,SIC,tmbmix,tmb)
       use module_base
       use module_types
       implicit none
@@ -2123,7 +2123,7 @@ module module_interfaces
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(SIC_data),intent(in):: SIC
-      type(DFT_wavefunction),intent(inout):: tmbmix
+      type(DFT_wavefunction),intent(inout):: tmbmix,tmb
     end subroutine get_coeff
 
 
