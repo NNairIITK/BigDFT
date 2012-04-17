@@ -1224,7 +1224,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   !!call checkAndDeallocatePointer(p2pcomm%communComplete, 'p2pcomm%communComplete', subname)
   !!call checkAndDeallocatePointer(p2pcomm%computComplete, 'p2pcomm%computComplete', subname)
-  call checkAndDeallocatePointer(p2pcomm%startingindex, 'p2pcomm%startingindex', subname)
+  !!call checkAndDeallocatePointer(p2pcomm%startingindex, 'p2pcomm%startingindex', subname)
   call checkAndDeallocatePointer(p2pcomm%ise3, 'p2pcomm%ise3', subname)
   call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 

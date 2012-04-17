@@ -35,7 +35,7 @@ subroutine nullify_p2pComms(p2pcomm)
   nullify(p2pcomm%comarr)
   !!nullify(p2pcomm%communComplete)
   !!nullify(p2pcomm%computComplete)
-  nullify(p2pcomm%startingindex)
+  !!nullify(p2pcomm%startingindex)
   nullify(p2pcomm%ise3)
   nullify(p2pcomm%requests)
 end subroutine nullify_p2pComms
