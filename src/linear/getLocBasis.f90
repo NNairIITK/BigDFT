@@ -511,6 +511,9 @@ type(energy_terms) :: energs
       !!end do
       !!locregCenterTemp=locregCenter
       !!locrad_tmp=factor*locrad
+      !!allocate(tmblarge%psi(tmb%orbs%npsidim_orbs), stat=istat)
+      !!call memocc(istat, tmblarge%psi, 'tmblarge%psi', subname)
+      !!call dcopy(tmb%orbs%npsidim_orbs, tmb%psi, 1, tmblarge%psi, 1)
       !!call redefine_locregs_quantities(iproc, nproc, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
       !!     locrad_tmp, .true., tmblarge%lzd, tmb, tmblarge, denspot, ldiis)
       !!call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
