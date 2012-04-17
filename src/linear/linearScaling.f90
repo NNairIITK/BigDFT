@@ -42,6 +42,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
 real(8):: ddot, tt1, tt2, tt3
 !FOR DEBUG ONLY
+integer,dimension(:),allocatable:: debugarr
 integer :: ind1, ind2
 real(gp):: hamil,overlap
 type(confpot_data), dimension(:), allocatable :: confdatarr
@@ -61,9 +62,11 @@ type(energy_terms) :: energs
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
+
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
   call orbitals_communicators(iproc, nproc, glr, tmb%orbs, tmb%comms)
+
 
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
        tmbder%orbs)
@@ -117,6 +120,7 @@ type(energy_terms) :: energs
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
+
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
        tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
@@ -165,6 +169,8 @@ type(energy_terms) :: energs
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
+
+
 
 
   ! Assign some values to orthpar
@@ -227,7 +233,8 @@ type(energy_terms) :: energs
           0.5_gp*tmb%lzd%hgrids(2),0.5_gp*tmb%lzd%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
      call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-     call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+     call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
           denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
      call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -248,7 +255,7 @@ type(energy_terms) :: energs
 !!          rxyz,proj,tmb%lzd,nlpspd,tmb%psi,lhchi(1),energs%eproj)
 !!    call total_energies(energs,1)
 !!    print *,'ebs,ekin,epot,eproj',energs%ebs,energs%ekin,energs%epot,energs%eproj
-!!    print *,'ehart,exc,evxc',energs%eh,energs%exc,energs%evxc
+!!    print *,'eKS,ehart,exc,evxc',energs%eKS,energs%eh,energs%exc,energs%evxc
 !!    print *,'Wavefunction coefficients:'
 !!    do iall = 1, orbs%norb
 !!       do istat = 1, tmb%orbs%norb
@@ -283,122 +290,6 @@ type(energy_terms) :: energs
   !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
   !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
-
-!!  !!! TEST
-!!    !!tmb%psi=dble(iproc+1)
-!!    allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb))
-!!    call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp)
-!!    do istat=1,tmb%orbs%norb
-!!        do iall=1,tmb%orbs%norb
-!!            write(300+iproc,*) istat, iall, ovrlp(iall,istat)
-!!        end do
-!!    end do
-!!
-!!    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
-!!    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-!!    write(*,*) 'calling transpose_localized...'
-!!    call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
-!!    write(*,*) 'after transpose_localized...'
-!!
-!!    ! Calculate overlp
-!!    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-!!    write(*,*) 'after calculate_overlap_transposed...'
-!!    do istat=1,tmb%orbs%norb
-!!        do iall=1,tmb%orbs%norb
-!!            write(310+iproc,*) istat, iall, ovrlp(iall,istat)
-!!        end do
-!!    end do
-!!
-!!
-!!    call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
-!!    write(*,*) 'after untranspose_localized...'
-!!    !!do istat=1,tmb%orbs%npsidim_orbs
-!!    !!    write(210+iproc,*) istat, tmb%psi(istat)
-!!    !!end do
-!!    deallocate(psit_c)
-!!    deallocate(psit_f)
-
-
-!!!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-!!!    allocate(philarge(max(1,tmb%orbs%norbp*ldim)))
-!!!    allocate(philarge_root(ldim,tmb%orbs%norb))
-!!!    philarge=0.d0
-!!!    ists=1
-!!!    istl=1
-!!!    do iorb=1,tmb%orbs%norbp
-!!!        ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-!!!        sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-!!!        ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-!!!        nspin=1 !this must be modified later
-!!!        call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
-!!!             tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
-!!!        ists=ists+sdim
-!!!        istl=istl+ldim
-!!!    end do
-!!!    !Gather on root
-!!!    if(nproc>1) then
-!!!        call mpi_gatherv(philarge, tmb%orbs%norbp*ldim, mpi_double_precision, philarge_root, ldim*tmb%orbs%norb_par, &
-!!!             ldim*tmb%orbs%isorb_par, mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!    else
-!!!        call dcopy(ldim*tmb%orbs%norb, philarge, 1, philarge_root, 1)
-!!!    end if
-!!!    if(iproc==0) then
-!!!        do iorb=1,tmb%orbs%norb
-!!!            do jorb=1,tmb%orbs%norb
-!!!                ovrlp(jorb,iorb)=ddot(ldim, philarge_root(1,jorb), 1, philarge_root(1,iorb), 1)
-!!!                write(320+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!!            end do
-!!!        end do
-!!!    end if
-!!!    write(*,*) 'after mpi_gatherv...'
-!!!
-!!!
-!!!
-!!!! Second test
-!!!call dcopy(size(tmb%psi), tmb%psi, 1, philarge, 1)
-!!!call allocateSendBufferOrtho(tmb%comon, subname)
-!!!call allocateRecvBufferOrtho(tmb%comon, subname)
-!!!call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, tmb%orbs%npsidim_orbs, tmb%orbs%inwhichlocreg, tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
-!!!     tmb%psi, tmb%comon%nsendBuf, tmb%comon%sendBuf)
-!!!call postCommsOverlapNew(iproc, nproc, tmb%orbs, tmb%op, tmb%lzd, tmb%psi, tmb%comon, tt1, tt2)
-!!!allocate(lphiovrlp(tmb%op%ndim_lphiovrlp), stat=istat)
-!!!call collectnew(iproc, nproc, tmb%comon, tmb%mad, tmb%op, tmb%orbs, tmb%lzd, tmb%comon%nsendbuf, &
-!!!     tmb%comon%sendbuf, tmb%comon%nrecvbuf, tmb%comon%recvbuf, tt1, tt2, tt3)
-!!!!!call calculateOverlapMatrix3(iproc, nproc, tmb%orbs, tmb%op, tmb%orbs%inWhichLocreg, tmb%comon%nsendBuf, &
-!!!!!     tmb%comon%sendBuf, tmb%comon%nrecvBuf, tmb%comon%recvBuf, tmb%mad, ovrlp)
-!!!call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, tmb%comon%recvbuf, ovrlp, .true., tmb%psi)
-!!!call deallocateSendBufferOrtho(tmb%comon, subname)
-!!!call deallocateRecvBufferOrtho(tmb%comon, subname)
-!!!    do istat=1,tmb%orbs%npsidim_orbs
-!!!        write(800+iproc,*) istat, tmb%psi(istat)
-!!!    end do
-!!!    write(*,*) 'after classical stuff...'
-!!!
-!!!call dcopy(size(tmb%psi), philarge, 1, tmb%psi, 1)
-
-!!    allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)))
-!!    allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)))
-!!    allocate(psittemp_c(sum(tmb%collcom%nrecvcounts_c)))
-!!    allocate(psittemp_f(7*sum(tmb%collcom%nrecvcounts_f)))
-!!    call transpose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, tmb%psi, psit_c, psit_f)
-!!    write(*,*) 'after second transpose_localized...'
-!!    psittemp_c=psit_c
-!!    psittemp_f=psit_f
-!!    call build_linear_combination_transposed(tmb%orbs%norb, ovrlp, tmb%collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
-!!    write(*,*) 'after last build_linear_combination_transposed...'
-!!    call untranspose_localized(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom, psit_c, psit_f, tmb%psi)
-!!    write(*,*) 'after last untranspose_localized...'
-!!    do istat=1,tmb%orbs%npsidim_orbs
-!!        write(810+iproc,*) istat, tmb%psi(istat)
-!!    end do
-!!    deallocate(psit_c)
-!!    deallocate(psit_f)
-!!    deallocate(psittemp_c)
-!!    deallocate(psittemp_f)
-!!
-!!    deallocate(ovrlp)
-!!  !!! END TEST
 
 
   ! Initialize the DIIS mixing of the potential if required.
@@ -436,19 +327,12 @@ type(energy_terms) :: energs
   end if
 
 
+
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-  ! If we also use the derivative of the basis functions, also send the potential in this case. This is
-  ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
-      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-  end if
-
-
+  call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
 
 
   ! Flag that indicates that the basis functions shall be improved in the following.
@@ -481,9 +365,16 @@ type(energy_terms) :: energs
       lscv%variable_locregs=.true.
   end if
 
+
+  !!! Allocate the communication arrays for the calculation of the charge density.
+  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+  call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+
 
       ! First to some initialization and determine the value of some control parameters.
 
@@ -523,33 +414,32 @@ type(energy_terms) :: energs
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      ! Allocate the communication arrays for the calculation of the charge density.
-      if(.not. lscv%locreg_increased) call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
-
       ! Now all initializations are done...
+
 
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
-          ! Do not update the TMB if it_scc>1
-          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
-          ! Only communicate the TMB for sumrho in the first iteration.
-          if(it_scc==1) then
-              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-          else
-              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+
+
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+               tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+          if(lscv%withder) then
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                   tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
           end if
 
-          ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
-          ! This is a flag whether the basis functions shall be updated.
+          ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
+          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
+
+
+         ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
-              ! Improve the trace minimizing orbitals.
-              if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
+              if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
                   do iorb=1,orbs%norb
-                      call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
+                      call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
@@ -557,35 +447,20 @@ type(energy_terms) :: energs
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
 
-          ! Decide whether we have to use the derivatives or not.
-          if(input%lin%mixedmode) then
-              if(.not.lscv%withder) then
-                  tmbmix => tmb
-              else
-                  ! We have to communicate the potential in the first iteration
-                  if(it_scc==1) then
-                      call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-                      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
-                  end if
-                  tmbmix => tmbder
-              end if
-          end if
-          if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              ! Cancel the communication of the potential for the TMB, since we need in the following
-              ! only the potential for the TMB including the derivatives.
-              call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
-              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
-                  tmbmix => tmbder
-              else
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
-                  tmbmix => tmb
+                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
+                       .false., tmb%lzd, tmb, tmbder, denspot)
               end if
+          end if
+
+          ! Decide whether we have to use the derivatives or not.
+          if(lscv%withder) then
+              tmbmix => tmbder
+          else
+              tmbmix => tmb
           end if
 
 
@@ -596,7 +471,6 @@ type(energy_terms) :: energs
                       (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
                       .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
-                      call nullify_p2pComms(tmbder%comrp)
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
                       tmbmix => tmbder
                   end if
@@ -609,17 +483,16 @@ type(energy_terms) :: energs
               end if
           end if
 
+          ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
+          if(it_scc<=lscv%nit_scc_when_optimizing) then
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+          else
+              tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+          end if
           ! Calculate the coefficients
-          call mpi_barrier(mpi_comm_world, istat)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix)
-          ! Deallocate the buffers needed for the communication of the potential.
-          if(lscv%withder) then
-              call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-          else
-              call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          end if
+               hx,hy,hz,input%SIC,tmbmix,tmb)
 
 
           ! Calculate the charge density.
@@ -655,12 +528,13 @@ type(energy_terms) :: energs
           end if
 
 
-          ! Post communications for gathering the potential
-          call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-          if(tmbmix%wfnmd%bs%use_derivative_basis) then
-              call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+          ! Make sure that the previous communication is complete (only do that if this check
+          ! for completeness has not been done in get_coeff)
+          if(tmbmix%wfnmd%bs%use_derivative_basis .and. .not.tmb%wfnmd%bs%update_phi) then
+              call wait_p2p_communication(iproc, nproc, tmb%comgp)
+          end if
+          if(lscv%withder) then
+              call wait_p2p_communication(iproc, nproc, tmbder%comgp)
           end if
 
           ! Write some informations.
@@ -672,10 +546,9 @@ type(energy_terms) :: energs
           else
               lscv%reduce_convergence_tolerance=.false.
           end if
+
       end do
 
-      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-      call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -696,11 +569,15 @@ type(energy_terms) :: energs
 
   end do outerLoop
 
+  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
-  call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+
+  !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
-      call cancelCommunicationPotential(iproc, nproc, tmbder%comgp)
+      call wait_p2p_communication(iproc, nproc, tmbder%comgp)
       call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
 
@@ -972,7 +849,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer:: istat, iall
-  logical:: redefine_derivatives, redefine_standard
+  logical:: redefine_derivatives
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -994,7 +871,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  redefine_standard=.false.
   if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
       lscv%increase_locreg=lscv%increase_locreg+1.d0
       if(iproc==0) then
@@ -1005,8 +881,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locrad=lscv%locrad+lscv%increase_locreg
       if(lscv%withder) then
           redefine_derivatives=.true.
-      else
-          redefine_standard=.true.
       end if
       lscv%locreg_increased=.true.
   end if
@@ -1017,27 +891,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
           write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
       end if
       lscv%locreg_increased=.true.
-      redefine_standard=.true.
   end if
   if(lscv%locreg_increased) then
-      call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
-           ldiis, denspot, tmb%wfnmd%nphi, tmb%psi, tmb)
-  end if
-  if(redefine_standard) then
-      ! Fake allocation
-      allocate(tmb%comsr%sendbuf(1), stat=istat)
-      call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-      allocate(tmb%comsr%recvbuf(1), stat=istat)
-      call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmb, denspot)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
   end if
   if(redefine_derivatives) then
-      ! Fake allocation
-      allocate(tmbder%comsr%sendbuf(1), stat=istat)
-      call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-      allocate(tmbder%comsr%recvbuf(1), stat=istat)
-      call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd, tmb, tmbder, denspot)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmbder, denspot)
   end if
 
 end subroutine adjust_locregs_and_confinement

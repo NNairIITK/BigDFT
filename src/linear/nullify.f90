@@ -1,35 +1,3 @@
-subroutine nullify_linearParameters(lin)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_linearParameters
-  implicit none
-
-  ! Calling arguments
-  type(linearParameters),intent(out):: lin
-
-  nullify(lin%potentialPrefac)
-  nullify(lin%locrad)
-  !nullify(lin%lphiRestart)
-  !nullify(lin%lphiold)
-  !nullify(lin%lhphiold)
-  !nullify(lin%hamold)
-  call nullify_orbitals_data(lin%orbs)
-  call nullify_orbitals_data(lin%gorbs)
-  call nullify_communications_arrays(lin%comms)
-  call nullify_communications_arrays(lin%gcomms)
-  nullify(lin%norbsPerType)
-  !call nullify_p2pCommsSumrho(lin%comsr)
-  call nullify_p2pComms(lin%comsr)
-  !call nullify_p2pCommsGatherPot(lin%comgp)
-  call nullify_p2pComms(lin%comgp)
-  call nullify_largeBasis(lin%lb)
-  call nullify_local_zone_descriptors(lin%lzd)
-  !call nullify_p2pCommsOrthonormality(lin%comon)
-  call nullify_p2pComms(lin%comon)
-  call nullify_overlapParameters(lin%op)
-  call nullify_matrixDescriptors(lin%mad)
-
-end subroutine nullify_linearParameters
 
 subroutine nullifyInputLinparameters(lin)
   use module_base
@@ -60,13 +28,13 @@ subroutine nullify_p2pComms(p2pcomm)
 
   nullify(p2pcomm%noverlaps)
   nullify(p2pcomm%overlaps)
-  nullify(p2pcomm%istarr)
-  nullify(p2pcomm%istrarr)
+  !!nullify(p2pcomm%istarr)
+  !!nullify(p2pcomm%istrarr)
   nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
-  nullify(p2pcomm%communComplete)
-  nullify(p2pcomm%computComplete)
+  !!nullify(p2pcomm%communComplete)
+  !!nullify(p2pcomm%computComplete)
   nullify(p2pcomm%startingindex)
   nullify(p2pcomm%ise3)
   nullify(p2pcomm%requests)
