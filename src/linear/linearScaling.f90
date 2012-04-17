@@ -298,8 +298,6 @@ integer,dimension(:),allocatable:: debugarr
 
       ! Check whether the derivatives shall be used or not.
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
-      !!write(*,'(a,4l6)') 'lscv%lowaccur_converged, itout==input%lin%nit_lowaccuracy+1, lscv%pnrm_out<input%lin%lowaccuray_converged, lscv%lowaccur_converged', &
-      !!           lscv%lowaccur_converged, itout==input%lin%nit_lowaccuracy+1, lscv%pnrm_out<input%lin%lowaccuray_converged, lscv%lowaccur_converged
 
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
@@ -337,23 +335,13 @@ integer,dimension(:),allocatable:: debugarr
           ! Do not update the TMB if it_scc>1
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
-          if(lscv%withder) then
-              tmbmix => tmbder
-          else
-              tmbmix => tmb
-          end if
 
           ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           ! This is a flag whether the basis functions shall be updated.
           if(tmb%wfnmd%bs%update_phi) then
               ! Improve the trace minimizing orbitals.
-              !!write(*,'(a,4l6)') 'tmb%wfnmd%bs%use_derivative_basis, tmbder%wfnmd%bs%use_derivative_basis, tmbmix%wfnmd%bs%use_derivative_basis, lscv%withder', &
-              !!    tmb%wfnmd%bs%use_derivative_basis, tmbder%wfnmd%bs%use_derivative_basis, tmbmix%wfnmd%bs%use_derivative_basis, lscv%withder
-              !if(itout>1 .and. tmbmix%wfnmd%bs%use_derivative_basis) then
-              !if(itout>1 .and. lscv%withder) then
               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
                   do iorb=1,orbs%norb
-                      !!call dcopy(tmb%orbs%norb, tmbmix%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
@@ -362,24 +350,23 @@ integer,dimension(:),allocatable:: debugarr
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
           end if
 
-          ! Decide whether we have to use the derivatives or not.
-          !!if(lscv%withder) then
-          !!    tmbmix => tmbder
-          !!else
-          !!    tmbmix => tmb
-          !!end if
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
-                  tmbmix => tmbder
               else
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmb, denspot)
-                  tmbmix => tmb
               end if
+          end if
+
+          ! Decide whether we have to use the derivatives or not.
+          if(lscv%withder) then
+              tmbmix => tmbder
+          else
+              tmbmix => tmb
           end if
 
 
@@ -411,8 +398,6 @@ integer,dimension(:),allocatable:: debugarr
           end if
 
           ! Calculate the coefficients
-          write(*,*) 'size(tmb%wfnmd%coeff_proj,2)', size(tmb%wfnmd%coeff_proj,2)
-          write(*,*) 'size(tmbder%wfnmd%coeff_proj,2)', size(tmbder%wfnmd%coeff_proj,2)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb)
@@ -459,12 +444,6 @@ integer,dimension(:),allocatable:: debugarr
           if(lscv%withder) then
               call wait_p2p_communication(iproc, nproc, tmbder%comgp)
           end if
-          !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-          !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-          !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
-          !!    call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-          !!         tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
-          !!end if
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
@@ -778,7 +757,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer:: istat, iall
-  logical:: redefine_derivatives, redefine_standard
+  logical:: redefine_derivatives!!, redefine_standard
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -800,7 +779,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  redefine_standard=.false.
+  !!redefine_standard=.false.
   if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
       lscv%increase_locreg=lscv%increase_locreg+1.d0
       if(iproc==0) then
@@ -812,7 +791,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       if(lscv%withder) then
           redefine_derivatives=.true.
       else
-          redefine_standard=.true.
+          !!redefine_standard=.true.
       end if
       lscv%locreg_increased=.true.
   end if
@@ -823,33 +802,15 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
           write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
       end if
       lscv%locreg_increased=.true.
-      redefine_standard=.true.
+      !!redefine_standard=.true.
   end if
   if(lscv%locreg_increased) then
-      !!call enlarge_locreg(iproc, nproc, hx, hy, hz, .false., tmb%lzd, lscv%locrad, &
-      !!     ldiis, denspot, tmb)
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
-      !!iall=-product(shape(tmb%comsr%sendbuf))*kind(tmb%comsr%sendbuf)
-      !!deallocate(tmb%comsr%sendbuf, stat=istat)
-      !!call memocc(istat, iall, 'tmb%comsr%sendbuf', subname)
-      !!iall=-product(shape(tmb%comsr%recvbuf))*kind(tmb%comsr%recvbuf)
-      !!deallocate(tmb%comsr%recvbuf, stat=istat)
-      !!call memocc(istat, iall, 'tmb%comsr%recvbuf', subname)
   end if
-  if(redefine_standard) then
-      !!! Fake allocation
-      !!allocate(tmb%comsr%sendbuf(1), stat=istat)
-      !!call memocc(istat, tmb%comsr%sendbuf, 'tmb%comsr%sendbuf', subname)
-      !!allocate(tmb%comsr%recvbuf(1), stat=istat)
-      !!call memocc(istat, tmb%comsr%recvbuf, 'tmb%comsr%recvbuf', subname)
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmb, denspot)
-  end if
+  !!if(redefine_standard) then
+  !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmb, denspot)
+  !!end if
   if(redefine_derivatives) then
-      !!! Fake allocation
-      !!allocate(tmbder%comsr%sendbuf(1), stat=istat)
-      !!call memocc(istat, tmbder%comsr%sendbuf, 'tmbder%comsr%sendbuf', subname)
-      !!allocate(tmbder%comsr%recvbuf(1), stat=istat)
-      !!call memocc(istat, tmbder%comsr%recvbuf, 'tmbder%comsr%recvbuf', subname)
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmbder, denspot)
   end if
 
