@@ -332,14 +332,12 @@ integer,dimension(:),allocatable:: debugarr
                    tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
           end if
 
-          ! Do not update the TMB if it_scc>1
+          ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
 
-          ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
-          ! This is a flag whether the basis functions shall be updated.
+         ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
-              ! Improve the trace minimizing orbitals.
               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
                   do iorb=1,orbs%norb
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
@@ -357,8 +355,8 @@ integer,dimension(:),allocatable:: debugarr
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
               else
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
-                       .false., tmb%lzd, tmb, tmb, denspot)
+                  !!call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
+                  !!     .false., tmb%lzd, tmb, tmb, denspot)
               end if
           end if
 
@@ -757,7 +755,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer:: istat, iall
-  logical:: redefine_derivatives!!, redefine_standard
+  logical:: redefine_derivatives
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -779,7 +777,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  !!redefine_standard=.false.
   if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
       lscv%increase_locreg=lscv%increase_locreg+1.d0
       if(iproc==0) then
@@ -790,8 +787,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locrad=lscv%locrad+lscv%increase_locreg
       if(lscv%withder) then
           redefine_derivatives=.true.
-      else
-          !!redefine_standard=.true.
       end if
       lscv%locreg_increased=.true.
   end if
@@ -802,14 +797,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
           write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
       end if
       lscv%locreg_increased=.true.
-      !!redefine_standard=.true.
   end if
   if(lscv%locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
   end if
-  !!if(redefine_standard) then
-  !!    call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmb, denspot)
-  !!end if
   if(redefine_derivatives) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmbder, denspot)
   end if
