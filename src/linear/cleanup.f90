@@ -827,55 +827,6 @@ module deallocationInterfaces
 
 end module deallocationInterfaces
 
-
-
-!!!subroutine deallocate_linearParameters(lin, subname)
-!!!  use module_base
-!!!  use module_types
-!!!  use deallocatePointers
-!!!  use module_interfaces, exceptThisOne => deallocate_linearParameters
-!!!  implicit none
-!!!
-!!!  ! Calling arguments
-!!!  type(linearParameters),intent(inout):: lin
-!!!  character(len=*),intent(in):: subname
-!!!
-!!!  integer:: ierr
-!!!
-!!!  call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
-!!!  call checkAndDeallocatePointer(lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
-!!!  call checkAndDeallocatePointer(lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
-!!!  call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
-!!!  !call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiRestart', subname)
-!!!  call checkAndDeallocatePointer(lin%locrad_lowaccuracy, 'lin%locrad_lowaccuracy', subname)
-!!!  call checkAndDeallocatePointer(lin%locrad_highaccuracy, 'lin%locrad_highaccuracy', subname)
-!!!  !call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
-!!!  !call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
-!!!  !call checkAndDeallocatePointer(lin%lphiold, 'lphiold', subname)
-!!!  !call checkAndDeallocatePointer(lin%lhphiold, 'lhphiold', subname)
-!!!  !call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
-!!!  call deallocate_orbitals_data(lin%orbs, subname)
-!!!  call deallocate_orbitals_data(lin%gorbs, subname)
-!!!  call deallocate_communications_arrays(lin%comms, subname)
-!!!  call deallocate_communications_arrays(lin%gcomms, subname)
-!!!  call checkAndDeallocatePointer(lin%norbsPerType, 'lin%norbsPerType', subname)
-!!!  !call deallocate_p2pCommsSumrho(lin%comsr, subname)
-!!!  call deallocate_p2pComms(lin%comsr, subname)
-!!!  !call deallocate_p2pCommsGatherPot(lin%comgp, subname)
-!!!  call deallocate_p2pComms(lin%comgp, subname)
-!!!  call deallocate_largeBasis(lin%lb, subname)
-!!!!  call deallocate_nonlocal_psp_descriptors(lin%lzd%Gnlpspd, subname)
-!!!  call deallocate_local_zone_descriptors(lin%lzd, subname)
-!!!  !call deallocate_p2pCommsOrthonormality(lin%comon, subname)
-!!!  call deallocate_p2pComms(lin%comon, subname)
-!!!  call deallocate_overlapParameters(lin%op, subname)
-!!!  call deallocate_matrixDescriptors(lin%mad, subname)
-!!!  call deallocate_collectiveComms(lin%collComms, subname)
-!!!
-!!!end subroutine deallocate_linearParameters
-
-
-
 subroutine deallocate_local_zone_descriptors(lzd, subname)
   use module_base
   use module_types
@@ -890,7 +841,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: istat, iall, iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
+!  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
@@ -899,7 +850,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
      iie1=ubound(lzd%llr,1)
      !write(*,*) 'iis1,iie1',iis1,iie1
      do i1=iis1,iie1
-         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
@@ -951,7 +902,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
          !if(associated(lzd%llr(i1)%projflg)) then
          !    nullify(lzd%llr(i1)%projflg)
          !end if
-         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
@@ -1021,7 +972,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
+!  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 
@@ -1040,7 +991,7 @@ subroutine deallocate_locreg_descriptors2(lr,subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+!  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 !  call deallocate_convolutions_bounds(lr%bounds, subname)
@@ -1373,34 +1324,6 @@ subroutine deallocate_overlapParameters(op, subname)
 !!  deallocate(op%extseg,op%expseg)
 
 end subroutine deallocate_overlapParameters
-
-
-
-!!subroutine deallocate_inguessParameters(ip, subname)
-!!  use module_base
-!!  use module_types
-!!  use deallocatePointers
-!!  use module_interfaces, exceptThisOne => deallocate_inguessParameters
-!!  implicit none
-!!  
-!!  ! Calling arguments
-!!  type(inguessParameters),intent(inout):: ip
-!!  character(len=*),intent(in):: subname
-!!
-!!  ! Local variables
-!!  integer:: iis1, iie1, i1
-!!
-!!  !!call checkAndDeallocatePointer(ip%norb_par, 'ip%norb_par', subname)
-!!  !!call checkAndDeallocatePointer(ip%onWhichMPI, 'ip%onWhichMPI', subname)
-!!  !!call checkAndDeallocatePointer(ip%isorb_par, 'ip%isorb_par', subname)
-!!  !!call checkAndDeallocatePointer(ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
-!!  call checkAndDeallocatePointer(ip%sendcounts, 'ip%sendcounts', subname)
-!!  call checkAndDeallocatePointer(ip%senddispls, 'ip%senddispls', subname)
-!!  call checkAndDeallocatePointer(ip%recvcounts, 'ip%recvcounts',  subname)
-!!  call checkAndDeallocatePointer(ip%recvdispls, 'ip%recvdispls', subname)
-!!
-!!end subroutine deallocate_inguessParameters
-
 
 subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   use module_base

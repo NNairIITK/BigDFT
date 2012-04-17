@@ -345,7 +345,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
 
   !obtain initial wavefunctions.
-  if (in%inputPsiId /= INPUT_PSI_LINEAR) then
+  if (in%inputPsiId /= INPUT_PSI_LINEAR .and. in%inputPsiId /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -1044,9 +1044,9 @@ contains
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
          KSwfn%Lzd%Glr%bounds,subname)
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
+!    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+!    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+!    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
     if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)

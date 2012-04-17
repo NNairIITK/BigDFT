@@ -558,6 +558,91 @@
 !!!!end subroutine buildLinearCombinationsVariable
 
 
+!!!subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, newComm, ip)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(orbitals_data),intent(in):: orbs, orbsig
+!!!integer,intent(in):: newComm
+!!!type(inguessParameters),intent(inout):: ip
+!!!
+!!!! Local variables
+!!!integer:: ii, kk, jproc, istat, ierr, norbTarget, iorb, iiorb
+!!!real(8):: tt
+!!!character(len=*),parameter:: subname='initializeInguessParameters'
+!!!
+!!!
+!!!  !!ip%norb=orbs%norb
+!!!  !!ip%norbtot=orbsig%norb
+!!!
+!!!  ! In order to symplify the transposing/untransposing, the orbitals are padded with zeros such that 
+!!!  ! they can be distributed evenly over all processes when being transposed. The new length of the 
+!!!  ! orbitals after this padding is then given by ip%norbtotPad.
+!!!  !!ip%norbtotPad=orbsig%norb
+!!!  !!do
+!!!  !!    if(mod(ip%norbtotPad, nproc)==0) exit
+!!!  !!    ip%norbtotPad=ip%norbtotPad+1
+!!!  !!end do
+!!!
+!!!
+!!!
+!!!  !!!! Calculate the number of elements that each process has when the vectors are transposed.
+!!!  !!!! nvctrp is the total number, nvctrp_nz is the nonzero numbers.
+!!!  !!!allocate(ip%nvctrp_nz(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
+!!!  !!!tt=ip%norbtot/dble(nproc)
+!!!  !!!ii=floor(tt)
+!!!  !!!! ii is now the number of elements that every process has. Distribute the remaining ones.
+!!!  !!!ip%nvctrp_nz=ii
+!!!  !!!kk=ip%norbtot-nproc*ii
+!!!  !!!ip%nvctrp_nz(0:kk-1)=ii+1
+!!!  !!!! Check wheter this distribution is correct
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!   ii=ii+ip%nvctrp_nz(jproc)
+!!!  !!!end do
+!!!  !!!if(ii/=ip%norbtot) then
+!!!  !!!   if(iproc==0) write(*,'(3x,a)') 'ERROR: wrong partition of ip%norbtot!'
+!!!  !!!   call mpi_barrier(newComm, ierr)
+!!!  !!!   stop
+!!!  !!!end if
+!!!
+!!!  ! With the padded zeros, the elements can be distributed evenly.
+!!!  !!!ip%nvctrp=ip%norbtotPad/nproc
+!!!
+!!!  ! Define the values for the mpi_alltoallv.
+!!!  ! sendcounts: number of elements that a given  process sends to another process.
+!!!  ! senddispls: offset of the starting index on a given process for the send operation to another process.
+!!!  !!!allocate(ip%sendcounts(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%sendcounts, 'ip%sendcounts', subname)
+!!!  !!!allocate(ip%senddispls(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!    ip%sendcounts(jproc)=ip%nvctrp*orbs%norb_par(iproc,0)
+!!!  !!!    ip%senddispls(jproc)=ii
+!!!  !!!    ii=ii+ip%sendcounts(jproc)
+!!!  !!!end do
+!!!  !!!! recvcounts: number of elements that a given process receives from another process.
+!!!  !!!! recvdispls: offset of the starting index on a given process for the receive operation from another process.
+!!!  !!!allocate(ip%recvcounts(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%recvcounts, 'ip%recvcounts', subname)
+!!!  !!!allocate(ip%recvdispls(0:nproc-1), stat=istat)
+!!!  !!!call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
+!!!  !!!ii=0
+!!!  !!!do jproc=0,nproc-1
+!!!  !!!    ip%recvcounts(jproc)=ip%nvctrp*orbs%norb_par(jproc,0)
+!!!  !!!    ip%recvdispls(jproc)=ii
+!!!  !!!    ii=ii+ip%recvcounts(jproc)
+!!!  !!!end do
+!!!
+!!!  !!!! Determine the size of the work array needed for the transposition.
+!!!  !!!ip%sizeWork=max(ip%norbtotPad*orbs%norb_par(iproc,0),sum(ip%recvcounts(:)))
+!!!
+!!!end subroutine initializeInguessParameters
 
 
 

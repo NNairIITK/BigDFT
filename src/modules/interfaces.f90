@@ -6713,12 +6713,12 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-       subroutine readmywaves_linear(iproc,filename,iformat,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,orblist)
+       subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
+           psi,coeff,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc, iformat
+         integer, intent(in) :: iproc, iformat,norb
          type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
          type(local_zone_descriptors), intent(in) :: Lzd
          type(atoms_data), intent(in) :: at
@@ -6726,6 +6726,7 @@ module module_interfaces
          real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
          character(len=*), intent(in) :: filename
+         real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
@@ -6788,6 +6789,23 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine update_auxiliary_basis_function
 
+        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
+            & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: unitwf                                                                                                                                                                                                             
+         logical, intent(in) :: formatted
+         integer, intent(out) :: norb_old, ntmb_old
+         integer, intent(out) :: n1_old, n2_old, n3_old
+         real(gp), intent(out) :: hx_old, hy_old, hz_old
+         logical, intent(out) :: lstat
+         character(len =256), intent(out) :: error
+         ! Optional arguments                                                                                                                                                                                                                      
+         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+         integer, intent(in), optional :: nat
+         real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+        end subroutine io_read_descr_coeff
    end interface
 
 END MODULE module_interfaces
