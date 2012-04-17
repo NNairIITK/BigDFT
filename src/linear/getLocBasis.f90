@@ -431,7 +431,6 @@ type(energy_terms) :: energs
       !!call gatherPotential(iproc, nproc, tmb%comgp)
 
       ! Build the required potential
-      !!tmb%comgp%communication_complete=.false.
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
@@ -444,8 +443,6 @@ type(energy_terms) :: energs
   trHold=1.d100
  
 
-
-
   ! ratio of large locreg and standard locreg
   factor=tmb%wfnmd%bs%locreg_enlargement
 
@@ -455,6 +452,8 @@ type(energy_terms) :: energs
 
   ! Initialize largestructures if required
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      write(*,*) 'in this part'
+      !!! OLD ###################################
       do iorb=1,tmb%orbs%norb
           ilr=tmb%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
@@ -491,7 +490,6 @@ type(energy_terms) :: energs
       !!! PB: This if seems to be never reachable since variable_locregs must be true for outer if
       !!if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
-
       locrad_tmp=factor*locrad
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
            .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -504,6 +502,24 @@ type(energy_terms) :: energs
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+      !!! END OLD ###################################
+
+      !!!!! NEW ##########################################
+      !!do iorb=1,tmb%orbs%norb
+      !!    ilr=tmb%orbs%inwhichlocreg(iorb)
+      !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      !!end do
+      !!locregCenterTemp=locregCenter
+      !!locrad_tmp=factor*locrad
+      !!call redefine_locregs_quantities(iproc, nproc, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+      !!     locrad_tmp, .true., tmblarge%lzd, tmb, tmblarge, denspot, ldiis)
+      !!call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+      !!     lhphilarge, lhphilargeold, lphilargeold)
+      !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+
+      !!!!! END NEW ############################################
 
   end if
 

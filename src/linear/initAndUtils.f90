@@ -2117,7 +2117,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   do ilr=1,lzd_tmp%nlr
-      locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+      locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
   end do
 
   call deallocate_p2pComms(tmbmix%comsr, subname)
@@ -2135,28 +2135,25 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
   tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
 
-!! NEW ######################################
-if(transform) then
-    allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
-    call memocc(istat, lphilarge, 'lphilarge', subname)
-    call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmbmix%orbs, tmbmix%psi, lphilarge)
-    iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-    deallocate(tmbmix%psi, stat=istat)
-    call memocc(istat, iall, 'tmbmix%psi', subname)
-    allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-    call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-    call dcopy(tmbmix%orbs%npsidim_orbs, lphilarge(1), 1, tmbmix%psi(1), 1)
-    !nphi=tmb%orbs%npsidim_orbs
-    
-    if(.not.present(ldiis)) stop "ldiis must be present when 'transform' is true!"
-    call update_ldiis_arrays(tmbmix, subname, ldiis)
-    call vcopy(tmbmix%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmbmix%orbs%onwhichatom(1), 1)
-    iall=-product(shape(lphilarge))*kind(lphilarge)
-    deallocate(lphilarge, stat=istat)
-    call memocc(istat, iall, 'lphilarge', subname)
-end if
-!! END NEW ######################################
-
+  if(transform) then
+      allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, lphilarge, 'lphilarge', subname)
+      call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmbmix%orbs, tmbmix%psi, lphilarge)
+      iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+      deallocate(tmbmix%psi, stat=istat)
+      call memocc(istat, iall, 'tmbmix%psi', subname)
+      allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
+      call dcopy(tmbmix%orbs%npsidim_orbs, lphilarge(1), 1, tmbmix%psi(1), 1)
+      !nphi=tmb%orbs%npsidim_orbs
+      
+      if(.not.present(ldiis)) stop "ldiis must be present when 'transform' is true!"
+      call update_ldiis_arrays(tmbmix, subname, ldiis)
+      call vcopy(tmbmix%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmbmix%orbs%onwhichatom(1), 1)
+      iall=-product(shape(lphilarge))*kind(lphilarge)
+      deallocate(lphilarge, stat=istat)
+      call memocc(istat, iall, 'lphilarge', subname)
+  end if
 
 
   iall=-product(shape(locregCenter))*kind(locregCenter)

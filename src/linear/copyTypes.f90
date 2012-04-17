@@ -21,6 +21,10 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   glrout%nsi2 = glrin%nsi2
   glrout%nsi3 = glrin%nsi3
   glrout%Localnorb = glrin%Localnorb
+  glrout%locrad=glrin%locrad
+  glrout%locregCenter(1)=glrin%locregCenter(1)
+  glrout%locregCenter(2)=glrin%locregCenter(2)
+  glrout%locregCenter(3)=glrin%locregCenter(3)
   
   glrout%outofzone(1) = glrin%outofzone(1)
   glrout%outofzone(2) = glrin%outofzone(2)
