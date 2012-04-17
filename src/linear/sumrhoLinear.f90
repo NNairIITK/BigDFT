@@ -446,6 +446,7 @@ do iorb=1,comsr%noverlaps(iproc)
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
                       !indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
                       indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      ! For all other than free BC, choose m such that the unrolled part is never used.
                       if(Lzd%Glr%geocode=='F') then
                           m=mod(i1e-i1s+1,4)
                       else
