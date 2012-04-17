@@ -248,6 +248,13 @@ type(energy_terms) :: energs
 !!          rxyz,proj,tmb%lzd,nlpspd,tmb%psi,lhchi(1),energs%eproj)
 !!    call total_energies(energs,1)
 !!    print *,'ebs,ekin,epot,eproj',energs%ebs,energs%ekin,energs%epot,energs%eproj
+!!    print *,'ehart,exc,evxc',energs%eh,energs%exc,energs%evxc
+!!    print *,'Wavefunction coefficients:'
+!!    do iall = 1, orbs%norb
+!!       do istat = 1, tmb%orbs%norb
+!!          print *,iall,istat,tmb%wfnmd%coeff(istat,iall)
+!!       end do
+!!    end do
 !!    ind1 = 1
 !!    print *,'Hamiltonian matrix:'
 !!    do iall = 1, tmb%lzd%nlr

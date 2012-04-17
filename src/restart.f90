@@ -1496,7 +1496,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   ! Now that each processor has all the information, we can build the locregs
   ! Find the number of inequivalent locregs
   allocate(lrtable(orbs%norb),stat=i_stat)
-  call memocc(i_stat,ilr,'ilr',subname)
+  call memocc(i_stat,lrtable,'lrtable',subname)
   allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
 
