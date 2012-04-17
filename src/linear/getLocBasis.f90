@@ -463,8 +463,8 @@ type(energy_terms) :: energs
            tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
       call update_ldiis_arrays(tmblarge, subname, ldiis)
-      !!call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
-      !!     lhphilarge, lhphilargeold, lphilargeold)
+      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+           lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs

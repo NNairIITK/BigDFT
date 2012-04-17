@@ -446,7 +446,11 @@ do iorb=1,comsr%noverlaps(iproc)
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
                       !indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
                       indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                      m=mod(i1e-i1s+1,4)
+                      if(Lzd%Glr%geocode=='F') then
+                          m=mod(i1e-i1s+1,4)
+                      else
+                          m=i1e-i1s+1
+                      end if
                       if(m/=0) then
                           ! The following five variables hold some intermediate results to speed up the code.
                           i1d0= ishift1 
@@ -483,15 +487,19 @@ do iorb=1,comsr%noverlaps(iproc)
                               tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
                               tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
                               tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
-                              indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1
                               rho(indLarge  ) = rho(indLarge  ) + tt0
-                              indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+1
                               rho(indLarge) = rho(indLarge) + tt1
                               !rho(indLarge+1) = rho(indLarge+1) + tt1
-                              indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+2
                               rho(indLarge) = rho(indLarge) + tt2
                               !rho(indLarge+2) = rho(indLarge+2) + tt1
-                              indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+3
                               rho(indLarge) = rho(indLarge) + tt3
                               !rho(indLarge+3) = rho(indLarge+3) + tt1
                               totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
