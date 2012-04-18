@@ -734,24 +734,27 @@ subroutine localfields_get_pot_work(denspot, pot)
   pot => denspot%pot_work
 END SUBROUTINE localfields_get_pot_work
 
-subroutine localfields_full_density(denspot, rho_full, iproc)
+subroutine localfields_full_density(denspot, rho_full, iproc, new)
   use module_base
   use module_types
   use m_profiling
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
   integer, intent(in) :: iproc
+  integer, intent(out) :: new
   real(gp), dimension(:), pointer :: rho_full
 
   character(len = *), parameter :: subname = "localfields_full_density"
   integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
 
+  new = 0
   nslice = max(denspot%dpcom%ndimpot, 1)
   if (nslice < denspot%dpcom%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
         allocate(rho_full(denspot%dpcom%ndimgrid*denspot%dpcom%nrhodim+ndebug),stat=i_stat)
         call memocc(i_stat,rho_full,'rho_full',subname)
+        new = 1
         
         ! Ask to gather density to other procs.
         call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
@@ -772,24 +775,27 @@ subroutine localfields_full_density(denspot, rho_full, iproc)
      rho_full => denspot%rhov
   end if
 END SUBROUTINE localfields_full_density
-subroutine localfields_full_v_ext(denspot, pot_full, iproc)
+subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
   use module_base
   use module_types
   use m_profiling
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
   integer, intent(in) :: iproc
+  integer, intent(out) :: new
   real(gp), pointer :: pot_full(:)
 
   character(len = *), parameter :: subname = "localfields_full_potential"
   integer :: i_stat, ierr
 
+  new = 0
   if (denspot%dpcom%ndimpot < denspot%dpcom%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
         allocate(pot_full(denspot%dpcom%ndimgrid+ndebug),stat=i_stat)
         call memocc(i_stat,pot_full,'pot_full',subname)
-        
+        new = 1
+      
         ! Ask to gather density to other procs.
         call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
      end if

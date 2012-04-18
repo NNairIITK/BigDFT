@@ -44,7 +44,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
   gssize size;
   BigDFT_Signals signal = {BIGDFT_SIGNAL_DENSPOT_READY, iter, kind};
   BigDFT_SignalReply answer;
-  guint iproc = 0, i, s, nvects, sizeData[2];
+  guint iproc = 0, i, s, nvects, sizeData[2], new;
   double *pot_work;
   f90_pointer_double tmp;
 
@@ -102,11 +102,11 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
         {
         case BIGDFT_DENSPOT_DENSITY:
           FC_FUNC_(localfields_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
-                                                                   &tmp, &iproc);
+                                                                   &tmp, &iproc, &new);
           break;
         case BIGDFT_DENSPOT_V_EXT:
           FC_FUNC_(localfields_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
-                                                               &tmp, &iproc);
+                                                               &tmp, &iproc, &new);
           break;
         }
 
@@ -126,7 +126,8 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
             }
         }
 
-      FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(&tmp);
+      if (new > 0)
+        FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(&tmp);
     }
   while (1);
 }
@@ -467,6 +468,7 @@ gboolean onClientConnection(GSocket *socket, GIOCondition condition,
 
   if ((condition & G_IO_IN) > 0)
     {
+      /* g_print("Server: client requesting connection.\n"); */
       main->recv = g_socket_accept(socket, NULL, &error);
       if (!main->recv)
         {
@@ -474,6 +476,7 @@ gboolean onClientConnection(GSocket *socket, GIOCondition condition,
           g_error_free(error);
         }
       g_socket_set_blocking(main->recv, TRUE);
+      /* g_print("Server: client connected.\n"); */
     }
 
   if ((condition & G_IO_HUP) > 0 && main->recv)

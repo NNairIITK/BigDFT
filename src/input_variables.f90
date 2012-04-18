@@ -1335,8 +1335,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
-  call input_var("signaling", .false., "Expose calculation results on DBus",inputs%signaling)
-  
+  call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
+  call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)

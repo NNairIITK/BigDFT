@@ -353,7 +353,7 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot, KSwfn%c_obj)
         call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
-        call bigdft_signals_start(gmainloop)
+        call bigdft_signals_start(gmainloop, in%signalTimeout)
      else
         denspot%c_obj = UNINITIALIZED(denspot%c_obj)
      end if
