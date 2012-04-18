@@ -516,8 +516,7 @@ typedef enum
 GSocket* bigdft_signals_client_new(const gchar *hostname,
                                    GCancellable *cancellable, GError **error);
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
-                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                             GCancellable *cancellable, GError **error);
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot);
 #endif
 
 double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,

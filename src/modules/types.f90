@@ -211,6 +211,7 @@ module module_types
      character(len=3) :: linear
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
+     character(len = 64) :: domain !< Domain to get the IP from hostname.
 
      !orthogonalisation data
      type(orthon_data) :: orthpar

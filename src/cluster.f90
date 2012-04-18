@@ -88,7 +88,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   if (in%signaling) then
      ! Only iproc 0 has the C wrappers.
      if (iproc == 0) then
-        call bigdft_signals_init(gmainloop, 2)
+        call bigdft_signals_init(gmainloop, 2, in%domain, len(trim(in%domain)))
         call wf_new_wrapper(rst%KSwfn%c_obj, rst%KSwfn)
         call bigdft_signals_add_wf(gmainloop, rst%KSwfn%c_obj)
      else

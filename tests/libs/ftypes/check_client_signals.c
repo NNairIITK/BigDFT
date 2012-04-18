@@ -322,6 +322,14 @@ static void onDensityReady(BigDFT_LocalFields *denspot, guint iter, gpointer dat
   g_print(" Density calculated by C is %16.16f.\n", dens);  
 }
 
+static gboolean checkSocket(gpointer data[2])
+{
+  if (g_source_is_destroyed((GSource*)data[0]))
+    g_main_loop_quit((GMainLoop*)data[1]);
+
+  return TRUE;
+}
+
 int main(int argc, const char **argv)
 {
 #ifdef HAVE_GDBUS
@@ -334,6 +342,7 @@ int main(int argc, const char **argv)
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   double *radii;
+  gpointer dt[2];
 
   GSocket *socket;
   GSource *source;
@@ -385,14 +394,16 @@ int main(int argc, const char **argv)
     socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
   if (socket)
     {
-      source = bigdft_signals_client_create_source(socket, energs, wf, denspot,
-                                                   NULL, &error);
+      source = bigdft_signals_client_create_source(socket, energs, wf, denspot);
       g_source_attach(source, NULL);
+
+      dt[0] = source;
+      dt[1] = loop;
+      g_timeout_add(1000, (GSourceFunc)checkSocket, dt);
+      g_main_loop_run(loop);
     }
   else
     source = (GSource*)0;
-
-  g_main_loop_run (loop);
 
   g_object_unref(wf);
   g_object_unref(energs);

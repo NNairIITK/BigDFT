@@ -248,7 +248,8 @@ void FC_FUNC_(bigdft_signals_rm_energs, BIGDFT_SIGNALS_RM_ENERGS)(gpointer *self
     }
 }
 
-void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *kind)
+void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *kind,
+                                                        gchar *domain, guint *ln)
 {
   BigDFT_Main *main;
 #ifdef G_THREADS_ENABLED
@@ -260,7 +261,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
   GList *lst, *tmp;
   GSocketAddress *sockaddr;
   gboolean bind;
-  gchar *fqdn;
+  gchar *fqdn, *dom;
 #endif
 
 #ifdef HAVE_GLIB
@@ -294,7 +295,6 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_print("Create a socket for hostname '%s'.\n", g_get_host_name());
       main->socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                                   G_SOCKET_PROTOCOL_DEFAULT, &error);
       if (!main->socket)
@@ -307,7 +307,15 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
       g_socket_set_blocking(main->socket, FALSE);
       bind = FALSE;
       dns = g_resolver_get_default();
-      fqdn = g_strdup_printf("%s.intra.cea.fr", g_get_host_name());
+      if (*ln > 0)
+        {
+          dom = g_strndup(domain, *ln);
+          fqdn = g_strdup_printf("%s.%s", g_get_host_name(), dom);
+          g_free(dom);
+        }
+      else
+        fqdn = g_strdup(g_get_host_name());
+      g_print("Create a socket for hostname '%s'.\n", fqdn);
       lst = g_resolver_lookup_by_name(dns, fqdn, NULL, &error);
       g_object_unref(dns);
       g_free(fqdn);
@@ -373,7 +381,7 @@ void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *t
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_print("Make the socket listen to one client max.\n");
+      /* g_print("Make the socket listen to one client max.\n"); */
       g_socket_set_listen_backlog(main->socket, 1);
       if (!g_socket_listen(main->socket, &error))
         {
@@ -452,7 +460,7 @@ void FC_FUNC_(bigdft_signals_stop, BIGDFT_SIGNALS_STOP)(gpointer *self)
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_print("Close the socket.\n");
+      /* g_print("Close the socket.\n"); */
       if (!g_socket_close(main->socket, &error))
         {
           g_warning("%s", error->message);

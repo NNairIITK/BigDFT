@@ -281,7 +281,7 @@ static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs, gui
   /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(BigDFT_Energs)); */
   memcpy((void*)((char*)energs + sizeof(GObject)),
          (const void*)((char*)(&energs_) + sizeof(GObject)),
-         sizeof(BigDFT_Energs) - sizeof(GObject));
+         sizeof(BigDFT_Energs) - sizeof(GObject) - sizeof(gpointer));
   /* g_print("Client: emitting signal kind %d.\n", signal.kind); */
   bigdft_energs_emit(energs, iter, kind);
   
@@ -497,7 +497,7 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
   GSocketAddress *sockaddr;
   gboolean connect;
 
-  g_print("Create a socket for hostname '%s'.\n", hostname);
+  /* g_print("Create a socket for hostname '%s'.\n", hostname); */
   socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                         G_SOCKET_PROTOCOL_DEFAULT, error);
   if (!socket)
@@ -513,7 +513,7 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
     {
       sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
       connect = g_socket_connect(socket, sockaddr, cancellable, error);
-      g_print(" | try to connect to '%s' -> %d.\n",
+      /* g_print(" | try to connect to '%s' -> %d.\n", */
               g_inet_address_to_string((GInetAddress*)tmp->data), connect);
       if (!connect)
         {
@@ -645,7 +645,10 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
       if (!bigdft_signals_client_handle(socket, main->energs, main->wf, main->denspot,
                                         NULL, &error))
         {
-          g_warning("Client: %s", error->message);
+          if (error->code != G_IO_ERROR_CLOSED)
+            g_warning("Client: %s", error->message);
+          else
+            g_source_destroy(g_main_current_source());
           return (error->code != G_IO_ERROR_CLOSED);
         }
     }
@@ -657,8 +660,7 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
 }
 
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
-                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                             GCancellable *cancellable, GError **error)
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot)
 {
   GSource *source;
   BigDFT_Main *main;
