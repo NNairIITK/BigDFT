@@ -20,6 +20,8 @@ integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 integer,dimension(:),allocatable:: npts_par_c, npts_par_f
 character(len=*),parameter:: subname='init_collective_comms'
 
+  write(*,*) 'init_collective_comms: 0.0'
+
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
 allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
@@ -29,8 +31,11 @@ call memocc(istat, index_in_global_c, 'index_in_global_c', subname)
 allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
+  write(*,*) 'init_collective_comms: 0.1'
+
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
+  write(*,*) 'init_collective_comms: 1'
 
 !!
 !!  tt=weight_tot
@@ -71,6 +76,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
        deallocate(npts_par_f, stat=istat)
   end if
 
+  write(*,*) 'init_collective_comms: 2'
 
 
   iall=-product(shape(weight_c))*kind(weight_c)
@@ -113,6 +119,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   end if
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
 
+  write(*,*) 'init_collective_comms: 3'
 !!  ! Allocate the keys
   allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
@@ -124,6 +131,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+  write(*,*) 'init_collective_comms: 4'
   !!t2=mpi_wtime()
   !!write(*,'(a,i5,es15.5)') 'iproc, time determine_num_orbs_per_gridpoint:',iproc, t2-t1
 
@@ -134,6 +142,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   !!t2=mpi_wtime()
   !!write(*,'(a,i5,es15.5)') 'iproc, time get_index_in_global2:',iproc, t2-t1
 
+  write(*,*) 'init_collective_comms: 5'
 
   ! Determine values for mpi_alltoallv
   allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
@@ -162,6 +171,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   !!write(*,'(a,i5,es15.5)') 'iproc, time determine_communication_arrays:',iproc, t2-t1
 !!
 !!
+  write(*,*) 'init_collective_comms: 6'
   ! Now rearrange the data on the process to communicate them
   collcom%ndimpsi_c=0
   do iorb=1,orbs%norbp
@@ -197,6 +207,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
+  write(*,*) 'init_collective_comms: 7'
   !!call mpi_barrier(mpi_comm_world, ierr)
   !!t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
@@ -209,6 +220,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   !!t2=mpi_wtime()
   !!write(*,'(a,i5,es15.5)') 'iproc, time get_switch_indices:',iproc, t2-t1
 
+  write(*,*) 'init_collective_comms: 8'
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
   call memocc(istat, iall, 'istartend_c', subname)
@@ -297,13 +309,20 @@ integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i,
   end do
 
 
+  write(*,*) 'get_weights: before mpi'
   if(nproc>1) then
       call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      write(*,*) 'get_weights: mpi 1'
       call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      write(*,*) 'get_weights: mpi 2'
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+      write(*,*) 'get_weights: ii',ii
       call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      write(*,*) 'get_weights: mpi 3'
       call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      write(*,*) 'get_weights: mpi 4'
   end if
+  write(*,*) 'get_weights: after mpi'
 
 
 end subroutine get_weights
