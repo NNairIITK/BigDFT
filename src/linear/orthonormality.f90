@@ -852,7 +852,7 @@ subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, ta
 
   ! Calling arguments
   integer,intent(in):: mpisource, mpidest, istsource, istdest, ncount, tag
-  integer,dimension(8),intent(out):: comarr
+  integer,dimension(6),intent(out):: comarr
 
 
   ! From which MPI process shall the orbital be sent.
