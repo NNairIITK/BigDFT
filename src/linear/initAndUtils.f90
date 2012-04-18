@@ -16,7 +16,7 @@ type(p2pComms),intent(out):: comsr
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
 integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr
-integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag
+integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
 ! Buffer sizes 
@@ -93,9 +93,18 @@ do jproc=0,nproc-1
             comsr%ise3(ioverlap,1) = max(is,i3s) 
             comsr%ise3(ioverlap,2) = min(ie,i3e)
          end if
-         call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
-              tag, lzd%nlr, lzd%Llr,&
-              orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+         !!call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
+         !!     tag, lzd%nlr, lzd%Llr,&
+         !!     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+         istsource=1
+         do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+             jlr=orbs%inwhichlocreg(jorb)
+             istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+         end do
+         jlr=orbs%inwhichlocreg(iorb)
+         istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+         ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+         call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
          if(iproc==jproc) then
             comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
             comsr%overlaps(ioverlap)=iorb
@@ -117,9 +126,18 @@ do jproc=0,nproc-1
                comsr%ise3(ioverlap,1) = max(is,i3s) 
                comsr%ise3(ioverlap,2) = min(ie,i3e)
             end if
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
-                 tag, lzd%nlr, lzd%Llr,&
-                 orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+            !!call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
+            !!     tag, lzd%nlr, lzd%Llr,&
+            !!     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+            istsource=1
+            do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+                jlr=orbs%inwhichlocreg(jorb)
+                istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+            end do
+            jlr=orbs%inwhichlocreg(iorb)
+            istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+            ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+            call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                comsr%overlaps(ioverlap)=iorb
@@ -141,9 +159,18 @@ do jproc=0,nproc-1
                   comsr%ise3(ioverlap,1) = max(is,i3s) 
                   comsr%ise3(ioverlap,2) = min(ie,i3e)
                end if
-               call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
-                    tag, lzd%nlr, lzd%Llr,&
-                    orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+               !!call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
+               !!     tag, lzd%nlr, lzd%Llr,&
+               !!     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+               istsource=1
+               do jorb=orbs%isorb_par(orbs%onwhichmpi(iorb))+1,iorb-1
+                   jlr=orbs%inwhichlocreg(jorb)
+                   istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n3i
+               end do
+               jlr=orbs%inwhichlocreg(iorb)
+               istsource = istsource + lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*(is3ovrlp-1)
+               ncount=lzd%llr(jlr)%d%n1i*lzd%llr(jlr)%d%n2i*n3ovrlp
+               call setCommsParameters(orbs%onwhichmpi(iorb), jproc, istsource, istr, ncount, tag, comsr%comarr(1,ioverlap,jproc))
                if(iproc==jproc) then
                   comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                   comsr%overlaps(ioverlap)=iorb
