@@ -126,3 +126,79 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   comm%communication_complete=.true.
 
 end subroutine wait_p2p_communication
+
+
+
+module p2p_tags_data
+  use module_base
+  implicit none
+  logical,save:: initialized
+  integer,dimension(:),allocatable,save:: tags
+  integer,save:: tag_max
+end module p2p_tags_data
+
+
+subroutine init_p2p_tags(nproc)
+  use module_base
+  use p2p_tags_data
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: nproc
+  character(len=*),parameter:: subname='init_p2p_tags'
+
+  ! Local variables
+  integer:: jproc, istat, ierr
+  logical:: success
+
+  if(initialized) stop 'trying to initialize the counter for the p2p tags which is already running!'
+
+  allocate(tags(0:nproc-1),stat=istat)
+  call memocc(istat,tags,'tags',subname)
+  do jproc=0,nproc-1
+      tags(jproc)=0
+  end do
+  initialized=.true.
+
+  ! Determine the largest possible tag
+  call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
+  if(.not.success) stop 'could not extract largest possible tag...'
+  
+end subroutine init_p2p_tags
+
+
+function p2p_tag(jproc)
+  use module_base
+  use p2p_tags_data
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: jproc
+  integer:: p2p_tag
+
+  if(.not.initialized) stop 'counter for tag was not properly initialized!'
+
+  tags(jproc)=mod(tags(jproc)+1,tag_max)
+  p2p_tag=tags(jproc)
+
+end function p2p_tag
+
+
+subroutine finalize_p2p_tags()
+  use module_base
+  use p2p_tags_data
+  implicit none
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='finalize_p2p_tags'
+
+  if(.not.initialized) stop 'trying to finalize the counter for the p2p tags which was not initialized!'
+
+  iall=-product(shape(tags))*kind(tags)
+  deallocate(tags,stat=istat)
+  call memocc(istat,iall,'tags',subname)
+
+  initialized=.false.
+
+end subroutine finalize_p2p_tags

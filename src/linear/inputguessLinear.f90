@@ -1085,6 +1085,8 @@ do iat=1,lzd%nlr
         call memocc(istat, recvrequests, 'recvrequests', subname)
 
         ! Now communicate the matrices.
+        ! WARNING: Here we don't use the standard and unique tags available through p2p_tags. It should not matter
+        ! since there is no other p2p communication going on at the moment, but still this could be improved...
         tag0=1
         isend=0
         irecv=0
