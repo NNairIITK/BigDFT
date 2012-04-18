@@ -260,6 +260,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
   GList *lst, *tmp;
   GSocketAddress *sockaddr;
   gboolean bind;
+  gchar *fqdn;
 #endif
 
 #ifdef HAVE_GLIB
@@ -306,22 +307,26 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
       g_socket_set_blocking(main->socket, FALSE);
       bind = FALSE;
       dns = g_resolver_get_default();
-      lst = g_resolver_lookup_by_name(dns, g_get_host_name(), NULL, &error);
+      fqdn = g_strdup_printf("%s.intra.cea.fr", g_get_host_name());
+      lst = g_resolver_lookup_by_name(dns, fqdn, NULL, &error);
       g_object_unref(dns);
+      g_free(fqdn);
       for (tmp = lst; tmp && !bind; tmp = g_list_next(tmp))
-        {
-          sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
-          bind = g_socket_bind(main->socket, sockaddr, TRUE, &error);
-          g_print(" | try to bind to '%s' -> %d.\n",
-                  g_inet_address_to_string((GInetAddress*)tmp->data), bind);
-          if (!bind)
-            {
-              g_warning("%s", error->message);
-              g_error_free(error);
-              error = (GError*)0;
-            }
-          g_object_unref(sockaddr);
-        }
+        if (!tmp->next ||
+            g_inet_address_to_bytes((GInetAddress*)tmp->data)[0] != (guint8)127)
+          {
+            sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
+            bind = g_socket_bind(main->socket, sockaddr, TRUE, &error);
+            g_print(" | try to bind to '%s' -> %d.\n",
+                    g_inet_address_to_string((GInetAddress*)tmp->data), bind);
+            if (!bind)
+              {
+                g_warning("%s", error->message);
+                g_error_free(error);
+                error = (GError*)0;
+              }
+            g_object_unref(sockaddr);
+          }
       g_resolver_free_addresses(lst);
       if (!bind)
         {

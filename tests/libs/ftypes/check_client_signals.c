@@ -378,7 +378,11 @@ int main(int argc, const char **argv)
   g_signal_connect(manager, "object-removed",
                    G_CALLBACK(on_object_removed), (gpointer)loop);
 #endif
-  socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
+
+  if (argc > 1)
+    socket = bigdft_signals_client_new(argv[1], NULL, &error);
+  else
+    socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
   if (socket)
     {
       source = bigdft_signals_client_create_source(socket, energs, wf, denspot,

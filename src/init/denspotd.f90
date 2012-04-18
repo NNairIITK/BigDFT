@@ -196,14 +196,15 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   character(len = *), parameter :: subname = "denspot_emit_rhov"
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_DENSITY = 0
-  integer :: message, ierr, i_stat, i_all
+  integer :: message, ierr, i_stat, i_all, new
   real(gp), pointer :: full_dummy(:)
   interface
-     subroutine localfields_full_density(denspot, rho_full, iproc)
+     subroutine localfields_full_density(denspot, rho_full, iproc, new)
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
+       integer, intent(out) :: new
        real(gp), dimension(:), pointer :: rho_full
      END SUBROUTINE localfields_full_density
   end interface
@@ -228,7 +229,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
            allocate(full_dummy(denspot%dpcom%nrhodim+ndebug),stat=i_stat)
            call memocc(i_stat,full_dummy,'full_dummy',subname)
            ! Gather density to iproc 0
-           call localfields_full_density(denspot, full_dummy, iproc)
+           call localfields_full_density(denspot, full_dummy, iproc, new)
            i_all=-product(shape(full_dummy))*kind(full_dummy)
            deallocate(full_dummy,stat=i_stat)
            call memocc(i_stat,i_all,'full_dummy',subname)
@@ -245,14 +246,15 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
 
   character(len = *), parameter :: subname = "denspot_emit_v_ext"
   integer, parameter :: SIGNAL_DONE = -1
-  integer :: message, ierr, i_stat, i_all
+  integer :: message, ierr, i_stat, i_all, new
   real(gp), pointer :: full_dummy(:)
   interface
-     subroutine localfields_full_v_ext(denspot, pot_full, iproc)
+     subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
+       integer, intent(out) :: new
        real(gp), pointer :: pot_full(:)
      END SUBROUTINE localfields_full_v_ext
   end interface
@@ -277,7 +279,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
            allocate(full_dummy(1+ndebug),stat=i_stat)
            call memocc(i_stat,full_dummy,'full_dummy',subname)
            ! Gather density to iproc 0
-           call localfields_full_v_ext(denspot, full_dummy, iproc)
+           call localfields_full_v_ext(denspot, full_dummy, iproc, new)
            i_all=-product(shape(full_dummy))*kind(full_dummy)
            deallocate(full_dummy,stat=i_stat)
            call memocc(i_stat,i_all,'full_dummy',subname)

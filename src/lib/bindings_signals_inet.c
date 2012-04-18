@@ -497,7 +497,7 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
   GSocketAddress *sockaddr;
   gboolean connect;
 
-  g_print("Create a socket for hostname '%s'.\n", g_get_host_name());
+  g_print("Create a socket for hostname '%s'.\n", hostname);
   socket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
                         G_SOCKET_PROTOCOL_DEFAULT, error);
   if (!socket)
