@@ -880,8 +880,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
-      lscv%increase_locreg=lscv%increase_locreg+1.d0
+  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged) then
+      lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
       !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
           write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'

@@ -762,6 +762,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
 
+  ! whether the localization radii should be enlarged after some unsuccessful iterations
+  comments='increase locrad after n steps, amount that locrad is increased'
+  call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
+  call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
