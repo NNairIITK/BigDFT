@@ -26,7 +26,7 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
@@ -58,6 +58,9 @@ type(energy_terms) :: energs
 
   ! Initialize everything related to the linear scaling version ###########################################################
   call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
+
+  ! Initialize the tags for the p2p communication
+  tag=p2p_tag(.true.)
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.

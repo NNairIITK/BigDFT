@@ -18,7 +18,7 @@ integer,intent(inout):: tag
 
 ! Local variables
 integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall
-integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, ie3max
+integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, ie3max, p2p_tag
 integer,dimension(:,:),allocatable:: iStartEnd
 character(len=*),parameter:: subname='setCommunicationPotential'
 
@@ -135,7 +135,8 @@ do jproc=0,nproc-1
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
             ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
             ioverlap=ioverlap+1
-            tag=tag+1
+            !tag=tag+1
+            tag=p2p_tag(.false.)
             if(is3<is3min .or. ioverlap==1) then
                 is3min=is3
             end if
@@ -155,7 +156,8 @@ do jproc=0,nproc-1
                  ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
                  ioffset=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
                  ioverlap=ioverlap+1
-                 tag=tag+1
+                 !tag=tag+1
+                 tag=p2p_tag(.false.)
                  if(is3<is3min .or. ioverlap==1) then
                      is3min=is3
                  end if
@@ -174,7 +176,8 @@ do jproc=0,nproc-1
                  ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
                  ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
                  ioverlap=ioverlap+1
-                 tag=tag+1
+                 !tag=tag+1
+                 tag=p2p_tag(.false.)
                  if(is3<is3min .or. ioverlap==1) then
                      is3min=is3
                  end if

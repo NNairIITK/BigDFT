@@ -16,7 +16,7 @@ type(p2pComms),intent(out):: comsr
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
 integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr
-integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
 ! Buffer sizes 
@@ -84,7 +84,8 @@ do jproc=0,nproc-1
       i3e=i3s+lzd%Llr(ilr)%d%n3i-1
       if(i3s<=ie .and. i3e>=is) then
          ioverlap=ioverlap+1
-         tag=tag+1
+         !tag=tag+1
+         tag=p2p_tag(.false.)
          is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
          n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
          is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
@@ -107,7 +108,8 @@ do jproc=0,nproc-1
          i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
          if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
-            tag=tag+1
+            !tag=tag+1
+            tag=p2p_tag(.false.)
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
             is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
@@ -130,7 +132,8 @@ do jproc=0,nproc-1
             i3e = mod(i3e-1,Lzd%Glr%d%n3i) + 1 + Lzd%Glr%nsi3
             if(i3s<=ie .and. i3e>=is) then
                ioverlap=ioverlap+1
-               tag=tag+1
+               !tag=tag+1
+               tag=p2p_tag(.false.)
                is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
                n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
                is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
@@ -1804,7 +1807,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   type(local_zone_descriptors):: lzd_tmp
 
 
-  tag=1
+  !tag=1
   call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call nullify_local_zone_descriptors(lzd_tmp)
@@ -1921,7 +1924,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_collective_comms(lbcollcom)
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
-  tag=1
+  !!tag=1
   if(.not.useDerivativeBasisFunctions) then
       norbu=orbs_tmp%norb
   else
@@ -2307,3 +2310,33 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
   lhphiold=0.d0
 
 end subroutine update_auxiliary_basis_function
+
+
+
+
+function p2p_tag(reset)
+  use module_base
+  implicit none
+
+  ! Calling argument
+  logical,intent(in):: reset
+  integer:: p2p_tag
+
+  ! Local variables
+  integer,save:: tag0
+  logical,save:: initialized
+  integer,parameter:: tag_max=32767 ! highest tag according to MPI standard
+
+  if(reset) then
+      if(initialized) stop 'trying to reset the counter for the tag which is already running!'
+      tag0=0
+      initialized=.true.
+  end if
+
+  if(.not.initialized) stop 'counter for tag was not properly initialized!'
+  tag0=tag0+1
+  if(tag0>=tag_max) stop 'tag too large'
+  tag0=mod(tag0,tag_max)
+  p2p_tag=tag0
+
+end function p2p_tag

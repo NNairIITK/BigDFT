@@ -728,7 +728,7 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
 
   ! Local variables
   integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
-  integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv
+  integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag
   integer,dimension(:),allocatable:: istsourceArr, istdestArr
   character(len=*),parameter:: subname='setCommsOrtho'
   logical,dimension(:),allocatable:: receivedOrbital
@@ -776,7 +776,8 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
               !write(*,'(a,4i9)') 'iproc, iorb, jorb, ncount', iproc, iorb, jorb, ncount
            end if
            call mpi_bcast(ncount, 1, mpi_integer, jproc, mpi_comm_world, ierr)
-           tag=tag+1
+           !tag=tag+1
+           tag=p2p_tag(.false.)
            receivedOrbital(jjorb)=.true.
            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
            !!comon%comarr(9,ijorb,jproc)=jjorb
