@@ -2140,7 +2140,7 @@ subroutine init_basis_specifications(input, bs)
   bs%update_phi=.false.
   bs%communicate_phi_for_lsumrho=.false.
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
-  bs%conv_crit=input%lin%convCrit
+  bs%conv_crit=input%lin%convCrit_lowaccuracy
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond

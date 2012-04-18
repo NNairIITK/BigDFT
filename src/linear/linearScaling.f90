@@ -414,7 +414,7 @@ type(energy_terms) :: energs
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
-      if(lscv%exit_outer_loop) exit outerLoop
+      !!if(lscv%exit_outer_loop) exit outerLoop
 
       ! Now all initializations are done...
 
@@ -568,6 +568,10 @@ type(energy_terms) :: energs
 
       ! Deallocate DIIS structures.
       call deallocateDIIS(ldiis)
+
+      call check_for_exit(input, lscv)
+      if(lscv%exit_outer_loop) exit outerLoop
+
 
   end do outerLoop
 
@@ -795,6 +799,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
+      wfnmd%bs%conv_crit=input%lin%convCrit_highaccuracy
       lscv%nit_scc=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
       lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
       lscv%mix_hist=input%lin%mixHist_highaccuracy
@@ -816,6 +821,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+      wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
       lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
       lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       lscv%mix_hist=input%lin%mixHist_lowaccuracy
@@ -921,14 +927,14 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   type(mixrhopotDIISParameters),intent(inout):: mixdiis
   type(linear_scaling_control_variables),intent(inout):: lscv
   
-  lscv%exit_outer_loop=.false.
+  !!lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      !!lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
       if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy+1) then
           ! Deallocate DIIS structures.
-          call deallocateDIIS(ldiis)
-          lscv%exit_outer_loop=.true.
+          !!call deallocateDIIS(ldiis)
+          !!lscv%exit_outer_loop=.true.
       end if
       ! only use steepest descent if the localization regions may change
       if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
@@ -944,6 +950,26 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   
 end subroutine adjust_DIIS_for_high_accuracy
 
+
+subroutine check_for_exit(input, lscv)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(linear_scaling_control_variables),intent(inout):: lscv
+
+  lscv%exit_outer_loop=.false.
+  
+  if(lscv%lowaccur_converged) then
+      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+          lscv%exit_outer_loop=.true.
+      end if
+  end if
+
+end subroutine check_for_exit
 
 
 function check_whether_derivatives_to_be_used(input, itout, lscv)
