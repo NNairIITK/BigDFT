@@ -221,8 +221,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
   call nullify_p2pComms(tmbig%comgp)
-  call initializeCommunicationPotential(iproc, nproc, nscatterarr, tmbig%orbs, tmbig%lzd, tmbig%comgp, &
-       tmbig%orbs%inWhichLocreg, tag)
+  call initialize_communication_potential(iproc, nproc, nscatterarr, tmbig%orbs, tmbig%lzd, tmbig%comgp)
 
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initMatrixCompression(iproc, nproc, tmbig%orbs, tmbig%op, tmbig%mad)

@@ -133,10 +133,8 @@ type(energy_terms) :: energs
        tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmbder%orbs, tmb%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
+  call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
+  call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)
 
   if(input%lin%useDerivativeBasisFunctions) then
       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
@@ -148,9 +146,9 @@ type(energy_terms) :: energs
 
 
   call nullify_p2pcomms(tmb%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tag, tmb%comsr)
+  call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tmb%comsr)
   call nullify_p2pcomms(tmbder%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tag, tmbder%comsr)
+  call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
 
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
