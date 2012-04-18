@@ -777,7 +777,7 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
            end if
            call mpi_bcast(ncount, 1, mpi_integer, jproc, mpi_comm_world, ierr)
            !tag=tag+1
-           tag=p2p_tag(.false.)
+           tag=p2p_tag(jproc)
            receivedOrbital(jjorb)=.true.
            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
            !!comon%comarr(9,ijorb,jproc)=jjorb

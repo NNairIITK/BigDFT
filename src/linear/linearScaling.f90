@@ -60,7 +60,8 @@ type(energy_terms) :: energs
   call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 
   ! Initialize the tags for the p2p communication
-  tag=p2p_tag(.true.)
+  !!tag=p2p_tag(.true.)
+  call init_p2p_tags(nproc)
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
@@ -627,6 +628,7 @@ type(energy_terms) :: energs
   call timing(iproc,'WFN_OPT','PR')
 
 
+  call finalize_p2p_tags()
 
 end subroutine linearScaling
 

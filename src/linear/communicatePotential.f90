@@ -136,7 +136,7 @@ do jproc=0,nproc-1
             ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
             ioverlap=ioverlap+1
             !tag=tag+1
-            tag=p2p_tag(.false.)
+            tag=p2p_tag(jproc)
             if(is3<is3min .or. ioverlap==1) then
                 is3min=is3
             end if
@@ -157,7 +157,7 @@ do jproc=0,nproc-1
                  ioffset=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
                  ioverlap=ioverlap+1
                  !tag=tag+1
-                 tag=p2p_tag(.false.)
+                 tag=p2p_tag(jproc)
                  if(is3<is3min .or. ioverlap==1) then
                      is3min=is3
                  end if
@@ -177,7 +177,7 @@ do jproc=0,nproc-1
                  ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
                  ioverlap=ioverlap+1
                  !tag=tag+1
-                 tag=p2p_tag(.false.)
+                 tag=p2p_tag(jproc)
                  if(is3<is3min .or. ioverlap==1) then
                      is3min=is3
                  end if
