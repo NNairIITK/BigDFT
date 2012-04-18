@@ -88,7 +88,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   if (in%signaling) then
      ! Only iproc 0 has the C wrappers.
      if (iproc == 0) then
-        call bigdft_signals_init(gmainloop)
+        call bigdft_signals_init(gmainloop, 2)
         call wf_new_wrapper(rst%KSwfn%c_obj, rst%KSwfn)
         call bigdft_signals_add_wf(gmainloop, rst%KSwfn%c_obj)
      else
@@ -336,15 +336,6 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   end if
 
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call energs_new_wrapper(energs%c_obj, energs)
-        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
-        call bigdft_signals_start(gmainloop)
-     end if
-  end if
-
   ! grid spacing (same in x,y and z direction)
  
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -353,6 +344,20 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !here we can put KSwfn
   call system_initialization(iproc,nproc,in,atoms,rxyz,&
        KSwfn%orbs,KSwfn%Lzd,denspot,nlpspd,KSwfn%comms,shift,proj,radii_cf)
+
+  if (in%signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
+        call energs_new_wrapper(energs%c_obj, energs)
+        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
+        call localfields_new_wrapper(denspot%c_obj, denspot, KSwfn%c_obj)
+        call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
+        call bigdft_signals_start(gmainloop)
+     else
+        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
+     end if
+  end if
 
   !variables substitution for the PSolver part
 
@@ -375,6 +380,9 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
        denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+  if (denspot%c_obj /= 0) then
+     call denspot_emit_v_ext(denspot, iproc, nproc)
+  end if
 
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
@@ -1002,16 +1010,6 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   endif
   ! --- End if of tail calculation
 
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call energs_free_wrapper(energs%c_obj)
-        call bigdft_signals_rm_energs(gmainloop)
-        call bigdft_signals_rm_wf(gmainloop)
-        call bigdft_signals_stop(gmainloop)
-     end if
-  end if
-
   !?!   !Finally, we add the entropic contribution to the energy from non-integer occnums
   !?!   if(orbs%eTS>0_gp) then 
   !?!      energy=energy - orbs%eTS 
@@ -1114,6 +1112,15 @@ contains
     if (iproc == 0) &
          &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
+    ! Stop signals
+    if (in%signaling .and. iproc == 0) then
+       call localfields_free_wrapper(denspot%c_obj)
+       call energs_free_wrapper(energs%c_obj)
+       call bigdft_signals_rm_denspot(gmainloop)
+       call bigdft_signals_rm_energs(gmainloop)
+       call bigdft_signals_rm_wf(gmainloop)
+       call bigdft_signals_stop(gmainloop)
+    end if
 
 !!$    if(inputpsi ==  INPUT_PSI_LINEAR) then
 !!$        i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)

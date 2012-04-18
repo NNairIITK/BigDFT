@@ -2,6 +2,7 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
+#include <gio/gio.h>
 #endif
 
 #include "bigdft.h"

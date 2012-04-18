@@ -2,6 +2,7 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
+#include <gio/gio.h>
 #endif
 
 #include "bigdft.h"
@@ -121,6 +122,18 @@ void bigdft_locreg_free(BigDFT_LocReg *glr)
   bigdft_locreg_finalize(glr);
   g_free(glr);
 #endif
+}
+static void bigdft_locreg_copy_data(BigDFT_LocReg *glr,
+                                    const double *radii, const double h[3],
+                                    double crmult, double frmult)
+{
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  bigdft_locreg_set_radii(glr, radii);
+  glr->h[0] = h[0];
+  glr->h[1] = h[1];
+  glr->h[2] = h[2];
+  glr->crmult = crmult;
+  glr->frmult = frmult;
 }
 void bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr)
 {
@@ -300,4 +313,10 @@ void bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
   lzd->h[0] = lzd->parent.h[0];
   lzd->h[1] = lzd->parent.h[1];
   lzd->h[2] = lzd->parent.h[2];
+}
+void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
+                                  double crmult, double frmult)
+{
+  FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->h);
+  bigdft_locreg_copy_data(&lzd->parent, radii, lzd->h, crmult, frmult);
 }

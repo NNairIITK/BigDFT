@@ -224,6 +224,8 @@ BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
 void        bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
                                 double crmult, double frmult);
+void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
+                                         double crmult, double frmult);
 
 
 /*******************************/
@@ -349,6 +351,9 @@ void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
                                   BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
                                   const BigDFT_Inputs *in,
                                   gboolean threaded, guint iproc, guint nproc);
+void       bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter,
+                                   const double *psic, guint psiSize, GQuark quark,
+                                   guint ikpt, guint iorb, guint ispin);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
@@ -446,10 +451,16 @@ struct BigDFT_LocalFields_
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,
                                             guint iproc, guint nproc);
+BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj, BigDFT_LocReg *glr);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
+void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
+                                               const BigDFT_Inputs *in,
+                                               guint iproc, guint nproc);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc);
+void bigdft_localfields_emit_rhov(BigDFT_LocalFields *denspot, guint istep);
+void bigdft_localfields_emit_v_ext(BigDFT_LocalFields *denspot);
 
 /********************************/
 /* BigDFT_Energs data structure */
@@ -488,11 +499,27 @@ struct BigDFT_Energs_
 BigDFT_Energs* bigdft_energs_new();
 BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj);
 void           bigdft_energs_free(BigDFT_Energs *energs);
+void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
+                                  BigDFT_EnergsIds kind);
 
 
 /******************/
 /* Miscellaneous. */
 /******************/
+typedef enum
+  {
+    BIGDFT_SIGNALS_NONE,
+    BIGDFT_SIGNALS_DBUS,
+    BIGDFT_SIGNALS_INET
+  } BigDFT_SignalModes;
+#ifdef GLIB_MAJOR_VERSION
+GSocket* bigdft_signals_client_new(const gchar *hostname,
+                                   GCancellable *cancellable, GError **error);
+GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                             GCancellable *cancellable, GError **error);
+#endif
+
 double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
                               const BigDFT_Orbs *orbs, const BigDFT_Proj *proj);
 

@@ -145,7 +145,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
-     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -174,14 +174,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,ixc,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn)
+        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
              denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
              denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
         !this is not true, there is also Vext
-        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn)
+        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
@@ -211,7 +211,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            end if
         end if
      end if
-     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn)
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn, iproc, nproc)
 
      if (savefields) then
         if (associated(denspot%rho_work)) then
@@ -1057,6 +1057,7 @@ END SUBROUTINE free_full_potential
 
 !> Calculate total energies from the energy terms
 subroutine total_energies(energs, iter)
+  use module_base
   use module_types
   implicit none
   type(energy_terms), intent(inout) :: energs

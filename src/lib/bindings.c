@@ -2,8 +2,6 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
-#endif
-#ifdef HAVE_GDBUS
 #include <gio/gio.h>
 #endif
 
@@ -360,20 +358,24 @@ void bigdft_energs_free(BigDFT_Energs *energs)
 void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Energs **obj, guint *istep,
                                         BigDFT_EnergsIds *kind)
 {
-  BigDFT_Energs *energs = *obj;
+  BigDFT_Energs *energs = BIGDFT_ENERGS(*obj);
 
-#ifdef HAVE_GLIB
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
     (energs->data, &energs->eh, &energs->exc,
      &energs->evxc, &energs->eion, &energs->edisp,
      &energs->ekin, &energs->epot, &energs->eproj,
      &energs->eexctX, &energs->ebs, &energs->eKS,
      &energs->trH, &energs->evsum, &energs->evsic);
-  switch (*kind)
+  bigdft_energs_emit(*obj, *istep, *kind);
+}
+void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kind)
+{
+#ifdef HAVE_GLIB
+  switch (kind)
     {
     case BIGDFT_ENERGS_EKS:
       g_signal_emit(G_OBJECT(energs), bigdft_energs_signals[EKS_READY_SIGNAL],
-                    0 /* details */, *istep, NULL);
+                    0 /* details */, istep, NULL);
       break;
     default:
       break;

@@ -255,6 +255,15 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   !initial values
   Lzd%hgrids = hgrids
 END SUBROUTINE lzd_set_hgrids
+subroutine lzd_get_hgrids(Lzd, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), intent(out) :: hgrids(3)
+  !initial values
+  hgrids = Lzd%hgrids
+END SUBROUTINE lzd_get_hgrids
 
 subroutine inputs_new(in)
   use module_types
@@ -596,6 +605,16 @@ subroutine localfields_new(self, denspotd, rhod, dpcom)
   dpcom => denspotd%dpcom
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
+subroutine localfields_get_data(denspotd, rhod, dpcom)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in), target :: denspotd
+  type(denspot_distribution), pointer :: dpcom
+  type(rho_descriptors), pointer :: rhod
+
+  rhod => denspotd%rhod
+  dpcom => denspotd%dpcom
+END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd)
   use module_types
   use m_profiling
@@ -698,6 +717,90 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+subroutine localfields_get_rho_work(denspot, rho)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: rho
+
+  rho => denspot%rho_work
+END SUBROUTINE localfields_get_rho_work
+subroutine localfields_get_pot_work(denspot, pot)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pot
+
+  pot => denspot%pot_work
+END SUBROUTINE localfields_get_pot_work
+
+subroutine localfields_full_density(denspot, rho_full, iproc)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  real(gp), dimension(:), pointer :: rho_full
+
+  character(len = *), parameter :: subname = "localfields_full_density"
+  integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
+
+  nslice = max(denspot%dpcom%ndimpot, 1)
+  if (nslice < denspot%dpcom%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(rho_full(denspot%dpcom%ndimgrid*denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+        call memocc(i_stat,rho_full,'rho_full',subname)
+        
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     if (denspot%dpcom%ndimrhopot > 0) then
+        irhoxcsh = nslice / denspot%dpcom%n3p * denspot%dpcom%i3xcsh
+     else
+        irhoxcsh = 0
+     end if     
+     do irhodim = 1, denspot%dpcom%nrhodim, 1
+        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+             nslice,mpidtypd,rho_full(denspot%dpcom%ndimgrid * (irhodim - 1) + 1),&
+             denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2),&
+             mpidtypd,0,MPI_COMM_WORLD,ierr)
+     end do
+  else
+     rho_full => denspot%rhov
+  end if
+END SUBROUTINE localfields_full_density
+subroutine localfields_full_v_ext(denspot, pot_full, iproc)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  real(gp), pointer :: pot_full(:)
+
+  character(len = *), parameter :: subname = "localfields_full_potential"
+  integer :: i_stat, ierr
+
+  if (denspot%dpcom%ndimpot < denspot%dpcom%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(pot_full(denspot%dpcom%ndimgrid+ndebug),stat=i_stat)
+        call memocc(i_stat,pot_full,'pot_full',subname)
+        
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpcom%ndimpot, 1),&
+          mpidtypd,pot_full(1),denspot%dpcom%ngatherarr(0,1),&
+          denspot%dpcom%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+  else
+     pot_full => denspot%rhov
+  end if
+END SUBROUTINE localfields_full_v_ext
 
 subroutine gpu_new(GPU)
   use module_types

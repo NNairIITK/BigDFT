@@ -2,6 +2,7 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
+#include <gio/gio.h>
 #endif
 
 #include "bigdft.h"
@@ -188,12 +189,48 @@ static void bigdft_wf_finalize(GObject *atoms);
 #ifdef HAVE_GLIB
 enum {
   PSI_READY_SIGNAL,
+  ONE_WAVE_READY_SIGNAL,
   LAST_SIGNAL
 };
 
 G_DEFINE_TYPE(BigDFT_Wf, bigdft_wf, BIGDFT_ORBS_TYPE)
 
 static guint bigdft_wf_signals[LAST_SIGNAL] = { 0 };
+
+static void g_cclosure_marshal_ONE_WAVE(GClosure *closure,
+                                        GValue *return_value,
+                                        guint n_param_values,
+                                        const GValue *param_values,
+                                        gpointer invocation_hint,
+                                        gpointer marshal_data)
+{
+  typedef void (*callbackFunc)(gpointer data1, guint iter, gpointer arg_psi, guint psiSize,
+                               guint arg_kpt, guint arg_orb, guint arg_spin, gpointer data2);
+  register callbackFunc callback;
+  register GCClosure *cc = (GCClosure*)closure;
+  register gpointer data1, data2;
+
+  g_return_if_fail(n_param_values == 7);
+
+  if (G_CCLOSURE_SWAP_DATA(closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer(param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer(param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (callbackFunc)(size_t)(marshal_data ? marshal_data : cc->callback);
+
+  callback(data1, g_value_get_uint(param_values + 1),
+           g_value_get_pointer(param_values + 2),
+           g_value_get_uint(param_values + 3), 
+           g_value_get_uint(param_values + 4), 
+           g_value_get_uint(param_values + 5), 
+           g_value_get_uint(param_values + 6), data2);
+}
 
 static void bigdft_wf_class_init(BigDFT_WfClass *klass)
 {
@@ -208,6 +245,13 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
 		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
                  G_TYPE_NONE, 1, G_TYPE_UINT, NULL);
+
+  bigdft_wf_signals[ONE_WAVE_READY_SIGNAL] =
+    g_signal_new("one-wave-ready", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS | G_SIGNAL_DETAILED,
+		 0, NULL, NULL, g_cclosure_marshal_ONE_WAVE,
+                 G_TYPE_NONE, 6, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT,
+                 G_TYPE_UINT, G_TYPE_UINT, NULL);
 }
 #endif
 
@@ -259,6 +303,14 @@ void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
 #ifdef HAVE_GLIB
   g_signal_emit(G_OBJECT(*wf), bigdft_wf_signals[PSI_READY_SIGNAL],
                 0 /* details */, *istep, NULL);
+#endif  
+}
+void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, const double *psic, guint psiSize,
+                             GQuark quark, guint ikpt, guint iorb, guint ispin)
+{
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[ONE_WAVE_READY_SIGNAL],
+                quark, iter, psic, psiSize, ikpt, iorb, ispin, NULL);
 #endif  
 }
 
@@ -324,6 +376,13 @@ void bigdft_wf_free(BigDFT_Wf *wf)
   bigdft_wf_finalize(wf);
   g_free(wf);
 #endif
+}
+void FC_FUNC_(wf_copy_from_fortran, WF_COPY_FROM_FORTRAN)
+     (gpointer *self, const double *radii, const double *crmult, const double *frmult)
+{
+  BigDFT_Wf *wf = BIGDFT_WF(*self);
+
+  bigdft_lzd_copy_from_fortran(wf->lzd, radii, *crmult, *frmult);
 }
 guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
 {

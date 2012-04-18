@@ -1312,7 +1312,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
              denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
      end if
      !now the meaning is KS potential
-     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0)
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
      i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
      deallocate(denspot%Vloc_KS,stat=i_stat)
@@ -1645,7 +1645,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
         denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
-   call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0)
+   call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
    orbse%nspin=nspin_ig
 
    !before creating the potential, save the density in the second part 
@@ -1766,7 +1766,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,psi,hpsi,&
         energs,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
-   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0)
+   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
 
