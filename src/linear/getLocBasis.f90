@@ -452,44 +452,11 @@ type(energy_terms) :: energs
 
   ! Initialize largestructures if required
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      write(*,*) 'in this part'
-      !!! OLD ###################################
       do iorb=1,tmb%orbs%norb
           ilr=tmb%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
       end do
       locregCenterTemp=locregCenter
-      ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
-      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-           .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
-           lhphilarge, lhphilargeold, lphilargeold)
-      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(iproc, nproc, tmb)
-      call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
-      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-           .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
-           tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
-      call update_ldiis_arrays(tmb, subname, ldiis)
-      call allocate_auxiliary_basis_function(tmb%orbs%npsidim_orbs, subname, tmb%psi, lhphi, lhphiold, lphiold)
-      call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
-      call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
-      call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
-      tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-      call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
-      call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(iproc, nproc, tmblarge)
-      call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-
-      !!! PB: This if seems to be never reachable since variable_locregs must be true for outer if
-      !!if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-
       locrad_tmp=factor*locrad
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
            .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -502,28 +469,6 @@ type(energy_terms) :: energs
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
-      !!! END OLD ###################################
-
-      !!!!! NEW ##########################################
-      !!do iorb=1,tmb%orbs%norb
-      !!    ilr=tmb%orbs%inwhichlocreg(iorb)
-      !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-      !!end do
-      !!locregCenterTemp=locregCenter
-      !!locrad_tmp=factor*locrad
-      !!allocate(tmblarge%psi(tmb%orbs%npsidim_orbs), stat=istat)
-      !!call memocc(istat, tmblarge%psi, 'tmblarge%psi', subname)
-      !!call dcopy(tmb%orbs%npsidim_orbs, tmb%psi, 1, tmblarge%psi, 1)
-      !!call redefine_locregs_quantities(iproc, nproc, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-      !!     locrad_tmp, .true., tmblarge%lzd, tmb, tmblarge, denspot, ldiis)
-      !!call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
-      !!     lhphilarge, lhphilargeold, lphilargeold)
-      !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-
-      !!!!! END NEW ############################################
-
   end if
 
 
@@ -559,18 +504,16 @@ type(energy_terms) :: energs
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
           call destroy_new_locregs(iproc, nproc, tmb)
-          call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
                .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
           call update_ldiis_arrays(tmb, subname, ldiis)
-          call allocate_auxiliary_basis_function(tmb%orbs%npsidim_orbs, subname, tmb%psi, lhphi, lhphiold, lphiold)
+          call update_auxiliary_basis_function(subname, tmb%orbs%npsidim_orbs, tmb%psi, lhphi, lhphiold, lphiold)
           call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
           call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
           call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-          !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
       end if
 
 
@@ -588,14 +531,13 @@ type(energy_terms) :: energs
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
           call destroy_new_locregs(iproc, nproc, tmblarge)
-          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
                .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call update_ldiis_arrays(tmblarge, subname, ldiis)
-          call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+          call update_auxiliary_basis_function(subname, tmblarge%orbs%npsidim_orbs, tmblarge%psi, &
                lhphilarge, lhphilargeold, lphilargeold)
           call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
           call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)

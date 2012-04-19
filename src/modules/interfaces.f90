@@ -6781,44 +6781,13 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
 
-subroutine update_locreg2(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
-           orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
-  use module_base
-  use module_types
-  implicit none
-  integer,intent(in):: iproc, nproc, nlr
-  logical,intent(in):: useDerivativeBasisFunctions
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(8),intent(in):: hx, hy, hz
-  real(8),dimension(nlr),intent(in):: locrad
-  type(orbitals_data),intent(in):: orbs_tmp
-  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
-  real(8),dimension(3,nlr),intent(in):: locregCenter
-  type(locreg_descriptors),intent(in):: glr_tmp
-  type(local_zone_descriptors),intent(inout):: lzd
-  type(orbitals_data),intent(inout):: llborbs
-  type(overlapParameters),intent(inout):: lbop
-  type(p2pComms),intent(inout):: lbcomon
-  type(p2pComms),intent(inout):: lbcomgp
-  type(p2pComms),intent(inout):: comsr
-  type(matrixDescriptors),intent(inout):: lbmad
-  type(collective_comms),intent(inout):: lbcollcom
-end subroutine update_locreg2
-
-subroutine orbitals_descriptors2(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
-     orbs,simple,basedist)
-  use module_base
-  use module_types
-  implicit none
-  logical, intent(in) :: simple !< simple calculation of the repartition
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-  integer, intent(in) :: nspinor
-  type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(nkpt), intent(in) :: wkpt
-  real(gp), dimension(3,nkpt), intent(in) :: kpt
-  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
-end subroutine orbitals_descriptors2
+        subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
+          use module_base
+          implicit none
+          integer,intent(in):: npsidim
+          real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+          character(len=*),intent(in):: subname
+        end subroutine update_auxiliary_basis_function
 
         subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
             & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)

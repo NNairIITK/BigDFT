@@ -65,8 +65,8 @@ call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 
 allocate(comsr%comarr(6,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
-allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
-call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+allocate(comsr%ise3(comsr%noverlaps(iproc),2), stat=istat)
+call memocc(istat, comsr%ise3, 'comsr%ise3', subname)
 allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
 call memocc(istat,comsr%requests,'comsr%requests',subname)
 
@@ -89,8 +89,8 @@ do jproc=0,nproc-1
          n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
          is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
          if(jproc == iproc) then
-            comsr%startingindex(ioverlap,1) = max(is,i3s) 
-            comsr%startingindex(ioverlap,2) = min(ie,i3e)
+            comsr%ise3(ioverlap,1) = max(is,i3s) 
+            comsr%ise3(ioverlap,2) = min(ie,i3e)
          end if
          call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
               tag, lzd%nlr, lzd%Llr,&
@@ -112,8 +112,8 @@ do jproc=0,nproc-1
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
             is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
             if(jproc == iproc) then
-               comsr%startingindex(ioverlap,1) = max(is,i3s) 
-               comsr%startingindex(ioverlap,2) = min(ie,i3e)
+               comsr%ise3(ioverlap,1) = max(is,i3s) 
+               comsr%ise3(ioverlap,2) = min(ie,i3e)
             end if
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
                  tag, lzd%nlr, lzd%Llr,&
@@ -135,8 +135,8 @@ do jproc=0,nproc-1
                n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
                is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 
                if(jproc == iproc) then
-                  comsr%startingindex(ioverlap,1) = max(is,i3s) 
-                  comsr%startingindex(ioverlap,2) = min(ie,i3e)
+                  comsr%ise3(ioverlap,1) = max(is,i3s) 
+                  comsr%ise3(ioverlap,2) = min(ie,i3e)
                end if
                call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istr, &
                     tag, lzd%nlr, lzd%Llr,&
@@ -174,8 +174,8 @@ comsr%nrecvbuf=max(comsr%nrecvbuf,1)
 !!      i3s = Lzd%Glr%nsi3
 !!      i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
 !!      if(i3s<=ie .and. i3e>=is) then
-!!         comsr%startingindex(ioverlap,1) = max(is,i3s) 
-!!         comsr%startingindex(ioverlap,2) = min(ie,i3e)
+!!         comsr%ise3(ioverlap,1) = max(is,i3s) 
+!!         comsr%ise3(ioverlap,2) = min(ie,i3e)
 !!      end if
 !!   end if
 !!end do
@@ -200,8 +200,8 @@ end do
 
 
 ! Determine the size of the auxiliary array
-!!allocate(comsr%startingindex(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
-!!call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+!!allocate(comsr%ise3(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
+!!call memocc(istat, comsr%ise3, 'comsr%ise3', subname)
 !!
 !!! Bounds of the slice in global coordinates.
 !!comsr%nauxarray=0
@@ -224,7 +224,7 @@ end do
 !!        i3s=max(lzd%llr(ilr)%nsi3,lzd%llr(jlr)%nsi3,is)
 !!        i3e=min(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%llr(jlr)%nsi3+lzd%llr(jlr)%d%n3i-1,ie)
 !!
-!!        comsr%startingindex(jorb,iorb)=comsr%nauxarray+1
+!!        comsr%ise3(jorb,iorb)=comsr%nauxarray+1
 !!        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
 !!        comsr%nauxarray = comsr%nauxarray + ii
 !!    end do
@@ -2267,3 +2267,43 @@ end subroutine create_wfn_metadata
 
 
 
+subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiold, lhphiold)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: npsidim
+  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: istat, iall
+
+  iall=-product(shape(lphi))*kind(lphi)
+  deallocate(lphi, stat=istat)
+  call memocc(istat, iall, 'lphi', subname)
+  iall=-product(shape(lhphi))*kind(lhphi)
+  deallocate(lhphi, stat=istat)
+  call memocc(istat, iall, 'lhphi', subname)
+  iall=-product(shape(lphiold))*kind(lphiold)
+  deallocate(lphiold, stat=istat)
+  call memocc(istat, iall, 'lphiold', subname)
+  iall=-product(shape(lhphiold))*kind(lhphiold)
+  deallocate(lhphiold, stat=istat)
+  call memocc(istat, iall, 'lhphiold', subname)
+
+  allocate(lphi(npsidim), stat=istat)
+  call memocc(istat, lphi, 'lphi', subname)
+  allocate(lhphi(npsidim), stat=istat)
+  call memocc(istat, lhphi, 'lhphi', subname)
+  allocate(lphiold(npsidim), stat=istat)
+  call memocc(istat, lphiold, 'lphiold', subname)
+  allocate(lhphiold(npsidim), stat=istat)
+  call memocc(istat, lhphiold, 'lhphiold', subname)
+
+  lphi=0.d0
+  lhphi=0.d0
+  lphiold=0.d0
+  lhphiold=0.d0
+
+end subroutine update_auxiliary_basis_function

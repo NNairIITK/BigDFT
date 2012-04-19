@@ -365,90 +365,6 @@ call timing(iproc,'p2pSumrho_wait','ON')
 
 
 call wait_p2p_communication(iproc, nproc, comsr)
-!!!!! Check whether the communication has completed.
-!!!!if(iproc==0) write(*,'(3x,a)',advance='no') 'waiting for communication to complete... '
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t1)
-!!!!nfast=0
-!!!!nsameproc=0
-!!!!testLoop: do
-!!!!    do jproc=0,nproc-1
-!!!!        do korb=1,comsr%noverlaps(jproc)
-!!!!            if(comsr%communComplete(korb,jproc)) cycle
-!!!!            call mpi_test(comsr%comarr(8,korb,jproc), sendComplete, stat, ierr)
-!!!!            call mpi_test(comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)
-!!!!            ! Attention: mpi_test is a local function.
-!!!!            if(sendComplete .and. receiveComplete) comsr%communComplete(korb,jproc)=.true.
-!!!!        end do
-!!!!    end do
-!!!!    ! If we made it until here, either all all the communication is
-!!!!    ! complete or we better wait for each single orbital.
-!!!!    exit testLoop
-!!!!end do testLoop
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t2)
-!!!!time=t2-t1
-!!!!!if(iproc==0) write(*,'(a,es12.4)') 'time for test:',time
-!!!!
-!!!!! Since mpi_test is a local function, check whether the communication has completed on all processes.
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t1)
-!!!!call mpiallred(comsr%communComplete(1,0), nproc*maxval(comsr%noverlaps), mpi_land, mpi_comm_world, ierr)
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t2)
-!!!!time=t2-t1
-!!!!!if(iproc==0) write(*,'(a,es12.4)') 'time for allreduce:',time
-!!!!
-!!!!
-!!!!
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t1)
-!!!!! Wait for the communications that have not completed yet
-!!!!nslow=0
-!!!!do jproc=0,nproc-1
-!!!!    do korb=1,comsr%noverlaps(jproc)
-!!!!        if(comsr%communComplete(korb,jproc)) then
-!!!!            mpisource=comsr%comarr(1,korb,jproc)
-!!!!            mpidest=comsr%comarr(5,korb,jproc)
-!!!!            if(mpisource==mpidest) then
-!!!!                nsameproc=nsameproc+1
-!!!!            else
-!!!!                nfast=nfast+1
-!!!!            end if
-!!!!            cycle
-!!!!        end if
-!!!!        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
-!!!!        nslow=nslow+1
-!!!!        call mpi_wait(comsr%comarr(8,korb,jproc), stat, ierr)
-!!!!        call mpi_wait(comsr%comarr(9,korb,jproc), stat, ierr)
-!!!!        comsr%communComplete(korb,jproc)=.true.
-!!!!        comsr%computComplete(korb,jproc)=.true.
-!!!!    end do
-!!!!end do
-!!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!!call cpu_time(t2)
-!!!!time=t2-t1
-!!!!!if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
-!!!!if (verbose >3) then
-!!!!   if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
-!!!!else
-!!!!   if(iproc==0) write(*,'(a,f5.1,a)') 'done.'
-!!!!end if
-!!!!!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
-!!!!!                       nfast, ' could be overlapped with computation.'
-!!!!!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
-!!!!
-!!!!
-!!!!do iorb=1,comsr%noverlaps(iproc)
-!!!!    if(.not. comsr%communComplete(iorb,iproc)) then
-!!!!        write(*,'(a,i0,a,i0,a)') 'ERROR: communication of orbital ', iorb, ' to process ', iproc, ' failed!'
-!!!!        stop
-!!!!    end if
-!!!!    !!if(.not. lin%comsr%computComplete(iorb,iproc)) then
-!!!!    !!    write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
-!!!!    !!    stop
-!!!!    !!end if
-!!!!end do
 
 
 
@@ -510,8 +426,8 @@ do iorb=1,comsr%noverlaps(iproc)
               i1e=min(aend(1,izones)-1,bend(1,jzones)-1)
               i2s=max(astart(2,izones),bstart(2,jzones))
               i2e=min(aend(2,izones)-1,bend(2,jzones)-1)
-              i3s=max(comsr%startingindex(iorb,1),comsr%startingindex(jorb,1))
-              i3e=min(comsr%startingindex(iorb,2),comsr%startingindex(jorb,2))
+              i3s=max(comsr%ise3(iorb,1),comsr%ise3(jorb,1))
+              i3e=min(comsr%ise3(iorb,2),comsr%ise3(jorb,2))
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
@@ -522,15 +438,22 @@ do iorb=1,comsr%noverlaps(iproc)
                   indi3=i3d*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
                   indj3=j3d*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
                   !indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-                  indl3=(modulo(i3-1,Lzd%Glr%d%n3i)-is+1)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  !indl3=(modulo(i3-1,Lzd%Glr%d%n3i)-is+1)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  indl3=(modulo(i3,Lzd%Glr%d%n3i+1)-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
                   do i2=i2s,i2e !bounds in y direction
                       i2d=i2 + ishift2 !y coordinate of orbital iorb with respect to the overlap box
                       j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
                       indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
                       !indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                      indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                      m=mod(i1e-i1s+1,4)
+                      !indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      indl2=(modulo(i2,Lzd%Glr%d%n2i+1))*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      ! For all other than free BC, choose m such that the unrolled part is never used.
+                      if(Lzd%Glr%geocode=='F') then
+                          m=mod(i1e-i1s+1,4)
+                      else
+                          m=i1e-i1s+1
+                      end if
                       if(m/=0) then
                           ! The following five variables hold some intermediate results to speed up the code.
                           i1d0= ishift1 
@@ -544,7 +467,8 @@ do iorb=1,comsr%noverlaps(iproc)
                               indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
                               indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
                               !indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
-                              indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1 !index for which the charge density is beeing calculated
+                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1 !index for which the charge density is beeing calculated
+                              indLarge = indLarge0 + modulo(i1,Lzd%Glr%d%n1i+1) !index for which the charge density is beeing calculated
                               tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
                               rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
                               totalCharge = totalCharge + tt !add the contribution to the total charge
@@ -567,15 +491,19 @@ do iorb=1,comsr%noverlaps(iproc)
                               tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
                               tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
                               tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
-                              indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1
                               rho(indLarge  ) = rho(indLarge  ) + tt0
-                              indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+1
                               rho(indLarge) = rho(indLarge) + tt1
                               !rho(indLarge+1) = rho(indLarge+1) + tt1
-                              indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+2
                               rho(indLarge) = rho(indLarge) + tt2
                               !rho(indLarge+2) = rho(indLarge+2) + tt1
-                              indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
+                              !indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+3
                               rho(indLarge) = rho(indLarge) + tt3
                               !rho(indLarge+3) = rho(indLarge+3) + tt1
                               totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3

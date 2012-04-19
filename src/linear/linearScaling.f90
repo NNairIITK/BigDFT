@@ -878,6 +878,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   redefine_derivatives=.false.
   if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
       lscv%increase_locreg=lscv%increase_locreg+1.d0
+      !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
           write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
           write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',lscv%increase_locreg
