@@ -50,13 +50,14 @@ character(len=*),parameter:: subname='getDerivativeBasisFunctions'
   ist2_c=1
   ist0_c=1
   ! Dimension of the first orbital on each process
-  !ilr=lin%orbs%inWhichLocregp(1)
-  ilr=lorbs%inWhichLocreg(lorbs%isorb+1)
-  offset=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+  if(lorbs%norbp>0) then !otherwise this make no sense
+      ilr=lorbs%inWhichLocreg(lorbs%isorb+1)
+      offset=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
-  istx_c=offset+1
-  isty_c=2*offset+1
-  istz_c=3*offset+1
+      istx_c=offset+1
+      isty_c=2*offset+1
+      istz_c=3*offset+1
+  end if
 
   do iorb=1,lorbs%norbp
 
@@ -567,43 +568,47 @@ logical:: sendComplete, receiveComplete, received
 if (nproc > 1) then
    !t1=mpi_wtime()
    nsend=0
-   waitLoopSend: do
-      !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-      !!nsend=nsend+ncomplete
-      !!if(nsend==comon%nsend) exit waitLoopSend
-      call mpi_waitany(comrp%nsend-nsend, comrp%requests(1,1), ind, mpi_status_ignore, ierr)
-      nsend=nsend+1
-      do i=ind,comrp%nsend-nsend
-         comrp%requests(i,1)=comrp%requests(i+1,1)
-      end do
-      if(nsend==comrp%nsend) exit waitLoopSend
-   end do waitLoopSend
+   if(comrp%nsend>0) then
+       waitLoopSend: do
+          !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+          !!nsend=nsend+ncomplete
+          !!if(nsend==comon%nsend) exit waitLoopSend
+          call mpi_waitany(comrp%nsend-nsend, comrp%requests(1,1), ind, mpi_status_ignore, ierr)
+          nsend=nsend+1
+          do i=ind,comrp%nsend-nsend
+             comrp%requests(i,1)=comrp%requests(i+1,1)
+          end do
+          if(nsend==comrp%nsend) exit waitLoopSend
+       end do waitLoopSend
+   end if
    !t2=mpi_wtime()
    !timecommunp2p=timecommunp2p+t2-t1
 
 
    nrecv=0
-   waitLoopRecv: do
-      !t1=mpi_wtime()
-      call mpi_waitany(comrp%nrecv-nrecv, comrp%requests(1,2), ind, mpi_status_ignore, ierr)
-      !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-      !ind=1
-      !t2=mpi_wtime()
-      !timecommunp2p=timecommunp2p+t2-t1
-      ncomplete=1
-      received=.true.
-      if(received) then
-         nrecv=nrecv+ncomplete
-         !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
-         !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
-         do i=ind,comrp%nrecv-nrecv
-            comrp%requests(i,2)=comrp%requests(i+1,2)
-            !indexarray(i)=indexarray(i+1)
-         end do
-         !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
-         if(nrecv==comrp%nrecv) exit waitLoopRecv
-      end if
-   end do waitLoopRecv
+   if(comrp%nrecv>0) then
+       waitLoopRecv: do
+          !t1=mpi_wtime()
+          call mpi_waitany(comrp%nrecv-nrecv, comrp%requests(1,2), ind, mpi_status_ignore, ierr)
+          !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+          !ind=1
+          !t2=mpi_wtime()
+          !timecommunp2p=timecommunp2p+t2-t1
+          ncomplete=1
+          received=.true.
+          if(received) then
+             nrecv=nrecv+ncomplete
+             !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
+             !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
+             do i=ind,comrp%nrecv-nrecv
+                comrp%requests(i,2)=comrp%requests(i+1,2)
+                !indexarray(i)=indexarray(i+1)
+             end do
+             !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
+             if(nrecv==comrp%nrecv) exit waitLoopRecv
+          end if
+       end do waitLoopRecv
+   end if
 end if
 !write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
 

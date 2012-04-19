@@ -91,6 +91,15 @@ do jproc=0,nproc-1
         if(is3j<=ie3k .and. ie3j>=is3k) then
             ioverlap=ioverlap+1
             !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
+        !TAKE INTO ACCOUNT THE PERIODICITY HERE
+        else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+            ie3j = istartEnd(6,jproc) - lzd%Glr%d%n3i
+            if(ie3j>=is3k) then
+               ioverlap=ioverlap+1
+            end if
+            if(is3j <= ie3k)then
+               ioverlap=ioverlap+1
+            end if
         end if
     end do
     comgp%noverlaps(jproc)=ioverlap
@@ -116,6 +125,8 @@ do jproc=0,nproc-1
     do kproc=0,nproc-1
         is3k=nscatterarr(kproc,3)+1
         ie3k=is3k+nscatterarr(kproc,2)-1
+!SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
+!Need to split the region
         if(is3j<=ie3k .and. ie3j>=is3k) then
             is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
@@ -128,17 +139,52 @@ do jproc=0,nproc-1
             if(ie3>ie3max .or. ioverlap==1) then
                 ie3max=ie3
             end if
-            !write(*,'(a,8i8)') 'jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3', jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3
             call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
                  istdest, tag, comgp%comarr(1,ioverlap,jproc))
-            !if(iproc==0) write(*,'(6(a,i0))') 'process ',comgp%comarr(1,ioverlap,jproc),' sends ',comgp%comarr(3,ioverlap,jproc),' elements from position ',&
-            !                        comgp%comarr(2,ioverlap,jproc),' to position ',comgp%comarr(5,ioverlap,jproc),' on process ',&
-            !                        comgp%comarr(4,ioverlap,jproc),'; tag=',comgp%comarr(6,ioverlap,jproc)
             istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-            !write(*,'(a,4i8)') 'jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i', jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i
             if(iproc==jproc) then
                 comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
             end if
+        else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
+             ie3j = istartEnd(6,jproc) - lzd%Glr%d%n3i
+             if(ie3j>=is3k) then
+                 is3=max(0,is3k) ! starting index in z dimension for data to be sent
+                 ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+                 ioffset=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                 ioverlap=ioverlap+1
+                 tag=tag+1
+                 if(is3<is3min .or. ioverlap==1) then
+                     is3min=is3
+                 end if
+                 if(ie3>ie3max .or. ioverlap==1) then
+                     ie3max=ie3
+                 end if
+                 call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                      istdest, tag, comgp%comarr(1,ioverlap,jproc))
+                 istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                 if(iproc==jproc) then
+                     comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                 end if
+             end if
+             if(is3j <= ie3k)then
+                 is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+                 ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
+                 ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                 ioverlap=ioverlap+1
+                 tag=tag+1
+                 if(is3<is3min .or. ioverlap==1) then
+                     is3min=is3
+                 end if
+                 if(ie3>ie3max .or. ioverlap==1) then
+                     ie3max=ie3
+                 end if
+                 call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                      istdest, tag, comgp%comarr(1,ioverlap,jproc))
+                 istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                 if(iproc==jproc) then
+                     comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                 end if
+             end if
         end if
     end do
     comgp%ise3(1,jproc)=is3min

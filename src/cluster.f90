@@ -371,15 +371,15 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
-       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),in%elecfield,rxyz,&
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,denspot%psoffset,&
        n1,n2,n3,n1i,n2i,n3i,&
-       denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3pi,&
+       denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3pi,&
        denspot%V_ext,denspot%pkernel)
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
-       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-       denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
@@ -387,7 +387,7 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+          denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   else
      inputpsi = in%inputPsiId
@@ -423,10 +423,10 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!return
 
      !temporary allocation of the density
-     allocate(denspot%rho_work(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
-          denspot%dpcom%n3p*KSwfn%orbs%nspin+ndebug),stat=i_stat)
+     allocate(denspot%rho_work(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
+          denspot%dpbox%n3p*KSwfn%orbs%nspin+ndebug,1)),stat=i_stat)
      call memocc(i_stat,denspot%rho_work,'rho',subname)
-     call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpcom%n3p*KSwfn%orbs%nspin,&
+     call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*KSwfn%orbs%nspin,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
 
      if (nproc > 1) then
@@ -579,17 +579,13 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
-     call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
-          n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,1,&
-          denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-          atoms,rxyz,denspot%dpcom%ngatherarr,denspot%V_ext)
+     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
   end if
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
-     call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
-          n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
-          denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-          atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rhov)
+     call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+          atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
   end if
 
   i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
@@ -608,16 +604,16 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !manipulate scatter array for avoiding the GGA shift
      do jproc=0,nproc-1
         !n3d=n3p
-        denspot%dpcom%nscatterarr(jproc,1)=denspot%dpcom%nscatterarr(jproc,2)
+        denspot%dpbox%nscatterarr(jproc,1)=denspot%dpbox%nscatterarr(jproc,2)
         !i3xcsh=0
-        denspot%dpcom%nscatterarr(jproc,4)=0
+        denspot%dpbox%nscatterarr(jproc,4)=0
      end do
      !change communication scheme to LDA case
      denspot%rhod%icomm=1
 
      call density_and_hpot(iproc,nproc,atoms%geocode,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
-          denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-          denspot%dpcom%nscatterarr,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%nscatterarr,&
           denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
 
      !xc stress, diagonal for the moment
@@ -628,43 +624,36 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! calculate dipole moment associated to the charge density
      if (DoLastRunThings) then 
         call calc_dipole(iproc,nproc,KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpcom%n3p,in%nspin,&
-             denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-             atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
+             KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpbox%n3p,in%nspin,&
+             denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+             atoms,rxyz,denspot%dpbox%ngatherarr,denspot%rho_work)
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
            if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
            
-           call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
-                iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_work)
+           call plot_density(iproc,nproc,trim(in%dir_output)//'electronic_density' // gridformat,&
+                atoms,rxyz,denspot%dpbox,in%nspin,denspot%rho_work)
            
            if (associated(denspot%rho_C)) then
               if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
-              call plot_density(trim(in%dir_output)//'core_density' // gridformat,&
-                   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,1,&
-                   denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                   atoms,rxyz,denspot%dpcom%ngatherarr,denspot%rho_C(1,1,denspot%dpcom%i3xcsh:,1))
+              call plot_density(iproc,nproc,trim(in%dir_output)//'core_density' // gridformat,&
+                   atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
            end if
         end if
         !plot also the electrostatic potential
         if (in%output_denspot == output_denspot_DENSPOT) then
            if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
-           call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
-                iproc,nproc,n1,n2,n3,n1i,n2i,n3i,denspot%dpcom%n3p,in%nspin,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                atoms,rxyz,denspot%dpcom%ngatherarr,denspot%pot_work)
+           call plot_density(iproc,nproc,trim(in%dir_output)//'hartree_potential' // gridformat, &
+                atoms,rxyz,denspot%dpbox,in%nspin,denspot%pot_work)
         end if
      end if
 
      !     !plot also the electrostatic potential
      !     if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
      !        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
-     !        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
-     !             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-     !             & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+     !        call plot_density(iproc,nproc,trim(in%dir_output)//'hartree_potential' // gridformat, &
+     !             atoms,rxyz,denspot%dpbox,1,pot)
      !     end if
      !
      call timing(iproc,'Forces        ','ON')
@@ -674,8 +663,8 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call calculate_forces(iproc,nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
-          in%nspin,refill_proj,denspot%dpcom%ngatherarr,denspot%rho_work,&
+          proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+          in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
           denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
 
@@ -775,13 +764,13 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
         if (in%norbv < 0) then
            call direct_minimization(iproc,nproc,in,atoms,& 
                 nvirt,rxyz,denspot%rhov,nlpspd,proj, &
-                denspot%pkernelseq,denspot%dpcom,GPU,KSwfn,VTwfn)
+                denspot%pkernelseq,denspot%dpbox,GPU,KSwfn,VTwfn)
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,in,atoms,& 
                 KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
                 KSwfn%comms,VTwfn%comms,&
                 rxyz,denspot%rhov,nlpspd,proj, &
-                denspot%pkernelseq,KSwfn%psi,VTwfn%psi,denspot%dpcom,GPU)
+                denspot%pkernelseq,KSwfn%psi,VTwfn%psi,denspot%dpbox,GPU)
 !!$           call constrained_davidson(iproc,nproc,in,atoms,&
 !!$                orbs,orbsv,in%nvirt,Lzd%Glr,comms,VTwfn%comms,&
 !!$                hx,hy,hz,rxyz,denspot%rhov,nlpspd,proj, &
@@ -821,12 +810,12 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
            ! Potential from electronic charge density
            !WARNING: this is good just because the TDDFT is done with LDA
            call sumrho(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                denspot%dpcom%nscatterarr,&
+                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+                denspot%dpbox%nscatterarr,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
            call communicate_density(iproc,nproc,KSwfn%orbs%nspin,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),KSwfn%Lzd,&
-                denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),KSwfn%Lzd,&
+                denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
 
            if (OCLconv) then
@@ -834,8 +823,8 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
            end if
 
            !Allocate second Exc derivative
-           if (denspot%dpcom%n3p >0) then
-              allocate(denspot%f_XC(n1i,n2i,denspot%dpcom%n3p,in%nspin+1+ndebug),stat=i_stat)
+           if (denspot%dpbox%n3p >0) then
+              allocate(denspot%f_XC(n1i,n2i,denspot%dpbox%n3p,in%nspin+1+ndebug),stat=i_stat)
               call memocc(i_stat,denspot%f_XC,'f_XC',subname)
            else
               allocate(denspot%f_XC(1,1,1,in%nspin+1+ndebug),stat=i_stat)
@@ -844,16 +833,16 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            call XC_potential(atoms%geocode,'D',iproc,nproc,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
+                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1)
 
            !select the active space if needed
 
            call tddft_casida(iproc,nproc,atoms,rxyz,&
-                denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-                denspot%dpcom%n3p,denspot%dpcom%ngatherarr(0,1),&
-                KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,&
+                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+                denspot%dpbox%n3p,denspot%dpbox%ngatherarr(0,1),&
+                KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
                 denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
 
            i_all=-product(shape(denspot%f_XC))*kind(denspot%f_XC)
@@ -951,22 +940,22 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
 
      if (nproc > 1) then
-        call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpcom%n3p,&
-             &   mpidtypd,denspot%pot_work(1),denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
+        call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
+             &   mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
              mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
-           call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpcom%n3p),n1i*n2i*denspot%dpcom%n3p,&
+           call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),n1i*n2i*denspot%dpbox%n3p,&
                 mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
-                denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2), & 
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
                 mpidtypd,MPI_COMM_WORLD,ierr)
         end if
      else
         call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
      end if
 
-     call deallocate_denspot_distribution(denspot%dpcom, subname)
+     call deallocate_denspot_distribution(denspot%dpbox, subname)
 
      i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
      deallocate(denspot%rhov,stat=i_stat)
@@ -1006,7 +995,7 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%V_XC',subname)
-     call deallocate_denspot_distribution(denspot%dpcom, subname)
+     call deallocate_denspot_distribution(denspot%dpbox, subname)
   endif
   ! --- End if of tail calculation
 
@@ -1056,7 +1045,7 @@ contains
        deallocate(denspot%V_XC,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_XC',subname)
 
-       call deallocate_denspot_distribution(denspot%dpcom, subname)
+       call deallocate_denspot_distribution(denspot%dpbox, subname)
 
        i_all=-product(shape(fion))*kind(fion)
        deallocate(fion,stat=i_stat)

@@ -237,7 +237,7 @@ int main(guint argc, char **argv)
     }
 
   fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
-  denspot = bigdft_localfields_new(BIGDFT_LOCREG(wf->lzd), in, 0, 1);
+  denspot = bigdft_localfields_new(wf->lzd, in, 0, 1);
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);

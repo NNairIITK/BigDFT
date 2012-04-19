@@ -76,6 +76,8 @@ module module_types
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
   integer,parameter:: DECREASE_LINEAR=0
   integer,parameter:: DECREASE_ABRUPT=1
+  integer,parameter:: COMMUNICATION_COLLECTIVE=0
+  integer,parameter:: COMMUNICATION_P2P=1
   
 
   !> Type used for the orthogonalisation parameter
@@ -130,11 +132,11 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: confinement_decrease_mode
+    integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy
+    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
@@ -386,6 +388,8 @@ module module_types
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
+     integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
+     real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
   end type denspot_distribution
 
@@ -488,9 +492,9 @@ module module_types
      integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-     integer :: Lnprojel                       !< Total number of projector elements
+!     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
-     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+!     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
      logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
@@ -681,6 +685,18 @@ module module_types
       integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
   end type collectiveComms
 
+  type:: collective_comms
+    integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+    integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
+    integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
+    integer:: nptsp_c, ndimpsi_c
+    integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+    integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
+    integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
+    integer:: nptsp_f, ndimpsi_f
+  end type collective_comms
+
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -723,13 +739,6 @@ type:: linear_scaling_control_variables
 end type linear_scaling_control_variables
 
 
-  !> Contains the parameters for the parallel input guess for the O(N) version.
-  type,public:: inguessParameters
-    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
-    integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
-    !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
-  end type inguessParameters
-
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
@@ -745,53 +754,43 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-  type,public:: linearInputGuess
-      type(local_zone_descriptors):: lzdig, lzdGauss
-      type(orbitals_data):: orbsig, orbsGauss
-      !type(p2pCommsOrthonormality):: comon
-      type(p2pComms):: comon
-      type(overlapParameters):: op
-      !type(p2pCommsGatherPot):: comgp
-      type(p2pComms):: comgp
-      type(matrixDescriptors):: mad
-  end type linearInputGuess
 
 !> Contains all parameters related to the linear scaling version.
-  type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItPrecond
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
-    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
-    integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
-    integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
-    real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
-    real(8):: lowaccuray_converged
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
-    real(8),dimension(:),pointer:: lphiold
-    real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    type(orbitals_data):: orbs, gorbs
-    type(communications_arrays):: comms, gcomms
-    integer,dimension(:),pointer:: norbsPerType
-    !type(arraySizes):: as
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
-    logical:: newgradient, mixedmode
-    character(len=4):: mixingMethod
-    !type(p2pCommsSumrho):: comsr
-    type(p2pComms):: comsr
-    !type(p2pCommsGatherPot):: comgp
-    type(p2pComms):: comgp
-    type(largeBasis):: lb
-    type(local_zone_descriptors):: lzd
-    !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon
-    type(overlapParameters):: op
-    type(matrixDescriptors):: mad
-    character(len=1):: locregShape
-    type(collectiveComms):: collComms
-  end type linearParameters
+  !!!type,public:: linearParameters
+  !!!  integer:: DIISHistMin, DIISHistMax, nItPrecond
+  !!!  integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
+  !!!  integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
+  !!!  integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+  !!!  integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+  !!!  integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
+  !!!  integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
+  !!!  integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+  !!!  real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
+  !!!  real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
+  !!!  real(8):: lowaccuray_converged
+  !!!  real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
+  !!!  real(8),dimension(:),pointer:: lphiold
+  !!!  real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+  !!!  type(orbitals_data):: orbs, gorbs
+  !!!  type(communications_arrays):: comms, gcomms
+  !!!  integer,dimension(:),pointer:: norbsPerType
+  !!!  !type(arraySizes):: as
+  !!!  logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
+  !!!  logical:: newgradient, mixedmode
+  !!!  character(len=4):: mixingMethod
+  !!!  !type(p2pCommsSumrho):: comsr
+  !!!  type(p2pComms):: comsr
+  !!!  !type(p2pCommsGatherPot):: comgp
+  !!!  type(p2pComms):: comgp
+  !!!  type(largeBasis):: lb
+  !!!  type(local_zone_descriptors):: lzd
+  !!!  !type(p2pCommsOrthonormality):: comon
+  !!!  type(p2pComms):: comon
+  !!!  type(overlapParameters):: op
+  !!!  type(matrixDescriptors):: mad
+  !!!  character(len=1):: locregShape
+  !!!  type(collectiveComms):: collComms
+  !!!end type linearParameters
 
   type,public:: basis_specifications
     logical:: update_phi !<shall phi be optimized or not
@@ -811,6 +810,7 @@ end type linear_scaling_control_variables
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
     integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
+    integer:: communication_strategy_overlap
   end type basis_performance_options
 
   type,public:: wfn_metadata
@@ -871,9 +871,9 @@ end type linear_scaling_control_variables
      integer :: rhov_is
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpcom !< parallel distribution of density and potential
+     type(denspot_distribution) :: dpbox !< distribution of density and potential box
      character(len=3) :: PSquiet
-     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
+     !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
@@ -912,7 +912,7 @@ end type linear_scaling_control_variables
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
-
+     type(collective_comms):: collcom ! describes collective communication
      double precision :: c_obj !< Storage of the C wrapper object.
   end type DFT_wavefunction
 

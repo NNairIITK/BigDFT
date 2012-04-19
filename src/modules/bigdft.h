@@ -344,7 +344,7 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                          guint *psiSize, guint iproc);
 gboolean   bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                        BigDFT_Spin ispin, BigDFT_Spinor ispinor,
-                                       guint iproc, gdouble *psic, guint psiSize);
+                                       guint iproc, double *psic, guint psiSize);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
@@ -448,7 +448,7 @@ struct BigDFT_LocalFields_
   void *data;
 };
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                             const BigDFT_Inputs *in,
                                             guint iproc, guint nproc);
 BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj, BigDFT_LocReg *glr);

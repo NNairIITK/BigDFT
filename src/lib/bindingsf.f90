@@ -246,15 +246,6 @@ subroutine lzd_empty(lzd)
 
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
-subroutine lzd_set_hgrids(Lzd, hgrids)
-  use module_base
-  use module_types
-  implicit none
-  type(local_zone_descriptors), intent(inout) :: Lzd
-  real(gp), intent(in) :: hgrids(3)
-  !initial values
-  Lzd%hgrids = hgrids
-END SUBROUTINE lzd_set_hgrids
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
   use module_types
@@ -297,42 +288,7 @@ subroutine inputs_set_radical(in, nproc, rad, ln)
   end do
   call standard_inputfile_names(in, rad_, nproc)
 end subroutine inputs_set_radical
-subroutine inputs_parse_params(in, iproc, dump)
-  use module_types
-  use module_xc
-  implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
 
-  ! Parse all values independant from atoms.
-  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
-  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
-  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
-  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
-  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
-  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
-
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
-end subroutine inputs_parse_params
-subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  type(symmetry_data), intent(in) :: sym
-  character, intent(in) :: geocode
-  real(gp), intent(in) :: alat(3)
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
-end subroutine inputs_parse_add
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
@@ -592,17 +548,17 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
-subroutine localfields_new(self, denspotd, rhod, dpcom)
+subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
   double precision, intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
-  type(denspot_distribution), pointer :: dpcom
+  type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
 
   allocate(denspotd)
   rhod => denspotd%rhod
-  dpcom => denspotd%dpcom
+  dpbox => denspotd%dpbox
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
 subroutine localfields_get_data(denspotd, rhod, dpcom)
@@ -625,7 +581,7 @@ subroutine localfields_free(denspotd)
   integer :: i_stat, i_all
 
   call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call deallocate_denspot_distribution(denspotd%dpcom, subname)
+  call deallocate_denspot_distribution(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
      i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
@@ -674,7 +630,7 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
-  hgrid = denspot%hgrids
+  hgrid = denspot%dpbox%hgrids
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 subroutine localfields_get_rhov(denspot, rhov)

@@ -37,6 +37,10 @@ type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used
+real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
+real(8):: ddot, tt1, tt2, tt3
 
 
   if(iproc==0) then
@@ -62,7 +66,7 @@ logical:: check_whether_derivatives_to_be_used
 
   if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
 
-  call init_local_zone_descriptors(iproc, nproc, input, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
+  call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
 
   call update_wavefunctions_size(tmb%lzd,tmb%orbs)
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
@@ -81,14 +85,16 @@ logical:: check_whether_derivatives_to_be_used
   tmb%wfnmd%bs%use_derivative_basis=.false.
 
   tag=0
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%orbs, tmb%orbs%inWhichLocreg,&
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
        input%lin%locregShape, tmb%op, tmb%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
+       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
        input%lin%locregShape, tmbder%op, tmbder%comon, tag)
   
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpbox%nscatterarr, &
        tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
+  call initializeCommunicationPotential(iproc, nproc, denspot%dpbox%nscatterarr, &
        tmbder%orbs, tmb%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
 
   if(input%lin%useDerivativeBasisFunctions) then
@@ -101,9 +107,9 @@ logical:: check_whether_derivatives_to_be_used
 
 
   call nullify_p2pcomms(tmb%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tag, tmb%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmb%orbs, tag, tmb%comsr)
   call nullify_p2pcomms(tmbder%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tag, tmbder%comsr)
+  call initializeCommsSumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmbder%orbs, tag, tmbder%comsr)
 
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
@@ -117,7 +123,13 @@ logical:: check_whether_derivatives_to_be_used
 
   allocate(tmbder%confdatarr(tmbder%orbs%norbp))
   call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+       input%hx,input%hy,input%hz,input%lin%confpotorder,&
+       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+
+  call nullify_collective_comms(tmb%collcom)
+  call nullify_collective_comms(tmbder%collcom)
+  call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+  call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
 
@@ -150,28 +162,31 @@ logical:: check_whether_derivatives_to_be_used
   end if
 
   ! Allocate the old charge density (used to calculate the variation in the charge density)
-  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
-  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+
+
 
 
   ! Generate the input guess for the TMB
   tmb%wfnmd%bs%update_phi=.false.
   call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
   !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
   !call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
-  !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+  !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov, at,denspot%dpbox%nscatterarr)
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
 
   ! Initialize the DIIS mixing of the potential if required.
   if(input%lin%mixHist_lowaccuracy>0) then
-      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
+      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
   !end of the initialization part, will later be moved to cluster
@@ -199,7 +214,7 @@ logical:: check_whether_derivatives_to_be_used
 
       ! Copy the current potential
       if(trim(input%lin%mixingMethod)=='pot') then
-           call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+           call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
 
@@ -208,12 +223,12 @@ logical:: check_whether_derivatives_to_be_used
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(tmbder%wfnmd%bs%use_derivative_basis .and. .not.input%lin%mixedMode) then
       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbder%comgp)
   end if
 
 
@@ -333,7 +348,7 @@ logical:: check_whether_derivatives_to_be_used
                   ! We have to communicate the potential in the first iteration
                   if(it_scc==1) then
                       call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
-                      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbder%comgp)
+                      call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbder%comgp)
                   end if
                   tmbmix => tmbder
               end if
@@ -379,6 +394,7 @@ logical:: check_whether_derivatives_to_be_used
 
 
           ! Calculate the coefficients
+          call mpi_barrier(mpi_comm_world, istat)
           call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix)
@@ -393,8 +409,8 @@ logical:: check_whether_derivatives_to_be_used
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
-               denspot%rhov, at, denspot%dpcom%nscatterarr)
+               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+               denspot%rhov, at, denspot%dpbox%nscatterarr)
 
           ! Mix the density.
           if(trim(input%lin%mixingMethod)=='dens') then
@@ -425,10 +441,10 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Post communications for gathering the potential
           call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
           if(tmbmix%wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbmix%comgp)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbmix%comgp)
           end if
 
           ! Write some informations.
@@ -489,7 +505,7 @@ logical:: check_whether_derivatives_to_be_used
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov, at,denspot%dpbox%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
@@ -841,7 +857,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
       end if
   
       if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-          call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
+          call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
       else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
           call deallocateMixrhopotDIIS(mixdiis)
       end if

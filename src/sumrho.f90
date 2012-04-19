@@ -48,6 +48,7 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
         call memocc(i_stat,rho,'rho',subname)
      end if
 
+     nullify(rho_p)
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
           GPU,symObj,rhodsc,psi,rho_p)
      call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,&

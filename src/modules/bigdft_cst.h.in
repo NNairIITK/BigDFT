@@ -12,6 +12,7 @@
 #define gchar char
 #define GObject void
 #define gpointer void*
+#define GQuark int
 #endif
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"

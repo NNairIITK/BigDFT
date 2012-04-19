@@ -23,9 +23,6 @@ subroutine initialize_DFT_local_fields(denspot)
 
   denspot%psoffset=0.0_gp
 
-  do i=1,3
-     denspot%hgrids(i)=uninitialized(denspot%hgrids(i))
-  end do
   if (verbose >1) then
      denspot%PSquiet='NO '
   else
@@ -33,26 +30,32 @@ subroutine initialize_DFT_local_fields(denspot)
   end if
 
   call initialize_rho_descriptors(denspot%rhod)
-  call initialize_denspot_distribution(denspot%dpcom)
+  call initialize_denspot_distribution(denspot%dpbox)
 
   nullify(denspot%mix)
 end subroutine initialize_DFT_local_fields
 
-subroutine initialize_denspot_distribution(dpcom)
+subroutine initialize_denspot_distribution(dpbox)
   use module_base
   use module_types
   implicit none
-  type(denspot_distribution), intent(out) :: dpcom
+  type(denspot_distribution), intent(out) :: dpbox
+  !local variables
+  integer :: i
   
-  dpcom%n3d      =uninitialized(dpcom%n3d)      
-  dpcom%n3p      =uninitialized(dpcom%n3p)      
-  dpcom%n3pi     =uninitialized(dpcom%n3pi)     
-  dpcom%i3xcsh   =uninitialized(dpcom%i3xcsh)   
-  dpcom%i3s      =uninitialized(dpcom%i3s)      
-  dpcom%nrhodim  =uninitialized(dpcom%nrhodim)  
-  dpcom%i3rho_add=uninitialized(dpcom%i3rho_add)
+  dpbox%n3d      =uninitialized(dpbox%n3d)      
+  dpbox%n3p      =uninitialized(dpbox%n3p)      
+  dpbox%n3pi     =uninitialized(dpbox%n3pi)     
+  dpbox%i3xcsh   =uninitialized(dpbox%i3xcsh)   
+  dpbox%i3s      =uninitialized(dpbox%i3s)      
+  dpbox%nrhodim  =uninitialized(dpbox%nrhodim)  
+  dpbox%i3rho_add=uninitialized(dpbox%i3rho_add)
+  do i=1,3
+     dpbox%hgrids(i)=uninitialized(dpbox%hgrids(i))
+     dpbox%ndims(i)=uninitialized(dpbox%ndims(i))
+  end do
 
-  nullify(dpcom%nscatterarr,dpcom%ngatherarr)
+  nullify(dpbox%nscatterarr,dpbox%ngatherarr)
   
 end subroutine initialize_denspot_distribution
 
@@ -74,17 +77,20 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
-subroutine denspot_set_hgrids(denspot, hgrids)
+subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_types
   implicit none
-  type(DFT_local_fields), intent(inout) :: denspot
-  real(gp), intent(in) :: hgrids(3)
-
-  denspot%hgrids(1)=hgrids(1)
-  denspot%hgrids(2)=hgrids(2)
-  denspot%hgrids(3)=hgrids(3)
-end subroutine denspot_set_hgrids
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(denspot_distribution), intent(inout) :: dpbox
+  
+  dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
+  dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
+  dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+  dpbox%ndims(1)=Lzd%Glr%d%n1i
+  dpbox%ndims(2)=Lzd%Glr%d%n2i
+  dpbox%ndims(3)=Lzd%Glr%d%n3i
+end subroutine dpbox_set_box
 
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &
@@ -101,12 +107,12 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
 
   if (iscf < 10) then
      potden = AB6_MIXING_POTENTIAL
-     npoints = n1i*n2i*denspot%dpcom%n3p
-     if (denspot%dpcom%n3p==0) npoints=1
+     npoints = n1i*n2i*denspot%dpbox%n3p
+     if (denspot%dpbox%n3p==0) npoints=1
   else
      potden = AB6_MIXING_DENSITY
-     npoints = n1i*n2i*denspot%dpcom%n3d
-     if (denspot%dpcom%n3d==0) npoints=1
+     npoints = n1i*n2i*denspot%dpbox%n3d
+     if (denspot%dpbox%n3d==0) npoints=1
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
@@ -119,7 +125,7 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
 end subroutine denspot_set_history
 
-subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
+subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpbox,rhod)
   use module_base
   use module_types
   use module_interfaces, except_this_one => denspot_communications
@@ -131,7 +137,7 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-  type(denspot_distribution), intent(inout) :: dpcom
+  type(denspot_distribution), intent(inout) :: dpbox
   type(rho_descriptors), intent(out) :: rhod
   !local variables
   character(len = *), parameter :: subname = 'denspot_communications' 
@@ -142,34 +148,34 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
-  allocate(dpcom%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,dpcom%nscatterarr,'nscatterarr',subname)
+  allocate(dpbox%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,dpbox%nscatterarr,'nscatterarr',subname)
   !allocate array for the communications of the potential
-  allocate(dpcom%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,dpcom%ngatherarr,'ngatherarr',subname)
+  allocate(dpbox%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms,grid,hxh,hyh,hzh, &
        rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
-       dpcom%n3d,dpcom%n3p,&
-       dpcom%n3pi,dpcom%i3xcsh,dpcom%i3s, &
-       dpcom%nscatterarr,dpcom%ngatherarr,rhod)
+       dpbox%n3d,dpbox%n3p,&
+       dpbox%n3pi,dpbox%i3xcsh,dpbox%i3s, &
+       dpbox%nscatterarr,dpbox%ngatherarr,rhod)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
-  dpcom%nrhodim=in%nspin
-  dpcom%i3rho_add=0
+  dpbox%nrhodim=in%nspin
+  dpbox%i3rho_add=0
   if (trim(in%SIC%approach)=='NK') then
-     dpcom%nrhodim=2*dpcom%nrhodim
-     dpcom%i3rho_add=grid%n1i*grid%n2i*dpcom%i3xcsh+1
+     dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with a orbital-dependent potential
+     dpbox%i3rho_add=grid%n1i*grid%n2i*dpbox%i3xcsh+1
   end if
 
   !fill the full_local_potential dimension
-  dpcom%ndimpot=grid%n1i*grid%n2i*dpcom%n3p
-  dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
-  dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
-       dpcom%nrhodim
+  dpbox%ndimpot=grid%n1i*grid%n2i*dpbox%n3p
+  dpbox%ndimgrid=grid%n1i*grid%n2i*grid%n3i
+  dpbox%ndimrhopot=grid%n1i*grid%n2i*dpbox%n3d*&
+       dpbox%nrhodim
 end subroutine denspot_communications
 
 subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
@@ -306,39 +312,40 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   ! Allocate density and potentials.
   ! --------
   !allocate ionic potential
-  if (denspot%dpcom%n3pi > 0) then
-     allocate(denspot%V_ext(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3pi,1+ndebug),stat=i_stat)
+  if (denspot%dpbox%n3pi > 0) then
+     allocate(denspot%V_ext(Glr%d%n1i,Glr%d%n2i,denspot%dpbox%n3pi,1+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_ext,'V_ext',subname)
   else
      allocate(denspot%V_ext(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_ext,'pot_ion',subname)
   end if
   !Allocate XC potential
-  if (denspot%dpcom%n3p >0) then
-     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3p,nspin+ndebug),stat=i_stat)
+  if (denspot%dpbox%n3p >0) then
+     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpbox%n3p,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_XC,'V_XC',subname)
   else
      allocate(denspot%V_XC(1,1,1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_XC,'V_XC',subname)
   end if
 
-  if (denspot%dpcom%n3d >0) then
-     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
-          denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+  if (denspot%dpbox%n3d >0) then
+     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
+          denspot%dpbox%nrhodim+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%rhov,'rhov',subname)
   else
-     allocate(denspot%rhov(denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+     allocate(denspot%rhov(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%rhov,'rhov',subname)
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
-  !print *,'i3xcsh',denspot%dpcom%i3s,denspot%dpcom%i3xcsh,denspot%dpcom%n3d
+  !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
   call calculate_rhocore(iproc,atoms,Glr%d,rxyz,&
-       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-       denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
-       denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+       denspot%dpbox%i3s,denspot%dpbox%i3xcsh,&
+       denspot%dpbox%n3d,denspot%dpbox%n3p,denspot%rho_C)
 
 !!$  !calculate the XC energy of rhocore
+!!$  call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
 !!$  call XC_potential(atoms%geocode,'D',iproc,nproc,&
 !!$       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
 !!$       denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)

@@ -857,14 +857,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%output_denspot == output_denspot_DENSPOT) then
          if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
-
-            call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
-               &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
-               &   in%nspin,hxh,hyh,hzh,atoms,rxyz,dpcom%ngatherarr,rhopot(1,1,1,1))
-            !!$
-            !!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-            !!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
-            !!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+            call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&

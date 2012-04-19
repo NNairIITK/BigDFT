@@ -121,7 +121,7 @@ void bigdft_localfields_emit_v_ext(BigDFT_LocalFields *denspot)
 #endif
 }
 
-BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_LocReg *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                            const BigDFT_Inputs *in,
                                            guint iproc, guint nproc)
 {
@@ -131,7 +131,7 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_LocReg *glr,
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
-  g_object_ref(G_OBJECT(glr));
+  g_object_ref(G_OBJECT(&lzd->parent));
 #else
   localfields = g_malloc(sizeof(BigDFT_LocalFields));
   memset(localfields, 0, sizeof(BigDFT_LocalFields));
@@ -142,18 +142,16 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_LocReg *glr,
                                              &localfields->rhod, &localfields->dpcom);
   FC_FUNC_(initialize_dft_local_fields, INITIALIZE_DFT_LOCAL_FIELDS)(localfields->data);
 
-  localfields->glr   = glr;
+  localfields->glr = &lzd->parent;
 
-  hh[0] = glr->h[0] * 0.5;
-  hh[1] = glr->h[1] * 0.5;
-  hh[2] = glr->h[2] * 0.5;
-  FC_FUNC_(denspot_set_hgrids, DENSPOT_SET_HGRIDS)(localfields->data, hh);
+  FC_FUNC_(dpbox_set_box, DPBOX_SET_BOX)(localfields->dpcom, lzd->data);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc, &nproc, glr->d, hh, hh + 1, hh + 2, in->data,
-     glr->parent.data, glr->parent.rxyz.data, glr->radii, localfields->dpcom, localfields->rhod);
-  
-  FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, glr->data,
-                                          &in->nspin, glr->parent.data, glr->parent.rxyz.data,
+    (&iproc, &nproc, lzd->parent.d, hh, hh + 1, hh + 2, in->data,
+     lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+     lzd->parent.radii, localfields->dpcom, localfields->rhod);
+  FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, lzd->parent.data,
+                                          &in->nspin, lzd->parent.parent.data,
+					  lzd->parent.parent.rxyz.data,
                                           localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
     (localfields->data, &localfields->rhov_is, localfields->h,

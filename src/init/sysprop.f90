@@ -31,6 +31,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !local variables
   integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
+  real(gp), dimension(3) :: h_input
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
@@ -45,7 +46,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call nullify_locreg_descriptors(Lzd%Glr)
 
   !grid spacings of the zone descriptors (not correct, the set is done by system size)
-  call lzd_set_hgrids(Lzd, (/ in%hx, in%hy, in%hz /))
+  h_input=(/ in%hx, in%hy, in%hz /)
+  call lzd_set_hgrids(Lzd,h_input) 
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -59,8 +61,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   call initialize_DFT_local_fields(denspot)
 
-  !grid spacings of the DFT_local fields
-  call denspot_set_hgrids(denspot, 0.5_gp*Lzd%hgrids)
+  !grid spacings and box of the density
+  call dpbox_set_box(denspot%dpbox,Lzd)
 
   ! Create the Poisson solver kernels.
   call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
@@ -104,8 +106,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   
   !calculate the descriptors for rho and the potentials.
   call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-       denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
 
   !allocate the arrays.
   call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
@@ -141,14 +143,16 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   call createKernel(iproc,nproc,geocode,&
-       d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
+       d%n1i,d%n2i,d%n3i,&
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        ndegree_ip,denspot%pkernel,verb)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      call createKernel(0,1,geocode,&
-          d%n1i,d%n2i,d%n3i,denspot%hgrids(1),denspot%hgrids(2),denspot%hgrids(3),&
+          d%n1i,d%n2i,d%n3i,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           ndegree_ip,denspot%pkernelseq,.false.)
   else 
      denspot%pkernelseq => denspot%pkernel

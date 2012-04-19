@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, ovrlp)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -20,7 +20,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: ovrlp
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
@@ -37,8 +36,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call allocateSendBufferOrtho(tmbopt%comon, subname)
       call allocateRecvBufferOrtho(tmbopt%comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-      call extractOrbital3(iproc, nproc, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-           tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%op, &
+      call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+           tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
            lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
       call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
       call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
@@ -48,8 +47,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateRecvBufferOrtho(tmbopt%comon, subname)
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
-  call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, ovrlp, &
-       tmbopt%orthpar%methTransformOverlap, tmbopt%orthpar%blocksize_pdgemm, tmbopt%psi, lhphiopt, lagmat)
+  call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -288,8 +287,10 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
               call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-                   locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                   locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmb%psi, lhphi, lhphiold, lphiold, tmb)
+              call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
+              call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
               !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
               !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
               call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -306,8 +307,10 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               locrad_tmp=factor*locrad
               call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-                   locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                   locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+              call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+              call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
               tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
               !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
               !!call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
@@ -327,8 +330,8 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
           end if
           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-               tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-               tmbopt%mad, tmbopt%psi, ovrlp)
+               tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+               tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
 
           if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
               ! Optimize the locreg centers and potentially the shape of the basis functions.
@@ -350,8 +353,10 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
                   call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-                       locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                       locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmb%psi, lhphi, lhphiold, lphiold, tmb)
+                  call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
+                  call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
                   !!allocate(tmb%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   !!call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
@@ -360,7 +365,7 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
               end if
 
 
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
 
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
@@ -375,8 +380,10 @@ character(len=*),parameter:: subname='hpsitopsi_linear'
                   locrad_tmp=factor*locrad
                   call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
                        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-                       locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                       locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+                  call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+                  call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
                   tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
                   !!allocate(tmblarge%orbs%onwhichatom(tmb%orbs%norb), stat=istat)
                   !!call memocc(istat, tmblarge%orbs%onwhichatom, 'tmblarge%orbs%onwhichatom', subname)
