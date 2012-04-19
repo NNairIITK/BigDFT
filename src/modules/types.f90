@@ -1507,6 +1507,10 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. in mem."
     case(INPUT_PSI_DISK_GAUSS)
        write(input_psi_names, "(A)") "gauss. on disk"
+    case(INPUT_PSI_LINEAR)
+       write(input_psi_names, "(A)") "Linear LCAO"
+    case(INPUT_PSI_MEMORY_LINEAR)
+       write(input_psi_names, "(A)") "Linear on disk"
     case default
        write(input_psi_names, "(A)") "Error"
     end select
