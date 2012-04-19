@@ -116,6 +116,8 @@ call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
 !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
 allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
 call memocc(istat, comgp%requests, 'comgp%requests', subname)
+call to_zero(2*nproc,comgp%requests(1,1))
+comgp%nsend = 0 ; comgp%nrecv = 0
 comgp%nrecvBuf = 0
 is3min=0
 ie3max=0
