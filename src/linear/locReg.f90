@@ -1827,6 +1827,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 !call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
 
 ! Communicate op%noverlaps and comon%noverlaps
+write(*,*) 'in determine_overlap_from_descriptors: 0'
     if (nproc > 1) then
        call mpi_allgatherv(noverlapsarr, orbs%norbp, mpi_integer, op%noverlaps, orbs%norb_par, &
             orbs%isorb_par, mpi_integer, mpi_comm_world, ierr)
@@ -1843,6 +1844,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
     else
        comon%noverlaps=noverlaps
     end if
+write(*,*) 'in determine_overlap_from_descriptors: 1'
 
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
@@ -1955,12 +1957,14 @@ do jproc=1,nproc-1
     recvcnts(jproc)=ii*orbs%norb_par(jproc,0)
     displs(jproc)=displs(jproc-1)+recvcnts(jproc-1)
 end do
+write(*,*) 'in determine_overlap_from_descriptors: 2'
 if (nproc > 1) then
    call mpi_allgatherv(overlaps_op, ii*orbs%norbp, mpi_integer, op%overlaps, recvcnts, &
         displs, mpi_integer, mpi_comm_world, ierr)
 else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
+write(*,*) 'in determine_overlap_from_descriptors: 3'
 
 !!do iorb=1,orbs%norb
 !!end do

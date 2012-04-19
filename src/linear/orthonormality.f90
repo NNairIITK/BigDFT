@@ -402,6 +402,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   character(len=*),parameter:: subname='initCommsOrtho'
   real(8):: t1, t2, time
 !  integer, dimension(:,:), allocatable :: overlaps_nseg
+  write(*,*) 'initCommsOrtho: 0'
 
   call nullify_overlapParameters(op)
   call nullify_p2pComms(comon)
@@ -412,6 +413,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
   allocate(op%noverlaps(orbs%norb), stat=istat)
   call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
+  write(*,*) 'initCommsOrtho: 0.1'
 
   ! Allocate the arrays holding the starting indices of the data to communicate in the
   ! send and receive buffers.
@@ -422,6 +424,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
 !  allocate(overlaps_nseg(orbs%norb,orbs%norbp), stat=istat)
 !  call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
+  write(*,*) 'initCommsOrtho: 0.2'
 
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
@@ -432,6 +435,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if
+  write(*,*) 'initCommsOrtho: 1'
 
   ! OLRs NOT NEEDED ANYMORE
   ! Allocate the types describing the overlap localization regions.
@@ -457,6 +461,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   !!allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
   !!call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
   call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
+  write(*,*) 'initCommsOrtho: 2'
 
   !DON'T need this anymore
   ! Initialize the index arrays for the transformations from overlap region
@@ -494,9 +499,11 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
           op%nsubmax=max(op%nsubmax,nsub)
       end do
   end do
+  write(*,*) 'initCommsOrtho: 3'
   call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
   !if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
 
+  write(*,*) 'initCommsOrtho: 0'
 
 end subroutine initCommsOrtho
 

@@ -23,16 +23,18 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           mpidest=comm%comarr(4,joverlap,jproc)
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
-          if(nproc>1) then
-              if(iproc==mpidest) then
+          if(ncount>0) then
+              if(nproc>1) then
+                  if(iproc==mpidest) then
+                      nreceives=nreceives+1
+                      call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                           comm%requests(nreceives,2), ierr)
+                  end if
+              else
+                  nsends=nsends+1
                   nreceives=nreceives+1
-                  call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                       comm%requests(nreceives,2), ierr)
+                  call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
               end if
-          else
-              nsends=nsends+1
-              nreceives=nreceives+1
-              call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
           end if
       end do
   end do
@@ -46,11 +48,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           mpidest=comm%comarr(4,joverlap,jproc)
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
-          if(nproc>1) then
-              if(iproc==mpisource) then
-                  nsends=nsends+1
-                  call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                       comm%requests(nsends,1), ierr)
+          if(ncount>0) then
+              if(nproc>1) then
+                  if(iproc==mpisource) then
+                      nsends=nsends+1
+                      call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                           comm%requests(nsends,1), ierr)
+                  end if
               end if
           end if
       end do
@@ -90,6 +94,7 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   ! Local variables
   integer:: ierr, ind, i, nsend, nrecv
   
+  write(*,'(a,3i8)') 'at beginning of wait_p2p_communication: iproc, comm%nsend, comm%nrecv',iproc, comm%nsend,comm%nrecv
   
   if(.not.comm%communication_complete) then
 
@@ -124,6 +129,7 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
 
   ! Flag indicating that the communication is complete
   comm%communication_complete=.true.
+  write(*,*) 'at end of wait_p2p_communication: iproc',iproc
 
 end subroutine wait_p2p_communication
 

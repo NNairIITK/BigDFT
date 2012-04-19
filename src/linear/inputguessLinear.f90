@@ -674,8 +674,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
-  call mpi_barrier(mpi_comm_world,ierr)
-  call cpu_time(t1)
 
 
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
