@@ -417,7 +417,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !start the optimization
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
 
      !end of the initialization part
      call timing(iproc,'INIT','PR')
@@ -867,7 +867,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
-  if (in%gaussian_help .and. DoLastRunThings .and. .not.inputpsi==INPUT_PSI_LINEAR) then
+  if (in%gaussian_help .and. DoLastRunThings .and.&
+&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -1049,7 +1050,7 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
+    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) deallocate(KSwfn%confdatarr)
 
     ! Free radii_cf
     i_all=-product(shape(radii_cf))*kind(radii_cf)

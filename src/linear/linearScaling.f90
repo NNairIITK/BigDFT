@@ -314,7 +314,7 @@ type(energy_terms) :: energs
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       do ilr=1,tmb%lzd%nlr
-          lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
       end do
 
       if(trim(input%lin%mixingMethod)=='dens') then
