@@ -402,14 +402,13 @@ subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
   ! Calling arguments
   type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 
+  !!nullify(comom%noverlapProc)
   nullify(comom%noverlap)
-  nullify(comom%noverlapProc)
   nullify(comom%overlaps)
   nullify(comom%requests)
   nullify(comom%comarr)
-  nullify(comom%olrForExpansion)
   nullify(comom%recvBuf)
   nullify(comom%sendBuf)
-  nullify(comom%olr)
+  !!nullify(comom%olr)
 
 end subroutine nullify_p2pCommsOrthonormalityMatrix

@@ -596,11 +596,10 @@ module module_types
 
   type,public:: p2pCommsOrthonormalityMatrix
       integer:: nrecvBuf, nsendBuf, nrecv, nsend
-      integer,dimension(:),pointer:: noverlap, noverlapProc
+      integer,dimension(:),pointer:: noverlap
       integer,dimension(:,:),pointer:: overlaps, requests
-      integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
+      integer,dimension(:,:,:),pointer:: comarr
       real(8),dimension(:),pointer:: recvBuf, sendBuf
-      type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
       logical:: communication_complete
   end type p2pCommsOrthonormalityMatrix
 

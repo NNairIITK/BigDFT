@@ -1391,7 +1391,7 @@ type(orbitals_data),intent(in):: orbs, orbstot
 integer,dimension(orbstot%norb),intent(in):: onWhichAtom
 integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
 type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
-type(p2pCommsOrthonormalityMatrix),intent(out):: comom
+type(p2pComms),intent(out):: comom
 type(overlap_parameters_matrix),intent(out):: opm
 
 ! Local variables
@@ -1563,7 +1563,7 @@ integer,intent(in):: iproc, nproc, norb
 integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: jlrold,jproc,jj,jorb,jjorb,jlr,jjmax,istat,jkorb,mpisource,mpidest,istsource,istdest,ncount,korb,iall,kkorb
@@ -1581,25 +1581,25 @@ istdestarr=1
 
 comom%nrecvbuf=0
 
-allocate(comom%noverlapProc(0:nproc-1), stat=istat)
-call memocc(istat, comom%noverlapProc, 'comom%noverlapProc', subname)
+allocate(comom%noverlaps(0:nproc-1), stat=istat)
+call memocc(istat, comom%noverlaps, 'comom%noverlaps', subname)
 
 ! Count how many orbitals each process will receive
 do jproc=0,nproc-1
   jlrold=0
-  comom%noverlapProc(jproc)=0
+  comom%noverlaps(jproc)=0
   do jorb=1,norb_par(jproc)
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
      do korb=1,opm%noverlap(jjorb)
-        comom%noverlapProc(jproc)=comom%noverlapProc(jproc)+1
+        comom%noverlaps(jproc)=comom%noverlaps(jproc)+1
      end do
      jlrold=jlr
   end do
 end do
 
-allocate(comom%comarr(6,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
+allocate(comom%comarr(6,maxval(comom%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%comarr, 'comom%comarr', subname)
 
 comom%nsendBuf=0
@@ -1650,7 +1650,7 @@ call memocc(istat, iall, 'istdestarr', subname)
 
 irecv=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpidest=comom%comarr(4,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpidest) then
@@ -1663,7 +1663,7 @@ comom%nrecv=irecv
 
 isend=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpisource) then
@@ -1701,7 +1701,7 @@ type(matrixDescriptors),intent(in):: mad
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 real(8),dimension(norbmax,norbp),intent(inout):: vec
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 type(collective_comms),intent(in):: collcom
 type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
@@ -1897,7 +1897,7 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
   type(overlap_parameters_matrix),intent(in):: opm
-  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+  type(p2pComms),intent(inout):: comom
   real(8),intent(out):: trace
   type(collective_comms),intent(in):: collcom
   type(orthon_data),intent(in):: orthpar
@@ -2103,7 +2103,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, newComm
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
@@ -2111,7 +2111,7 @@ integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istd
 irecv=0
 !!comom%communComplete=.false.
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      istsource=comom%comarr(2,iorb,jproc)
      ncount=comom%comarr(3,iorb,jproc)
@@ -2135,7 +2135,7 @@ comom%nrecv=irecv
 
 isend=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      istsource=comom%comarr(2,iorb,jproc)
      ncount=comom%comarr(3,iorb,jproc)
@@ -2170,7 +2170,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: i, nsend, nrecv, ind, ierr
@@ -2222,7 +2222,7 @@ integer,dimension(norb),intent(in):: onWhichAtom, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: isorb_par
 real(8),dimension(norbmax,norbp),intent(in):: vec
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: ilrold, iiprocold, ist, ilr, iiproc, jjorb, jorb, iorb, jjproc, korb, ind, i, jjlr
@@ -2277,7 +2277,7 @@ integer,intent(in):: iproc, nproc, isorb, norbp, norbmax, noverlaps
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(p2pComms),intent(in):: comom
 real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
 
 ! Local variables
@@ -2326,7 +2326,7 @@ implicit none
 ! Calling arguments 
 integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(p2pComms),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,norbp),intent(in):: vec
@@ -2379,7 +2379,7 @@ implicit none
 ! Calling arguments 
 integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
 type(overlap_parameters_matrix),intent(in):: opm
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(p2pComms),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
@@ -2557,7 +2557,7 @@ real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
 integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
-type(p2pCommsOrthonormalityMatrix):: comom
+type(p2pComms):: comom
 type(overlap_parameters_matrix):: opm
 type(matrixMinimization):: matmin
 type(localizedDIISParameters):: ldiis
@@ -2578,7 +2578,7 @@ type(collective_comms):: collcom_vectors
   ! Allocate the local arrays.
   call allocateArrays()
 
-  call nullify_p2pCommsOrthonormalityMatrix(comom)
+  call nullify_p2pComms(comom)
   call nullify_overlap_parameters_matrix(opm)
 
   call determineLocalizationRegions(iproc, nproc, tmb%lzd%nlr, tmbig%orbs%norb, at, tmbig%orbs%inwhichlocreg, &
@@ -2858,7 +2858,8 @@ type(collective_comms):: collcom_vectors
   call deallocateArrays()
 
   ! Deallocate stuff which is not needed any more.
-  call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  !call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  call deallocate_p2pComms(comom, subname)
   call deallocate_overlap_parameters_matrix(opm, subname)
   call deallocate_matrixMinimization(matmin,subname)
 
