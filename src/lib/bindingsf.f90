@@ -561,15 +561,15 @@ subroutine localfields_new(self, denspotd, rhod, dpbox)
   dpbox => denspotd%dpbox
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
-subroutine localfields_get_data(denspotd, rhod, dpcom)
+subroutine localfields_get_data(denspotd, rhod, dpbox)
   use module_types
   implicit none
   type(DFT_local_fields), intent(in), target :: denspotd
-  type(denspot_distribution), pointer :: dpcom
+  type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
 
   rhod => denspotd%rhod
-  dpcom => denspotd%dpcom
+  dpbox => denspotd%dpbox
 END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd)
   use module_types
@@ -621,16 +621,17 @@ subroutine localfields_free(denspotd)
 
   deallocate(denspotd)
 END SUBROUTINE localfields_free
-subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
-  integer, intent(out) :: rhov_is
+  integer, intent(out) :: rhov_is, ni(3)
   real(gp), intent(out) :: hgrid(3)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
   hgrid = denspot%dpbox%hgrids
+  ni = denspot%dpbox%ndims
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 subroutine localfields_get_rhov(denspot, rhov)
@@ -704,11 +705,11 @@ subroutine localfields_full_density(denspot, rho_full, iproc, new)
   integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
 
   new = 0
-  nslice = max(denspot%dpcom%ndimpot, 1)
-  if (nslice < denspot%dpcom%ndimgrid) then
+  nslice = max(denspot%dpbox%ndimpot, 1)
+  if (nslice < denspot%dpbox%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        allocate(rho_full(denspot%dpcom%ndimgrid*denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+        allocate(rho_full(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
         call memocc(i_stat,rho_full,'rho_full',subname)
         new = 1
         
@@ -716,15 +717,15 @@ subroutine localfields_full_density(denspot, rho_full, iproc, new)
         call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
      end if
 
-     if (denspot%dpcom%ndimrhopot > 0) then
-        irhoxcsh = nslice / denspot%dpcom%n3p * denspot%dpcom%i3xcsh
+     if (denspot%dpbox%ndimrhopot > 0) then
+        irhoxcsh = nslice / denspot%dpbox%n3p * denspot%dpbox%i3xcsh
      else
         irhoxcsh = 0
      end if     
-     do irhodim = 1, denspot%dpcom%nrhodim, 1
+     do irhodim = 1, denspot%dpbox%nrhodim, 1
         call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
-             nslice,mpidtypd,rho_full(denspot%dpcom%ndimgrid * (irhodim - 1) + 1),&
-             denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2),&
+             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
              mpidtypd,0,MPI_COMM_WORLD,ierr)
      end do
   else
@@ -745,10 +746,10 @@ subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
   integer :: i_stat, ierr
 
   new = 0
-  if (denspot%dpcom%ndimpot < denspot%dpcom%ndimgrid) then
+  if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        allocate(pot_full(denspot%dpcom%ndimgrid+ndebug),stat=i_stat)
+        allocate(pot_full(denspot%dpbox%ndimgrid+ndebug),stat=i_stat)
         call memocc(i_stat,pot_full,'pot_full',subname)
         new = 1
       
@@ -756,9 +757,9 @@ subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
         call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
      end if
 
-     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpcom%ndimpot, 1),&
-          mpidtypd,pot_full(1),denspot%dpcom%ngatherarr(0,1),&
-          denspot%dpcom%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
+          mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
+          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
   else
      pot_full => denspot%rhov
   end if

@@ -558,7 +558,8 @@ static gpointer wf_optimization_thread(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
   
-  bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->in, ct->iproc, ct->nproc);
+  bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
+                                                ct->in, ct->iproc, ct->nproc);
   bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->iproc, ct->nproc);
   bigdft_wf_optimization_loop(ct->wf, ct->denspot, ct->proj, ct->energs,
                               ct->iproc, ct->nproc, (BigDFT_optLoopParams*)0);

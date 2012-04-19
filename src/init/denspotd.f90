@@ -13,8 +13,6 @@ subroutine initialize_DFT_local_fields(denspot)
   use module_types
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  !local variables
-  integer :: i
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
@@ -232,7 +230,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
-           allocate(full_dummy(denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+           allocate(full_dummy(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
            call memocc(i_stat,full_dummy,'full_dummy',subname)
            ! Gather density to iproc 0
            call localfields_full_density(denspot, full_dummy, iproc, new)

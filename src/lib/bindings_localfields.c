@@ -71,7 +71,6 @@ static void bigdft_localfields_dispose(GObject *obj)
     return;
   denspot->dispose_has_run = TRUE;
 
-  g_object_unref(G_OBJECT(denspot->glr));
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->dispose(obj);
 #endif
@@ -131,7 +130,6 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
-  g_object_ref(G_OBJECT(&lzd->parent));
 #else
   localfields = g_malloc(sizeof(BigDFT_LocalFields));
   memset(localfields, 0, sizeof(BigDFT_LocalFields));
@@ -139,22 +137,26 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
 #endif
   self = *((double*)&localfields);
   FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(&self, &localfields->data,
-                                             &localfields->rhod, &localfields->dpcom);
+                                             &localfields->rhod, &localfields->dpbox);
   FC_FUNC_(initialize_dft_local_fields, INITIALIZE_DFT_LOCAL_FIELDS)(localfields->data);
 
-  localfields->glr = &lzd->parent;
+  FC_FUNC_(dpbox_set_box, DPBOX_SET_BOX)(localfields->dpbox, lzd->data);
+  /* We get hgrids and ni. */
+  FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
+    (localfields->data, &localfields->rhov_is, localfields->h, localfields->ni,
+     &localfields->psoffset);
 
-  FC_FUNC_(dpbox_set_box, DPBOX_SET_BOX)(localfields->dpcom, lzd->data);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc, &nproc, lzd->parent.d, hh, hh + 1, hh + 2, in->data,
+    (&iproc, &nproc, lzd->parent.d, localfields->h, localfields->h + 1,
+     localfields->h + 2, in->data,
      lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
-     lzd->parent.radii, localfields->dpcom, localfields->rhod);
+     lzd->parent.radii, localfields->dpbox, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, lzd->parent.data,
                                           &in->nspin, lzd->parent.parent.data,
 					  lzd->parent.parent.rxyz.data,
                                           localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
-    (localfields->data, &localfields->rhov_is, localfields->h,
+    (localfields->data, &localfields->rhov_is, localfields->h, localfields->ni,
      &localfields->psoffset);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, rhov,  RHOV);
   GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_ext, V_EXT);
@@ -162,34 +164,29 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
   
   return localfields;
 }
-void FC_FUNC_(localfields_new_wrapper, LOCALFIELDS_NEW_WRAPPER)(double *self, void *obj,
-                                                                gpointer *wf_)
+void FC_FUNC_(localfields_new_wrapper, LOCALFIELDS_NEW_WRAPPER)(double *self, void *obj)
 {
   BigDFT_LocalFields *localfields;
-  BigDFT_Wf *wf = BIGDFT_WF(*wf_);
 
-  localfields = bigdft_localfields_new_from_fortran(obj, BIGDFT_LOCREG(wf->lzd));
+  localfields = bigdft_localfields_new_from_fortran(obj);
   *self = *((double*)&localfields);
 }
-BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj, BigDFT_LocReg *glr)
+BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj)
 {
   BigDFT_LocalFields *localfields;
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
-  g_object_ref(G_OBJECT(glr));
 #else
   localfields = g_malloc(sizeof(BigDFT_Localfields));
   bigdft_localfields_init(localfields);
 #endif
   localfields->data = obj;
   FC_FUNC_(localfields_get_data, LOCALFIELDS_GET_DATA)
-    (localfields->data, &localfields->rhod, &localfields->dpcom);
-
-  localfields->glr = glr;
+    (localfields->data, &localfields->rhod, &localfields->dpbox);
 
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
-    (localfields->data, &localfields->rhov_is, localfields->h,
+    (localfields->data, &localfields->rhov_is, localfields->h, localfields->ni,
      &localfields->psoffset);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, rhov,  RHOV);
   GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_ext, V_EXT);
@@ -217,26 +214,28 @@ void bigdft_localfields_free(BigDFT_LocalFields *denspot)
 #endif
 }
 void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
+                                               const BigDFT_Lzd *lzd,
                                                const BigDFT_Inputs *in,
                                                guint iproc, guint nproc)
 {
   int verb = 0;
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &localfields->glr->parent.geocode, localfields->glr->d,
+    (&iproc, &nproc, &verb, &lzd->parent.parent.geocode, lzd->parent.d,
      in->data, localfields->data);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
 }
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
+                                                   const BigDFT_Lzd *lzd,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc)
 {
   int verb = 0;
   
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
-    (&iproc, &nproc, &verb, in->data, denspot->glr->parent.data, denspot->glr->parent.rxyz.data,
-     denspot->glr->parent.shift, denspot->glr->data, denspot->h, denspot->h + 1, denspot->h + 2,
-     denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
+    (&iproc, &nproc, &verb, in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+     lzd->parent.parent.shift, lzd->parent.data, denspot->h, denspot->h + 1, denspot->h + 2,
+     denspot->dpbox, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
 }

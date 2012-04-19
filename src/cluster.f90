@@ -351,7 +351,7 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
         call energs_new_wrapper(energs%c_obj, energs)
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
-        call localfields_new_wrapper(denspot%c_obj, denspot, KSwfn%c_obj)
+        call localfields_new_wrapper(denspot%c_obj, denspot)
         call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
         call bigdft_signals_start(gmainloop, in%signalTimeout)
      else

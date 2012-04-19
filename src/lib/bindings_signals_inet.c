@@ -83,7 +83,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
       if (answer.id == BIGDFT_SIGNAL_ANSWER_DONE)
         return;
   
-      s = localfields->glr->ni[0] * localfields->glr->ni[1] * localfields->glr->ni[2];
+      s = localfields->ni[0] * localfields->ni[1] * localfields->ni[2];
       /* We send the size of the data to send. */
       sizeData[0] = s;
       sizeData[1] = PACKET_SIZE;
@@ -514,7 +514,7 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
       sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
       connect = g_socket_connect(socket, sockaddr, cancellable, error);
       /* g_print(" | try to connect to '%s' -> %d.\n", */
-              g_inet_address_to_string((GInetAddress*)tmp->data), connect);
+              /* g_inet_address_to_string((GInetAddress*)tmp->data), connect); */
       if (!connect)
         {
           g_warning("%s", (*error)->message);

@@ -432,31 +432,31 @@ struct BigDFT_LocalFields_
   BigDFT_RhoIs rhov_is;
   double psoffset;
   double h[3];
+  guint ni[3];
 
   /* Additional pointers. */
   double *rhov, *v_ext, *v_xc;
   /* TODO, see when these are associated. */
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
-  /* Pointers on building objects. */
-  const BigDFT_LocReg *glr;
-
   /* Private. */
   double *pkernel, *pkernelseq;
   void *rhod;
-  void *dpcom;
+  void *dpbox;
   void *data;
 };
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                             const BigDFT_Inputs *in,
                                             guint iproc, guint nproc);
-BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj, BigDFT_LocReg *glr);
+BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
+                                               const BigDFT_Lzd *lzd,
                                                const BigDFT_Inputs *in,
                                                guint iproc, guint nproc);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
+                                                   const BigDFT_Lzd *lzd,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc);
 void bigdft_localfields_emit_rhov(BigDFT_LocalFields *denspot, guint istep);
