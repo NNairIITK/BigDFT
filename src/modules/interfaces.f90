@@ -6790,6 +6790,28 @@ module module_interfaces
           type(p2pComms),intent(out):: comon
         end subroutine set_comms_ortho
 
+        subroutine nullify_overlap_parameters_matrix(opm)
+          use module_base
+          use module_types
+          implicit none
+          type(overlap_parameters_matrix),intent(inout):: opm
+        end subroutine nullify_overlap_parameters_matrix
+
+        subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
+          use module_base
+          use module_types
+          implicit none
+          type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+        end subroutine nullify_p2pCommsOrthonormalityMatrix
+
+        subroutine deallocate_overlap_parameters_matrix(opm, subname)
+          use module_base
+          use module_types
+          implicit none
+          type(overlap_parameters_matrix),intent(inout):: opm
+          character(len=*),intent(in):: subname
+        end subroutine deallocate_overlap_parameters_matrix
+
    end interface
 
 END MODULE module_interfaces

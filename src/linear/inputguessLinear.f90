@@ -1135,7 +1135,6 @@ end do
 
 
 
-call mpi_barrier(mpi_comm_world, ierr)
 
 
 if(imat/=nlocregPerMPI .and. nproc >1) then
@@ -2551,6 +2550,7 @@ integer:: norbtot, isx, iiiat
 integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
+type(overlap_parameters_matrix):: opm
 type(matrixMinimization):: matmin
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
@@ -2569,6 +2569,9 @@ type(collective_comms):: collcom_vectors
 
   ! Allocate the local arrays.
   call allocateArrays()
+
+  call nullify_p2pCommsOrthonormalityMatrix(comom)
+  call nullify_overlap_parameters_matrix(opm)
 
   call determineLocalizationRegions(iproc, nproc, tmb%lzd%nlr, tmbig%orbs%norb, at, tmbig%orbs%inwhichlocreg, &
        input%lin%locrad, locregCenter, tmb%lzd, tmbig%lzd, hx, hy, hz, matmin%mlr)
@@ -2848,6 +2851,7 @@ type(collective_comms):: collcom_vectors
 
   ! Deallocate stuff which is not needed any more.
   call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  call deallocate_overlap_parameters_matrix(opm, subname)
   call deallocate_matrixMinimization(matmin,subname)
 
   iall=-product(shape(lcoeff))*kind(lcoeff)

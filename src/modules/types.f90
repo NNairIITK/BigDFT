@@ -586,6 +586,14 @@ module module_types
       integer,dimension(:),pointer:: indexInGlobal
   end type matrixLocalizationRegion
 
+
+  type,public:: overlap_parameters_matrix
+      integer,dimension(:),pointer:: noverlap
+      integer,dimension(:,:),pointer:: overlaps
+      integer,dimension(:,:,:),pointer:: olrForExpansion
+      type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
+  end type overlap_parameters_matrix
+
   type,public:: p2pCommsOrthonormalityMatrix
       integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
