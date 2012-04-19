@@ -3395,7 +3395,7 @@ module module_interfaces
 
      subroutine orthonormalizeVectors(iproc, nproc, comm, nItOrtho, methTransformOverlap, &
                 orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, &
-                mad, mlr, vec, comom, collcom, orthpar, bpo)
+                mad, mlr, vec, opm, comom, collcom, orthpar, bpo)
        use module_base
        use module_types
        implicit none
@@ -3407,6 +3407,7 @@ module module_interfaces
        type(matrixDescriptors),intent(in):: mad
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        real(8),dimension(norbmax,norbp),intent(inout):: vec
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
@@ -3416,20 +3417,20 @@ module module_interfaces
 
 
 
-     subroutine initCommsMatrixOrtho(iproc, nproc, norb, norb_par, isorb_par, onWhichAtomPhi, onWhichMPI, tag, comom)
+     subroutine initCommsMatrixOrtho(iproc, nproc, norb, norb_par, isorb_par, onWhichAtomPhi, onWhichMPI, opm, comom)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, norb
        integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
        integer,dimension(nproc),intent(in):: norb_par, isorb_par
-       integer,intent(inout):: tag
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
      end subroutine initCommsMatrixOrtho
 
 
 
-     subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom)
+     subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom, opm)
        use module_base
        use module_types
        implicit none
@@ -3440,6 +3441,7 @@ module module_interfaces
        integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
        type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
        type(p2pCommsOrthonormalityMatrix),intent(out):: comom
+       type(overlap_parameters_matrix),intent(out):: opm
      end subroutine determineOverlapRegionMatrix
 
 
@@ -3461,7 +3463,7 @@ module module_interfaces
      end subroutine gatherVectors
 
 
-     subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+     subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, opm, comom)
        use module_base
        use module_types
        implicit none
@@ -3469,28 +3471,31 @@ module module_interfaces
        integer,dimension(norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
        real(8),dimension(norbmax,norbp),intent(in):: vec
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
      end subroutine extractToOverlapregion
 
 
 
-     subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+     subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, opm, comom, norbmax, noverlaps, vecOvrlp)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, isorb, norbp, norbmax, noverlaps
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(in):: comom
        real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
      end subroutine expandFromOverlapregion
 
-     subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr,&
+     subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, opm, comom, mlr,&
                 onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(in):: comom
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        integer,dimension(norb),intent(in):: onWhichAtom
@@ -3500,12 +3505,13 @@ module module_interfaces
      end subroutine calculateOverlap
 
 
-     subroutine orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom,&
-               vecOvrlp, ovrlp, vec)
+     subroutine orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, opm, comom, &
+               mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(in):: comom
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        integer,dimension(norb),intent(in):: onWhichAtom
@@ -3542,7 +3548,7 @@ module module_interfaces
 
      subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
                 orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, &
-                comom, trace, collcom, orthpar, bpo)
+                opm, comom, trace, collcom, orthpar, bpo)
        use module_base
        use module_types
        implicit none
@@ -3554,6 +3560,7 @@ module module_interfaces
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        type(matrixDescriptors),intent(in):: mad
        real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
+       type(overlap_parameters_matrix),intent(in):: opm
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
        real(8),intent(out):: trace
        type(collective_comms),intent(in):: collcom
