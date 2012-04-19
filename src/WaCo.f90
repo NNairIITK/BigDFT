@@ -1052,20 +1052,20 @@ program WaCo
                  allocate(lwann(ldim),stat=i_stat)
                  call memocc(i_stat,lwann,'lwann',subname)
                 !DEBUG
-                 call plot_wf(trim(seedname)//'_'//num,1,atoms,1.0d0,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz,wann)
-                 call wpdot_wrap(1,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                  Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,&
-                                  Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                  Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,Gnorm)
+                 !call plot_wf(trim(seedname)//'_'//num,1,atoms,1.0d0,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz,wann)
+                 !call wpdot_wrap(1,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                 !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,&
+                 !                 Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                 !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,Gnorm)
                 !END DEBUG
                  call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
                 !DEBUG
-                 call wpdot_wrap(1,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
-                                  Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
-                                  Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
-                                  Lzd%Llr(iwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
-                                  Lnorm)
-                 print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
+                 !call wpdot_wrap(1,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
+                 !                 Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
+                 !                 Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
+                 !                 Lzd%Llr(iwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
+                 !                 Lnorm)
+                 !print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
                  !call to_zero(gdim,wann(1))
                  !call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
                  !Put it in interpolating scaling functions
@@ -1105,7 +1105,7 @@ program WaCo
            end if
         end if
      end do  ! closing loop on iwann
-stop
+!stop
      !Now if linear, write the coefficients
      if(linear .and. iproc == 0)then
         ! First construct the appropriate coefficient matrix
@@ -1138,91 +1138,91 @@ stop
 
 
 !DEBUG WRITE AND READ OF LINEAR WAVEFUNCTIONS
-! Fake TMB orbs
-  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
-       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
-  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
-
-! First must initialize Lzd (must contain Glr and hgrids)
-  call nullify_local_zone_descriptors(Lzd)
-  call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
-  lzd%hgrids(1)=input%hx
-  lzd%hgrids(2)=input%hy
-  lzd%hgrids(3)=input%hz
-
-! Then allocate some stuff
-  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
-
-  call initialize_linear_from_file(iproc,nproc,'minBasis',WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
-
-
-  do ilr=1,Lzd%nlr
-     if (iproc == 0) then
-        write(*,*)'Description of zone:',ilr
-        write(*,*)'ns:',Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3
-        write(*,*)'ne:',Lzd%Llr(ilr)%ns1+Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%ns2+Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%ns3+Lzd%Llr(ilr)%d%n3
-        write(*,*)'n:',Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3
-        write(*,*)'nfl:',Lzd%Llr(ilr)%d%nfl1,Lzd%Llr(ilr)%d%nfl2,Lzd%Llr(ilr)%d%nfl3
-        write(*,*)'nfu:',Lzd%Llr(ilr)%d%nfu1,Lzd%Llr(ilr)%d%nfu2,Lzd%Llr(ilr)%d%nfu3
-        write(*,*)'ni:',Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i
-        write(*,*)'outofzone',ilr,':',Lzd%Llr(ilr)%outofzone(:)
-        write(*,*)'center: ',(Lzd%Llr(ilr)%locregCenter(i),i=1,3)
-        write(*,*)'locrad: ',Lzd%Llr(ilr)%locrad
-        write(*,*)'wfd dimensions: ',Lzd%Llr(ilr)%wfd%nseg_c, Lzd%Llr(ilr)%wfd%nseg_f, Lzd%Llr(ilr)%wfd%nvctr_c,&
-                   Lzd%Llr(ilr)%wfd%nvctr_f
-     end if
-  end do
-
-  call wavefunction_dimension(Lzd,wannorbs)
-  !npsidim = 0
-  !do iorb=1,orbs%norbp
-  !   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  !   npsidim = nspidim + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
-  !end do
-
-  allocate(psi2(wannorbs%npsidim_orbs),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
-  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
-  allocate(coeff(nbandCon,wannorbs%norb),stat=i_stat)
-  call memocc(i_stat,coeff,'coeff',subname)
- 
-  print *,'before reading the TMBs'
-  call readmywaves_linear(iproc,'minBasis',WF_FORMAT_BINARY,nbandCon,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
-    psi2,coeff)
-  print *,'after reading the TMBs', sum(psi2)
-
-  print *,'The coefficients are:'
-  do i_all = 1, nbandCon
-    do ilr=1,wannorbs%norb
-       print *,'coeff',i_all, ilr, coeff(ilr,i_all)
-    end do
-  end do
-  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-  deallocate(rxyz_old,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_old',subname)
-
-  indL = 1
-  do iwann = 1, wannorbs%norb
-     write(num,'(i4.4)') iwann
-     ilr = wannorbs%inwhichlocreg(iwann)
-     ldim = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
-     gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
-     !allocate(wann(gdim),stat=i_stat)
-     !call memocc(i_stat,lwann,'lwann',subname)
-     call to_zero(gdim,wann(1))
-     call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
-          psi2(indL), wann(1))
-     indL = indL + ldim
-     !Put it in interpolating scaling functions
-     call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
-     call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
-     !i_all = -product(shape(wann))*kind(wann)
-     !deallocate(wann,stat=i_stat)
-     !call memocc(i_stat,i_all,'lwann',subname)
-  end do
-
+!!! Fake TMB orbs
+!!  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
+!!       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
+!!  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
+!!
+!!! First must initialize Lzd (must contain Glr and hgrids)
+!!  call nullify_local_zone_descriptors(Lzd)
+!!  call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+!!  lzd%hgrids(1)=input%hx
+!!  lzd%hgrids(2)=input%hy
+!!  lzd%hgrids(3)=input%hz
+!!
+!!! Then allocate some stuff
+!!  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+!!  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+!!
+!!  call initialize_linear_from_file(iproc,nproc,'minBasis',WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
+!!
+!!
+!!  do ilr=1,Lzd%nlr
+!!     if (iproc == 0) then
+!!        write(*,*)'Description of zone:',ilr
+!!        write(*,*)'ns:',Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3
+!!        write(*,*)'ne:',Lzd%Llr(ilr)%ns1+Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%ns2+Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%ns3+Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'n:',Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3
+!!        write(*,*)'nfl:',Lzd%Llr(ilr)%d%nfl1,Lzd%Llr(ilr)%d%nfl2,Lzd%Llr(ilr)%d%nfl3
+!!        write(*,*)'nfu:',Lzd%Llr(ilr)%d%nfu1,Lzd%Llr(ilr)%d%nfu2,Lzd%Llr(ilr)%d%nfu3
+!!        write(*,*)'ni:',Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i
+!!        write(*,*)'outofzone',ilr,':',Lzd%Llr(ilr)%outofzone(:)
+!!        write(*,*)'center: ',(Lzd%Llr(ilr)%locregCenter(i),i=1,3)
+!!        write(*,*)'locrad: ',Lzd%Llr(ilr)%locrad
+!!        write(*,*)'wfd dimensions: ',Lzd%Llr(ilr)%wfd%nseg_c, Lzd%Llr(ilr)%wfd%nseg_f, Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!                   Lzd%Llr(ilr)%wfd%nvctr_f
+!!     end if
+!!  end do
+!!
+!!  call wavefunction_dimension(Lzd,wannorbs)
+!!  !npsidim = 0
+!!  !do iorb=1,orbs%norbp
+!!  !   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!  !   npsidim = nspidim + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!!  !end do
+!!
+!!  allocate(psi2(wannorbs%npsidim_orbs),stat=i_stat)
+!!  call memocc(i_stat,psi,'psi',subname)
+!!  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
+!!  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
+!!  allocate(coeff(nbandCon,wannorbs%norb),stat=i_stat)
+!!  call memocc(i_stat,coeff,'coeff',subname)
+!! 
+!!  print *,'before reading the TMBs'
+!!  call readmywaves_linear(iproc,'minBasis',WF_FORMAT_BINARY,nbandCon,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
+!!    psi2,coeff)
+!!  print *,'after reading the TMBs', sum(psi2)
+!!
+!!  print *,'The coefficients are:'
+!!  do i_all = 1, nbandCon
+!!    do ilr=1,wannorbs%norb
+!!       print *,'coeff',i_all, ilr, coeff(ilr,i_all)
+!!    end do
+!!  end do
+!!  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
+!!  deallocate(rxyz_old,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz_old',subname)
+!!
+!!  indL = 1
+!!  do iwann = 1, wannorbs%norb
+!!     write(num,'(i4.4)') iwann
+!!     ilr = wannorbs%inwhichlocreg(iwann)
+!!     ldim = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
+!!     gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+!!     !allocate(wann(gdim),stat=i_stat)
+!!     !call memocc(i_stat,lwann,'lwann',subname)
+!!     call to_zero(gdim,wann(1))
+!!     call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
+!!          psi2(indL), wann(1))
+!!     indL = indL + ldim
+!!     !Put it in interpolating scaling functions
+!!     call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
+!!     call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+!!     !i_all = -product(shape(wann))*kind(wann)
+!!     !deallocate(wann,stat=i_stat)
+!!     !call memocc(i_stat,i_all,'lwann',subname)
+!!  end do
+!!
 !END DEBUG
 
      if(linear)then
