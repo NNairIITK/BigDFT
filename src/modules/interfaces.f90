@@ -4281,13 +4281,13 @@ module module_interfaces
     !!  character(len=*),intent(in):: subname
     !!end subroutine deallocate_inguessParameters
 
-    subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
-      use module_base
-      use module_types
-      implicit none
-      type(p2pComms),intent(inout):: comom
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_p2pCommsOrthonormalityMatrix
+    !!subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(p2pComms),intent(inout):: comom
+    !!  character(len=*),intent(in):: subname
+    !!end subroutine deallocate_p2pCommsOrthonormalityMatrix
 
     subroutine deallocate_matrixDescriptors(mad, subname)
       use module_base
@@ -6804,12 +6804,12 @@ module module_interfaces
           type(overlap_parameters_matrix),intent(inout):: opm
         end subroutine nullify_overlap_parameters_matrix
 
-        subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
-          use module_base
-          use module_types
-          implicit none
-          type(p2pComms),intent(inout):: comom
-        end subroutine nullify_p2pCommsOrthonormalityMatrix
+        !!subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  type(p2pComms),intent(inout):: comom
+        !!end subroutine nullify_p2pCommsOrthonormalityMatrix
 
         subroutine deallocate_overlap_parameters_matrix(opm, subname)
           use module_base

@@ -1325,47 +1325,47 @@ subroutine deallocate_overlapParameters(op, subname)
 
 end subroutine deallocate_overlapParameters
 
-subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_p2pCommsOrthonormalityMatrix
-  implicit none
-  
-  ! Calling arguments
-  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
-  character(len=*),intent(in):: subname
-
-  ! Local variables
-  integer:: iis1, iis2, iie1, iie2, i1, i2
-
-  call checkAndDeallocatePointer(comom%noverlap, 'comom%noverlap', subname)
-  !!call checkAndDeallocatePointer(comom%noverlapProc, 'comom%noverlapProc', subname)
-  call checkAndDeallocatePointer(comom%overlaps, 'comom%overlaps', subname)
-  !!call checkAndDeallocatePointer(comom%indexInRecvBuf, 'comom%indexInRecvBuf', subname)
-  !!call checkAndDeallocatePointer(comom%overlapsProc, 'comom%overlapsProc', subname)
-  call checkAndDeallocatePointer(comom%comarr, 'comom%comarr', subname)
-  !call checkAndDeallocatePointer(comom%olrForExpansion, 'comom%olrForExpansion', subname)
-  call checkAndDeallocatePointer(comom%recvBuf, 'comom%recvBuf', subname)
-  call checkAndDeallocatePointer(comom%sendBuf, 'comom%sendBuf', subname)
-  !!call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
-  call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
-
-  !if(associated(comom%olr)) then
-  !    iis1=lbound(comom%olr,1)
-  !    iie1=ubound(comom%olr,1)
-  !    iis2=lbound(comom%olr,2)
-  !    iie2=ubound(comom%olr,2)
-  !    do i2=iis2,iie2
-  !        do i1=iis1,iie1
-  !            call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
-  !        end do
-  !    end do
-  !    deallocate(comom%olr)
-  !    nullify(comom%olr)
-  !end if
-
-end subroutine deallocate_p2pCommsOrthonormalityMatrix
+!!subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+!!  use module_base
+!!  use module_types
+!!  use deallocatePointers
+!!  use module_interfaces, exceptThisOne => deallocate_p2pCommsOrthonormalityMatrix
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+!!  character(len=*),intent(in):: subname
+!!
+!!  ! Local variables
+!!  integer:: iis1, iis2, iie1, iie2, i1, i2
+!!
+!!  call checkAndDeallocatePointer(comom%noverlap, 'comom%noverlap', subname)
+!!  !!call checkAndDeallocatePointer(comom%noverlapProc, 'comom%noverlapProc', subname)
+!!  call checkAndDeallocatePointer(comom%overlaps, 'comom%overlaps', subname)
+!!  !!call checkAndDeallocatePointer(comom%indexInRecvBuf, 'comom%indexInRecvBuf', subname)
+!!  !!call checkAndDeallocatePointer(comom%overlapsProc, 'comom%overlapsProc', subname)
+!!  call checkAndDeallocatePointer(comom%comarr, 'comom%comarr', subname)
+!!  !call checkAndDeallocatePointer(comom%olrForExpansion, 'comom%olrForExpansion', subname)
+!!  call checkAndDeallocatePointer(comom%recvBuf, 'comom%recvBuf', subname)
+!!  call checkAndDeallocatePointer(comom%sendBuf, 'comom%sendBuf', subname)
+!!  !!call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
+!!  call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
+!!
+!!  !if(associated(comom%olr)) then
+!!  !    iis1=lbound(comom%olr,1)
+!!  !    iie1=ubound(comom%olr,1)
+!!  !    iis2=lbound(comom%olr,2)
+!!  !    iie2=ubound(comom%olr,2)
+!!  !    do i2=iis2,iie2
+!!  !        do i1=iis1,iie1
+!!  !            call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
+!!  !        end do
+!!  !    end do
+!!  !    deallocate(comom%olr)
+!!  !    nullify(comom%olr)
+!!  !end if
+!!
+!!end subroutine deallocate_p2pCommsOrthonormalityMatrix
 
 
 subroutine deallocate_matrixDescriptors(mad, subname)

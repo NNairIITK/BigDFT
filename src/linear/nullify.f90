@@ -394,21 +394,21 @@ subroutine nullify_overlap_parameters_matrix(opm)
 end subroutine nullify_overlap_parameters_matrix
 
 
-subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
-
-  !!nullify(comom%noverlapProc)
-  nullify(comom%noverlap)
-  nullify(comom%overlaps)
-  nullify(comom%requests)
-  nullify(comom%comarr)
-  nullify(comom%recvBuf)
-  nullify(comom%sendBuf)
-  !!nullify(comom%olr)
-
-end subroutine nullify_p2pCommsOrthonormalityMatrix
+!!subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+!!
+!!  !!nullify(comom%noverlapProc)
+!!  nullify(comom%noverlap)
+!!  nullify(comom%overlaps)
+!!  nullify(comom%requests)
+!!  nullify(comom%comarr)
+!!  nullify(comom%recvBuf)
+!!  nullify(comom%sendBuf)
+!!  !!nullify(comom%olr)
+!!
+!!end subroutine nullify_p2pCommsOrthonormalityMatrix
