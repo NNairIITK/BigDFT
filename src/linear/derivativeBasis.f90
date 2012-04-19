@@ -300,7 +300,7 @@ type(p2pComms),intent(out):: comrp
 
 ! Local variables
 integer:: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
-integer:: isend, irecv
+integer:: isend, irecv, p2p_tag
 integer,dimension(:,:,:),allocatable:: move
 character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 
@@ -360,7 +360,8 @@ do jproc=0,nproc-1
             klr=llborbs%inWhichLocreg(korb+llborbs%isorb_par(mpidest))
             istdest=istdest+lzd%llr(klr)%wfd%nvctr_c+7*lzd%llr(klr)%wfd%nvctr_f
         end do
-        tag=tag+1
+        !tag=tag+1
+        tag=p2p_tag(jproc)
         !write(*,'(7(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag
         if(iproc==mpisource) then
             isend=isend+1
@@ -388,6 +389,8 @@ iall=-product(shape(move))*kind(move)
 deallocate(move, stat=istat)
 call memocc(istat, iall, 'move', subname)
 
+! To indicate that to communication has been started
+comrp%communication_complete=.true.
 
 end subroutine initializeRepartitionOrbitals
 

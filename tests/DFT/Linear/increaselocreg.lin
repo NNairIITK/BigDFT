@@ -1,6 +1,6 @@
 4  1                   iterations with low accuracy, high accuracy
 6  9                   iterations to optimize the basis functions for low accuracy and high accuracy
--1  1.0d0  1.0d-3      iterations in the inner loop, convergence criterion
+-1  1.0d0  1.d-3  1.d-3 iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy
 0  6  5.d-1  5.d-1     DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
 5                      number of iterations in the preconditioner
 s                      cubic ('c') or spheric ('s') localization region
@@ -22,5 +22,6 @@ T                      transform to global orbitals in the end (T/F)
 F                      mixed mode (without and with derivatives)
 0                      confinement_decrease_mode: 0=linear, 1=abrupt
 .6d0  .1d0             decrease_amount, decrease_step
+3  1.d0                increase locrad after n steps, amount that locrad is increased
 C 4 1.0d-3 0.0d-4 3.5 6.0    number of basis functions per atom, prefactor for confinement potential, localization radius
 H 1 1.0d-3 0.0d-4 3.5 6.0    number of basis functions per atom, prefactor for confinement potential, localization radius

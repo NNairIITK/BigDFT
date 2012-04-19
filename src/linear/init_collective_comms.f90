@@ -582,13 +582,13 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
    jprocdone=jproc
    do jproc=jprocdone,nproc-1
       ! these processes do nothing
-      istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
-      istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+      istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
+      istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
       if(iproc==jproc) then
-          weightp_f=0.d0
-          nptsp_f=0
-          istartp_seg_f=lzd%glr%wfd%nseg_f+1
-          iendp_seg_f=lzd%glr%wfd%nseg_f
+          weightp_c=0.d0
+          nptsp_c=0
+          istartp_seg_c=lzd%glr%wfd%nseg_c+1
+          iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
    end do
   !!if(iproc==nproc-1) then
