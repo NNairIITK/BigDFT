@@ -1448,13 +1448,14 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   call to_zero(3*orbs%norb,locregCenter(1,1))
   call to_zero(orbs%norb,locrad(1))
   call to_zero(orbs%norb,confPotprefac(1))
+  consistent = .false.
 
   ! First read the headers (reading is distributed) and then the information is communicated to all procs.
   ! Then each proc generates a group of lrs that are communicated to all others.
   if (iformat == WF_FORMAT_ETSF) then
      stop 'Linear scaling with ETSF writing not implemented yet'
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     do iorb=1,orbs%norbp!*orbs%nspinor
+     loop_iorb: do iorb=1,orbs%norbp!*orbs%nspinor
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
@@ -1476,12 +1477,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                 rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
            if(.not. consistent) then
              write(*,*) 'Inconsistency in file, iorb=',iorb_out
-             call mpi_finalize(ierr)
-             stop
+             exit loop_iorb
            end if
            confPotOrder_old = confPotOrder
         end do
-     end do
+     end do loop_iorb
+     call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+     if(.not. consistent) then
+       call mpi_finalize(ierr)
+       stop
+     end if
   else
      write(0,*) "Unknown wavefunction file format from filename."
      stop
