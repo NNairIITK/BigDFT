@@ -399,7 +399,8 @@ guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guin
 
   return nelec;
 }
-void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT_Proj *proj,
+void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                              BigDFT_Proj *proj, BigDFT_Energs *energs,
                               guint iproc, guint nproc)
 {
   int inputpsi, norbv;
@@ -411,7 +412,7 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT
                                BIGDFT_ATOMS(wf->lzd)->data,
                                BIGDFT_ATOMS(wf->lzd)->rxyz.data,
                                denspot->data, proj->nlpspd, &proj->proj,
-                               wf->data, &inputpsi, &norbv,
+                               wf->data, energs->data, &inputpsi, &norbv,
                                (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
                                (void*)0, (void*)0);
   FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
@@ -454,9 +455,8 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc)
 {
-  guint i, n, ispinor_, nspin, orbSize;
+  guint ispinor_, orbSize;
   int iorbp, jproc;
-  double *psic;
 
   *psiSize = 0;
   if (ispin == BIGDFT_SPIN_DOWN && wf->parent.norbd == 0)
@@ -483,7 +483,7 @@ gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb
                                      BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                      guint iproc, gdouble *psic, guint psiSize)
 {
-  guint i, n, ispinor_, nspin, orbSize;
+  guint ispinor_, orbSize;
   int iorbp, jproc;
 
   if (ispin == BIGDFT_SPIN_DOWN && wf->parent.norbd == 0)
@@ -558,9 +558,11 @@ static gpointer wf_optimization_thread(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
   
+  bigdft_localfields_create_poisson_kernels(ct->denspot, ct->wf->lzd,
+                                            ct->in, ct->iproc, ct->nproc);
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
                                                 ct->in, ct->iproc, ct->nproc);
-  bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->iproc, ct->nproc);
+  bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->energs, ct->iproc, ct->nproc);
   bigdft_wf_optimization_loop(ct->wf, ct->denspot, ct->proj, ct->energs,
                               ct->iproc, ct->nproc, (BigDFT_optLoopParams*)0);
 #ifdef HAVE_GLIB

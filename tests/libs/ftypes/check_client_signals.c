@@ -316,7 +316,7 @@ static void onDensityReady(BigDFT_LocalFields *denspot, guint iter, gpointer dat
   g_print("Get density at iter %d.\n", iter);
 
   dens = 0.;
-  for (i = 0; i < denspot->glr->ni[0] * denspot->glr->ni[1] * denspot->glr->ni[2]; i++)
+  for (i = 0; i < denspot->ni[0] * denspot->ni[1] * denspot->ni[2]; i++)
     dens += denspot->rhov[i];
   dens *= denspot->h[0] * denspot->h[1] * denspot->h[2];
   g_print(" Density calculated by C is %16.16f.\n", dens);  
@@ -372,7 +372,7 @@ int main(int argc, const char **argv)
   g_signal_connect(G_OBJECT(energs), "eks-ready",
                    G_CALLBACK(onEKSReady), (gpointer)0);
 
-  denspot = bigdft_localfields_new(BIGDFT_LOCREG(wf->lzd), in, 0, 1);
+  denspot = bigdft_localfields_new(BIGDFT_LZD(wf->lzd), in, 0, 1);
   g_signal_connect(G_OBJECT(denspot), "density-ready",
                    G_CALLBACK(onDensityReady), (gpointer)0);
 

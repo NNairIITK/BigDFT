@@ -81,6 +81,8 @@ void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
                                             double frmult, double projrad);
+void          bigdft_atoms_write           (const BigDFT_Atoms *atoms,
+                                            const gchar *filename);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -335,7 +337,8 @@ BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                    BigDFT_Proj *proj, guint iproc, guint nproc);
+                                    BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                    guint iproc, guint nproc);
 guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                        BigDFT_Proj *proj, BigDFT_Energs *energs,
                                        guint iproc, guint nproc, BigDFT_optLoopParams *params);
@@ -513,6 +516,8 @@ typedef enum
     BIGDFT_SIGNALS_INET
   } BigDFT_SignalModes;
 #ifdef GLIB_MAJOR_VERSION
+#include <gio/gio.h>
+
 GSocket* bigdft_signals_client_new(const gchar *hostname,
                                    GCancellable *cancellable, GError **error);
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,

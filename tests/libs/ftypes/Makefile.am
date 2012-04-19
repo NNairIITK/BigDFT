@@ -13,7 +13,7 @@ check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I
 check_client_signals_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 EXTRA_DIST = bindings.out.ref signals.out.ref posinp.ascii test.dft
-CLEANFILES = bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf
+CLEANFILES = bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf signals.out signals.report time.yaml
 
 check: bindings.report signals.report
 

@@ -238,4 +238,6 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
      lzd->parent.parent.shift, lzd->parent.data, denspot->h, denspot->h + 1, denspot->h + 2,
      denspot->dpbox, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
+  
+  bigdft_localfields_emit_v_ext(denspot);
 }
