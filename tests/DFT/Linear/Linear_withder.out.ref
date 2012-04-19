@@ -244,19 +244,19 @@ done.
    locreg 2...  Hamiltonian application...done.
    locreg 3...  Hamiltonian application...done.
    locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
-   locreg 6...  Hamiltonian application...done.
-   locreg 7...  Hamiltonian application...done.
+   locreg 5... done.
+   locreg 6... done.
+   locreg 7... done.
    locreg 8...  Hamiltonian application...done.
    locreg 9...  Hamiltonian application...done.
    locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
-   locreg 12...  Hamiltonian application...done.
-   locreg 13...  Hamiltonian application...done.
+   locreg 11... done.
+   locreg 12... done.
+   locreg 13... done.
    locreg 14...  Hamiltonian application...done.
-   locreg 15...  Hamiltonian application...done.
-   locreg 16...  Hamiltonian application...done.
-   locreg 17...  Hamiltonian application...done.
+   locreg 15... done.
+   locreg 16... done.
+   locreg 17... done.
    locreg 18...  Hamiltonian application...done.
    locreg 19...  Hamiltonian application...done.
    locreg 20...  Hamiltonian application...done.
@@ -929,7 +929,7 @@ max deviation from unity, position:  2.922038E-04  6  7
  total average noise            :   1.22637653E-02
  clean forces norm (Ha/Bohr): maxval=  1.151099072934E-01  fnrm2=  2.007942659769E-02
  raw forces:                  maxval=  1.142017194882E-01  fnrm2=  2.024178381031E-02
- CPU time/ELAPSED time for root process     0        24.69        24.65
+ CPU time/ELAPSED time for root process     0        26.88        26.73
  Final values of the Forces for each atom
      1      C -3.17602E-03 -3.67291E-02 -2.90275E-02
      2      C -1.13624E-03  1.13158E-01 -2.10764E-02
@@ -943,6 +943,6 @@ max deviation from unity, position:  2.922038E-04  6  7
     10      H -3.48845E-03 -2.82021E-03  1.12700E-02
     11      H  4.41406E-04 -2.13668E-02 -4.07279E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 39175 allocations and 39175 deallocations, remaining memory(B): 0
+ 38256 allocations and 38256 deallocations, remaining memory(B): 0
  memory occupation peak: 69 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

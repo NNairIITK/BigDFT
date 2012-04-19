@@ -242,13 +242,13 @@ done.
    locreg 2...  Hamiltonian application...done.
    locreg 3...  Hamiltonian application...done.
    locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
-   locreg 6...  Hamiltonian application...done.
-   locreg 7...  Hamiltonian application...done.
+   locreg 5... done.
+   locreg 6... done.
+   locreg 7... done.
    locreg 8...  Hamiltonian application...done.
-   locreg 9...  Hamiltonian application...done.
-   locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
+   locreg 9... done.
+   locreg 10... done.
+   locreg 11... done.
    locreg 12...  Hamiltonian application...done.
    locreg 13...  Hamiltonian application...done.
    locreg 14...  Hamiltonian application...done.
@@ -1641,7 +1641,7 @@ Preconditioning.
  total average noise            :   7.24055392E-04
  clean forces norm (Ha/Bohr): maxval=  5.426129275046E-03  fnrm2=  1.665458003202E-04
  raw forces:                  maxval=  5.992487199605E-03  fnrm2=  1.753396877349E-04
- CPU time/ELAPSED time for root process     0        13.31        13.27
+ CPU time/ELAPSED time for root process     0        14.01        13.89
  Final values of the Forces for each atom
      1      C -5.46794E-04  5.44728E-04  8.79491E-04
      2      C  1.43499E-03  3.66479E-04 -2.98893E-04
@@ -1652,6 +1652,6 @@ Preconditioning.
      7      H -3.77107E-03  4.07163E-04  3.88022E-03
      8      H  3.73488E-04  4.64700E-03 -2.23248E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 41835 allocations and 41835 deallocations, remaining memory(B): 0
+ 41522 allocations and 41522 deallocations, remaining memory(B): 0
  memory occupation peak: 69 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

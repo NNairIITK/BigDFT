@@ -257,21 +257,21 @@ done.
  Hamiltonian application for all locregs. This may take some time.
    locreg 1...  Hamiltonian application...done.
    locreg 2...  Hamiltonian application...done.
-   locreg 3...  Hamiltonian application...done.
-   locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
+   locreg 3... done.
+   locreg 4... done.
+   locreg 5... done.
    locreg 6...  Hamiltonian application...done.
    locreg 7...  Hamiltonian application...done.
    locreg 8...  Hamiltonian application...done.
-   locreg 9...  Hamiltonian application...done.
-   locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
+   locreg 9... done.
+   locreg 10... done.
+   locreg 11... done.
    locreg 12...  Hamiltonian application...done.
    locreg 13...  Hamiltonian application...done.
    locreg 14...  Hamiltonian application...done.
-   locreg 15...  Hamiltonian application...done.
-   locreg 16...  Hamiltonian application...done.
-   locreg 17...  Hamiltonian application...done.
+   locreg 15... done.
+   locreg 16... done.
+   locreg 17... done.
    locreg 18...  Hamiltonian application...done.
    locreg 19...  Hamiltonian application...done.
    locreg 20...    no Hamiltonian application required... done.
@@ -901,7 +901,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  total average noise            :   3.15721558E-02
  clean forces norm (Ha/Bohr): maxval=  1.931308571100E-01  fnrm2=  4.815460151466E-01
  raw forces:                  maxval=  1.925083389649E-01  fnrm2=  4.827248029378E-01
- CPU time/ELAPSED time for root process     0        21.33        21.30
+ CPU time/ELAPSED time for root process     0        19.87        19.80
  Final values of the Forces for each atom
      1      C -1.74803E-02  7.08530E-03  3.32466E-02
      2      C  2.13673E-02 -2.31074E-02  1.90609E-02
@@ -930,6 +930,6 @@ max deviation from unity, position:  1.000898E-02  8  9
     25      H  1.22170E-01 -1.16458E-01  5.23190E-03
     26      H  7.16252E-03  1.15692E-01 -1.54478E-01
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 166703 allocations and 166703 deallocations, remaining memory(B): 0
+ 163432 allocations and 163432 deallocations, remaining memory(B): 0
  memory occupation peak: 106 MB
  for the array  psirz in the routine apply_position_operators

@@ -246,21 +246,21 @@ done.
  Hamiltonian application for all locregs. This may take some time.
    locreg 1...  Hamiltonian application...done.
    locreg 2...  Hamiltonian application...done.
-   locreg 3...  Hamiltonian application...done.
-   locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
+   locreg 3... done.
+   locreg 4... done.
+   locreg 5... done.
    locreg 6...  Hamiltonian application...done.
    locreg 7...  Hamiltonian application...done.
    locreg 8...  Hamiltonian application...done.
-   locreg 9...  Hamiltonian application...done.
-   locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
+   locreg 9... done.
+   locreg 10... done.
+   locreg 11... done.
    locreg 12...  Hamiltonian application...done.
    locreg 13...  Hamiltonian application...done.
    locreg 14...  Hamiltonian application...done.
-   locreg 15...  Hamiltonian application...done.
-   locreg 16...  Hamiltonian application...done.
-   locreg 17...  Hamiltonian application...done.
+   locreg 15... done.
+   locreg 16... done.
+   locreg 17... done.
    locreg 18...  Hamiltonian application...done.
    locreg 19...  Hamiltonian application...done.
    locreg 20...    no Hamiltonian application required... done.
@@ -1132,7 +1132,7 @@ max deviation from unity, position:  9.259226E-01  28  28
  total average noise            :   7.13953883E-02
  clean forces norm (Ha/Bohr): maxval=  6.740277403307E-02  fnrm2=  1.994464216655E-02
  raw forces:                  maxval=  8.445718738077E-02  fnrm2=  2.506213067864E-02
- CPU time/ELAPSED time for root process     0        13.43        13.38
+ CPU time/ELAPSED time for root process     0        13.26        13.25
  Final values of the Forces for each atom
      1      C  5.17849E-02  2.77009E-02  3.30775E-02
      2      C -1.21764E-02 -4.39216E-02  4.20896E-02
@@ -1152,6 +1152,6 @@ max deviation from unity, position:  9.259226E-01  28  28
     16      H  9.89722E-03  1.46070E-03 -3.86708E-03
     17      H  4.47695E-04 -1.28184E-02 -9.92821E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 83115 allocations and 83115 deallocations, remaining memory(B): 0
+ 81494 allocations and 81494 deallocations, remaining memory(B): 0
  memory occupation peak: 76 MB
  for the array  comon%recvBuf in the routine calculate_energy_and_gradient_linear

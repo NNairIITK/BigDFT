@@ -176,6 +176,10 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
       ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
       comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
   end do
+
+  ! To indicate that to communication has been started
+  comsr%communication_complete=.true.
+
   
 end subroutine initialize_comms_sumrho
 
@@ -1912,7 +1916,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
-       's', lbop, lbcomon, tag)
+       's', lbop, lbcomon)
   call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   call initCompressedMatmul3(llborbs%norb, lbmad)

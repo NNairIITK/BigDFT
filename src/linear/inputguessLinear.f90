@@ -198,7 +198,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, tmbig%orbs, &
-       tmbig%orbs%inWhichLocreg, lin%locregShape, tmbig%op, tmbig%comon, tag)
+       tmbig%orbs%inWhichLocreg, lin%locregShape, tmbig%op, tmbig%comon)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
@@ -266,10 +266,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg,tag
-  real(gp) :: hxh,hyh,hzh,eks,t1,t2,time,tt,ddot,dsum
+  real(gp) :: hxh,hyh,hzh,eks
   integer, dimension(:,:), allocatable :: norbsc_arr
-  !real(wp), dimension(:), allocatable :: potxc
-  !real(dp), dimension(:,:), pointer :: rho_p
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2
@@ -279,12 +277,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   logical,dimension(:),allocatable:: covered
   !real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical:: withConfinement, isoverlap, ovrlpx, ovrlpy, ovrlpz
-  logical,dimension(:),allocatable:: doNotCalculate, skip
+  logical:: isoverlap
+  logical,dimension(:),allocatable:: skip
   integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp,owa,owa_old,ii_old
-  integer :: ldim,gdim,ierr,jlr,kk,iiorb,ndim_lhchi,ii_orbs,ii_comp
-  integer :: is1,ie1,is2,ie2,is3,ie3,js1,je1,js2,je2,js3,je3,nlocregPerMPI,jproc,jlrold
-  integer:: norbTarget,norbpTemp,isorbTemp, ncount, infoCoeff
+  integer :: ldim,gdim,jlr,iiorb,ndim_lhchi
+  integer :: nlocregPerMPI,jproc,jlrold,infoCoeff
   !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
   type(energy_terms) :: energs
@@ -617,8 +614,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! centered on atom iat.
   allocate(onWhichAtomTemp(tmbig%orbs%norb), stat=istat)
   call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
-  allocate(doNotCalculate(tmbig%lzd%nlr), stat=istat)
-  call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
   allocate(skip(lzd%nlr), stat=istat)
   call memocc(istat, skip, 'skip', subname)
 
@@ -631,7 +626,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbig%orbs%inwhichlocreg(ilr)
           jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
           if(tmbig%orbs%inWhichlocreg(jorb+tmbig%orbs%isorb)/=jlr) stop 'this should not happen'
-          call getIndices(tmbig%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
           call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(ilr),tmbig%lzd%llr(jlr),isoverlap)
            if(isoverlap) then
               skip(ilr)=.false.
@@ -649,8 +643,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
-  call mpi_barrier(mpi_comm_world,ierr)
-  call cpu_time(t1)
 
 
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
@@ -666,11 +658,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   allocate(tmbig%lzd%doHamAppl(tmbig%lzd%nlr), stat=istat)
   call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
-  withConfinement=.true.
   ii=0
   owa_old=-1
   do ilr=1,lzd%nlr
-      doNotCalculate=.true.
       tmbig%lzd%doHamAppl=.false.
       skip(ilr)=.true.
       do jorb=1,tmbig%orbs%norbp
@@ -680,11 +670,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(lorbs%inwhichlocreg(ilr)),&
                tmbig%lzd%llr(jlr),isoverlap)
           if(isoverlap) then
-              doNotCalculate(jlr)=.false.
               tmbig%lzd%doHamAppl(jlr)=.true.
               skip(ilr)=.false.
           else
-              doNotCalculate(jlr)=.true.
               tmbig%lzd%doHamAppl(jlr)=.false.
           end if
       end do
@@ -732,12 +720,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if
-  call mpi_barrier(mpi_comm_world, ierr)
-  call cpu_time(t2)
-  time=t2-t1
-  if (verbose > 2) then
-     if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
-  end if
 
 
 
@@ -760,7 +742,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Calculate the Hamiltonian matrix.
-  call cpu_time(t1)
   allocate(ham3(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
 
@@ -820,10 +801,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(lchi))*kind(lchi)
   deallocate(lchi, stat=istat)
   call memocc(istat, iall, 'lchi',subname)
-
-  iall=-product(shape(doNotCalculate))*kind(doNotCalculate)
-  deallocate(doNotCalculate, stat=istat)
-  call memocc(istat, iall, 'doNotCalculate',subname)
 
   iall=-product(shape(skip))*kind(skip)
   deallocate(skip, stat=istat)
@@ -970,7 +947,7 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
 call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, orbsig, &
-     onWhichAtom, locregShape, op, comon, tagout)
+     onWhichAtom, locregShape, op, comon)
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)
@@ -2567,7 +2544,7 @@ logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
 real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
-integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
+integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin

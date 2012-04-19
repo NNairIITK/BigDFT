@@ -3118,7 +3118,7 @@ module module_interfaces
      end subroutine determineOverlapDescriptors
      
      subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, &
-                onWhichAtomAll, locregShape, op, comon, tag)
+                onWhichAtomAll, locregShape, op, comon)
        use module_base
        use module_types
        implicit none
@@ -3130,7 +3130,6 @@ module module_interfaces
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
-       integer,intent(inout):: tag
      end subroutine initCommsOrtho
      
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)

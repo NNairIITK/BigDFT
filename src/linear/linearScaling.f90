@@ -128,10 +128,10 @@ type(energy_terms) :: energs
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
        tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-       input%lin%locregShape, tmb%op, tmb%comon, tag)
+       input%lin%locregShape, tmb%op, tmb%comon)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
        tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       input%lin%locregShape, tmbder%op, tmbder%comon, tag)
+       input%lin%locregShape, tmbder%op, tmbder%comon)
   
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)

@@ -241,13 +241,13 @@ done.
    locreg 2...  Hamiltonian application...done.
    locreg 3...  Hamiltonian application...done.
    locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
-   locreg 6...  Hamiltonian application...done.
-   locreg 7...  Hamiltonian application...done.
+   locreg 5... done.
+   locreg 6... done.
+   locreg 7... done.
    locreg 8...  Hamiltonian application...done.
-   locreg 9...  Hamiltonian application...done.
-   locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
+   locreg 9... done.
+   locreg 10... done.
+   locreg 11... done.
    locreg 12...  Hamiltonian application...done.
    locreg 13...  Hamiltonian application...done.
    locreg 14...  Hamiltonian application...done.
@@ -2229,7 +2229,7 @@ max deviation from unity, position:  4.837396E-04  14  14
  total average noise            :   5.93454060E-03
  clean forces norm (Ha/Bohr): maxval=  4.045557295109E-02  fnrm2=  4.203926333040E-03
  raw forces:                  maxval=  4.160807372821E-02  fnrm2=  4.267622328517E-03
- CPU time/ELAPSED time for root process     0        23.39        23.30
+ CPU time/ELAPSED time for root process     0        23.73        23.59
  Final values of the Forces for each atom
      1      C -2.81234E-02  2.73164E-02 -5.17835E-03
      2      C  2.66595E-02 -3.03292E-02  2.46257E-03
@@ -2240,6 +2240,6 @@ max deviation from unity, position:  4.837396E-04  14  14
      7      H  1.24327E-02 -7.52021E-03  2.87038E-03
      8      H  7.89485E-03 -1.64265E-07  2.01301E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 48670 allocations and 48670 deallocations, remaining memory(B): 0
+ 48357 allocations and 48357 deallocations, remaining memory(B): 0
  memory occupation peak: 76 MB
  for the array  zt in the routine G_Poisson_Solver

@@ -243,13 +243,13 @@ done.
    locreg 2...  Hamiltonian application...done.
    locreg 3...  Hamiltonian application...done.
    locreg 4...  Hamiltonian application...done.
-   locreg 5...  Hamiltonian application...done.
-   locreg 6...  Hamiltonian application...done.
-   locreg 7...  Hamiltonian application...done.
+   locreg 5... done.
+   locreg 6... done.
+   locreg 7... done.
    locreg 8...  Hamiltonian application...done.
-   locreg 9...  Hamiltonian application...done.
-   locreg 10...  Hamiltonian application...done.
-   locreg 11...  Hamiltonian application...done.
+   locreg 9... done.
+   locreg 10... done.
+   locreg 11... done.
    locreg 12...  Hamiltonian application...done.
    locreg 13...  Hamiltonian application...done.
    locreg 14...  Hamiltonian application...done.
@@ -788,7 +788,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  total average noise            :   1.67423141E-02
  clean forces norm (Ha/Bohr): maxval=  4.241675859749E-02  fnrm2=  7.124248490483E-03
  raw forces:                  maxval=  4.444553240976E-02  fnrm2=  7.447872707850E-03
- CPU time/ELAPSED time for root process     0         7.03         7.00
+ CPU time/ELAPSED time for root process     0         7.68         7.65
  Final values of the Forces for each atom
      1      C  3.76437E-02 -1.85588E-02  6.14032E-03
      2      C -2.75123E-02  2.76562E-02  9.00892E-04
@@ -799,6 +799,6 @@ max deviation from unity, position:  8.220803E-05  14  14
      7      H -1.62648E-02 -8.96460E-03  2.01656E-02
      8      H  1.07571E-02  2.12086E-02 -6.38406E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 24267 allocations and 24267 deallocations, remaining memory(B): 0
+ 23954 allocations and 23954 deallocations, remaining memory(B): 0
  memory occupation peak: 95 MB
  for the array  psirz in the routine apply_position_operators

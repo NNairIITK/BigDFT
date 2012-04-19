@@ -206,6 +206,9 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   deallocate(iStartEnd, stat=istat)
   call memocc(istat, iall, 'iStartEnd', subname)
 
+  ! To indicate that to communication has been started
+  comgp%communication_complete=.true.
+
 end subroutine initialize_communication_potential
 
 

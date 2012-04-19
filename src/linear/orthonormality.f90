@@ -379,7 +379,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon, tag)
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -394,7 +394,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op
   type(p2pComms),intent(out):: comon
-  integer,intent(inout):: tag
 
   ! Local variables
   integer:: iorb, jorb, iiorb
@@ -838,6 +837,9 @@ subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   ! Allocate the requests for the point to point communication.
   allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
   call memocc(istat, comon%requests, 'comon%requests', subname)
+
+  ! To indicate that to communication has been started
+  comon%communication_complete=.true.
 
 end subroutine set_comms_ortho
 
