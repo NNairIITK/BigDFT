@@ -65,11 +65,11 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   comm%nsend=nsends
   comm%nrecv=nreceives
   
-  if(nreceives/=comm%noverlaps(iproc)) then
-      write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comm%noverlaps(iproc)',&
-           nreceives, comm%noverlaps(iproc)
-    stop
-  end if
+  !!if(nreceives/=comm%noverlaps(iproc)) then
+  !!    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comm%noverlaps(iproc)',&
+  !!         nreceives, comm%noverlaps(iproc)
+  !!  stop
+  !!end if
   
   ! Flag indicating whether the communication is complete or not
   if(nproc>1) then

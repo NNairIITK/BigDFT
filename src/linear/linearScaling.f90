@@ -128,15 +128,13 @@ type(energy_terms) :: energs
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
        tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-       input%lin%locregShape, tmb%op, tmb%comon, tag)
+       input%lin%locregShape, tmb%op, tmb%comon)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
        tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       input%lin%locregShape, tmbder%op, tmbder%comon, tag)
+       input%lin%locregShape, tmbder%op, tmbder%comon)
   
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmb%orbs, tmb%lzd, tmb%comgp, tmb%orbs%inWhichLocreg, tag)
-  call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, &
-       tmbder%orbs, tmb%lzd, tmbder%comgp, tmbder%orbs%inWhichLocreg, tag)
+  call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
+  call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)
 
   if(input%lin%useDerivativeBasisFunctions) then
       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
@@ -148,9 +146,9 @@ type(energy_terms) :: energs
 
 
   call nullify_p2pcomms(tmb%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tag, tmb%comsr)
+  call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmb%orbs, tmb%comsr)
   call nullify_p2pcomms(tmbder%comsr)
-  call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tag, tmbder%comsr)
+  call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
 
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
@@ -416,7 +414,7 @@ type(energy_terms) :: energs
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
-      if(lscv%exit_outer_loop) exit outerLoop
+      !!if(lscv%exit_outer_loop) exit outerLoop
 
       ! Now all initializations are done...
 
@@ -575,6 +573,10 @@ type(energy_terms) :: energs
 
       ! Deallocate DIIS structures.
       call deallocateDIIS(ldiis)
+
+      call check_for_exit(input, lscv)
+      if(lscv%exit_outer_loop) exit outerLoop
+
 
   end do outerLoop
 
@@ -802,6 +804,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
+      wfnmd%bs%conv_crit=input%lin%convCrit_highaccuracy
       lscv%nit_scc=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
       lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
       lscv%mix_hist=input%lin%mixHist_highaccuracy
@@ -823,6 +826,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+      wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
       lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
       lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       lscv%mix_hist=input%lin%mixHist_lowaccuracy
@@ -881,8 +885,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=3 .and. .not.lscv%lowaccur_converged) then
-      lscv%increase_locreg=lscv%increase_locreg+1.d0
+  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged) then
+      lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
       !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
           write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
@@ -928,14 +932,14 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   type(mixrhopotDIISParameters),intent(inout):: mixdiis
   type(linear_scaling_control_variables),intent(inout):: lscv
   
-  lscv%exit_outer_loop=.false.
+  !!lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      !!lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
       if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy+1) then
           ! Deallocate DIIS structures.
-          call deallocateDIIS(ldiis)
-          lscv%exit_outer_loop=.true.
+          !!call deallocateDIIS(ldiis)
+          !!lscv%exit_outer_loop=.true.
       end if
       ! only use steepest descent if the localization regions may change
       if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
@@ -951,6 +955,26 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   
 end subroutine adjust_DIIS_for_high_accuracy
 
+
+subroutine check_for_exit(input, lscv)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(linear_scaling_control_variables),intent(inout):: lscv
+
+  lscv%exit_outer_loop=.false.
+  
+  if(lscv%lowaccur_converged) then
+      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+          lscv%exit_outer_loop=.true.
+      end if
+  end if
+
+end subroutine check_for_exit
 
 
 function check_whether_derivatives_to_be_used(input, itout, lscv)

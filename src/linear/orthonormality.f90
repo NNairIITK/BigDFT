@@ -379,7 +379,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon, tag)
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -394,7 +394,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op
   type(p2pComms),intent(out):: comon
-  integer,intent(inout):: tag
 
   ! Local variables
   integer:: iorb, jorb, iiorb
@@ -460,7 +459,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   call memocc(istat, comon%comarr, 'comon%comarr', subname)
   !!allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
   !!call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-  call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
+  call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   write(*,*) 'initCommsOrtho: 2'
 
   !DON'T need this anymore
@@ -719,7 +718,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
 
 end subroutine determineOverlapsSphere
 
-subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
+subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   use module_base
   use module_types
   implicit none
@@ -727,17 +726,15 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(inout):: op
   type(p2pComms),intent(out):: comon
-  integer,intent(inout):: tag
 
   ! Local variables
   integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
-  integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag
+  integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag, tag
   integer,dimension(:),allocatable:: istsourceArr, istdestArr
-  character(len=*),parameter:: subname='setCommsOrtho'
+  character(len=*),parameter:: subname='set_comms_ortho'
   logical,dimension(:),allocatable:: receivedOrbital
 
   allocate(istsourceArr(0:nproc-1), stat=istat)
@@ -765,7 +762,7 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
      ilrold=-1
      do iorb=1,orbs%norb_par(jproc,0)
         iiorb=iiorb+1 
-        ilr=onWhichAtom(iiorb)
+        ilr=orbs%inwhichlocreg(iiorb)
         ! Check whether process jproc has already received orbital jjorb.
         !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
         if(ilr==ilrold) cycle
@@ -848,7 +845,10 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
   allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
   call memocc(istat, comon%requests, 'comon%requests', subname)
 
-end subroutine setCommsOrtho
+  ! To indicate that to communication has been started
+  comon%communication_complete=.true.
+
+end subroutine set_comms_ortho
 
 
 

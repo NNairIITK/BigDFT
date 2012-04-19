@@ -2592,55 +2592,17 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmb
     end subroutine inputguessConfinement
 
-    !subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
-    !           at, rxyz, nscatterarr, phibuff)
-    !  use module_base
-    !  use module_types
-    !  use libxc_functionals
-    !  implicit none
-    !  ! Calling arguments
-    !  integer,intent(in):: iproc, nproc, nrho
-    !  type(orbitals_data),intent(in):: orbs
-    !  type(locreg_descriptors),intent(in):: Glr
-    !  type(input_variables),intent(in):: input
-    !  type(linearParameters),intent(inout):: lin
-    !  real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
-    !  real(8),dimension(lin%orbs%npsidim),intent(in):: phi
-    !  real(8),dimension(nrho),intent(out),target:: rho
-    !  type(atoms_data),intent(in):: at
-    !  real(8),dimension(3,at%nat),intent(in):: rxyz
-    !  integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-    !  real(8),dimension(lin%comsr%sizePhibuff):: phibuff
-    !end subroutine sumrhoForLocalizedBasis
 
-
-    !!!subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
-    !!!  use module_base
-    !!!  use module_types
-    !!!  implicit none
-    !!!  
-    !!!  ! Calling arguments
-    !!!  integer,intent(in):: iproc, nproc
-    !!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-    !!!  type(linearParameters),intent(inout):: lin
-    !!!  real(8),dimension(:),pointer,intent(out):: phibuff
-    !!!end subroutine initializeCommsSumrho
-
-
-    subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, orbs, tag, comsr)
+    subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
       use module_base
       use module_types
       implicit none
-      
-      ! Calling arguments
-      integer,intent(in):: iproc, nproc
+      integer,intent(in):: iproc,nproc
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
-      integer,intent(inout):: tag
-      !type(p2pCommsSumrho),intent(out):: comsr
       type(p2pComms),intent(out):: comsr
-    end subroutine initializeCommsSumrho
+    end subroutine initialize_comms_sumrho
 
 
    subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
@@ -3156,7 +3118,7 @@ module module_interfaces
      end subroutine determineOverlapDescriptors
      
      subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, &
-                onWhichAtomAll, locregShape, op, comon, tag)
+                onWhichAtomAll, locregShape, op, comon)
        use module_base
        use module_types
        implicit none
@@ -3168,7 +3130,6 @@ module module_interfaces
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
-       integer,intent(inout):: tag
      end subroutine initCommsOrtho
      
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
@@ -4330,74 +4291,74 @@ module module_interfaces
     end subroutine deallocate_matrixDescriptors
 
 
-    subroutine cancelCommunicationPotential(iproc, nproc, comgp)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      !type(p2pCommsGatherPot),intent(inout):: comgp
-      type(p2pComms),intent(inout):: comgp
-    end subroutine cancelCommunicationPotential
+    !!!subroutine cancelCommunicationPotential(iproc, nproc, comgp)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  !type(p2pCommsGatherPot),intent(inout):: comgp
+    !!!  type(p2pComms),intent(inout):: comgp
+    !!!end subroutine cancelCommunicationPotential
 
-    subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(local_zone_descriptors),intent(in):: lzd
-      type(orbitals_data),intent(in):: orbs, orbsig
-      integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-      type(input_variables),intent(in):: input
-      type(overlapParameters),intent(out):: op
-      type(p2pComms),intent(out):: comon
-      integer,intent(inout):: tag
-    end subroutine initCommsOrthoVariable
-    
-    subroutine countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(orbitals_data),intent(in):: orbs, orbsig
-      type(local_zone_descriptors),intent(in):: lzd
-      type(overlapParameters),intent(out):: op
-      type(p2pComms),intent(out):: comon
-    end subroutine countOverlapsVariable
-    
-    subroutine determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(orbitals_data),intent(in):: orbs, orbsig
-      type(local_zone_descriptors),intent(in):: lzd
-      type(overlapParameters),intent(out):: op
-      type(p2pComms),intent(out):: comon
-    end subroutine determineOverlapsVariable
-    
-    subroutine determineOverlapDescriptorsVariable(iproc, nproc, orbs, orbsig, lzd, Glr, onWhichAtom, op)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(orbitals_data),intent(in):: orbs, orbsig
-      type(local_zone_descriptors),intent(in):: lzd
-      type(locreg_descriptors),intent(in):: Glr
-      integer,dimension(orbs%norb),intent(in):: onWhichAtom
-      type(overlapParameters),intent(inout):: op
-    end subroutine determineOverlapDescriptorsVariable
-    
-    subroutine setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(orbitals_data),intent(in):: orbs, orbsig
-      type(local_zone_descriptors),intent(in):: lzd
-      type(overlapParameters),intent(inout):: op
-      type(p2pComms),intent(out):: comon
-      integer,intent(inout):: tag
-    end subroutine setCommsOrthoVariable
+    !!!subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  type(local_zone_descriptors),intent(in):: lzd
+    !!!  type(orbitals_data),intent(in):: orbs, orbsig
+    !!!  integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+    !!!  type(input_variables),intent(in):: input
+    !!!  type(overlapParameters),intent(out):: op
+    !!!  type(p2pComms),intent(out):: comon
+    !!!  integer,intent(inout):: tag
+    !!!end subroutine initCommsOrthoVariable
+    !!!
+    !!!subroutine countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  type(orbitals_data),intent(in):: orbs, orbsig
+    !!!  type(local_zone_descriptors),intent(in):: lzd
+    !!!  type(overlapParameters),intent(out):: op
+    !!!  type(p2pComms),intent(out):: comon
+    !!!end subroutine countOverlapsVariable
+    !!!
+    !!!subroutine determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  type(orbitals_data),intent(in):: orbs, orbsig
+    !!!  type(local_zone_descriptors),intent(in):: lzd
+    !!!  type(overlapParameters),intent(out):: op
+    !!!  type(p2pComms),intent(out):: comon
+    !!!end subroutine determineOverlapsVariable
+    !!!
+    !!!subroutine determineOverlapDescriptorsVariable(iproc, nproc, orbs, orbsig, lzd, Glr, onWhichAtom, op)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  type(orbitals_data),intent(in):: orbs, orbsig
+    !!!  type(local_zone_descriptors),intent(in):: lzd
+    !!!  type(locreg_descriptors),intent(in):: Glr
+    !!!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+    !!!  type(overlapParameters),intent(inout):: op
+    !!!end subroutine determineOverlapDescriptorsVariable
+    !!!
+    !!!subroutine setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  type(orbitals_data),intent(in):: orbs, orbsig
+    !!!  type(local_zone_descriptors),intent(in):: lzd
+    !!!  type(overlapParameters),intent(inout):: op
+    !!!  type(p2pComms),intent(out):: comon
+    !!!  integer,intent(inout):: tag
+    !!!end subroutine setCommsOrthoVariable
     
     !!subroutine indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
     !!  use module_base
@@ -6806,6 +6767,29 @@ module module_interfaces
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
+
+        subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          type(orbitals_data),intent(in):: orbs
+          type(local_zone_descriptors),intent(in):: lzd
+          type(p2pComms),intent(out):: comgp
+        end subroutine initialize_communication_potential
+
+        subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(local_zone_descriptors),intent(in):: lzd
+          type(overlapParameters),intent(inout):: op
+          type(p2pComms),intent(out):: comon
+        end subroutine set_comms_ortho
+
    end interface
 
 END MODULE module_interfaces
