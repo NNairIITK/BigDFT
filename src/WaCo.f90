@@ -387,9 +387,9 @@ program WaCo
 !   print *,tel
 !end do
 !DEBUG
-
-      call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
-
+      if(iproc == 0) then
+         call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+      end if
       i_all = -product(shape(l))*kind(l)
       deallocate(l,stat=i_stat)
       call memocc(i_stat,i_all,'l',subname)   
@@ -1044,6 +1044,12 @@ program WaCo
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
            else if(trim(outputype)=='bin') then
+              i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
+              deallocate(orbsw%iokpt,stat=i_stat)
+              call memocc(i_stat,i_all,'orbsw%iokpt',subname)
+              allocate(orbsw%iokpt(orbs%norb),stat=i_stat)
+              call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
+              orbsw%iokpt=1
               call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
               !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
               if(hamilana .and. linear) then

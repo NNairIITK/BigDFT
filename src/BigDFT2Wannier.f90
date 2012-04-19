@@ -614,6 +614,7 @@ program BigDFT2Wannier
       ! - Allocations
       allocate(amnk(orbsb%norb,orbsp%norb),stat=i_stat)
       call memocc(i_stat,amnk,'amnk',subname)
+      call to_zero(orbsb%norb*orbsp%norb,amnk(1,1))
       allocate(amnk_tot(orbsb%norb),stat=i_stat)
       call memocc(i_stat,amnk_tot,'amnk_tot',subname)
 
@@ -625,6 +626,7 @@ program BigDFT2Wannier
          call timing(iproc,'CrtProjectors ','ON')
          allocate(sph_daub(npsidim2), stat=i_stat)
          call memocc(i_stat,sph_daub,'sph_daub',subname)
+         if(npsidim2 > 0) call to_zero(npsidim2,sph_daub(1))
          !calculate buffer shifts
          perx=(Glr%geocode /= 'F')
          pery=(Glr%geocode == 'P')
