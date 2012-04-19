@@ -1351,17 +1351,19 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   !!call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
   call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
 
-  iis1=lbound(comom%olr,1)
-  iie1=ubound(comom%olr,1)
-  iis2=lbound(comom%olr,2)
-  iie2=ubound(comom%olr,2)
-  do i2=iis2,iie2
-      do i1=iis1,iie1
-          call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
+  if(associated(comom%olr)) then
+      iis1=lbound(comom%olr,1)
+      iie1=ubound(comom%olr,1)
+      iis2=lbound(comom%olr,2)
+      iie2=ubound(comom%olr,2)
+      do i2=iis2,iie2
+          do i1=iis1,iie1
+              call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
+          end do
       end do
-  end do
-  deallocate(comom%olr)
-  nullify(comom%olr)
+      deallocate(comom%olr)
+      nullify(comom%olr)
+  end if
 
 end subroutine deallocate_p2pCommsOrthonormalityMatrix
 
@@ -1476,3 +1478,38 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
 
 end subroutine deallocate_collective_comms
+
+
+subroutine deallocate_overlap_parameters_matrix(opm, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, except_this_one => deallocate_overlap_parameters_matrix
+  implicit none
+  
+  ! Calling arguments
+  type(overlap_parameters_matrix),intent(inout):: opm
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: i1, i2, iis1, iie1, iis2, iie2
+
+  call checkAndDeallocatePointer(opm%noverlap, 'opm%noverlap', subname)
+  call checkAndDeallocatePointer(opm%overlaps, 'opm%overlaps', subname)
+  call checkAndDeallocatePointer(opm%olrForExpansion, 'opm%olrForExpansion', subname)
+
+  if(associated(opm%olr)) then
+      iis1=lbound(opm%olr,1)
+      iie1=ubound(opm%olr,1)
+      iis2=lbound(opm%olr,2)
+      iie2=ubound(opm%olr,2)
+      do i2=iis2,iie2
+          do i1=iis1,iie1
+              call deallocate_matrixLocalizationRegion(opm%olr(i1,i2), subname)
+          end do
+      end do
+      deallocate(opm%olr)
+      nullify(opm%olr)
+  end if
+
+end subroutine deallocate_overlap_parameters_matrix

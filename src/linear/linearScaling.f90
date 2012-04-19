@@ -220,6 +220,9 @@ type(energy_terms) :: energs
      call memocc(istat,rxyz_old,'rxyz_old',subname)
      call readmywaves_linear(iproc,trim(input%dir_output)//'minBasis',input_wf_format,orbs%norb,tmb%lzd,tmb%orbs, &
          at,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+     !TO DO: COEFF PROJ
+!     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
+!                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
      iall = -product(shape(rxyz_old))*kind(rxyz_old)
      deallocate(rxyz_old,stat=istat)
      call memocc(istat,iall,'rxyz_old',subname)
@@ -230,6 +233,8 @@ type(energy_terms) :: energs
           tmb%lzd, input, hx, hy ,hz, tmb%orbs, tmb%comsr, &
           tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
           denspot%rhov, at, denspot%dpcom%nscatterarr)
+     ! Must initialize rhopotold (FOR NOW... use the trivial one)
+     call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
      call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,0.5_gp*tmb%lzd%hgrids(1),&
           0.5_gp*tmb%lzd%hgrids(2),0.5_gp*tmb%lzd%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
@@ -257,7 +262,7 @@ type(energy_terms) :: energs
 !!          rxyz,proj,tmb%lzd,nlpspd,tmb%psi,lhchi(1),energs%eproj)
 !!    call total_energies(energs,1)
 !!    print *,'ebs,ekin,epot,eproj',energs%ebs,energs%ekin,energs%epot,energs%eproj
-!!    print *,'eKS,ehart,exc,evxc',energs%eKS,energs%eh,energs%exc,energs%evxc
+!!    print *,'eKS,ehart,exc,evxc',energs%ebs-energs%eh+energs%exc-energs%evxc-eexctX+eion+edisp,energs%eh,energs%exc,energs%evxc
 !!    print *,'Wavefunction coefficients:'
 !!    do iall = 1, orbs%norb
 !!       do istat = 1, tmb%orbs%norb
@@ -311,7 +316,7 @@ type(energy_terms) :: energs
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       do ilr=1,tmb%lzd%nlr
-          lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
       end do
 
       if(trim(input%lin%mixingMethod)=='dens') then

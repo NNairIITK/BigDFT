@@ -375,3 +375,41 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%indexrecvorbital_f)
 
 end subroutine nullify_collective_comms
+
+
+
+subroutine nullify_overlap_parameters_matrix(opm)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(overlap_parameters_matrix),intent(inout):: opm
+
+  nullify(opm%noverlap)
+  nullify(opm%overlaps)
+  nullify(opm%olrForExpansion)
+  nullify(opm%olr)
+
+end subroutine nullify_overlap_parameters_matrix
+
+
+subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+
+  nullify(comom%noverlap)
+  nullify(comom%noverlapProc)
+  nullify(comom%overlaps)
+  nullify(comom%requests)
+  nullify(comom%comarr)
+  nullify(comom%olrForExpansion)
+  nullify(comom%recvBuf)
+  nullify(comom%sendBuf)
+  nullify(comom%olr)
+
+end subroutine nullify_p2pCommsOrthonormalityMatrix
