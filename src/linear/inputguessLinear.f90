@@ -659,6 +659,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(tmbig%lzd%doHamAppl(tmbig%lzd%nlr), stat=istat)
   call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
   ii=0
+  owa=-1
   owa_old=-1
   do ilr=1,lzd%nlr
       tmbig%lzd%doHamAppl=.false.
@@ -1579,8 +1580,6 @@ call memocc(istat, istdestarr, 'istdestarr', subname)
 istdestarr=1
 
 comom%nrecvbuf=0
-allocate(comom%indexInRecvBuf(maxval(comom%noverlap(:)),0:nproc-1), stat=istat)
-call memocc(istat, comom%indexInRecvBuf, 'comom%indexInRecvBuf', subname)
 
 allocate(comom%noverlapProc(0:nproc-1), stat=istat)
 call memocc(istat, comom%noverlapProc, 'comom%noverlapProc', subname)
@@ -1602,8 +1601,6 @@ end do
 
 allocate(comom%comarr(6,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%comarr, 'comom%comarr', subname)
-allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
-call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)
 
 comom%nsendBuf=0
 comom%nrecvBuf=0
@@ -1623,14 +1620,12 @@ do jproc=0,nproc-1
         ncount=comom%olr(korb,jlr)%norbinlr 
         istdest=istdestarr(mpidest)
         tag=tag+1
-        comom%overlapsProc(jkorb,jproc)=kkorb
         call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comom%comarr(1,jkorb,jproc))
         if(iproc==mpisource) then
            comom%nsendBuf=comom%nsendBuf+ncount
         end if
         if(iproc==mpidest) then
            comom%nrecvbuf=comom%nrecvbuf+ncount
-           comom%indexInRecvBuf(korb,jproc)=istdest
         end if
         istdestarr(mpidest)=istdestarr(mpidest)+ncount
         istsourcearr(mpisource)=istsourcearr(mpisource)+ncount
@@ -1680,6 +1675,8 @@ comom%nsend=isend
 
 allocate(comom%requests(max(comom%nrecv,comom%nsend),2), stat=istat)
 call memocc(istat, comom%requests, 'comom%requests', subname)
+
+comom%communication_complete=.true.
 
 end subroutine initCommsMatrixOrtho
 
@@ -2158,6 +2155,7 @@ end do
 ! Number of sends per process, will be used later
 comom%nsend=isend
 
+comom%communication_complete=.false.
 
 end subroutine postCommsVectorOrthonormalizationNew
 
@@ -2174,32 +2172,38 @@ type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 ! Local variables
 integer:: i, nsend, nrecv, ind, ierr
 
-if (nproc >1) then
-  nsend=0
-  if(comom%nsend>0) then
-      waitLoopSend: do
-         call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
-         nsend=nsend+1
-         do i=ind,comom%nsend-nsend
-            comom%requests(i,1)=comom%requests(i+1,1)
-         end do
-         if(nsend==comom%nsend) exit waitLoopSend
-      end do waitLoopSend
-  end if
+if(.not.comom%communication_complete) then
 
+    if (nproc >1) then
+      nsend=0
+      if(comom%nsend>0) then
+          waitLoopSend: do
+             call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
+             nsend=nsend+1
+             do i=ind,comom%nsend-nsend
+                comom%requests(i,1)=comom%requests(i+1,1)
+             end do
+             if(nsend==comom%nsend) exit waitLoopSend
+          end do waitLoopSend
+      end if
+    
+    
+      nrecv=0
+      if(comom%nrecv>0) then
+          waitLoopRecv: do
+             call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
+             nrecv=nrecv+1
+             do i=ind,comom%nrecv-nrecv
+                comom%requests(i,2)=comom%requests(i+1,2)
+             end do
+             if(nrecv==comom%nrecv) exit waitLoopRecv
+          end do waitLoopRecv
+      end if
+    end if
 
-  nrecv=0
-  if(comom%nrecv>0) then
-      waitLoopRecv: do
-         call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
-         nrecv=nrecv+1
-         do i=ind,comom%nrecv-nrecv
-            comom%requests(i,2)=comom%requests(i+1,2)
-         end do
-         if(nrecv==comom%nrecv) exit waitLoopRecv
-      end do waitLoopRecv
-  end if
 end if
+
+comom%communication_complete=.true.
 
 end subroutine gatherVectorsNew
 
