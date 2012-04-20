@@ -29,7 +29,6 @@ integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-!real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
 real(8):: tt
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -82,18 +81,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
-  !if(.not.updatePhi .or. newgradient) then
-  !!if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-  !!    .or. tmbmix%wfnmd%bs%use_derivative_basis) then
-  !!    call gatherPotential(iproc, nproc, tmbmix%comgp)
-  !!end if
 
-  !!if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-  !!    .or. tmbmix%wfnmd%bs%use_derivative_basis) then
-  !!    tmbmix%comgp%communication_complete=.false.
-  !!else
-  !!    tmbmix%comgp%communication_complete=.true.
-  !!end if
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 

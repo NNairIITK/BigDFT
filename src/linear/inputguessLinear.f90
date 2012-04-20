@@ -659,6 +659,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(tmbig%lzd%doHamAppl(tmbig%lzd%nlr), stat=istat)
   call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
   ii=0
+  owa=-1
   owa_old=-1
   do ilr=1,lzd%nlr
       tmbig%lzd%doHamAppl=.false.
@@ -910,7 +911,7 @@ real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 ! Local variables
 integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
 integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, tagx, availableMemory, jj, i, ist, jst, nshift
-integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold
+integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
 type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
@@ -989,6 +990,9 @@ do iat=1,lzd%nlr
     else
         call razero(sendcounts(iproc), hamTempCompressed(1,ioverlap))
     end if
+    !!do istat=1,sendcounts(iproc)
+    !!    write(3000+iproc,*) ioverlap, hamTempCompressed(istat,ioverlap)
+    !!end do
     if(iproc==0) write(*,'(a)') 'done.'
 
     
@@ -1017,15 +1021,13 @@ do iat=1,lzd%nlr
                 if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle !Otherwise we would communicate the same again
                     if(ilr==iiat) then
-                        ! Send this matrix to process jproc.
-                        if(iproc==jjproc) then
+                        if(nproc>1) then
+                            ! Send this matrix to process jproc.
                             do jproc=0,nproc-1
-                                !nrecv=nrecv+1
-                                if(orbs%norb_par(jproc,0)>0) nrecv=nrecv+1 !otherwise process jproc has no data and should not communicate...
+                                !!if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                                if(iproc==jjproc .and. sendcounts(jproc)>0) nrecv=nrecv+1
+                                if(iproc==jproc  .and. sendcounts(iproc)>0) nsend=nsend+1
                             end do
-                            nsend=nsend+1
-                        else
-                            nsend=nsend+1
                         end if
                     end if
                 end if
@@ -1043,7 +1045,7 @@ do iat=1,lzd%nlr
         ! Now communicate the matrices.
         ! WARNING: Here we don't use the standard and unique tags available through p2p_tags. It should not matter
         ! since there is no other p2p communication going on at the moment, but still this could be improved...
-        tag0=1
+        tag0=0
         isend=0
         irecv=0
         ilrold=-1
@@ -1058,35 +1060,46 @@ do iat=1,lzd%nlr
                 if(ilr==ilrold .and. jjproc==jjprocold) cycle
                 if(ilr==iiat) then
                    ! Send to process jproc
-                   if(iproc==jjproc .and. nproc > 1) then
-                      imat=imat+1
-                      do jproc=0,nproc-1
-                         if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
-                         tag=tag0+jproc
-                         irecv=irecv+1
-                         call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
-                              mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
-                      end do
-                      tag=tag0+iproc
-                      isend=isend+1
-                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                   else if (nproc >1) then
-                      tag=tag0+iproc
-                      isend=isend+1
-                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                   if(iproc==jjproc) imat=imat+1
+                   if(nproc>1) then
+                       do jproc=0,nproc-1
+                           !!if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                           tag=p2p_tag(jjproc)
+                           if(iproc==jjproc .and. sendcounts(jproc)>0) then
+                               irecv=irecv+1
+                               !!write(*,'(6(a,i0))') 'process ',iproc,' receives ',sendcounts(jproc),' elements from process ',&
+                               !!    jproc,' with tag ',tag,' at position ',displs(jproc)+1,'; imat=',imat
+                               call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
+                                    mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
+                           end if
+                           if(iproc==jproc .and. sendcounts(iproc)>0) then
+                               isend=isend+1
+                               !!write(*,'(6(a,i0))') 'process ',iproc,' sends ',sendcounts(iproc),' elements to process ',&
+                               !!    jjproc,' with tag ',tag,' from position ',1,'; iorb=',iorb
+                               call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
+                                    mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                           end if
+                       end do
                    else if (nproc == 1) then
-                      imat=imat+1
+                      !imat=imat+1
                       call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
                            hamTempCompressed2(displs(iproc)+1,imat),1)
                    end if
-                    tag0=tag0+1
+                   !tag0=tag0+1
+                   tag0=tag0+nproc
                 end if
             end do
             ilrold=ilr
             jjprocold=jjproc
         end do
+        if(isend/=nsend) then
+            write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': isend/=nsend',isend,nsend
+            stop
+        end if
+        if(irecv/=nrecv) then
+            write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': irecv/=nrecv',irecv,nrecv
+            stop
+        end if
 
         ! Wait for the communication to complete
         if (nproc > 1) then
@@ -1095,6 +1108,7 @@ do iat=1,lzd%nlr
              if(isend==nsend) exit waitForSend
              call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
              isend=isend+1
+             !!write(*,'(2(a,i0))') 'process ',iproc,' completed send with ind ',ind
              do i=ind,nsend-isend
                 sendrequests(i)=sendrequests(i+1)
              end do
@@ -1105,6 +1119,7 @@ do iat=1,lzd%nlr
              if(irecv==nrecv) exit waitForrecv
              call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
              irecv=irecv+1
+             !!write(*,'(2(a,i0))') 'process ',iproc,' completed recv with ind ',ind
              do i=ind,nrecv-irecv
                 recvrequests(i)=recvrequests(i+1)
              end do
@@ -1113,6 +1128,9 @@ do iat=1,lzd%nlr
 
      ! Uncompress the matrices
      do i=imatold,imat
+        !!do istat=1,mad%nvctr
+        !!    write(4000+iproc,*) i, hamTempCompressed2(istat,i)
+        !!end do
         call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
@@ -1134,7 +1152,6 @@ end do
 
 
 
-call mpi_barrier(mpi_comm_world, ierr)
 
 
 if(imat/=nlocregPerMPI .and. nproc >1) then
@@ -1379,7 +1396,7 @@ end subroutine vectorLocalToGlobal
 
 
 
-subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom)
+subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom, opm)
 use module_base
 use module_types
 implicit none
@@ -1391,7 +1408,8 @@ type(orbitals_data),intent(in):: orbs, orbstot
 integer,dimension(orbstot%norb),intent(in):: onWhichAtom
 integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
 type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
-type(p2pCommsOrthonormalityMatrix),intent(out):: comom
+type(p2pComms),intent(out):: comom
+type(overlap_parameters_matrix),intent(out):: opm
 
 ! Local variables
 integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb, iorbout
@@ -1401,9 +1419,9 @@ logical:: overlapFound
 character(len=*),parameter:: subname='determineOverlapRegionMatrix'
 
 
-!allocate(comom%noverlap(lzd%nlr), stat=istat)
-allocate(comom%noverlap(orbs%norb), stat=istat)
-call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
+!allocate(opm%noverlap(lzd%nlr), stat=istat)
+allocate(opm%noverlap(orbs%norb), stat=istat)
+call memocc(istat, opm%noverlap, 'opm%noverlap', subname)
 
 ! First count the number of overlapping localization regions for each localization region.
 !do ilr=1,lzd%nlr
@@ -1424,15 +1442,15 @@ do iorbout=1,orbs%norb
         end do
      end do outloop1
   end do
-  comom%noverlap(iorbout)=novrlp
+  opm%noverlap(iorbout)=novrlp
 end do
 
 
-allocate(comom%overlaps(maxval(comom%noverlap(:)),orbs%norb), stat=istat)
-call memocc(istat, comom%overlaps, 'comom%overlaps', subname)
+allocate(opm%overlaps(maxval(opm%noverlap(:)),orbs%norb), stat=istat)
+call memocc(istat, opm%overlaps, 'opm%overlaps', subname)
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-  comom%overlaps(:,iorbout)=0
+  opm%overlaps(:,iorbout)=0
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1443,7 +1461,7 @@ do iorbout=1,orbs%norb
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               novrlp=novrlp+1
-              comom%overlaps(novrlp,iorbout)=jorbout
+              opm%overlaps(novrlp,iorbout)=jorbout
               exit outloop2
            end if
         end do
@@ -1451,10 +1469,10 @@ do iorbout=1,orbs%norb
   end do
 end do
 
-allocate(comom%olr(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
+allocate(opm%olr(maxval(opm%noverlap(:)),lzd%nlr), stat=istat)
 do ilr=1,lzd%nlr
-  do iorb=1,maxval(comom%noverlap(:))
-     call nullify_matrixLocalizationRegion(comom%olr(iorb,ilr))
+  do iorb=1,maxval(opm%noverlap(:))
+     call nullify_matrixLocalizationRegion(opm%olr(iorb,ilr))
   end do
 end do
 
@@ -1466,9 +1484,9 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  comom%olr(:,ilr)%norbinlr=0
-  do jorbout=1,comom%noverlap(iorbout)
-     jjorb=comom%overlaps(jorbout,iorbout)
+  opm%olr(:,ilr)%norbinlr=0
+  do jorbout=1,opm%noverlap(iorbout)
+     jjorb=opm%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
      ! Check whether there is a common element.
      do iorb=1,mlr(ilr)%norbinlr
@@ -1477,13 +1495,13 @@ do iorbout=1,orbs%norb
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               novrlp=novrlp+1
-              comom%olr(jorbout,ilr)%norbinlr=comom%olr(jorbout,ilr)%norbinlr+1
+              opm%olr(jorbout,ilr)%norbinlr=opm%olr(jorbout,ilr)%norbinlr+1
               !exit
            end if
         end do
      end do
-     allocate(comom%olr(jorbout,ilr)%indexInGlobal(comom%olr(jorbout,ilr)%norbinlr), stat=istat)
-     call memocc(istat, comom%olr(jorbout,ilr)%indexInGlobal, 'comom%olr(jorbout,ilr)%indexInGlobal', subname)
+     allocate(opm%olr(jorbout,ilr)%indexInGlobal(opm%olr(jorbout,ilr)%norbinlr), stat=istat)
+     call memocc(istat, opm%olr(jorbout,ilr)%indexInGlobal, 'opm%olr(jorbout,ilr)%indexInGlobal', subname)
   end do
 end do
 
@@ -1495,8 +1513,8 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  do jorbout=1,comom%noverlap(iorbout)
-     jjorb=comom%overlaps(jorbout,iorbout)
+  do jorbout=1,opm%noverlap(iorbout)
+     jjorb=opm%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
      ! Check whether there is a common element.
      kkorb=0
@@ -1506,7 +1524,7 @@ do iorbout=1,orbs%norb
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               kkorb=kkorb+1
-              comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=jorb
+              opm%olr(jorbout,ilr)%indexInGlobal(kkorb)=jorb
            end if
         end do
      end do
@@ -1514,30 +1532,30 @@ do iorbout=1,orbs%norb
 end do
 
 ! With these indices it is possible to extract data from the global region to the
-! overlap region. For example: comom%olr(jorb,ilr) allows to extract data from orbital
+! overlap region. For example: opm%olr(jorb,ilr) allows to extract data from orbital
 ! jorb (the jorb-th orbital overlapping with region ilr) to the overlap region. To expand
 ! this overlap region to the whole region ilr, we need comom%(iorb,jlr), where jlr is the 
 ! localization region of jorb and iorb the iorb-th overlapping orbital of region jlr.
-! This information is stored in comom%olrForExpansion:
-! comom%olrForExpansion(1,jorb,ilr)=jlr
-! comom%olrForExpansion(2,jorb,ilr)=iorb
-allocate(comom%olrForExpansion(2,maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
-call memocc(istat, comom%olrForExpansion, 'comom%olrForExpansion', subname)
-comom%olrForExpansion=55555
+! This information is stored in opm%olrForExpansion:
+! opm%olrForExpansion(1,jorb,ilr)=jlr
+! opm%olrForExpansion(2,jorb,ilr)=iorb
+allocate(opm%olrForExpansion(2,maxval(opm%noverlap(:)),lzd%nlr), stat=istat)
+call memocc(istat, opm%olrForExpansion, 'opm%olrForExpansion', subname)
+opm%olrForExpansion=55555
 ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  do iorb=1,comom%noverlap(iorbout)
-     jorb=comom%overlaps(iorb,iorbout)
+  do iorb=1,opm%noverlap(iorbout)
+     jorb=opm%overlaps(iorb,iorbout)
      jlr=onWhichAtomPhi(jorb)
-     comom%olrForExpansion(1,iorb,ilr)=jlr
-     do korb=1,comom%noverlap(jorb)
-        kkorb=comom%overlaps(korb,jorb)
+     opm%olrForExpansion(1,iorb,ilr)=jlr
+     do korb=1,opm%noverlap(jorb)
+        kkorb=opm%overlaps(korb,jorb)
         klr=onWhichAtomPhi(kkorb)
         if(klr==ilr) then
-           comom%olrForExpansion(2,iorb,ilr)=korb
+           opm%olrForExpansion(2,iorb,ilr)=korb
         end if
      end do
   end do
@@ -1552,7 +1570,7 @@ end subroutine determineOverlapRegionMatrix
 
 
 
-subroutine initCommsMatrixOrtho(iproc, nproc, norb, norb_par, isorb_par, onWhichAtomPhi, onWhichMPI, tag, comom)
+subroutine initCommsMatrixOrtho(iproc, nproc, norb, norb_par, isorb_par, onWhichAtomPhi, onWhichMPI, opm, comom)
 use module_base
 use module_types
 implicit none
@@ -1561,12 +1579,12 @@ implicit none
 integer,intent(in):: iproc, nproc, norb
 integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
-integer,intent(inout):: tag
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: jlrold,jproc,jj,jorb,jjorb,jlr,jjmax,istat,jkorb,mpisource,mpidest,istsource,istdest,ncount,korb,iall,kkorb
-integer:: iorb, irecv, isend
+integer:: iorb, irecv, isend, tag, p2p_tag
 integer,dimension(:),allocatable:: istsourcearr, istdestarr
 character(len=*),parameter:: subname='initCommsMatrixOrtho'
 
@@ -1579,31 +1597,27 @@ call memocc(istat, istdestarr, 'istdestarr', subname)
 istdestarr=1
 
 comom%nrecvbuf=0
-allocate(comom%indexInRecvBuf(maxval(comom%noverlap(:)),0:nproc-1), stat=istat)
-call memocc(istat, comom%indexInRecvBuf, 'comom%indexInRecvBuf', subname)
 
-allocate(comom%noverlapProc(0:nproc-1), stat=istat)
-call memocc(istat, comom%noverlapProc, 'comom%noverlapProc', subname)
+allocate(comom%noverlaps(0:nproc-1), stat=istat)
+call memocc(istat, comom%noverlaps, 'comom%noverlaps', subname)
 
 ! Count how many orbitals each process will receive
 do jproc=0,nproc-1
   jlrold=0
-  comom%noverlapProc(jproc)=0
+  comom%noverlaps(jproc)=0
   do jorb=1,norb_par(jproc)
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     do korb=1,comom%noverlap(jjorb)
-        comom%noverlapProc(jproc)=comom%noverlapProc(jproc)+1
+     do korb=1,opm%noverlap(jjorb)
+        comom%noverlaps(jproc)=comom%noverlaps(jproc)+1
      end do
      jlrold=jlr
   end do
 end do
 
-allocate(comom%comarr(6,maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
+allocate(comom%comarr(6,maxval(comom%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%comarr, 'comom%comarr', subname)
-allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
-call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)
 
 comom%nsendBuf=0
 comom%nrecvBuf=0
@@ -1614,23 +1628,22 @@ do jproc=0,nproc-1
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     do korb=1,comom%noverlap(jjorb)
+     do korb=1,opm%noverlap(jjorb)
         jkorb=jkorb+1
-        kkorb=comom%overlaps(korb,jjorb)
+        kkorb=opm%overlaps(korb,jjorb)
         mpidest=jproc
         mpisource=onWhichMPI(kkorb)
         istsource=istsourcearr(mpisource)
-        ncount=comom%olr(korb,jlr)%norbinlr 
+        ncount=opm%olr(korb,jlr)%norbinlr 
         istdest=istdestarr(mpidest)
-        tag=tag+1
-        comom%overlapsProc(jkorb,jproc)=kkorb
+        !tag=tag+1
+        tag=p2p_tag(mpidest)
         call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comom%comarr(1,jkorb,jproc))
         if(iproc==mpisource) then
            comom%nsendBuf=comom%nsendBuf+ncount
         end if
         if(iproc==mpidest) then
            comom%nrecvbuf=comom%nrecvbuf+ncount
-           comom%indexInRecvBuf(korb,jproc)=istdest
         end if
         istdestarr(mpidest)=istdestarr(mpidest)+ncount
         istsourcearr(mpisource)=istsourcearr(mpisource)+ncount
@@ -1654,7 +1667,7 @@ call memocc(istat, iall, 'istdestarr', subname)
 
 irecv=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpidest=comom%comarr(4,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpidest) then
@@ -1667,7 +1680,7 @@ comom%nrecv=irecv
 
 isend=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      ! The orbitals are on different processes, so we need a point to point communication.
      if(iproc==mpisource) then
@@ -1681,12 +1694,14 @@ comom%nsend=isend
 allocate(comom%requests(max(comom%nrecv,comom%nsend),2), stat=istat)
 call memocc(istat, comom%requests, 'comom%requests', subname)
 
+comom%communication_complete=.true.
+
 end subroutine initCommsMatrixOrtho
 
 
 
 subroutine orthonormalizeVectors(iproc, nproc, comm, nItOrtho, methTransformOverlap, &
-  orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mad, mlr, vec, comom, &
+  orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mad, mlr, vec, opm, comom, &
   collcom, orthpar, bpo)
 use module_base
 use module_types
@@ -1702,7 +1717,8 @@ integer,dimension(0:nproc-1),intent(in):: isorb_par
 type(matrixDescriptors),intent(in):: mad
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 real(8),dimension(norbmax,norbp),intent(inout):: vec
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(inout):: comom
 type(collective_comms),intent(in):: collcom
 type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
@@ -1728,7 +1744,7 @@ do it=1,nItOrtho
           iiorb=isorb+iorb
           ilr=onWhichAtom(iiorb)
           if(ilr/=ilrold) then
-             noverlaps=noverlaps+comom%noverlap(iiorb)
+             noverlaps=noverlaps+opm%noverlap(iiorb)
           end if
           ilrold=ilr
         end do
@@ -1736,14 +1752,14 @@ do it=1,nItOrtho
         call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
         
         
-        call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+        call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, opm, comom)
         call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
         call gatherVectorsNew(iproc, nproc, comom)
         
-        call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+        call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, opm, comom, norbmax, noverlaps, vecOvrlp)
         
         ! Calculate the overlap matrix.
-        call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
+        call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, opm, comom, mlr, onWhichAtom, &
              vec, vecOvrlp, newComm, ovrlp)
         dev=0.d0
         iorbmax=0
@@ -1815,7 +1831,7 @@ do it=1,nItOrtho
     if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
         
         call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
-             orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+             orbs%norb, opm, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
         
         iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
         deallocate(vecOvrlp, stat=istat)
@@ -1881,8 +1897,8 @@ end subroutine orthonormalizeVectors
 
 
 subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, orbs, &
-           onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace, &
-           collcom, orthpar, bpo)
+           onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, opm, comom, &
+           trace, collcom, orthpar, bpo)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintVectors
@@ -1897,7 +1913,8 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
   type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
-  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+  type(overlap_parameters_matrix),intent(in):: opm
+  type(p2pComms),intent(inout):: comom
   real(8),intent(out):: trace
   type(collective_comms),intent(in):: collcom
   type(orthon_data),intent(in):: orthpar
@@ -1929,7 +1946,7 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
         iiorb=isorb+iorb
         ilr=onWhichAtom(iiorb)
         if(ilr/=ilrold) then
-           noverlaps=noverlaps+comom%noverlap(iiorb)
+           noverlaps=noverlaps+opm%noverlap(iiorb)
         end if
         ilrold=ilr
       end do
@@ -1938,23 +1955,23 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
       allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
       call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
       
-      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
+      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, opm, comom)
       
       call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
       call gatherVectorsNew(iproc, nproc, comom)
       
-      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
+      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, opm, comom, norbmax, noverlaps, gradOvrlp)
       
       ! Calculate the Lagrange multiplier matrix <vec|grad>.
-      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, opm, comom, mlr, onWhichAtom, vec,&
           gradOvrlp, newComm, lagmat)
       
       ! Now we also have to calculate the overlap matrix.
-      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+      call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, opm, comom)
       call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
       call gatherVectorsNew(iproc, nproc, comom)
-      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
-      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
+      call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, opm, comom, norbmax, noverlaps, vecOvrlp)
+      call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, opm, comom, mlr, onWhichAtom, vec,&
           vecOvrlp, newComm, ovrlp)
   
   else if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -2001,12 +2018,12 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
           ilr=onWhichAtom(iiorb)
           if(ilr==ilrold) then
               ! Set back the index of lphiovrlp, since we again need the same orbitals.
-              ijorb=ijorb-comom%noverlap(iiorb)
+              ijorb=ijorb-opm%noverlap(iiorb)
           end if
           ncount=mlr(ilr)%norbinlr
-          do jorb=1,comom%noverlap(iiorb)
+          do jorb=1,opm%noverlap(iiorb)
               ijorb=ijorb+1
-              jjorb=comom%overlaps(jorb,iiorb)
+              jjorb=opm%overlaps(jorb,iiorb)
               call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
               call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
           end do
@@ -2103,7 +2120,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, newComm
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
@@ -2111,7 +2128,7 @@ integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istd
 irecv=0
 !!comom%communComplete=.false.
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      istsource=comom%comarr(2,iorb,jproc)
      ncount=comom%comarr(3,iorb,jproc)
@@ -2135,7 +2152,7 @@ comom%nrecv=irecv
 
 isend=0
 do jproc=0,nproc-1
-  do iorb=1,comom%noverlapProc(jproc)
+  do iorb=1,comom%noverlaps(jproc)
      mpisource=comom%comarr(1,iorb,jproc)
      istsource=comom%comarr(2,iorb,jproc)
      ncount=comom%comarr(3,iorb,jproc)
@@ -2158,6 +2175,7 @@ end do
 ! Number of sends per process, will be used later
 comom%nsend=isend
 
+comom%communication_complete=.false.
 
 end subroutine postCommsVectorOrthonormalizationNew
 
@@ -2169,42 +2187,48 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: i, nsend, nrecv, ind, ierr
 
-if (nproc >1) then
-  nsend=0
-  if(comom%nsend>0) then
-      waitLoopSend: do
-         call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
-         nsend=nsend+1
-         do i=ind,comom%nsend-nsend
-            comom%requests(i,1)=comom%requests(i+1,1)
-         end do
-         if(nsend==comom%nsend) exit waitLoopSend
-      end do waitLoopSend
-  end if
+if(.not.comom%communication_complete) then
 
+    if (nproc >1) then
+      nsend=0
+      if(comom%nsend>0) then
+          waitLoopSend: do
+             call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
+             nsend=nsend+1
+             do i=ind,comom%nsend-nsend
+                comom%requests(i,1)=comom%requests(i+1,1)
+             end do
+             if(nsend==comom%nsend) exit waitLoopSend
+          end do waitLoopSend
+      end if
+    
+    
+      nrecv=0
+      if(comom%nrecv>0) then
+          waitLoopRecv: do
+             call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
+             nrecv=nrecv+1
+             do i=ind,comom%nrecv-nrecv
+                comom%requests(i,2)=comom%requests(i+1,2)
+             end do
+             if(nrecv==comom%nrecv) exit waitLoopRecv
+          end do waitLoopRecv
+      end if
+    end if
 
-  nrecv=0
-  if(comom%nrecv>0) then
-      waitLoopRecv: do
-         call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
-         nrecv=nrecv+1
-         do i=ind,comom%nrecv-nrecv
-            comom%requests(i,2)=comom%requests(i+1,2)
-         end do
-         if(nrecv==comom%nrecv) exit waitLoopRecv
-      end do waitLoopRecv
-  end if
 end if
+
+comom%communication_complete=.true.
 
 end subroutine gatherVectorsNew
 
 
-subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, opm, comom)
 use module_base
 use module_types
 implicit none
@@ -2214,7 +2238,8 @@ integer,intent(in):: iproc, nproc, norbmax, norb, norbp
 integer,dimension(norb),intent(in):: onWhichAtom, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: isorb_par
 real(8),dimension(norbmax,norbp),intent(in):: vec
-type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(inout):: comom
 
 ! Local variables
 integer:: ilrold, iiprocold, ist, ilr, iiproc, jjorb, jorb, iorb, jjproc, korb, ind, i, jjlr
@@ -2228,22 +2253,22 @@ do iorb=1,norb
     ilr=onWhichAtom(iorb)
     iiproc=onWhichMPI(iorb)
     if(ilr==ilrold .and.  iiproc==iiprocold) cycle ! otherwise we would extract the same again
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iorb)
-        !jjorb=comom%overlaps(jorb,ilr)
-        jjorb=comom%overlaps(jorb,iorb)
+    !do jorb=1,opm%noverlap(ilr)
+    do jorb=1,opm%noverlap(iorb)
+        !jjorb=opm%overlaps(jorb,ilr)
+        jjorb=opm%overlaps(jorb,iorb)
         jjlr=onWhichAtom(jjorb)
         jjproc=onWhichMPI(jjorb)
         korb=jjorb-isorb_par(jjproc)
         !if(iproc==0) write(*,'(a,8i8)') 'iorb, ilr, iiproc, jorb, jjorb, jjlr, jjproc, korb', iorb, ilr, iiproc, jorb, jjorb, jjlr, jjproc, korb
         if(iproc==jjproc) then
-            !write(*,'(a,6i9)') 'iproc, jorb, jjorb, ilr, comom%overlaps(jorb,ilr), comom%olr(jorb,ilr)%norbinlr', iproc, jorb, jjorb, ilr, comom%overlaps(jorb,ilr), comom%olr(jorb,ilr)%norbinlr
-            !write(*,'(3(a,i0),6x,a,4i8)') 'process ',iproc,' adds ',comom%olr(jorb,ilr)%norbinlr,' elements to position ',ist,'. iorb, ilr, jorb, jjorb', iorb, ilr, jorb, jjorb
-            do i=1,comom%olr(jorb,ilr)%norbinlr
-                ind=comom%olr(jorb,ilr)%indexInGlobal(i)
+            !write(*,'(a,6i9)') 'iproc, jorb, jjorb, ilr, opm%overlaps(jorb,ilr), opm%olr(jorb,ilr)%norbinlr', iproc, jorb, jjorb, ilr, opm%overlaps(jorb,ilr), opm%olr(jorb,ilr)%norbinlr
+            !write(*,'(3(a,i0),6x,a,4i8)') 'process ',iproc,' adds ',opm%olr(jorb,ilr)%norbinlr,' elements to position ',ist,'. iorb, ilr, jorb, jjorb', iorb, ilr, jorb, jjorb
+            do i=1,opm%olr(jorb,ilr)%norbinlr
+                ind=opm%olr(jorb,ilr)%indexInGlobal(i)
                 comom%sendBuf(ist+i)=vec(ind,korb)
             end do
-            ist=ist+comom%olr(jorb,ilr)%norbinlr
+            ist=ist+opm%olr(jorb,ilr)%norbinlr
         end if
     end do
     ilrold=ilr
@@ -2259,7 +2284,7 @@ end subroutine extractToOverlapregion
 
 
 
-subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, opm, comom, norbmax, noverlaps, vecOvrlp)
 use module_base
 use module_types
 implicit none
@@ -2268,7 +2293,8 @@ implicit none
 integer,intent(in):: iproc, nproc, isorb, norbp, norbmax, noverlaps
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(in):: comom
 real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
 
 ! Local variables
@@ -2283,18 +2309,18 @@ do iorb=1,norbp
     iiorb=isorb+iorb
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) cycle
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iiorb)
+    !do jorb=1,opm%noverlap(ilr)
+    do jorb=1,opm%noverlap(iiorb)
         ijorb=ijorb+1
-        klr=comom%olrForExpansion(1,jorb,ilr)
-        korb=comom%olrForExpansion(2,jorb,ilr)
-        !if(iproc==0) write(*,'(a,4i8)') 'iorb, jorb, comom%olrForExpansion(1,jorb,ilr), comom%olrForExpansion(2,jorb,ilr)', iorb, jorb, comom%olrForExpansion(1,jorb,ilr), comom%olrForExpansion(2,jorb,ilr)
-        do i=1,comom%olr(korb,klr)%norbinlr
-            ind=comom%olr(korb,klr)%indexInGlobal(i)
+        klr=opm%olrForExpansion(1,jorb,ilr)
+        korb=opm%olrForExpansion(2,jorb,ilr)
+        !if(iproc==0) write(*,'(a,4i8)') 'iorb, jorb, opm%olrForExpansion(1,jorb,ilr), opm%olrForExpansion(2,jorb,ilr)', iorb, jorb, opm%olrForExpansion(1,jorb,ilr), opm%olrForExpansion(2,jorb,ilr)
+        do i=1,opm%olr(korb,klr)%norbinlr
+            ind=opm%olr(korb,klr)%indexInGlobal(i)
             vecOvrlp(ind,ijorb)=comom%recvBuf(ist+i)
             !if(iproc==4) write(*,'(a,9i9)') 'iorb, iiorb, ilr, jorb, klr, korb, ist, i, ind', iorb, iiorb, ilr, jorb, klr, korb, ist, i, ind
         end do
-        ist=ist+comom%olr(korb,klr)%norbinlr
+        ist=ist+opm%olr(korb,klr)%norbinlr
     end do
     ilrold=ilr
 end do
@@ -2308,7 +2334,7 @@ end subroutine expandFromOverlapregion
 
 
 
-subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec,&
+subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, opm, comom, mlr, onWhichAtom, vec,&
            vecOvrlp, newComm, ovrlp)
 use module_base
 use module_types
@@ -2316,7 +2342,8 @@ implicit none
 
 ! Calling arguments 
 integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,norbp),intent(in):: vec
@@ -2338,15 +2365,15 @@ do iorb=1,norbp
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) then
          ! Put back index if we are in the same localization region, since then we can use the same vecOvrlp again.
-         !ijorb=ijorb-comom%noverlap(ilr) 
-         ijorb=ijorb-comom%noverlap(iiorb) 
+         !ijorb=ijorb-opm%noverlap(ilr) 
+         ijorb=ijorb-opm%noverlap(iiorb) 
     end if
     ncount=mlr(ilr)%norbinlr
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iiorb)
+    !do jorb=1,opm%noverlap(ilr)
+    do jorb=1,opm%noverlap(iiorb)
         ijorb=ijorb+1
-        !jjorb=comom%overlaps(jorb,ilr)
-        jjorb=comom%overlaps(jorb,iiorb)
+        !jjorb=opm%overlaps(jorb,ilr)
+        jjorb=opm%overlaps(jorb,iiorb)
         ovrlp(iiorb,jjorb)=ddot(ncount, vec(1,iorb), 1, vecOvrlp(1,ijorb), 1)
     end do
     ilrold=ilr
@@ -2360,15 +2387,16 @@ end subroutine calculateOverlap
 
 
 
-subroutine orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom,&
-           vecOvrlp, ovrlp, vec)
+subroutine orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, opm, comom, &
+           mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments 
 integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
-type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(overlap_parameters_matrix),intent(in):: opm
+type(p2pComms),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
@@ -2395,15 +2423,15 @@ do iorb=1,norbp
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) then
          ! Put back index if we are in the same localization region, since then we can use the same vecOvrlp again.
-         !ijorb=ijorb-comom%noverlap(ilr) 
-         ijorb=ijorb-comom%noverlap(iiorb) 
+         !ijorb=ijorb-opm%noverlap(ilr) 
+         ijorb=ijorb-opm%noverlap(iiorb) 
     end if
     ncount=mlr(ilr)%norbinlr
-    !do jorb=1,comom%noverlap(ilr)
-    do jorb=1,comom%noverlap(iiorb)
+    !do jorb=1,opm%noverlap(ilr)
+    do jorb=1,opm%noverlap(iiorb)
         ijorb=ijorb+1
-        !jjorb=comom%overlaps(jorb,ilr)
-        jjorb=comom%overlaps(jorb,iiorb)
+        !jjorb=opm%overlaps(jorb,ilr)
+        jjorb=opm%overlaps(jorb,iiorb)
         call daxpy(ncount, ovrlp(jjorb,iiorb), vecOvrlp(1,ijorb), 1, vec(1,iorb), 1)
     end do
     ilrold=ilr
@@ -2546,12 +2574,20 @@ real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
 integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
-type(p2pCommsOrthonormalityMatrix):: comom
+type(p2pComms):: comom
+type(overlap_parameters_matrix):: opm
 type(matrixMinimization):: matmin
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
 type(collective_comms):: collcom_vectors
 
+!!do ii=1,nlocregPerMPI
+!!    do istat=1,tmbig%orbs%norb
+!!        do iall=1,tmbig%orbs%norb
+!!            write(2000+10*iproc+ii,*) ham(iall,istat,ii)
+!!        end do
+!!    end do
+!!end do
 
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
@@ -2566,19 +2602,22 @@ type(collective_comms):: collcom_vectors
   ! Allocate the local arrays.
   call allocateArrays()
 
+  call nullify_p2pComms(comom)
+  call nullify_overlap_parameters_matrix(opm)
+
   call determineLocalizationRegions(iproc, nproc, tmb%lzd%nlr, tmbig%orbs%norb, at, tmbig%orbs%inwhichlocreg, &
        input%lin%locrad, locregCenter, tmb%lzd, tmbig%lzd, hx, hy, hz, matmin%mlr)
   call extractMatrix3(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmbig%orbs, tmb%orbs%inwhichlocreg, &
        tmb%orbs%onwhichmpi, nlocregPerMPI, ham, matmin, hamextract)
 
   call determineOverlapRegionMatrix(iproc, nproc, tmb%lzd, matmin%mlr, tmb%orbs, tmbig%orbs, &
-       tmbig%orbs%inwhichlocreg, tmb%orbs%inwhichlocreg, comom)
+       tmbig%orbs%inwhichlocreg, tmb%orbs%inwhichlocreg, comom, opm)
 
   call initCommsMatrixOrtho(iproc, nproc, tmb%orbs%norb, tmb%orbs%norb_par, tmb%orbs%isorb_par, &
-       tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tag, comom)
+       tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, opm, comom)
 
   call nullify_matrixDescriptors(mad)
-  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmb%orbs, comom%noverlap, comom%overlaps, mad)
+  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmb%orbs, opm%noverlap, opm%overlaps, mad)
   call initCompressedMatmul3(tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)
@@ -2657,7 +2696,7 @@ type(collective_comms):: collcom_vectors
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
 
@@ -2686,7 +2725,7 @@ type(collective_comms):: collcom_vectors
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
 
       ! Calculate the gradient grad.
@@ -2697,6 +2736,9 @@ type(collective_comms):: collcom_vectors
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
+          !!do istat=1,matmin%mlr(ilr)%norbinlr
+          !!    write(1000+tmb%orbs%isorb+iorb,*) lcoeff(istat,iorb),lgrad(istat,iorb)
+          !!end do
       end do
 
   
@@ -2710,7 +2752,7 @@ type(collective_comms):: collcom_vectors
       call orthoconstraintVectors(iproc, nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), tmb%lzd%nlr, mpi_comm_world, &
-           matmin%mlr, mad, lcoeff, lgrad, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           matmin%mlr, mad, lcoeff, lgrad, opm, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
       ! Calculate the gradient norm.
       fnrm=0.d0
       do iorb=1,tmb%orbs%norbp
@@ -2843,7 +2885,9 @@ type(collective_comms):: collcom_vectors
   call deallocateArrays()
 
   ! Deallocate stuff which is not needed any more.
-  call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  !call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
+  call deallocate_p2pComms(comom, subname)
+  call deallocate_overlap_parameters_matrix(opm, subname)
   call deallocate_matrixMinimization(matmin,subname)
 
   iall=-product(shape(lcoeff))*kind(lcoeff)

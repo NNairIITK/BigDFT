@@ -20,6 +20,7 @@ integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 integer,dimension(:),allocatable:: npts_par_c, npts_par_f
 character(len=*),parameter:: subname='init_collective_comms'
 
+
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
 allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
@@ -28,6 +29,15 @@ allocate(index_in_global_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=i
 call memocc(istat, index_in_global_c, 'index_in_global_c', subname)
 allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
+
+
+  if(nproc>1) then
+      call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+  end if
 
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
@@ -248,6 +258,7 @@ integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i,
   weight_f=0.d0
   weight_c_tot=0.d0
   weight_f_tot=0.d0
+
 
   ! coarse part
   do iorb=1,orbs%norbp

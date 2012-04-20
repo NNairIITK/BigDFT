@@ -401,7 +401,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-   type(local_zone_descriptors), intent(in) :: Lzd
+   type(local_zone_descriptors), intent(inout) :: Lzd
    type(orbitals_data), intent(in) :: orbs
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom

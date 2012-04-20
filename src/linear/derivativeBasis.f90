@@ -338,7 +338,7 @@ allocate(comrp%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comrp%noverlaps, 'comrp%noverlaps', subname)
 
 
-allocate(comrp%comarr(8,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(comrp%comarr(6,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, comrp%comarr, 'comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
@@ -361,7 +361,7 @@ do jproc=0,nproc-1
             istdest=istdest+lzd%llr(klr)%wfd%nvctr_c+7*lzd%llr(klr)%wfd%nvctr_f
         end do
         !tag=tag+1
-        tag=p2p_tag(jproc)
+        tag=p2p_tag(mpidest)
         !write(*,'(7(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag
         if(iproc==mpisource) then
             isend=isend+1
