@@ -955,7 +955,7 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
-call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, lzdig, op, op, &
+call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, lzdig, lzdig, op, op, &
      lchi, comon%nsendBuf, comon%sendBuf)
 call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, &
      comon%nrecvbuf, comon%recvbuf, comon)
@@ -981,7 +981,7 @@ do iat=1,lzd%nlr
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     if(.not.skip(iat)) then
         ii=ii+1
-        call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, lzdig, op, op, &
+        call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, lzdig, lzdig, op, op, &
              lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
         call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
              comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))

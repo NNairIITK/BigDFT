@@ -3081,26 +3081,24 @@ module module_interfaces
        integer,intent(out):: is1, ie1, is2, ie2, is3, ie3
      end subroutine getIndices
      
-     subroutine countOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+     subroutine countOverlaps(iproc, nproc, orbs, lzd, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
      end subroutine countOverlaps
      
-     subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+     subroutine determineOverlaps(iproc, nproc, orbs, lzd, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
      end subroutine determineOverlaps
@@ -4680,13 +4678,12 @@ module module_interfaces
       !!  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
       !!end subroutine expandRemainingOrbitals
 
-      subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, onWhichAtom, lzd, lzdig, op, opig, phi, nsendBuf, sendBuf)
+      subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, lzd, lzdig, op, opig, phi, nsendBuf, sendBuf)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, sizePhi
         type(orbitals_data),intent(in):: orbs, orbsig
-        integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(local_zone_descriptors),intent(in):: lzd, lzdig
         type(overlapParameters),intent(inout):: op, opig
         real(8),dimension(sizePhi),intent(in):: phi
