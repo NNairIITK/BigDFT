@@ -51,7 +51,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
           !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
           call wait_p2p_communication(iproc, nproc, comon)
-          call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+          call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
                comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
           !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
@@ -94,7 +94,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
              ist=ist+ncount
           end do
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call globalLoewdin(iproc, nproc, orbs, orbs, orbs%inwhichlocreg, lzd, op, comon, ovrlp, lphiovrlp, lphi)
+          call globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
 
           call deallocateSendBufferOrtho(comon, subname)
           call deallocateRecvBufferOrtho(comon, subname)
@@ -227,11 +227,11 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
       !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
       call wait_p2p_communication(iproc, nproc, comon)
-      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+      call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp2)
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
            lhphi, comon%nsendBuf, comon%sendBuf)
-      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+      call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
  end if
 
@@ -367,7 +367,7 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   !!call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
   !!     comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   call wait_p2p_communication(iproc, nproc, comon_lb)
-  call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, comon_lb%nsendBuf, &
        comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
 
@@ -1048,7 +1048,7 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, lzd, lzdig, op, 
 
 end subroutine extractOrbital3
 
-subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
+subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
   use module_base
   use module_types
   implicit none
@@ -1057,7 +1057,6 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(in):: op
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
   real(8),dimension(nsendBuf),intent(in):: sendBuf
   real(8),dimension(nrecvBuf),intent(in):: recvBuf
   type(matrixDescriptors),intent(in):: mad
@@ -1154,7 +1153,7 @@ end subroutine calculateOverlapMatrix3
 
 
 
-subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, &
+subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
      sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
   use module_base
   use module_types
@@ -1164,7 +1163,6 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, onWhichAtom, n
   integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(in):: op
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
   real(8),dimension(nsendBuf),intent(in):: sendBuf
   real(8),dimension(nrecvBuf),intent(in):: recvBuf
   type(matrixDescriptors),intent(in):: mad
@@ -1268,7 +1266,134 @@ end subroutine calculateOverlapMatrix3Partial
 
 
 
-subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
+!!!subroutine expandOrbital2(iproc, nproc, orbs, input, lzd, op, comon, lphiovrlp)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  integer,intent(in):: iproc, nproc
+!!!  type(orbitals_data),intent(in):: orbs
+!!!  type(input_variables),intent(in):: input
+!!!  type(local_zone_descriptors),intent(in):: lzd
+!!!  type(overlapParameters),intent(in):: op
+!!!  type(p2pComms),intent(in):: comon
+!!!  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+!!!
+!!!  ! Local variables
+!!!  integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m, ii
+!!!  integer:: start, iseg, istart, iend, ncount, kseg, kstart, kend, jst2, kold, ifine, isend
+!!!  integer:: igrid 
+!!!!!real(8):: t1, t2, time1, time2
+!!!
+!!!!!t1=mpi_wtime()
+!!!  lphiovrlp=0.d0
+!!!!!t2=mpi_wtime()
+!!!!!time1=t2-t1
+!!!
+!!!!!t1=mpi_wtime()
+!!!  ind=1
+!!!  ilrold=-1
+!!!  do iorb=1,orbs%norbp
+!!!     iiorb=orbs%isorb+iorb
+!!!     ilr=orbs%inwhichlocreg(iiorb)
+!!!     if(ilr==ilrold) cycle
+!!!     gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!!     do jorb=1,op%noverlaps(iiorb)
+!!!        jjorb=op%overlaps(jorb,iiorb)
+!!!        ! Starting index of orbital jjorb
+!!!        jst=op%indexInRecvBuf(iorb,jjorb)
+!!!        ldim=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
+!!!        !! THIS IS THE OLD VERSION
+!!!        !!do i=0,ldim-1
+!!!        !!    indDest=ind+op%indexExpand(jst+i)-1
+!!!        !!    lphiovrlp(indDest)=comon%recvBuf(jst+i)
+!!!        !!end do
+!!!        !! THIS IS NEW
+!!!        !!m=mod(ldim,7)
+!!!        !!if(m/=0) then
+!!!        !!   do i=0,m-1
+!!!        !!        ii=jst+i
+!!!        !!        indDest=ind+op%indexExpand(ii)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii)
+!!!        !!   end do
+!!!        !!end if
+!!!        !!do i=m,ldim-1,7
+!!!        !!        ii=jst+i
+!!!        !!        indDest=ind+op%indexExpand(ii+0)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+0)
+!!!        !!        indDest=ind+op%indexExpand(ii+1)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+1)
+!!!        !!        indDest=ind+op%indexExpand(ii+2)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+2)
+!!!        !!        indDest=ind+op%indexExpand(ii+3)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+3)
+!!!        !!        indDest=ind+op%indexExpand(ii+4)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+4)
+!!!        !!        indDest=ind+op%indexExpand(ii+5)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+5)
+!!!        !!        indDest=ind+op%indexExpand(ii+6)-1
+!!!        !!        lphiovrlp(indDest)=comon%recvBuf(ii+6)
+!!!        !!end do
+!!!        !! THIS IS THE NEWEST (NOT OPTIMIZED, could probably store the keyv once and for all)
+!!!        jst2=0
+!!!        kold = 1
+!!!        do iseg=1,op%wfd_overlap(jorb,iorb)%nseg_c
+!!!            istart=op%wfd_overlap(jorb,iorb)%keyglob(1,iseg)
+!!!            iend=op%wfd_overlap(jorb,iorb)%keyglob(2,iseg)
+!!!            ncount=iend-istart+1  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
+!!!            inner_loop: do kseg=kold,lzd%llr(ilr)%wfd%nseg_c
+!!!               kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg)
+!!!               kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg)
+!!!               if(kstart <= iend .and. kend >= istart) then
+!!!                  kold = kseg
+!!!                  start = lzd%llr(ilr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+!!!                  call dcopy(ncount, comon%recvBuf(jst+jst2), 1, lphiovrlp(start+ind-1), 1)
+!!!                  jst2=jst2+ncount
+!!!                  exit inner_loop
+!!!               end if
+!!!            end do inner_loop
+!!!        end do
+!!!        if(jst2 .ne. op%wfd_overlap(jorb,iorb)%nvctr_c) then
+!!!          print *, 'jst2 = ',jst2,'not equal to ldim = ',op%wfd_overlap(jorb,iorb)%nvctr_c
+!!!          stop
+!!!        end if
+!!!        !Do Fine grid
+!!!        jst2=0
+!!!        kold = 1
+!!!        do iseg=1,op%wfd_overlap(jorb,iorb)%nseg_f
+!!!            istart=op%wfd_overlap(jorb,iorb)%keyglob(1,iseg+op%wfd_overlap(jorb,iorb)%nseg_c)
+!!!            iend=op%wfd_overlap(jorb,iorb)%keyglob(2,iseg+op%wfd_overlap(jorb,iorb)%nseg_c)
+!!!            ncount=7*(iend-istart+1)  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
+!!!            inner_loop2: do kseg=kold,lzd%llr(ilr)%wfd%nseg_f
+!!!               kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg+lzd%llr(ilr)%wfd%nseg_c)
+!!!               kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg+lzd%llr(ilr)%wfd%nseg_c)
+!!!               if(kstart <= iend .and. kend >= istart) then
+!!!                  kold = kseg
+!!!                  start = lzd%llr(ilr)%wfd%nvctr_c+(lzd%llr(ilr)%wfd%keyvglob(kseg+lzd%llr(ilr)%wfd%nseg_c) +&
+!!!                          max(0,istart-kstart)-1)*7
+!!!                  call dcopy(ncount,comon%recvBuf(jst+jst2+op%wfd_overlap(jorb,iorb)%nvctr_c),1,&
+!!!                          lphiovrlp(ind+start),1)
+!!!                  jst2=jst2+ncount
+!!!                  exit inner_loop2
+!!!               end if
+!!!            end do inner_loop2
+!!!        end do
+!!!        if(jst2 .ne. 7*op%wfd_overlap(jorb,iorb)%nvctr_f) then
+!!!          print *, 'jst2 = ',jst2,'not equal to ldim = ',7*op%wfd_overlap(jorb,iorb)%nvctr_f
+!!!          stop
+!!!        end if
+!!!        ind=ind+gdim
+!!!     end do
+!!!     ilrold=ilr
+!!!  end do
+!!!!!t2=mpi_wtime()
+!!!!!time2=t2-t1
+!!!!!if(iproc==0) write(*,*) 'time1, time2', time1, time2
+!!!
+!!!end subroutine expandOrbital2
+
+subroutine globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
   use module_base
   use module_types
   implicit none
@@ -1276,141 +1401,12 @@ subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  type(input_variables),intent(in):: input
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(in):: op
-  type(p2pComms),intent(in):: comon
-  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
-
-  ! Local variables
-  integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m, ii
-  integer:: start, iseg, istart, iend, ncount, kseg, kstart, kend, jst2, kold, ifine, isend
-  integer:: igrid 
-!!real(8):: t1, t2, time1, time2
-
-!!t1=mpi_wtime()
-  lphiovrlp=0.d0
-!!t2=mpi_wtime()
-!!time1=t2-t1
-
-!!t1=mpi_wtime()
-  ind=1
-  ilrold=-1
-  do iorb=1,orbs%norbp
-     iiorb=orbs%isorb+iorb
-     ilr=onWhichAtom(iiorb)
-     if(ilr==ilrold) cycle
-     gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-     do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
-        ! Starting index of orbital jjorb
-        jst=op%indexInRecvBuf(iorb,jjorb)
-        ldim=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
-        !! THIS IS THE OLD VERSION
-        !!do i=0,ldim-1
-        !!    indDest=ind+op%indexExpand(jst+i)-1
-        !!    lphiovrlp(indDest)=comon%recvBuf(jst+i)
-        !!end do
-        !! THIS IS NEW
-        !!m=mod(ldim,7)
-        !!if(m/=0) then
-        !!   do i=0,m-1
-        !!        ii=jst+i
-        !!        indDest=ind+op%indexExpand(ii)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii)
-        !!   end do
-        !!end if
-        !!do i=m,ldim-1,7
-        !!        ii=jst+i
-        !!        indDest=ind+op%indexExpand(ii+0)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+0)
-        !!        indDest=ind+op%indexExpand(ii+1)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+1)
-        !!        indDest=ind+op%indexExpand(ii+2)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+2)
-        !!        indDest=ind+op%indexExpand(ii+3)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+3)
-        !!        indDest=ind+op%indexExpand(ii+4)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+4)
-        !!        indDest=ind+op%indexExpand(ii+5)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+5)
-        !!        indDest=ind+op%indexExpand(ii+6)-1
-        !!        lphiovrlp(indDest)=comon%recvBuf(ii+6)
-        !!end do
-        !! THIS IS THE NEWEST (NOT OPTIMIZED, could probably store the keyv once and for all)
-        jst2=0
-        kold = 1
-        do iseg=1,op%wfd_overlap(jorb,iorb)%nseg_c
-            istart=op%wfd_overlap(jorb,iorb)%keyglob(1,iseg)
-            iend=op%wfd_overlap(jorb,iorb)%keyglob(2,iseg)
-            ncount=iend-istart+1  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
-            inner_loop: do kseg=kold,lzd%llr(ilr)%wfd%nseg_c
-               kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg)
-               kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg)
-               if(kstart <= iend .and. kend >= istart) then
-                  kold = kseg
-                  start = lzd%llr(ilr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
-                  call dcopy(ncount, comon%recvBuf(jst+jst2), 1, lphiovrlp(start+ind-1), 1)
-                  jst2=jst2+ncount
-                  exit inner_loop
-               end if
-            end do inner_loop
-        end do
-        if(jst2 .ne. op%wfd_overlap(jorb,iorb)%nvctr_c) then
-          print *, 'jst2 = ',jst2,'not equal to ldim = ',op%wfd_overlap(jorb,iorb)%nvctr_c
-          stop
-        end if
-        !Do Fine grid
-        jst2=0
-        kold = 1
-        do iseg=1,op%wfd_overlap(jorb,iorb)%nseg_f
-            istart=op%wfd_overlap(jorb,iorb)%keyglob(1,iseg+op%wfd_overlap(jorb,iorb)%nseg_c)
-            iend=op%wfd_overlap(jorb,iorb)%keyglob(2,iseg+op%wfd_overlap(jorb,iorb)%nseg_c)
-            ncount=7*(iend-istart+1)  !the overlap segment is always contained inside the Llrs segments, so ncount is ok
-            inner_loop2: do kseg=kold,lzd%llr(ilr)%wfd%nseg_f
-               kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg+lzd%llr(ilr)%wfd%nseg_c)
-               kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg+lzd%llr(ilr)%wfd%nseg_c)
-               if(kstart <= iend .and. kend >= istart) then
-                  kold = kseg
-                  start = lzd%llr(ilr)%wfd%nvctr_c+(lzd%llr(ilr)%wfd%keyvglob(kseg+lzd%llr(ilr)%wfd%nseg_c) +&
-                          max(0,istart-kstart)-1)*7
-                  call dcopy(ncount,comon%recvBuf(jst+jst2+op%wfd_overlap(jorb,iorb)%nvctr_c),1,&
-                          lphiovrlp(ind+start),1)
-                  jst2=jst2+ncount
-                  exit inner_loop2
-               end if
-            end do inner_loop2
-        end do
-        if(jst2 .ne. 7*op%wfd_overlap(jorb,iorb)%nvctr_f) then
-          print *, 'jst2 = ',jst2,'not equal to ldim = ',7*op%wfd_overlap(jorb,iorb)%nvctr_f
-          stop
-        end if
-        ind=ind+gdim
-     end do
-     ilrold=ilr
-  end do
-!!t2=mpi_wtime()
-!!time2=t2-t1
-!!if(iproc==0) write(*,*) 'time1, time2', time1, time2
-
-end subroutine expandOrbital2
-
-subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, ovrlp, lphiovrlp, lphi)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs, lorbs
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
   type(p2pComms),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-  real(8),dimension(lorbs%npsidim_orbs),intent(out):: lphi
+  real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount
@@ -1423,7 +1419,7 @@ subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon,
   ist=1
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
-     ilr=onWhichAtom(iiorb)
+     ilr=orbs%inwhichlocreg(iiorb)
      ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
      ! Normalize
@@ -1845,7 +1841,7 @@ type(input_variables):: input
   ! Put lhphi to the sendbuffer,so we can the calculate <lphi|lhphi>
   call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,lzd,lzd,&
        op_lb,op_lb,lhphi,comon_lb%nsendBuf,comon_lb%sendBuf)
-  call calculateOverlapMatrix3(iproc,nproc,orbs,op_lb,orbs%inWhichLocreg,comon_lb%nsendBuf,&
+  call calculateOverlapMatrix3(iproc,nproc,orbs,op_lb,comon_lb%nsendBuf,&
                                comon_lb%sendBuf,comon_lb%nrecvBuf,comon_lb%recvBuf,mad,matrixElements)
 
 end subroutine getMatrixElements2

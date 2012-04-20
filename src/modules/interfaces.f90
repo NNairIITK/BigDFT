@@ -3232,19 +3232,18 @@ module module_interfaces
      !!end subroutine localGramschmidt
      
      
-     subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, ovrlp, lphiovrlp, lphi)
+     subroutine globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs, lorbs
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
        type(p2pComms),intent(in):: comon
        real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
+       real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
      end subroutine globalLoewdin
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
@@ -3695,21 +3694,20 @@ module module_interfaces
      !!end subroutine gatherOrbitals2
 
 
-     subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
-       use module_base
-       use module_types
-       implicit none
-       
-       ! Calling arguments
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs
-       type(input_variables),intent(in):: input
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(local_zone_descriptors),intent(in):: lzd
-       type(overlapParameters),intent(in):: op
-       type(p2pComms),intent(in):: comon
-       real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
-     end subroutine expandOrbital2
+     !!!subroutine expandOrbital2(iproc, nproc, orbs, input, lzd, op, comon, lphiovrlp)
+     !!!  use module_base
+     !!!  use module_types
+     !!!  implicit none
+     !!!  
+     !!!  ! Calling arguments
+     !!!  integer,intent(in):: iproc, nproc
+     !!!  type(orbitals_data),intent(in):: orbs
+     !!!  type(input_variables),intent(in):: input
+     !!!  type(local_zone_descriptors),intent(in):: lzd
+     !!!  type(overlapParameters),intent(in):: op
+     !!!  type(p2pComms),intent(in):: comon
+     !!!  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+     !!!end subroutine expandOrbital2
 
      !!!subroutine getOverlapMatrix(iproc, nproc, lin, input, lphi, mad, ovrlp)
      !!!  use module_base
@@ -4691,14 +4689,13 @@ module module_interfaces
         real(8),dimension(nsendBuf),intent(out):: sendBuf
       end subroutine extractOrbital3
 
-      subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
+      subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
         type(orbitals_data),intent(in):: orbs
         type(overlapParameters),intent(in):: op
-        integer,dimension(orbs%norb),intent(in):: onWhichAtom
         real(8),dimension(nsendBuf),intent(in):: sendBuf
         real(8),dimension(nrecvBuf),intent(in):: recvBuf
         type(matrixDescriptors),intent(in):: mad
@@ -4706,7 +4703,7 @@ module module_interfaces
       end subroutine calculateOverlapMatrix3
 
 
-      subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, onWhichAtom, &
+      subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, &
                  nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
         use module_base
         use module_types
@@ -4714,7 +4711,6 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
         type(orbitals_data),intent(in):: orbs
         type(overlapParameters),intent(in):: op
-        integer,dimension(orbs%norb),intent(in):: onWhichAtom
         real(8),dimension(nsendBuf),intent(in):: sendBuf
         real(8),dimension(nrecvBuf),intent(in):: recvBuf
         type(matrixDescriptors),intent(in):: mad

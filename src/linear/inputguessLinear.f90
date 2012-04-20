@@ -983,7 +983,7 @@ do iat=1,lzd%nlr
         ii=ii+1
         call extractOrbital3(iproc, nproc, orbsig, orbsig, orbsig%npsidim_orbs, lzdig, lzdig, op, op, &
              lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
-        call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
+        call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, comon%nsendBuf, comon%sendBuf, &
              comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
         call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
 
