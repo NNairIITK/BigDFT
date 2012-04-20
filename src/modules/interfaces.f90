@@ -5270,22 +5270,22 @@ module module_interfaces
        end subroutine initMatrixCompression
 
 
-       subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, newComm
-         type(p2pComms),intent(inout):: comom
-       end subroutine postCommsVectorOrthonormalizationNew
+       !!subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, newComm
+       !!  type(p2pComms),intent(inout):: comom
+       !!end subroutine postCommsVectorOrthonormalizationNew
 
 
-       subroutine gatherVectorsNew(iproc, nproc, comom)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(p2pComms),intent(inout):: comom
-       end subroutine gatherVectorsNew
+       !!subroutine gatherVectorsNew(iproc, nproc, comom)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc
+       !!  type(p2pComms),intent(inout):: comom
+       !!end subroutine gatherVectorsNew
 
 
        subroutine compressMatrixPerProcess(iproc, nproc, orbs, mad, mat, size_lmat, lmat)
