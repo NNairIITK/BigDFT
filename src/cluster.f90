@@ -508,7 +508,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      !if (in%gaussian_help) then
-     if (in%gaussian_help .and. .not.in%inputPsiId==100) then
+     if (in%gaussian_help .and. .not.in%inputPsiId==100 .and. .not.in%inputPsiId==101 ) then
 
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
 !!!
