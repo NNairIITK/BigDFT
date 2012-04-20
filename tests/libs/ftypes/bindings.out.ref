@@ -56,6 +56,7 @@ Test BigDFT_LocalFields creation.
  Calculation of input guess started.
 Callback for "density-ready" signal at iter 0.
  Density calculated by C is 7.9999998876429634.
+Callback for 'eks-ready' signal at iter 0 -> -5.06042Ht.
 Callback for 'psi-ready' signal at iter 0.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000492114.
@@ -103,9 +104,11 @@ Callback for 'eks-ready' signal at iter 1 -> -5.82852Ht.
 Callback for 'psi-ready' signal at iter 1.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000530631.
+Callback for 'iter-done-wavefunctions' signal at iter 1 -> -5.82852Ht (0.492963).
 Callback for "density-ready" signal at iter 2.
  Density calculated by C is 7.9999999404922422.
 Callback for 'eks-ready' signal at iter 2 -> -5.85172Ht.
+Callback for 'iter-done-wavefunctions' signal at iter 2 -> -5.85172Ht (0.492963).
 Callback for 'psi-ready' signal at iter 2.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000368661.
