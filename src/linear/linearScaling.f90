@@ -458,10 +458,8 @@ type(energy_terms) :: energs
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
-                  write(*,*) 'calling redefine_locregs_quantities'
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
-                  write(*,*) 'after redefine_locregs_quantities'
               end if
           end if
 
@@ -479,11 +477,8 @@ type(energy_terms) :: energs
                   if((lscv%locreg_increased .or. &
                       (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
                       .and. tmb%wfnmd%bs%update_phi) then
-                      write(*,*) 'calling deallocate_p2pComms'
                       call deallocate_p2pComms(tmbder%comrp, subname)
-                      write(*,*) 'after deallocate_p2pComms'
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
-                      write(*,*) 'after initializeRepartitionOrbitals'
                       tmbmix => tmbder
                   end if
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'

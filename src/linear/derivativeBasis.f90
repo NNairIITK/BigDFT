@@ -26,7 +26,6 @@ real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
 logical:: repartition
 character(len=*),parameter:: subname='getDerivativeBasisFunctions'
 
-write(*,*) 'in getDerivativeBasisFunctions'
 
   ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
   ! If each orbital has the same number of orbitals, this is never required.
@@ -61,7 +60,6 @@ write(*,*) 'in getDerivativeBasisFunctions'
   end if
 
   do iorb=1,lorbs%norbp
-      write(*,*) 'iproc, iorb', iproc, iorb
 
       !ilr=lin%orbs%inWhichLocregp(iorb)
       iiorb=lorbs%isorb+iorb
@@ -158,7 +156,6 @@ write(*,*) 'in getDerivativeBasisFunctions'
 
 
   if(repartition) then
-      write(*,*) 'calling repartition...'
       ! Communicate the orbitals to meet the partition.
       !!call postCommsRepartition(iproc, nproc, lorbs, comrp, size(phiLoc), phiLoc, size(phid), phid)
       !!call gatherDerivativeOrbitals(iproc, nproc, lorbs, comrp)
