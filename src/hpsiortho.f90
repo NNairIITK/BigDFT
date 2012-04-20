@@ -1055,12 +1055,12 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 END SUBROUTINE free_full_potential
 
 !> Calculate total energies from the energy terms
-subroutine total_energies(energs, iter)
+subroutine total_energies(energs, iter, iproc)
   use module_base
   use module_types
   implicit none
   type(energy_terms), intent(inout) :: energs
-  integer, intent(in) :: iter
+  integer, intent(in) :: iter, iproc
 
   !band structure energy calculated with occupation numbers
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
@@ -1069,7 +1069,9 @@ subroutine total_energies(energs, iter)
        energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
   if (energs%c_obj /= 0) then
+     call timing(iproc,'energs_signals','ON')
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
+     call timing(iproc,'energs_signals','OF')
   end if
 end subroutine total_energies
 

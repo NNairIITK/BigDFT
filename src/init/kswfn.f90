@@ -44,6 +44,7 @@ subroutine kswfn_emit_psi(KSwfn, iter, iproc, nproc)
   integer :: message, ierr, data(2), orbSize
   integer :: status(MPI_STATUS_SIZE)
 
+  call timing(iproc,'wf_signals    ','ON')
   if (iproc == 0) then
      ! Only iproc 0 emit the signal. This call is blocking.
      ! All other procs are blocked by the bcast to wait for
@@ -72,6 +73,7 @@ subroutine kswfn_emit_psi(KSwfn, iter, iproc, nproc)
         end if
      end do
   end if
+  call timing(iproc,'wf_signals    ','OF')
 END SUBROUTINE kswfn_emit_psi
 
 subroutine kswfn_mpi_copy(psic, jproc, iorbp, psiSize)

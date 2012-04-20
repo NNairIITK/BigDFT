@@ -1801,7 +1801,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      etol=accurex/real(orbse%norbu,gp)
      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
 
-     call total_energies(energs, 0)
+     call total_energies(energs, 0, iproc)
 
    if (iproc==0) then
       !yaml output

@@ -213,6 +213,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
      END SUBROUTINE localfields_full_density
   end interface
 
+  call timing(iproc,'rhov_signals  ','ON')
   if (iproc == 0) then
      ! Only iproc 0 emit the signal. This call is blocking.
      ! All other procs are blocked by the bcast to wait for
@@ -240,6 +241,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         end if
      end do
   end if
+  call timing(iproc,'rhov_signals  ','OF')
 END SUBROUTINE denspot_emit_rhov
 subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   use module_base
@@ -263,6 +265,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
      END SUBROUTINE localfields_full_v_ext
   end interface
 
+  call timing(iproc,'rhov_signals  ','ON')
   if (iproc == 0) then
      ! Only iproc 0 emit the signal. This call is blocking.
      ! All other procs are blocked by the bcast to wait for
@@ -290,6 +293,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         end if
      end do
   end if
+  call timing(iproc,'rhov_signals  ','OF')
 END SUBROUTINE denspot_emit_v_ext
 
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)

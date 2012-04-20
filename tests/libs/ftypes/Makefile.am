@@ -39,7 +39,7 @@ signals.out: check_client_signals posinp.ascii $(srcdir)/test.dft
         fi
 	@echo "signaling T" > test.perf
 	@echo "signalTimeout 15" >> test.perf
-	$(run_parallel) $(top_builddir)/src/bigdft test > /dev/null &
+	$(run_parallel) $(top_builddir)/src/bigdft test &
 	sleep 3s; ./check_client_signals > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f test.ascii ; \

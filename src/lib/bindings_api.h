@@ -106,7 +106,8 @@ void FC_FUNC_(orbs_init, ORBS_INIT)(void *orbs);
 void FC_FUNC_(orbs_free, ORBS_FREE)(void *orbs);
 void FC_FUNC_(orbs_empty, ORBS_EMPTY)(void *orbs);
 void FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(void *comm);
-void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(void *comm);
+void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(void *comm, void *orbs, void *lzd,
+                                              const guint *iproc, const guint *nproc);
 void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(void *comm);
 void FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(void *comm);
 void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(guint *iproc, guint *nproc,
