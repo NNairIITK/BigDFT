@@ -603,7 +603,11 @@ type(energy_terms) :: energs
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
-
+  !Write the linear wavefunctions to file if asked
+  if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+    call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,tmb%Lzd,&
+       tmbmix%orbs,orbs%norb,hx,hy,hz,at,rxyz,tmbmix%psi,tmbmix%wfnmd%coeff)
+   end if
 
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)

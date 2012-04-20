@@ -736,8 +736,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
-  comments='plot basis functions: true or false'
-  call input_var(in%lin%plotBasisFunctions,'F',comment=comments)
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
+  call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
   !transform to global orbitals in the end (T/F)
   comments='transform to global orbitals in the end (T/F)'
