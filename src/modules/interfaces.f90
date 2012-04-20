@@ -859,7 +859,7 @@ module module_interfaces
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        type(local_zone_descriptors), intent(in) :: Lzd
+        type(local_zone_descriptors), intent(inout) :: Lzd
         type(orbitals_data), intent(in) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpcom
@@ -1136,7 +1136,7 @@ module module_interfaces
         real(gp), intent(in) :: hx,hy,hz
         type(atoms_data), intent(in), target :: at
         type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
-        type(local_zone_descriptors), intent(in), target :: Lzd
+        type(local_zone_descriptors), intent(inout), target :: Lzd
         type(denspot_distribution), intent(in), target :: dpcom
         real(gp), dimension(3,at%nat), intent(in), target :: rxyz
         real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
@@ -6818,6 +6818,15 @@ module module_interfaces
           type(overlap_parameters_matrix),intent(inout):: opm
           character(len=*),intent(in):: subname
         end subroutine deallocate_overlap_parameters_matrix
+
+        subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: ndimfirstproc
+          type(local_zone_descriptors), intent(inout) :: Lzd
+          type(orbitals_data), intent(inout) :: orbs
+        end subroutine local_potential_dimensions
 
    end interface
 

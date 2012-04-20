@@ -720,5 +720,3 @@ write(*,'(1x,a)') '-------------------------------------------------------------
 
 
 end subroutine print_orbital_distribution
-
-

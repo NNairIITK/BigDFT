@@ -745,6 +745,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Calculate the Hamiltonian matrix.
   allocate(ham3(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
+  call random_number(ham3)
 
   if(input%lin%nItInguess>0) then
       call getHamiltonianMatrix6(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
@@ -911,7 +912,7 @@ real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 ! Local variables
 integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
 integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, tagx, availableMemory, jj, i, ist, jst, nshift
-integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold
+integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
 type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
@@ -1018,15 +1019,13 @@ do iat=1,lzd%nlr
                 if(iproc<nproc) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle !Otherwise we would communicate the same again
                     if(ilr==iiat) then
-                        ! Send this matrix to process jproc.
-                        if(iproc==jjproc) then
+                        if(nproc>1) then
+                            ! Send this matrix to process jproc.
                             do jproc=0,nproc-1
-                                !nrecv=nrecv+1
-                                if(orbs%norb_par(jproc,0)>0) nrecv=nrecv+1 !otherwise process jproc has no data and should not communicate...
+                                if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                                if(iproc==jjproc) nrecv=nrecv+1
+                                if(iproc==jproc) nsend=nsend+1
                             end do
-                            nsend=nsend+1
-                        else
-                            nsend=nsend+1
                         end if
                     end if
                 end if
@@ -1044,7 +1043,7 @@ do iat=1,lzd%nlr
         ! Now communicate the matrices.
         ! WARNING: Here we don't use the standard and unique tags available through p2p_tags. It should not matter
         ! since there is no other p2p communication going on at the moment, but still this could be improved...
-        tag0=1
+        tag0=0
         isend=0
         irecv=0
         ilrold=-1
@@ -1059,35 +1058,42 @@ do iat=1,lzd%nlr
                 if(ilr==ilrold .and. jjproc==jjprocold) cycle
                 if(ilr==iiat) then
                    ! Send to process jproc
-                   if(iproc==jjproc .and. nproc > 1) then
-                      imat=imat+1
-                      do jproc=0,nproc-1
-                         if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
-                         tag=tag0+jproc
-                         irecv=irecv+1
-                         call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
-                              mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
-                      end do
-                      tag=tag0+iproc
-                      isend=isend+1
-                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
-                   else if (nproc >1) then
-                      tag=tag0+iproc
-                      isend=isend+1
-                      call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
-                           mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                   if(iproc==jjproc) imat=imat+1
+                   if(nproc>1) then
+                       do jproc=0,nproc-1
+                           if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                           tag=p2p_tag(jjproc)
+                           if(iproc==jjproc) then
+                               irecv=irecv+1
+                               call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
+                                    mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
+                           end if
+                           if(iproc==jproc) then
+                               isend=isend+1
+                               call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
+                                    mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                           end if
+                       end do
                    else if (nproc == 1) then
-                      imat=imat+1
+                      !imat=imat+1
                       call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
                            hamTempCompressed2(displs(iproc)+1,imat),1)
                    end if
-                    tag0=tag0+1
+                   !tag0=tag0+1
+                   tag0=tag0+nproc
                 end if
             end do
             ilrold=ilr
             jjprocold=jjproc
         end do
+        if(isend/=nsend) then
+            write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': isend/=nsend',isend,nsend
+            stop
+        end if
+        if(irecv/=nrecv) then
+            write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': irecv/=nrecv',irecv,nrecv
+            stop
+        end if
 
         ! Wait for the communication to complete
         if (nproc > 1) then
