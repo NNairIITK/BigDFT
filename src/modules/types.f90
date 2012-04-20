@@ -638,27 +638,27 @@ module module_types
   end type collective_comms
 
 
-!> Contains all parameters for the basis with which we calculate the properties
-!! like energy and forces. Since we may also use the derivative of the trace
-!! minimizing orbitals, this basis may be larger than only the trace minimizing
-!! orbitals. In case we don't use the derivatives, these parameters are identical
-!! from those in lin%orbs etc.
-type,public:: largeBasis
-    type(communications_arrays):: comms, gcomms
-    type(orbitals_data):: orbs, gorbs
-    !type(local_zone_descriptors):: lzd
-    !type(p2pCommsRepartition):: comrp
-    type(p2pComms):: comrp
-    !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon
-    type(overlapParameters):: op
-    !type(p2pCommsGatherPot):: comgp
-    type(p2pComms):: comgp
-    type(matrixDescriptors):: mad
-    type(collectiveComms):: collComms
-    !type(p2pCommsSumrho):: comsr
-    type(p2pComms):: comsr
-end type largeBasis
+!!!!> Contains all parameters for the basis with which we calculate the properties
+!!!!! like energy and forces. Since we may also use the derivative of the trace
+!!!!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!!!!! orbitals. In case we don't use the derivatives, these parameters are identical
+!!!!! from those in lin%orbs etc.
+!!!type,public:: largeBasis
+!!!    type(communications_arrays):: comms, gcomms
+!!!    type(orbitals_data):: orbs, gorbs
+!!!    !type(local_zone_descriptors):: lzd
+!!!    !type(p2pCommsRepartition):: comrp
+!!!    type(p2pComms):: comrp
+!!!    !type(p2pCommsOrthonormality):: comon
+!!!    type(p2pComms):: comon
+!!!    type(overlapParameters):: op
+!!!    !type(p2pCommsGatherPot):: comgp
+!!!    type(p2pComms):: comgp
+!!!    type(matrixDescriptors):: mad
+!!!    type(collectiveComms):: collComms
+!!!    !type(p2pCommsSumrho):: comsr
+!!!    type(p2pComms):: comsr
+!!!end type largeBasis
 
 
 type,public:: workarrays_quartic_convolutions
