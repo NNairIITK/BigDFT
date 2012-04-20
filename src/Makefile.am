@@ -62,7 +62,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -407,14 +407,14 @@ bigdft_LDADD = @LIBS_DEPENDENCIES@
 splsad_SOURCES = splinedsaddle.f90
 splsad_LDADD = @LIBS_DEPENDENCIES@
 
-rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDADD = @LIBS_DEPENDENCIES@
+#rism_SOURCES = rism.f90 rismlowlevel.f90
+#rism_LDADD = @LIBS_DEPENDENCIES@
 
 #sandbox_SOURCES = sandbox.f90
 #sandbox_LDADD = @LIBS_DEPENDENCIES@
 
-oneatom_SOURCES = oneatom.f90
-oneatom_LDADD = @LIBS_DEPENDENCIES@
+#oneatom_SOURCES = oneatom.f90
+#oneatom_LDADD = @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@

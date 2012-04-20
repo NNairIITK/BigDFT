@@ -319,26 +319,41 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: proj
       END SUBROUTINE createProjectorsArrays
 
-      subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
-            &   rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
-         n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         !Arguments
-         character(len=1), intent(in) :: datacode
-         character(len=3), intent(in) :: rho_commun
-         integer, intent(in) :: iproc,nproc,ixc,nspin
-         real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-         type(atoms_data), intent(in) :: atoms
-         type(grid_dimensions), intent(in) :: gdim
-         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-         integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
-         type(rho_descriptors), intent(out) :: rhodsc
-         integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
-         integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
-      END SUBROUTINE createDensPotDescriptors
+      subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
+           rho_commun,rxyz,radii_cf,rhodsc)
+        use module_base
+        use module_types
+        use module_xc
+        implicit none
+        integer, intent(in) :: iproc,nproc,nspin
+        real(gp), intent(in) :: crmult,frmult
+        type(atoms_data), intent(in) :: atoms
+        type(denspot_distribution), intent(in) :: dpbox
+        character(len=3), intent(in) :: rho_commun
+        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+        type(rho_descriptors), intent(out) :: rhodsc
+      end subroutine density_descriptors
+!!$      subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
+!!$            &   rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
+!!$         n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+!!$         !n(c) use module_base
+!!$         use module_types
+!!$         implicit none
+!!$         !Arguments
+!!$         character(len=1), intent(in) :: datacode
+!!$         character(len=3), intent(in) :: rho_commun
+!!$         integer, intent(in) :: iproc,nproc,ixc,nspin
+!!$         real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
+!!$         type(atoms_data), intent(in) :: atoms
+!!$         type(grid_dimensions), intent(in) :: gdim
+!!$         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+!!$         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!!$         integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
+!!$         type(rho_descriptors), intent(out) :: rhodsc
+!!$         integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
+!!$         integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
+!!$      END SUBROUTINE createDensPotDescriptors
 
       subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs, &
             &   radii_cf,cpmult,fpmult,hx,hy,hz, ecut_pc, &
@@ -1800,19 +1815,13 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
-      subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpbox,rhod)
+      subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbox)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc, nproc
-        type(grid_dimensions), intent(in) :: grid
-        real(gp), intent(in) :: hxh, hyh, hzh
-        type(input_variables), intent(in) :: in
-        type(atoms_data), intent(in) :: atoms
-        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+        integer, intent(in) :: iproc, nproc,ixc,nspin
+        character(len=*), intent(in) :: geocode,SICapproach
         type(denspot_distribution), intent(inout) :: dpbox
-        type(rho_descriptors), intent(out) :: rhod
       end subroutine denspot_communications
 
       subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)

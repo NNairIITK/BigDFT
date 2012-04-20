@@ -174,7 +174,7 @@ It is launched like this:
 
 </pre>
 It basically collects all desired timing classes (see inside script for customize them) inside the wavefunction optimization section (WFN_OPT) of the <code>time.yaml</code> file and returns them to screen. Only this section is truly relevant for timing issues because it represents the true bulk of the BigDFT code in a production run. 
-Also, more than one file at the same sime can be passed to the ruby script. In any case, the first run of the first file which is passed is interpreted as the reference run.
+Also, more than one file at the same time can be passed to the ruby script. In any case, the first run of the first file which is passed is interpreted as the reference run.
 The timing values can then be copied inside a file and plotted with the script <a href="scalability/weak_scaling.gnuplot"><code>weak_scaling.gnuplot</code></a>. Redirect the output of ruby script to a <code>weak.dat</code> file to use the gnuplot script.
 </li>
 <li>      Plot (gnuplot, for example) figures showing the behaviour by varying OpenMP and MPI parallelizations.</li>

@@ -1318,7 +1318,8 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    end if
 
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
+   print *,wfn%c_obj
+   if (iproc == 0 .and. wfn%c_obj /= 0.d0) then
       call wf_emit_psi(wfn%c_obj, iter)
    end if
 

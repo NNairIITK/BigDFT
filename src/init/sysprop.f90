@@ -61,8 +61,13 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   call initialize_DFT_local_fields(denspot)
 
+  !here the initialization of dpbox can be set up
+
   !grid spacings and box of the density
   call dpbox_set_box(denspot%dpbox,Lzd)
+  !complete dpbox initialization
+  call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
+       atoms%geocode,in%SIC%approach,denspot%dpbox)
 
   ! Create the Poisson solver kernels.
   call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
@@ -102,12 +107,16 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
           atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
-
   
-  !calculate the descriptors for rho and the potentials.
-  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
+!!$  !calculate the descriptors for rho and the potentials.
+!!$  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
+!!$       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+!!$       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
+
+  !here dpbox can be put as input
+  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+       denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
+
 
   !allocate the arrays.
   call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)

@@ -111,10 +111,10 @@ program oneatom
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
-
-  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
-       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+!oneatom is to be rewritten almost completely
+!!$  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+!!$       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
+!!$       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
   !commented out, to be used in the future
