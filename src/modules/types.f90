@@ -137,14 +137,14 @@ module module_types
     integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
     real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
-    integer:: increase_locrad_after
+    integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
+    logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
     character(len=4):: mixingMethod
     character(len=1):: locregShape
   end type linearInputParameters

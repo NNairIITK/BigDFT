@@ -16,7 +16,7 @@ dens                   mixing method: dens or pot
 1.d-11                 convergence criterion for the low accuracy part
 F  4                   use the derivative basis functions, order of confinement potential
 1000  100              number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
-F                      plot basis functions: true or false
+0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF 
 T                      transform to global orbitals in the end (T/F)
 1                      number of orbitals per process for trace minimization during input guess.
 F                      mixed mode (without and with derivatives)

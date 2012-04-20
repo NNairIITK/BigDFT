@@ -893,8 +893,14 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
     ! Must be careful, the orbs%norb is the number of basis functions
     ! while the norb is the number of orbitals.
     if(iproc == 0) then
+      if(iformat == WF_FORMAT_PLAIN) then
+         open(99, file=filename//'_coeff.bin', status='unknown',form='formatted')
+      else
+         open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
+      end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+      close(99)
     end if
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
@@ -1448,13 +1454,14 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   call to_zero(3*orbs%norb,locregCenter(1,1))
   call to_zero(orbs%norb,locrad(1))
   call to_zero(orbs%norb,confPotprefac(1))
+  consistent = .true.
 
   ! First read the headers (reading is distributed) and then the information is communicated to all procs.
   ! Then each proc generates a group of lrs that are communicated to all others.
   if (iformat == WF_FORMAT_ETSF) then
      stop 'Linear scaling with ETSF writing not implemented yet'
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     do iorb=1,orbs%norbp!*orbs%nspinor
+     loop_iorb: do iorb=1,orbs%norbp!*orbs%nspinor
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
@@ -1476,12 +1483,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                 rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
            if(.not. consistent) then
              write(*,*) 'Inconsistency in file, iorb=',iorb_out
-             call mpi_finalize(ierr)
-             stop
+             exit loop_iorb
            end if
            confPotOrder_old = confPotOrder
         end do
-     end do
+     end do loop_iorb
+     call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+     if(.not. consistent) then
+       call mpi_finalize(ierr)
+       stop
+     end if
   else
      write(0,*) "Unknown wavefunction file format from filename."
      stop
