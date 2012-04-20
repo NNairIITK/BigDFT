@@ -355,6 +355,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
 static gboolean onClientTimeout(gpointer data)
 {
   g_cancellable_cancel((GCancellable*)data);
+  g_object_unref(data);
 
   return FALSE;
 }
@@ -390,49 +391,34 @@ void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *t
           main->kind = BIGDFT_SIGNALS_NONE;
           break;
         }
-      if (*timeout < 0)
+      if (*timeout != 0)
         {
-          if (g_socket_condition_wait(main->socket, G_IO_IN, NULL, &error))
-            onClientConnection(main->socket, G_IO_IN, main);
+          if (*timeout > 0)
+            {
+              cancellable = g_cancellable_new();
+              g_object_ref(cancellable);
+              g_timeout_add(*timeout * 1000, onClientTimeout, cancellable);
+            }
           else
+            cancellable = (GCancellable*)0;
+          if (g_socket_condition_wait(main->socket, G_IO_IN, cancellable, &error))
+            onClientConnection(main->socket, G_IO_IN, main);
+          else if (error->code != G_IO_ERROR_CANCELLED)
             {
               g_warning("%s", error->message);
               g_error_free(error);
               main->kind = BIGDFT_SIGNALS_NONE;
-              break;
             }
+          else
+            g_error_free(error);
+          if (cancellable)
+            g_object_unref(cancellable);
         }
-      else if (*timeout == 0)
+      if (main->kind == BIGDFT_SIGNALS_INET)
         {
           main->source = g_socket_create_source(main->socket, G_IO_IN | G_IO_HUP, NULL);
           g_source_set_callback(main->source, (GSourceFunc)onClientConnection, main, NULL);
           g_source_attach(main->source, NULL);
-        }
-      else
-        {
-          cancellable = g_cancellable_new();
-          g_timeout_add(*timeout * 1000, onClientTimeout, cancellable);
-          ret = g_socket_condition_wait(main->socket, G_IO_IN, cancellable, &error);
-          if (ret)
-            onClientConnection(main->socket, G_IO_IN, main);
-          else
-            {
-              if (error->code == G_IO_ERROR_CANCELLED)
-                {
-                  g_error_free(error);
-                  main->source = g_socket_create_source(main->socket,
-                                                        G_IO_IN | G_IO_HUP, NULL);
-                  g_source_set_callback(main->source,
-                                        (GSourceFunc)onClientConnection, main, NULL);
-                  g_source_attach(main->source, NULL);
-                }
-              else
-                {
-                  g_warning("%s", error->message);
-                  g_error_free(error);
-                  main->kind = BIGDFT_SIGNALS_NONE;
-                }
-            }
         }
 #else
       g_warning("Signals init: Inet transport unavailable.");
