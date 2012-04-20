@@ -854,121 +854,121 @@ subroutine getRow(norb, mad, rowX, row)
 
 end subroutine getRow
 
-subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+!!!subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  integer,intent(in):: norb, nseg
+!!!  integer,dimension(2,nseg),intent(in):: keyg
+!!!  integer,intent(out):: nsegmatmul
+!!!  integer,dimension(:,:),pointer,intent(out):: keygmatmul
+!!!  integer,dimension(:),pointer,intent(out):: keyvmatmul
+!!!
+!!!  ! Local variables
+!!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+!!!  logical:: segment
+!!!  character(len=*),parameter:: subname='initCompressedMatmul2'
+!!!  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+!!!
+!!!
+!!!
+!!!  allocate(mat1(norb**2), stat=istat)
+!!!  call memocc(istat, mat1, 'mat1', subname)
+!!!  allocate(mat2(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!  allocate(mat3(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!
+!!!  mat1=0.d0
+!!!  mat2=0.d0
+!!!  do iseg=1,nseg
+!!!      do i=keyg(1,iseg),keyg(2,iseg)
+!!!          ! the localization region is "symmetric"
+!!!          mat1(i)=1.d0
+!!!          mat2(i)=1.d0
+!!!      end do
+!!!  end do
+!!!
+!!!  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
+!!!
+!!!  segment=.false.
+!!!  nsegmatmul=0
+!!!  do iorb=1,norb**2
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              nsegmatmul=nsegmatmul+1
+!!!          end if
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!          end if
+!!!      end if
+!!!  end do
+!!!
+!!!
+!!!  allocate(keygmatmul(2,nsegmatmul), stat=istat)
+!!!  call memocc(istat, keygmatmul, 'keygmatmul', subname)
+!!!  allocate(keyvmatmul(nsegmatmul), stat=istat)
+!!!  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
+!!!  keyvmatmul=0
+!!!  ! Now fill the descriptors.
+!!!  segment=.false.
+!!!  ij=0
+!!!  iseg=0
+!!!  do iorb=1,norb**2
+!!!      ij=iorb
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              iseg=iseg+1
+!!!              keygmatmul(1,iseg)=ij
+!!!          end if
+!!!          keyvmatmul(iseg)=keyvmatmul(iseg)+1
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!              keygmatmul(2,iseg)=ij-1
+!!!          end if
+!!!      end if
+!!!  end do
+!!!  ! Close the last segment if required.
+!!!  if(segment) then
+!!!      keygmatmul(2,iseg)=ij
+!!!  end if
+!!!
+!!!
+!!!iall=-product(shape(mat1))*kind(mat1)
+!!!deallocate(mat1, stat=istat)
+!!!call memocc(istat, iall, 'mat1', subname)
+!!!iall=-product(shape(mat2))*kind(mat2)
+!!!deallocate(mat2, stat=istat)
+!!!call memocc(istat, iall, 'mat2', subname)
+!!!iall=-product(shape(mat3))*kind(mat3)
+!!!deallocate(mat3, stat=istat)
+!!!call memocc(istat, iall, 'mat3', subname)
+!!!
+!!!
+!!!end subroutine initCompressedMatmul2
+
+
+
+
+subroutine initCompressedMatmul3(iproc, norb, mad)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb, nseg
-  integer,dimension(2,nseg),intent(in):: keyg
-  integer,intent(out):: nsegmatmul
-  integer,dimension(:,:),pointer,intent(out):: keygmatmul
-  integer,dimension(:),pointer,intent(out):: keyvmatmul
-
-  ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
-  logical:: segment
-  character(len=*),parameter:: subname='initCompressedMatmul2'
-  real(8),dimension(:),allocatable:: mat1, mat2, mat3
-
-
-
-  allocate(mat1(norb**2), stat=istat)
-  call memocc(istat, mat1, 'mat1', subname)
-  allocate(mat2(norb**2), stat=istat)
-  call memocc(istat, mat2, 'mat2', subname)
-  allocate(mat3(norb**2), stat=istat)
-  call memocc(istat, mat2, 'mat2', subname)
-
-  mat1=0.d0
-  mat2=0.d0
-  do iseg=1,nseg
-      do i=keyg(1,iseg),keyg(2,iseg)
-          ! the localization region is "symmetric"
-          mat1(i)=1.d0
-          mat2(i)=1.d0
-      end do
-  end do
-
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
-
-  segment=.false.
-  nsegmatmul=0
-  do iorb=1,norb**2
-      if(mat3(iorb)>0.d0) then
-          ! This entry of the matrix will be different from zero.
-          if(.not. segment) then
-              ! This is the start of a new segment
-              segment=.true.
-              nsegmatmul=nsegmatmul+1
-          end if
-      else
-          if(segment) then
-              ! We reached the end of a segment
-              segment=.false.
-          end if
-      end if
-  end do
-
-
-  allocate(keygmatmul(2,nsegmatmul), stat=istat)
-  call memocc(istat, keygmatmul, 'keygmatmul', subname)
-  allocate(keyvmatmul(nsegmatmul), stat=istat)
-  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
-  keyvmatmul=0
-  ! Now fill the descriptors.
-  segment=.false.
-  ij=0
-  iseg=0
-  do iorb=1,norb**2
-      ij=iorb
-      if(mat3(iorb)>0.d0) then
-          ! This entry of the matrix will be different from zero.
-          if(.not. segment) then
-              ! This is the start of a new segment
-              segment=.true.
-              iseg=iseg+1
-              keygmatmul(1,iseg)=ij
-          end if
-          keyvmatmul(iseg)=keyvmatmul(iseg)+1
-      else
-          if(segment) then
-              ! We reached the end of a segment
-              segment=.false.
-              keygmatmul(2,iseg)=ij-1
-          end if
-      end if
-  end do
-  ! Close the last segment if required.
-  if(segment) then
-      keygmatmul(2,iseg)=ij
-  end if
-
-
-iall=-product(shape(mat1))*kind(mat1)
-deallocate(mat1, stat=istat)
-call memocc(istat, iall, 'mat1', subname)
-iall=-product(shape(mat2))*kind(mat2)
-deallocate(mat2, stat=istat)
-call memocc(istat, iall, 'mat2', subname)
-iall=-product(shape(mat3))*kind(mat3)
-deallocate(mat3, stat=istat)
-call memocc(istat, iall, 'mat3', subname)
-
-
-end subroutine initCompressedMatmul2
-
-
-
-
-subroutine initCompressedMatmul3(norb, mad)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: norb
+  integer,intent(in):: iproc, norb
   type(matrixDescriptors),intent(inout):: mad
 
   ! Local variables
@@ -977,6 +977,7 @@ subroutine initCompressedMatmul3(norb, mad)
   character(len=*),parameter:: subname='initCompressedMatmul3'
   real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
+  call timing(iproc,'initMatmulComp','ON')
 
   allocate(mat1(norb**2), stat=istat)
   call memocc(istat, mat1, 'mat1', subname)
@@ -1060,6 +1061,7 @@ iall=-product(shape(mat3))*kind(mat3)
 deallocate(mat3, stat=istat)
 call memocc(istat, iall, 'mat3', subname)
 
+call timing(iproc,'initMatmulComp','OF')
 
 end subroutine initCompressedMatmul3
 
@@ -1932,11 +1934,10 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
-       's', lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
   call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
-  call initCompressedMatmul3(llborbs%norb, lbmad)
+  call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 

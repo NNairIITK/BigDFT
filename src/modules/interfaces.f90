@@ -3117,16 +3117,15 @@ module module_interfaces
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, &
-                onWhichAtomAll, locregShape, op, comon)
+     subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, &
+                locregShape, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nspin
        real(8),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd, lzdig
-       type(orbitals_data),intent(in):: orbs, orbsig
-       integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+       type(orbitals_data),intent(in):: orbs
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
@@ -4911,11 +4910,11 @@ module module_interfaces
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOne
 
-      subroutine initCompressedMatmul3(norb, mad)
+      subroutine initCompressedMatmul3(iproc, norb, mad)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: norb
+        integer,intent(in):: iproc, norb
         type(matrixDescriptors),intent(inout):: mad
       end subroutine initCompressedMatmul3
 

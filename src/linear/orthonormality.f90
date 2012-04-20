@@ -379,7 +379,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orbsig, onWhichAtomAll, locregShape, op, comon) 
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, locregShape, op, comon) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -389,8 +389,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   integer,intent(in):: iproc, nproc, nspin
   real(8),intent(in):: hx, hy, hz
   type(local_zone_descriptors),intent(in):: lzd, lzdig
-  type(orbitals_data),intent(in):: orbs, orbsig
-  integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+  type(orbitals_data),intent(in):: orbs
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op
   type(p2pComms),intent(out):: comon
@@ -427,10 +426,10 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
 
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
-     call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+     call countOverlaps(iproc, nproc, orbs, lzd, orbs%inwhichlocreg, op, comon)
      allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
      call memocc(istat, op%overlaps, 'op%overlaps', subname)
-     call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+     call determineOverlaps(iproc, nproc, orbs, lzd, orbs%inwhichlocreg, op, comon)
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if

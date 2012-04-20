@@ -197,8 +197,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, tmbig%orbs, &
-       tmbig%orbs%inWhichLocreg, lin%locregShape, tmbig%op, tmbig%comon)
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, &
+       lin%locregShape, tmbig%op, tmbig%comon)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
@@ -208,7 +208,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmbig%orbs, &
        tmbig%op%noverlaps, tmbig%op%overlaps, tmbig%mad)
-  call initCompressedMatmul3(tmbig%orbs%norb, tmbig%mad)
+  call initCompressedMatmul3(iproc, tmbig%orbs%norb, tmbig%mad)
 
   call nullify_collective_comms(tmbig%collcom)
   call init_collective_comms(iproc, nproc, tmbig%orbs, tmbig%lzd, tmbig%collcom, collcom_reference)
@@ -947,8 +947,8 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, orbsig, &
-     onWhichAtom, locregShape, op, comon)
+call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, &
+     locregShape, op, comon)
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)
@@ -2624,7 +2624,7 @@ type(collective_comms):: collcom_vectors
 
   call nullify_matrixDescriptors(mad)
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmb%orbs, opm%noverlap, opm%overlaps, mad)
-  call initCompressedMatmul3(tmb%orbs%norb, mad)
+  call initCompressedMatmul3(iproc, tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)
   call init_collective_comms_vectors(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmbig%orbs, matmin%mlr, collcom_vectors)

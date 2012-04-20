@@ -60,12 +60,10 @@ type(energy_terms) :: energs
   call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 
   ! Initialize the tags for the p2p communication
-  !!tag=p2p_tag(.true.)
   call init_p2p_tags(nproc)
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
-
 
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
@@ -127,11 +125,9 @@ type(energy_terms) :: energs
 
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-       input%lin%locregShape, tmb%op, tmb%comon)
+       tmb%orbs, input%lin%locregShape, tmb%op, tmb%comon)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       input%lin%locregShape, tmbder%op, tmbder%comon)
+       tmbder%orbs, input%lin%locregShape, tmbder%op, tmbder%comon)
   
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)
@@ -151,10 +147,10 @@ type(energy_terms) :: energs
   call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
 
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
-  call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
+  call initCompressedMatmul3(iproc, tmb%orbs%norb, tmb%mad)
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-  call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
+  call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
 
   allocate(tmb%confdatarr(tmb%orbs%norbp))
   call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
@@ -584,7 +580,6 @@ type(energy_terms) :: energs
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
 
-  !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
