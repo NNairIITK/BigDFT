@@ -98,17 +98,17 @@ void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
 void FC_FUNC_(orbs_new, ORBS_NEW)(void *orbs);
 void FC_FUNC_(orbs_free, ORBS_FREE)(void *orbs);
 void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(void *comm);
-void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(int *iproc, int *nproc,
+void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(guint *iproc, guint *nproc,
                                                               int *verb, void *in, void *atoms,
                                                               void *orbs, int *nelec);
 void FC_FUNC_(orbs_comm, ORBS_COMM)(void *comm, void *orbs, const void *glr,
                                     const int *iproc, const int *nproc);
-void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const void *orbs, int *norb,
-                                                        int *norbp, int *norbu,
-                                                        int *norbd, int *nspin,
-                                                        int *nspinor, int *npsidim,
-                                                        int *nkpts, int *nkptsp,
-                                                        int *isorb, int *iskpts);
+void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const void *orbs, guint *norb,
+                                                        guint *norbp, guint *norbu,
+                                                        guint *norbd, guint *nspin,
+                                                        guint *nspinor, guint *npsidim,
+                                                        guint *nkpts, guint *nkptsp,
+                                                        guint *isorb, guint *iskpts);
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
       double *hx, double *hy, double *hz,

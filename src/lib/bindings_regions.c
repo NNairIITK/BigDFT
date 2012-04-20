@@ -57,7 +57,6 @@ static void bigdft_locreg_dispose(GObject *obj)
 static void bigdft_locreg_finalize(GObject *obj)
 {
   BigDFT_LocReg *glr = BIGDFT_LOCREG(obj);
-  guint i;
 
   if (glr->data)
     FC_FUNC_(glr_free, GLR_FREE)(&glr->data);

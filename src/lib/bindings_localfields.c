@@ -54,8 +54,6 @@ static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
 
 static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 {
-  double self;
-
 #ifdef HAVE_GLIB
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
 #else
@@ -91,7 +89,8 @@ void FC_FUNC_(localfields_emit_rhov, LOCALFIELDS_EMIT_RHOV)(BigDFT_LocalFields *
                                                             guint *istep)
 {
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
-    ((*denspot)->data, &(*denspot)->rhov_is, (*denspot)->h, &(*denspot)->psoffset);
+    ((*denspot)->data, &(*denspot)->rhov_is, (*denspot)->h,
+     (*denspot)->ni, &(*denspot)->psoffset);
   bigdft_localfields_emit_rhov(*denspot, *istep);
 }
 void bigdft_localfields_emit_rhov(BigDFT_LocalFields *denspot, guint istep)
@@ -125,8 +124,7 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                            guint iproc, guint nproc)
 {
   BigDFT_LocalFields *localfields;
-  double self, hh[3];
-  guint ndegree_ip = 16, verb = 0;
+  double self;
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
@@ -218,7 +216,7 @@ void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
                                                const BigDFT_Inputs *in,
                                                guint iproc, guint nproc)
 {
-  int verb = 0;
+  guint verb = 0;
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
     (&iproc, &nproc, &verb, &lzd->parent.parent.geocode, lzd->parent.d,

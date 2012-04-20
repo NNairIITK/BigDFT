@@ -1532,7 +1532,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
    real(wp), dimension(:,:,:), pointer :: psigau
-   real(gp), dimension(:,:,:), pointer :: mom_vec_fake
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe

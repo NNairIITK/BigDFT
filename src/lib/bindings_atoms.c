@@ -124,8 +124,6 @@ void bigdft_atoms_free(BigDFT_Atoms *atoms)
 BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
 {
   BigDFT_Atoms *atoms;
-  guint lstat, ln, i, j;
-  gchar str[20];
 
 #ifdef HAVE_GLIB
   atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));

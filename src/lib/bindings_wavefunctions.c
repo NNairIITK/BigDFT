@@ -403,7 +403,8 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                               BigDFT_Proj *proj, BigDFT_Energs *energs,
                               guint iproc, guint nproc)
 {
-  int inputpsi, norbv;
+  int inputpsi;
+  guint norbv;
   void *GPU;
   BigDFT_Orbs *orbs;
 
@@ -481,7 +482,7 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
 }
 gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                      BigDFT_Spin ispin, BigDFT_Spinor ispinor,
-                                     guint iproc, gdouble *psic, guint psiSize)
+                                     guint iproc, double *psic, guint psiSize)
 {
   guint ispinor_, orbSize;
   int iorbp, jproc;
@@ -531,6 +532,7 @@ double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
   psir = bigdft_locreg_convert_to_isf(&wf->lzd->parent, psic);
   if (ispinor == BIGDFT_PARTIAL_DENSITY)
     {
+      n = wf->lzd->parent.ni[0] * wf->lzd->parent.ni[1] * wf->lzd->parent.ni[2];
       if (wf->parent.nspinor == 2)
         {
           psii = bigdft_locreg_convert_to_isf(&wf->lzd->parent, psic + psiSize / 2);
