@@ -239,13 +239,13 @@ type(energy_terms) :: energs
      call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,0.5_gp*tmb%lzd%hgrids(1),&
           0.5_gp*tmb%lzd%hgrids(2),0.5_gp*tmb%lzd%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-     call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
-          denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
-     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 ! DEBUG (SEE IF HAMILTONIAN IS GOOD)
+!!     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+!!     call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+!!          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+!!     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
+!!          denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
+!!     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 !!     allocate(confdatarr(tmb%orbs%norbp))
 !!     call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,hx,hy,hz,input%lin%confpotorder,&
 !!          input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)

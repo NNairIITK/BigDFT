@@ -1507,8 +1507,9 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   ! Find the number of inequivalent locregs
   allocate(lrtable(orbs%norb),stat=i_stat)
   call memocc(i_stat,lrtable,'lrtable',subname)
-  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+  ! Already allocated before entering this routine
+  !allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)  
+  !call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
 
   nlr = 0
   lrtable = 0
@@ -1562,7 +1563,18 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
-       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
+
+   
+  i_all = -product(shape(cxyz))*kind(cxyz)
+  deallocate(cxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'cxyz',subname)
+  i_all = -product(shape(lrad))*kind(lrad)
+  deallocate(lrad,stat=i_stat)
+  call memocc(i_stat,i_all,'lrad',subname)
+  i_all = -product(shape(calcbounds))*kind(calcbounds)
+  deallocate(calcbounds,stat=i_stat)
+  call memocc(i_stat,i_all,'calcbounds',subname)
   
 END SUBROUTINE initialize_linear_from_file
 
