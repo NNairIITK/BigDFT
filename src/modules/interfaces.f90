@@ -4487,7 +4487,7 @@ module module_interfaces
       real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+    subroutine build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
                tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
       use module_base
       use module_types
@@ -4502,7 +4502,7 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham
       real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
-    end subroutine buildLinearCombinationsLocalized3
+    end subroutine build_input_guess
 
 
     subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
@@ -4848,16 +4848,16 @@ module module_interfaces
         type(matrixDescriptors),intent(inout):: mad
       end subroutine initCompressedMatmul
 
-      subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: norb, nseg
-        integer,dimension(2,nseg),intent(in):: keyg
-        integer,intent(out):: nsegmatmul
-        integer,dimension(:,:),pointer,intent(out):: keygmatmul
-        integer,dimension(:),pointer,intent(out):: keyvmatmul
-      end subroutine initCompressedMatmul2
+      !!subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+      !!  use module_base
+      !!  use module_types
+      !!  implicit none
+      !!  integer,intent(in):: norb, nseg
+      !!  integer,dimension(2,nseg),intent(in):: keyg
+      !!  integer,intent(out):: nsegmatmul
+      !!  integer,dimension(:,:),pointer,intent(out):: keygmatmul
+      !!  integer,dimension(:),pointer,intent(out):: keyvmatmul
+      !!end subroutine initCompressedMatmul2
 
 
       subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, nseglinemax, keygline, nsegmatmul, keygmatmul, a, b, c)
@@ -5311,7 +5311,7 @@ module module_interfaces
        end subroutine getCommunArraysMatrixCompression
 
 
-       subroutine getHamiltonianMatrix6(iproc, nproc, lzd, lzdig, orbsig, orbs, &
+       subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
                   input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad,&
                   memoryForCommunOverlapIG, locregShape, tagout, ham)
          use module_base
@@ -5331,7 +5331,7 @@ module module_interfaces
          character(len=1),intent(in):: locregShape
          integer,intent(inout):: tagout
          real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
-       end subroutine getHamiltonianMatrix6
+       end subroutine get_hamiltonian_matrices
        
        subroutine dgemm_compressed_parallel(iproc, nproc, norb, nsegline, nseglinemax, keygline, &
                   nsegmatmul, keygmatmul, norb_par, isorb_par, norbp, a, b, c)

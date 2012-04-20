@@ -20,6 +20,7 @@ integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 integer,dimension(:),allocatable:: npts_par_c, npts_par_f
 character(len=*),parameter:: subname='init_collective_comms'
 
+call timing(iproc,'init_collcomm ','ON')
 
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
@@ -235,6 +236,7 @@ call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weig
   deallocate(index_in_global_f, stat=istat)
   call memocc(istat, iall, 'index_in_global_f', subname)
   
+call timing(iproc,'init_collcomm ','OF')
   
 end subroutine init_collective_comms
 

@@ -304,6 +304,7 @@ integer:: isend, irecv, p2p_tag
 integer,dimension(:,:,:),allocatable:: move
 character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 
+call timing(iproc,'init_repart   ','ON')
 
 ! Nullify at the beginning
 call nullify_p2pComms(comrp)
@@ -391,6 +392,8 @@ call memocc(istat, iall, 'move', subname)
 
 ! To indicate that to communication has been started
 comrp%communication_complete=.true.
+
+call timing(iproc,'init_repart   ','OF')
 
 end subroutine initializeRepartitionOrbitals
 

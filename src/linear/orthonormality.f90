@@ -402,6 +402,9 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   real(8):: t1, t2, time
 !  integer, dimension(:,:), allocatable :: overlaps_nseg
 
+
+  call timing(iproc,'init_commOrtho','ON')
+
   call nullify_overlapParameters(op)
   call nullify_p2pComms(comon)
 
@@ -496,6 +499,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, orb
   call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
   !if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
 
+  call timing(iproc,'init_commOrtho','OF')
 
 end subroutine initCommsOrtho
 

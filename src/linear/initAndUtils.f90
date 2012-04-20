@@ -15,6 +15,9 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
   integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr, tag
   integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
   character(len=*),parameter:: subname='initialize_comms_sumrho'
+
+
+  call timing(iproc,'init_commSumro','ON')
   
   ! Buffer sizes 
   call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
@@ -180,6 +183,7 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
   ! To indicate that to communication has been started
   comsr%communication_complete=.true.
 
+  call timing(iproc,'init_commSumro','OF')
   
 end subroutine initialize_comms_sumrho
 
@@ -435,6 +439,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
   character(len=*),parameter:: subname='initMatrixCompression'
   
+  call timing(iproc,'init_matrCompr','ON')
+
   call nullify_matrixDescriptors(mad)
   
   mad%nseg=0
@@ -593,6 +599,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   end if
 
 
+  call timing(iproc,'init_matrCompr','OF')
 
 end subroutine initMatrixCompression
 
@@ -1581,6 +1588,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
+
+  call timing(iproc,'init_orbs_lin ','ON')
   
   call nullify_orbitals_data(lorbs)
   
@@ -1660,6 +1669,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   deallocate(norbsPerAtom, stat=istat)
   call memocc(istat, iall, 'norbsPerAtom', subname)
 
+
+  call timing(iproc,'init_orbs_lin ','OF')
+
 end subroutine init_orbitals_data_for_linear
 
 
@@ -1684,6 +1696,9 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
   integer:: iat, ityp, ilr, istat, iorb, iall
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_local_zone_descriptors'
+
+
+  call timing(iproc,'init_locregs  ','ON')
   
   call nullify_local_zone_descriptors(lzd)
   
@@ -1722,6 +1737,8 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
+
+  call timing(iproc,'init_locregs  ','OF')
 
 end subroutine init_local_zone_descriptors
 

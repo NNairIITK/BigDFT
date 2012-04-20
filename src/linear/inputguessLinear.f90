@@ -747,7 +747,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat,ham3,'ham3',subname)
 
   if(input%lin%nItInguess>0) then
-      call getHamiltonianMatrix6(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
+      call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
            input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
   end if
@@ -758,7 +758,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+  call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
            tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
 
   ! Calculate the coefficients
@@ -882,12 +882,12 @@ call memocc(istat, iall, 'ovrlp', subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-subroutine getHamiltonianMatrix6(iproc, nproc, lzd, lzdig, orbsig, orbs, &
+subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
 input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
 tagout, ham)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => getHamiltonianMatrix6
+use module_interfaces, exceptThisOne => get_hamiltonian_matrices
 implicit none
 
 ! Calling arguments
@@ -915,7 +915,7 @@ integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjp
 type(overlapParameters):: op
 type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
-character(len=*),parameter:: subname='getHamiltonianMatrix6'
+character(len=*),parameter:: subname='get_hamiltonian_matrices'
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
 integer,dimension(:),allocatable:: displs, sendcounts, sendrequests, recvrequests
 real(8):: tt1, tt2, tt3
@@ -1177,7 +1177,7 @@ iall=-product(shape(hamTemp))*kind(hamTemp)
 deallocate(hamTemp, stat=istat)
 call memocc(istat, iall, 'hamTemp', subname)
 
-end subroutine getHamiltonianMatrix6
+end subroutine get_hamiltonian_matrices
 
 
 
@@ -2548,11 +2548,11 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, c
 end subroutine buildLinearCombinations_new
 
 
-subroutine buildLinearCombinationsLocalized3(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+subroutine build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
            tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => buildLinearCombinationsLocalized3
+use module_interfaces, exceptThisOne => build_input_guess
 implicit none
 
 ! Calling arguments
@@ -2575,7 +2575,7 @@ real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
-character(len=*),parameter:: subname='buildLinearCombinationsLocalized3'
+character(len=*),parameter:: subname='build_input_guess'
 real(4):: ttreal, builtin_rand
 integer:: norbtot, isx, iiiat
 integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
@@ -2805,7 +2805,7 @@ type(collective_comms):: collcom_vectors
       do iorb=1,tmb%orbs%norbp
           ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
           iilr=matmin%inWhichLocregOnMPI(iorb)
-          call preconditionGradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+          call precondition_gradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
       end do
   
 
@@ -2976,12 +2976,12 @@ type(collective_comms):: collcom_vectors
     end subroutine deallocateArrays
 
 
-end subroutine buildLinearCombinationsLocalized3
+end subroutine build_input_guess
 
 
 
 
-subroutine preconditionGradient(nel, neltot, ham, cprec, grad)
+subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
   use module_base
   use module_types
   implicit none
@@ -2997,7 +2997,7 @@ subroutine preconditionGradient(nel, neltot, ham, cprec, grad)
   complex(8),dimension(:,:),allocatable:: mat
   complex(8),dimension(:),allocatable:: rhs
   integer,dimension(:),allocatable:: ipiv
-  character(len=*),parameter:: subname='preconditionGradient'
+  character(len=*),parameter:: subname='precondition_gradient'
   
   allocate(mat(nel,nel), stat=istat)
   !call memocc(istat, mat, 'mat', subname)
@@ -3039,4 +3039,4 @@ subroutine preconditionGradient(nel, neltot, ham, cprec, grad)
   deallocate(rhs, stat=istat)
   !call memocc(istat, iall, 'rhs', subname)
 
-end subroutine preconditionGradient
+end subroutine precondition_gradient
