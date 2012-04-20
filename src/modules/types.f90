@@ -916,6 +916,36 @@ end type linear_scaling_control_variables
      double precision :: c_obj !< Storage of the C wrapper object.
   end type DFT_wavefunction
 
+  !> Flags for optimization loop id
+  integer, parameter, public :: OPTLOOP_HAMILTONIAN   = 0
+  integer, parameter, public :: OPTLOOP_SUBSPACE      = 1
+  integer, parameter, public :: OPTLOOP_WAVEFUNCTIONS = 2
+  integer, parameter, public :: OPTLOOP_N_LOOPS       = 3
+
+  !> Used to control the optimization of wavefunctions
+  type, public :: DFT_optimization_loop
+     integer :: iscf !< Kind of optimization scheme.
+
+     integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
+     integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
+     integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+
+     integer :: itrp    !< actual number of mixing cycle.
+     integer :: itrep   !< actual number of re-diagonalisation runs.
+     integer :: iter    !< actual number of minimization iterations.
+
+     integer :: infocode !< return value after optimization loop.
+
+     real(gp) :: gnrm   !< actual value of cv criterion of the minimization loop.
+     real(gp) :: rpnrm  !< actual value of cv criterion of the mixing loop.
+
+     real(gp) :: gnrm_cv       !< convergence criterion of the minimization loop.
+     real(gp) :: rpnrm_cv      !< convergence criterion of the mixing loop.
+     real(gp) :: gnrm_startmix !< gnrm value to start mixing after.
+
+     double precision :: c_obj = 0.d0 !< Storage of the C wrapper object.
+  end type DFT_optimization_loop
+
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects

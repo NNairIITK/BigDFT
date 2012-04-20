@@ -958,3 +958,149 @@ subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
   evsum  = energs%evsum
   evsic  = energs%evsic
 END SUBROUTINE energs_copy_data
+
+subroutine optloop_new(self, optloop)
+  use module_types
+  implicit none
+  double precision, intent(in) :: self
+  type(DFT_optimization_loop), pointer :: optloop
+
+  allocate(optloop)
+  optloop%c_obj = self
+END SUBROUTINE optloop_new
+subroutine optloop_free(optloop)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), pointer :: optloop
+
+  deallocate(optloop)
+END SUBROUTINE optloop_free
+subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
+     &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(in) :: optloop
+  integer, intent(out) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
+  real(gp), intent(out) :: gnrm, rpnrm, gnrm_cv, rpnrm_cv, gnrm_startmix
+
+  gnrm_cv = optloop%gnrm_cv 
+  rpnrm_cv = optloop%rpnrm_cv 
+  gnrm_startmix = optloop%gnrm_startmix 
+  gnrm = optloop%gnrm 
+  rpnrm = optloop%rpnrm 
+
+  itrpmax = optloop%itrpmax 
+  nrepmax = optloop%nrepmax 
+  itermax = optloop%itermax 
+  itrp = optloop%itrp 
+  itrep = optloop%itrep 
+  iter = optloop%iter 
+  iscf = optloop%iscf 
+  infocode = optloop%infocode
+END SUBROUTINE optloop_copy_data
+subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
+     &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  integer, intent(in) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
+  real(gp), intent(in) :: gnrm, rpnrm, gnrm_cv, rpnrm_cv, gnrm_startmix
+
+  optloop%gnrm_cv = gnrm_cv 
+  optloop%rpnrm_cv = rpnrm_cv 
+  optloop%gnrm_startmix = gnrm_startmix 
+  optloop%gnrm = gnrm 
+  optloop%rpnrm = rpnrm 
+
+  optloop%itrpmax = itrpmax 
+  optloop%nrepmax = nrepmax 
+  optloop%itermax = itermax 
+  optloop%itrp = itrp 
+  optloop%itrep = itrep 
+  optloop%iter = iter 
+  optloop%iscf = iscf 
+  optloop%infocode = infocode
+END SUBROUTINE optloop_sync_data
+subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(in) :: energs
+  integer, intent(in) :: id, iproc, nproc
+
+  call optloop_emit_iter(optloop, id + OPTLOOP_N_LOOPS, energs, iproc, nproc)
+END SUBROUTINE optloop_emit_done
+subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(in) :: energs
+  integer, intent(in) :: id, iproc, nproc
+
+  integer, parameter :: SIGNAL_DONE = -1
+  integer, parameter :: SIGNAL_WAIT = -2
+  integer :: message, ierr
+
+  call timing(iproc,'energs_signals','ON')
+  if (iproc == 0) then
+     ! Only iproc 0 emit the signal. This call is blocking.
+     ! All other procs are blocked by the bcast to wait for
+     ! possible transfer to proc 0.
+     call optloop_emit(optloop%c_obj, id, energs%c_obj)
+     if (nproc > 1) then
+        ! After handling the signal, iproc 0 broadcasts to other
+        ! proc to continue (jproc == -1).
+        message = SIGNAL_DONE
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+  else
+     message = SIGNAL_WAIT
+     do
+        if (message == SIGNAL_DONE) then
+           exit
+        end if
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        
+        if (message > 0) then
+           ! sync values from proc 0.
+           call optloop_bcast(optloop, iproc)
+        end if
+     end do
+  end if
+  call timing(iproc,'energs_signals','OF')
+END SUBROUTINE optloop_emit_iter
+subroutine optloop_bcast(optloop, iproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  integer, intent(in) :: iproc
+
+  integer :: iData(4), ierr
+  real(gp) :: rData(3)
+
+  if (iproc == 0) then
+     iData(1) = optloop%iscf
+     iData(2) = optloop%itrpmax
+     iData(3) = optloop%nrepmax
+     iData(4) = optloop%itermax
+
+     rData(1) = optloop%gnrm_cv
+     rData(2) = optloop%rpnrm_cv
+     rData(3) = optloop%gnrm_startmix
+  end if
+  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+  if (iproc /= 0) then
+     optloop%iscf = iData(1)
+     optloop%itrpmax = iData(2)
+     optloop%nrepmax = iData(3)
+     optloop%itermax = iData(4)
+
+     optloop%gnrm_cv = rData(1)
+     optloop%rpnrm_cv = rData(2)
+     optloop%gnrm_startmix = rData(3)
+  end if
+END SUBROUTINE optloop_bcast

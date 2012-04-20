@@ -121,6 +121,12 @@ void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const void *orbs, guint 
                                                         guint *nspinor, guint *npsidim,
                                                         guint *nkpts, guint *nkptsp,
                                                         guint *isorb, guint *iskpts);
+void FC_FUNC_(orbs_get_eval, ORBS_GET_EVAL)(void *orbs, void *eval);
+void FC_FUNC_(orbs_get_occup, ORBS_GET_OCCUP)(void *orbs, void *occup);
+void FC_FUNC_(orbs_get_kwgts, ORBS_GET_KWGTS)(void *orbs, void *kwgts);
+void FC_FUNC_(orbs_get_kpts, ORBS_GET_KPTS)(void *orbs, void *kpts);
+
+
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
       double *hx, double *hy, double *hz,
@@ -133,6 +139,11 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
 
 void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, const double *psic, void *glr);
 
+void FC_FUNC_(wf_new, WF_NEW)(double *self, void *wf, void *orbs, void *comm, void *lzd);
+void FC_FUNC_(wf_free, WF_FREE)(void *wf);
+void FC_FUNC_(wf_empty, WF_EMPTY)(void *wf);
+void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi);
+void FC_FUNC_(wf_get_data, WF_GET_DATA)(void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,
                                   const void *atoms, const double *rxyz,
@@ -142,4 +153,30 @@ void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   void *wfd_old, void *psi_old,
                                   void *d_old, const double *hx_old, const double *hy_old,
                                   const double *hz_old, double *rxyz_old);
+
+void FC_FUNC_(energs_new, ENERGS_NEW)(double *self, void *energs);
+void FC_FUNC_(energs_free, ENERGS_FREE)(void *energs);
+
+void FC_FUNC_(optloop_new, OPTLOOP_NEW)(double *self, void *optloop);
+void FC_FUNC_(optloop_free, OPTLOOP_FREE)(void *optloop);
+void FC_FUNC_(optloop_copy_data, OPTLOOP_COPY_DATA)(void *optloop, double *gnrm_cv,
+                                                    double *rpnrm_cv, double *gnrm_startmix,
+                                                    double *gnrm, double *rpnrm,
+                                                    guint *itrpmax, guint *nrepmax, guint *itermax,
+                                                    guint *itrp, guint *itrep, guint *iter,
+                                                    int *iscf, int *infocode);
+void FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)(void *optloop, double *gnrm_cv,
+                                                    double *rpnrm_cv, double *gnrm_startmix,
+                                                    double *gnrm, double *rpnrm,
+                                                    guint *itrpmax, guint *nrepmax, guint *itermax,
+                                                    guint *itrp, guint *itrep, guint *iter,
+                                                    int *iscf, int *infocode);
+
+void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(const guint *nproc, const guint *idsx,
+                                               const void *lr,
+                                               const guint *nat, const guint *norb,
+                                               const guint *nspinor, const guint *nkpt,
+                                               const guint *nprojel, const guint *nspin,
+                                               const guint *itrpmax, const guint *iscf,
+                                               double *peak);
 #endif

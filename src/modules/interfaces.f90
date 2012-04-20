@@ -71,17 +71,16 @@ module module_interfaces
         real(gp), dimension(3*at%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
-      subroutine kswfn_optimization_loop(infocode, itrp, icycle, iter, iproc, nproc, &
-           & iscf, itrpmax, nrepmax, itermax, gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix, idsx, &
-           & inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
+      subroutine kswfn_optimization_loop(iproc, nproc, o, &
+           & alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
            & in)
         use module_base
         use module_types
         implicit none
-        integer, intent(out) :: infocode, itrp, icycle, iter
         real(dp), dimension(6), intent(out) :: xcstr
-        integer, intent(in) :: iproc, nproc, itrpmax, nrepmax, itermax, iscf, idsx, inputpsi
-        real(gp), intent(in) :: gnrm_cv, rpnrm_cv, gnrm_startmix, alphamix
+        integer, intent(in) :: iproc, nproc, idsx, inputpsi
+        real(gp), intent(in) :: alphamix
+        type(DFT_optimization_loop), intent(inout) :: o
         type(DFT_wavefunction), intent(inout) :: KSwfn
         type(DFT_local_fields), intent(inout) :: denspot
         type(energy_terms), intent(inout) :: energs

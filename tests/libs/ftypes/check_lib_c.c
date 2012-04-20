@@ -346,18 +346,28 @@ static gboolean exit_loop(gpointer data)
   fprintf(stdout, "Error, signals timeout.\n");
   return FALSE;
 }
+static void onIterDone(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer data)
+{
+  fprintf(stdout, "Callback for 'iter-done-wavefunctions' signal at iter %d -> %gHt (%g).\n",
+          optloop->iter, energs->eKS, optloop->gnrm);
+}
 #endif
 
 static gpointer optimize_psi_thread(gpointer data)
 {
   BigDFT_Data *container = (BigDFT_Data*)data;
-  BigDFT_optLoopParams p;
+  BigDFT_OptLoop *p;
   
   fprintf(stdout, " Calculation of optimization started.\n");
-  bigdft_optloopparams_init(&p);
-  p.itermax = 2;
+  p = bigdft_optloop_new();
+  p->itermax = 2;
+  g_signal_connect(G_OBJECT(p), "iter-wavefunctions",
+                   G_CALLBACK(onIterDone), (gpointer)0);
+  g_signal_connect(G_OBJECT(p), "done-wavefunctions",
+                   G_CALLBACK(onIterDone), (gpointer)0);
+  bigdft_optloop_sync_to_fortran(p);
   bigdft_wf_optimization_loop(container->wf, container->denspot, container->proj,
-                              container->energs, 0, 1, &p);
+                              container->energs, p, 0, 1);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));
@@ -366,6 +376,7 @@ static gpointer optimize_psi_thread(gpointer data)
 #endif
   fprintf(stdout, " Calculation of optimization finished.\n");
 
+  bigdft_optloop_free(p);
   return (gpointer)0;
 }
 static gboolean optimize_psi(gpointer data)

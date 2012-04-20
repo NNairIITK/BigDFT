@@ -18,6 +18,7 @@ typedef struct BigDFT_orbs_ BigDFT_Orbs;
 typedef struct BigDFT_Proj_ BigDFT_Proj;
 typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
 typedef struct BigDFT_Energs_ BigDFT_Energs;
+typedef struct BigDFT_OptLoop_ BigDFT_OptLoop;
 
 /********************************/
 /* BigDFT_Atoms data structure. */
@@ -102,14 +103,16 @@ typedef struct BigDFT_Inputs_
   int files;
   
   /* DFT file variables. */
-  int ixc, ncharge, nspin, mpol, itermax, nrepmax, ncong, idsx,
+  int ixc, ncharge, nspin, mpol, ncong,
     dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
     nplot, disableSym;
+  guint itermax, nrepmax, idsx;
   double crmult, frmult, gnrm_cv, rbuf;
   double h[3], elecfield[3];
 
   /* MIX file variables. */
-  int iscf, itrpmax, norbsempty;
+  int norbsempty;
+  guint iscf, itrpmax;
   BigDFT_Smearing occopt;
   double alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis;
 
@@ -322,15 +325,6 @@ typedef enum
     BIGDFT_IMAG,
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
-typedef struct BigDFT_optLoopParams_
-{
-  guint iscf;
-  guint itrpmax, nrepmax, itermax;
-  double gnrm_cv, rpnrm_cv;
-  double gnrm_startmix, alphamix;
-  guint idsx;
-} BigDFT_optLoopParams;
-void bigdft_optloopparams_init(BigDFT_optLoopParams *params);
 
 BigDFT_Wf* bigdft_wf_new ();
 BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
@@ -341,7 +335,7 @@ void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     guint iproc, guint nproc);
 guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                        BigDFT_Proj *proj, BigDFT_Energs *energs,
-                                       guint iproc, guint nproc, BigDFT_optLoopParams *params);
+                                       BigDFT_OptLoop *params, guint iproc, guint nproc);
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc);
@@ -352,7 +346,7 @@ double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
                                   BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
-                                  const BigDFT_Inputs *in,
+                                  BigDFT_OptLoop *params, const BigDFT_Inputs *in,
                                   gboolean threaded, guint iproc, guint nproc);
 #ifdef GLIB_MAJOR_VERSION
 void       bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter,
@@ -507,6 +501,56 @@ void           bigdft_energs_free(BigDFT_Energs *energs);
 void           bigdft_energs_emit(BigDFT_Energs *energs, guint istep,
                                   BigDFT_EnergsIds kind);
 
+/*********************************/
+/* BigDFT_OptLoop data structure */
+/*********************************/
+typedef enum
+  {
+    BIGDFT_OPTLOOP_ITER_HAMILTONIAN,
+    BIGDFT_OPTLOOP_ITER_SUBSPACE,
+    BIGDFT_OPTLOOP_ITER_WAVEFUNCTIONS,
+    BIGDFT_OPTLOOP_DONE_HAMILTONIAN,
+    BIGDFT_OPTLOOP_DONE_SUBSPACE,
+    BIGDFT_OPTLOOP_DONE_WAVEFUNCTIONS
+  } BigDFT_OptLoopIds;
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_OPTLOOP_TYPE    (bigdft_optloop_get_type())
+#define BIGDFT_OPTLOOP(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_OPTLOOP_TYPE, BigDFT_OptLoop))
+typedef struct BigDFT_OptLoopClass_
+{
+  GObjectClass parent;
+} BigDFT_OptLoopClass;
+GType bigdft_optloop_get_type(void);
+#else
+#define BIGDFT_OPTLOOP_TYPE    (999)
+#define BIGDFT_OPTLOOP(obj)    ((BigDFT_OptLoop*)obj)
+#endif
+struct BigDFT_OptLoop_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
+  /* Binded values. */
+  double gnrm_cv, rpnrm_cv, gnrm_startmix;
+  double gnrm, rpnrm;
+  guint itrpmax, nrepmax, itermax;
+  guint itrp, itrep, iter;
+  int iscf, infocode;
+
+  /* Private. */
+  void *data;
+};
+BigDFT_OptLoop* bigdft_optloop_new();
+BigDFT_OptLoop* bigdft_optloop_new_from_fortran(void *obj);
+void            bigdft_optloop_free(BigDFT_OptLoop *optloop);
+void            bigdft_optloop_copy_from_fortran(BigDFT_OptLoop *optloop);
+void            bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop);
+void            bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind,
+                                    BigDFT_Energs *energs);
+
 
 /******************/
 /* Miscellaneous. */
@@ -527,7 +571,7 @@ GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *ene
                                              GDestroyNotify destroy, gpointer data);
 #endif
 
-double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
                               const BigDFT_Orbs *orbs, const BigDFT_Proj *proj);
 
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,

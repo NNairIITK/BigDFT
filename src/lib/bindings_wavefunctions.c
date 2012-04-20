@@ -421,23 +421,32 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
 }
 guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                   BigDFT_Proj *proj, BigDFT_Energs *energs,
-                                  guint iproc, guint nproc, BigDFT_optLoopParams *params)
+                                  BigDFT_OptLoop *params, guint iproc, guint nproc)
 {
-  guint infocode, itrp, icycle, iter;
+  guint infocode;
   guint inputpsi = 0;
   double xcstr[6];
   void *GPU;
-  BigDFT_optLoopParams p;
+  guint idsx = 6;
+  double alphamix = 0.;
+  BigDFT_OptLoop *p;
 
   if (params)
-    p = *params;
+    p = params;
   else
-    bigdft_optloopparams_init(&p);
+    p = bigdft_optloop_new();
+
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(wf));
+  g_object_ref(G_OBJECT(denspot));
+  g_object_ref(G_OBJECT(proj));
+  g_object_ref(G_OBJECT(energs));
+  g_object_ref(G_OBJECT(p));
+#endif
+
   FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
   FC_FUNC_(kswfn_optimization_loop, KSWFN_OPTIMIZATION_LOOP)
-    (&infocode, &itrp, &icycle, &iter, &iproc, &nproc,
-     &p.iscf, &p.itrpmax, &p.nrepmax, &p.itermax, &p.gnrm_cv, &p.rpnrm_cv,
-     &p.gnrm_startmix, &p.alphamix, &p.idsx, &inputpsi,
+    (&iproc, &nproc, p->data, &alphamix, &idsx, &inputpsi,
      wf->data, denspot->data, proj->nlpspd, &proj->proj,
      energs->data, BIGDFT_ATOMS(wf->lzd)->data, BIGDFT_ATOMS(wf->lzd)->rxyz.data,
      GPU, xcstr, wf->parent.in->data);
@@ -447,7 +456,20 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
      &energs->ekin, &energs->epot, &energs->eproj,
      &energs->eexctX, &energs->ebs, &energs->eKS,
      &energs->trH, &energs->evsum, &energs->evsic);
+  bigdft_optloop_copy_from_fortran(p);
   FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
+  infocode = p->infocode;
+
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(wf));
+  g_object_unref(G_OBJECT(denspot));
+  g_object_unref(G_OBJECT(proj));
+  g_object_unref(G_OBJECT(energs));
+  g_object_unref(G_OBJECT(p));
+#endif
+
+  if (!params)
+    bigdft_optloop_free(p);
 
   return infocode;
 }
@@ -554,6 +576,7 @@ typedef struct bigdft_data
   BigDFT_LocalFields  *denspot;
   BigDFT_Wf           *wf;
   BigDFT_Energs       *energs;
+  BigDFT_OptLoop      *optloop;
 } BigDFT_Data;
 static gpointer wf_optimization_thread(gpointer data)
 {
@@ -564,20 +587,21 @@ static gpointer wf_optimization_thread(gpointer data)
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
                                                 ct->in, ct->iproc, ct->nproc);
   bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->energs, ct->iproc, ct->nproc);
-  bigdft_wf_optimization_loop(ct->wf, ct->denspot, ct->proj, ct->energs,
-                              ct->iproc, ct->nproc, (BigDFT_optLoopParams*)0);
+  bigdft_wf_optimization_loop(ct->wf, ct->denspot, ct->proj, ct->energs, ct->optloop,
+                              ct->iproc, ct->nproc);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(ct->wf));
   g_object_unref(G_OBJECT(ct->denspot));
   g_object_unref(G_OBJECT(ct->energs));
   g_object_unref(G_OBJECT(ct->proj));
+  g_object_unref(G_OBJECT(ct->optloop));
 #endif
   g_free(ct);
 
   return (gpointer)0;
 }
 void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
-                            BigDFT_Energs *energs, const BigDFT_Inputs *in,
+                            BigDFT_Energs *energs, BigDFT_OptLoop *params, const BigDFT_Inputs *in,
                             gboolean threaded, guint iproc, guint nproc)
 {
   BigDFT_Data *ct;
@@ -594,11 +618,13 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
   ct->proj    = proj;
   ct->wf      = wf;
   ct->energs  = energs;
+  ct->optloop = params;
 #ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(wf));
   g_object_ref(G_OBJECT(denspot));
   g_object_ref(G_OBJECT(proj));
   g_object_ref(G_OBJECT(energs));
+  g_object_ref(G_OBJECT(params));
 #endif
 #ifdef G_THREADS_ENABLED
   if (threaded)
@@ -608,17 +634,4 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
 #else
   wf_optimization_thread(ct);
 #endif
-}
-
-void bigdft_optloopparams_init(BigDFT_optLoopParams *params)
-{
-  params->iscf = 0;
-  params->itrpmax = 1;
-  params->nrepmax = 1;
-  params->itermax = 50;
-  params->gnrm_cv = 1e-4;
-  params->rpnrm_cv = 1e-4;
-  params->gnrm_startmix = 0.;
-  params->alphamix = 0.;
-  params->idsx = 6;
 }
