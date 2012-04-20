@@ -26,7 +26,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x
   stop
 
   !To avoid warnings from the compiler
-  write(*,*) filename,message,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,x(1,1,1),rxyz(1,1)
+  write(*,*) filename,message,n1i,n2i,n3i,hxh,hyh,hzh,x(1,1,1),rxyz(1,1)
 END SUBROUTINE write_etsf_density
 
 
@@ -41,7 +41,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(in) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer,  :: rho
+  real(dp), dimension(:,:), pointer  :: rho
   real(gp), dimension(:,:), pointer,  optional :: rxyz
   integer, intent(out), optional ::  nat
 
