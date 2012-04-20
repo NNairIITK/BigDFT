@@ -273,7 +273,7 @@ static void onEKSReady(BigDFT_Energs *energs, guint iter, gpointer data)
   g_print("Get eKS = %gHt at iter %d.\n", energs->eKS, iter);
 }
 
-static void onPsiReady(BigDFT_Wf *wf, guint iter, double *psic, guint size,
+static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic,
                        guint ikpt, guint iorb, guint ispin, gpointer data)
 {
   double *psir, *psii;
@@ -282,9 +282,9 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, double *psic, guint size,
 
   g_print("Get one wave (%d,%d,%d) at iter %d.\n", ikpt, iorb, ispin, iter);
 
-  psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic);
+  psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), (double*)psic->data);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
-    psii = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), psic + size / 2);
+    psii = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), (double*)psic->data + psic->len / 2);
 
   minDens = G_MAXDOUBLE;
   maxDens = 0.;
@@ -322,12 +322,9 @@ static void onDensityReady(BigDFT_LocalFields *denspot, guint iter, gpointer dat
   g_print(" Density calculated by C is %16.16f.\n", dens);  
 }
 
-static gboolean checkSocket(gpointer data[2])
+static void onClosedSocket(gpointer data)
 {
-  if (g_source_is_destroyed((GSource*)data[0]))
-    g_main_loop_quit((GMainLoop*)data[1]);
-
-  return TRUE;
+  g_main_loop_quit((GMainLoop*)data);
 }
 
 int main(int argc, const char **argv)
@@ -342,7 +339,6 @@ int main(int argc, const char **argv)
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   double *radii;
-  gpointer dt[2];
 
   GSocket *socket;
   GSource *source;
@@ -394,12 +390,10 @@ int main(int argc, const char **argv)
     socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
   if (socket)
     {
-      source = bigdft_signals_client_create_source(socket, energs, wf, denspot);
+      source = bigdft_signals_client_create_source(socket, energs, wf, denspot,
+                                                   onClosedSocket, loop);
       g_source_attach(source, NULL);
 
-      dt[0] = source;
-      dt[1] = loop;
-      g_timeout_add(1000, (GSourceFunc)checkSocket, dt);
       g_main_loop_run(loop);
     }
   else

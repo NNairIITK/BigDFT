@@ -401,10 +401,10 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
 {
   BigDFT_SignalReply answer;
   gssize size, psize;
-  double *psic;
+  GArray *psic;
   guint sizeData[2];
 
-  psic = g_malloc(sizeof(double) * psiSize);
+  psic = g_array_sized_new(FALSE, FALSE, sizeof(double), psiSize);
 
   /* g_print("Client: send get psi.\n"); */
   answer.id = BIGDFT_SIGNAL_ANSWER_GET_PSI;
@@ -428,21 +428,21 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
     {
       *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
                            "Unable to retrieve psi.");
-      g_free(psic);
+      g_array_free(psic, TRUE);
       return FALSE;
     }
           
   psize = 0;
   do
     {
-      size = g_socket_receive(socket, (gchar*)psic + psize,
+      size = g_socket_receive(socket, psic->data + psize,
                               sizeData[1], cancellable, error);
       if (size == 0)
         *error = g_error_new(G_IO_ERROR, G_IO_ERROR_CLOSED,
                              "Connection closed by peer.");
       if (size <= 0)
         {
-          g_free(psic);
+          g_array_free(psic, TRUE);
           return FALSE;
         }
       psize += size;
@@ -450,10 +450,9 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
   while (psize < sizeof(double) * psiSize);
   /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(double) * sizeData[0]); */
   /* g_print("Client: emitting signal.\n"); */
-  bigdft_wf_emit_one_wave(wf, iter, psic, psiSize, quark,
+  bigdft_wf_emit_one_wave(wf, iter, psic, quark,
                           answer.ikpt, answer.iorb, answer.kind);
-
-  g_free(psic);
+  g_array_unref(psic);
 
   return TRUE;
 }
@@ -648,7 +647,11 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
           if (error->code != G_IO_ERROR_CLOSED)
             g_warning("Client: %s", error->message);
           else
-            g_source_destroy(g_main_current_source());
+            {
+              g_source_destroy(g_main_current_source());
+              if (main->destroy)
+                main->destroy(main->destroyData);
+            }
           return (error->code != G_IO_ERROR_CLOSED);
         }
     }
@@ -660,7 +663,8 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
 }
 
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
-                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot)
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                             GDestroyNotify destroy, gpointer data)
 {
   GSource *source;
   BigDFT_Main *main;
@@ -675,6 +679,8 @@ GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *ene
   main->denspot = denspot;
   if (denspot)
     g_object_ref(denspot);
+  main->destroy = destroy;
+  main->destroyData = data;
   
   source = g_socket_create_source(socket, G_IO_IN | G_IO_HUP, NULL);
   g_source_set_callback(source, (GSourceFunc)onClientTransfer,

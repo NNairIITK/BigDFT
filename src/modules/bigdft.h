@@ -354,9 +354,11 @@ void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
                                   BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
                                   const BigDFT_Inputs *in,
                                   gboolean threaded, guint iproc, guint nproc);
+#ifdef GLIB_MAJOR_VERSION
 void       bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter,
-                                   const double *psic, guint psiSize, GQuark quark,
+                                   GArray *psic, GQuark quark,
                                    guint ikpt, guint iorb, guint ispin);
+#endif
 
 /*******************************/
 /* BigDFT_Proj data structure. */
@@ -521,7 +523,8 @@ typedef enum
 GSocket* bigdft_signals_client_new(const gchar *hostname,
                                    GCancellable *cancellable, GError **error);
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
-                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot);
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                             GDestroyNotify destroy, gpointer data);
 #endif
 
 double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,

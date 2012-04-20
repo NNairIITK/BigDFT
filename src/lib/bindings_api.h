@@ -77,6 +77,7 @@ void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
 
 void FC_FUNC_(glr_new, GLR_NEW)(void *glr);
 void FC_FUNC_(glr_init, GLR_INIT)(void *glr, void *d);
+void FC_FUNC_(glr_get_data, GLR_GET_DATA)(void *glr, void *d);
 void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
@@ -89,15 +90,25 @@ void FC_FUNC_(glr_set_wave_descriptors,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
 void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd);
+void FC_FUNC_(lzd_free, LZD_FREE)(void *lzd);
+void FC_FUNC_(lzd_empty, LZD_EMPTY)(void *lzd);
 void FC_FUNC_(lzd_init, LZD_INIT)(void *lzd, void *glr);
+void FC_FUNC_(lzd_set_hgrids, LZD_SET_HGRIDS)(void *lzd, const double *hgrids);
+void FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(void *lzd, double *hgrids);
+void FC_FUNC_(lzd_get_data, LZD_GET_DATA)(void *lzd, void *glr);
 void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
      (const guint *iproc, const guint *nproc, const void *in, void *lzd,
       const void *atoms, void *orbs, double *rxyz);
 
 
 void FC_FUNC_(orbs_new, ORBS_NEW)(void *orbs);
+void FC_FUNC_(orbs_init, ORBS_INIT)(void *orbs);
 void FC_FUNC_(orbs_free, ORBS_FREE)(void *orbs);
+void FC_FUNC_(orbs_empty, ORBS_EMPTY)(void *orbs);
+void FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(void *comm);
+void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(void *comm);
 void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(void *comm);
+void FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(void *comm);
 void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(guint *iproc, guint *nproc,
                                                               int *verb, void *in, void *atoms,
                                                               void *orbs, int *nelec);
@@ -118,6 +129,8 @@ void FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(f90_pointer_double_4D *psiscf)
 void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
+
+void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, const double *psic, void *glr);
 
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,

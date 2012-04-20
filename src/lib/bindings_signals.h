@@ -29,6 +29,9 @@ typedef struct BigDFT_Main_
 #ifdef HAVE_GLIB
   GSocket *socket, *recv;
   GSource *source;
+
+  GDestroyNotify destroy;
+  gpointer destroyData;
 #endif
 
   BigDFT_Wf *wf;
