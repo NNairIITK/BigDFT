@@ -3569,24 +3569,24 @@ module module_interfaces
      end subroutine orthoconstraintVectors
 
 
-     subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Glr,orbs,&
-                ngatherarr,psi,potxc,eexctX,pkernel,orbsocc,psirocc)
-       use module_base
-       use module_types
-       use module_xc
-       implicit none
-       integer, intent(in) :: iproc,nproc,nspin,npsidim,size_potxc
-       real(gp), intent(in) :: hx,hy,hz
-       type(locreg_descriptors) :: Glr
-       type(orbitals_data) :: orbs
-       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-       real(wp), dimension(npsidim), intent(in) :: psi
-       real(wp), dimension(size_potxc),intent(out) :: potxc
-       real(gp), intent(out) :: eexctX
-       real(dp), dimension(*), optional :: pkernel
-       type(orbitals_data), intent(in), optional :: orbsocc
-       real(wp), dimension(:), pointer, optional :: psirocc
-     end subroutine
+     !!subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Glr,orbs,&
+     !!           ngatherarr,psi,potxc,eexctX,pkernel,orbsocc,psirocc)
+     !!  use module_base
+     !!  use module_types
+     !!  use module_xc
+     !!  implicit none
+     !!  integer, intent(in) :: iproc,nproc,nspin,npsidim,size_potxc
+     !!  real(gp), intent(in) :: hx,hy,hz
+     !!  type(locreg_descriptors) :: Glr
+     !!  type(orbitals_data) :: orbs
+     !!  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+     !!  real(wp), dimension(npsidim), intent(in) :: psi
+     !!  real(wp), dimension(size_potxc),intent(out) :: potxc
+     !!  real(gp), intent(out) :: eexctX
+     !!  real(dp), dimension(*), optional :: pkernel
+     !!  type(orbitals_data), intent(in), optional :: orbsocc
+     !!  real(wp), dimension(:), pointer, optional :: psirocc
+     !!end subroutine
 
 
 !!$     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, orbsig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham)
