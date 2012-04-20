@@ -745,7 +745,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Calculate the Hamiltonian matrix.
   allocate(ham3(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
-  call random_number(ham3)
 
   if(input%lin%nItInguess>0) then
       call getHamiltonianMatrix6(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
@@ -991,6 +990,9 @@ do iat=1,lzd%nlr
     else
         call razero(sendcounts(iproc), hamTempCompressed(1,ioverlap))
     end if
+    !!do istat=1,sendcounts(iproc)
+    !!    write(3000+iproc,*) ioverlap, hamTempCompressed(istat,ioverlap)
+    !!end do
     if(iproc==0) write(*,'(a)') 'done.'
 
     
@@ -1022,9 +1024,9 @@ do iat=1,lzd%nlr
                         if(nproc>1) then
                             ! Send this matrix to process jproc.
                             do jproc=0,nproc-1
-                                if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
-                                if(iproc==jjproc) nrecv=nrecv+1
-                                if(iproc==jproc) nsend=nsend+1
+                                !!if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                                if(iproc==jjproc .and. sendcounts(jproc)>0) nrecv=nrecv+1
+                                if(iproc==jproc  .and. sendcounts(iproc)>0) nsend=nsend+1
                             end do
                         end if
                     end if
@@ -1061,15 +1063,19 @@ do iat=1,lzd%nlr
                    if(iproc==jjproc) imat=imat+1
                    if(nproc>1) then
                        do jproc=0,nproc-1
-                           if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
+                           !!if(orbs%norb_par(jproc,0)==0) cycle !process jproc has no data and should not communicate...
                            tag=p2p_tag(jjproc)
-                           if(iproc==jjproc) then
+                           if(iproc==jjproc .and. sendcounts(jproc)>0) then
                                irecv=irecv+1
+                               !!write(*,'(6(a,i0))') 'process ',iproc,' receives ',sendcounts(jproc),' elements from process ',&
+                               !!    jproc,' with tag ',tag,' at position ',displs(jproc)+1,'; imat=',imat
                                call mpi_irecv(hamTempCompressed2(displs(jproc)+1,imat), sendcounts(jproc), &
                                     mpi_double_precision, jproc, tag, mpi_comm_world, recvrequests(irecv), ierr)
                            end if
-                           if(iproc==jproc) then
+                           if(iproc==jproc .and. sendcounts(iproc)>0) then
                                isend=isend+1
+                               !!write(*,'(6(a,i0))') 'process ',iproc,' sends ',sendcounts(iproc),' elements to process ',&
+                               !!    jjproc,' with tag ',tag,' from position ',1,'; iorb=',iorb
                                call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
                                     mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
                            end if
@@ -1102,6 +1108,7 @@ do iat=1,lzd%nlr
              if(isend==nsend) exit waitForSend
              call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
              isend=isend+1
+             !!write(*,'(2(a,i0))') 'process ',iproc,' completed send with ind ',ind
              do i=ind,nsend-isend
                 sendrequests(i)=sendrequests(i+1)
              end do
@@ -1112,6 +1119,7 @@ do iat=1,lzd%nlr
              if(irecv==nrecv) exit waitForrecv
              call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
              irecv=irecv+1
+             !!write(*,'(2(a,i0))') 'process ',iproc,' completed recv with ind ',ind
              do i=ind,nrecv-irecv
                 recvrequests(i)=recvrequests(i+1)
              end do
@@ -1120,6 +1128,9 @@ do iat=1,lzd%nlr
 
      ! Uncompress the matrices
      do i=imatold,imat
+        !!do istat=1,mad%nvctr
+        !!    write(4000+iproc,*) i, hamTempCompressed2(istat,i)
+        !!end do
         call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
@@ -2570,6 +2581,13 @@ type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
 type(collective_comms):: collcom_vectors
 
+!!do ii=1,nlocregPerMPI
+!!    do istat=1,tmbig%orbs%norb
+!!        do iall=1,tmbig%orbs%norb
+!!            write(2000+10*iproc+ii,*) ham(iall,istat,ii)
+!!        end do
+!!    end do
+!!end do
 
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
@@ -2718,6 +2736,9 @@ type(collective_comms):: collcom_vectors
           iilr=matmin%inWhichLocregOnMPI(iorb)
           call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
+          !!do istat=1,matmin%mlr(ilr)%norbinlr
+          !!    write(1000+tmb%orbs%isorb+iorb,*) lcoeff(istat,iorb),lgrad(istat,iorb)
+          !!end do
       end do
 
   
