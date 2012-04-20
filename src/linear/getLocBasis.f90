@@ -94,24 +94,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   !!else
   !!    tmbmix%comgp%communication_complete=.true.
   !!end if
-  call mpi_barrier(mpi_comm_world, istat)
-  write(*,*) 'after barrier 0'
-  call mpi_barrier(mpi_comm_world, istat)
-  write(*,*) 'after barrier 1'
-  call mpi_barrier(mpi_comm_world, istat)
-  write(*,*) 'after barrier 1.1'
-  write(*,*) 'before local_potential_dimensions'
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpcom%ngatherarr(0,1))
-  write(*,*) 'before full_local_potential'
-  call mpi_barrier(mpi_comm_world, istat)
-  write(*,*) 'after barrier 2'
-  call flush(6)
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_work,tmbmix%comgp)
-  write(*,*) 'after full_local_potential'
-  call flush(6)
-  call mpi_barrier(mpi_comm_world, istat)
-  !call mpi_finalize(istat)
-  !stop
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.

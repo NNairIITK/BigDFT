@@ -6828,15 +6828,6 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine local_potential_dimensions2(Lzd,orbs,ndimfirstproc)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: ndimfirstproc
-          type(local_zone_descriptors), intent(inout) :: Lzd
-          type(orbitals_data), intent(inout) :: orbs
-        end subroutine local_potential_dimensions2
-
    end interface
 
 END MODULE module_interfaces

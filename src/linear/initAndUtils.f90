@@ -1757,15 +1757,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
   !tag=1
   call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
-  write(*,*) 'after wait_p2p_communication'
   call deallocate_p2pComms(tmbmix%comgp, subname)
-  write(*,*) 'after deallocate_p2pComms'
   call nullify_local_zone_descriptors(lzd_tmp)
   call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
-  write(*,*) 'after copy_local_zone_descriptors'
   call nullify_orbitals_data(orbs_tmp)
   call copy_orbitals_data(tmb%orbs, orbs_tmp, subname)
-  write(*,*) 'after copy_orbitals_data'
 
   allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -1781,12 +1777,10 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_collective_comms(tmbmix%collcom, subname)
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
-  write(*,*) 'calling update_locreg'
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
        tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
-       write(*,*) 'after update_locreg'
 
   tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
 
@@ -1830,10 +1824,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
-  write(*,*) 'after post_p2p_communication'
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
-  write(*,*) 'after deallocate_local_zone_descriptors'
 
 end subroutine redefine_locregs_quantities
 
@@ -1891,7 +1883,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   nspin=1
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
        orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-       write(*,*) 'update_locreg: after calling orbitals_descriptors'
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -1908,12 +1899,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  write(*,*) 'update_locreg: before initLocregs'
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
-  write(*,*) 'update_locreg: after initLocregs'
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-  write(*,*) 'update_locreg: after copy_locreg_descriptors'
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
@@ -1929,24 +1917,18 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   llborbs%npsidim_orbs=max(npsidim,1)
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
        's', lbop, lbcomon)
-       write(*,*) 'update_locreg: after initCommsOrtho'
   call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   call initCompressedMatmul3(llborbs%norb, lbmad)
-       write(*,*) 'update_locreg: after initCompressedMatmul3'
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
-       write(*,*) 'update_locreg: after init_collective_comms'
 
 
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
-       write(*,*) 'update_locreg: after initialize_communication_potential'
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-       write(*,*) 'update_locreg: after allocateCommunicationbufferSumrho'
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-       write(*,*) 'update_locreg: after allocateCommunicationsBuffersPotential'
 
 
 end subroutine update_locreg

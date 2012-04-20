@@ -94,7 +94,6 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   ! Local variables
   integer:: ierr, ind, i, nsend, nrecv
   
-  write(*,'(a,3i8)') 'at beginning of wait_p2p_communication: iproc, comm%nsend, comm%nrecv',iproc, comm%nsend,comm%nrecv
   
   if(.not.comm%communication_complete) then
 
@@ -129,7 +128,6 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
 
   ! Flag indicating that the communication is complete
   comm%communication_complete=.true.
-  write(*,*) 'at end of wait_p2p_communication: iproc',iproc
 
 end subroutine wait_p2p_communication
 
