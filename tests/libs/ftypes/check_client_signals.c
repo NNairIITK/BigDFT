@@ -321,6 +321,18 @@ static void onDensityReady(BigDFT_LocalFields *denspot, guint iter, gpointer dat
   dens *= denspot->h[0] * denspot->h[1] * denspot->h[2];
   g_print(" Density calculated by C is %16.16f.\n", dens);  
 }
+static void onDoneWavefunctions(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer data)
+{
+  g_print("Wavefunctions loop done eKS = %gHt with gnrm %g after %d iters.\n",
+          energs->eKS, optloop->gnrm, optloop->iter);
+
+  if (optloop->gnrm > 0.4)
+    {
+      /* Example of changing the number of sub-space diag. */
+      optloop->nrepmax = 2;
+      bigdft_optloop_sync_to_fortran(optloop);
+    }
+}
 
 static void onClosedSocket(gpointer data)
 {
@@ -338,6 +350,7 @@ int main(int argc, const char **argv)
   BigDFT_Wf *wf;
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
+  BigDFT_OptLoop *optloop;
   double *radii;
 
   GSocket *socket;
@@ -372,6 +385,10 @@ int main(int argc, const char **argv)
   g_signal_connect(G_OBJECT(denspot), "density-ready",
                    G_CALLBACK(onDensityReady), (gpointer)0);
 
+  optloop = bigdft_optloop_new();
+  g_signal_connect(G_OBJECT(optloop), "done-wavefunctions",
+                   G_CALLBACK(onDoneWavefunctions), (gpointer)0);
+
   error = (GError*)0;
 #ifdef HAVE_GDBUS
   manager = bigdft_dbus_object_manager_client_new_for_bus_sync
@@ -390,7 +407,7 @@ int main(int argc, const char **argv)
     socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
   if (socket)
     {
-      source = bigdft_signals_client_create_source(socket, energs, wf, denspot,
+      source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop,
                                                    onClosedSocket, loop);
       g_source_attach(source, NULL);
 
@@ -402,6 +419,7 @@ int main(int argc, const char **argv)
   g_object_unref(wf);
   g_object_unref(energs);
   g_object_unref(denspot);
+  g_object_unref(optloop);
   bigdft_inputs_free(in);
 
 #ifdef HAVE_GDBUS

@@ -30,6 +30,9 @@ typedef struct BigDFT_Main_
   GSocket *socket, *recv;
   GSource *source;
   guint wf_id, denspot_id, energs_id, optloop_id, vext_id;
+  guint optloop_iter_ham_id, optloop_iter_sub_id, optloop_iter_wfn_id;
+  guint optloop_done_ham_id, optloop_done_sub_id, optloop_done_wfn_id;
+  guint optloop_sync;
 
   GDestroyNotify destroy;
   gpointer destroyData;
@@ -38,6 +41,7 @@ typedef struct BigDFT_Main_
   BigDFT_Wf *wf;
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
+  BigDFT_OptLoop *optloop;
 } BigDFT_Main;
 
 void bigdft_signals_free_main(gpointer self);

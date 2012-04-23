@@ -1063,7 +1063,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         end if
         call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
         
-        if (message > 0) then
+        if (message >= 0) then
            ! sync values from proc 0.
            call optloop_bcast(optloop, iproc)
         end if
@@ -1090,6 +1090,8 @@ subroutine optloop_bcast(optloop, iproc)
      rData(1) = optloop%gnrm_cv
      rData(2) = optloop%rpnrm_cv
      rData(3) = optloop%gnrm_startmix
+
+     call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
   end if
   call MPI_BCAST(iData, 4, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)

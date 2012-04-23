@@ -345,7 +345,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call localfields_new_wrapper(denspot%c_obj, denspot)
         call bigdft_signals_add_denspot(in%gmainloop, denspot%c_obj)
         call optloop_new_wrapper(optLoop%c_obj, optLoop)
-!        call bigdft_signals_add_optloop(in%gmainloop, denspot%c_obj)
+        call bigdft_signals_add_optloop(in%gmainloop, optLoop%c_obj)
      else
         KSwfn%c_obj = UNINITIALIZED(KSwfn%c_obj)
         denspot%c_obj = UNINITIALIZED(denspot%c_obj)
@@ -1099,7 +1099,7 @@ contains
        call bigdft_signals_rm_denspot(in%gmainloop)
        call bigdft_signals_rm_energs(in%gmainloop)
        call bigdft_signals_rm_wf(in%gmainloop)
-!       call bigdft_signals_rm_optloop(in%gmainloop)
+       call bigdft_signals_rm_optloop(in%gmainloop)
        call localfields_free_wrapper(denspot%c_obj)
        call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
