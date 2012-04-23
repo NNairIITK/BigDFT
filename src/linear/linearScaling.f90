@@ -223,6 +223,7 @@ type(energy_terms) :: energs
      !TO DO: COEFF PROJ
 !     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
 !                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
+!      tmb%orbs%occup = 2.0_gp
      iall = -product(shape(rxyz_old))*kind(rxyz_old)
      deallocate(rxyz_old,stat=istat)
      call memocc(istat,iall,'rxyz_old',subname)
