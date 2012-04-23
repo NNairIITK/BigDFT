@@ -51,7 +51,7 @@ program WaCo
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
-   real(gp), dimension(3) :: refpos, normal
+   real(gp), dimension(3) :: refpos, normal, box
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
    integer :: i, j, k, i_all
    character(len=16) :: seedname
@@ -146,6 +146,10 @@ program WaCo
    ! then calculate the size in units of the grid space
    call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
+   
+   box(1) = Glr%d%n1*input%hx * b2a
+   box(2) = Glr%d%n2*input%hy * b2a
+   box(3) = Glr%d%n3*input%hz * b2a
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
@@ -292,8 +296,9 @@ program WaCo
          ncenters(iwann) = 0
          iat = 0
          do i = 1, atoms%nat
-            dist = (rxyz_wann(1,i)-cxyz(1,iwann))**2 + (rxyz_wann(2,i)-cxyz(2,iwann))**2 + (rxyz_wann(3,i)-cxyz(3,iwann))**2
-            if (dist <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
+            call get_mindist(Glr%geocode,rxyz_wann(1,i),cxyz(1,iwann),box,dist)
+            !dist = (rxyz_wann(1,i)-cxyz(1,iwann))**2 + (rxyz_wann(2,i)-cxyz(2,iwann))**2 + (rxyz_wann(3,i)-cxyz(3,iwann))**2
+            if (dist**2 <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
                ncenters(iwann) = ncenters(iwann) +1
                iat = iat +1
                Zatoms(iat,iwann) = i
@@ -314,7 +319,7 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-     print *,'total number of electrons: ',2*sum(wannocc)
+     print *,'Total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
@@ -328,9 +333,7 @@ program WaCo
       do iwann = 1, plotwann
          distw = 0.0_dp
          do iat = 1, ncenters(iwann)
-            distw(iat) = sqrt((rxyz_wann(1,Zatoms(iat,iwann))-cxyz(1,iwann))**2 +&
-                        (rxyz_wann(2,Zatoms(iat,iwann))-cxyz(2,iwann))**2 +&
-                        (rxyz_wann(3,Zatoms(iat,iwann))-cxyz(3,iwann))**2)
+            call get_mindist(Glr%geocode,rxyz_wann(1,Zatoms(iat,iwann)),cxyz(1,iwann),box,distw(iat))
          end do
          prodw = 0.0_dp
          do iat = 1, ncenters(iwann)
@@ -377,16 +380,6 @@ program WaCo
       call dgemm('N','N',nwann,nproj,nband,1.0d0,umn(1,1),max(1,nwann),&
       &        amn(1,1),max(1,nband),0.0d0,tmatrix(1,1),max(1,nwann))
 
-!DEBUG
-!print *,(sum(tmatrix(iat,:)),iat=1,nwann)
-!do iat=1,nwann
-!   tel = 0.0d0
-!   do i_all =1, nproj
-!      tel = tel + tmatrix(iat,i_all)**2
-!   end do
-!   print *,tel
-!end do
-!DEBUG
       if(iproc == 0) then
          call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
       end if
@@ -481,149 +474,103 @@ program WaCo
 !      call scalar_kmeans_diffIG(0,maxval(sprd(1:plotwann-1))*1.0d-1,plotwann,sprd,'spread',nsprd,buf)
       call scalar_kmeans_diffIG(iproc,0,sprddiff,plotwann,sprd,'spread',nsprd,buf)
 
-      ! Transform rxyz_wann from angstrom to bohr
-      do iat = 1, atoms%nat
-        do i = 1, 3
-           rxyz_wann(i,iat) = rxyz_wann(i,iat) / b2a
-        end do
-      end do
-      ! Transform cxyz from angstrom to bohr
-      do iwann = 1, plotwann
-        do i = 1, 3
-           cxyz(i,iwann) = cxyz(i,iwann) / b2a
-        end do
-      end do
-      ! Transform also the refpos if necessary
-      if(units=='angs') then
-        do i=1, 3
-           refpos(i) = refpos(i) / b2a
-        end do
-      end if
-
-!DEBUG
-!!open(22,file='test.xyz', status='unknown')
-!!write(22,*) plotwann+atoms%nat
-!!write(22,*)
-!!do iat = 1, plotwann
-!!   ! Now print the information
-!!   write(22,'(A,3(2x,E14.6))'),'X',(cxyz(i,iat), i=1,3)
-!!end do
-!!do iat = 1, atoms%nat
-!!   ! Now print the information
-!!   write(22,'(A,3(2x,E14.6))'),'B',(rxyz_wann(i,iat), i=1,3)
-!!end do
-!!close(22)
-
-! For now choosing the reference point by hand
-!!    refpos(1) = rxyz_wann(1,78) ; refpos(2) = rxyz_wann(2,78) ; refpos(3) = rxyz_wann(3,78)   !Pole of 14-6
-!    refpos(1) = rxyz_wann(1,64) ; refpos(2) = rxyz_wann(2,64) ; refpos(3) = rxyz_wann(3,64)
-!    refpos(1) = rxyz_wann(1,1) ; refpos(2) = rxyz_wann(2,1) ; refpos(3) = rxyz_wann(3,1)
-     
-   ! Non charged
-!   refpos(1) = (rxyz_wann(1,22) + rxyz_wann(1,43) + rxyz_wann(1,39) + rxyz_wann(1,26) + rxyz_wann(1,6)) / 5.0
-!   refpos(2) = (rxyz_wann(2,22) + rxyz_wann(2,43) + rxyz_wann(2,39) + rxyz_wann(2,26) + rxyz_wann(2,6)) / 5.0
-!   refpos(3) = (rxyz_wann(3,22) + rxyz_wann(3,43) + rxyz_wann(3,39) + rxyz_wann(3,26) + rxyz_wann(3,6)) / 5.0
-!   refpos(1) = (rxyz_wann(1,47) + rxyz_wann(1,25) + rxyz_wann(1,8) + rxyz_wann(1,6) + rxyz_wann(1,22) + rxyz_wann(1,50)) / 6.0
-!   refpos(2) = (rxyz_wann(2,47) + rxyz_wann(2,25) + rxyz_wann(2,8) + rxyz_wann(2,6) + rxyz_wann(2,22) + rxyz_wann(2,50)) / 6.0
-!   refpos(3) = (rxyz_wann(3,47) + rxyz_wann(3,25) + rxyz_wann(3,8) + rxyz_wann(3,6) + rxyz_wann(3,22) + rxyz_wann(3,50)) / 6.0
-!END DEBUG
-
-      ! Output the posref for visual check
-      open(22,file='pos_ref.xyz', status='unknown')
-      write(22,'(I4)') atoms%nat+1
-      write(22,*) !skip this line
-      write(22,'(A,3(2x,E14.6))') 'X',(refpos(i),i=1,3)
-      do i = 1, atoms%nat
-         write(22,'(A,3(2x,E14.6))')atoms%atomnames(atoms%iatype(i)),rxyz_wann(1,i),rxyz_wann(2,i),rxyz_wann(3,i)
-      end do
-      close(22)
-
-      ! Calculate Center of mass
-      CM = 0.0_dp
-      do iat = 1, atoms%nat
-         do j = 1, 3 
-            CM(j) = CM(j) + rxyz_wann(j,iat) / real(atoms%nat,kind=8)
+!###############################################################
+! Stereographic projection stuff
+!###############################################################
+      if(Stereo) then
+         ! Transform rxyz_wann from angstrom to bohr
+         do iat = 1, atoms%nat
+           do i = 1, 3
+              rxyz_wann(i,iat) = rxyz_wann(i,iat) / b2a
+           end do
          end do
-      end do
-
-      !Calculate the radius of the sphere (choose it to be the biggest distance from the CM)
-      rad= 0.0_dp
-      do iat = 1, atoms%nat
-         dist = 0.0_dp
-         do j = 1, 3
-            dist = dist + (rxyz_wann(j,iat) - CM(j))**2
+         ! Transform cxyz from angstrom to bohr
+         do iwann = 1, plotwann
+           do i = 1, 3
+              cxyz(i,iwann) = cxyz(i,iwann) / b2a
+           end do
          end do
-         rad = max(dist, rad)
-      end do
-      rad =sqrt(rad)
+         ! Transform also the refpos if necessary
+         if(units=='angs') then
+           do i=1, 3
+              refpos(i) = refpos(i) / b2a
+           end do
+         end if
 
-      allocate(proj(atoms%nat,3),stat=i_stat)
-      call memocc(i_stat,proj,'proj',subname)
-      allocate(projC(plotwann,3),stat=i_stat)
-      call memocc(i_stat,projC,'projC',subname)
-      allocate(nfacets(plotwann))
-      allocate(facets(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3))
-      allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3))
+         ! Output the posref for visual check
+         open(22,file='pos_ref.xyz', status='unknown')
+         write(22,'(I4)') atoms%nat+1
+         write(22,*) !skip this line
+         write(22,'(A,3(2x,E14.6))') 'X',(refpos(i),i=1,3)
+         do i = 1, atoms%nat
+            write(22,'(A,3(2x,E14.6))')atoms%atomnames(atoms%iatype(i)),rxyz_wann(1,i),rxyz_wann(2,i),rxyz_wann(3,i)
+         end do
+         close(22)
 
-      ! Do stereographic projection of atoms and Wannier centers
-      call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
-      ! TO DO: CNeglectPoint should be a vector...
-      call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
-      call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
-      call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
+         ! Calculate Center of mass
+         CM = 0.0_dp
+         do iat = 1, atoms%nat
+            do j = 1, 3 
+               CM(j) = CM(j) + rxyz_wann(j,iat) / real(atoms%nat,kind=8)
+            end do
+         end do
 
-!DEBUG
-!!   ! Now open file that will contain the stereographic projection
-!!   open(22,file='proj_Wan.xyz', status='unknown')
-!!   if (CNeglectPoint .ne. 0 .and. NeglectPoint .ne. 0)then
-!!      write(22,*) atoms%nat+plotwann-2
-!!   else if((CNeglectPoint .ne. 0 .and. NeglectPoint == 0) .or. (CNeglectPoint == 0 .and. NeglectPoint .ne. 0) ) then
-!!      write(22,*) atoms%nat+plotwann-1
-!!   else
-!!      write(22,*) plotwann+atoms%nat
-!!   end if
-!!   write(22,*)
-!!
-!!   do iat = 1, plotwann
-!!      ! Now print the information
-!!      if(iat == CNeglectPoint) then
-!!         write(22,'(A,3(2x,E14.6))'),'#   '//'X',(projC(iat,i), i=1,3)
-!!      else
-!!         write(22,'(A,3(2x,E14.6))'),'X',(projC(iat,i), i=1,3)
-!!      end if
-!!   end do
-!!   do iat = 1, atoms%nat
-!!      ! Now print the information
-!!      if(iat == NeglectPoint) then
-!!         write(22,'(A,3(2x,E14.6))'),'#   '//'B',(proj(iat,i), i=1,3)
-!!      else
-!!         write(22,'(A,3(2x,E14.6))'),'B',(proj(iat,i), i=1,3)
-!!      end if
-!!   end do
-!!
-!!   close(22)
-!END DEBUG
+         !Calculate the radius of the sphere (choose it to be the biggest distance from the CM)
+         rad= 0.0_dp
+         do iat = 1, atoms%nat
+            dist = 0.0_dp
+            do j = 1, 3
+               dist = dist + (rxyz_wann(j,iat) - CM(j))**2
+            end do
+            rad = max(dist, rad)
+         end do
+         rad =sqrt(rad)
 
-      !Must warn if a Wannier center is on the projection reference
-      if(CNeglectPoint .ne. 0) then
-         write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
-         write(*,*) 'Surfaces will be deformed'
-!         call mpi_finalize(ierr)
-!         stop
+         allocate(proj(atoms%nat,3),stat=i_stat)
+         call memocc(i_stat,proj,'proj',subname)
+         allocate(projC(plotwann,3),stat=i_stat)
+         call memocc(i_stat,projC,'projC',subname)
+         allocate(nfacets(plotwann),stat=i_stat)
+         call memocc(i_stat,nfacets,'nfacets',subname)
+         allocate(facets(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3),stat=i_stat)
+         call memocc(i_stat,facets,'facets',subname)
+         allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3),stat=i_stat)
+         call memocc(i_stat,vertex,'vertex',subname)
+
+         ! Do stereographic projection of atoms and Wannier centers
+         call stereographic_projection(0,atoms%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
+         ! TO DO: CNeglectPoint should be a vector...
+         call stereographic_projection(1,plotwann,cxyz,refpos, CM, rad, projC, normal, CNeglectPoint)
+         call shift_stereographic_projection(plotwann,projC,atoms%nat,proj)
+         call write_stereographic_projection(22, 'proj.xyz    ', atoms, proj, NeglectPoint) 
+
+         !Must warn if a Wannier center is on the projection reference
+         if(CNeglectPoint .ne. 0) then
+            write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
+            write(*,*) 'Surfaces will be deformed'
+!            call mpi_finalize(ierr)
+!            stop
+         end if
+
+         call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
+         call output_stereographic_graph(atoms%nat,proj,projC,plotwann,ncenters,Zatoms,nfacets,facets,vertex,normal,NeglectPoint)
+
+         i_all = -product(shape(nfacets))*kind(nfacets)
+         deallocate(nfacets,stat=i_stat)
+         call memocc(i_stat,i_all,'nfacets',subname)
+         i_all = -product(shape(facets))*kind(facets)
+         deallocate(facets,stat=i_stat)
+         call memocc(i_stat,i_all,'facets',subname)
+         i_all = -product(shape(vertex))*kind(vertex)
+         deallocate(vertex,stat=i_stat)
+         call memocc(i_stat,i_all,'vertex',subname)
+         i_all = -product(shape(proj))*kind(proj)
+         deallocate(proj,stat=i_stat)
+         call memocc(i_stat,i_all,'proj',subname)
+         i_all = -product(shape(projC))*kind(projC)
+         deallocate(projC,stat=i_stat)
+         call memocc(i_stat,i_all,'projC',subname)
       end if
-
-      call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
-
-!DEBUG
-!do iwann = 1, plotwann
-!  do i = 1, nfacets(iwann)
-!    print *, 'iwann, Facets', iwann, facets(iwann,i,:)
-!  end do
-!end do
-!END DEBUG
-
-      call output_stereographic_graph(atoms%nat,proj,projC,plotwann,ncenters,Zatoms,nfacets,facets,vertex,normal,NeglectPoint)
-
       i_all = -product(shape(cxyz))*kind(cxyz)
       deallocate(cxyz,stat=i_stat)
       call memocc(i_stat,i_all,'cxyz',subname)
@@ -636,12 +583,6 @@ program WaCo
       i_all = -product(shape(Zatoms))*kind(Zatoms)
       deallocate(Zatoms,stat=i_stat)
       call memocc(i_stat,i_all,'Zatoms',subname)
-      i_all = -product(shape(proj))*kind(proj)
-      deallocate(proj,stat=i_stat)
-      call memocc(i_stat,i_all,'proj',subname)
-      i_all = -product(shape(projC))*kind(projC)
-      deallocate(projC,stat=i_stat)
-      call memocc(i_stat,i_all,'projC',subname)
       if(.not. hamilAna) then
          i_all = -product(shape(ncenters))*kind(ncenters)
          deallocate(ncenters,stat=i_stat)
@@ -745,86 +686,31 @@ program WaCo
      if(.not. bondAna) nsprd = 0  !if we didn't do bonding analysis, find here the best for the hamiltonian
      call scalar_kmeans_diffIG(iproc,nsprd,enediff,plotwann,diagT,'diagonal',ndiag,buf)
 
-!! DEBUG
-!! Diagonalizing the Hamiltonian yields the Kohn-Sham eigenvalues and orbitals (U^-1)
-!!   allocate(Uham(nwann*(nwann+1)/2),stat=i_stat)
-!!   call memocc(i_stat,Uham,'Uham',subname)
-!!
-!!   ! Copy the upper half of the hamiltonian
-!!   !do i = 1, nrpts     ! Right now only one cell
-!!   ind = 0
-!!   do iiwann = 1, nwann
-!!      do iwann = iiwann, nwann
-!!           ind = ind +1
-!!           Uham(ind) = hamr(1,iiwann,iwann)
-!!           if(iproc==0)print *,iiwann,iwann,hamr(1,iiwann,iwann)
-!!      end do
-!!   end do
-!!
-!!   allocate(evalues(nwann),stat=i_stat)
-!!   call memocc(i_stat,evalues,'evalues',subname)
-!!   allocate(evectors(nwann,nwann),stat=i_stat)
-!!   call memocc(i_stat,evectors,'evectors',subname)
-!!   allocate(work(1+6*nwann+nwann**2),stat=i_stat)
-!!   call memocc(i_stat,work,'work',subname)
-!!   allocate(iwork(3+5*nwann),stat=i_stat)
-!!   call memocc(i_stat,iwork,'iwork',subname)
-!!
-!!   !Now we can solve the matrix: if(ierr == 0), evectors and evalues contains the eigenvectors and eigenvalues 
-!!   call dspevd('V', 'L', nwann, Uham, evalues, evectors, nwann, work, 1+6*nwann+nwann**2, iwork, 3+5*nwann, ierr)
-!!
-!!   i_all=-product(shape(work))*kind(work)
-!!   deallocate(work,stat=i_stat)
-!!   call memocc(i_stat,i_all,'work',subname)
-!!   i_all=-product(shape(iwork))*kind(iwork)
-!!   deallocate(iwork,stat=i_stat)
-!!   call memocc(i_stat,i_all,'iwork',subname)
-!!
-!!
-!!   !Print the eigenvalues and eigenvectors
-!!   if(iproc == 0) then
-!!     do iwann = 1, nwann
-!!        write(*,*) 'Eigenvalue:',evalues(iwann)
-!!        write(*,*) evectors(iwann,:)
-!!     end do
-!!   end if
-!!
-!!   i_all=-product(shape(evalues))*kind(evalues)
-!!   deallocate(evalues,stat=i_stat)
-!!   call memocc(i_stat,i_all,'evalues',subname)
-!!   i_all=-product(shape(evectors))*kind(evectors)
-!!   deallocate(evectors,stat=i_stat)
-!!   call memocc(i_stat,i_all,'evectors',subname)
-!!   i_all=-product(shape(Uham))*kind(Uham)
-!!   deallocate(Uham,stat=i_stat)
-!!   call memocc(i_stat,i_all,'Uham',subname)
-! END DEBUG
+     i_all=-product(shape(types))*kind(types)
+     deallocate(types,stat=i_stat)
+     call memocc(i_stat,i_all,'types',subname)
+     i_all=-product(shape(diagT))*kind(diagT)
+     deallocate(diagT,stat=i_stat)
+     call memocc(i_stat,i_all,'diagT',subname)
+     i_all=-product(shape(hamr))*kind(hamr)
+     deallocate(hamr,stat=i_stat)
+     call memocc(i_stat,i_all,'hamr',subname)
+     i_all=-product(shape(diag))*kind(diag)
+     deallocate(diag,stat=i_stat)
+     call memocc(i_stat,i_all,'diag',subname)
+     if(bondAna)then
+        i_all = -product(shape(ncenters))*kind(ncenters)
+        deallocate(ncenters,stat=i_stat)
+        call memocc(i_stat,i_all,'ncenters',subname)
+     end if
 
-      i_all=-product(shape(types))*kind(types)
-      deallocate(types,stat=i_stat)
-      call memocc(i_stat,i_all,'types',subname)
-      i_all=-product(shape(diagT))*kind(diagT)
-      deallocate(diagT,stat=i_stat)
-      call memocc(i_stat,i_all,'diagT',subname)
-      i_all=-product(shape(hamr))*kind(hamr)
-      deallocate(hamr,stat=i_stat)
-      call memocc(i_stat,i_all,'hamr',subname)
-      i_all=-product(shape(diag))*kind(diag)
-      deallocate(diag,stat=i_stat)
-      call memocc(i_stat,i_all,'diag',subname)
-      if(bondAna)then
-         i_all = -product(shape(ncenters))*kind(ncenters)
-         deallocate(ncenters,stat=i_stat)
-         call memocc(i_stat,i_all,'ncenters',subname)
-      end if
-
-      if(iproc==0) then 
-         write(*,*) '!==================================!'
-         write(*,*) '!     Hamiltonian Analysis : DONE  !' 
-         write(*,*) '!==================================!'
-      end if
-
+     if(iproc==0) then 
+        write(*,*) '!==================================!'
+        write(*,*) '!     Hamiltonian Analysis : DONE  !' 
+        write(*,*) '!==================================!'
+     end if
   end if
+
   if(WannCon) then
 
      !###########################################################################
@@ -2932,6 +2818,46 @@ integer :: i,j
       write(*,*) '!==================================!'
    end if
 END SUBROUTINE read_spread_file
+
+subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
+   use module_types
+   implicit none
+   character(len=1), intent(in) :: geocode
+   real(gp),dimension(3), intent(in) :: rxyz, cxyz, box
+   real(gp),intent(out) :: distw
+   !Local variables
+   integer :: i
+   real(gp) :: dist1, dist2,dist3
+   real(gp),dimension(3) :: distp
+
+   if(geocode == 'F') then
+     do i=1,3
+        distp(i) = (rxyz(i)-cxyz(i))**2
+     end do
+   else if(geocode == 'S') then
+      do i=1,3
+         dist1 = (rxyz(i)-cxyz(i))**2
+         if(i/=2) then
+            dist2 = (rxyz(i)-cxyz(i)-box(i))**2
+            dist3 = (rxyz(i)-cxyz(i)+box(i))**2
+         else
+            dist2 = box(i)
+            dist3 = box(i)
+         end if
+         distp(i) = min(dist1,dist2,dist3)
+      end do
+   else if(geocode == 'P') then
+      do i=1,3
+         dist1 = (rxyz(i)-cxyz(i))**2
+         dist2 = (rxyz(i)-cxyz(i)-box(i))**2
+         dist3 = (rxyz(i)-cxyz(i)+box(i))**2
+         distp(i) = min(dist1,dist2,dist3)
+      end do
+   end if
+
+   distw = sqrt(distp(1) + distp(2) + distp(3))
+
+END SUBROUTINE get_mindist 
 
 !!subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,locregCenter,&
 !!     locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
