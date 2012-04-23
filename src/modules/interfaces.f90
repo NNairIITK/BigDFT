@@ -4444,7 +4444,7 @@ module module_interfaces
 
 
      subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr, tag)
+                Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr)
        use module_base
        use module_types
        implicit none
@@ -4460,7 +4460,6 @@ module module_interfaces
        type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(gp),dimension(3,at%nat),intent(in):: rxyz
-       integer,intent(inout):: tag
      end subroutine initInputguessConfinement
 
 
@@ -5305,7 +5304,7 @@ module module_interfaces
 
        subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
                   input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad,&
-                  memoryForCommunOverlapIG, locregShape, tagout, ham)
+                  memoryForCommunOverlapIG, locregShape, ham)
          use module_base
          use module_types
          implicit none
@@ -5321,7 +5320,6 @@ module module_interfaces
          type(matrixDescriptors),intent(in):: mad
          integer,intent(in):: memoryForCommunOverlapIG
          character(len=1),intent(in):: locregShape
-         integer,intent(inout):: tagout
          real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
        end subroutine get_hamiltonian_matrices
        

@@ -1,5 +1,5 @@
 subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-           Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr, tag)
+           Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -21,7 +21,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
   integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp),dimension(3,at%nat),intent(in):: rxyz
-  integer,intent(inout):: tag
 
   ! Local variables
   character(len=*), parameter :: subname='initInputguessConfinement'
@@ -265,17 +264,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg,tag
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
   real(gp) :: hxh,hyh,hzh,eks
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2
   real(8),dimension(:,:),allocatable::  lhchi, locregCenter
-  real(8), dimension(:,:,:),allocatable:: ham3
+  real(8), dimension(:,:,:),allocatable:: ham
   integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable:: covered
-  !real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: isoverlap
   logical,dimension(:),allocatable:: skip
@@ -294,9 +292,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end if
 
   ! Initialize evrything
-  tag=1
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
-       tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr, tag)
+       tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr)
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -743,13 +740,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Calculate the Hamiltonian matrix.
-  allocate(ham3(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
-  call memocc(istat,ham3,'ham3',subname)
+  allocate(ham(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
+  call memocc(istat,ham,'ham',subname)
 
   if(input%lin%nItInguess>0) then
       call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
            input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
-           nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
+           nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, ham)
   end if
 
   iall=-product(shape(lhchi))*kind(lhchi)
@@ -759,7 +756,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham3, lphi)
+           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -807,9 +804,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(skip, stat=istat)
   call memocc(istat, iall, 'skip',subname)
 
-  iall=-product(shape(ham3))*kind(ham3)
-  deallocate(ham3, stat=istat)
-  call memocc(istat, iall, 'ham3',subname)
+  iall=-product(shape(ham))*kind(ham)
+  deallocate(ham, stat=istat)
+  call memocc(istat, iall, 'ham',subname)
 
   iall=-product(shape(mapping))*kind(mapping)
   deallocate(mapping, stat=istat)
@@ -863,7 +860,7 @@ type(basis_performance_options),intent(in):: bpo
 real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
 
 ! Local variables
-integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, tag, ilr
+integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
 character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
@@ -882,9 +879,10 @@ call memocc(istat, iall, 'ovrlp', subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
+
 subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
-input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
-tagout, ham)
+           input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, &
+           skip, mad, memoryForCommunOverlapIG, locregShape, ham)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_hamiltonian_matrices
@@ -905,13 +903,12 @@ logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
-integer,intent(inout):: tagout
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
 integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
-integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, tagx, availableMemory, jj, i, ist, jst, nshift
-integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold, p2p_tag
+integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, ist, jst, nshift
+integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
 type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
@@ -1045,7 +1042,6 @@ do iat=1,lzd%nlr
         ! Now communicate the matrices.
         ! WARNING: Here we don't use the standard and unique tags available through p2p_tags. It should not matter
         ! since there is no other p2p communication going on at the moment, but still this could be improved...
-        tag0=0
         isend=0
         irecv=0
         ilrold=-1
@@ -1085,8 +1081,6 @@ do iat=1,lzd%nlr
                       call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
                            hamTempCompressed2(displs(iproc)+1,imat),1)
                    end if
-                   !tag0=tag0+1
-                   tag0=tag0+nproc
                 end if
             end do
             ilrold=ilr
@@ -2569,7 +2563,7 @@ real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
 integer:: iorb, jorb, iall, istat, ierr, infoCoeff
-integer:: it, iiAt, jjAt, methTransformOverlap, tag
+integer:: it, iiAt, jjAt, methTransformOverlap
 real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
@@ -2599,7 +2593,6 @@ type(collective_comms):: collcom_vectors
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
   call nullify_matrixMinimization(matmin)
-  tag=1
 
 
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nproc, ' processes.'
