@@ -1,6 +1,6 @@
 2  1                   iterations with low accuracy, high accuracy
 2  4                   iterations to optimize the basis functions for low accuracy and high accuracy
--1  1.d0   4.d-5       iterations in the inner loop, enlargement factor for locreg, convergence criterion
+-1  1.d0  4.d-5  4.d-5 iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy
 0  5  1.d0  1.d-4      DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
 5                      number of iterations in the preconditioner
 s                      cubic ('c') or spheric ('s') localization region
@@ -16,11 +16,12 @@ dens                   mixing method: dens or pot
 1.d-11                 exit outer loop if pnrm < this number
 T  4                   use the derivative basis functions, order of confinement potential
 10  100                number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
-F                      plot basis functions: true or false
+0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
 T                      transform to global orbitals in the end (T/F)
 1                      number of orbitals per process for trace minimization during input guess.
 F                      mixed mode (without and with derivatives)
 1                      confinement_decrease_mode: 0=linear, 1=abrupt
 .6d0  .1d0             decrease_amount, decrease_step
+5  0.d0                increase locrad after n steps, amount that locrad is increased
 C 4 5.0d-2 3.0d-4 4.0 4.0     number of basis functions per atom, prefactor for confinement potential, localization radius
 H 1 5.0d-2 3.0d-4 4.0 4.0     number of basis functions per atom, prefactor for confinement potential, localization radius

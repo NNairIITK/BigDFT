@@ -345,7 +345,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
 
   !obtain initial wavefunctions.
-  if (in%inputPsiId /= INPUT_PSI_LINEAR) then
+  if (in%inputPsiId /= INPUT_PSI_LINEAR .and. in%inputPsiId /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -417,7 +417,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !start the optimization
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
 
      !end of the initialization part
      call timing(iproc,'INIT','PR')
@@ -509,7 +509,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      !if (in%gaussian_help) then
-     if (in%gaussian_help .and. .not.in%inputPsiId==100) then
+     if (in%gaussian_help .and. .not.in%inputPsiId==100 .and. .not.in%inputPsiId==101 ) then
 
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
 !!!
@@ -858,7 +858,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
-  if (in%gaussian_help .and. DoLastRunThings .and. .not.inputpsi==INPUT_PSI_LINEAR) then
+  if (in%gaussian_help .and. DoLastRunThings .and.&
+&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -1035,12 +1036,12 @@ contains
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
          KSwfn%Lzd%Glr%bounds,subname)
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
+!    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+!    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+!    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
+    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) deallocate(KSwfn%confdatarr)
 
     ! Free radii_cf
     i_all=-product(shape(radii_cf))*kind(radii_cf)

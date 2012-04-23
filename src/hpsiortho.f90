@@ -885,7 +885,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          end if
       end if
    else
-      call gatherPotential(iproc, nproc, comgp)
+       !!if(.not.comgp%communication_complete) call gatherPotential(iproc, nproc, comgp)
+       !!if(.not.comgp%communication_complete) call wait_p2p_communication(iproc, nproc, comgp)
+       call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
 
@@ -973,6 +975,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       !print *,iproc,shape(pot),shape(pot1),'shapes'
       !print *,'potential sum',iproc,sum(pot)
    else if(iflag<2 .and. iflag>0) then
+
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,pot,'pot',subname)
       ! Cut potential
@@ -986,6 +989,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    else
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,pot,'pot',subname)
+
       ist=1
       do iorb=1,nilr
          ilr = ilrtable(iorb)

@@ -1382,9 +1382,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
            Lzd%Glr%bounds,subname)
       call deallocate_Lzd_except_Glr(Lzd, subname)
-      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-      deallocate(Lzd%Glr%projflg,stat=i_stat)
-      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
+!      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+!      deallocate(Lzd%Glr%projflg,stat=i_stat)
+!      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
       call deallocate_comms(comms,subname)
 

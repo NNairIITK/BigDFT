@@ -379,6 +379,7 @@ low_level = \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
 	linear/init_collective_comms_vectors.f90 \
+	linear/communications_p2p.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

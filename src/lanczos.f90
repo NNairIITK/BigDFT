@@ -22,7 +22,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in), target :: at
    type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
-   type(local_zone_descriptors), intent(in), target :: Lzd
+   type(local_zone_descriptors), intent(inout), target :: Lzd
    type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), intent(in), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf

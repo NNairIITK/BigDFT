@@ -407,7 +407,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
   integer, dimension(orbs%norb), intent(in) :: confinementCenter
   type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
   !local variables
-  integer :: iorb,nl1,nl2,nl3,icenter,ilr
+  integer :: iorb,nl1,nl2,nl3,ilr,icenter
 
   !initialize the confdatarr
   do iorb=1,orbs%norbp
@@ -420,7 +420,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      confdatarr(iorb)%hh(1)=.5_gp*hx
      confdatarr(iorb)%hh(2)=.5_gp*hy
      confdatarr(iorb)%hh(3)=.5_gp*hz
-     confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)
+     confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)!Lzd%Llr(ilr)%locregCenter(1:3)
      call geocode_buffers(Lzd%Llr(ilr)%geocode,nl1,nl2,nl3)
      confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
      confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1

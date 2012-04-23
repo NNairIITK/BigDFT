@@ -235,7 +235,7 @@ program wvl
   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
 
   call deallocate_Lzd_except_Glr(Lzd,"main")
-  deallocate(Lzd%Glr%projflg)
+  !deallocate(Lzd%Glr%projflg)
 
   call deallocate_orbs(orbs,"main")
 

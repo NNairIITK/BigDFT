@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix)
+    hx,hy,hz,SIC,tmbmix,tmb)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -22,14 +22,13 @@ real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
-type(DFT_wavefunction),intent(inout):: tmbmix
+type(DFT_wavefunction),intent(inout):: tmbmix, tmb
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
 real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
-!real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, tt, eSIC_DC
 real(8):: tt
 logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -82,11 +81,6 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
   ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
   ! gathered as well since the locregs changed.
-  !if(.not.updatePhi .or. newgradient) then
-  if(.not.tmbmix%wfnmd%bs%update_phi .or. tmbmix%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY &
-      .or. tmbmix%wfnmd%bs%use_derivative_basis) then
-      call gatherPotential(iproc, nproc, tmbmix%comgp)
-  end if
 
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
   call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
@@ -285,8 +279,14 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
               do korb=1,tmbmix%orbs%norb
                   tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               end do
-              tmbmix%wfnmd%coeff_proj(jjorb,iorb)=tt
+              tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
               jjorb=jjorb+1
+          end do
+      end do
+  else
+      do iorb=1,orbs%norb
+          do jorb=1,tmbmix%orbs%norb
+              tmb%wfnmd%coeff_proj(jorb,iorb)=tmbmix%wfnmd%coeff(jorb,iorb)
           end do
       end do
   end if
@@ -313,6 +313,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
   call memocc(istat, iall, 'overlapmatrix', subname)
 
 end subroutine get_coeff
+
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
@@ -410,12 +411,14 @@ type(energy_terms) :: energs
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
-
+  !print *,'TEST2'
+  !print *,iproc,(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE),&
+  !   variable_locregs,tmb%wfnmd%bs%target_function,TARGET_FUNCTION_IS_TRACE
 
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
       ! The messages for this point ', to point communication have been posted in the subroutine linearScaling.
-      call gatherPotential(iproc, nproc, tmb%comgp)
+      !!call gatherPotential(iproc, nproc, tmb%comgp)
 
       ! Build the required potential
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -429,8 +432,6 @@ type(energy_terms) :: energs
   consecutive_rejections=0
   trHold=1.d100
  
-
-
 
   ! ratio of large locreg and standard locreg
   factor=tmb%wfnmd%bs%locreg_enlargement
@@ -446,42 +447,18 @@ type(energy_terms) :: energs
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
       end do
       locregCenterTemp=locregCenter
-      ! Go from the small locregs to the new larger locregs. Use tmblarge%lzd etc as temporary variables.
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-           locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
-      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-           locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmb%psi, lhphi, lhphiold, lphiold, tmb)
-      call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
-      call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
-      call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
-      tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-      call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
-      call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-
-      ! PB: This if seems to be never reachable since variable_locregs must be true for outer if
-      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-
-
       locrad_tmp=factor*locrad
-      call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-           locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call update_ldiis_arrays(tmblarge, subname, ldiis)
+      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+           lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
-
   end if
 
 
@@ -516,20 +493,23 @@ type(energy_terms) :: energs
 
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(tmb, tmb%psi, lhphi, lhphiold, lphiold)
-          call create_new_locregs(iproc, nproc, tmblarge%lzd%nlr, &
-               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmblarge%orbs, tmblarge%lzd%glr, locregCenter, &
-               locrad, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-               tmb%psi, lhphi, lhphiold, lphiold, tmb)
+          call destroy_new_locregs(iproc, nproc, tmb)
+          call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
+               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+               tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+          call update_ldiis_arrays(tmb, subname, ldiis)
+          call update_auxiliary_basis_function(subname, tmb%orbs%npsidim_orbs, tmb%psi, lhphi, lhphiold, lphiold)
           call copy_basis_performance_options(tmblarge%wfnmd%bpo, tmb%wfnmd%bpo, subname)
           call copy_orthon_data(tmblarge%orthpar, tmb%orthpar, subname)
           call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-          call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
       end if
 
 
-      call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
+      !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
 
       ! Transform back to small locreg
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
@@ -540,12 +520,15 @@ type(energy_terms) :: energs
       ! Update the localization region if required.
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-          call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call destroy_new_locregs(iproc, nproc, tmblarge)
           locrad_tmp=factor*locrad
-          call create_new_locregs(iproc, nproc, tmb%lzd%nlr, &
-               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%orbs, tmb%lzd%glr, locregCenter, &
-               locrad_tmp, denspot%dpbox%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-               tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold, tmblarge)
+          call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
+               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+               tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+          call update_ldiis_arrays(tmblarge, subname, ldiis)
+          call update_auxiliary_basis_function(subname, tmblarge%orbs%npsidim_orbs, tmblarge%psi, &
+               lhphilarge, lhphilargeold, lphilargeold)
           call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
           call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
           tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
@@ -582,11 +565,12 @@ type(energy_terms) :: energs
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
           ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-          call gatherPotential(iproc, nproc, tmb%comgp)
+          !!call gatherPotential(iproc, nproc, tmb%comgp)
 
           ! Build the required potential
-          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+          !!tmb%comgp%communication_complete=.false.
+         call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+         call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
 
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
@@ -688,7 +672,8 @@ type(energy_terms) :: energs
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-      call destroy_new_locregs(tmblarge, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call destroy_new_locregs(iproc, nproc, tmblarge)
+      call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
       ! Write the locreg centers
       if(iproc==0) then
@@ -2688,45 +2673,46 @@ end subroutine check_locregCenters
 
 
 subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-use module_base
-use module_types
-use module_interfaces, except_this_one => communicate_basis_for_density
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => communicate_basis_for_density
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: llborbs
+  real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
+  type(p2pComms),intent(inout):: comsr
+  
+  ! Local variables
+  integer:: ist, istr, iorb, iiorb, ilr, ierr
+  type(workarr_sumrho):: w
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: llborbs
-real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
-type(p2pComms),intent(inout):: comsr
-
-! Local variables
-integer:: ist, istr, iorb, iiorb, ilr, ierr
-type(workarr_sumrho):: w
-
-      ! Allocate the communication buffers for the calculation of the charge density.
-      !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-      ! Transform all orbitals to real space.
-      ist=1
-      istr=1
-      do iorb=1,llborbs%norbp
-          iiorb=llborbs%isorb+iorb
-          ilr=llborbs%inWhichLocreg(iiorb)
-          call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-          call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-          call deallocate_work_arrays_sumrho(w)
-          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-      end do
-      if(istr/=comsr%nsendBuf+1) then
-          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-          stop
-      end if
-      
-      ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-      ! to point communication, the program will continue immediately. The messages will be gathered
-      ! in the subroutine sumrhoForLocalizedBasis2.
-      call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+  ! Allocate the communication buffers for the calculation of the charge density.
+  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  ! Transform all orbitals to real space.
+  ist=1
+  istr=1
+  do iorb=1,llborbs%norbp
+      iiorb=llborbs%isorb+iorb
+      ilr=llborbs%inWhichLocreg(iiorb)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+  end do
+  if(istr/=comsr%nsendBuf+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+      stop
+  end if
+  
+  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+  ! to point communication, the program will continue immediately. The messages will be gathered
+  ! in the subroutine sumrhoForLocalizedBasis2.
+  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
 end subroutine communicate_basis_for_density
 
 

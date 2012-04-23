@@ -305,7 +305,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -645,10 +645,11 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion'
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
   call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
   call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
-  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
@@ -735,8 +736,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
-  comments='plot basis functions: true or false'
-  call input_var(in%lin%plotBasisFunctions,'F',comment=comments)
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
+  call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
   !transform to global orbitals in the end (T/F)
   comments='transform to global orbitals in the end (T/F)'
@@ -761,6 +762,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
 
+  ! whether the localization radii should be enlarged after some unsuccessful iterations
+  comments='increase locrad after n steps, amount that locrad is increased'
+  call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
+  call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
