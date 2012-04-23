@@ -433,7 +433,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !do the last_run things regardless of infocode
      !nrepmax=0 is needed for the Band Structure calculations
      DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) .or. &
-          & (in%last_run == 1 .and. icycle == in%nrepmax)
+          & (in%last_run == 1 .and. icycle >= in%nrepmax)
               !print the energies only if they are meaningful
      energy = energs%eKS
      !Davidson is set to false first because used in deallocate_before_exiting
@@ -451,6 +451,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !last run things has to be done:
   !if it is the last run and the infocode is zero
   !if infocode is not zero but the last run has been done for nrepmax times
+
   DoLastRunThings= (in%last_run == 1 .and. infocode == 0) .or. DoLastRunThings
 
   !analyse the possibility to calculate Davidson treatment
@@ -675,7 +676,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            allocate(wkptv(nkptv+ndebug),stat=i_stat)
            call memocc(i_stat,wkptv,'wkptv',subname)
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
-
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv,in%kptv,wkptv,VTwfn%orbs,.false.)
            !allocate communications arrays for virtual orbitals
@@ -711,6 +711,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         !allocate psivirt pointer (note the orbs dimension)
         allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,VTwfn%psi,'psivirt',subname)
+        !to avoid problems with the bindings
+        VTwfn%c_obj=0.d0
 
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
@@ -863,7 +865,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         VTwfn%orbs%norbp=0
      end if
      call local_analysis(iproc,nproc,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          in,atoms,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)
+          atoms,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)
   else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose >= 2) then
      ! Do a full DOS calculation.
      if (iproc == 0) call global_analysis(KSwfn%orbs, in%Tel,in%occopt)

@@ -416,8 +416,10 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_c) stop 'ii/=lzd%glr%wfd%nvctr_c'
-
+  if(ii/=lzd%glr%wfd%nvctr_c) then
+     print *,'the number of components should be equal to the full basis',ii,lzd%glr%wfd%nvctr_c
+     stop 'ii/=lzd%glr%wfd%nvctr_c'
+  end if
 
   jproc=0
   tt=0.d0

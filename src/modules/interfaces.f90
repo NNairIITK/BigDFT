@@ -1457,13 +1457,12 @@ module module_interfaces
       END SUBROUTINE gaussian_pswf_basis_for_paw
 
 
-      subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+      subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
          real(gp), intent(in) :: hx,hy,hz
-         type(input_variables), intent(in) :: in
          type(locreg_descriptors), intent(in) :: lr
          type(orbitals_data), intent(in) :: orbs,orbsv
          type(atoms_data), intent(in) :: at

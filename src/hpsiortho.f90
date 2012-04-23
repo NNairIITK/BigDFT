@@ -195,6 +195,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              1.0_dp,denspot%V_XC(1,1,1,1),1,&
              denspot%rhov(1),1)
 
+        !here a external potential with spinorial indices can be added
      end if
 
      !here the potential can be mixed
@@ -839,12 +840,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       else
          npot=dpbox%ndimgrid*orbs%nspin
       end if
-      !write(*,*) 'dpbox%ndimgrid, orbs%norbp, npot, odp', dpbox%ndimgrid, orbs%norbp, npot, odp
+!      write(*,*) 'dpbox%ndimgrid, orbs%norbp, npot, odp', dpbox%ndimgrid, orbs%norbp, npot, odp
+!      write(*,*)'nspin',orbs%nspin,dpbox%i3rho_add,dpbox%ndimpot,dpbox%ndimrhopot,sum(potential)
+!      write(*,*)'iproc',iproc,'ngatherarr',dpbox%ngatherarr(:,1),dpbox%ngatherarr(:,2)
 
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region
       !this routine should then be modified or integrated in HamiltonianApplication
       if (nproc > 1) then
+
          allocate(pot1(npot+ndebug),stat=i_stat)
          call memocc(i_stat,pot1,'pot1',subname)
          ispot=1
@@ -966,6 +970,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       !       call dcopy(lzd%ndimpotisf,pot,1,pot,1) 
       pot=>pot1
+      !print *,iproc,shape(pot),shape(pot1),'shapes'
+      !print *,'potential sum',iproc,sum(pot)
    else if(iflag<2 .and. iflag>0) then
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,pot,'pot',subname)
@@ -1067,7 +1073,7 @@ subroutine total_energies(energs, iter)
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
        energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
-  if (energs%c_obj /= 0) then
+  if (energs%c_obj /= 0.d0) then
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
   end if
 end subroutine total_energies
@@ -1318,7 +1324,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    end if
 
    ! Emit that new wavefunctions are ready.
-   print *,wfn%c_obj
+   !print *,wfn%c_obj
    if (iproc == 0 .and. wfn%c_obj /= 0.d0) then
       call wf_emit_psi(wfn%c_obj, iter)
    end if
@@ -1517,7 +1523,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
+   if (iproc == 0 .and. wfn%c_obj /= 0.d0) then
       call wf_emit_psi(wfn%c_obj, iter)
    end if
 
