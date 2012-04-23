@@ -389,6 +389,7 @@ void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kin
 /*********************************/
 #ifdef HAVE_GLIB
 enum {
+  SYNC_FORTRAN,
   ITER_HAMILTONIAN,
   ITER_SUBSPACE,
   ITER_WAVEFUNCTIONS,
@@ -412,6 +413,12 @@ static void bigdft_optloop_class_init(BigDFT_OptLoopClass *klass)
   G_OBJECT_CLASS(klass)->finalize     = bigdft_optloop_finalize;
   /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
   /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+
+  bigdft_optloop_signals[SYNC_FORTRAN] =
+    g_signal_new("sync-fortran", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__VOID,
+                 G_TYPE_NONE, 0, NULL);
 
   bigdft_optloop_signals[ITER_HAMILTONIAN] =
     g_signal_new("iter-hamiltonian", G_TYPE_FROM_CLASS(klass),
@@ -602,6 +609,11 @@ void bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop)
      &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
      &optloop->itrp, &optloop->itrep, &optloop->iter,
      &optloop->iscf, &optloop->infocode);
+
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[SYNC_FORTRAN],
+                0 /* details */, NULL);
+#endif
 }
 
 

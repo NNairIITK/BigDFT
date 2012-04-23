@@ -29,6 +29,7 @@ typedef struct BigDFT_Main_
 #ifdef HAVE_GLIB
   GSocket *socket, *recv;
   GSource *source;
+  guint wf_id, denspot_id, energs_id, optloop_id, vext_id;
 
   GDestroyNotify destroy;
   gpointer destroyData;

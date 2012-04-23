@@ -74,8 +74,8 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_signal_connect(G_OBJECT(main->wf), "psi-ready",
-                       G_CALLBACK(onPsiReadyInet), (gpointer)&main->recv);
+      main->wf_id = g_signal_connect(G_OBJECT(main->wf), "psi-ready",
+                                     G_CALLBACK(onPsiReadyInet), (gpointer)&main->recv);
 #else
       g_warning("Signals init: Inet transport unavailable.");
 #endif
@@ -98,6 +98,11 @@ void FC_FUNC_(bigdft_signals_rm_wf, BIGDFT_SIGNALS_RM_WF)(gpointer *self)
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
+#ifdef HAVE_GLIB
+      g_signal_handler_disconnect(G_OBJECT(main->wf), main->wf_id);
+#else
+      g_warning("Signals init: Inet transport unavailable.");
+#endif
       break;
     default:
       break;
@@ -147,10 +152,10 @@ void FC_FUNC_(bigdft_signals_add_denspot, BIGDFT_SIGNALS_ADD_DENSPOT)(gpointer *
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_signal_connect(G_OBJECT(main->denspot), "v-ext-ready",
-                       G_CALLBACK(onVExtReadyInet), (gpointer)&main->recv);
-      g_signal_connect(G_OBJECT(main->denspot), "density-ready",
-                       G_CALLBACK(onDensityReadyInet), (gpointer)&main->recv);
+      main->vext_id = g_signal_connect(G_OBJECT(main->denspot), "v-ext-ready",
+                                       G_CALLBACK(onVExtReadyInet), (gpointer)&main->recv);
+      main->denspot_id = g_signal_connect(G_OBJECT(main->denspot), "density-ready",
+                                          G_CALLBACK(onDensityReadyInet), (gpointer)&main->recv);
 #else
       g_warning("Signals init: Inet transport unavailable.");
 #endif
@@ -173,6 +178,12 @@ void FC_FUNC_(bigdft_signals_rm_denspot, BIGDFT_SIGNALS_RM_DENSPOT)(gpointer *se
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
+#ifdef HAVE_GLIB
+      g_signal_handler_disconnect(G_OBJECT(main->denspot), main->vext_id);
+      g_signal_handler_disconnect(G_OBJECT(main->denspot), main->denspot_id);
+#else
+      g_warning("Signals init: Inet transport unavailable.");
+#endif
       break;
     default:
       break;
@@ -218,8 +229,8 @@ void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *se
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_signal_connect(G_OBJECT(main->energs), "eks-ready",
-                       G_CALLBACK(onEKSReadyInet), (gpointer)&main->recv);
+      main->energs_id = g_signal_connect(G_OBJECT(main->energs), "eks-ready",
+                                         G_CALLBACK(onEKSReadyInet), (gpointer)&main->recv);
 #else
       g_warning("Signals init: Inet transport unavailable.");
 #endif
@@ -242,6 +253,11 @@ void FC_FUNC_(bigdft_signals_rm_energs, BIGDFT_SIGNALS_RM_ENERGS)(gpointer *self
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
+#ifdef HAVE_GLIB
+      g_signal_handler_disconnect(G_OBJECT(main->energs), main->energs_id);
+#else
+      g_warning("Signals init: Inet transport unavailable.");
+#endif
       break;
     default:
       break;
@@ -315,7 +331,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
         }
       else
         fqdn = g_strdup(g_get_host_name());
-      g_print("Create a socket for hostname '%s'.\n", fqdn);
+      g_print(" |  Create a socket for hostname '%s'.\n", fqdn);
       lst = g_resolver_lookup_by_name(dns, fqdn, NULL, &error);
       g_object_unref(dns);
       g_free(fqdn);
@@ -325,7 +341,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
           {
             sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
             bind = g_socket_bind(main->socket, sockaddr, TRUE, &error);
-            g_print(" | try to bind to '%s' -> %d.\n",
+            g_print(" |   try to bind to '%s' -> %d.\n",
                     g_inet_address_to_string((GInetAddress*)tmp->data), bind);
             if (!bind)
               {

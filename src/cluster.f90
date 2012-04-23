@@ -29,11 +29,10 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   character(len=40) :: comment
   logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
-  double precision :: gmainloop
 
   !temporary interface
   interface
-     subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
+     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
           rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
@@ -41,7 +40,6 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
-       double precision, intent(in) :: gmainloop
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
        !type(local_zone_descriptors), intent(inout) :: Lzd
@@ -83,19 +81,6 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !the verbose variables is defined in module_base
   verbose=in%verbosity
 
-  !Create C wrappers on Fortran objects,
-  ! and start a GMainLoop.
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call bigdft_signals_init(gmainloop, 2, in%domain, len(trim(in%domain)))
-        call wf_new_wrapper(rst%KSwfn%c_obj, rst%KSwfn)
-        call bigdft_signals_add_wf(gmainloop, rst%KSwfn%c_obj)
-     else
-        rst%KSwfn%c_obj = UNINITIALIZED(rst%KSwfn%c_obj)
-     end if
-  end if
-
   inputPsiId_orig=in%inputPsiId
 
   loop_cluster: do
@@ -117,7 +102,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
         in%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,gmainloop,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
+     call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
           rst%KSwfn,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
      if (exists) then
@@ -170,13 +155,6 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   end do loop_cluster
 
-  !Destroy C wrappers on Fortran objects,
-  ! and stop the GMainLoop.
-  if (in%signaling .and. iproc == 0) then
-     call wf_free_wrapper(rst%KSwfn%c_obj)
-     call bigdft_signals_free(gmainloop)
-  end if
-
   !preserve the previous value
   in%inputPsiId=inputPsiId_orig
 
@@ -205,7 +183,7 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
+subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
      rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
@@ -218,7 +196,6 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use yaml_output
   implicit none
   integer, intent(in) :: nproc,iproc
-  double precision, intent(in) :: gmainloop
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -360,15 +337,17 @@ subroutine cluster(nproc,iproc,gmainloop,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (in%signaling) then
      ! Only iproc 0 has the C wrappers.
      if (iproc == 0) then
+        call wf_new_wrapper(KSwfn%c_obj, KSwfn)
         call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
+        call bigdft_signals_add_wf(in%gmainloop, KSwfn%c_obj)
         call energs_new_wrapper(energs%c_obj, energs)
-        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
+        call bigdft_signals_add_energs(in%gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot)
-        call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
+        call bigdft_signals_add_denspot(in%gmainloop, denspot%c_obj)
         call optloop_new_wrapper(optLoop%c_obj, optLoop)
-!        call bigdft_signals_add_optloop(gmainloop, denspot%c_obj)
-        call bigdft_signals_start(gmainloop, in%signalTimeout)
+!        call bigdft_signals_add_optloop(in%gmainloop, denspot%c_obj)
      else
+        KSwfn%c_obj = UNINITIALIZED(KSwfn%c_obj)
         denspot%c_obj = UNINITIALIZED(denspot%c_obj)
         optloop%c_obj = UNINITIALIZED(optloop%c_obj)
      end if
@@ -1117,14 +1096,14 @@ contains
 
     ! Stop signals
     if (in%signaling .and. iproc == 0) then
+       call bigdft_signals_rm_denspot(in%gmainloop)
+       call bigdft_signals_rm_energs(in%gmainloop)
+       call bigdft_signals_rm_wf(in%gmainloop)
+!       call bigdft_signals_rm_optloop(in%gmainloop)
        call localfields_free_wrapper(denspot%c_obj)
        call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
-       call bigdft_signals_rm_denspot(gmainloop)
-       call bigdft_signals_rm_energs(gmainloop)
-       call bigdft_signals_rm_wf(gmainloop)
-!       call bigdft_signals_rm_optloop(gmainloop)
-       call bigdft_signals_stop(gmainloop)
+       call wf_free_wrapper(KSwfn%c_obj)
     end if
 
 !!$    if(inputpsi ==  INPUT_PSI_LINEAR) then

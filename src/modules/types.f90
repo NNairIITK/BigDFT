@@ -214,6 +214,7 @@ module module_types
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
      character(len = 64) :: domain !< Domain to get the IP from hostname.
+     double precision :: gmainloop !< Internal C pointer on the signaling structure.
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
@@ -1104,7 +1105,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0
+    rst%KSwfn%c_obj = 0.d0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 
