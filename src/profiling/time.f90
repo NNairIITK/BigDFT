@@ -92,7 +92,7 @@ module timeData
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
-  integer :: ncounters, ncaton,nproc,nextra
+  integer :: ncounters, ncaton,nproc = 0,nextra
   real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
@@ -115,6 +115,8 @@ module timeData
       real(kind=8), dimension(ncls,0:nproc) :: timecls
       real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
 
+      ! Not initialised case.
+      if (nproc == 0) return
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&

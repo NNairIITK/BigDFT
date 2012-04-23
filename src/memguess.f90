@@ -37,6 +37,7 @@ program memguess
    type(local_zone_descriptors) :: Lzd
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
+   type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
@@ -244,16 +245,22 @@ program memguess
          &   nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
       atoms%ntypes = size(atoms%nzatom) - ndebug
       write(*,*) "Write new density file..."
-      !n(?) norbsc_arr was not allocated
-      call plot_density(trim(fileTo), 0, 1, Lzd%Glr%d%n1i / 2 - 1, Lzd%Glr%d%n2i / 2 - 1, &
-         &   Lzd%Glr%d%n3i / 2 - 1, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, Lzd%Glr%d%n3i, nspin, hx, hy, hz, &
-         & atoms, rxyz, norbsc_arr, rhocoeff)
+      dpbox%ndims(1)=Lzd%Glr%d%n1i
+      dpbox%ndims(2)=Lzd%Glr%d%n2i
+      dpbox%ndims(3)=Lzd%Glr%d%n3i
+      dpbox%hgrids(1)=hx
+      dpbox%hgrids(2)=hy
+      dpbox%hgrids(3)=hz
+      allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
+      call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
+
+      call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
       stop
    end if
 
    !standard names
-   call standard_inputfile_names(in, radical)
+   call standard_inputfile_names(in, radical, 1)
    if (trim(radical) == "") then
       call read_input_variables(0, "posinp", in, atoms, rxyz)
    else
@@ -414,7 +421,7 @@ program memguess
       nspinor=1
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
-         &   in%nkpt,in%kpt,in%wkpt,orbstst)
+           in%nkpt,in%kpt,in%wkpt,orbstst,.false.)
       allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
       call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
       do iorb=1,orbstst%norbp
@@ -1307,7 +1314,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       pery=(at%geocode == 'P')
       perz=(at%geocode /= 'F')
 
-      !buffers realted to periodicity
+      !buffers related to periodicity
       !WARNING: the boundary conditions are not assumed to change between new and old
       call ext_buffers_coarse(perx,nb1)
       call ext_buffers_coarse(pery,nb2)
@@ -1328,6 +1335,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       read(filename(i+1:i+1),*) code
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
+!ispinor = 1; ispin = 1 ; ikpt=1 
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else

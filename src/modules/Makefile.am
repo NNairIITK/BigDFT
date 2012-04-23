@@ -24,6 +24,12 @@ LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
 endif
 
+if BUILD_BINDINGS
+bindings_headers = bigdft.h bigdft_cst.h
+else
+bindings_headers =
+endif
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -33,7 +39,8 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
-	BIGDFT_API.@MODULE_EXT@
+	BIGDFT_API.@MODULE_EXT@ \
+	YAML_OUTPUT.@MODULE_EXT@ 
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -43,10 +50,11 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
-	bigdft_api.@MODULE_EXT@
+	bigdft_api.@MODULE_EXT@ \
+	yaml_output.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
-include_HEADERS = bigdft.h bigdft_cst.h
+include_HEADERS = $(bindings_headers)
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 
@@ -64,7 +72,8 @@ libmodules_a_SOURCES = base.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
-	bigdft.h \
+	yaml_output.f90 \
+	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
@@ -97,5 +106,6 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
+yaml_output.o : base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o

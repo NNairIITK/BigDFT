@@ -10,14 +10,14 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,i3s,n3d,rhocore) 
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,i3s,n3d,iproc,ityp 
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
+  real(dp), dimension(n1i*n2i*n3d,0:3), intent(inout) :: rhocore
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
@@ -26,6 +26,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
   integer :: i1,i2,i3,j1,j2,j3,ind
   real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc,charge_from_gaussians,spherical_gaussian_value
+  real(gp) :: drhoc,drhov,drhodr2
   !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
   !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
 
@@ -92,8 +93,18 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
      do i3=isz,iez
         z=real(i3,kind=8)*hzh-rz
-        call ind_positions(perz,i3,n3,j3,goz)
+        !call ind_positions(perz,i3,n3,j3,goz)
+        if (perz) then
+           j3=modulo(i3,n3i)
+           if (j3 -n3i >= i3s-1 ) j3=j3-n3i !to wrap with negative values
+           if (j3 + n3i < i3s+n3d-1) j3=j3+n3i
+        else
+           j3=i3
+        end if
+        !in periodic case nbl3=0
         j3=j3+nbl3+1
+
+        !if (atoms%geocode /= 'F' .and. j3 >= modulo(i3s,n3i) .and. i3s < 0) j3=j3-n3i
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
@@ -109,27 +120,40 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        !restart again from the previously calculated index
                        ilcc=islcc
                        rhov=0.0_dp
+                       drhov=0.0_dp
                        do ig=1,(ngv*(ngv+1))/2
                           ilcc=ilcc+1
                           rhov=rhov+&
                                spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
+                          !derivative wrt r2
+                          drhov=drhov+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+
                           !arg=r2/rhovxp(ig)**2
                           !(rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
                        rhoc=0.0_dp
+                       drhoc=0.0_dp
                        do ig=1,(ngc*(ngc+1))/2
                           ilcc=ilcc+1
                           !arg=r2/rhocxp(ig)**2
                           rhoc=rhoc+&
                                spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
+                          drhoc=drhoc+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
                           !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
 
                        !if (j3 >= i3s .and. j3 <= i3s+n3d-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       rhocore(ind)=rhocore(ind)+oneo4pi*(rhoc-rhov)
+                       rhocore(ind,0)=rhocore(ind,0)+oneo4pi*(rhoc-rhov)
+                       drhodr2=drhoc-drhov
+                       rhocore(ind,1)=rhocore(ind,1)+x*drhodr2*oneo4pi
+                       rhocore(ind,2)=rhocore(ind,2)+y*drhodr2*oneo4pi
+                       rhocore(ind,3)=rhocore(ind,3)+z*drhodr2*oneo4pi
+
 !!$                 !print out the result, to see what happens
 !!$                 if (z==0.0_gp .and. y==0.0_gp) then
 !!$                    write(16,'(3(1x,i0),10(1pe25.17))')j1+1+nbl1,j2+1+nbl2,j3,rhocore(ind),rhoc,rhov,r2,x
@@ -158,7 +182,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 END SUBROUTINE calc_rhocore_iat
 
 !> Calculate the core charge describe by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased wit a given exponent.
+!! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function charge_from_gaussians(expo,rhoc)
   use module_base
@@ -173,7 +197,7 @@ function charge_from_gaussians(expo,rhoc)
 end function charge_from_gaussians
 
 !> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased wit a given exponent.
+!! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function spherical_gaussian_value(r2,expo,rhoc,ider)
   use module_base
@@ -246,6 +270,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
   use module_base
   use Poisson_Solver
+  use module_interfaces, fake_name => XC_potential
+  use module_xc
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -255,8 +281,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
-  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
   real(dp), dimension(6), intent(out) :: xcstr
+  real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -268,7 +294,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: ndvxc,order
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
-  real(dp), dimension(:), allocatable :: rho_G
+  real(dp), dimension(:), allocatable :: rho_G,work
+  real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
@@ -340,17 +367,17 @@ call to_zero(6,wbstr(1))
      return
   end if
   
-  !if rhocore is associated we should add it on the charge density
-  if (associated(rhocore)) then
-     if (nspin == 1) then
-        !sum the complete core density for non-spin polarised calculations
-        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
-     else if (nspin==2) then
-        !for spin-polarised calculation consider half per spin index
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
-     end if
-  end if
+!!$  !if rhocore is associated we should add it on the charge density
+!!$  if (associated(rhocore)) then
+!!$     if (nspin == 1) then
+!!$        !sum the complete core density for non-spin polarised calculations
+!!$        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$     else if (nspin==2) then
+!!$        !for spin-polarised calculation consider half per spin index
+!!$        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
+!!$     end if
+!!$  end if
 
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
@@ -414,6 +441,43 @@ call to_zero(6,wbstr(1))
      call memocc(i_stat,dvxci,'dvxci',subname)
   end if
 
+  !calculate gradient
+  if (xc_isgga() .and. nxc > 0) then
+     !computation of the gradient
+     allocate(gradient(m1,m3,nwb,2*nspin-1,0:3+ndebug),stat=i_stat)
+     call memocc(i_stat,gradient,'gradient',subname)
+
+     !!the calculation of the gradient will depend on the geometry code
+     !this operation will also modify the density arrangment for a GGA calculation
+     !in parallel and spin-polarised, since ABINIT routines need to calculate
+     !the XC terms for spin up and then spin down
+     if(datacode=='G' .and. &
+          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho_G,nspin,&
+             hx,hy,hz,gradient,rhocore)
+     else
+        call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho(1+n01*n02*(i3start-1)),nspin,&
+             hx,hy,hz,gradient,rhocore)
+     end if
+  else
+     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,gradient,'gradient',subname)
+     !add rhocore to the density
+     if (associated(rhocore)) then
+        if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
+           call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho_G(1),1)
+           if (nspin==2) call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,&
+                rho_G(1+m1*m3*nxt),1)
+        else
+           call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
+           if (nspin==2) call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,&
+                rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
+        end if
+     end if
+  end if
+
+
+
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
   !end if
@@ -422,7 +486,7 @@ call to_zero(6,wbstr(1))
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho_G,vxci,&
+             ixc,hx,hy,hz,rho_G,gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
@@ -441,7 +505,7 @@ call to_zero(6,wbstr(1))
         call memocc(i_stat,i_all,'rho_G',subname)
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
+             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
@@ -450,6 +514,13 @@ call to_zero(6,wbstr(1))
      eexcuLOC=0.0_dp
      vexcuLOC=0.0_dp
   end if
+
+  !deallocate gradient here
+  i_all=-product(shape(gradient))*kind(gradient)
+  deallocate(gradient,stat=i_stat)
+  call memocc(i_stat,i_all,'gradient',subname)
+
+
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
@@ -507,10 +578,11 @@ call to_zero(6,wbstr(1))
      vexcuRC=vexcuRC*real(hx*hy*hz,gp)
      !subtract this value from the vexcu
      vexcuLOC=vexcuLOC-vexcuRC
+!print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
-
+!stop
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
@@ -653,7 +725,7 @@ END SUBROUTINE XC_potential
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
+     nxcl,nxcr,ixc,hx,hy,hz,rho,gradient,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
 
   use module_base
   use module_xc
@@ -665,6 +737,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
   real(gp), intent(in) :: hx,hy,hz
+  real(dp), dimension(*), intent(in) :: gradient !< of size 1 if not needed
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho
   real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
   real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
@@ -675,7 +748,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   character(len=*), parameter :: subname='xc_energy'
   real(dp), dimension(:,:,:), allocatable :: exci
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
-  real(dp), dimension(:,:,:,:,:), allocatable :: gradient
+  !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
   integer :: npts,i_all,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
@@ -694,22 +767,22 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   use_gradient = xc_isgga()
 
   if (use_gradient) then
-     !computation of the gradient
-     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
-     call memocc(i_stat,gradient,'gradient',subname)
-
-     !!the calculation of the gradient will depend on the geometry code
-     !this operation will also modify the density arrangment for a GGA calculation
-     !in parallel and spin-polarised, since ABINIT routines need to calculate
-     !the XC terms for spin up and then spin down
-     call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
-          real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+!!$     !computation of the gradient
+!!$     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,gradient,'gradient',subname)
+!!$
+!!$     !!the calculation of the gradient will depend on the geometry code
+!!$     !this operation will also modify the density arrangment for a GGA calculation
+!!$     !in parallel and spin-polarised, since ABINIT routines need to calculate
+!!$     !the XC terms for spin up and then spin down
+!!$     call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
+!!$          real(hx,dp),real(hy,dp),real(hz,dp),gradient)
 
      allocate(dvxcdgr(m1,m3,nwb,3+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   else
-     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,gradient,'gradient',subname)
+!!$     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,gradient,'gradient',subname)
      allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
@@ -728,16 +801,15 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
-  
   end if
-wbstr(:)=0._dp
+  wbstr(:)=0._dp
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
-
+!print *,wbstr
      !restore the density array in the good position if it was shifted for the parallel GGA
      !operation not necessarily needed, but related to the fact that the array has three
      !indices which make it difficult to treat
@@ -769,11 +841,11 @@ wbstr(:)=0._dp
      deallocate(dvxcdgr,stat=i_stat)
      call memocc(i_stat,i_all,'dvxcdgr',subname)
   end if
-  if (allocated(gradient)) then
-     i_all=-product(shape(gradient))*kind(gradient)
-     deallocate(gradient,stat=i_stat)
-     call memocc(i_stat,i_all,'gradient',subname)
-  end if
+!!$  if (allocated(gradient)) then
+!!$     i_all=-product(shape(gradient))*kind(gradient)
+!!$     deallocate(gradient,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'gradient',subname)
+!!$  end if
   !     rewind(300)
   !     do ispden=1,nspden
   !        do i3=1,nxt
@@ -840,7 +912,8 @@ wbstr(:)=0._dp
   i_all=-product(shape(exci))*kind(exci)
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
-
+!  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+!stop
 END SUBROUTINE xc_energy_new
 
 
@@ -904,6 +977,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   use module_base
   use module_xc
   use interfaces_56_xc
+  use module_interfaces, only: calc_gradient
 
   implicit none
 
@@ -930,12 +1004,15 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
   real(dp),dimension(6) :: wbstr
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'
      print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
      stop
   end if
+  
+  nullify(rhocore_fake)
 
   !these are always the same
   order=1
@@ -976,8 +1053,11 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
         !!the calculation of the gradient will depend on the geometry code
         !if (geocode=='F') then
+           nullify(rhocore_fake)
+           !!call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
+           !!     real(hx,dp),real(hy,dp),real(hz,dp),gradient)
            call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
-                real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+                real(hx,dp),real(hy,dp),real(hz,dp),gradient,rhocore_fake)
         !else
         !print *,'geocode=',geocode,&
         !     ':the calculation of the gradient is still to be performed in this case'

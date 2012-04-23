@@ -7,87 +7,58 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Display the logo of BigDFT 
-subroutine print_logo()
-  use module_base
+subroutine set_inputfile(filename, radical, ext)
   implicit none
-  integer :: length
-  character(len = 64) :: fmt
+  character(len = 100), intent(out) :: filename
+  character(len = *), intent(in) :: radical, ext
+  
+  logical :: exists
 
-  fmt=repeat(' ',64)
-  length = 26 - 6 - len(package_version)
-  write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
+  write(filename, "(A)") ""
+  if (trim(radical) == "") then
+     write(filename, "(A,A,A)") "input", ".", trim(ext)
+  else
+     write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+  end if
 
-  write(*,'(23x,a)')'      TTTT         F       DDDDD    '
-  write(*,'(23x,a)')'     T    T               D         '
-  write(*,'(23x,a)')'    T     T        F     D          '
-  write(*,'(23x,a)')'    T    T         F     D        D '
-  write(*,'(23x,a)')'    TTTTT          F     D         D'
-  write(*,'(23x,a)')'    T    T         F     D         D'
-  write(*,'(23x,a)')'    T     T        F     D         D'
-  write(*,'(23x,a)')'    T      T       F     D         D'
-  write(*,'(23x,a)')'    T     T     FFFF     D         D'
-  write(*,'(23x,a)')'    T TTTT         F      D        D'
-  write(*,'(23x,a)')'    T             F        D      D '
-  write(*,'(23x,a)')'TTTTTTTTT    FFFFF          DDDDDD  ' 
-  !write(*,'(23x,a)')'---------------------------------------'
-  write(*,'(23x,a)')'  gggggg          iiiii    BBBBBBBBB'
-  write(*,'(23x,a)')' g      g        i             B    '
-  write(*,'(23x,a)')'g        g      i         BBBB B    '
-  write(*,'(23x,a)')'g         g     iiii     B     B    '
-  write(*,'(23x,a)')'g         g     i       B      B    '
-  write(*,'(23x,a)')'g         g     i        B     B    '
-  write(*,'(23x,a)')'g         g     i         B    B    '
-  write(*,'(23x,a)')'g         g     i          BBBBB    '
-  write(*,'(23x,a)')' g        g     i         B    B    '  
-  write(*,'(23x,a)')'          g     i        B     B    ' 
-  write(*,'(23x,a)')'         g               B    B     '
-  write(*,trim(fmt))'    ggggg       i         BBBB      ', &
-       & '(Ver ' // package_version // ')'
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
-  write(*,'(1x,a)')&
-       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
-  write(*,'(1x,a)')&
-       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
-  write(*,*)
-END SUBROUTINE print_logo
-
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+       & write(filename, "(A,A,A)") "default", ".", trim(ext)
+end subroutine set_inputfile
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs, radical)
+subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
+  use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
+  integer, intent(in) :: nproc
 
-  character(len = 128) :: rad
+  integer :: ierr
 
-  write(rad, "(A)") ""
-  write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
+  call set_inputfile(inputs%file_dft, radical,    "dft")
+  call set_inputfile(inputs%file_geopt, radical,  "geopt")
+  call set_inputfile(inputs%file_kpt, radical,    "kpt")
+  call set_inputfile(inputs%file_perf, radical,   "perf")
+  call set_inputfile(inputs%file_tddft, radical,  "tddft")
+  call set_inputfile(inputs%file_mix, radical,    "mix")
+  call set_inputfile(inputs%file_sic, radical,    "sic")
+  call set_inputfile(inputs%file_occnum, radical, "occ")
+  call set_inputfile(inputs%file_igpop, radical,  "occup")
+  call set_inputfile(inputs%file_lin, radical,    "lin")
 
-  inputs%file_dft=trim(rad) // '.dft'
-  inputs%file_geopt=trim(rad) // '.geopt'
-  inputs%file_kpt=trim(rad) // '.kpt'
-  inputs%file_perf=trim(rad) // '.perf'
-  inputs%file_tddft=trim(rad) // '.tddft'
-  inputs%file_mix=trim(rad) // '.mix'
-  inputs%file_sic=trim(rad) // '.sic'
-  inputs%file_occnum=trim(rad) // '.occ'
-  inputs%file_igpop=trim(rad) // '.occup'
-  inputs%file_lin=trim(rad) // '.lin'
-
-  if (trim(rad) == "input") then
+  if (trim(radical) == "input") then
      inputs%dir_output="data"
   else
-     inputs%dir_output="data-"//trim(rad)
+     inputs%dir_output="data-"//trim(radical)
   end if
 
   inputs%files = INPUTS_NONE
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
@@ -118,6 +89,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
+  call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
 END SUBROUTINE read_input_variables
 
 
@@ -154,10 +126,11 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
+  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
 
   ! Parse input files depending on atoms.
-  call inputs_parse_add(inputs, atoms, iproc, .true.)
+  call inputs_parse_add(inputs, atoms%sym, atoms%geocode, &
+       & (/ atoms%alat1, atoms%alat2, atoms%alat3/), iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -171,14 +144,14 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
-  ! Stop code for unproper input variables combination.
-  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
-     if (iproc==0) then
-        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-     end if
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
-  end if
+!!$  ! Stop code for unproper input variables combination.
+!!$  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
+!!$     if (iproc==0) then
+!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+!!$     end if
+!!$     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+!!$  end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
@@ -348,7 +321,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
        comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
@@ -444,7 +417,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
@@ -461,7 +434,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   call input_free((iproc == 0) .and. dump)
 
   !put the startmix if the mixing has to be done
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
 
@@ -590,112 +563,6 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
 END SUBROUTINE geopt_input_variables_new
 
 
-!> Read the input variables needed for the geometry optimisation
-!! Every argument should be considered as mandatory
-subroutine geopt_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  character(len=*), parameter :: subname='geopt_input_variables'
-  character(len = 128) :: line
-  integer :: i_stat,ierror,iline
-  logical :: exists
-
-  inquire(file=filename,exist=exists)
-  if (.not. exists) then
-     in%ncount_cluster_x=0
-     return
-  end if
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) in%geopt_approach
-  call check()
-  read(1,*,iostat=ierror) in%ncount_cluster_x
-  call check()
-  in%forcemax = 0.d0
-  read(1, "(A128)", iostat = ierror) line
-  if (ierror == 0) then
-     read(line,*,iostat=ierror) in%frac_fluct,in%forcemax
-     if (ierror /= 0) read(line,*,iostat=ierror) in%frac_fluct
-     if (ierror == 0 .and. max(in%frac_fluct, in%forcemax) <= 0.d0) ierror = 1
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%randdis
-  call check()
-  if (trim(in%geopt_approach) == "AB6MD") then
-     in%nnos=0
-
-     read(1,*,iostat=ierror) in%ionmov
-     call check()
-     read(1,*,iostat=ierror) in%dtion
-     call check()
-     if (in%ionmov == 6) then
-        read(1,*,iostat=ierror) in%mditemp
-        call check()
-     elseif (in%ionmov > 7) then
-        read(1,*,iostat=ierror) in%mditemp, in%mdftemp
-        call check()
-     end if
-     if (in%ionmov == 8) then
-        read(1,*,iostat=ierror) in%noseinert
-        call check()
-     else if (in%ionmov == 9) then
-        read(1,*,iostat=ierror) in%friction
-        call check()
-        read(1,*,iostat=ierror) in%mdwall
-        call check()
-     else if (in%ionmov == 13) then
-        read(1,*,iostat=ierror) in%nnos
-        call check()
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-        read(1,*,iostat=ierror) in%qmass
-        call check()
-        read(1,*,iostat=ierror) in%bmass, in%vmass
-        call check()
-     end if
-     if (in%ionmov /= 13) then
-        !the allocation of this pointer should be done in any case
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-     end if
-
-  else if (trim(in%geopt_approach) == "DIIS") then
-     read(1,*,iostat=ierror) in%betax, in%history
-     call check()
-  else
-     read(1,*,iostat=ierror) in%betax
-     call check()
-  end if
-  if (trim(in%geopt_approach) == "FIRE") then
-     read(1,*,iostat=ierror) in%dtinit, in%dtmax
-     call check()
-  endif
-  close(unit=1,iostat=ierror)
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE geopt_input_variables
-
-
 !> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -753,37 +620,40 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt
-  real(gp):: ppl, pph, lt
-  real(gp),dimension(atoms%ntypes) :: locradType
+  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
+  real(gp):: ppl, pph, lrl, lrh
+  real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   ! Begin by nullifying all the pointers
   nullify(in%lin%potentialPrefac)
   nullify(in%lin%locrad)
+  nullify(in%lin%locrad_lowaccuracy)
+  nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
-  nullify(atoms%rloc)
+  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, convergence criterion'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000/))
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion'
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
+  call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
   call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
-  call input_var(in%lin%DIISHistMax,'5',ranges=(/1,100/))
+  call input_var(in%lin%DIISHistMax,'5',ranges=(/0,100/))
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
@@ -801,9 +671,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
   call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/),comment=comments)
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
@@ -860,7 +731,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   !number of iterations for the input guess
   comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
@@ -881,10 +752,19 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !number of orbitals per process for trace minimization during input guess.
   call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
 
+  ! how the confining potential shall be decreased
+  comments='confinement_decrease_mode: 0=linear, 1=abrupt'
+  call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
+
+  ! how much the confining potential shall be decreased
+  comments='decrease_amount, decrease_step'
+  call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
+
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(atoms, in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
   
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
@@ -894,7 +774,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
       call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
       call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
           ! The parameters were not specified for all atom types.
           if(iproc==0) then
@@ -916,7 +797,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%norbsPerType(jtype)=npt
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lt
+              locradType(jtype)=lrl
+              in%lin%locrad_type(jtype)=lrl
+              locradType_lowaccur(jtype)=lrl
+              locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)
           end if
       end do
@@ -927,11 +811,30 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
           stop
       end if
   end do
-  
-  ! Assign the localization radius to each atom.
+
+  nlr=0
   do iat=1,atoms%nat
       itype=atoms%iatype(iat)
-      in%lin%locrad(iat)=locradType(itype)
+      nlr=nlr+in%lin%norbsPerType(itype)
+  end do
+  allocate(in%lin%locrad(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+  allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
+  allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_highaccuracy,'in%lin%locrad_highaccuracy',subname)
+
+  
+  ! Assign the localization radius to each atom.
+  iiorb=0
+  do iat=1,atoms%nat
+      itype=atoms%iatype(iat)
+      do iorb=1,in%lin%norbsPerType(itype)
+          iiorb=iiorb+1
+          in%lin%locrad(iiorb)=locradType(itype)
+          in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
+          in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
+      end do
   end do
   
 
@@ -976,56 +879,7 @@ subroutine tddft_input_variables_new(iproc,dump,filename,in)
 
 END SUBROUTINE tddft_input_variables_new
 
-
-subroutine tddft_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
-  integer :: iline, ierror
-
-  inquire(file=trim(filename),exist=exists)
-
-  if (.not. exists) then
-     !write(*,*) "The file 'input.tddft' does not exists!"
-     !      stop
-     return
-  end if
-
- ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) in%tddft_approach
-  call check()
-  if (trim(in%tddft_approach) == "TDA") then
-     !read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
-     !call check()
-  end if
-
-  close(unit=1,iostat=ierror)
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE tddft_input_variables
-
-subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
+subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   use module_base
   use module_types
   use defs_basis
@@ -1036,13 +890,15 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
+  type(symmetry_data), intent(in) :: sym
+  character(len = 1), intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
   integer, allocatable :: iseg(:)
 
   ! Set default values.
@@ -1075,7 +931,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent length of K-space resolution (Bohr)')
-     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1086,9 +942,12 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
      call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (case_insensitive_equiv(trim(type),'mpgrid')) then
      !take the points of Monckorst-pack grid
-     call input_var(ngkpt(1),'1')
-     call input_var(ngkpt(2),'1')
-     call input_var(ngkpt(3),'1',comment='No. of Monkhorst-Pack grid points')
+     call input_var(ngkpt(1),'1',ranges=(/1,10000/))
+     call input_var(ngkpt(2),'1',ranges=(/1,10000/))
+     call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
+          & comment='No. of Monkhorst-Pack grid points')
+     if (geocode == 'S') ngkpt(2) = 1
+     if (geocode == 'F') ngkpt = 1
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
@@ -1098,7 +957,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1117,7 +976,11 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
      norm=0.0_gp
      do i=1,in%nkpt
         call input_var( in%kpt(1,i),'0.')
-        call input_var( in%kpt(2,i),'0.')
+        if (geocode == 'S') then
+           call input_var( in%kpt(2,i),'0.',ranges=(/0._gp,0._gp/))
+        else
+           call input_var( in%kpt(2,i),'0.')
+        end if
         call input_var( in%kpt(3,i),'0.')
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
@@ -1210,24 +1073,24 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   
   call input_free((iproc == 0) .and. dump)
   !control whether we are giving k-points to Free BC
-  if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
+  if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop
   end if
 
   ! Convert reduced coordinates into BZ coordinates.
-  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
-  if (atoms%geocode /= 'P') alat(2) = 1.0_gp
-  if (atoms%geocode == 'F') then
-     alat(1)=1.0_gp
-     alat(3)=1.0_gp
+  alat_ = alat
+  if (geocode /= 'P') alat_(2) = 1.0_gp
+  if (geocode == 'F') then
+     alat_(1)=1.0_gp
+     alat_(3)=1.0_gp
   end if
   do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+     in%kpt(:, i) = in%kpt(:, i) / alat_ * two_pi
   end do
   do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
+     in%kptv(:, i) = in%kptv(:, i) / alat_ * two_pi
   end do
  
 end subroutine kpt_input_variables_new
@@ -1306,6 +1169,8 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
+     if (atoms%geocode == 'S') ngkpt(2) = 1
+     if (atoms%geocode == 'F') ngkpt = 1
      call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -1472,6 +1337,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
@@ -1738,75 +1604,6 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
 END SUBROUTINE frequencies_input_variables_new
 
 
-!> Read the input variables needed for the frequencies calculation.
-!! Every argument should be considered as mandatory.
-subroutine frequencies_input_variables(iproc,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  !Arguments
-  type(input_variables), intent(inout) :: in
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  !Local variables
-  integer, parameter :: iunit=111
-  character(len=100) :: line,string
-  integer :: ierror,iline
-
-  ! Read the input variables.
-  open(unit=iunit,file=filename,status='old')
-  !Line number, to control the input values
-  iline=0
-  !Read in%freq_alpha (possible 1/64)
-  read(unit=iunit,fmt="(a)",iostat=ierror) line
-  !Transform the line in case there are slashes (to ease the parsing)
-  call read_fraction_string(line,in%freq_alpha,ierror)
-  if (ierror /= 0) then
-     print *,'wrong format of the string: '//string
-     ierror=1
-  end if
-  call check()
-  !Read the order of finite difference scheme
-  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
-  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
-     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
-     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
-     stop
-  end if
-  !Read the index of the method
-  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
-  if (in%freq_method /= 1) then
-     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
-     stop
-  end if
-  call check()
-
-  close(unit=iunit)
-
-  !Message
-  if (iproc == 0) then
-     write(*,*)
-     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
-     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
-     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
-  end if
-
-contains
-
-  subroutine check()
-    implicit none
-    iline=iline+1
-    if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE frequencies_input_variables
-
-
 !> Fill the arrays occup and spinsgn
 !! if iunit /=0 this means that the file 'input.occ' does exist and it opens
 subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
@@ -1913,13 +1710,13 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               !end if
               stop
@@ -1930,7 +1727,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      end do
      if (verb) then
         write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
+             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 
@@ -2209,349 +2006,6 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
  
 END SUBROUTINE frozen_alpha
 
-
-!> Print all general parameters
-subroutine print_general_parameters(nproc,input,atoms)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_symmetry
-  implicit none
-  !Arguments
-  integer, intent(in) :: nproc
-  type(input_variables), intent(in) :: input
-  type(atoms_data), intent(in) :: atoms
-
-  integer :: nSym, ierr, ityp, iat, i, lg
-  integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
-  integer :: symAfm(AB6_MAX_SYMMETRIES)
-  real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
-  real(gp) :: genAfm(3)
-  character(len=15) :: spaceGroup
-  integer :: spaceGroupId, pointGroupMagn
-  integer, parameter :: maxLen = 50, width = 24
-  character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
-  character(len = 11) :: potden
-  character(len = 12) :: dos
-  integer :: nthreads
-!$ integer :: omp_get_max_threads
-
-  ! Output for atoms and k-points
-  write(*,'(1x,a,a,a)') '--- (file: posinp.', &
-       & atoms%format, ') --------------------------------------- Input atomic system'
-  write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
-  do i = 1, maxLen
-     write(at(i), "(a)") " "
-     write(fixed(i), "(a)") " "
-     write(add(i), "(a)") " "
-  end do
-  write(fixed(1), '(a)') "No fixed atom"
-  write(add(1), '(a)') "No symmetry for open BC"
-  
-  ! The atoms column
-  write(at(1), '(a,a)')  "Bound. C.= ", atoms%geocode
-  write(at(2), '(a,i5)') "N. types = ", atoms%ntypes
-  write(at(3), '(a,i5)') "N. atoms = ", atoms%nat
-  lg = 12
-  i = 4
-  write(at(i),'(a)' )    "Types    = "
-  do ityp=1,atoms%ntypes - 1
-     if (lg + 4 + len(trim(atoms%atomnames(ityp))) >= width) then
-        i = i + 1
-        lg = 12
-        write(at(i),'(a)') "           "
-     end if
-     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
-     lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
-  enddo
-  if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
-     i = i + 1
-     lg = 12
-     write(at(i),'(a)') "           "
-  end if
-  write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
-
-  ! The fixed atom column
-  i = 1
-  do iat=1,atoms%nat
-     if (atoms%ifrztyp(iat)/=0) then
-        if (i > maxLen) exit
-        write(fixed(i),'(a,i4,a,a,a,i3)') &
-             "at.", iat,' (', &
-             & trim(atoms%atomnames(atoms%iatype(iat))),&
-             ') ',atoms%ifrztyp(iat)
-        i = i + 1
-     end if
-  enddo
-  if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
-
-  ! The additional data column
-  if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-     call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
-          & spaceGroupId, pointGroupMagn, genAfm, ierr)
-     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     write(add(1), '(a,i0)')       "N. sym.   = ", nSym
-     write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  else if (atoms%geocode /= 'F' .and. input%disableSym) then
-     write(add(1), '(a)')          "N. sym.   = disabled"
-     write(add(2), '(a)')          "Sp. group = disabled"
-  else
-     write(add(1), '(a)')          "N. sym.   = free BC"
-     write(add(2), '(a)')          "Sp. group = free BC"
-  end if
-  i = 3
-  if (input%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virt. orb.= ", input%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(input%nplot), " orb."
-  else
-     write(add(i), '(a)')          "Virt. orb.= none"
-     write(add(i + 1), '(a)')      "Plot dens.= none"
-  end if
-  i = i + 2
-  if (input%nspin==4) then
-     write(add(i),'(a)')           "Spin pol. = non-coll."
-  else if (input%nspin==2) then
-     write(add(i),'(a)')           "Spin pol. = collinear"
-  else if (input%nspin==1) then
-     write(add(i),'(a)')           "Spin pol. = no"
-  end if
-
-  ! Printing
-  do i = 1, maxLen
-     if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
-        write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
-     end if
-  end do
-
-  if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (input%disableSym .and. input%nkpt > 1) then
-        write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
-     end if
-     write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, input%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & input%wkpt(i), i, input%kpt(:, i)
-     end do
-     if (input%nkptv > 0) then
-        write(*, "(1x,a)")    " K points for band structure calculation"
-        write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-        do i = 1, input%nkptv, 1
-           write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-                & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-                & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
-        end do
-     end if
-  end if
-
-  ! Printing for mixing parameters.
-  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-     if (input%iscf < 10) then
-        write(potden, "(A)") "potential"
-     else
-        write(potden, "(A)") "density"
-     end if
-     write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
-     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
-          & "     Target=", potden,        "|", &
-          & " Add. bands=", input%norbsempty, "|", &
-          & "    Coeff.=", input%alphamix
-     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-          & "     Scheme=", modulo(input%iscf, 10), "|", &
-          & "Elec. temp.=", input%Tel,              "|", &
-          & "      DIIS=", input%alphadiis
-     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-          & "  Max iter.=", input%itrpmax,    "|", &
-          & "Occ. scheme=", smearing_names(input%occopt), "|"
-     if (input%verbosity > 2) then
-        write(dos, "(A)") "dos.gnuplot"
-     else
-        write(dos, "(A)") "no verb. < 3"
-     end if
-     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
-  end if
-
-  if (input%ncount_cluster_x > 0) then
-     write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
-     write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
-
-     write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
-          & "      Max. steps=", input%ncount_cluster_x, "|", &
-          & "Fluct. in forces=", input%frac_fluct,       "|", &
-          & "          ionmov=", input%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
-          & "       algorithm=", input%geopt_approach, "|", &
-          & "  Max. in forces=", input%forcemax,       "|", &
-          & "           dtion=", input%dtion
-     if (trim(input%geopt_approach) /= "DIIS") then
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-             & "random at.displ.=", input%randdis, "|", &
-             & "  steep. descent=", input%betax,   "|"
-     else
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
-             & "random at.displ.=", input%randdis,           "|", &
-             & "step=", input%betax, "history=", input%history, "|"
-     end if
-     if (input%ionmov > 7) then
-        write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
-             & "start T=", input%mditemp, "stop T=", input%mdftemp
-     else
-        write(*,*)
-     end if
-     
-     if (input%ionmov == 8) then
-        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", input%noseinert
-     else if (input%ionmov == 9) then
-        write(*,*) "TODO: pretty printing!", input%friction
-        write(*,*) "TODO: pretty printing!", input%mdwall
-     else if (input%ionmov == 13) then
-        write(*,*) "TODO: pretty printing!", input%nnos
-        write(*,*) "TODO: pretty printing!", input%qmass
-        write(*,*) "TODO: pretty printing!", input%bmass, input%vmass
-     end if
-  end if
-
-  write(*,*)
-  ! Numbers of MPI processes and OpenMP threads
-  write(*,'(1x,a,1x,i0)') 'Number of MPI processes',nproc
-  nthreads = 0
-!$  nthreads=omp_get_max_threads()
-  if (nthreads == 0) then
-      write(*,'(1x,a)') 'MPI process does not use OpenMP'
-  else
-      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process',nthreads
-  end if
-
-END SUBROUTINE print_general_parameters
-
-
-!> Print all dft input parameters
-subroutine print_dft_parameters(in,atoms)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  type(atoms_data), intent(in) :: atoms
-
-  write(*,'(1x,a)')&
-       '--- (file: input.dft) --------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',(in%rbuf > 0.0_gp)
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
-       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       'x',in%nrepmax,'| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
-       '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
-  if (in%nspin>=2) then
-     write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',in%mpol, '|'
-  end if
-  if (atoms%geocode /= 'F') then
-     write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
-          '  Geom. Code=    '//atoms%geocode//'   |',&
-          '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
-
-  end if
-  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
-       & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
-  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
-       & "Output grid format=", in%output_denspot_format, &
-       "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
-
-END SUBROUTINE print_dft_parameters
-
-subroutine write_input_parameters(in) !,atoms)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-!  type(atoms_data), intent(in) :: atoms
-  !local variables
-  character(len = 11) :: potden
-  !start yaml output
-!  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
-  yaml_indent=yaml_indent+3
-!  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
-!  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
-!       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
-!  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
-!  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
-!       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
-!       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
-  yaml_indent=yaml_indent-3
-!  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
-  yaml_indent=yaml_indent+3
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
-  yaml_indent=yaml_indent-3
-!  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
-  yaml_indent=yaml_indent+3
-!  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
-!  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
-  yaml_indent=yaml_indent-3
-!  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
-  yaml_indent=yaml_indent+3
-!  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
-!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-!     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
-     yaml_indent=yaml_indent+3
-       if (in%iscf < 10) then
-        write(potden, "(A)") "potential"
-     else
-        write(potden, "(A)") "density"
-     end if
-!     write(70,'(a,t55,a)')'Target:',potden
-!     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
-!!$     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
-!!$          & "     Target=", potden,        "|", &
-!!$          & " Add. bands=", input%norbsempty, "|", &
-!!$          & "    Coeff.=", input%alphamix
-!!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-!!$          & "     Scheme=", modulo(input%iscf, 10), "|", &
-!!$          & "Elec. temp.=", input%Tel,              "|", &
-!!$          & "      DIIS=", input%alphadiis
-!!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-!!$          & "  Max iter.=", input%itrpmax,    "|", &
-!!$          & "Occ. scheme=", smearing_names(input%occopt), "|"
-!!$     if (input%verbosity > 2) then
-!!$        write(dos, "(A)") "dos.gnuplot"
-!!$     else
-!!$        write(dos, "(A)") "no verb. < 3"
-!!$     end if
-!!$     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-!!$          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
-     yaml_indent=yaml_indent-3
-  end if
-  yaml_indent=yaml_indent-3
-!  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
-  yaml_indent=yaml_indent+3
-  if (in%rbuf > 0.0_gp) then
-!     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
-     yaml_indent=yaml_indent+3
-!     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
-!     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
-     yaml_indent=yaml_indent-3
-  end if
-  yaml_indent=yaml_indent-3
-  stop
-end subroutine write_input_parameters
-
-
 !>Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: rxyz=txyz+alpha*sxyz
@@ -2735,7 +2189,6 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   end if
 
 END SUBROUTINE atomic_coordinate_axpy
-
 
 subroutine init_material_acceleration(iproc,iacceleration,GPU)
   use module_base

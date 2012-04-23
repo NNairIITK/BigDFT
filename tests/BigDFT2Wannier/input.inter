@@ -1,7 +1,0 @@
-C6H6                 # Name of the .win file
-etsf                 # Format : cube or etsf
-  15                 # No. of occupied orbitals
-T   30    3          # Pre-check, n_virt_tot, n_virt
-F    F    F    F     # Write_UNKp.s, write_spherical_harmonics, write_angular_parts,  write_radial_parts
-  94  132  130       # Number of points for each axis in the cubic  BigDFT representation (information needed by Wannier90)
-   1    2   14 

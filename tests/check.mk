@@ -81,7 +81,7 @@ report:
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
-%.geopt.mon.out:
+%.geopt.mon.out: $(abs_top_builddir)/src/bigdft
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -111,6 +111,11 @@ report:
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	name=`basename $@ .xabs.out` ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
+%.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 

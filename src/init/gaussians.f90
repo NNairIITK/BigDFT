@@ -26,9 +26,11 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   !local variables
   integer, parameter :: nshell_max=10 !n(c) nterm_max=3
   real(gp), parameter :: range=3.0_gp !in atomic units
-  integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
-  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points
+  integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid,j
+  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points,nsteps,i
   real(gp) :: hg,x,scalprod,charge,occ,combine_exponents,tt,mexpo
+  real(gp) :: expo,length,hgrid,center,fx,gauint0
+  real(gp), dimension(16) :: multipoles
   real(gp), dimension(nshell_max+1) :: shells
     
   open(unit=79,file=filename//'-wfn.dat',status='unknown')
@@ -218,6 +220,30 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
      write(79,'(5(1x,1pe25.17))')rhoexpo(ig),(rhocoeff(ig,jsat),jsat=1,4)
   end do
   close(unit=79)
+
+!!$  !here we can add some plot of a single gaussian
+!!$  hgrid=0.01_gp
+!!$  length=10.0_gp
+!!$  center=0.5_gp*length-0.5_gp*hgrid
+!!$  nsteps=nint(length/hgrid)+1
+!!$  expo=hgrid*1
+!!$  print *,'expo=',expo
+!!$  charge=0.0_gp
+!!$  multipoles=0
+!!$  do i=1,nsteps 
+!!$     x=real(hgrid*i-center,gp)
+!!$     fx=exp(-0.5_gp/(expo**2)*x**2)
+!!$     write(17,*)x,fx
+!!$     charge=charge+fx
+!!$     do j=1,16
+!!$        multipoles(j)=multipoles(j)+fx*x**j
+!!$     end do
+!!$  end do
+!!$  print *,'charge=',charge*hgrid,gauint0(0.5_gp/(expo**2),0)
+!!$  do j=1,16
+!!$     print *,'multipole(',j,')=',multipoles(j)*hgrid,gauint0(0.5_gp/(expo**2),j)
+!!$  end do
+!!$stop
 
 END SUBROUTINE plot_gatom_basis
 

@@ -38,7 +38,8 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      wfd_old%keyglob(2,iseg)    = wfd%keyglob(2,iseg)
      wfd_old%keygloc(1,iseg)    = wfd%keygloc(1,iseg)
      wfd_old%keygloc(2,iseg)    = wfd%keygloc(2,iseg)
-     wfd_old%keyv(iseg)      = wfd%keyv(iseg)
+     wfd_old%keyvloc(iseg)      = wfd%keyvloc(iseg)
+     wfd_old%keyvglob(iseg)      = wfd%keyvglob(iseg)
   enddo
   !deallocation
   call deallocate_wfd(wfd,subname)
@@ -217,7 +218,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
         ! coarse part
         do iseg=1,wfd_old%nseg_c
-           jj=wfd_old%keyv(iseg)
+           jj=wfd_old%keyvloc(iseg)
            j0=wfd_old%keygloc(1,iseg)
            j1=wfd_old%keygloc(2,iseg)
            ii=j0-1
@@ -233,7 +234,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
         ! fine part
         do iseg=1,wfd_old%nseg_f
-           jj=wfd_old%keyv(wfd_old%nseg_c + iseg)
+           jj=wfd_old%keyvloc(wfd_old%nseg_c + iseg)
            j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
            j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
            ii=j0-1
@@ -324,17 +325,17 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
-  integer, dimension(orbs%norb) :: orblist2
+  !integer, dimension(orbs%norb) :: orblist2
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
-     do nb1 = 1, orbs%norb
-     orblist2(nb1) = nb1
-     if(present(orblist)) orblist2(nb1) = orblist(nb1) 
-     end do
+     !do nb1 = 1, orbs%norb
+     !orblist2(nb1) = nb1
+     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+     !end do
 
      call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
           wfd,psi)
@@ -593,8 +594,8 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
            call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                 & orbs,iorb,ispinor,iorb_out)           
            call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),  & 
-                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+                at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
+                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
            close(99)

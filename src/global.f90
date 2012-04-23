@@ -40,7 +40,7 @@ program MINHOP
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
-  character(len=12) :: fn12
+  character(len=16) :: fn16
   character(len=50) :: comment
   real(gp), dimension(6) :: strten
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
@@ -106,8 +106,8 @@ program MINHOP
   endif
   close(12)
 
-  call standard_inputfile_names(inputs_opt,'input')
-  call standard_inputfile_names(inputs_md,'mdinput')
+  call standard_inputfile_names(inputs_opt,'input',nproc)
+  call standard_inputfile_names(inputs_md,'mdinput',nproc)
 
   call read_atomic_file('poscur',iproc,atoms,pos)
 
@@ -137,6 +137,7 @@ program MINHOP
 
   ! Read associated pseudo files. Based on the inputs_opt set
   call init_atomic_values((iproc == 0), atoms, inputs_opt%ixc)
+  call read_atomic_variables(atoms, trim(inputs_opt%file_igpop),inputs_opt%nspin)
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
@@ -275,8 +276,8 @@ program MINHOP
 
   nconjgr=0
       do 
-        write(fn12,'(a8,i4.4)') "poslocm_",nconjgr
-        inquire(file=fn12,exist=exist_poslocm)
+        write(fn16,'(a8,i4.4,a4)') "poslocm_",nconjgr,".xyz"
+        inquire(file=fn16,exist=exist_poslocm)
         if (exist_poslocm) then
             nconjgr=nconjgr+1
         else
@@ -373,15 +374,16 @@ program MINHOP
      call cpu_time(tcpu2)
      if(iproc==0 .and. CPUcheck)then
         open(unit=55,file='CPUlimit_global',status='unknown')
-        read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
-        write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
-        close(55)
+        read(55,*,end=555) cpulimit 
+        cpulimit=cpulimit*3600
+        write(*,'(a,i5,i3,2(1x,e9.2))') '# iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
         tleft=cpulimit-(tcpu2-tcpu1)
-     end if
+       end if
 555    continue
+       close(55)
        call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
        if (tleft < 0.d0) then
-       write(*,*) 'CPU time exceeded',tleft
+       if(iproc==0) write(*,*) '# CPU time exceeded',iproc,tleft
        goto 3000
        endif
           CPUcheck=.true.
@@ -645,6 +647,7 @@ contains
     dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn,name
+    logical :: move_this_coordinate
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
@@ -665,13 +668,26 @@ contains
   ! Soften previous velocity distribution
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
+  ! put velocities for frozen degrees of freedom to zero
+       ndfree=0.d0
+       ndfroz=0.d0
+  do iat=1,atoms%nat
+  do ixyz=1,3
+  if ( move_this_coordinate(atoms%ifrztyp(iat),ixyz) ) then
+       ndfree=ndfree+1
+  else
+       ndfroz=ndfroz+1
+       vxyz(ixyz,iat)=0.d0
+  endif
+  enddo
+  enddo
   ! normalize velocities to target ekinetic
-    call velnorm(atoms,rxyz,ekinetic,vxyz)
+    call velnorm(atoms,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call razero(3*atoms%nat,gg)
 
     if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
-    if(iproc==0) write(*,*) '# MINHOP start MD'
+    if(iproc==0) write(*,*) '# MINHOP start MD',ndfree,ndfroz
     !C inner (escape) loop
     nummax=0
     nummin=0

@@ -13,6 +13,12 @@
 
 #include <bigdft_cst.h>
 
+typedef struct BigDFT_lzd_ BigDFT_Lzd;
+typedef struct BigDFT_orbs_ BigDFT_Orbs;
+typedef struct BigDFT_Proj_ BigDFT_Proj;
+typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
+typedef struct BigDFT_Energs_ BigDFT_Energs;
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -24,6 +30,7 @@ typedef struct BigDFT_AtomsClass_
 {
   GObjectClass parent;
 } BigDFT_AtomsClass;
+GType bigdft_atoms_get_type(void);
 #else
 #define BIGDFT_ATOMS_TYPE    (999)
 #define BIGDFT_ATOMS(obj)    ((BigDFT_Atoms*)obj)
@@ -32,6 +39,7 @@ typedef struct BigDFT_Atoms_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
@@ -55,9 +63,7 @@ typedef struct BigDFT_Atoms_
 
   /* Private. */
   void *data;
-
-  /* GObject machinery. */
-  gboolean dispose_has_run;
+  void *sym;
 } BigDFT_Atoms;
 
 
@@ -66,12 +72,15 @@ BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
 void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
 void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
-void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
+gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
+void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc,
+                                            guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
-                                            double elecfield[3]);
+                                            double tol, double elecfield[3]);
 void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
-double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);
+double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
+                                            double frmult, double projrad);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -127,64 +136,238 @@ BigDFT_Inputs* bigdft_inputs_new             (const gchar *radical);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
 void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
 
-/******************************/
-/* BigDFT_Glr data structure. */
-/******************************/
-typedef struct BigDFT_glr_
+/*********************************/
+/* BigDFT_LocReg data structure. */
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_LOCREG_TYPE    (bigdft_locreg_get_type())
+#define BIGDFT_LOCREG(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_LOCREG_TYPE, BigDFT_LocReg))
+typedef struct BigDFT_LocRegClass_
 {
-  gchar geocode;
-  double h[3];
+  GObjectClass parent;
+} BigDFT_LocRegClass;
+GType bigdft_locreg_get_type(void);
+#else
+#define BIGDFT_LOCREG_TYPE    (999)
+#define BIGDFT_LOCREG(obj)    ((BigDFT_LocReg*)obj)
+#endif
+typedef struct BigDFT_locReg_
+{
+  BigDFT_Atoms parent;
+#ifdef GLIB_MAJOR_VERSION
+  gboolean dispose_has_run;
+#endif
+
   guint n[3], ni[3];
+
+  /* Values that have been used to built this localisation region. */
+  double h[3];
+  double *radii;
+  double crmult, frmult;
   
   /* TODO: bindings to values... */
 
   /* Private. */
   void *d;
   void *data;
-} BigDFT_Glr;
+} BigDFT_LocReg;
+typedef enum
+  {
+    GRID_COARSE,
+    GRID_FINE
+  } BigDFT_Grid;
 
-BigDFT_Glr* bigdft_glr_new                 (BigDFT_Atoms *atoms, double *radii, double h[3],
-                                            double crmult, double frmult);
-BigDFT_Glr* bigdft_glr_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
-                                                 double h[3], double crmult, double frmult);
-void        bigdft_glr_free                (BigDFT_Glr *glr);
-void        bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms,
-                                            double *radii, double crmult, double frmult);
+BigDFT_LocReg* bigdft_locreg_new                 ();
+void           bigdft_locreg_free                (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
+void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, const double h[3],
+                                                  double crmult, double frmult);
+void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
+gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
+                                                  BigDFT_Grid gridType);
+double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
+                                                  const double *psic);
+
+/*********************************/
+/* BigDFT_Lzd data structure. */
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_LZD_TYPE    (bigdft_lzd_get_type())
+#define BIGDFT_LZD(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_LZD_TYPE, BigDFT_Lzd))
+typedef struct BigDFT_LzdClass_
+{
+  GObjectClass parent;
+} BigDFT_LzdClass;
+GType bigdft_lzd_get_type(void);
+#else
+#define BIGDFT_LZD_TYPE    (999)
+#define BIGDFT_LZD(obj)    ((BigDFT_Lzd*)obj)
+#endif
+struct BigDFT_lzd_
+{
+  BigDFT_LocReg parent;
+#ifdef GLIB_MAJOR_VERSION
+  gboolean dispose_has_run;
+#endif
+
+  /* Values binded from the Fortran object. */
+  double h[3];
+
+  /* Private. */
+  void *data;
+};
+BigDFT_Lzd* bigdft_lzd_new ();
+BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd);
+void        bigdft_lzd_free(BigDFT_Lzd *lzd);
+void        bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
+                                double crmult, double frmult);
+
 
 /*******************************/
 /* BigDFT_Orbs data structure. */
 /*******************************/
-typedef struct f90_pointer_orbs_ f90_pointer_orbs;
-typedef struct BigDFT_orbs_
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ORBS_TYPE    (bigdft_orbs_get_type())
+#define BIGDFT_ORBS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ORBS_TYPE, BigDFT_Orbs))
+typedef struct BigDFT_OrbsClass_
 {
+  GObjectClass parent;
+} BigDFT_OrbsClass;
+GType bigdft_orbs_get_type(void);
+#else
+#define BIGDFT_ORBS_TYPE    (999)
+#define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
+#endif
+struct BigDFT_orbs_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   /* TODO: bindings to values... */
-  int norb, norbp, norbu, norbd;
-  int nspin, nspinor, npsidim;
-  int nkpts, nkptsp;
-  int isorb, iskpts;
+  guint norb, norbp, norbu, norbd;
+  guint nspin, nspinor, npsidim;
+  guint nkpts, nkptsp;
+  guint isorb, iskpts;
 
   double efermi, HLgap, eTS;
 
      /* integer, dimension(:), pointer :: iokpt,ikptproc */
      /* integer, dimension(:,:), pointer :: norb_par */
-     /* real(wp), dimension(:), pointer :: eval */
-     /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
-     /* real(gp), dimension(:,:), pointer :: kpts */
+  double *eval, *occup;
+  double *kwgts, *kpts;
+
+  /* Pointers on building objects. */
+  const BigDFT_Inputs *in;
 
   /* Private. */
-  f90_pointer_orbs *data;
-} BigDFT_Orbs;
+  void *data;
+  void *comm;
+};
 
-BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                              const BigDFT_Glr *glr, int iproc, int nproc, guint *nelec);
+BigDFT_Orbs* bigdft_orbs_new ();
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
+guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd,
+                                const BigDFT_Inputs *in, guint iproc, guint nproc);
+
+/*****************************/
+/* BigDFT_Wf data structure. */
+/*****************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_WF_TYPE    (bigdft_wf_get_type())
+#define BIGDFT_WF(obj)                                          \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_WF_TYPE, BigDFT_Wf))
+typedef struct BigDFT_WfClass_
+{
+  GObjectClass parent;
+} BigDFT_WfClass;
+GType bigdft_wf_get_type(void);
+#else
+#define BIGDFT_WF_TYPE    (999)
+#define BIGDFT_WF(obj)    ((BigDFT_Wf*)obj)
+#endif
+typedef struct BigDFT_wf_
+{
+  BigDFT_Orbs parent;
+#ifdef GLIB_MAJOR_VERSION
+  gboolean dispose_has_run;
+#endif
+
+  /* Accessors. */
+  BigDFT_Lzd *lzd;
+  f90_pointer_double *psi, *hpsi, *psit, *spsi;
+
+  /* private. */
+  void *data;
+  void *data_lzd;
+  void *diis;
+} BigDFT_Wf;
+typedef enum
+  {
+    BIGDFT_SPIN_UP,
+    BIGDFT_SPIN_DOWN
+  } BigDFT_Spin;
+typedef enum
+  {
+    BIGDFT_REAL,
+    BIGDFT_IMAG,
+    BIGDFT_PARTIAL_DENSITY
+  } BigDFT_Spinor;
+typedef struct BigDFT_optLoopParams_
+{
+  guint iscf;
+  guint itrpmax, nrepmax, itermax;
+  double gnrm_cv, rpnrm_cv;
+  double gnrm_startmix, alphamix;
+  guint idsx;
+} BigDFT_optLoopParams;
+void bigdft_optloopparams_init(BigDFT_optLoopParams *params);
+
+BigDFT_Wf* bigdft_wf_new ();
+void       bigdft_wf_free(BigDFT_Wf *wf);
+guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
+void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                    BigDFT_Proj *proj, guint iproc, guint nproc);
+guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                       BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                       guint iproc, guint nproc, BigDFT_optLoopParams *params);
+const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                         BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                         guint *psiSize, guint iproc);
+double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                    BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
+void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
+                                  BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
+                                  const BigDFT_Inputs *in,
+                                  gboolean threaded, guint iproc, guint nproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-typedef struct f90_pointer_nlpspd_ f90_pointer_nlpspd;
-typedef struct BigDFT_proj_
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_PROJ_TYPE    (bigdft_proj_get_type())
+#define BIGDFT_PROJ(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_PROJ_TYPE, BigDFT_Proj))
+typedef struct BigDFT_ProjClass_
 {
+  GObjectClass parent;
+} BigDFT_ProjClass;
+GType bigdft_proj_get_type(void);
+#else
+#define BIGDFT_PROJ_TYPE    (999)
+#define BIGDFT_PROJ(obj)    ((BigDFT_Proj*)obj)
+#endif
+struct BigDFT_Proj_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   /* TODO: bindings to values... */
   guint nproj, nprojel;
 
@@ -192,11 +375,11 @@ typedef struct BigDFT_proj_
   f90_pointer_double proj;
 
   /* Private. */
-  f90_pointer_nlpspd *nlpspd;
-} BigDFT_Proj;
+  void *nlpspd;
+};
 
-BigDFT_Proj* bigdft_proj_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
-                              const BigDFT_Orbs *orbs, double *radii, double frmult);
+BigDFT_Proj* bigdft_proj_new (const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs,
+                              double frmult);
 void         bigdft_proj_free(BigDFT_Proj *proj);
 
 /**********************************/
@@ -219,14 +402,16 @@ typedef struct BigDFT_LocalFieldsClass_
 {
   GObjectClass parent;
 } BigDFT_LocalFieldsClass;
+GType bigdft_localfields_get_type(void);
 #else
 #define BIGDFT_LOCALFIELDS_TYPE    (999)
 #define BIGDFT_LOCALFIELDS(obj)    ((BigDFT_LocalFields*)obj)
 #endif
-typedef struct BigDFT_LocalFields_
+struct BigDFT_LocalFields_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* bindings to values... */
   BigDFT_RhoIs rhov_is;
@@ -239,38 +424,68 @@ typedef struct BigDFT_LocalFields_
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Pointers on building objects. */
-  const BigDFT_Atoms *atoms;
-  const BigDFT_Glr *glr;
+  const BigDFT_LocReg *glr;
 
   /* Private. */
   double *pkernel, *pkernelseq;
   void *rhod;
   void *dpcom;
   void *data;
+};
 
-  /* GObject machinery. */
-  gboolean dispose_has_run;
-} BigDFT_LocalFields;
-
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
-                                            const BigDFT_Glr *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                             const BigDFT_Inputs *in,
-                                            const double *radii,
                                             guint iproc, guint nproc);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Inputs *in,
                                                    guint iproc, guint nproc);
 
+/********************************/
+/* BigDFT_Energs data structure */
+/********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ENERGS_TYPE    (bigdft_energs_get_type())
+#define BIGDFT_ENERGS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ENERGS_TYPE, BigDFT_Energs))
+typedef struct BigDFT_EnergsClass_
+{
+  GObjectClass parent;
+} BigDFT_EnergsClass;
+GType bigdft_energs_get_type(void);
+#else
+#define BIGDFT_ENERGS_TYPE    (999)
+#define BIGDFT_ENERGS(obj)    ((BigDFT_Energs*)obj)
+#endif
+typedef enum
+  {
+    BIGDFT_E_KS
+  } BigDFT_EnergsKind;
+struct BigDFT_Energs_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
+  /* Binded values. */
+  double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
+
+  /* Private. */
+  void *data;
+};
+BigDFT_Energs* bigdft_energs_new();
+void           bigdft_energs_free(BigDFT_Energs *energs);
+
+
 /******************/
 /* Miscellaneous. */
 /******************/
-double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
-                          BigDFT_Orbs *orbs, BigDFT_Proj *proj);
-guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
-                          double mult, double h[3]);
+double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+                              const BigDFT_Orbs *orbs, const BigDFT_Proj *proj);
+
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
-                                            double h[3], int n[3], int *nspinor);
+                                               double h[3], int n[3], int *nspinor);
 void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);
 gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,

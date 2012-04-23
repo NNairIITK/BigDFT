@@ -86,7 +86,7 @@ program frequencies
    !call memocc(0,iproc,'count','start')
 
    !standard names
-   call standard_inputfile_names(inputs,radical)
+   call standard_inputfile_names(inputs,radical,nproc)
    call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
    ! Read all input files.

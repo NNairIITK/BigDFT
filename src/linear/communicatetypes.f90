@@ -123,7 +123,7 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
    call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
-   call communicate_convolutions_bounds(iproc, root, llr%bounds)
+   if (llr%geocode == 'F') call communicate_convolutions_bounds(iproc, root, llr%bounds)
 
 END SUBROUTINE communicate_locreg_descriptors
 
@@ -188,7 +188,8 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    ! Communicate the arrays
    call mpi_bcast(wfd%keyglob, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
    call mpi_bcast(wfd%keygloc, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%keyv, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
+   call mpi_bcast(wfd%keyvloc, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
+   call mpi_bcast(wfd%keyvglob, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
 
 
 

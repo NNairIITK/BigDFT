@@ -575,9 +575,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
+     call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
+
      if (iproc==0) then 
-     write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2))')  & 
-          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct
+        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,es11.3,3(1pe10.2),2x,i3)')  & 
+          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,check
 
 !        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
@@ -585,8 +587,6 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,x,at,trim(comment),forces=f)
      endif
-
-     call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
      if(check.gt.5)then
         if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct

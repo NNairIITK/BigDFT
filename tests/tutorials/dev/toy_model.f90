@@ -43,7 +43,7 @@ program wvl
   if (iproc==0) call print_logo()
 
   ! Setup names for input and output files.
-  call standard_inputfile_names(inputs, "toy")
+  call standard_inputfile_names(inputs, "toy",nproc)
   ! Read all input stuff, variables and atomic coordinates and pseudo.
   call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
 
@@ -184,7 +184,7 @@ program wvl
   call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
        GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,nscatterarr,rho_p,rhor)
+       rhodsc,nscatterarr,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 
@@ -192,7 +192,7 @@ program wvl
   call createKernel(iproc,nproc,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3p))
-  call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,&
+  call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & n3pi,i3s+i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &

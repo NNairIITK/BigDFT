@@ -23,7 +23,6 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
-  integer :: yaml_indent=1 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
@@ -195,7 +194,7 @@ module module_defs
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
       if (provided /= 1 .or. ierr/=0) then
-         !write(*,*)'MPI_THREAD_FUNNELED not supported!',provided,ierr
+         !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
 	 !call MPI_INIT(ierr)
       else
           mpi_thread_funneled_is_supported=.true.
@@ -204,6 +203,18 @@ module module_defs
       call MPI_INIT(ierr)      
 #endif
     end subroutine bigdft_mpi_init
+
+!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
+!!$    subroutine bigdft_open_nesting
+!!$      implicit none
+!!$      !$   call OMP_SET_NESTED(.true.) 
+!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
+!!$      !$ if (unblock_comms_den) then
+!!$      !$   call OMP_SET_NUM_THREADS(2)
+!!$      !$ else
+!!$      !$   call OMP_SET_NUM_THREADS(1)
+!!$      !$ end if
+!!$    end subroutine bigdft_open_nesting
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)

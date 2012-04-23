@@ -421,7 +421,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                plr%wfd%keyv,plr%wfd%keyglob,&
+                plr%wfd%keyvglob,plr%wfd%keyglob,&
                 proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx

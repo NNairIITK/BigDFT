@@ -494,6 +494,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 !!           enddo
 !!        end if
 
+!the matrix which is applied here is the passage matrix which can be exported outside of the routine
+
         !sample of dgemm
         if (nspinor == 1) then
            call gemm('N','N',nvctrp,norb,norb,1.0_wp,psi(ispsi),max(1,nvctrp),&
@@ -505,6 +507,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         end if
 
         call DCOPY(nvctrp*norb*nspinor,psiw(1),1,psi(ispsi),1)
+
+        !here we should add the same transformation for hpsi if required
 
         ispsi=ispsi+nvctrp*norb*nspinor
         isorb=isorb+norb

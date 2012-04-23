@@ -88,7 +88,7 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs,radical)
+     call standard_inputfile_names(inputs,radical,nproc)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
@@ -361,7 +361,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
-    call standard_inputfile_names(ll_inputs,'input')
+    call standard_inputfile_names(ll_inputs,'input',nproc)
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
         call perf_input_variables(iproc,.true.,'ll_input.perf',ll_inputs)

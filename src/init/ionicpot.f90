@@ -80,7 +80,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
      call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
-     ucvol,xred,real(at%nelpsp,kind=8))
+          ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
@@ -440,7 +440,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
 
-subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
+subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
   use module_types
@@ -448,6 +448,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
   implicit none
 
   integer, intent(in) :: iproc,nproc
+  logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
@@ -465,7 +466,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%geocode, iproc, nproc, atoms, rxyz, hxh, hyh, hzh, &
+  call createIonicPotential(atoms%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
        & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
 
@@ -492,7 +493,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
      call memocc(i_stat,i_all,'counter_ions',subname)
   end if
 END SUBROUTINE createEffectiveIonicPotential
-subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
+subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
@@ -501,6 +502,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
@@ -509,6 +511,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
+  character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
@@ -520,11 +523,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(dp), dimension(:), allocatable :: potion_corr
 
   call timing(iproc,'CrtLocPot     ','ON')
-
-  if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '----------------------------------------------------------- Ionic Potential Creation'
-  end if
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
@@ -619,8 +617,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      rholeaked_tot=rholeaked
   end if
 
-  if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+  if (verb) then
+     write(*,'(1x,a)')&
+          '----------------------------------------------------------- Ionic Potential Creation'
+     write(*,'(1x,a,f26.12,2x,1pe10.3)') &
+          'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+     quiet = "no "
+  else
+     quiet = "yes"
+  end if
 
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
@@ -631,7 +636,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
+          pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 
      call timing(iproc,'CrtLocPot     ','ON')
      
@@ -800,7 +805,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
      stop
      end if
-     if (iproc == 0) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
+     if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
           'Constant electric field ',elecfield(1:3),' Ha/Bohr'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
@@ -983,12 +988,14 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call read_atomic_file('posinp_ci',iproc,at,rxyz)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), at, in%ixc)
+  call read_atomic_variables(at, 'input.occup', in%nspin)
 
   allocate(radii_cf(at%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !read the specifications of the counter ions from pseudopotentials
-  call read_atomic_variables('input.occup',iproc,in,at,radii_cf)
+  call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
+  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)

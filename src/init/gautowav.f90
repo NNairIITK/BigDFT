@@ -9,12 +9,11 @@
 
 
 !>  Control the accuracy of the expansion in gaussian
-subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
+subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(gaussian_basis), intent(in) :: G
@@ -32,7 +31,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
   !     lr%wfd,G,coeffs,workpsi)
 
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,coeffs,workpsi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,orbs%norbp
@@ -498,9 +497,9 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
                    rx,ry,rz,hx,hy,hz,&
                    0,grid%n1,0,grid%n2,0,grid%n3,&
                    grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
-                   wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
+                   wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,wfd%nseg_f,wfd%nvctr_f,&
                    wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-                   wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),&
+                   wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
                    tpsi(1),tpsi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
            end if
            !sum the result inside the orbital wavefunction
@@ -567,12 +566,11 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
-subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi)
+subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
@@ -608,7 +606,8 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi
      do ispinor=1,orbs%nspinor,ncplx
         !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
-        call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),hx,hy,hz,kx,ky,kz,G,&
+        call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),&
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(ind))
 
         !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
@@ -996,7 +995,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! coarse part
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1017,7 +1016,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1054,7 +1053,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! coarse part
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1074,7 +1073,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1108,7 +1107,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+i-i0+jj
            do iterm=1,nterm
@@ -1123,7 +1122,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1236,7 +1235,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   if (ncplx == 1) then
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1256,7 +1255,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1290,7 +1289,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1305,7 +1304,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1333,7 +1332,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
 
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_c=i-i0+jj
@@ -1365,7 +1364,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1421,7 +1420,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_c=i-i0+jj
@@ -1449,7 +1448,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
@@ -1789,6 +1788,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   nbx=0
   lmax=0
   ipg=0
+  ishell=0
   for_ngx: do
      if (ityp > ntypes) exit for_ngx
      read(35,'(a100)')line
@@ -2165,6 +2165,7 @@ function myshift(symbol)
   implicit none
   character(len=5), intent(in) :: symbol
   integer :: myshift
+  myshift=0
   if (symbol(2:2)=='s') then
      myshift=0
   else if (symbol(2:2)=='p') then

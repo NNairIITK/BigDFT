@@ -191,10 +191,10 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),   &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-       wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),   &
+       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
@@ -454,20 +454,19 @@ contains
     call memocc(i_stat,i_all,'logrid_f',subname)
   END SUBROUTINE io_gcoordToLocreg
 
-  subroutine read_psi_compress(unitwf, formatted, wfd, psi, lstat, error, gcoord_c, gcoord_f)
+  subroutine read_psi_compress(unitwf, formatted, nvctr_c, nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
     use module_base
     use module_types
 
     implicit none
 
-    integer, intent(in) :: unitwf
+    integer, intent(in) :: unitwf, nvctr_c, nvctr_f
     logical, intent(in) :: formatted
-    type(wavefunctions_descriptors), intent(in) :: wfd
-    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+    real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
     logical, intent(out) :: lstat
     character(len =256), intent(out) :: error
-    integer, dimension(3, wfd%nvctr_c), optional, intent(out) :: gcoord_c
-    integer, dimension(3, wfd%nvctr_f), optional, intent(out) :: gcoord_f
+    integer, dimension(3, nvctr_c), optional, intent(out) :: gcoord_c
+    integer, dimension(3, nvctr_f), optional, intent(out) :: gcoord_f
 
     integer :: j, i1, i2, i3, i_stat
     real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
@@ -475,7 +474,7 @@ contains
     lstat = .false.
     write(error, "(A)") "cannot read psi values."
     if (present(gcoord_c)) then
-       do j=1,wfd%nvctr_c
+       do j=1,nvctr_c
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
           else
@@ -486,7 +485,7 @@ contains
           gcoord_c(:, j) = (/ i1, i2, i3 /)
        enddo
     else
-       do j=1,wfd%nvctr_c
+       do j=1,nvctr_c
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
           else
@@ -497,37 +496,37 @@ contains
        enddo
     end if
     if (present(gcoord_f)) then
-       do j=1,7*wfd%nvctr_f-6,7
+       do j=1,7*nvctr_f-6,7
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           else
              read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           end if
           if (i_stat /= 0) return
-          psi(wfd%nvctr_c+j+0)=t1
-          psi(wfd%nvctr_c+j+1)=t2
-          psi(wfd%nvctr_c+j+2)=t3
-          psi(wfd%nvctr_c+j+3)=t4
-          psi(wfd%nvctr_c+j+4)=t5
-          psi(wfd%nvctr_c+j+5)=t6
-          psi(wfd%nvctr_c+j+6)=t7
+          psi(nvctr_c+j+0)=t1
+          psi(nvctr_c+j+1)=t2
+          psi(nvctr_c+j+2)=t3
+          psi(nvctr_c+j+3)=t4
+          psi(nvctr_c+j+4)=t5
+          psi(nvctr_c+j+5)=t6
+          psi(nvctr_c+j+6)=t7
           gcoord_f(:, (j - 1) / 7 + 1) = (/ i1, i2, i3 /)
        enddo
     else
-       do j=1,7*wfd%nvctr_f-6,7
+       do j=1,7*nvctr_f-6,7
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           else
              read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           end if
           if (i_stat /= 0) return
-          psi(wfd%nvctr_c+j+0)=t1
-          psi(wfd%nvctr_c+j+1)=t2
-          psi(wfd%nvctr_c+j+2)=t3
-          psi(wfd%nvctr_c+j+3)=t4
-          psi(wfd%nvctr_c+j+4)=t5
-          psi(wfd%nvctr_c+j+5)=t6
-          psi(wfd%nvctr_c+j+6)=t7
+          psi(nvctr_c+j+0)=t1
+          psi(nvctr_c+j+1)=t2
+          psi(nvctr_c+j+2)=t3
+          psi(nvctr_c+j+3)=t4
+          psi(nvctr_c+j+4)=t5
+          psi(nvctr_c+j+5)=t6
+          psi(nvctr_c+j+6)=t7
        enddo
     end if
     lstat = .true.
@@ -608,7 +607,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
      !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
-     call read_psi_compress(unitwf, useFormattedInput, wfd, psi, lstat, error)
+     call read_psi_compress(unitwf, useFormattedInput, wfd%nvctr_c, wfd%nvctr_f, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
@@ -721,7 +720,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   call memocc(i_stat,psi,'psi',subname)
 
   ! Read psi and the basis-set
-  call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error, gcoord_c, gcoord_f)
+  call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
   if (.not. lstat) then
      call io_warning(trim(error))
      call deallocate_local()
@@ -769,7 +768,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      if (n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. &
           & hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
           & nvctr_c_old == lr%wfd%nvctr_c .and. nvctr_f_old == lr%wfd%nvctr_f) then
-        call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error)
+        call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error)
         if (.not. lstat) then
            call io_warning(trim(error))
            call deallocate_local()

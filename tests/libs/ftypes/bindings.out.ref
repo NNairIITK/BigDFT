@@ -1,63 +1,140 @@
-Test BigDFT_Atoms structure creation.
+Test BigDFT_Wf structure creation.
+ Ok
 Test BigDFT_Atoms structure set n types.
 Test BigDFT_Atoms structure syncing.
 Test BigDFT_Atoms structure set n atoms.
 Test BigDFT_Atoms structure direct access.
 Test BigDFT_Atoms pseudo-potential on the fly.
- Type 0, radii 1.215576 0.221786 0.221786
- Type 1, radii 1.463418 0.200000 0.200000
-Test BigDFT_Atoms free.
- Ok
+ Type 0, radii 1.215576 0.221786 0.481554
+ Type 1, radii 1.463418 0.200000 0.000000
+ Atoms 0, coord.   7.650000   7.200000   6.700000 ' O', type 1
+ Atoms 1, coord.   8.150000   7.200000   7.200000 ' H', type 2
+ Atoms 2, coord.   7.150000   7.200000   7.200000 ' H', type 2
+ Box is in   15.300000 14.400000 14.400000
+ Shift is     -7.650000 -7.200000  -6.700000
+ Geocode is  F
+ Grid is            34        32        32
+ Int grid is        99        95        95
+ H grids are      0.45      0.45      0.45
+Test calculation of grid points.
+ Coarse grid has   19815 points.
+ Fine grid has       321 points.
+Test BigDFT_Inputs structure creation.
+ Read 'test.dft' file: 1
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
  Atom 2, coord. 0.000000 0.000000 3.240000, type 2
  Atom 3, coord. 3.240000 0.000000 0.000000, type 2
  Atom 4, coord. 0.000000 3.240000 0.000000, type 2
- Box [F], is in 0.000000 0.000000 0.000000
+ Box [S], is in 17.123000 0.000000 17.123000
 Test BigDFT_Atoms pseudo-potential evaluation.
- Type 0, radii 1.806025 0.435634 0.435634
- Type 1, radii 1.463418 0.200000 0.200000
-Test BigDFT_Glr structure creation.
- Atoms 0, coord.   9.000000   9.000000   9.000000 'Si', type 1
- Atoms 1, coord.  10.620000  10.620000  10.620000 ' H', type 2
- Atoms 2, coord.   7.380000   7.380000  10.620000 ' H', type 2
- Atoms 3, coord.  10.620000   7.380000   7.380000 ' H', type 2
- Atoms 4, coord.   7.380000  10.620000   7.380000 ' H', type 2
- Box is in   18.000000 18.000000 18.000000
- Shift is    -7.380000 -7.380000 -7.380000
- Geocode is  F
- Grid is            40        40        40
- Int grid is       111       111       111
+ Type 0, radii 1.806025 0.435634 0.770571
+ Type 1, radii 1.463418 0.200000 0.000000
+ Atoms 0, coord.   1.620000   6.240000   1.620000 'Si', type 1
+ Atoms 1, coord.   3.240000   7.860000   3.240000 ' H', type 2
+ Atoms 2, coord.   0.000000   4.620000   3.240000 ' H', type 2
+ Atoms 3, coord.   3.240000   4.620000   0.000000 ' H', type 2
+ Atoms 4, coord.   0.000000   7.860000   0.000000 ' H', type 2
+ Box is in   17.123000 12.480000 17.123000
+ Shift is     0.000000 -4.620000  0.000000
+ Geocode is  S
+ Grid is            41        26        69
+ Int grid is        84        83       140
+ H grids are 0.407690476      0.48 0.244614286
 Test calculation of grid points.
- Coarse grid has   37617 points.
- Fine grid has      2143 points.
-Test BigDFT_Inputs structure creation.
- Read 'test.dft' file: 1
- Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
-Test BigDFT_Orbs structure creation.
+ Coarse grid has   24084 points.
+ Fine grid has      3489 points.
  System has 8 electrons.
 Test BigDFT_Proj structure creation.
- System has 5 projectors, and 63000 elements.
+ System has 5 projectors, and 191050 elements.
 Test BigDFT_LocalFields creation.
- Meta data are -123456789.000000 -123456789.000000 -123456789.000000  -  538976288  -  0.000000
- Calculate ionic potential.
- Wavefunctions memory occupation for root MPI process:     1 MB   620 KB   320 B
- TODO: remove me!
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000001249563   0.000E+00
- PSolver, free  BC, dimensions:   111  111  111   proc    1 ... done.
+ Meta data are 0.203845 0.240000 0.122307  -  -1980  -  0.000000
+ Calculation of ionic potential started.
+ Calculation of ionic potential finished.
+ Calculation of input guess started.
+Callback for "density-ready" signal at iter 0.
+ Density calculated by C is 7.9999998876429634.
+Callback for 'psi-ready' signal at iter 0.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000492114.
+ Calculation of input guess finished.
+ Calculation of optimization started.
+Callback for "density-ready" signal at iter 1.
+ Density calculated by C is 7.9999999287809764.
+Callback for 'eks-ready' signal at iter 1 -> -5.82852Ht.
+ Atomic input file not found.
+  Files looked for were 'truc.ascii', 'truc.xyz' and 'truc'.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 8 Atomic Input Orbitals
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Si: 
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      H: 
+   Elec. Configuration: s 1.00 , ... done.
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    9.36E-03
+ Calculation of charge density... done. Total electronic charge=       7.999999887643
+ PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
+ Hamiltonian application... done. ekin_sum,eks:       5.1232061056       5.0225194919
+ ekin_sum,epot_sum,eproj_sum  5.12320610561E+00 -7.87803615753E+00  8.77781302890E-01
+    ehart,   eexcu,    vexcu  3.95688611796E+00 -2.67724050403E+00 -3.45075509233E+00
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
+ evale(1)= -4.92188580106864E-01 <-
+ evale(2)= -2.78834397288271E-01 <-
+ evale(3)= -2.78541387024931E-01 <-
+ evale(4)= -2.76718255369464E-01 <- Last InputGuess eval, H-L IG gap:  14.5579 eV
+ evale(5)=  2.58274957963711E-01 <- First virtual eval
+ evale(6)=  2.59158925955973E-01 <-
+ evale(7)=  2.64763436911602E-01 <-
+ evale(8)=  2.83685190858493E-01 <-
+ Building orthogonal Wavefunctions... done.
+ ---------------------------------------------------------------------------- iter= 1
+ Calculation of charge density... done. Total electronic charge=       7.999999928781
+ PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
+ Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ ekin_sum,epot_sum,eproj_sum  3.81138946764E+00 -7.40829489432E+00  8.48198326891E-01
+    ehart,   eexcu,    vexcu  3.82131729536E+00 -2.54650503191E+00 -3.28801038999E+00
+ iter,total energy,gnrm     1  -5.82851903707942220E+00  4.93E-01
+ DIIS wgts:    1.00E+00  1.00E+00
+ Orthogonalization... done.
+Callback for 'psi-ready' signal at iter 1.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000530631.
+Callback for "density-ready" signal at iter 2.
+ Density calculated by C is 7.9999999404922422.
+Callback for 'eks-ready' signal at iter 2 -> -5.85172Ht.
+Callback for 'psi-ready' signal at iter 2.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000368661.
+ ---------------------------------------------------------------------------- iter= 2
+ Calculation of charge density... done. Total electronic charge=       7.999999940492
+ PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
+ Hamiltonian application... done. 2 minimization iterations required
+ --------------------------------------------------- End of Wavefunction Optimisation
+ ekin_sum,epot_sum,eproj_sum  4.08670780878E+00 -7.38242238476E+00  8.29145191909E-01
+    ehart,   eexcu,    vexcu  4.15495871305E+00 -2.64385887105E+00 -3.41366263241E+00
+ FINAL iter,total energy,gnrm     2  -5.85172433576114237E+00  4.93E-01
+ No convergence within the allowed number of minimization steps
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ e(   1)= -4.55316944812724E-01 2.0000
+ e(   2)= -2.63807102575678E-01 2.0000
+ e(   3)= -2.59673019505410E-01 2.0000
+ e(   4)= -2.54487625142611E-01 2.0000
+  WARNING: Wavefunctions not converged after cycle           1
+ Calculation of optimization finished.
+ Total energy after relaxation is -5.85172Ht.
 Test BigDFT_LocalFields free.
  Ok
 Test BigDFT_Proj free.
  Ok
-Test BigDFT_Orbs free.
+Test BigDFT_Wf free.
  Ok
 Test BigDFT_Inputs free.
  Ok
-Test BigDFT_Glr free.
- Ok
-Test BigDFT_Atoms free.
+Test BigDFT_Energs free.
  Ok
 # BigDFT file - Test from memory generation.
  0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
