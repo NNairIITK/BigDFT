@@ -906,7 +906,7 @@ character(len=1),intent(in):: locregShape
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
-integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iiorb, jlr, ii
 integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, ist, jst, nshift
 integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
@@ -963,7 +963,6 @@ call wait_p2p_communication(iproc, nproc, comon)
 if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 ilrold=0
 iilr=0
-iatold=0
 ii=0
 imatold=1
 imat=0
