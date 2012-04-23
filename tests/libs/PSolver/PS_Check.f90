@@ -158,22 +158,22 @@ program PS_Check
 
       !test for the serial solver (always done to have a simpler comparison)
       !if (iproc == 0 .and. nproc > 1 ) then
-!      if (iproc == 0) then
-!         i_all=-product(shape(pkernel))*kind(pkernel)
-!         deallocate(pkernel,stat=i_stat)
-!         call memocc(i_stat,i_all,'pkernel',subname)
-!
-!         !calculate the kernel 
-!         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
-!
-!         call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
-!         density,potential,pot_ion,xc_pot,pkernel)
-!
-!         call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-!         offset,ehartree,eexcu,vexcu,&
-!         density,potential,pot_ion,xc_pot,pkernel)
-!      end if
+      if (iproc == 0) then
+         i_all=-product(shape(pkernel))*kind(pkernel)
+         deallocate(pkernel,stat=i_stat)
+         call memocc(i_stat,i_all,'pkernel',subname)
+
+         !calculate the kernel 
+         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
+
+         call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+         offset,ehartree,eexcu,vexcu,&
+         density,potential,pot_ion,xc_pot,pkernel)
+
+         call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+         offset,ehartree,eexcu,vexcu,&
+         density,potential,pot_ion,xc_pot,pkernel)
+      end if
 
       if (ixc == 0) exit
 
@@ -188,37 +188,6 @@ program PS_Check
       call compare_cplx_calculations(iproc,nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,&
       density,potential,pkernel)
    end if
-
-   call timing(iproc,'Parallel','PR')
-
-   if (iproc == 0) then
-     do ispden = 1, 2
-       if (ixc < 0) then
-         call xc_init(ixc, XC_MIXED, ispden)
-       else
-         call xc_init(ixc, XC_ABINIT, ispden)
-       end if
-
-       i_all=-product(shape(pkernel))*kind(pkernel)
-       deallocate(pkernel,stat=i_stat)
-       call memocc(i_stat,i_all,'pkernel',subname)
-
-       call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
-  
-       call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-         offset,ehartree,eexcu,vexcu,&
-         density,potential,pot_ion,xc_pot,pkernel)
-
-       call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-         offset,ehartree,eexcu,vexcu,&
-         density,potential,pot_ion,xc_pot,pkernel)
-
-       if (ixc == 0) exit
-       call xc_end()    
-     enddo
-   endif
-
-   call timing(iproc,'Serial','PR')
 
    i_all=-product(shape(pkernel))*kind(pkernel)
    deallocate(pkernel,stat=i_stat)
@@ -238,7 +207,6 @@ program PS_Check
    call memocc(i_stat,i_all,'xc_pot',subname)
 
    call timing(iproc,'              ','RE')
-
    !Final timing
    call cpu_time(tcpu1)
    call system_clock(ncount1,ncount_rate,ncount_max)
@@ -249,9 +217,10 @@ program PS_Check
    !finalize memory counting
    call memocc(0,0,'count','stop')
 
-   call MPI_FINALIZE(ierr)
+   call MPI_FINALIZE(ierr)  
 
    !END PROGRAM PS_Check
+
 
    contains
 
