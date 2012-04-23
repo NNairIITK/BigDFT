@@ -1533,7 +1533,7 @@ end do
 ! With these indices it is possible to extract data from the global region to the
 ! overlap region. For example: opm%olr(jorb,ilr) allows to extract data from orbital
 ! jorb (the jorb-th orbital overlapping with region ilr) to the overlap region. To expand
-! this overlap region to the whole region ilr, we need comom%(iorb,jlr), where jlr is the 
+! this overlap region to the whole region ilr, we need opm%(iorb,jlr), where jlr is the 
 ! localization region of jorb and iorb the iorb-th overlapping orbital of region jlr.
 ! This information is stored in opm%olrForExpansion:
 ! opm%olrForExpansion(1,jorb,ilr)=jlr
