@@ -6762,7 +6762,7 @@ module module_interfaces
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: unitwf                                                                                                                                                                                                             
+         integer, intent(in) :: unitwf  
          logical, intent(in) :: formatted
          integer, intent(out) :: norb_old, ntmb_old
          integer, intent(out) :: n1_old, n2_old, n3_old
