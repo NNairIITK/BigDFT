@@ -22,7 +22,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
   real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt1, tt2, tt3, tt, dnrm2
+  real(8):: maxError, tt, dnrm2
 
 
 
@@ -181,8 +181,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   ! Local variables
   integer:: istat, iall, ierr, iorb, jorb
   real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, hpsit_c, hpsit_f
-  real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
-  real(8):: timecommunp2p, timecommuncoll, timecompress
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='orthoconstraintLocalized'
 
@@ -398,8 +396,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   integer:: iorb, jorb, iiorb
   integer::  istat, i1, i2, jjorb, nsub, ierr
   character(len=*),parameter:: subname='initCommsOrtho'
-  real(8):: t1, t2, time
-!  integer, dimension(:,:), allocatable :: overlaps_nseg
 
 
   call timing(iproc,'init_commOrtho','ON')
@@ -542,8 +538,6 @@ subroutine countOverlaps(iproc, nproc, orbs, lzd, op, comon)
 
   ! Local variables
   integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
-!  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
-!  logical:: ovrlpx, ovrlpy, ovrlpz
    logical :: isoverlap
 
   iiorb=0
@@ -899,7 +893,7 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, lzd, lzdig, op, 
 
   ! Local variables
   integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-  integer:: i, indSource, m, ii, jst, istart, iend, ncount, iseg, kstart, kend, start, kold, kseg, knseg, ifine, isend, igrid
+  integer:: i, indSource, jst, istart, iend, ncount, iseg, kstart, kend, start, kold, kseg, knseg
 
   call timing(iproc,'extract_orbs  ','ON')
 
@@ -1063,7 +1057,7 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc, istat, iall
+  integer:: iorb, jorb, iiorb, jjorb, ist, jst, ncount, ierr, istat, iall
   real(8):: ddot, tt, ttmax
   real(8),dimension(:),allocatable:: ovrlpCompressed_send, ovrlpCompressed_receive
   character(len=*),parameter:: subname='calculateOverlapMatrix3'
@@ -1166,15 +1160,12 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
   real(8),dimension(nsendBuf),intent(in):: sendBuf
   real(8),dimension(nrecvBuf),intent(in):: recvBuf
   type(matrixDescriptors),intent(in):: mad
-  !logical,dimension(0:nproc-1),intent(in):: skip
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc, istat, iall
-  real(8):: ddot, tt, ttmax
-  real(8),dimension(:),allocatable:: ovrlpCompressed, ovrlpCompressed2
+  integer:: iorb, jorb, iiorb, jjorb, ist, jst, ncount
+  real(8):: ddot
   character(len=*),parameter:: subname='calculateOverlapMatrix3'
-  integer,dimension(:),allocatable:: sendcounts, displs
 
 
   ovrlp=0.d0
@@ -1183,81 +1174,11 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
      iiorb=orbs%isorb+iorb
      do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-!!! Starting index of orbital iorb, already transformed to overlap region with jjorb.
-!!! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
-        !!jjlr=onWhichAtom(jjorb)
-        !!jjproc=orbs%onWhichMPI(jjorb)
-        !!jj=orbs%isorb_par(jjproc)+1
-        !!do
-        !!    if(onWhichAtom(jj)==jjlr) exit
-        !!    jj=jj+1
-        !!end do
-        !!ist=op%indexInSendBuf(iorb,jj)
-!!! Starting index of orbital jjorb.
-!!! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
-        !!iilr=onWhichAtom(iiorb)
-        !!iiproc=orbs%onWhichMPI(iiorb)
-        !!do korb=1,orbs%norbp
-        !!    kkorb=orbs%isorb_par(iiproc)+korb
-        !!    if(onWhichAtom(kkorb)==iilr) then
-        !!        ii=korb
-        !!        exit
-        !!    end if
-        !!end do
-        !!jst=op%indexInRecvBuf(ii,jjorb)
         call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
-        !write(*,'(5(a,i0))') 'process ',iproc,' calculates overlap of ',iiorb,' and ',jjorb,'. ist=',ist,' jst=',jst 
-        !ncount=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
         ncount=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
-        !write(*,'(a,4i8)') 'iproc, iiorb, jjorb, ncount', iproc, iiorb, jjorb, ncount
-        !ovrlp(iiorb,jjorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-        !ovrlp(iiorb,jjorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
         ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
      end do
   end do
-
-
-  !!allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-  !!call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
-  !!
-!!!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-  !!allocate(sendcounts(0:nproc-1), stat=istat)
-  !!call memocc(istat, sendcounts, 'sendcounts', subname)
-  !!allocate(displs(0:nproc-1), stat=istat)
-  !!call memocc(istat, displs, 'displs', subname)
-  !!call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed, sendcounts, displs)
-!!!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-  !!allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
-  !!call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
-  !!call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
-  !!     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
-!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-  !!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
-  !!
-  !!iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-  !!deallocate(ovrlpCompressed, stat=istat)
-  !!call memocc(istat, iall, 'ovrlpCompressed', subname)
-  !!iall=-product(shape(ovrlpCompressed2))*kind(ovrlpCompressed2)
-  !!deallocate(ovrlpCompressed2, stat=istat)
-  !!call memocc(istat, iall, 'ovrlpCompressed2', subname)
-  !!iall=-product(shape(sendcounts))*kind(sendcounts)
-  !!deallocate(sendcounts, stat=istat)
-  !!call memocc(istat, iall, 'sendcounts', subname)
-  !!iall=-product(shape(displs))*kind(displs)
-  !!deallocate(displs, stat=istat)
-  !!call memocc(istat, iall, 'displs', subname)
-
-  !ttmax=0.d0
-  !do iorb=1,orbs%norb
-  !    do jorb=iorb,orbs%norb
-  !        tt=abs(ovrlp(jorb,iorb)-ovrlp(iorb,jorb))
-  !        if(tt>ttmax) ttmax=tt
-  !    end do
-  !end do
-  !if(iproc==0) write(*,*) 'in calculateOverlapMatrix3: max dev from symmetry:', ttmax
-
-
-  !!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 end subroutine calculateOverlapMatrix3Partial
 
@@ -1409,7 +1330,7 @@ subroutine globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, l
   real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount
+  integer:: iorb, jorb, iiorb, ilr, ist, ncount
   real(8):: tt, dnrm2
 
 

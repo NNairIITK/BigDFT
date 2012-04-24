@@ -1193,9 +1193,6 @@ type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
 integer:: ilr, jlr, jorb, ii, istat
-!integer::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
-real(8):: cut, tt
-!logical:: ovrlpx, ovrlpy, ovrlpz
 logical:: isoverlap
 character(len=*),parameter:: subname='determineLocalizationRegions'
 
@@ -1403,10 +1400,7 @@ type(p2pComms),intent(out):: comom
 type(overlap_parameters_matrix),intent(out):: opm
 
 ! Local variables
-integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb, iorbout
-integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ks1, ke1, ks2, ke2, ks3, ke3, ilrold
-logical:: ovrlpx_ki, ovrlpy_ki, ovrlpz_ki, ovrlpx_kj, ovrlpy_kj, ovrlpz_kj, ovrlpx, ovrlpy, ovrlpz
-logical:: overlapFound
+integer:: ilr, jlr, klr, novrlp, korb, istat, jjorb, jorb, kkorb, iorb, jorbout, iiorb, iorbout, ilrold
 character(len=*),parameter:: subname='determineOverlapRegionMatrix'
 
 

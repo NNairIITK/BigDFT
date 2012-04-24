@@ -40,7 +40,6 @@ logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
-real(8):: ddot, tt1, tt2, tt3
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
 integer :: ind1, ind2

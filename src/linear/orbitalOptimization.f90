@@ -14,7 +14,7 @@ type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
-integer:: mj, jj, jst2, k, jjst, isthist, ierr, iall
+integer:: mj, jj, k, jjst, isthist, ierr, iall
 real(8):: ddot
 real(8),dimension(:,:),allocatable:: mat
 real(8),dimension(:),allocatable:: rhs, work
