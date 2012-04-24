@@ -6553,10 +6553,11 @@ module module_interfaces
          type(local_zone_descriptors),intent(in),optional:: lzd
        end subroutine transpose_switch_psi
 
-       subroutine transpose_communicate_psi(collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+       subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
          use module_base
          use module_types
          implicit none
+         integer,intent(in):: iproc, nproc
          type(collective_comms),intent(in):: collcom
          real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
          real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
@@ -6586,10 +6587,11 @@ module module_interfaces
          real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
        end subroutine transpose_switch_psit
 
-       subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+       subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
          use module_base
          use module_types
          implicit none
+         integer,intent(in):: iproc, nproc
          type(collective_comms),intent(in):: collcom
          real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
          real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
