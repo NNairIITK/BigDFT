@@ -906,8 +906,8 @@ character(len=1),intent(in):: locregShape
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
-integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iiorb, jlr, ii
-integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, ist, jst, nshift
+integer:: istat, iorb, ilr, iall, ldim, gdim, iat, jproc, ilrold, iilr, ii
+integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, nshift
 integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
 type(p2pComms):: comon
@@ -915,7 +915,6 @@ real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='get_hamiltonian_matrices'
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
 integer,dimension(:),allocatable:: displs, sendcounts, sendrequests, recvrequests
-real(8):: tt1, tt2, tt3
 
 
 call nullify_p2pcomms(comon) 
@@ -1176,7 +1175,7 @@ end subroutine get_hamiltonian_matrices
 
 
 
-subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomAll, locrad, rxyz, lzd, lzdig, hx, hy, hz, mlr)
+subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, inwhichlocreg, locrad, rxyz, lzd, lzdig, hx, hy, hz, mlr)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => determineLocalizationRegions
@@ -1185,7 +1184,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nlr, norb
 type(atoms_data),intent(in):: at
-integer,dimension(norb),intent(in):: onWhichAtomAll
+integer,dimension(norb),intent(in):: inwhichlocreg
 real(8),dimension(at%nat),intent(in):: locrad
 real(8),dimension(3,nlr),intent(in):: rxyz
 type(local_zone_descriptors),intent(in):: lzd, lzdig
@@ -1209,7 +1208,7 @@ end do
 do ilr=1,nlr
   mlr(ilr)%norbinlr=0
   do jorb=1,norb
-     jlr=onWhichAtomAll(jorb)
+     jlr=inwhichlocreg(jorb)
      call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzdig%Llr(jlr),isoverlap)     
      if(isoverlap) then
         mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
@@ -1224,7 +1223,7 @@ end do
 do ilr=1,nlr
   ii=0
   do jorb=1,norb
-     jlr=onWhichAtomAll(jorb)
+     jlr=inwhichlocreg(jorb)
       call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzdig%Llr(jlr),isoverlap)
       if(isoverlap) then
         ii=ii+1
@@ -1245,7 +1244,7 @@ end subroutine determineLocalizationRegions
 
 
 
-subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
+subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, inwhichlocreg, onWhichMPI, nmat, ham, matmin, hamextract)
 use module_base
 use module_types
 implicit none
@@ -1253,7 +1252,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nmat, norb, norbp
 type(orbitals_data),intent(in):: orbstot
-integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
+integer,dimension(norb),intent(in):: inwhichlocreg, onWhichMPI
 real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in):: ham
 type(matrixMinimization),intent(inout):: matmin
 real(8),dimension(:,:,:),pointer,intent(out):: hamextract
@@ -1275,7 +1274,7 @@ jlrold=-1
 matmin%nlrp=0 ! localization regions per process
 jjorb=0
 do jorb=1,norb
-  jlr=onWhichAtomPhi(jorb)
+  jlr=inwhichlocreg(jorb)
   jproc=onWhichMPI(jorb)
   if(iproc==jproc) then
      jjorb=jjorb+1
@@ -1303,7 +1302,7 @@ hamextract=0.d0
 jlrold=-1
 jjlr=0
 do jorb=1,norb
-  jlr=onWhichAtomPhi(jorb)
+  jlr=inwhichlocreg(jorb)
   jproc=onWhichMPI(jorb)
   if(iproc==jproc) then
      if(jlr/=jlrold) then
@@ -1388,7 +1387,7 @@ end subroutine vectorLocalToGlobal
 
 
 
-subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom, opm)
+subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, inwhichlocreg, inwhichlocreg_phi, comom, opm)
 use module_base
 use module_types
 implicit none
@@ -1397,8 +1396,8 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs, orbstot
-integer,dimension(orbstot%norb),intent(in):: onWhichAtom
-integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
+integer,dimension(orbstot%norb),intent(in):: inwhichlocreg
+integer,dimension(orbs%norb),intent(in):: inwhichlocreg_phi
 type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
 type(p2pComms),intent(out):: comom
 type(overlap_parameters_matrix),intent(out):: opm
@@ -1421,7 +1420,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   novrlp=0
   do jorbout=1,orbs%norb
-     jlr=onWhichAtomPhi(jorbout)
+     jlr=inwhichlocreg_phi(jorbout)
      ! Check whether there is a common element.
      outloop1: do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1445,7 +1444,7 @@ do iorbout=1,orbs%norb
   opm%overlaps(:,iorbout)=0
   novrlp=0
   do jorbout=1,orbs%norb
-     jlr=onWhichAtomPhi(jorbout)
+     jlr=inwhichlocreg_phi(jorbout)
      ! Check whether there is a common element.
      outloop2: do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1479,7 +1478,7 @@ do iorbout=1,orbs%norb
   opm%olr(:,ilr)%norbinlr=0
   do jorbout=1,opm%noverlap(iorbout)
      jjorb=opm%overlaps(jorbout,iorbout)
-     jlr=onWhichAtomPhi(jjorb)
+     jlr=inwhichlocreg_phi(jjorb)
      ! Check whether there is a common element.
      do iorb=1,mlr(ilr)%norbinlr
         iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -1507,7 +1506,7 @@ do iorbout=1,orbs%norb
   ilrold=ilr
   do jorbout=1,opm%noverlap(iorbout)
      jjorb=opm%overlaps(jorbout,iorbout)
-     jlr=onWhichAtomPhi(jjorb)
+     jlr=inwhichlocreg_phi(jjorb)
      ! Check whether there is a common element.
      kkorb=0
      do iorb=1,mlr(ilr)%norbinlr
@@ -1541,11 +1540,11 @@ do iorbout=1,orbs%norb
   ilrold=ilr
   do iorb=1,opm%noverlap(iorbout)
      jorb=opm%overlaps(iorb,iorbout)
-     jlr=onWhichAtomPhi(jorb)
+     jlr=inwhichlocreg_phi(jorb)
      opm%olrForExpansion(1,iorb,ilr)=jlr
      do korb=1,opm%noverlap(jorb)
         kkorb=opm%overlaps(korb,jorb)
-        klr=onWhichAtomPhi(kkorb)
+        klr=inwhichlocreg_phi(kkorb)
         if(klr==ilr) then
            opm%olrForExpansion(2,iorb,ilr)=korb
         end if
@@ -1716,11 +1715,10 @@ type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, i, ist, ncnt
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, ist, ncnt
 real(8):: tt, dnrm2, dev
 real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
 character(len=*),parameter:: subname='orthonormalizeVectors'
-real(8),dimension(orbs%norb):: vecglobal
 real(8),dimension(:),allocatable:: psit_c, psit_f, psittemp_c, psittemp_f, vec_compr
 
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
@@ -2461,14 +2459,10 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, c
   real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
   
   ! Local variables
-  integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, korb, kkorb, klr, iwa, kwa
+  integer:: istat, iall, iiorb, jjorb
   integer:: i0, ipt, ii, jj, i, j, j0
-  real(8),dimension(:),allocatable:: lchiovrlp, lchiovrlp2, chit_c, chit_f, phit_c, phit_f
+  real(8),dimension(:),allocatable:: chit_c, chit_f, phit_c, phit_f
   character(len=*),parameter:: subname='buildLinearCombinations_new'
-  real(8),dimension(:,:),allocatable:: ttmat
-  real(8):: tt1, tt2, tt3
-  type(p2pComms):: comon_tmb_ig, comon_ig_tmb
-  type(overlapParameters):: op_tmb_ig, op_ig_tmb
   
   allocate(chit_c(sum(collcomig%nrecvcounts_c)), stat=istat)
   call memocc(istat, chit_c, 'chit_c', subname)
@@ -2561,17 +2555,15 @@ real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ha
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
-integer:: iorb, jorb, iall, istat, ierr, infoCoeff
-integer:: it, iiAt, jjAt, methTransformOverlap
+integer:: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap
+integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold
 real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
-integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
+integer,dimension(:),allocatable:: recvcounts, displs
+real(8):: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
 character(len=*),parameter:: subname='build_input_guess'
 real(4):: ttreal, builtin_rand
-integer:: norbtot, isx, iiiat
-integer:: ii, jproc, sendcount, ilr, iilr, ilrold, jlr
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pComms):: comom
 type(overlap_parameters_matrix):: opm
