@@ -45,18 +45,6 @@ subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
   integer, intent(in) :: id, iproc, nproc
 END SUBROUTINE optloop_emit_done
 
-subroutine wf_new_from_fortran(c_obj, wf)
-  use module_types
-  implicit none
-  type(DFT_wavefunction), intent(inout) :: wf
-  double precision, intent(out) :: c_obj
-END SUBROUTINE wf_new_from_fortran
-
-subroutine bigdft_wf_free(c_obj)
-  implicit none
-  double precision, intent(in) :: c_obj
-END SUBROUTINE bigdft_wf_free
-
 subroutine bigdft_signals_init(c_obj, type, domain, ln)
   implicit none
   double precision, intent(out) :: c_obj
