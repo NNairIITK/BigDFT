@@ -190,6 +190,79 @@ subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
   end if
 end subroutine denspot_set_rhov_status
 
+subroutine denspot_full_density(denspot, rho_full, iproc, new)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  integer, intent(out) :: new
+  real(gp), dimension(:), pointer :: rho_full
+
+  character(len = *), parameter :: subname = "denspot_full_density"
+  integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
+
+  new = 0
+  nslice = max(denspot%dpbox%ndimpot, 1)
+  if (nslice < denspot%dpbox%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(rho_full(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+        call memocc(i_stat,rho_full,'rho_full',subname)
+        new = 1
+        
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     if (denspot%dpbox%ndimrhopot > 0) then
+        irhoxcsh = nslice / denspot%dpbox%n3p * denspot%dpbox%i3xcsh
+     else
+        irhoxcsh = 0
+     end if     
+     do irhodim = 1, denspot%dpbox%nrhodim, 1
+        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+             mpidtypd,0,MPI_COMM_WORLD,ierr)
+     end do
+  else
+     rho_full => denspot%rhov
+  end if
+END SUBROUTINE denspot_full_density
+subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  integer, intent(out) :: new
+  real(gp), pointer :: pot_full(:)
+
+  character(len = *), parameter :: subname = "localfields_full_potential"
+  integer :: i_stat, ierr
+
+  new = 0
+  if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(pot_full(denspot%dpbox%ndimgrid+ndebug),stat=i_stat)
+        call memocc(i_stat,pot_full,'pot_full',subname)
+        new = 1
+      
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
+          mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
+          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+  else
+     pot_full => denspot%rhov
+  end if
+END SUBROUTINE denspot_full_v_ext
 subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   use module_base
   use module_types
@@ -203,14 +276,14 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   integer :: message, ierr, i_stat, i_all, new
   real(gp), pointer :: full_dummy(:)
   interface
-     subroutine localfields_full_density(denspot, rho_full, iproc, new)
+     subroutine denspot_full_density(denspot, rho_full, iproc, new)
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
        integer, intent(out) :: new
        real(gp), dimension(:), pointer :: rho_full
-     END SUBROUTINE localfields_full_density
+     END SUBROUTINE denspot_full_density
   end interface
 
   call timing(iproc,'rhov_signals  ','ON')
@@ -234,7 +307,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
            allocate(full_dummy(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
            call memocc(i_stat,full_dummy,'full_dummy',subname)
            ! Gather density to iproc 0
-           call localfields_full_density(denspot, full_dummy, iproc, new)
+           call denspot_full_density(denspot, full_dummy, iproc, new)
            i_all=-product(shape(full_dummy))*kind(full_dummy)
            deallocate(full_dummy,stat=i_stat)
            call memocc(i_stat,i_all,'full_dummy',subname)
@@ -255,14 +328,14 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   integer :: message, ierr, i_stat, i_all, new
   real(gp), pointer :: full_dummy(:)
   interface
-     subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
+     subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
        integer, intent(out) :: new
        real(gp), pointer :: pot_full(:)
-     END SUBROUTINE localfields_full_v_ext
+     END SUBROUTINE denspot_full_v_ext
   end interface
 
   call timing(iproc,'rhov_signals  ','ON')
@@ -286,7 +359,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
            allocate(full_dummy(1+ndebug),stat=i_stat)
            call memocc(i_stat,full_dummy,'full_dummy',subname)
            ! Gather density to iproc 0
-           call localfields_full_v_ext(denspot, full_dummy, iproc, new)
+           call denspot_full_v_ext(denspot, full_dummy, iproc, new)
            i_all=-product(shape(full_dummy))*kind(full_dummy)
            deallocate(full_dummy,stat=i_stat)
            call memocc(i_stat,i_all,'full_dummy',subname)

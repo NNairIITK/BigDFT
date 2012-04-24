@@ -147,10 +147,10 @@ static gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
   switch (kind)
     {
     case BIGDFT_DENSPOT_DENSITY:
-      FC_FUNC_(localfields_full_density, DENSPOT_FULL_DENSITY)(localfields->data, &tmp, &iproc);
+      FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data, &tmp, &iproc);
       break;
     case BIGDFT_DENSPOT_V_EXT:
-      FC_FUNC_(localfields_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data, &tmp, &iproc);
+      FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data, &tmp, &iproc);
       break;
     }
   size = localfields->glr->ni[0] * localfields->glr->ni[1] * localfields->glr->ni[2];

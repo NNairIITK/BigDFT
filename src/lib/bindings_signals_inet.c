@@ -303,11 +303,11 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
       switch (kind)
         {
         case BIGDFT_DENSPOT_DENSITY:
-          FC_FUNC_(localfields_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
+          FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
                                                                    &tmp, &iproc, &new);
           break;
         case BIGDFT_DENSPOT_V_EXT:
-          FC_FUNC_(localfields_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
+          FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
                                                                &tmp, &iproc, &new);
           break;
         }
