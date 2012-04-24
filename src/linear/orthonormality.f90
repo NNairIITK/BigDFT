@@ -44,12 +44,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
                lphi, comon%nsendBuf, comon%sendBuf)
           ! Post the send messages.
-          !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
           call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
           allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
           call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-          !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
-          !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
           call wait_p2p_communication(iproc, nproc, comon)
           call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
                comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
@@ -106,50 +103,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   end do
 
 
-  !!if (verbose > 2) then
-  !!   timeComput=timeLoewdin+timeTransform+timeextract+timeoverlap+timeexpand+timecompress
-  !!   timeCommun=timecommunp2p+timecommuncoll
-  !!   call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeLoewdin, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeTransform, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeextract, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timecommunp2p, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timecommuncoll, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeoverlap, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timeexpand, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   call mpiallred(timecompress, 1, mpi_sum, mpi_comm_world, ierr)
-  !!   timeComput=timeComput/dble(nproc)
-  !!   timeCommun=timeCommun/dble(nproc)
-  !!   timeLoewdin=timeLoewdin/dble(nproc)
-  !!   timeTransform=timeTransform/dble(nproc)
-  !!   timeExtract=timeExtract/dble(nproc)
-  !!   timecommunp2p=timecommunp2p/dble(nproc)
-  !!   timecommuncoll=timecommuncoll/dble(nproc)
-  !!   timeoverlap=timeoverlap/dble(nproc)
-  !!   timeexpand=timeexpand/dble(nproc)
-  !!   timecompress=timecompress/dble(nproc)
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=',&
-  !!        100.d0*timeComput/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=',&
-  !!        100.d0*timeCommun/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeoverlap, '=',&
-  !!        100.d0*timeoverlap/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeexpand, '=',&
-  !!        100.d0*timeexpand/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
-  !!        100.d0*timeLoewdin/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for transform:', timeTransform, '=',&
-  !!        100.d0*timeTransform/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=',&
-  !!        100.d0*timeExtract/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for p2p communication:', timecommunp2p, '=',&
-  !!        100.d0*timecommunp2p/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for collective communication:', timecommuncoll, '=',&
-  !!        100.d0*timecommuncoll/(timeComput+timeCommun), '%'
-  !!   if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expand:', timeExpand, '=',&
-  !!        100.d0*timeExpand/(timeComput+timeCommun), '%'
-  !!end if
 
 
 end subroutine orthonormalizeLocalized
@@ -193,12 +146,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
 
-  !!timeComput=0.d0
-  !!timeCommun=0.d0
-  !!timeCalcMatrix=0.d0
-  !!timeExpand=0.d0
-  !!timeApply=0.d0
-  !!timeExtract=0.d0
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
       allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, psit_c, 'psit_c', subname)
@@ -220,10 +167,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
            lphi, comon%nsendBuf, comon%sendBuf)
-      !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
       call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
-      !!call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
-      !!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
       call wait_p2p_communication(iproc, nproc, comon)
       call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp2)
@@ -238,9 +182,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      ! use hpsit_c, hpsit_f as temporary variables
-      !!call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, hpsit_c, 1)
-      !!call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, hpsit_f, 1)
 
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
