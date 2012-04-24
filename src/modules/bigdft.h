@@ -568,7 +568,7 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
                                    GCancellable *cancellable, GError **error);
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                             BigDFT_OptLoop *optloop,
+                                             BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
 #endif
 

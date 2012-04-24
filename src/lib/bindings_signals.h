@@ -34,6 +34,7 @@ typedef struct BigDFT_Main_
   guint optloop_done_ham_id, optloop_done_sub_id, optloop_done_wfn_id;
   guint optloop_sync;
 
+  GCancellable *cancellable;
   GDestroyNotify destroy;
   gpointer destroyData;
 #endif

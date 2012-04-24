@@ -74,7 +74,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -269,7 +269,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -278,7 +278,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("%s", error->message);
+          g_warning("(%ld / %ld) %s", size, sizeof(BigDFT_SignalReply), error->message);
           g_error_free(error);
           return;
         }
@@ -425,7 +425,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -522,7 +522,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -889,6 +889,14 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
   
   error = (GError*)0;
 
+  if (bmain->cancellable && g_cancellable_is_cancelled(bmain->cancellable))
+    {
+      g_source_destroy(g_main_current_source());
+      if (bmain->destroy)
+        bmain->destroy(bmain->destroyData);
+      return FALSE;
+    }
+
   if ((condition & G_IO_IN) > 0)
     {
       g_signal_handler_unblock(G_OBJECT(bmain->optloop), bmain->optloop_sync);
@@ -918,6 +926,7 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop,
+                                             GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data)
 {
   GSource *source;
@@ -941,10 +950,11 @@ GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *ene
                                              G_CALLBACK(onOptLoopSyncInet), (gpointer)socket);
       g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
     }
+  bmain->cancellable = cancellable;
   bmain->destroy = destroy;
   bmain->destroyData = data;
   
-  source = g_socket_create_source(socket, G_IO_IN | G_IO_HUP, NULL);
+  source = g_socket_create_source(socket, G_IO_IN | G_IO_HUP, cancellable);
   g_source_set_callback(source, (GSourceFunc)onClientTransfer,
                         bmain, bigdft_signals_free_main);
   
