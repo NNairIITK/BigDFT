@@ -510,6 +510,12 @@ BigDFT_OptLoop* bigdft_optloop_new()
 #endif
   self = *((double*)&optloop);
   FC_FUNC_(optloop_new, OPTLOOP_NEW)(&self, &optloop->data);
+  FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)
+    (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
+     &optloop->gnrm, &optloop->rpnrm,
+     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
+     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     &optloop->iscf, &optloop->infocode);
 
   return optloop;
 }

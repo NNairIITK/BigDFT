@@ -650,6 +650,7 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
   while (psize < sizeof(double) * psiSize);
   /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(double) * sizeData[0]); */
   /* g_print("Client: emitting signal.\n"); */
+  psic = g_array_set_size(psic, psiSize);
   bigdft_wf_emit_one_wave(wf, iter, psic, quark,
                           answer.ikpt, answer.iorb, answer.kind);
   g_array_unref(psic);
@@ -710,16 +711,16 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
   g_object_unref(dns);
   for (tmp = lst; tmp && !connect; tmp = g_list_next(tmp))
     {
-      sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
-      connect = g_socket_connect(socket, sockaddr, cancellable, error);
-      /* g_print(" | try to connect to '%s' -> %d.\n", */
-              /* g_inet_address_to_string((GInetAddress*)tmp->data), connect); */
-      if (!connect)
+      if (*error)
         {
           g_warning("%s", (*error)->message);
           g_error_free(*error);
           *error = (GError*)0;
         }
+      sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
+      connect = g_socket_connect(socket, sockaddr, cancellable, error);
+      /* g_print(" | try to connect to '%s' -> %d.\n", */
+              /* g_inet_address_to_string((GInetAddress*)tmp->data), connect); */
       g_object_unref(sockaddr);
     }
   g_resolver_free_addresses(lst);

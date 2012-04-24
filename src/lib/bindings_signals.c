@@ -14,6 +14,7 @@
 #include "bindings_dbus.h"
 #endif
 
+#ifdef HAVE_GLIB
 /* Callbacks for Inet transport. */
 gboolean onClientConnection(GSocket *socket, GIOCondition condition,
                             gpointer user_data);
@@ -27,7 +28,47 @@ void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *dat
 void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
 void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
 void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
+#endif
 
+#ifdef HAVE_GDBUS
+/* Callbacks for DBus transport. */
+void onPsiReady(BigDFT_Wf *wf_, guint iter, gpointer data);
+gboolean onRegisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+                            gpointer user_data);
+gboolean onUnregisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+                              gpointer user_data);
+gboolean onDonePsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+                        gpointer user_data);
+gboolean onGetPsiCompress(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+                          guint ikpt, guint iorb, guint ispin, guint ispinor,
+                          gpointer user_data);
+void onDensityReady(BigDFT_LocalFields *denspot_, guint iter, gpointer data);
+void onVExtReady(BigDFT_LocalFields *denspot_, gpointer data);
+gboolean onRegisterDenspotReady(BigdftDBusLocalFields *denspot,
+                                GDBusMethodInvocation *invocation,
+                                gpointer user_data);
+gboolean onUnregisterDenspotReady(BigdftDBusLocalFields *denspot,
+                                  GDBusMethodInvocation *invocation,
+                                  gpointer user_data);
+gboolean onDoneDenspotReady(BigdftDBusLocalFields *denspot,
+                            GDBusMethodInvocation *invocation,
+                            gpointer user_data);
+gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
+                             GDBusMethodInvocation *invocation,
+                      BigDFT_DensPotIds kind, gpointer user_data);
+void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data);
+gboolean onRegisterEnergReady(BigdftDBusEnergs *energs,
+                                     GDBusMethodInvocation *invocation,
+                              gpointer user_data);
+gboolean onUnregisterEnergReady(BigdftDBusEnergs *energs,
+                                       GDBusMethodInvocation *invocation,
+                                gpointer user_data);
+gboolean onDoneEnergReady(BigdftDBusEnergs *energs,
+                                 GDBusMethodInvocation *invocation,
+                          gpointer user_data);
+void on_name_acquired(GDBusConnection *connection, const gchar *name, gpointer data);
+void on_name_lost(GDBusConnection *connection, const gchar *name, gpointer data);
+#endif
 
 static gpointer bigdft_main(gpointer data)
 {

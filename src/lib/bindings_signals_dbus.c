@@ -9,7 +9,7 @@
 #include "bindings_dbus.h"
 
 /* Wavefunctions stuffs. */
-static void onPsiReady(BigDFT_Wf *wf_, guint iter, gpointer data)
+void onPsiReady(BigDFT_Wf *wf_, guint iter, gpointer data)
 {
   guint i, j;
   BigdftDBusWf *wf = BIGDFT_DBUS_WF(data);
@@ -19,28 +19,28 @@ static void onPsiReady(BigDFT_Wf *wf_, guint iter, gpointer data)
   while (bigdft_dbus_wf_get_ref_psi_ready(wf) > 0)
     g_main_context_iteration(NULL, FALSE);
 }
-static gboolean onRegisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+gboolean onRegisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
                                    gpointer user_data)
 {
   bigdft_dbus_wf_set_n_psi_ready(wf, bigdft_dbus_wf_get_n_psi_ready(wf) + 1);
   bigdft_dbus_wf_complete_register_psi_ready(wf, invocation);
   return TRUE;
 }
-static gboolean onUnregisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+gboolean onUnregisterPsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
                                      gpointer user_data)
 {
   bigdft_dbus_wf_set_n_psi_ready(wf, MAX(1, bigdft_dbus_wf_get_n_psi_ready(wf)) - 1);
   bigdft_dbus_wf_complete_unregister_psi_ready(wf, invocation);
   return TRUE;
 }
-static gboolean onDonePsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+gboolean onDonePsiReady(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
                                gpointer user_data)
 {
   bigdft_dbus_wf_set_ref_psi_ready(wf, MAX(1, bigdft_dbus_wf_get_ref_psi_ready(wf)) - 1);
   bigdft_dbus_wf_complete_done_psi_ready(wf, invocation);
   return TRUE;
 }
-static gboolean onGetPsiCompress(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
+gboolean onGetPsiCompress(BigdftDBusWf *wf, GDBusMethodInvocation *invocation,
                                  guint ikpt, guint iorb, guint ispin, guint ispinor,
                                  gpointer user_data)
 {
@@ -85,7 +85,7 @@ static gboolean onGetPsiCompress(BigdftDBusWf *wf, GDBusMethodInvocation *invoca
 }
 
 /* Local field stuffs. */
-static void onDensityReady(BigDFT_LocalFields *denspot_, guint iter, gpointer data)
+void onDensityReady(BigDFT_LocalFields *denspot_, guint iter, gpointer data)
 {
   BigdftDBusLocalFields *denspot = BIGDFT_DBUS_LOCAL_FIELDS(data);
 
@@ -95,7 +95,7 @@ static void onDensityReady(BigDFT_LocalFields *denspot_, guint iter, gpointer da
   while (bigdft_dbus_local_fields_get_ref_dens_pot_ready(denspot) > 0)
     g_main_context_iteration(NULL, FALSE);
 }
-static void onVExtReady(BigDFT_LocalFields *denspot_, gpointer data)
+void onVExtReady(BigDFT_LocalFields *denspot_, gpointer data)
 {
   BigdftDBusLocalFields *denspot = BIGDFT_DBUS_LOCAL_FIELDS(data);
 
@@ -105,7 +105,7 @@ static void onVExtReady(BigDFT_LocalFields *denspot_, gpointer data)
   while (bigdft_dbus_local_fields_get_ref_dens_pot_ready(denspot) > 0)
     g_main_context_iteration(NULL, FALSE);
 }
-static gboolean onRegisterDenspotReady(BigdftDBusLocalFields *denspot,
+gboolean onRegisterDenspotReady(BigdftDBusLocalFields *denspot,
                                        GDBusMethodInvocation *invocation,
                                        gpointer user_data)
 {
@@ -114,7 +114,7 @@ static gboolean onRegisterDenspotReady(BigdftDBusLocalFields *denspot,
   bigdft_dbus_local_fields_complete_register_dens_pot_ready(denspot, invocation);
   return TRUE;
 }
-static gboolean onUnregisterDenspotReady(BigdftDBusLocalFields *denspot,
+gboolean onUnregisterDenspotReady(BigdftDBusLocalFields *denspot,
                                          GDBusMethodInvocation *invocation,
                                          gpointer user_data)
 {
@@ -123,7 +123,7 @@ static gboolean onUnregisterDenspotReady(BigdftDBusLocalFields *denspot,
   bigdft_dbus_local_fields_complete_unregister_dens_pot_ready(denspot, invocation);
   return TRUE;
 }
-static gboolean onDoneDenspotReady(BigdftDBusLocalFields *denspot,
+gboolean onDoneDenspotReady(BigdftDBusLocalFields *denspot,
                                    GDBusMethodInvocation *invocation,
                                    gpointer user_data)
 {
@@ -132,7 +132,7 @@ static gboolean onDoneDenspotReady(BigdftDBusLocalFields *denspot,
   bigdft_dbus_local_fields_complete_done_dens_pot_ready(denspot, invocation);
   return TRUE;
 }
-static gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
+gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
                              GDBusMethodInvocation *invocation,
                              BigDFT_DensPotIds kind, gpointer user_data)
 {
@@ -153,7 +153,7 @@ static gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
       FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data, &tmp, &iproc);
       break;
     }
-  size = localfields->glr->ni[0] * localfields->glr->ni[1] * localfields->glr->ni[2];
+  size = localfields->ni[0] * localfields->ni[1] * localfields->ni[2];
   data = g_variant_new_from_data(G_VARIANT_TYPE("ad"), tmp.data,
                                  sizeof(double) * size,
                                  TRUE, (GDestroyNotify)0, (gpointer)0);
@@ -183,7 +183,7 @@ static gboolean _emit_energ_ready(gpointer data)
 
   return FALSE;
 }
-static void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data)
+void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data)
 {
 
   struct _energs_signal *dt;
@@ -196,7 +196,7 @@ static void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data)
   dt->kind = BIGDFT_ENERGS_EKS;
   g_idle_add_full(G_PRIORITY_DEFAULT, _emit_energ_ready, dt, g_free);
 }
-static gboolean onRegisterEnergReady(BigdftDBusEnergs *energs,
+gboolean onRegisterEnergReady(BigdftDBusEnergs *energs,
                                      GDBusMethodInvocation *invocation,
                                      gpointer user_data)
 {
@@ -205,7 +205,7 @@ static gboolean onRegisterEnergReady(BigdftDBusEnergs *energs,
   bigdft_dbus_energs_complete_register_energ_ready(energs, invocation);
   return TRUE;
 }
-static gboolean onUnregisterEnergReady(BigdftDBusEnergs *energs,
+gboolean onUnregisterEnergReady(BigdftDBusEnergs *energs,
                                        GDBusMethodInvocation *invocation,
                                        gpointer user_data)
 {
@@ -214,7 +214,7 @@ static gboolean onUnregisterEnergReady(BigdftDBusEnergs *energs,
   bigdft_dbus_energs_complete_unregister_energ_ready(energs, invocation);
   return TRUE;
 }
-static gboolean onDoneEnergReady(BigdftDBusEnergs *energs,
+gboolean onDoneEnergReady(BigdftDBusEnergs *energs,
                                  GDBusMethodInvocation *invocation,
                                  gpointer user_data)
 {
@@ -224,11 +224,11 @@ static gboolean onDoneEnergReady(BigdftDBusEnergs *energs,
   return TRUE;
 }
 
-static void on_name_acquired(GDBusConnection *connection, const gchar *name, gpointer data)
+void on_name_acquired(GDBusConnection *connection, const gchar *name, gpointer data)
 {
   g_print ("Acquired the name %s\n", name);
 }
-static void on_name_lost(GDBusConnection *connection, const gchar *name, gpointer data)
+void on_name_lost(GDBusConnection *connection, const gchar *name, gpointer data)
 {
   g_print ("Lost the name %s\n", name);
 }

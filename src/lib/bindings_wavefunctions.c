@@ -299,6 +299,11 @@ static void bigdft_wf_finalize(GObject *obj)
 }
 void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
 {
+  BigDFT_Orbs *orbs;
+
+  orbs = &(*wf)->parent;
+  GET_ATTR_DBL(orbs, ORBS, occup, OCCUP);
+  GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 #ifdef HAVE_GLIB
   g_signal_emit(G_OBJECT(*wf), bigdft_wf_signals[PSI_READY_SIGNAL],
                 0 /* details */, *istep, NULL);
