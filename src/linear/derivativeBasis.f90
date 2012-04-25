@@ -390,8 +390,10 @@ iall=-product(shape(move))*kind(move)
 deallocate(move, stat=istat)
 call memocc(istat, iall, 'move', subname)
 
-! To indicate that to communication has been started
+! To indicate that no communication is going on.
 comrp%communication_complete=.true.
+comrp%messages_posted=.false.
+
 
 call timing(iproc,'init_repart   ','OF')
 

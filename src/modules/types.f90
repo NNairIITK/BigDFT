@@ -567,7 +567,7 @@ module module_types
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
-    logical:: communication_complete
+    logical:: communication_complete, messages_posted
   end type p2pComms
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...

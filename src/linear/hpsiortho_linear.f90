@@ -308,6 +308,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+          ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+               tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
           call destroy_new_locregs(iproc, nproc, tmblarge)
           !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
@@ -358,6 +361,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+                   tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)    
               call destroy_new_locregs(iproc, nproc, tmb)
               !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
@@ -388,6 +394,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           ! Update the localization region if required.
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+                   tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
               call destroy_new_locregs(iproc, nproc, tmblarge)
               !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad

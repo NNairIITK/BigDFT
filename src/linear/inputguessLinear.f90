@@ -1679,7 +1679,10 @@ comom%nsend=isend
 allocate(comom%requests(max(comom%nrecv,comom%nsend),2), stat=istat)
 call memocc(istat, comom%requests, 'comom%requests', subname)
 
+! To indicate that no communication is going on.
 comom%communication_complete=.true.
+comom%messages_posted=.false.
+
 
 end subroutine initCommsMatrixOrtho
 

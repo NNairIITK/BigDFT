@@ -518,6 +518,9 @@ type(energy_terms) :: energs
       ! Update the localization region if required.
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+          ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+               tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
           call destroy_new_locregs(iproc, nproc, tmblarge)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
@@ -637,7 +640,6 @@ type(energy_terms) :: energs
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
       end if
-  
   
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then

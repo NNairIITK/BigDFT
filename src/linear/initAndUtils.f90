@@ -180,8 +180,10 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
       comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
   end do
 
-  ! To indicate that to communication has been started
+  ! To indicate that no communication is going on.
   comsr%communication_complete=.true.
+  comsr%messages_posted=.false.
+
 
   call timing(iproc,'init_commSumro','OF')
   
@@ -1840,8 +1842,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   end if
 
   !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-       tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
+  !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  !!     tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)

@@ -774,8 +774,10 @@ subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
   call memocc(istat, comon%requests, 'comon%requests', subname)
 
-  ! To indicate that to communication has been started
+  ! To indicate that no communication is going on.
   comon%communication_complete=.true.
+  comon%messages_posted=.false.
+
 
 end subroutine set_comms_ortho
 

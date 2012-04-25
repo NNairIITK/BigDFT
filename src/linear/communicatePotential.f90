@@ -210,8 +210,9 @@ comgp%nsend = 0 ; comgp%nrecv = 0
   deallocate(iStartEnd, stat=istat)
   call memocc(istat, iall, 'iStartEnd', subname)
 
-  ! To indicate that to communication has been started
+  ! To indicate that no communication is going on.
   comgp%communication_complete=.true.
+  comgp%messages_posted=.false.
 
   call timing(iproc,'init_commPot  ','OF')
 

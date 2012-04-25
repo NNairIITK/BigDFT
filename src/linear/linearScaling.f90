@@ -455,6 +455,8 @@ type(energy_terms) :: energs
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
+                  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                       tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
               end if
           end if
 
