@@ -29,7 +29,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   real(gp),dimension(:,:),allocatable:: locregCenter
   integer,dimension(:),allocatable:: norbsPerAt, norbsPerLocreg
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb
+  integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb, ndim
  
 
 
@@ -206,7 +206,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   call initialize_communication_potential(iproc, nproc, nscatterarr, tmbig%orbs, tmbig%lzd, tmbig%comgp)
 
 
-  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmbig%orbs, &
+  ndim = maxval(tmbig%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmbig%orbs, &
        tmbig%op%noverlaps, tmbig%op%overlaps, tmbig%mad)
   call initCompressedMatmul3(tmbig%orbs%norb, tmbig%mad)
 
@@ -2562,7 +2563,7 @@ real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ha
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
-integer:: iorb, jorb, iall, istat, ierr, infoCoeff
+integer:: iorb, jorb, iall, istat, ierr, infoCoeff, ndim
 integer:: it, iiAt, jjAt, methTransformOverlap, tag
 real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
@@ -2617,7 +2618,8 @@ type(collective_comms):: collcom_vectors
        tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, opm, comom)
 
   call nullify_matrixDescriptors(mad)
-  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, tmb%orbs, opm%noverlap, opm%overlaps, mad)
+  ndim = maxval(opm%noverlap)
+  call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmb%orbs, opm%noverlap, opm%overlaps, mad)
   call initCompressedMatmul3(tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)

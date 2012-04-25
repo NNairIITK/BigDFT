@@ -1849,9 +1849,9 @@ allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
 !!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
 !!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
-
 allocate(overlaps_op(maxval(op%noverlaps),orbs%norbp), stat=istat)
 call memocc(istat, overlaps_op, 'overlaps_op', subname)
+call to_zero(maxval(op%noverlaps)*orbs%norbp,overlaps_op(1,1))
 allocate(overlaps_comon(comon%noverlaps(iproc)), stat=istat)
 call memocc(istat, overlaps_comon, 'overlaps_comon', subname)
 
@@ -1961,9 +1961,6 @@ if (nproc > 1) then
 else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
-
-!!do iorb=1,orbs%norb
-!!end do
 
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)

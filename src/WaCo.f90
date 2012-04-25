@@ -551,9 +551,11 @@ program WaCo
 !            call mpi_finalize(ierr)
 !            stop
          end if
-
-         call build_stereographic_graph_facets(atoms%nat,plotwann,4.0d0,rxyz_wann,ncenters,Zatoms,nfacets,facets,vertex)
-         call output_stereographic_graph(atoms%nat,proj,projC,plotwann,ncenters,Zatoms,nfacets,facets,vertex,normal,NeglectPoint)
+         
+         call build_stereographic_graph_facets(atoms%nat,plotwann,maxval(ncenters),4.0d0,rxyz_wann,ncenters,&
+              Zatoms,nfacets,facets,vertex)
+         call output_stereographic_graph(atoms%nat,maxval(ncenters),proj,projC,plotwann,ncenters,Zatoms,nfacets,&
+              facets,vertex,normal,NeglectPoint)
 
          i_all = -product(shape(nfacets))*kind(nfacets)
          deallocate(nfacets,stat=i_stat)
@@ -2113,18 +2115,18 @@ end do
 
 end subroutine shift_stereographic_projection
 
-subroutine build_stereographic_graph_facets(natoms,nsurf,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
+subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
    use module_interfaces
    use module_types
    implicit none
-   integer, intent(in) :: natoms, nsurf
+   integer, intent(in) :: natoms, nsurf,mcenters
    real(gp), intent(in) :: maxbond
    real(gp), dimension(3,natoms), intent(in) :: rxyz
    integer, dimension(nsurf), intent(in) :: ncenters
    integer, dimension(natoms,nsurf),intent(in) :: Zatoms
    integer, dimension(nsurf), intent(out) :: nfacets
-   integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters) - 1)/2, 3),intent(out) :: facets
-   integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters) - 1)/2, 3),intent(out) :: vertex    !exactly like facets, but in reference to only the surface
+   integer, dimension(nsurf,mcenters*(mcenters - 1)/2, 3),intent(out) :: facets
+   integer, dimension(nsurf,mcenters*(mcenters - 1)/2, 3),intent(out) :: vertex    !exactly like facets, but in reference to only the surface
    ! Local variables
    integer :: i, j, k, isurf
    real(gp) :: dist
@@ -2155,16 +2157,16 @@ subroutine build_stereographic_graph_facets(natoms,nsurf,maxbond,rxyz,ncenters,Z
 
 end subroutine build_stereographic_graph_facets
 
-subroutine output_stereographic_graph(natoms,proj,projC,nsurf,ncenters,Zatoms,npoly,poly,vertex,normal,NeglectPoint) 
+subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,Zatoms,npoly,poly,vertex,normal,NeglectPoint) 
    use module_types
    implicit none
-   integer, intent(in) :: natoms, nsurf, NeglectPoint
+   integer, intent(in) :: natoms, mcenters, nsurf, NeglectPoint
    real(gp), dimension(natoms,3), intent(in) :: proj                   ! atom position in the projection
    real(gp), dimension(nsurf, 3), intent(in) :: projC                  ! Wannier centers in the projection
    integer, dimension(nsurf), intent(in) :: ncenters, npoly
    integer, dimension(natoms,nsurf),intent(in) :: Zatoms               ! indexes of all the atoms spanned by the Wannier function
-   integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters)-1)/2,3),intent(in) :: poly
-   integer, dimension(nsurf,maxval(ncenters)*(maxval(ncenters)-1)/2,3),intent(in) :: vertex
+   integer, dimension(nsurf,mcenters*(mcenters-1)/2,3),intent(in) :: poly
+   integer, dimension(nsurf,mcenters*(mcenters-1)/2,3),intent(in) :: vertex
    real(gp), dimension(3), intent(in) :: normal
    ! Local variables
    integer :: isurf,ipts,i, nsurftot,npts,ndecimal,ncent, num_poly, num_poly_tot

@@ -3171,17 +3171,17 @@ module module_interfaces
        type(p2pComms),intent(inout):: comon
      end subroutine gatherOrbitals
      
-     subroutine calculateOverlapMatrix(iproc, nproc, orbs, op, comon, onWhichAtom, lovrlp)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs
-       type(overlapParameters),intent(in):: op
-       type(p2pComms),intent(inout):: comon
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(out):: lovrlp
-     end subroutine calculateOverlapMatrix
+     !!subroutine calculateOverlapMatrix(iproc, nproc, orbs, op, comon, onWhichAtom, lovrlp)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  type(orbitals_data),intent(in):: orbs
+     !!  type(overlapParameters),intent(in):: op
+     !!  type(p2pComms),intent(inout):: comon
+     !!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+     !!  real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(out):: lovrlp
+     !!end subroutine calculateOverlapMatrix
      
      
      !!subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, mad, ovrlp)
@@ -3219,20 +3219,20 @@ module module_interfaces
        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
      end subroutine expandOrbital
      
-     subroutine localGramschmidt(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, lovrlp, lphiovrlp, lphi)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs, lorbs
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(local_zone_descriptors),intent(in):: lzd
-       type(overlapParameters),intent(in):: op
-       type(p2pComms),intent(in):: comon
-       real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(in):: lovrlp
-       real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
-     end subroutine localGramschmidt
+     !!subroutine localGramschmidt(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, lovrlp, lphiovrlp, lphi)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  type(orbitals_data),intent(in):: orbs, lorbs
+     !!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+     !!  type(local_zone_descriptors),intent(in):: lzd
+     !!  type(overlapParameters),intent(in):: op
+     !!  type(p2pComms),intent(in):: comon
+     !!  real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(in):: lovrlp
+     !!  real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+     !!  real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
+     !!end subroutine localGramschmidt
      
      
      subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, ovrlp, lphiovrlp, lphi)
@@ -4865,7 +4865,6 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, norb, nseglinemax, nsegmatmul
         integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
         integer,dimension(norb):: nsegline
-        !integer,dimension(2,maxval(nsegline),norb):: keygline
         integer,dimension(2,nseglinemax,norb):: keygline
         real(8),dimension(norb,norb),intent(in):: a, b
         real(8),dimension(norb,norb),intent(out):: c
@@ -5256,16 +5255,14 @@ module module_interfaces
        end subroutine my_iallgather_collect2
 
 
-       subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
+       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overlaps, mad)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, nlr
+         integer,intent(in):: iproc, nproc, nlr, ndim
          type(orbitals_data),intent(in):: orbs
-         !integer,dimension(nlr),intent(in):: noverlaps
          integer,dimension(orbs%norb),intent(in):: noverlaps
-         !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
-         integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
+         integer,dimension(ndim,orbs%norb),intent(in):: overlaps
          type(matrixDescriptors),intent(out):: mad
        end subroutine initMatrixCompression
 
@@ -5341,7 +5338,6 @@ module module_interfaces
          integer,intent(in):: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
          integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
          integer,dimension(norb):: nsegline
-         !integer,dimension(2,maxval(nsegline),norb):: keygline
          integer,dimension(2,nseglinemax,norb):: keygline
          integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
          real(8),dimension(norb,norb),intent(in):: a, b

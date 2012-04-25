@@ -39,7 +39,7 @@ type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
-integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format, ndim
 real(8):: ddot, tt1, tt2, tt3
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
@@ -150,9 +150,11 @@ type(energy_terms) :: energs
   call nullify_p2pcomms(tmbder%comsr)
   call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
 
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+  ndim = maxval(tmb%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
+  ndim = maxval(tmbder%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
 
