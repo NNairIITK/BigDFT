@@ -6228,7 +6228,8 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, it
         logical,intent(in):: variable_locregs
         type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
+        type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+        type(DFT_wavefunction),pointer,intent(inout):: tmbopt
         type(atoms_data),intent(in):: at
         real(8),dimension(3,at%nat),intent(in):: rxyz
         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel

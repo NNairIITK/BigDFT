@@ -198,7 +198,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   integer,intent(in):: iproc, nproc, it
   logical,intent(in):: variable_locregs
   type(localizedDIISParameters),intent(inout):: ldiis
-  type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
+  type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+  type(DFT_wavefunction),pointer,intent(inout):: tmbopt
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
@@ -340,6 +341,16 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       else
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       end if
+      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          tmbopt => tmb
+          lhphiopt => lhphi
+          lphioldopt => lphiold
+      else
+          tmbopt => tmblarge
+          lhphiopt => lhphilarge
+          lphioldopt => lphilargeold
+      end if
+      tmbopt%confdatarr => tmb%confdatarr
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
