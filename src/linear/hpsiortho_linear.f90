@@ -201,18 +201,18 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(tmblarge%orbs%norb,tmblarge%orbs%norb),intent(inout):: kernel
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
   real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
   real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
-  real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
-  real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
+  real(8),dimension(:),pointer,intent(out):: lphioldopt
+  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenter
+  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenterTemp
   type(DFT_local_fields),intent(inout):: denspot
   real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-  integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
+  integer,dimension(tmb%orbs%norb),intent(in):: inwhichlocreg_reference
   real(8),intent(in):: factor, trH, meanAlpha
-  real(8),dimension(tmbopt%orbs%norb),intent(out):: alpha, alphaDIIS
+  real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
   
   ! Local variables
   integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
