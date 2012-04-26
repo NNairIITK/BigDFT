@@ -1851,7 +1851,7 @@ call memocc(istat, op%overlaps, 'op%overlaps', subname)
 !!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
 allocate(overlaps_op(maxval(op%noverlaps),orbs%norbp), stat=istat)
 call memocc(istat, overlaps_op, 'overlaps_op', subname)
-call to_zero(maxval(op%noverlaps)*orbs%norbp,overlaps_op(1,1))
+if(orbs%norbp>0) call to_zero(maxval(op%noverlaps)*orbs%norbp,overlaps_op(1,1))
 allocate(overlaps_comon(comon%noverlaps(iproc)), stat=istat)
 call memocc(istat, overlaps_comon, 'overlaps_comon', subname)
 
