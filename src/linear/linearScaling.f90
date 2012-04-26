@@ -40,7 +40,6 @@ logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format, ndim
-real(8):: ddot, tt1, tt2, tt3
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
 integer :: ind1, ind2
@@ -60,12 +59,10 @@ type(energy_terms) :: energs
   call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 
   ! Initialize the tags for the p2p communication
-  !!tag=p2p_tag(.true.)
   call init_p2p_tags(nproc)
 
   tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   tmb%wfnmd%bs%use_derivative_basis=.false.
-
 
   call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
        tmb%orbs)
@@ -127,11 +124,9 @@ type(energy_terms) :: energs
 
   tag=0
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-       input%lin%locregShape, tmb%op, tmb%comon)
+       tmb%orbs, input%lin%locregShape, tmb%op, tmb%comon)
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       input%lin%locregShape, tmbder%op, tmbder%comon)
+       tmbder%orbs, input%lin%locregShape, tmbder%op, tmbder%comon)
   
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
   call initialize_communication_potential(iproc, nproc, denspot%dpcom%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)
@@ -152,11 +147,11 @@ type(energy_terms) :: energs
 
   ndim = maxval(tmb%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
-  call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
+  call initCompressedMatmul3(iproc, tmb%orbs%norb, tmb%mad)
   ndim = maxval(tmbder%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-  call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
+  call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
 
   allocate(tmb%confdatarr(tmb%orbs%norbp))
   call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
@@ -463,6 +458,8 @@ type(energy_terms) :: energs
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
+                  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+                       tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
               end if
           end if
 
@@ -587,7 +584,6 @@ type(energy_terms) :: energs
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
 
-  !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then

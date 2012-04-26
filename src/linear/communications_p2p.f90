@@ -11,6 +11,8 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
+
+  if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
   
   nreceives=0
   nsends=0
@@ -74,8 +76,10 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   ! Flag indicating whether the communication is complete or not
   if(nproc>1) then
       comm%communication_complete=.false.
+      comm%messages_posted=.true.
   else
       comm%communication_complete=.true.
+      comm%messages_posted=.false.
   end if
 
 
@@ -96,6 +100,8 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   
   
   if(.not.comm%communication_complete) then
+
+      if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
 
       ! Wait for the sends to complete.
       nsend=0

@@ -1,5 +1,3 @@
-!>  Applies the following operation: 
-!!  y = [((r-r0)^4)]*x
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
      nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
      hgrid, offsetx, offsety, offsetz, &
@@ -33,11 +31,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
   real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
-  !local variables
+
+  ! Local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  !logical :: firstcall=.true. 
-  !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
@@ -108,102 +104,8 @@ real(8):: tt7b0, tt7b1, tt7b2, tt7b3
 real(8):: tt7c0, tt7c1, tt7c2, tt7c3
 real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
-integer:: it=1!debug
-real(8):: t1, t2, time, t3, t4, ttt1, ttt2, time2
 
-  call timing(iproc,'convolQuartic ','ON')
-
-  scale=-.5_wp/real(hgrid**2,wp)
-
-  !---------------------------------------------------------------------------
-  ! second derivative filters for Daubechies 16
-  !  <phi|D^2|phi_i>
-  a(0)=   -3.5536922899131901941296809374_wp*scale
-  a(1)=    2.2191465938911163898794546405_wp*scale
-  a(2)=   -0.6156141465570069496314853949_wp*scale
-  a(3)=    0.2371780582153805636239247476_wp*scale
-  a(4)=   -0.0822663999742123340987663521_wp*scale
-  a(5)=    0.02207029188482255523789911295638968409_wp*scale
-  a(6)=   -0.409765689342633823899327051188315485e-2_wp*scale
-  a(7)=    0.45167920287502235349480037639758496e-3_wp*scale
-  a(8)=   -0.2398228524507599670405555359023135e-4_wp*scale
-  a(9)=    2.0904234952920365957922889447361e-6_wp*scale
-  a(10)=  -3.7230763047369275848791496973044e-7_wp*scale
-  a(11)=  -1.05857055496741470373494132287e-8_wp*scale
-  a(12)=  -5.813879830282540547959250667e-11_wp*scale
-  a(13)=   2.70800493626319438269856689037647576e-13_wp*scale
-  a(14)=  -6.924474940639200152025730585882e-18_wp*scale
-
-  a(15)=0.0_wp
-  a(16)=0.0_wp 
-  a(17)=0.0_wp
-  
-  do i=1,14+3
-     a(-i)=a(i)
-  enddo
-  !  <phi|D^2|psi_i>
-  c(-17)=0.0_wp
-  c(-16)=0.0_wp
-  c(-15)=0.0_wp
-  
-  c(-14)=     -3.869102413147656535541850057188e-18_wp*scale
-  c(-13)=      1.5130616560866154733900029272077362e-13_wp*scale
-  c(-12)=     -3.2264702314010525539061647271983988409e-11_wp*scale
-  c(-11)=     -5.96264938781402337319841002642e-9_wp*scale
-  c(-10)=     -2.1656830629214041470164889350342e-7_wp*scale
-  c(-9 )=      8.7969704055286288323596890609625e-7_wp*scale
-  c(-8 )=     -0.00001133456724516819987751818232711775_wp*scale
-  c(-7 )=      0.00021710795484646138591610188464622454_wp*scale
-  c(-6 )=     -0.0021356291838797986414312219042358542_wp*scale
-  c(-5 )=      0.00713761218453631422925717625758502986_wp*scale
-  c(-4 )=     -0.0284696165863973422636410524436931061_wp*scale
-  c(-3 )=      0.14327329352510759457155821037742893841_wp*scale
-  c(-2 )=     -0.42498050943780130143385739554118569733_wp*scale
-  c(-1 )=      0.65703074007121357894896358254040272157_wp*scale
-  c( 0 )=     -0.42081655293724308770919536332797729898_wp*scale
-  c( 1 )=     -0.21716117505137104371463587747283267899_wp*scale
-  c( 2 )=      0.63457035267892488185929915286969303251_wp*scale
-  c( 3 )=     -0.53298223962800395684936080758073568406_wp*scale
-  c( 4 )=      0.23370490631751294307619384973520033236_wp*scale
-  c( 5 )=     -0.05657736973328755112051544344507997075_wp*scale
-  c( 6 )=      0.0080872029411844780634067667008050127_wp*scale
-  c( 7 )=     -0.00093423623304808664741804536808932984_wp*scale
-  c( 8 )=      0.00005075807947289728306309081261461095_wp*scale
-  c( 9 )=     -4.62561497463184262755416490048242e-6_wp*scale
-  c( 10)=      6.3919128513793415587294752371778e-7_wp*scale
-  c( 11)=      1.87909235155149902916133888931e-8_wp*scale
-  c( 12)=      1.04757345962781829480207861447155543883e-10_wp*scale
-  c( 13)=     -4.84665690596158959648731537084025836e-13_wp*scale
-  c( 14)=      1.2392629629188986192855777620877e-17_wp*scale
-
-  c(15)=0.0_wp
-  c(16)=0.0_wp
-  c(17)=0.0_wp
-  !  <psi|D^2|phi_i>
-  do i=-14-3,14+3
-     b(i)=c(-i)
-  enddo
-  !<psi|D^2|psi_i>
-  e(0)=   -24.875846029392331358907766562_wp*scale
-  e(1)=   -7.1440597663471719869313377994_wp*scale
-  e(2)=   -0.04251705323669172315864542163525830944_wp*scale
-  e(3)=   -0.26995931336279126953587091167128839196_wp*scale
-  e(4)=    0.08207454169225172612513390763444496516_wp*scale
-  e(5)=   -0.02207327034586634477996701627614752761_wp*scale
-  e(6)=    0.00409765642831595181639002667514310145_wp*scale
-  e(7)=   -0.00045167920287507774929432548999880117_wp*scale
-  e(8)=    0.00002398228524507599670405555359023135_wp*scale
-  e(9)=   -2.0904234952920365957922889447361e-6_wp*scale
-  e(10)=   3.7230763047369275848791496973044e-7_wp*scale
-  e(11)=   1.05857055496741470373494132287e-8_wp*scale
-  e(12)=   5.8138798302825405479592506674648873655e-11_wp*scale
-  e(13)=  -2.70800493626319438269856689037647576e-13_wp*scale
-  e(14)=   6.924474940639200152025730585882e-18_wp*scale
-  do i=1,14
-     e(-i)=e(i)
-  enddo
-
-
+call timing(iproc,'convolQuartic ','ON')
 
 ! Allocate all arrays
 
@@ -234,7 +136,6 @@ beff0_2array=0.d0
 ceff0_2array=0.d0
 eeff0_2array=0.d0
 
-
 allocate(aeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, aeff0_2auxarray, 'aeff0_2auxarray', subname)
 allocate(beff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
@@ -247,7 +148,6 @@ aeff0_2auxarray=0.d0
 beff0_2auxarray=0.d0
 ceff0_2auxarray=0.d0
 eeff0_2auxarray=0.d0
-
 
 allocate(xya_c(0:n2,0:n1,0:n3), stat=istat)
 call memocc(istat, xya_c, 'xya_c', subname)
@@ -262,12 +162,6 @@ xyb_c=0.d0
 xyc_c=0.d0
 xye_c=0.d0
 
-
-
-
-
-
-
 allocate(xza_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, xza_c, 'xza_c', subname)
 allocate(xzb_c(0:n3,0:n1,0:n2), stat=istat)
@@ -280,10 +174,6 @@ xza_c=0.d0
 xzb_c=0.d0
 xzc_c=0.d0
 xze_c=0.d0
-
-
-
-
 
 allocate(yza_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, yza_c, 'yza_c', subname)
@@ -298,8 +188,6 @@ yzb_c=0.d0
 yzc_c=0.d0
 yze_c=0.d0
 
-
-
 allocate(xya_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
 call memocc(istat, xya_f, 'xya_f', subname)
 allocate(xyb_f(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
@@ -312,7 +200,6 @@ xya_f=0.d0
 xyb_f=0.d0
 xyc_f=0.d0
 xye_f=0.d0
-
 
 allocate(xza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, xza_f, 'xza_f', subname)
@@ -327,7 +214,6 @@ xzb_f=0.d0
 xzc_f=0.d0
 xze_f=0.d0
 
-
 allocate(yza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, yza_f, 'yza_f', subname)
 allocate(yzb_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
@@ -340,10 +226,6 @@ yza_f=0.d0
 yzb_f=0.d0
 yzc_f=0.d0
 yze_f=0.d0
-
-
-
-
 
 aeff0=0.d0 ; beff0=0.d0 ; ceff0=0.d0 ; eeff0=0.0
 aeff1=0.d0 ; beff1=0.d0 ; ceff1=0.d0 ; eeff1=0.0
@@ -381,7 +263,6 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         call getFilterQuadratic(1.d0, hgrid, x0, ceff0_2auxarray(lowfil,i1), 'c')
         call getFilterQuadratic(1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
-!t1=mpi_wtime()
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1400,10 +1281,6 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
      enddo
   enddo
   !!!$omp enddo
-
-
-
-
 
 
   iall=-product(shape(aeff0array))*kind(aeff0array)

@@ -15,6 +15,9 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
   integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr, tag
   integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
   character(len=*),parameter:: subname='initialize_comms_sumrho'
+
+
+  call timing(iproc,'init_commSumro','ON')
   
   ! Buffer sizes 
   call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
@@ -177,9 +180,12 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
       comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
   end do
 
-  ! To indicate that to communication has been started
+  ! To indicate that no communication is going on.
   comsr%communication_complete=.true.
+  comsr%messages_posted=.false.
 
+
+  call timing(iproc,'init_commSumro','OF')
   
 end subroutine initialize_comms_sumrho
 
@@ -433,6 +439,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
   character(len=*),parameter:: subname='initMatrixCompression'
   
+  call timing(iproc,'init_matrCompr','ON')
+
   call nullify_matrixDescriptors(mad)
 
   mad%nseg=0
@@ -591,6 +599,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   end if
 
 
+  call timing(iproc,'init_matrCompr','OF')
 
 end subroutine initMatrixCompression
 
@@ -845,121 +854,121 @@ subroutine getRow(norb, mad, rowX, row)
 
 end subroutine getRow
 
-subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+!!!subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  integer,intent(in):: norb, nseg
+!!!  integer,dimension(2,nseg),intent(in):: keyg
+!!!  integer,intent(out):: nsegmatmul
+!!!  integer,dimension(:,:),pointer,intent(out):: keygmatmul
+!!!  integer,dimension(:),pointer,intent(out):: keyvmatmul
+!!!
+!!!  ! Local variables
+!!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+!!!  logical:: segment
+!!!  character(len=*),parameter:: subname='initCompressedMatmul2'
+!!!  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+!!!
+!!!
+!!!
+!!!  allocate(mat1(norb**2), stat=istat)
+!!!  call memocc(istat, mat1, 'mat1', subname)
+!!!  allocate(mat2(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!  allocate(mat3(norb**2), stat=istat)
+!!!  call memocc(istat, mat2, 'mat2', subname)
+!!!
+!!!  mat1=0.d0
+!!!  mat2=0.d0
+!!!  do iseg=1,nseg
+!!!      do i=keyg(1,iseg),keyg(2,iseg)
+!!!          ! the localization region is "symmetric"
+!!!          mat1(i)=1.d0
+!!!          mat2(i)=1.d0
+!!!      end do
+!!!  end do
+!!!
+!!!  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
+!!!
+!!!  segment=.false.
+!!!  nsegmatmul=0
+!!!  do iorb=1,norb**2
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              nsegmatmul=nsegmatmul+1
+!!!          end if
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!          end if
+!!!      end if
+!!!  end do
+!!!
+!!!
+!!!  allocate(keygmatmul(2,nsegmatmul), stat=istat)
+!!!  call memocc(istat, keygmatmul, 'keygmatmul', subname)
+!!!  allocate(keyvmatmul(nsegmatmul), stat=istat)
+!!!  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
+!!!  keyvmatmul=0
+!!!  ! Now fill the descriptors.
+!!!  segment=.false.
+!!!  ij=0
+!!!  iseg=0
+!!!  do iorb=1,norb**2
+!!!      ij=iorb
+!!!      if(mat3(iorb)>0.d0) then
+!!!          ! This entry of the matrix will be different from zero.
+!!!          if(.not. segment) then
+!!!              ! This is the start of a new segment
+!!!              segment=.true.
+!!!              iseg=iseg+1
+!!!              keygmatmul(1,iseg)=ij
+!!!          end if
+!!!          keyvmatmul(iseg)=keyvmatmul(iseg)+1
+!!!      else
+!!!          if(segment) then
+!!!              ! We reached the end of a segment
+!!!              segment=.false.
+!!!              keygmatmul(2,iseg)=ij-1
+!!!          end if
+!!!      end if
+!!!  end do
+!!!  ! Close the last segment if required.
+!!!  if(segment) then
+!!!      keygmatmul(2,iseg)=ij
+!!!  end if
+!!!
+!!!
+!!!iall=-product(shape(mat1))*kind(mat1)
+!!!deallocate(mat1, stat=istat)
+!!!call memocc(istat, iall, 'mat1', subname)
+!!!iall=-product(shape(mat2))*kind(mat2)
+!!!deallocate(mat2, stat=istat)
+!!!call memocc(istat, iall, 'mat2', subname)
+!!!iall=-product(shape(mat3))*kind(mat3)
+!!!deallocate(mat3, stat=istat)
+!!!call memocc(istat, iall, 'mat3', subname)
+!!!
+!!!
+!!!end subroutine initCompressedMatmul2
+
+
+
+
+subroutine initCompressedMatmul3(iproc, norb, mad)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb, nseg
-  integer,dimension(2,nseg),intent(in):: keyg
-  integer,intent(out):: nsegmatmul
-  integer,dimension(:,:),pointer,intent(out):: keygmatmul
-  integer,dimension(:),pointer,intent(out):: keyvmatmul
-
-  ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
-  logical:: segment
-  character(len=*),parameter:: subname='initCompressedMatmul2'
-  real(8),dimension(:),allocatable:: mat1, mat2, mat3
-
-
-
-  allocate(mat1(norb**2), stat=istat)
-  call memocc(istat, mat1, 'mat1', subname)
-  allocate(mat2(norb**2), stat=istat)
-  call memocc(istat, mat2, 'mat2', subname)
-  allocate(mat3(norb**2), stat=istat)
-  call memocc(istat, mat2, 'mat2', subname)
-
-  mat1=0.d0
-  mat2=0.d0
-  do iseg=1,nseg
-      do i=keyg(1,iseg),keyg(2,iseg)
-          ! the localization region is "symmetric"
-          mat1(i)=1.d0
-          mat2(i)=1.d0
-      end do
-  end do
-
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
-
-  segment=.false.
-  nsegmatmul=0
-  do iorb=1,norb**2
-      if(mat3(iorb)>0.d0) then
-          ! This entry of the matrix will be different from zero.
-          if(.not. segment) then
-              ! This is the start of a new segment
-              segment=.true.
-              nsegmatmul=nsegmatmul+1
-          end if
-      else
-          if(segment) then
-              ! We reached the end of a segment
-              segment=.false.
-          end if
-      end if
-  end do
-
-
-  allocate(keygmatmul(2,nsegmatmul), stat=istat)
-  call memocc(istat, keygmatmul, 'keygmatmul', subname)
-  allocate(keyvmatmul(nsegmatmul), stat=istat)
-  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
-  keyvmatmul=0
-  ! Now fill the descriptors.
-  segment=.false.
-  ij=0
-  iseg=0
-  do iorb=1,norb**2
-      ij=iorb
-      if(mat3(iorb)>0.d0) then
-          ! This entry of the matrix will be different from zero.
-          if(.not. segment) then
-              ! This is the start of a new segment
-              segment=.true.
-              iseg=iseg+1
-              keygmatmul(1,iseg)=ij
-          end if
-          keyvmatmul(iseg)=keyvmatmul(iseg)+1
-      else
-          if(segment) then
-              ! We reached the end of a segment
-              segment=.false.
-              keygmatmul(2,iseg)=ij-1
-          end if
-      end if
-  end do
-  ! Close the last segment if required.
-  if(segment) then
-      keygmatmul(2,iseg)=ij
-  end if
-
-
-iall=-product(shape(mat1))*kind(mat1)
-deallocate(mat1, stat=istat)
-call memocc(istat, iall, 'mat1', subname)
-iall=-product(shape(mat2))*kind(mat2)
-deallocate(mat2, stat=istat)
-call memocc(istat, iall, 'mat2', subname)
-iall=-product(shape(mat3))*kind(mat3)
-deallocate(mat3, stat=istat)
-call memocc(istat, iall, 'mat3', subname)
-
-
-end subroutine initCompressedMatmul2
-
-
-
-
-subroutine initCompressedMatmul3(norb, mad)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: norb
+  integer,intent(in):: iproc, norb
   type(matrixDescriptors),intent(inout):: mad
 
   ! Local variables
@@ -968,6 +977,7 @@ subroutine initCompressedMatmul3(norb, mad)
   character(len=*),parameter:: subname='initCompressedMatmul3'
   real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
+  call timing(iproc,'initMatmulComp','ON')
 
   allocate(mat1(norb**2), stat=istat)
   call memocc(istat, mat1, 'mat1', subname)
@@ -1051,6 +1061,7 @@ iall=-product(shape(mat3))*kind(mat3)
 deallocate(mat3, stat=istat)
 call memocc(istat, iall, 'mat3', subname)
 
+call timing(iproc,'initMatmulComp','OF')
 
 end subroutine initCompressedMatmul3
 
@@ -1579,6 +1590,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_orbitals_data_for_linear'
+
+  call timing(iproc,'init_orbs_lin ','ON')
   
   call nullify_orbitals_data(lorbs)
   
@@ -1658,6 +1671,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   deallocate(norbsPerAtom, stat=istat)
   call memocc(istat, iall, 'norbsPerAtom', subname)
 
+
+  call timing(iproc,'init_orbs_lin ','OF')
+
 end subroutine init_orbitals_data_for_linear
 
 
@@ -1682,6 +1698,9 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
   integer:: iat, ityp, ilr, istat, iorb, iall
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='init_local_zone_descriptors'
+
+
+  call timing(iproc,'init_locregs  ','ON')
   
   call nullify_local_zone_descriptors(lzd)
   
@@ -1720,6 +1739,8 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
+
+  call timing(iproc,'init_locregs  ','OF')
 
 end subroutine init_local_zone_descriptors
 
@@ -1819,8 +1840,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   end if
 
   !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-       tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
+  !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  !!     tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
@@ -1913,12 +1934,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, llborbs, llborbs%inWhichLocreg,&
-       's', lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
-  call initCompressedMatmul3(llborbs%norb, lbmad)
+  call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 

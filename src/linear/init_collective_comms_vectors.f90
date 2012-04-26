@@ -289,14 +289,6 @@ subroutine determine_num_orbs_per_gridpoint_vectors(iproc, nproc, norbig, nlr, n
           do jorb=1,orbs%norb
               jlr=orbs%inwhichlocreg(jorb)
               ! Check whether this orbitals extends here
-              !!call check_grid_point_from_boxes(i, i2, i3, lzd%llr(ilr), overlap_possible)
-              !!if(.not. overlap_possible) then
-              !!    found=.false.
-              !!else
-              !!    call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
-              !!         lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
-              !!         i, i2, i3, iseg_start_c(ilr), found)
-              !!end if
               found=.false.
               do korb=1,mlr(jlr)%norbinlr
                   if(mlr(jlr)%indexInGlobal(korb)==iorb) then
@@ -495,12 +487,6 @@ gridpoint_start=-1
       end do
   end do
 
-  !!!ndimvec=0
-  !!!do iorb=1,orbs%norbp
-  !!!    iiorb=orbs%isorb+iorb
-  !!!    ilr=orbs%inwhichlocreg(iiorb)
-  !!!    ndimvec=ndimvec+mlr(ilr)%norbinlr
-  !!!end do
   if(iitot/=ndimvec) stop 'iitot/=ndimvec'
 
   !check

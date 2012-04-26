@@ -37,7 +37,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call allocateRecvBufferOrtho(tmbopt%comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
       call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-           tmbopt%orbs%inWhichLocreg, tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
+           tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
            lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
       !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
       call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
@@ -198,21 +198,22 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   integer,intent(in):: iproc, nproc, it
   logical,intent(in):: variable_locregs
   type(localizedDIISParameters),intent(inout):: ldiis
-  type(DFT_wavefunction),intent(inout):: tmblarge, tmb, tmbopt
+  type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+  type(DFT_wavefunction),pointer,intent(inout):: tmbopt
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(tmblarge%orbs%norb,tmblarge%orbs%norb),intent(inout):: kernel
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
   real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
   real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
-  real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenter
-  real(8),dimension(3,tmblarge%lzd%nlr),intent(inout):: locregCenterTemp
+  real(8),dimension(:),pointer,intent(out):: lphioldopt
+  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenter
+  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenterTemp
   type(DFT_local_fields),intent(inout):: denspot
   real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-  integer,dimension(tmblarge%orbs%norb),intent(in):: inwhichlocreg_reference
+  integer,dimension(tmb%orbs%norb),intent(in):: inwhichlocreg_reference
   real(8),intent(in):: factor, trH, meanAlpha
-  real(8),dimension(tmbopt%orbs%norb),intent(out):: alpha, alphaDIIS
+  real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
   
   ! Local variables
   integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
@@ -308,6 +309,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+          ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+               tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
           call destroy_new_locregs(iproc, nproc, tmblarge)
           !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
@@ -337,6 +341,16 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       else
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       end if
+      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          tmbopt => tmb
+          lhphiopt => lhphi
+          lphioldopt => lphiold
+      else
+          tmbopt => tmblarge
+          lhphiopt => lhphilarge
+          lphioldopt => lphilargeold
+      end if
+      tmbopt%confdatarr => tmb%confdatarr
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
@@ -358,6 +372,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+                   tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)    
               call destroy_new_locregs(iproc, nproc, tmb)
               !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
@@ -388,6 +405,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           ! Update the localization region if required.
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+              ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
+              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+                   tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
               call destroy_new_locregs(iproc, nproc, tmblarge)
               !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
