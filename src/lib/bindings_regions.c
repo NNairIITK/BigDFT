@@ -338,7 +338,7 @@ static void bigdft_lzd_finalize(GObject *obj)
           /* We free only the C wrapper. */
           lzd->Llr[i]->data = (gpointer)0;
           lzd->Llr[i]->parent.data = (gpointer)0;
-          g_object_unref(lzd->Llr[i]);
+          bigdft_locreg_free(lzd->Llr[i]);
         }
       g_free(lzd->Llr);
     }

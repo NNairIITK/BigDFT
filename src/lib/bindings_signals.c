@@ -1,18 +1,24 @@
 #include <config.h>
 
+#include <string.h>
+
 #ifdef HAVE_GLIB
 #include <glib.h>
 #include <glib-object.h>
 #include <gio/gio.h>
-#include <string.h>
+#else
+#include <stdio.h>
+#endif
+
+#ifdef HAVE_GDBUS
+#include "bindings_dbus.h"
+#else
+#include <stdio.h>
+#endif
 
 #include "bigdft.h"
 #include "bindings.h"
 #include "bindings_signals.h"
-
-#ifdef HAVE_GDBUS
-#include "bindings_dbus.h"
-#endif
 
 #ifdef HAVE_GLIB
 /* Callbacks for Inet transport. */
@@ -70,6 +76,7 @@ void on_name_acquired(GDBusConnection *connection, const gchar *name, gpointer d
 void on_name_lost(GDBusConnection *connection, const gchar *name, gpointer data);
 #endif
 
+#ifdef HAVE_GLIB
 static gpointer bigdft_main(gpointer data)
 {
   GMainLoop *loop = (GMainLoop*)data;
@@ -89,7 +96,9 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
 #endif
 
   bmain->wf = BIGDFT_WF(*wf_);
+#ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(*wf_));
+#endif
 
   switch (bmain->kind)
     {
@@ -116,7 +125,7 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       g_dbus_object_manager_server_export(bmain->manager, G_DBUS_OBJECT_SKELETON(obj));
       g_object_unref(obj);
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -124,7 +133,7 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       bmain->wf_id = g_signal_connect(G_OBJECT(bmain->wf), "psi-ready",
                                      G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -141,19 +150,23 @@ void FC_FUNC_(bigdft_signals_rm_wf, BIGDFT_SIGNALS_RM_WF)(gpointer *self)
 #ifdef HAVE_GDBUS
       g_dbus_object_manager_server_unexport(bmain->manager, "/outputs/DFT_wavefunctions");
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
       g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_id);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
       break;
     }
+#ifdef HAVE_GLIB
+  g_object_unref(bmain->wf);
+#endif
+  bmain->wf = (BigDFT_Wf*)0;
 }
 void FC_FUNC_(bigdft_signals_add_denspot, BIGDFT_SIGNALS_ADD_DENSPOT)(gpointer *self,
                                                                       gpointer *denspot_)
@@ -165,7 +178,9 @@ void FC_FUNC_(bigdft_signals_add_denspot, BIGDFT_SIGNALS_ADD_DENSPOT)(gpointer *
 #endif
 
   bmain->denspot = BIGDFT_LOCALFIELDS(*denspot_);
+#ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(*denspot_));
+#endif
 
   switch (bmain->kind)
     {
@@ -194,7 +209,7 @@ void FC_FUNC_(bigdft_signals_add_denspot, BIGDFT_SIGNALS_ADD_DENSPOT)(gpointer *
       g_dbus_object_manager_server_export(bmain->manager, G_DBUS_OBJECT_SKELETON(obj));
       g_object_unref(obj);
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -204,7 +219,7 @@ void FC_FUNC_(bigdft_signals_add_denspot, BIGDFT_SIGNALS_ADD_DENSPOT)(gpointer *
       bmain->denspot_id = g_signal_connect(G_OBJECT(bmain->denspot), "density-ready",
                                           G_CALLBACK(onDensityReadyInet), (gpointer)&bmain->recv);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -221,7 +236,7 @@ void FC_FUNC_(bigdft_signals_rm_denspot, BIGDFT_SIGNALS_RM_DENSPOT)(gpointer *se
 #ifdef HAVE_GDBUS
       g_dbus_object_manager_server_unexport(bmain->manager, "/outputs/DFT_local_fields");
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -229,12 +244,16 @@ void FC_FUNC_(bigdft_signals_rm_denspot, BIGDFT_SIGNALS_RM_DENSPOT)(gpointer *se
       g_signal_handler_disconnect(G_OBJECT(bmain->denspot), bmain->vext_id);
       g_signal_handler_disconnect(G_OBJECT(bmain->denspot), bmain->denspot_id);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
       break;
     }
+#ifdef HAVE_GLIB
+  g_object_unref(bmain->denspot);
+#endif
+  bmain->denspot = (BigDFT_LocalFields*)0;
 }
 void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *self,
                                                                     gpointer *energs_)
@@ -246,7 +265,9 @@ void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *se
 #endif
 
   bmain->energs = BIGDFT_ENERGS(*energs_);
+#ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(*energs_));
+#endif
 
   switch (bmain->kind)
     {
@@ -271,7 +292,7 @@ void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *se
       g_dbus_object_manager_server_export(bmain->manager, G_DBUS_OBJECT_SKELETON(obj));
       g_object_unref(obj);
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -279,7 +300,7 @@ void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *se
       bmain->energs_id = g_signal_connect(G_OBJECT(bmain->energs), "eks-ready",
                                          G_CALLBACK(onEKSReadyInet), (gpointer)&bmain->recv);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -296,19 +317,23 @@ void FC_FUNC_(bigdft_signals_rm_energs, BIGDFT_SIGNALS_RM_ENERGS)(gpointer *self
 #ifdef HAVE_GDBUS
       g_dbus_object_manager_server_unexport(bmain->manager, "/outputs/DFT_energies");
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
       g_signal_handler_disconnect(G_OBJECT(bmain->energs), bmain->energs_id);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
       break;
     }
+#ifdef HAVE_GLIB
+  g_object_unref(bmain->energs);
+#endif
+  bmain->energs = (BigDFT_Energs*)0;
 }
 
 void FC_FUNC_(bigdft_signals_add_optloop, BIGDFT_SIGNALS_ADD_OPTLOOP)(gpointer *self,
@@ -317,15 +342,17 @@ void FC_FUNC_(bigdft_signals_add_optloop, BIGDFT_SIGNALS_ADD_OPTLOOP)(gpointer *
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
 
   bmain->optloop = BIGDFT_OPTLOOP(*optloop_);
+#ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(*optloop_));
+#endif
 
   switch (bmain->kind)
     {
     case BIGDFT_SIGNALS_DBUS:
 #ifdef HAVE_GDBUS
-      g_warning("Signals init: DBus transport not implemented for optloop.");
+      fprintf(stderr, "Signals init: DBus transport not implemented for optloop.");
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -343,7 +370,7 @@ void FC_FUNC_(bigdft_signals_add_optloop, BIGDFT_SIGNALS_ADD_OPTLOOP)(gpointer *
       bmain->optloop_done_wfn_id = g_signal_connect(G_OBJECT(bmain->optloop), "done-wavefunctions",
                                                     G_CALLBACK(onDoneWfnInet), (gpointer)&bmain->recv);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -360,7 +387,7 @@ void FC_FUNC_(bigdft_signals_rm_optloop, BIGDFT_SIGNALS_RM_OPTLOOP)(gpointer *se
 #ifdef HAVE_GDBUS
       g_dbus_object_manager_server_unexport(bmain->manager, "/outputs/DFT_energies");
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -372,12 +399,16 @@ void FC_FUNC_(bigdft_signals_rm_optloop, BIGDFT_SIGNALS_RM_OPTLOOP)(gpointer *se
       g_signal_handler_disconnect(G_OBJECT(bmain->optloop), bmain->optloop_done_sub_id);
       g_signal_handler_disconnect(G_OBJECT(bmain->optloop), bmain->optloop_done_wfn_id);
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
       break;
     }
+#ifdef HAVE_GLIB
+  g_object_unref(bmain->optloop);
+#endif
+  bmain->optloop = (BigDFT_OptLoop*)0;
 }
 
 void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *kind,
@@ -387,8 +418,8 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
 #ifdef G_THREADS_ENABLED
   GThread *ld_thread;
 #endif
-  GError *error;
 #ifdef HAVE_GLIB
+  GError *error;
   GResolver *dns;
   GList *lst, *tmp;
   GSocketAddress *sockaddr;
@@ -400,11 +431,10 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
   g_type_init();
 #endif
 
-  error = (GError*)0;
-
   bmain = g_malloc0(sizeof(BigDFT_Main));
 
 #ifdef G_THREADS_ENABLED
+  error = (GError*)0;
   bmain->loop = g_main_loop_new(NULL, FALSE);
   ld_thread = g_thread_create(bigdft_main, (gpointer)bmain->loop, FALSE, &error);
 #endif
@@ -422,7 +452,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
       bmain->manager = g_dbus_object_manager_server_new("/outputs");
       g_dbus_object_manager_server_set_connection(bmain->manager, bmain->bus);
 #else
-      g_warning("Signals init: DBus transport unavailable.");
+      fprintf(stderr, "Signals init: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -474,7 +504,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
           break;
         }
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -484,6 +514,7 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
   *self = bmain;
 }
 
+#ifdef HAVE_GLIB
 static gboolean onClientTimeout(gpointer data)
 {
   g_cancellable_cancel((GCancellable*)data);
@@ -491,14 +522,19 @@ static gboolean onClientTimeout(gpointer data)
 
   return FALSE;
 }
+#endif
 
 void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *timeout)
 {
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
+#ifdef HAVE_GLIB
   GError *error;
   GCancellable *cancellable;
+#endif
 
+#ifdef HAVE_GLIB
   error = (GError*)0;
+#endif
   switch (bmain->kind)
     {
     case BIGDFT_SIGNALS_DBUS:
@@ -508,7 +544,7 @@ void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *t
          G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT | G_BUS_NAME_OWNER_FLAGS_REPLACE,
          on_name_acquired, on_name_lost, NULL, NULL);
 #else
-      g_warning("Signals start: DBus transport unavailable.");
+      fprintf(stderr, "Signals start: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -552,7 +588,7 @@ void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *t
           g_source_attach(bmain->source, NULL);
         }
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -563,16 +599,20 @@ void FC_FUNC_(bigdft_signals_start, BIGDFT_SIGNALS_START)(gpointer *self, int *t
 void FC_FUNC_(bigdft_signals_stop, BIGDFT_SIGNALS_STOP)(gpointer *self)
 {
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
+#ifdef HAVE_GLIB
   GError *error;
+#endif
 
+#ifdef HAVE_GLIB
   error = (GError*)0;
+#endif
   switch (bmain->kind)
     {
     case BIGDFT_SIGNALS_DBUS:
 #ifdef HAVE_GDBUS
       g_bus_unown_name(bmain->busId);
 #else
-      g_warning("Signals stop: DBus transport unavailable.");
+      fprintf(stderr, "Signals stop: DBus transport unavailable.");
 #endif
       break;
     case BIGDFT_SIGNALS_INET:
@@ -585,7 +625,7 @@ void FC_FUNC_(bigdft_signals_stop, BIGDFT_SIGNALS_STOP)(gpointer *self)
           bmain->kind = BIGDFT_SIGNALS_NONE;
         }
 #else
-      g_warning("Signals init: Inet transport unavailable.");
+      fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
       break;
     default:
@@ -618,6 +658,7 @@ void bigdft_signals_free_main(gpointer self)
     }
 #endif
 
+#ifdef HAVE_GLIB
   if (bmain->wf)
     g_object_unref(bmain->wf);
   if (bmain->denspot)
@@ -630,6 +671,7 @@ void bigdft_signals_free_main(gpointer self)
         g_signal_handler_disconnect(G_OBJECT(bmain->optloop), bmain->optloop_sync);
       g_object_unref(bmain->optloop);
     }
+#endif
 
   g_free(bmain);
 #endif

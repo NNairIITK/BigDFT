@@ -7,6 +7,7 @@
 #define FALSE 0
 #define gboolean int
 #define g_malloc(A) malloc(A)
+#define g_malloc0(A) malloc(A)
 #define g_free(A)   free(A)
 #define guint unsigned int
 #define gchar char

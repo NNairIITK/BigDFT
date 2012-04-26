@@ -176,7 +176,7 @@ BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj)
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
 #else
-  localfields = g_malloc(sizeof(BigDFT_Localfields));
+  localfields = g_malloc(sizeof(BigDFT_LocalFields));
   bigdft_localfields_init(localfields);
 #endif
   localfields->data = obj;

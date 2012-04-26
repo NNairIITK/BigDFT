@@ -309,14 +309,14 @@ void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
                 0 /* details */, *istep, NULL);
 #endif  
 }
+#ifdef HAVE_GLIB
 void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
                              GQuark quark, guint ikpt, guint iorb, guint ispin)
 {
-#ifdef HAVE_GLIB
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[ONE_WAVE_READY_SIGNAL],
                 quark, iter, psic, ikpt, iorb, ispin, NULL);
-#endif  
 }
+#endif  
 
 BigDFT_Wf* bigdft_wf_new()
 {
