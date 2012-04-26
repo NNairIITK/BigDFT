@@ -547,7 +547,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation

@@ -69,21 +69,22 @@ typedef struct BigDFT_Atoms_
 
 
 BigDFT_Atoms* bigdft_atoms_new();
-BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
-void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
-void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
-void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
+BigDFT_Atoms* bigdft_atoms_new_from_file    (const gchar *filename);
+void          bigdft_atoms_free             (BigDFT_Atoms *atoms);
+void          bigdft_atoms_set_n_atoms      (BigDFT_Atoms *atoms, guint nat);
+void          bigdft_atoms_set_n_types      (BigDFT_Atoms *atoms, guint ntypes);
 gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
-void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc,
-                                            guint nspin, const gchar *occup);
-void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
-                                            double tol, double elecfield[3]);
-void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
-void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
-double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
-                                            double frmult, double projrad);
-void          bigdft_atoms_write           (const BigDFT_Atoms *atoms,
-                                            const gchar *filename);
+void          bigdft_atoms_set_psp          (BigDFT_Atoms *atoms, int ixc,
+                                             guint nspin, const gchar *occup);
+void          bigdft_atoms_set_symmetries   (BigDFT_Atoms *atoms, gboolean active,
+                                             double tol, double elecfield[3]);
+void          bigdft_atoms_set_displacement (BigDFT_Atoms *atoms, double randdis);
+void          bigdft_atoms_sync             (BigDFT_Atoms *atoms);
+void          bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms);
+double*       bigdft_atoms_get_radii        (const BigDFT_Atoms *atoms, double crmult,
+                                             double frmult, double projrad);
+void          bigdft_atoms_write            (const BigDFT_Atoms *atoms,
+                                             const gchar *filename);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -122,6 +123,9 @@ typedef struct BigDFT_Inputs_
   double frac_fluct, forcemax, randdis, betax, dtion;
   double strtarget[6];
   f90_pointer_double qmass;
+
+  /* LIN file variables (partial. */
+  gchar linear[3];
 
   /* Private. */
   void *data;
@@ -171,10 +175,16 @@ typedef struct BigDFT_locReg_
   double *radii;
   double crmult, frmult;
   
+  /* Values of the wfd descriptor. */
+  guint nvctr_c, nvctr_f, nseg_c, nseg_f;
+  guint *keyglob, *keygloc;
+  guint *keyvloc, *keyvglob;
+
   /* TODO: bindings to values... */
 
   /* Private. */
   void *d;
+  void *wfd;
   void *data;
 } BigDFT_LocReg;
 typedef enum
@@ -193,6 +203,17 @@ gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
                                                   BigDFT_Grid gridType);
 double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
                                                   const double *psic);
+typedef struct _BigDFT_LocRegIter
+{
+  const BigDFT_LocReg *glr;
+  guint nseg, iseg, grid[3];
+
+  guint i3, i2, i1, i0;
+  double x0, x1, y, z;
+} BigDFT_LocRegIter;
+gboolean       bigdft_locreg_iter_new            (const BigDFT_LocReg *glr,
+                                                  BigDFT_LocRegIter *iter, BigDFT_Grid gridType);
+gboolean       bigdft_locreg_iter_next           (BigDFT_LocRegIter *iter);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -220,17 +241,23 @@ struct BigDFT_lzd_
   /* Values binded from the Fortran object. */
   double h[3];
 
+  /* Bind of Llr array. */
+  guint nlr;
+  BigDFT_LocReg **Llr;
+
   /* Private. */
   void *data;
 };
 BigDFT_Lzd* bigdft_lzd_new();
-BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd);
-BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd);
-void        bigdft_lzd_free(BigDFT_Lzd *lzd);
-void        bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
-                                double crmult, double frmult);
+BigDFT_Lzd* bigdft_lzd_new_with_fortran (void *fortran_lzd);
+BigDFT_Lzd* bigdft_lzd_new_from_fortran (void *fortran_lzd);
+void        bigdft_lzd_free             (BigDFT_Lzd *lzd);
+void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
+                                         double crmult, double frmult);
 void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                          double crmult, double frmult);
+void        bigdft_lzd_define           (BigDFT_Lzd *lzd, const gchar type[3],
+                                         BigDFT_Orbs *orbs, guint iproc, guint nproc);
 
 
 /*******************************/

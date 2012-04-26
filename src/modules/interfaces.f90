@@ -5713,12 +5713,12 @@ module module_interfaces
          real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
        end subroutine get_potential_matrices
        
-       subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+       subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,rxyz)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,nproc
-         type(input_variables), intent(in) :: input
+         integer, intent(in) :: iproc,nproc,nspin
+         character(len = 3), intent(in) :: linType
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs

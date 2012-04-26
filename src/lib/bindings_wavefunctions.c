@@ -393,13 +393,10 @@ guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guin
   int nelec;
 
   nelec = bigdft_orbs_define(&wf->parent, wf->lzd, in, iproc, nproc);
-  
-  FC_FUNC_(lzd_empty, LZD_EMPTY)(wf->lzd->data);
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, in->data, wf->lzd->data, wf->lzd->parent.parent.data,
-     wf->parent.data, wf->lzd->parent.parent.rxyz.data);
 
   FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
+
+  bigdft_lzd_define(wf->lzd, in->linear, wf->parent.data, iproc, nproc);
 
   return nelec;
 }

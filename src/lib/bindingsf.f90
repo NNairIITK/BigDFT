@@ -146,22 +146,26 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
-subroutine glr_init(glr, d)
+subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
 
   call nullify_locreg_descriptors(glr)
   d => glr%d
+  wfd => glr%wfd
 end subroutine glr_init
-subroutine glr_get_data(glr, d)
+subroutine glr_get_data(glr, d, wfd)
   use module_types
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
 
   d => glr%d
+  wfd => glr%wfd
 end subroutine glr_get_data
 subroutine glr_free(glr)
   use module_types
@@ -207,6 +211,25 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
+     & keyglob, keygloc, keyvglob, keyvloc)
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(out) :: nvctr_c, nvctr_f, nseg_c, nseg_f
+  integer, dimension(:,:), pointer :: keyglob, keygloc
+  integer, dimension(:), pointer :: keyvglob, keyvloc
+
+  nvctr_c = wfd%nvctr_c
+  nvctr_f = wfd%nvctr_f
+  nseg_c  = wfd%nseg_c
+  nseg_f  = wfd%nseg_f
+  keyglob => wfd%keyglob
+  keygloc => wfd%keygloc
+  keyvglob => wfd%keyvglob
+  keyvloc => wfd%keyvloc
+END SUBROUTINE glr_wfd_get_data
+
 subroutine lzd_new(lzd)
   use module_types
   implicit none
@@ -231,6 +254,14 @@ subroutine lzd_get_data(lzd, glr)
 
   glr => lzd%glr
 end subroutine lzd_get_data
+subroutine lzd_copy_data(lzd, nlr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: lzd
+  integer, intent(out) :: nlr
+
+  nlr = lzd%nlr
+end subroutine lzd_copy_data
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -255,6 +286,16 @@ subroutine lzd_get_hgrids(Lzd, hgrids)
   !initial values
   hgrids = Lzd%hgrids
 END SUBROUTINE lzd_get_hgrids
+subroutine lzd_get_llr(Lzd, i, llr)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: Lzd
+  integer, intent(in) :: i
+  type(locreg_descriptors), pointer :: llr
+
+  llr => Lzd%Llr(i)
+END SUBROUTINE lzd_get_llr
 
 subroutine inputs_new(in)
   use module_types
@@ -374,6 +415,14 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
+subroutine inputs_get_lin(in, linear)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 3), intent(out) :: linear
+  
+  linear = in%linear
+END SUBROUTINE inputs_get_lin
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none

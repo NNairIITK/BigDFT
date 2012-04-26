@@ -221,8 +221,8 @@ void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
     (&iproc, &nproc, &verb, &lzd->parent.parent.geocode, lzd->parent.d,
      in->data, localfields->data);
-  GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernel,    PKERNEL);
-  GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
 }
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Lzd *lzd,

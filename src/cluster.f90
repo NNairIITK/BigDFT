@@ -403,6 +403,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb), stat=i_stat)
      call memocc(i_stat, KSwfn%orbs%eval, 'orbs%eval', subname)
      KSwfn%orbs%eval=-.5d0
+
      call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
           KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,&

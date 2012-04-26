@@ -105,7 +105,7 @@ program oneatom
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)

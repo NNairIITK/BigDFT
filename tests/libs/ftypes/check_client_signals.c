@@ -408,7 +408,7 @@ int main(int argc, const char **argv)
   if (socket)
     {
       source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop,
-                                                   onClosedSocket, loop);
+                                                   NULL, onClosedSocket, loop);
       g_source_attach(source, NULL);
 
       g_main_loop_run(loop);

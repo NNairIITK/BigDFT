@@ -47,29 +47,6 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
   *add = val[0];
 }
 
-
-void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
-void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
-void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in, int *nproc,
-                                                      const gchar *rad, int *len);
-void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const void *in, double *hx, double *hy, double *hz, double *crmult, double *frmult, int *ixc, int *ncharge, double *elecfield, int *nspin, int *mpol, double *gnrm_cv, guint *itermax, guint *nrepmax, int *ncong, guint *idsx, int *dispersion, int *inputPsiId, int *output_wf_format, int *output_grid, double *rbuf, int *ncongt, int *norbv, int *nvirt, int *nplot, int *disableSym);
-void FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(void *in, guint *iscf, guint *itrpmax,
-                                              int *norbsempty, int *occopt, double *alphamix,
-                                              double *rpnrm_cv, double *gnrm_startmix,
-                                              double *Tel, double *alphadiis);
-void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach,
-                                                  int *ncount_cluster_x, double *frac_fluct,
-                                                  double *forcemax, double *randdis,
-                                                  double *betax, int *history, int *ionmov,
-                                                  double *dtion, double *strtarget,
-                                                  f90_pointer_double *qmass);
-void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
-                                                        int *iproc, int *dump);
-void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
-void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
-                                                  const gchar *geocode, const double *alat,
-                                                  int *iproc, int *dump);
-
 static BigDFT_Inputs* bigdft_inputs_init()
 {
   BigDFT_Inputs *in;
@@ -127,6 +104,7 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
                                                in->strtarget, &in->qmass);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
+  FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(in->data, in->linear);
   
   return in;
 }

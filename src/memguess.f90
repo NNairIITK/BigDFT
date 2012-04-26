@@ -433,7 +433,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor

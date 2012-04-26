@@ -60,7 +60,8 @@ static void output_atoms(const BigDFT_Atoms *atoms)
 static void output_locreg(const BigDFT_LocReg *glr)
 {
   guint i, n;
-  gboolean *cgrid, *fgrid;
+  gboolean *cgrid, *fgrid, valid;
+  BigDFT_LocRegIter iter;
 
   for (i = 0; i < BIGDFT_ATOMS(glr)->ntypes; i++)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
@@ -85,6 +86,13 @@ static void output_locreg(const BigDFT_LocReg *glr)
           glr->ni[1], glr->ni[2]);
   fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", glr->h[0],
           glr->h[1], glr->h[2]);
+  fprintf(stdout, " Coarse grid has %7d points %5d segments.\n", glr->nvctr_c, glr->nseg_c);
+  fprintf(stdout, " Fine grid has   %7d points %5d segments.\n", glr->nvctr_f, glr->nseg_f);
+
+  for (valid = bigdft_locreg_iter_new(glr, &iter, GRID_FINE); valid && iter.iseg - glr->nseg_c < 10;
+       valid = bigdft_locreg_iter_next(&iter))
+    fprintf(stdout, " fine seg %3d has bounds (%2d - %2d;%2d;%2d)\n",
+            iter.iseg - glr->nseg_c + 1, iter.i0, iter.i1, iter.i2, iter.i3);
 
   fprintf(stdout, "Test calculation of grid points.\n");
   cgrid = bigdft_locreg_get_grid(glr, GRID_COARSE);
@@ -196,6 +204,7 @@ int main(int argc, char **argv)
 
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  fprintf(stdout, "Test BigDFT_Wf define.\n");
   nelec = bigdft_wf_define(wf, in, 0, 1);
 
   /* Test restarting the wavefunction definition. */
