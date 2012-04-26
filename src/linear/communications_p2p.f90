@@ -28,9 +28,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpidest) then
-                      nreceives=nreceives+1
-                      call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                           comm%requests(nreceives,2), ierr)
+                      if(mpidest/=mpisource) then
+                          nreceives=nreceives+1
+                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                               comm%requests(nreceives,2), ierr)
+                      else
+                          call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
+                      end if
                   end if
               else
                   nsends=nsends+1
@@ -53,9 +57,11 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpisource) then
-                      nsends=nsends+1
-                      call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                      if(mpisource/=mpidest) then
+                          nsends=nsends+1
+                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                            comm%requests(nsends,1), ierr)
+                      end if
                   end if
               end if
           end if
