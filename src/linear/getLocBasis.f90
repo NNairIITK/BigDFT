@@ -50,9 +50,9 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
 
 
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(psit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, psit_f, 'psit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, &
@@ -125,13 +125,13 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
 
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(psit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, psit_f, 'psit_f', subname)
-      allocate(hpsit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(hpsit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(hpsit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
@@ -925,75 +925,75 @@ end subroutine my_geocode_buffers
 
 
 
-subroutine transformHam(iproc, nproc, orbs, comms, phi, hphi, HamSmall)
-!
-! Purpose:
-! =======
-!   Builds the Hamiltonian in the basis of the localized basis functions phi. To do so, it gets all basis
-!   functions |phi_i> and H|phi_i> and then calculates H_{ij}=<phi_i|H|phi_j>. The basis functions phi are
-!   provided in the transposed form.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     nproc      total number of processes
-!     orbs       type describing the basis functions psi
-!     comms      type containing the communication parameters for the physical orbitals phi
-!     phi        basis functions 
-!     hphi       the Hamiltonian applied to the basis functions 
-!   Output arguments:
-!   -----------------
-!     HamSmall   Hamiltonian in small basis
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
-real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
-
-! Local variables
-integer:: istat, ierr, nvctrp, iall
-real(8),dimension(:,:),allocatable:: HamTemp
-character(len=*),parameter:: subname='transformHam'
-
-
-
-  ! Allocate a temporary array if there are several MPI processes
-  if(nproc>1) then
-      allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, HamTemp, 'HamTemp', subname)
-  end if
-  
-  ! nvctrp is the amount of each phi hold by the current process
-  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  
-  ! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
-  ! and a mpi_allreduce sums up the contribution from all processes.
-  if(nproc==1) then
-      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-                 hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
-  else
-      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-                 hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
-  end if
-  if(nproc>1) then
-      call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-  end if
-  
-  if(nproc>1) then
-     iall=-product(shape(HamTemp))*kind(HamTemp)
-     deallocate(HamTemp,stat=istat)
-     call memocc(istat, iall, 'HamTemp', subname)
-  end if
-
-end subroutine transformHam
+!!$subroutine transformHam(iproc, nproc, orbs, comms, phi, hphi, HamSmall)
+!!$!
+!!$! Purpose:
+!!$! =======
+!!$!   Builds the Hamiltonian in the basis of the localized basis functions phi. To do so, it gets all basis
+!!$!   functions |phi_i> and H|phi_i> and then calculates H_{ij}=<phi_i|H|phi_j>. The basis functions phi are
+!!$!   provided in the transposed form.
+!!$!
+!!$! Calling arguments:
+!!$! ==================
+!!$!   Input arguments:
+!!$!   ----------------
+!!$!     iproc      process ID
+!!$!     nproc      total number of processes
+!!$!     orbs       type describing the basis functions psi
+!!$!     comms      type containing the communication parameters for the physical orbitals phi
+!!$!     phi        basis functions 
+!!$!     hphi       the Hamiltonian applied to the basis functions 
+!!$!   Output arguments:
+!!$!   -----------------
+!!$!     HamSmall   Hamiltonian in small basis
+!!$!
+!!$use module_base
+!!$use module_types
+!!$implicit none
+!!$
+!!$! Calling arguments
+!!$integer,intent(in):: iproc, nproc
+!!$type(orbitals_data), intent(in) :: orbs
+!!$type(communications_arrays), intent(in) :: comms
+!!$real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
+!!$real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
+!!$
+!!$! Local variables
+!!$integer:: istat, ierr, nvctrp, iall
+!!$real(8),dimension(:,:),allocatable:: HamTemp
+!!$character(len=*),parameter:: subname='transformHam'
+!!$
+!!$
+!!$
+!!$  ! Allocate a temporary array if there are several MPI processes
+!!$  if(nproc>1) then
+!!$      allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
+!!$      call memocc(istat, HamTemp, 'HamTemp', subname)
+!!$  end if
+!!$  
+!!$  ! nvctrp is the amount of each phi hold by the current process
+!!$  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!$  
+!!$  ! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
+!!$  ! and a mpi_allreduce sums up the contribution from all processes.
+!!$  if(nproc==1) then
+!!$      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+!!$                 hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
+!!$  else
+!!$      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+!!$                 hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
+!!$  end if
+!!$  if(nproc>1) then
+!!$      call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!$  end if
+!!$  
+!!$  if(nproc>1) then
+!!$     iall=-product(shape(HamTemp))*kind(HamTemp)
+!!$     deallocate(HamTemp,stat=istat)
+!!$     call memocc(istat, iall, 'HamTemp', subname)
+!!$  end if
+!!$
+!!$end subroutine transformHam
 
 
 
@@ -1763,19 +1763,19 @@ real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 character(len=*),parameter:: subname='apply_position_operators'
 integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
-interface
-subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-     hxh, hyh, hzh, dir, &
-     ibyyzz_r) !optional
-use module_base
-implicit none
-integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
-real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-real(8),intent(in):: hxh, hyh, hzh
-character(len=1),intent(in):: dir
-integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-end subroutine
-end interface
+!!interface
+!!subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+!!     hxh, hyh, hzh, dir, &
+!!     ibyyzz_r) !optional
+!!use module_base
+!!implicit none
+!!integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+!!real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+!!real(8),intent(in):: hxh, hyh, hzh
+!!character(len=1),intent(in):: dir
+!!integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+!!end subroutine
+!!end interface
 
   ishift=(/0,0,0/)
 
@@ -1818,6 +1818,7 @@ end interface
      !psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+
      !!do i_stat=1,Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
      !!    write(1000+iproc,'(i9,es18.7,i9)') i_stat, psir(i_stat,1), Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
      !!end do
@@ -1834,11 +1835,19 @@ end interface
      !!     rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
      !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-     call position_operators(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+     if(lzd%llr(ilr)%geocode == 'F')then
+        call position_operators(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
                              psir, order, psirx, psiry, psirz, &
                              confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     else
+        call position_operators(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
+                             psir, order, psirx, psiry, psirz, &
+                             confdatarr(iorb)) !optional
+     end if
 
      call isf_to_daub(lzd%llr(ilr), work_sr, psirx, xpsi(1+oidx))
      call isf_to_daub(lzd%llr(ilr), work_sr, psiry, ypsi(1+oidx))
@@ -2227,11 +2236,19 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !!     rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
      !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-     call r_operator(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
-                             lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
-                             ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
-                             psir, order, &
-                             confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     if(lzd%llr(ilr)%geocode == 'F') then
+        call r_operator(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                        lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                        ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
+                        psir, order, &
+                        confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     else
+        call r_operator(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                        lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                        ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
+                        psir, order, &
+                        confdatarr(iorb)) !optional
+     end if
 
      call isf_to_daub(lzd%llr(ilr), work_sr, psir, vpsi(1+oidx))
      !!call isf_to_daub(lzd%llr(ilr), work_sr, psiry, ypsi(1+oidx))

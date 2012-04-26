@@ -102,7 +102,7 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   call memocc(istat, collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
 
 
-  call get_switch_indices_vectors(iproc, nproc, nlr, orbsig%norb, collcom%ndimpsi_c, orbs, mlr, &
+  call get_switch_indices_vectors(iproc, nproc, nlr, orbsig%norb, collcom%ndimpsi_c, sum(collcom%nrecvcounts_c), orbs, mlr, &
            istartend, collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, weightp, &
            collcom%isendbuf_c, collcom%irecvbuf_c, collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c)
 
@@ -121,6 +121,10 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   collcom%iextract_f=0
   collcom%iexpand_f=0
   collcom%isendbuf_f=0
+
+  ! now set some integers
+  collcom%ndimind_c = sum(collcom%nrecvcounts_c)
+  collcom%ndimind_f = sum(collcom%nrecvcounts_f)
 
 
   iall=-product(shape(istartend))*kind(istartend)
@@ -418,7 +422,7 @@ end subroutine determine_communication_arrays_vectors
 
 
 
-subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, orbs, mlr, &
+subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, ndimind, orbs, mlr, &
            istartend, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, weightp, &
            isendbuf, irecvbuf, indexrecvorbital, iextract, iexpand)
   use module_base
@@ -426,14 +430,14 @@ subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, orbs, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec
+  integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec, ndimind
   type(orbitals_data),intent(in):: orbs
   type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
   integer,dimension(2,0:nproc-1),intent(in):: istartend
   integer,dimension(0:nproc-1),intent(in):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   real(8),intent(in):: weightp
   integer,dimension(ndimvec),intent(out):: isendbuf, irecvbuf
-  integer,dimension(sum(nrecvcounts)),intent(out):: indexrecvorbital, iextract, iexpand
+  integer,dimension(ndimind),intent(out):: indexrecvorbital, iextract, iexpand
 
   ! Local variables
   integer:: iitot, iorb, iiorb, ilr, jorb, indglob, jproc, jproctarget, ind, iall, istat, ierr, i, ii
@@ -530,7 +534,7 @@ gridpoint_start=-1
   !!call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
   !!call get_gridpoint_start(iproc, nproc, lzd, nrecvcounts_c, nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, &
   !!          weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
-  call get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+  call get_gridpoint_start_vectors(iproc, nproc, norbig, sum(nrecvcounts), indexrecvbuf, weight, gridpoint_start)
 
 
 
@@ -602,15 +606,14 @@ end subroutine get_switch_indices_vectors
 
 
 
-subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, ndim, indexrecvbuf, weight, gridpoint_start)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, norbig
-  integer,dimension(0:nproc-1),intent(in):: nrecvcounts
-  integer,dimension(sum(nrecvcounts)),intent(in):: indexrecvbuf
+  integer,intent(in):: iproc, nproc, norbig, ndim
+  integer,dimension(ndim),intent(in):: indexrecvbuf
   real(8),dimension(norbig),intent(out):: weight
   integer,dimension(norbig),intent(out):: gridpoint_start
 
@@ -618,7 +621,7 @@ subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexr
   integer:: i, ii, iorb 
 
   weight=0.d0
-  do i=1,sum(nrecvcounts)
+  do i=1,ndim 
       ii=indexrecvbuf(i)
       weight(ii)=weight(ii)+1.d0
   end do

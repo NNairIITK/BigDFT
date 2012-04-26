@@ -423,18 +423,16 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
+subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overlaps, mad)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr
+  integer,intent(in):: iproc, nproc, nlr, ndim
   type(orbitals_data),intent(in):: orbs
-  !integer,dimension(nlr),intent(in):: noverlaps
   integer,dimension(orbs%norb),intent(in):: noverlaps
-  !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
-  integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
+  integer,dimension(ndim,orbs%norb),intent(in):: overlaps
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
@@ -444,7 +442,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   call timing(iproc,'init_matrCompr','ON')
 
   call nullify_matrixDescriptors(mad)
-  
+
   mad%nseg=0
   mad%nvctr=0
   jjorbold=-1
@@ -1881,7 +1879,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(collective_comms),intent(inout):: lbcollcom
   
   ! Local variables
-  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii
+  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii, ndim
   integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
   character(len=*),parameter:: subname='update_locreg'
 
@@ -1937,7 +1935,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
-  call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
+  ndim = maxval(lbop%noverlaps)
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 

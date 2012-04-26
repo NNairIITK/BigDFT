@@ -39,7 +39,7 @@ type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
-integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format, ndim
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
 integer :: ind1, ind2
@@ -145,9 +145,11 @@ type(energy_terms) :: energs
   call nullify_p2pcomms(tmbder%comsr)
   call initialize_comms_sumrho(iproc, nproc, denspot%dpcom%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
 
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+  ndim = maxval(tmb%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
   call initCompressedMatmul3(iproc, tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
+  ndim = maxval(tmbder%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, ndim, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
   call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
 
@@ -218,6 +220,7 @@ type(energy_terms) :: energs
      !TO DO: COEFF PROJ
 !     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
 !                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
+!      tmb%orbs%occup = 2.0_gp
      iall = -product(shape(rxyz_old))*kind(rxyz_old)
      deallocate(rxyz_old,stat=istat)
      call memocc(istat,iall,'rxyz_old',subname)
@@ -234,13 +237,13 @@ type(energy_terms) :: energs
      call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,0.5_gp*tmb%lzd%hgrids(1),&
           0.5_gp*tmb%lzd%hgrids(2),0.5_gp*tmb%lzd%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpcom%ngatherarr(0,1))
-     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-     call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
-          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
-          denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
-     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 ! DEBUG (SEE IF HAMILTONIAN IS GOOD)
+!!     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+!!     call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+!!          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+!!     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
+!!          denspot%dpcom,denspot%rhov,denspot%pot_work,tmb%comgp)
+!!     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 !!     allocate(confdatarr(tmb%orbs%norbp))
 !!     call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,hx,hy,hz,input%lin%confpotorder,&
 !!          input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
