@@ -1977,7 +1977,7 @@ module module_interfaces
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
       type(diis_objects), intent(inout) :: diis
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
+      real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
     
     subroutine estimatePerturbedOrbitals(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz, nspin, &
@@ -2007,34 +2007,34 @@ module module_interfaces
     real(8),dimension(3,at%nat):: perturbation
     end subroutine estimatePerturbedOrbitals
     
-    subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iproc,nproc
-      type(orbitals_data), intent(in) :: orbs
-      type(communications_arrays), intent(in) :: comms
-      type(diis_objects), intent(inout) :: diis
-      type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
-      logical, optional:: quiet ! to avoid that the DIIS weights are written
-    end subroutine psimixVariable
+    !!subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  integer, intent(in) :: iproc,nproc
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(diis_objects), intent(inout) :: diis
+    !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
+    !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
+    !!  logical, optional:: quiet ! to avoid that the DIIS weights are written
+    !!end subroutine psimixVariable
     
     
     
-    subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
-      use module_base
-      use module_types
-      implicit none
-    ! Arguments
-      integer, intent(in) :: nproc,iproc
-      type(orbitals_data), intent(in) :: orbs
-      type(communications_arrays), intent(in) :: comms
-      type(diis_objects), intent(inout) :: diis
-      type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-      real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
-      logical, optional:: quiet ! to avoid that the DIIS weights are written
-    end subroutine diisstpVariable
+    !!subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!! Arguments
+    !!  integer, intent(in) :: nproc,iproc
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(diis_objects), intent(inout) :: diis
+    !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
+    !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
+    !!  logical, optional:: quiet ! to avoid that the DIIS weights are written
+    !!end subroutine diisstpVariable
     
     
     subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
@@ -5047,18 +5047,18 @@ module module_interfaces
      end subroutine transformToGlobal
 
 
-     subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
-       use module_base
-       implicit none
+     !!subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+     !!  use module_base
+     !!  implicit none
 
-       ! Calling arguments
-       integer,intent(in):: iproc, nproc, sendcount, comm
-       integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
-       real(8),dimension(sendcount),intent(in):: sendbuf
-       integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
-       integer,intent(in):: tagx
-       real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
-     end subroutine my_iallgatherv
+     !!  ! Calling arguments
+     !!  integer,intent(in):: iproc, nproc, sendcount, comm
+     !!  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+     !!  real(8),dimension(sendcount),intent(in):: sendbuf
+     !!  integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
+     !!  integer,intent(in):: tagx
+     !!  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+     !!end subroutine my_iallgatherv
 
 
      !!subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, comon, nsendbuf, sendbuf,&
@@ -5234,16 +5234,16 @@ module module_interfaces
        !!end subroutine collectnew
 
 
-       subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
-         use module_base
-         implicit none
-         integer,intent(in):: iproc, nproc, sendcount, comm
-         integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
-         real(8),dimension(sendcount),intent(in):: sendbuf
-         integer,dimension(2,0:nproc-1),intent(in):: requests
-         integer,intent(in):: tagx
-         real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
-       end subroutine my_iallgatherv2
+       !!subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+       !!  use module_base
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, sendcount, comm
+       !!  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+       !!  real(8),dimension(sendcount),intent(in):: sendbuf
+       !!  integer,dimension(2,0:nproc-1),intent(in):: requests
+       !!  integer,intent(in):: tagx
+       !!  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+       !!end subroutine my_iallgatherv2
 
 
        subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
@@ -6404,15 +6404,15 @@ module module_interfaces
        !!end  subroutine check_gridpoint
 
        subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
-                  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
-                  nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f, &
+                  nsendcounts_c, nsenddspls_c, ndimind_c, nrecvcounts_c, nrecvdspls_c, &
+                  nsendcounts_f, nsenddspls_f, ndimind_f, nrecvcounts_f, nrecvdspls_f, &
                   index_in_global_c, index_in_global_f, &
                   weightp_c, weightp_f,  isendbuf_c, irecvbuf_c, isendbuf_f, irecvbuf_f, &
                   indexrecvorbital_c, iextract_c, iexpand_c, indexrecvorbital_f, iextract_f, iexpand_f)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, ndimpsi_c, ndimpsi_f
+         integer,intent(in):: iproc, nproc, ndimpsi_c, ndimpsi_f, ndimind_c, ndimind_f
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
@@ -6422,8 +6422,8 @@ module module_interfaces
          real(8),intent(in):: weightp_c, weightp_f
          integer,dimension(ndimpsi_c),intent(out):: isendbuf_c, irecvbuf_c
          integer,dimension(ndimpsi_f),intent(out):: isendbuf_f, irecvbuf_f
-         integer,dimension(sum(nrecvcounts_c)),intent(out):: indexrecvorbital_c, iextract_c, iexpand_c
-         integer,dimension(sum(nrecvcounts_f)),intent(out):: indexrecvorbital_f, iextract_f, iexpand_f
+         integer,dimension(ndimind_c),intent(out):: indexrecvorbital_c, iextract_c, iexpand_c
+         integer,dimension(ndimind_f),intent(out):: indexrecvorbital_f, iextract_f, iexpand_f
        end subroutine get_switch_indices
 
        subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
@@ -6461,31 +6461,30 @@ module module_interfaces
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process2
 
-       subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+       subroutine get_gridpoint_start_vectors(iproc, nproc, norbig, ndim, indexrecvbuf, weight, gridpoint_start)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, norbig
-         integer,dimension(0:nproc-1),intent(in):: nrecvcounts
-         integer,dimension(sum(nrecvcounts)),intent(in):: indexrecvbuf
+         integer,intent(in):: iproc, nproc, norbig, ndim
+         integer,dimension(ndim),intent(in):: indexrecvbuf
          real(8),dimension(norbig),intent(out):: weight
          integer,dimension(norbig),intent(out):: gridpoint_start
        end subroutine get_gridpoint_start_vectors
 
-       subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, orbs, mlr, &
+       subroutine get_switch_indices_vectors(iproc, nproc, nlr, norbig, ndimvec, ndimind, orbs, mlr, &
                   istartend, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, weightp, &
                   isendbuf, irecvbuf, indexrecvorbital, iextract, iexpand)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec
+         integer,intent(in):: iproc, nproc, nlr, norbig, ndimvec, ndimind
          type(orbitals_data),intent(in):: orbs
          type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
          integer,dimension(2,0:nproc-1),intent(in):: istartend
          integer,dimension(0:nproc-1),intent(in):: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
          real(8),intent(in):: weightp
          integer,dimension(ndimvec),intent(out):: isendbuf, irecvbuf
-         integer,dimension(sum(nrecvcounts)),intent(out):: indexrecvorbital, iextract, iexpand
+         integer,dimension(ndimind),intent(out):: indexrecvorbital, iextract, iexpand
        end subroutine get_switch_indices_vectors
 
        subroutine determine_communication_arrays_vectors(iproc, nproc, nlr, orbs, mlr, istartend, weightp, &
@@ -6566,8 +6565,8 @@ module module_interfaces
          type(collective_comms),intent(in):: collcom
          real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
          real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+         real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
+         real(8),dimension(collcom%ndimind_f),intent(out):: psitwork_f
        end subroutine transpose_communicate_psi
 
        subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
@@ -6575,10 +6574,10 @@ module module_interfaces
          use module_types
          implicit none
          type(collective_comms),intent(in):: collcom
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+         real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
+         real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
+         real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
+         real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
        end subroutine transpose_unswitch_psit
 
        subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
@@ -6586,10 +6585,10 @@ module module_interfaces
          use module_types
          implicit none
          type(collective_comms),intent(in):: collcom
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psitwork_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psitwork_f
+         real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
+         real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
+         real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
+         real(8),dimension(7*collcom%ndimind_f),intent(out):: psitwork_f
        end subroutine transpose_switch_psit
 
        subroutine transpose_communicate_psit(collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
@@ -6597,8 +6596,8 @@ module module_interfaces
          use module_types
          implicit none
          type(collective_comms),intent(in):: collcom
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psitwork_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psitwork_f
+         real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
+         real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
          real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
          real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
        end subroutine transpose_communicate_psit
@@ -6623,8 +6622,8 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
          real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(out):: psit_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out):: psit_f
+         real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
+         real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine transpose_localized
 
@@ -6635,8 +6634,8 @@ module module_interfaces
          integer,intent(in):: iproc, nproc
          type(orbitals_data),intent(in):: orbs
          type(collective_comms),intent(in):: collcom
-         real(8),dimension(sum(collcom%nrecvcounts_c)),intent(in):: psit_c
-         real(8),dimension(7*sum(collcom%nrecvcounts_f)),intent(in):: psit_f
+         real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
+         real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
          real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
          type(local_zone_descriptors),optional,intent(in):: lzd
        end subroutine untranspose_localized

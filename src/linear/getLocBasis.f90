@@ -50,9 +50,9 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
 
 
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(psit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, psit_f, 'psit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, &
@@ -125,13 +125,13 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
 
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(psit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, psit_f, 'psit_f', subname)
-      allocate(hpsit_c(sum(tmbmix%collcom%nrecvcounts_c)))
+      allocate(hpsit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*sum(tmbmix%collcom%nrecvcounts_f)))
+      allocate(hpsit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
@@ -911,75 +911,75 @@ end subroutine my_geocode_buffers
 
 
 
-subroutine transformHam(iproc, nproc, orbs, comms, phi, hphi, HamSmall)
-!
-! Purpose:
-! =======
-!   Builds the Hamiltonian in the basis of the localized basis functions phi. To do so, it gets all basis
-!   functions |phi_i> and H|phi_i> and then calculates H_{ij}=<phi_i|H|phi_j>. The basis functions phi are
-!   provided in the transposed form.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     nproc      total number of processes
-!     orbs       type describing the basis functions psi
-!     comms      type containing the communication parameters for the physical orbitals phi
-!     phi        basis functions 
-!     hphi       the Hamiltonian applied to the basis functions 
-!   Output arguments:
-!   -----------------
-!     HamSmall   Hamiltonian in small basis
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
-real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
-
-! Local variables
-integer:: istat, ierr, nvctrp, iall
-real(8),dimension(:,:),allocatable:: HamTemp
-character(len=*),parameter:: subname='transformHam'
-
-
-
-  ! Allocate a temporary array if there are several MPI processes
-  if(nproc>1) then
-      allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, HamTemp, 'HamTemp', subname)
-  end if
-  
-  ! nvctrp is the amount of each phi hold by the current process
-  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  
-  ! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
-  ! and a mpi_allreduce sums up the contribution from all processes.
-  if(nproc==1) then
-      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-                 hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
-  else
-      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-                 hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
-  end if
-  if(nproc>1) then
-      call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-  end if
-  
-  if(nproc>1) then
-     iall=-product(shape(HamTemp))*kind(HamTemp)
-     deallocate(HamTemp,stat=istat)
-     call memocc(istat, iall, 'HamTemp', subname)
-  end if
-
-end subroutine transformHam
+!!$subroutine transformHam(iproc, nproc, orbs, comms, phi, hphi, HamSmall)
+!!$!
+!!$! Purpose:
+!!$! =======
+!!$!   Builds the Hamiltonian in the basis of the localized basis functions phi. To do so, it gets all basis
+!!$!   functions |phi_i> and H|phi_i> and then calculates H_{ij}=<phi_i|H|phi_j>. The basis functions phi are
+!!$!   provided in the transposed form.
+!!$!
+!!$! Calling arguments:
+!!$! ==================
+!!$!   Input arguments:
+!!$!   ----------------
+!!$!     iproc      process ID
+!!$!     nproc      total number of processes
+!!$!     orbs       type describing the basis functions psi
+!!$!     comms      type containing the communication parameters for the physical orbitals phi
+!!$!     phi        basis functions 
+!!$!     hphi       the Hamiltonian applied to the basis functions 
+!!$!   Output arguments:
+!!$!   -----------------
+!!$!     HamSmall   Hamiltonian in small basis
+!!$!
+!!$use module_base
+!!$use module_types
+!!$implicit none
+!!$
+!!$! Calling arguments
+!!$integer,intent(in):: iproc, nproc
+!!$type(orbitals_data), intent(in) :: orbs
+!!$type(communications_arrays), intent(in) :: comms
+!!$real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
+!!$real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
+!!$
+!!$! Local variables
+!!$integer:: istat, ierr, nvctrp, iall
+!!$real(8),dimension(:,:),allocatable:: HamTemp
+!!$character(len=*),parameter:: subname='transformHam'
+!!$
+!!$
+!!$
+!!$  ! Allocate a temporary array if there are several MPI processes
+!!$  if(nproc>1) then
+!!$      allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
+!!$      call memocc(istat, HamTemp, 'HamTemp', subname)
+!!$  end if
+!!$  
+!!$  ! nvctrp is the amount of each phi hold by the current process
+!!$  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!$  
+!!$  ! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
+!!$  ! and a mpi_allreduce sums up the contribution from all processes.
+!!$  if(nproc==1) then
+!!$      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+!!$                 hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
+!!$  else
+!!$      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+!!$                 hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
+!!$  end if
+!!$  if(nproc>1) then
+!!$      call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!$  end if
+!!$  
+!!$  if(nproc>1) then
+!!$     iall=-product(shape(HamTemp))*kind(HamTemp)
+!!$     deallocate(HamTemp,stat=istat)
+!!$     call memocc(istat, iall, 'HamTemp', subname)
+!!$  end if
+!!$
+!!$end subroutine transformHam
 
 
 
