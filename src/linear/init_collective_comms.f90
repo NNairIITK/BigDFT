@@ -31,17 +31,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
   call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
-  !PB: done for no reason right?
-  !!if(nproc>1) then
-  !!    call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
-  !!    call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
-  !!    ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
-  !!    call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
-  !!    call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
-  !!end if
 
   call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-
 
 
   ! Assign the grid points to the processes such that the work is equally dsitributed
@@ -234,60 +225,62 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
   integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
 
 
-  weight_c=0.d0
-  weight_f=0.d0
+  ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+  call to_zero(ii, weight_c(0,0,0))
+  call to_zero(ii, weight_f(0,0,0))
   weight_c_tot=0.d0
   weight_f_tot=0.d0
 
 
-  ! coarse part
+  ! Calculate the weights for the coarse part.
   do iorb=1,orbs%norbp
-    iiorb=orbs%isorb+iorb
-    ilr=orbs%inwhichlocreg(iiorb)
-    do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-       jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-       j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-       j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
-       ii=j0-1
-       i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-       ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-       i2=ii/(lzd%llr(ilr)%d%n1+1)
-       i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
-       i1=i0+j1-j0
-       !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-       do i=i0,i1
-          ii1=i+lzd%llr(ilr)%ns1
-          ii2=i2+lzd%llr(ilr)%ns2
-          ii3=i3+lzd%llr(ilr)%ns3
-          weight_c(ii1,ii2,ii3)=weight_c(ii1,ii2,ii3)+1.d0
-          weight_c_tot=weight_c_tot+1.d0
-       enddo
-    enddo
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+          jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+          j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+          j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+          ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+          i2=ii/(lzd%llr(ilr)%d%n1+1)
+          i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+          i1=i0+j1-j0
+          !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+          do i=i0,i1
+              ii1=i+lzd%llr(ilr)%ns1
+              ii2=i2+lzd%llr(ilr)%ns2
+              ii3=i3+lzd%llr(ilr)%ns3
+              weight_c(ii1,ii2,ii3)=weight_c(ii1,ii2,ii3)+1.d0
+              weight_c_tot=weight_c_tot+1.d0
+          end do
+      end do
   
-    ! fine part
-    istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-    iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
-    do iseg=istart,iend
-       jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-       j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-       j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
-       ii=j0-1
-       i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-       ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-       i2=ii/(lzd%llr(ilr)%d%n1+1)
-       i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
-       i1=i0+j1-j0
-       do i=i0,i1
-          ii1=i+lzd%llr(ilr)%ns1
-          ii2=i2+lzd%llr(ilr)%ns2
-          ii3=i3+lzd%llr(ilr)%ns3
-          weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+1.d0
-          weight_f_tot=weight_f_tot+1.d0
-       enddo
-    enddo
+      ! Calculate the weights for the fine part.
+      istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+      iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+      do iseg=istart,iend
+          jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+          j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+          j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+          ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+          i2=ii/(lzd%llr(ilr)%d%n1+1)
+          i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+          i1=i0+j1-j0
+          do i=i0,i1
+              ii1=i+lzd%llr(ilr)%ns1
+              ii2=i2+lzd%llr(ilr)%ns2
+              ii3=i3+lzd%llr(ilr)%ns3
+              weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+1.d0
+              weight_f_tot=weight_f_tot+1.d0
+          end do
+      end do
   end do
 
 
+  ! Sum up among all processes.
   if(nproc>1) then
       call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
       call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
@@ -323,10 +316,12 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   integer:: i, iseg, i0, iitot, ierr, iiseg
   real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
+  ! Ideal weight per process.
   weight_c_ideal=weight_tot_c/dble(nproc)
   weight_f_ideal=weight_tot_f/dble(nproc)
-  !!if(iproc==0) write(*,'(a,2es14.5)') 'ideal weight per process (coarse / fine):',weight_c_ideal,weight_f_ideal
 
+
+  ! First the coarse part...
   jproc=0
   tt=0.d0
   tt2=0.d0
@@ -412,6 +407,8 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
      stop
   end if
 
+
+  ! Now the fine part...
   jproc=0
   tt=0.d0
   tt2=0.d0
@@ -501,7 +498,8 @@ end subroutine assign_weight_to_process
 
 
 
-
+! This subroutine distributes the components to the processes such that each process has the same grid points
+! as indicated by npts_par_c, npts_par_f.
 subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
            npts_par_c, npts_par_f, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -526,9 +524,9 @@ subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weig
   integer:: i, iseg, i0, iitot, ierr, iiseg, jprocdone
   real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
 
+  ! Ideal weight per process
   weight_c_ideal=weight_tot_c/dble(nproc)
   weight_f_ideal=weight_tot_f/dble(nproc)
-  !!if(iproc==0) write(*,'(a,2es14.5)') 'ideal weight per process (coarse / fine):',weight_c_ideal,weight_f_ideal
 
   jproc=0
   tt=0.d0
