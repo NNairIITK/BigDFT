@@ -1946,14 +1946,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-     denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
+     denspot,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
      wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
   implicit none
 
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
@@ -1962,11 +1962,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !type(orbitals_data), intent(inout) :: orbs
   !type(communications_arrays), intent(in) :: comms
   type(DFT_local_fields), intent(inout) :: denspot
-  type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+  type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunctions
   type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(wp), dimension(:), pointer :: psi_old
-  integer, intent(out) :: inputpsi, norbv
+  integer, intent(out) :: norbv
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   !type(gaussian_basis), intent(inout) :: gbd
@@ -1976,8 +1976,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  logical :: onefile
-  integer :: input_wf_format, i_stat, nspin
+  integer :: i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
   !determine the orthogonality parameters
@@ -1986,48 +1985,37 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   KSwfn%SIC = in%SIC
   !exact exchange parallelization parameter
   KSwfn%exctxpar=in%exctxpar
-  !confinement parameter
-  allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
-  call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
 
-  norbv=abs(in%norbv)
-  inputpsi=in%inputPsiId
-  input_wf_format=WF_FORMAT_NONE !default value
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",KSwfn%orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
   !avoid allocation of the eigenvalues array in case of restart
   if (inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_GAUSS) then
+       & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
+
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
+  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
 
+  ! To be removed.
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) return
+
+  !confinement parameter
+  allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
+  call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
+
   call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
 
+  norbv=abs(in%norbv)
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
@@ -2178,3 +2166,47 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
    end if
 
 END SUBROUTINE input_wf
+
+subroutine input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
+  use module_types
+  implicit none
+  integer, intent(out) :: inputpsi, input_wf_format
+  integer, intent(in) :: iproc
+  type(input_variables), intent(in) :: in
+  type(orbitals_data), intent(in) :: orbs, lorbs
+
+  logical :: onefile
+
+  inputpsi=in%inputPsiId
+  input_wf_format=WF_FORMAT_NONE !default value
+  !for the inputPsiId==2 case, check 
+  !if the wavefunctions are all present
+  !otherwise switch to normal input guess
+  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
+     ! Test ETSF file.
+     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LCAO
+     end if
+  end if
+  ! Test if the files are there for initialization via reading files
+  if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+     ! Test ETSF file.
+     inquire(file=trim(in%dir_output)//"minBasis.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(in%dir_output)//"minBasis",lorbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LINEAR
+     end if
+  end if
+END SUBROUTINE input_check_psi_id

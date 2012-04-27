@@ -1,4 +1,4 @@
-subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
+subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,inputpsi,input_wf_format,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
      eion,edisp,eexctX,scpot,psi,psit,energy)
 use module_base
@@ -7,7 +7,7 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, inputpsi, input_wf_format
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
@@ -24,6 +24,8 @@ logical,intent(in):: scpot
 real(8),dimension(:),pointer,intent(out):: psi, psit
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
+type(DFT_wavefunction),intent(inout),target:: tmb
+type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag
@@ -33,13 +35,11 @@ real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
-type(DFT_wavefunction),target:: tmb
-type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,onefile
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
 real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
-integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format
+integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
 real(8):: ddot, tt1, tt2, tt3
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
@@ -54,60 +54,10 @@ type(energy_terms) :: energs
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
-
-
   ! Initialize everything related to the linear scaling version ###########################################################
   ! Initialize the tags for the p2p communication
   !!tag=p2p_tag(.true.)
   call init_p2p_tags(nproc)
-
-  tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
-  tmb%wfnmd%bs%use_derivative_basis=.false.
-
-
-  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmb%wfnmd%bs%use_derivative_basis, rxyz, &
-       tmb%orbs)
-  call orbitals_communicators(iproc, nproc, glr, tmb%orbs, tmb%comms)
-
-
-  call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, input, at, glr, tmbder%wfnmd%bs%use_derivative_basis, rxyz, &
-       tmbder%orbs)
-  call orbitals_communicators(iproc, nproc, glr, tmbder%orbs, tmbder%comms)
-
-  if(iproc==0) call print_orbital_distribution(iproc, nproc, tmb%orbs, tmbder%orbs)
-
-  ! Test if the files are there for initialization via reading files
-  inputpsi=input%inputPsiId
-  if (input%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-     inputpsi=INPUT_PSI_MEMORY_LINEAR
-     input_wf_format = WF_FORMAT_NONE
-     ! Test ETSF file.
-     inquire(file=trim(input%dir_output)//"minBasis.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(input%dir_output)//"minBasis",tmb%orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LINEAR
-     end if
-  end if
-
-  if(inputpsi == INPUT_PSI_LINEAR) then
-      call init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, tmb%orbs, tmbder%orbs, tmb%lzd)
-  else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-      call nullify_local_zone_descriptors(tmb%lzd)
-      call copy_locreg_descriptors(glr, tmb%lzd%glr, subname)
-      tmb%lzd%hgrids(1)=hx
-      tmb%lzd%hgrids(2)=hy
-      tmb%lzd%hgrids(3)=hz
-      ! for this routine, Lzd must already have Glr and hgrids
-      call initialize_linear_from_file(iproc,nproc,trim(input%dir_output)//'minBasis',input_wf_format,tmb%lzd,tmb%orbs,at,rxyz)
-      !what to do with derivatives?
-  end if
-  call update_wavefunctions_size(tmb%lzd,tmb%orbs)
-  call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
 
   call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
        tmb%orbs%norb, orbs%norb, input, tmb%wfnmd)
@@ -624,8 +574,6 @@ type(energy_terms) :: energs
 
 
   nullify(rho,pot)
-  call destroy_DFT_wavefunction(tmb)
-  call destroy_DFT_wavefunction(tmbder)
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   deallocate(tmb%confdatarr)
   deallocate(tmbder%confdatarr)

@@ -550,22 +550,22 @@ module module_interfaces
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-            denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
+            denspot,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
             wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
          use module_defs
          use module_types
          implicit none
-         integer, intent(in) :: iproc, nproc
+         integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
          type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(in) :: hx_old,hy_old,hz_old
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
-         type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+         type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
          real(wp), dimension(:), pointer :: psi_old
-         integer, intent(out) :: inputpsi, norbv
+         integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
@@ -2213,13 +2213,13 @@ module module_interfaces
     !!!  type(linearParameters),intent(in out):: lin
     !!!end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
+    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,inputpsi,input_wf_format,hx,hy,hz,&
          rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
          eion,edisp,eexctX,scpot,psi,psit,energy)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc
+      integer,intent(in):: iproc, nproc, inputpsi, input_wf_format
       real(gp), intent(in) :: hx, hy, hz
       type(locreg_descriptors),intent(in) :: Glr
       type(orbitals_data),intent(inout):: orbs
@@ -2238,6 +2238,8 @@ module module_interfaces
       real(8),dimension(:),pointer,intent(out):: psi, psit
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
+      type(DFT_wavefunction),intent(inout),target:: tmb
+      type(DFT_wavefunction),intent(inout),target:: tmbder
     end subroutine linearScaling
     
     
@@ -5727,20 +5729,21 @@ module module_interfaces
 !!         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
 !!       end subroutine reinitialize_Lzd_after_LIG
 
-       subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-            orbs,Lzd,denspot,nlpspd,comms,shift,proj,radii_cf)
+       subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+            orbs,lorbs,dlorbs,Lzd,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,nproc 
+         integer, intent(in) :: iproc,nproc
+         integer, intent(out) :: inputpsi,input_wf_format
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-         type(orbitals_data), intent(out) :: orbs
+         type(orbitals_data), intent(out) :: orbs,lorbs,dlorbs
          type(local_zone_descriptors), intent(out) :: Lzd
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-         type(communications_arrays), intent(out) :: comms
+         type(communications_arrays), intent(out) :: comms,lcomms,dlcomms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
