@@ -6767,14 +6767,14 @@ module module_interfaces
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: unitwf                                                                                                                                                                                                             
+         integer, intent(in) :: unitwf
          logical, intent(in) :: formatted
          integer, intent(out) :: norb_old, ntmb_old
          integer, intent(out) :: n1_old, n2_old, n3_old
          real(gp), intent(out) :: hx_old, hy_old, hz_old
          logical, intent(out) :: lstat
          character(len =256), intent(out) :: error
-         ! Optional arguments                                                                                                                                                                                                                      
+         ! Optional arguments
          integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old

@@ -1410,7 +1410,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
-    integer :: i_all,i_stat
+!    integer :: i_all,i_stat
 
     write(0,*) "TODO, remove me"
     
