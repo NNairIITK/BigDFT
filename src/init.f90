@@ -1981,6 +1981,17 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
+
+  tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+  tmb%orthpar%nItOrtho = in%lin%nItOrtho
+  tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+  tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
+  tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+  tmbder%orthpar%nItOrtho = in%lin%nItOrtho
+  tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+  tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
   !SIC parameters
   KSwfn%SIC = in%SIC
   !exact exchange parallelization parameter
@@ -2000,18 +2011,35 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi /= INPUT_PSI_LCAO) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
+  end if
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
+     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
+  end if
+
+  !confinement parameter
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%confdatarr(tmb%orbs%norbp))
+     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
+     
+     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
+     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+  else
+     allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
+     call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
   end if
 
   ! To be removed.
   if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) return
-
-  !confinement parameter
-  allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
-  call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
 
   call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
 

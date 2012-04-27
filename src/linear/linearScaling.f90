@@ -57,98 +57,9 @@ type(energy_terms) :: energs
   ! Initialize everything related to the linear scaling version ###########################################################
   ! Initialize the tags for the p2p communication
   !!tag=p2p_tag(.true.)
-  call init_p2p_tags(nproc)
-
-  call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
-       tmb%orbs%norb, orbs%norb, input, tmb%wfnmd)
-  allocate(tmb%psi(tmb%wfnmd%nphi), stat=istat)
-  call memocc(istat, tmb%psi, 'tmb%psi', subname)
-
-  call create_wfn_metadata('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), tmbder%orbs%norb, &
-       tmbder%orbs%norb, orbs%norb, input, tmbder%wfnmd)
-  allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=istat)
-  call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
-
-  tmbder%wfnmd%bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
-  tmb%wfnmd%bs%use_derivative_basis=.false.
-
-
-  tag=0
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-       input%lin%locregShape, tmb%op, tmb%comon)
-  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmb%lzd, tmb%lzd, &
-       tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-       input%lin%locregShape, tmbder%op, tmbder%comon)
-  
-  call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, tmb%orbs, tmb%lzd, tmb%comgp)
-  call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, tmbder%orbs, tmb%lzd, tmbder%comgp)
-
-  if(input%lin%useDerivativeBasisFunctions) then
-      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
-      call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
-  else
-      call nullify_p2pComms(tmbder%comrp)
-      call nullify_p2pComms(tmb%comrp)
-  end if
-
-
-  call nullify_p2pcomms(tmb%comsr)
-  call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmb%orbs, tmb%comsr)
-  call nullify_p2pcomms(tmbder%comsr)
-  call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
-
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
-  call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-  call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
-       tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-  call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
-
-  allocate(tmb%confdatarr(tmb%orbs%norbp))
-  call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
-
-  allocate(tmbder%confdatarr(tmbder%orbs%norbp))
-  call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,input%lin%confpotorder,&
-       input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
-
-  call nullify_collective_comms(tmb%collcom)
-  call nullify_collective_comms(tmbder%collcom)
-  call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
-  call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
   ! Now all initializations are done ######################################################################################
 
-
-
-
-  ! Assign some values to orthpar
-  tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  tmb%orthpar%nItOrtho = input%lin%nItOrtho
-  tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-  tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
-
-  tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  tmbder%orthpar%nItOrtho = input%lin%nItOrtho
-  tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-  tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
-
-
-  ! Allocate the global orbitals psi and psit
-  if(.not.input%lin%transformToGlobal) then
-      ! psi and psit will not be calculated, so only allocate them with size 1
-      orbs%npsidim_orbs=1
-      orbs%npsidim_comp=1
-  end if
-  allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-  call memocc(istat, psi, 'psi', subname)
-  if(nproc>1) then
-      allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-      call memocc(istat, psit, 'psit', subname)
-  else
-      psit => psi
-  end if
 
   ! Allocate the old charge density (used to calculate the variation in the charge density)
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
@@ -532,13 +443,12 @@ type(energy_terms) :: energs
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
-
   !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
-      call wait_p2p_communication(iproc, nproc, tmbder%comgp)
-      call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+     call wait_p2p_communication(iproc, nproc, tmbder%comgp)
+     call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
 
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
@@ -568,24 +478,31 @@ type(energy_terms) :: energs
 
   ! Build global orbitals psi (the physical ones).
   if(input%lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
-           tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
+     if(nproc>1) then
+        allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+        call memocc(istat, psit, 'psit', subname)
+     else
+        psit => psi
+     end if
+     call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
+          tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
+     if(nproc>1) then
+        iall=-product(shape(psit))*kind(psit)
+        deallocate(psit, stat=istat)
+        call memocc(istat, iall, 'psit', subname)
+     else
+        nullify(psit)
+     end if
   end if
 
 
   nullify(rho,pot)
-  call deallocate_local_zone_descriptors(tmb%lzd, subname)
-  deallocate(tmb%confdatarr)
-  deallocate(tmbder%confdatarr)
 
   iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
   deallocate(lscv%locrad, stat=istat)
   call memocc(istat, iall, 'lscv%locrad', subname)
 
   call timing(iproc,'WFN_OPT','PR')
-
-
-  call finalize_p2p_tags()
 
 end subroutine linearScaling
 

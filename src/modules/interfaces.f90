@@ -5730,7 +5730,7 @@ module module_interfaces
 !!       end subroutine reinitialize_Lzd_after_LIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-            orbs,lorbs,dlorbs,Lzd,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
+            orbs,lorbs,dlorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
          use module_base
          use module_types
          implicit none
@@ -5740,7 +5740,7 @@ module module_interfaces
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
          type(orbitals_data), intent(out) :: orbs,lorbs,dlorbs
-         type(local_zone_descriptors), intent(out) :: Lzd
+         type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
          type(communications_arrays), intent(out) :: comms,lcomms,dlcomms

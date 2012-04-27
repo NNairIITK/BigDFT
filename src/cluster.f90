@@ -213,7 +213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   logical :: refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.,scpot
   integer :: nvirt,norbv
-  integer :: i, input_wf_format
+  integer :: i, input_wf_format, tag
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
@@ -322,8 +322,58 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !here we can put KSwfn
   call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-       KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,denspot,nlpspd,&
+       KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
        KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
+
+  ! We complete here the definition of DFT_wavefunction structures.
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     call init_p2p_tags(nproc)
+
+     call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
+          tmb%orbs%norb, KSwfn%orbs%norb, in, tmb%wfnmd)
+     call create_wfn_metadata('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), tmbder%orbs%norb, &
+          tmbder%orbs%norb, KSwfn%orbs%norb, in, tmbder%wfnmd)
+
+     tag=0
+     call initCommsOrtho(iproc, nproc, in%nspin, &
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), tmb%lzd, tmb%lzd, &
+          tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
+          in%lin%locregShape, tmb%op, tmb%comon)
+     call initCommsOrtho(iproc, nproc, in%nspin, &
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), tmb%lzd, tmb%lzd, &
+          tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
+          in%lin%locregShape, tmbder%op, tmbder%comon)
+
+     call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, &
+          & tmb%orbs, tmb%lzd, tmb%comgp)
+     call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, &
+          & tmbder%orbs, tmb%lzd, tmbder%comgp)
+
+     if(in%lin%useDerivativeBasisFunctions) then
+        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
+     else
+        call nullify_p2pComms(tmbder%comrp)
+        call nullify_p2pComms(tmb%comrp)
+     end if
+
+
+     call nullify_p2pcomms(tmb%comsr)
+     call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmb%orbs, tmb%comsr)
+     call nullify_p2pcomms(tmbder%comsr)
+     call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
+
+     call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
+     call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
+     call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
+          tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
+     call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
+
+     call nullify_collective_comms(tmb%collcom)
+     call nullify_collective_comms(tmbder%collcom)
+     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+     call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
+  end if
 
   optLoop%iscf = in%iscf
   optLoop%itrpmax = in%itrpmax
@@ -433,6 +483,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call destroy_DFT_wavefunction(tmb)
      call destroy_DFT_wavefunction(tmbder)
 
+     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+
+     call finalize_p2p_tags()
+  
      ! debug
 
      !!! debug: write psi to file
@@ -447,13 +501,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*KSwfn%orbs%nspin,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
 
-     if (nproc > 1) then
-        i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-        deallocate(KSwfn%psit,stat=i_stat)
-        call memocc(i_stat,i_all,'KSwfn%psit',subname)
-     else
-        nullify(KSwfn%psit)
-     end if
      ! denspot%rho_full => denspot%rhov
 
   end if
@@ -1099,7 +1146,12 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) deallocate(KSwfn%confdatarr)
+    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+       deallocate(KSwfn%confdatarr)
+    else
+       deallocate(tmb%confdatarr)
+       deallocate(tmbder%confdatarr)
+    end if
 
     ! Free radii_cf
     i_all=-product(shape(radii_cf))*kind(radii_cf)
