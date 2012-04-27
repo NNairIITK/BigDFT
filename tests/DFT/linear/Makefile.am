@@ -7,15 +7,7 @@ TESTDIRS = Locreg \
 	   withder \
 	   mix \
 	   water \
-	   moreIGorbs \
-	  SiBulk \
-	  AgBulk \
-	  Davidson-SiH4 \
-	  TiMix \
-	  TiSmear \
-	  O2-Spin \
-	  TDDFT \
-	  ElectField 
+	   moreIGorbs
 
 EXTRA_DIST = README
 
