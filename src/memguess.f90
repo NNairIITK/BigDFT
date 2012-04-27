@@ -844,8 +844,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(in) :: orbs
-   type(local_zone_descriptors), intent(in) :: Lzd
+   type(orbitals_data), intent(inout) :: orbs
+   type(local_zone_descriptors), intent(inout) :: Lzd
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'

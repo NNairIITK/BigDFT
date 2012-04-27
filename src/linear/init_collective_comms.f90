@@ -20,6 +20,7 @@ integer,dimension(:,:,:),allocatable:: index_in_global_c, index_in_global_f
 integer,dimension(:),allocatable:: npts_par_c, npts_par_f
 character(len=*),parameter:: subname='init_collective_comms'
 
+
 allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, weight_c, 'weight_c', subname)
 allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
@@ -28,6 +29,15 @@ allocate(index_in_global_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=i
 call memocc(istat, index_in_global_c, 'index_in_global_c', subname)
 allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
 call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
+
+
+  if(nproc>1) then
+      call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
+      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+  end if
 
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
@@ -249,6 +259,7 @@ integer:: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i,
   weight_c_tot=0.d0
   weight_f_tot=0.d0
 
+
   ! coarse part
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
@@ -357,7 +368,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_c(i,i2,i3)
            iitot=iitot+1
-           if(tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
+           if((tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c) .and. i==i1 .and. jproc<=nproc-2) then
                if(tt==weight_tot_c .and. jproc==nproc-1) then
                    ! this process also has to take the remaining points, even if they have no weight
                    iitot=lzd%glr%wfd%nvctr_c-ii2
@@ -416,8 +427,10 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_c) stop 'ii/=lzd%glr%wfd%nvctr_c'
-
+  if(ii/=lzd%glr%wfd%nvctr_c) then
+     write(*,*) 'ii/=lzd%glr%wfd%nvctr_c',ii,lzd%glr%wfd%nvctr_c
+     stop
+  end if
 
   jproc=0
   tt=0.d0
@@ -442,7 +455,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_f(i,i2,i3)
            iitot=iitot+1
-           if(tt>=weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
+           if((tt>=weight_f_ideal .or. iseg==iend) .and. i==i1 .and. jproc<=nproc-2) then
                if(tt==weight_tot_f .and. jproc==nproc-1) then
                    ! this process also has to take the remaining points, even if they have no weight
                    iitot=lzd%glr%wfd%nvctr_f-ii2
@@ -582,13 +595,13 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
    jprocdone=jproc
    do jproc=jprocdone,nproc-1
       ! these processes do nothing
-      istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
-      istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+      istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
+      istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
       if(iproc==jproc) then
-          weightp_f=0.d0
-          nptsp_f=0
-          istartp_seg_f=lzd%glr%wfd%nseg_f+1
-          iendp_seg_f=lzd%glr%wfd%nseg_f
+          weightp_c=0.d0
+          nptsp_c=0
+          istartp_seg_c=lzd%glr%wfd%nseg_c+1
+          iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
    end do
   !!if(iproc==nproc-1) then

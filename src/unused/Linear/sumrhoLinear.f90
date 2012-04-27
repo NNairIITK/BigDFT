@@ -641,4 +641,161 @@
 !!
 !!end subroutine setNscatterarr
 
+!!!!subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: iproc, nproc
+!!!!!type(p2pCommsSumrho),intent(inout):: comsr
+!!!!type(p2pComms),intent(inout):: comsr
+!!!!real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
+!!!!real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
+!!!!
+!!!!! Local variables
+!!!!integer:: jproc, nreceives, nsends, iorb, mpisource, istsource, ncount, lrsource, mpidest, istdest, tag, ierr
+!!!!integer:: ist, istr, ilr
+!!!!
+!!!!
+!!!!! Communicate the orbitals for the calculation of the charge density.
+!!!!! Since we use non blocking point to point communication, only post the message
+!!!!! and continues with other calculations.
+!!!!! Be aware that you must not modify the send buffer without checking whether
+!!!!! the communications has completed.
+!!!!if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
+!!!!nreceives=0
+!!!!nsends=0
+!!!!comsr%communComplete=.false.
+!!!!procLoop1: do jproc=0,nproc-1
+!!!!    orbsLoop1: do iorb=1,comsr%noverlaps(jproc)
+!!!!        mpisource=comsr%comarr(1,iorb,jproc)
+!!!!        istsource=comsr%comarr(2,iorb,jproc)
+!!!!        ncount=comsr%comarr(3,iorb,jproc)
+!!!!        lrsource=comsr%comarr(4,iorb,jproc)
+!!!!        mpidest=comsr%comarr(5,iorb,jproc)
+!!!!        istdest=comsr%comarr(6,iorb,jproc)
+!!!!        tag=comsr%comarr(7,iorb,jproc)
+!!!!        if(ncount==0) then
+!!!!            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+!!!!            ! with 0 elements should be removed from comgp%noverlaps etc.
+!!!!            comsr%comarr(8,iorb,jproc)=mpi_request_null
+!!!!            comsr%comarr(9,iorb,jproc)=mpi_request_null
+!!!!            comsr%communComplete(iorb,jproc)=.true.
+!!!!            if(iproc==mpidest) then
+!!!!                ! This is just to make the check at the end happy.
+!!!!                nreceives=nreceives+1
+!!!!            end if
+!!!!        else
+!!!!            if(mpisource/=mpidest) then
+!!!!                ! The orbitals are on different processes, so we need a point to point communication.
+!!!!                if(iproc==mpisource) then
+!!!!                    !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+!!!!                    !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comsr%comarr(8,iorb,jproc), ierr)
+!!!!                    call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+!!!!                         comsr%comarr(8,iorb,jproc), ierr)
+!!!!                    comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
+!!!!                    nsends=nsends+1
+!!!!                else if(iproc==mpidest) then
+!!!!                   !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, &
+!!!!                   !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+!!!!                    call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+!!!!                         comsr%comarr(9,iorb,jproc), ierr)
+!!!!                    comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+!!!!                    nreceives=nreceives+1
+!!!!                else
+!!!!                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+!!!!                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+!!!!                end if
+!!!!            else
+!!!!                ! The orbitals are on the same process, so simply copy them.
+!!!!                if(iproc==mpisource) then
+!!!!                    !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+!!!!                    call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
+!!!!                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+!!!!                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+!!!!                    nsends=nsends+1
+!!!!                    nreceives=nreceives+1
+!!!!                    comsr%communComplete(iorb,mpisource)=.true.
+!!!!                else
+!!!!                    comsr%comarr(8,iorb,jproc)=mpi_request_null
+!!!!                    comsr%comarr(9,iorb,jproc)=mpi_request_null
+!!!!                    comsr%communComplete(iorb,mpisource)=.true.
+!!!!                end if
+!!!!            end if
+!!!!        end if
+!!!!    end do orbsLoop1
+!!!!end do procLoop1
+!!!!if(iproc==0) write(*,'(a)') 'done.'
+!!!!
+!!!!if(nreceives/=comsr%noverlaps(iproc)) then
+!!!!    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comsr%noverlaps(iproc)', nreceives,&
+!!!!         comsr%noverlaps(iproc)
+!!!!    stop
+!!!!end if
+!!!!call mpi_barrier(mpi_comm_world, ierr)
+!!!!
+!!!!end subroutine postCommunicationSumrho2
+
+!!!!> Initializes the parameters needed for the communication of the orbitals
+!!!!! when calculating the charge density.
+!!!!!
+!!!!! input arguments
+!!!!!  @param jproc        process to which the orbital shall be sent
+!!!!!  @param iorb         orbital that is to be sent
+!!!!!  @param istDest      the position on the MPI process to which it should be sent
+!!!!!  @param tag          communication tag
+!!!!!  @param lin          type containing the parameters for the linear scaling version
+!!!!! output arguments
+!!!!!  @param commsSumrho  contains the parameters
+!!!subroutine setCommunicationInformation(jproc, iorb, istDest, tag, lin, commsSumrho)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: jproc, iorb, istDest, tag
+!!!type(linearParameters),intent(in):: lin
+!!!integer,dimension(9),intent(out):: commsSumrho
+!!!
+!!!! Local variables
+!!!integer:: mpisource, ist, jorb, jlr
+!!!
+!!!! on which MPI process is the orbital that has to be sent to jproc
+!!!mpisource=lin%orbs%onWhichMPI(iorb)
+!!!commsSumrho(1)=mpisource
+!!!
+!!!! starting index of the orbital on that MPI process
+!!!ist=1
+!!!do jorb=lin%orbs%isorb_par(mpisource)+1,iorb-1
+!!!    !jlr=lin%onWhichAtomAll(jorb)
+!!!    jlr=lin%orbs%inWhichLocreg(jorb)
+!!!    ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!end do
+!!!commsSumrho(2)=ist
+!!!
+!!!! amount of data to be sent
+!!!!jlr=lin%onWhichAtomAll(iorb)
+!!!jlr=lin%orbs%inWhichLocreg(iorb)
+!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!
+!!!! localization region to which this orbital belongs to
+!!!!commsSumrho(4)=lin%onWhichAtomAll(iorb)
+!!!commsSumrho(4)=lin%orbs%inWhichLocreg(iorb)
+!!!
+!!!! to which MPI process should this orbital be sent
+!!!commsSumrho(5)=jproc
+!!!
+!!!! the position on the MPI process to which it should be sent
+!!!commsSumrho(6)=istDest
+!!!
+!!!! the tag for this communication
+!!!commsSumrho(7)=tag
+!!!
+!!!! commsSumrho(8): this entry is used a request for the mpi_isend.
+!!!
+!!!! commsSumrho(9): this entry is used a request for the mpi_irecv.
+!!!
+!!!
+!!!end subroutine setCommunicationInformation
 

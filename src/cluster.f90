@@ -363,6 +363,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   n2=KSwfn%Lzd%Glr%d%n2
   n3=KSwfn%Lzd%Glr%d%n3
 
+  !calculate the rhocore contribution to the energy value
+  if (associated(denspot%rho_C)) then
+     !calculate the XC energy of rhocore, use the rhov array as a temporary variable
+     !use Vxc and other quantities as local variables
+     call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
+     denspot%rhov=1.d-16
+     call XC_potential(atoms%geocode,'D',iproc,nproc,&
+          denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+     if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
+  end if
+
+
+
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
@@ -379,7 +394,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  if (in%inputPsiId /= INPUT_PSI_LINEAR) then
+  if (in%inputPsiId /= INPUT_PSI_LINEAR .and. in%inputPsiId /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -452,7 +467,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !start the optimization
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
 
      !end of the initialization part
      call timing(iproc,'INIT','PR')
@@ -467,7 +482,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !do the last_run things regardless of infocode
      !nrepmax=0 is needed for the Band Structure calculations
      DoLastRunThings=(in%last_run == 1 .and. optLoop%nrepmax == 0) .or. &
-          & (in%last_run == 1 .and. optLoop%itrep == optLoop%nrepmax)
+          & (in%last_run == 1 .and. optLoop%itrep >= optLoop%nrepmax)
               !print the energies only if they are meaningful
      energy = energs%eKS
      !Davidson is set to false first because used in deallocate_before_exiting
@@ -485,6 +500,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !last run things has to be done:
   !if it is the last run and the infocode is zero
   !if infocode is not zero but the last run has been done for nrepmax times
+
   DoLastRunThings= (in%last_run == 1 .and. infocode == 0) .or. DoLastRunThings
 
   !analyse the possibility to calculate Davidson treatment
@@ -542,7 +558,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      !if (in%gaussian_help) then
-     if (in%gaussian_help .and. .not.in%inputPsiId==100) then
+     if (in%gaussian_help .and. .not.in%inputPsiId==100 .and. .not.in%inputPsiId==101 ) then
 
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
 !!!
@@ -709,7 +725,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            allocate(wkptv(nkptv+ndebug),stat=i_stat)
            call memocc(i_stat,wkptv,'wkptv',subname)
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
-
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv, &
                 in%kptv(:,sum(in%nkptsv_group(1:igroup - 1)) + 1:sum(in%nkptsv_group(1:igroup))), &
@@ -747,6 +762,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         !allocate psivirt pointer (note the orbs dimension)
         allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,VTwfn%psi,'psivirt',subname)
+        !to avoid problems with the bindings
+        VTwfn%c_obj=0.d0
 
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
@@ -892,14 +909,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
-  if (in%gaussian_help .and. DoLastRunThings .and. .not.inputpsi==INPUT_PSI_LINEAR) then
+  if (in%gaussian_help .and. DoLastRunThings .and.&
+&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
         VTwfn%orbs%norbp=0
      end if
      call local_analysis(iproc,nproc,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          in,atoms,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)
+          atoms,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)
   else if (DoLastRunThings .and. optLoop%itrpmax /= 1 .and. verbose >= 2) then
      ! Do a full DOS calculation.
      if (iproc == 0) call global_analysis(KSwfn%orbs, in%Tel,in%occopt)
@@ -1068,12 +1086,12 @@ contains
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
          KSwfn%Lzd%Glr%bounds,subname)
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
-    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
+!    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
+!    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
+!    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR) deallocate(KSwfn%confdatarr)
+    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) deallocate(KSwfn%confdatarr)
 
     ! Free radii_cf
     i_all=-product(shape(radii_cf))*kind(radii_cf)

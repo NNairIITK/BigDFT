@@ -1484,7 +1484,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   !determine the limits of the different localisation regions
   do ilr=1,nlr
      !nullify all pointers
-     nullify(Llr(ilr)%projflg)
+!     nullify(Llr(ilr)%projflg)
      nullify(Llr(ilr)%wfd%keygloc)
      nullify(Llr(ilr)%wfd%keyglob)
      nullify(Llr(ilr)%wfd%keyvloc)

@@ -58,9 +58,13 @@ program WaCo
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
-   integer, parameter :: nbandCon=15
-   integer, dimension(nbandCon) :: bandlist
+   integer :: nbandCon
+   integer, dimension(:),allocatable :: bandlist
    logical :: file_exist,idemp
+   ! ONLY FOR DEBUG
+   real(gp) :: Gnorm, Lnorm
+   integer :: indL   !debug only
+   real(kind=8),dimension(:,:),allocatable :: coeff !debug only 
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
    interface
@@ -119,10 +123,15 @@ program WaCo
    call standard_inputfile_names(input,radical,nproc)
 
    call Waco_input_variables(iproc,trim(radical)//'.waco',nband,nwann,bondAna,Stereo,hamilAna,WannCon,&
-        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,sprdmult)
+        outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,nbandCon,sprdmult)
 
-   allocate(ConstList(nwannCon))
-   call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList) 
+   if(.not.linear) nbandCon=1
+   allocate(ConstList(nwannCon),stat=i_stat)
+   call memocc(i_stat, ConstList,'ConstList',subname)
+   allocate(bandlist(nbandCon),stat=i_stat)
+   call memocc(i_stat, bandlist,'bandlist',subname)
+
+   call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
    call read_input_variables(iproc,'posinp',input, atoms, rxyz)
 
@@ -277,7 +286,7 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+      if(iproc == 0) write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0
@@ -378,9 +387,9 @@ program WaCo
 !   print *,tel
 !end do
 !DEBUG
-
-      call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
-
+      if(iproc == 0) then
+         call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+      end if
       i_all = -product(shape(l))*kind(l)
       deallocate(l,stat=i_stat)
       call memocc(i_stat,i_all,'l',subname)   
@@ -871,10 +880,8 @@ program WaCo
        allocate(calcbounds(nwannCon),stat=i_stat)
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
-       do iwann = 1,nwannCon
-          call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
+       call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
                Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
-       end do     
      end if
 
 
@@ -1037,6 +1044,12 @@ program WaCo
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
            else if(trim(outputype)=='bin') then
+              i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
+              deallocate(orbsw%iokpt,stat=i_stat)
+              call memocc(i_stat,i_all,'orbsw%iokpt',subname)
+              allocate(orbsw%iokpt(orbs%norb),stat=i_stat)
+              call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
+              orbsw%iokpt=1
               call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
               !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
               if(hamilana .and. linear) then
@@ -1044,7 +1057,28 @@ program WaCo
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
                  allocate(lwann(ldim),stat=i_stat)
                  call memocc(i_stat,lwann,'lwann',subname)
+                !DEBUG
+                 !call plot_wf(trim(seedname)//'_'//num,1,atoms,1.0d0,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz,wann)
+                 !call wpdot_wrap(1,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                 !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,&
+                 !                 Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                 !                 Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,wann,Gnorm)
+                !END DEBUG
                  call psi_to_locreg2(iproc, nproc, ldim, gdim, Lzd%Llr(iiwann), Lzd%Glr, wann, lwann)
+                !DEBUG
+                 !call wpdot_wrap(1,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
+                 !                 Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
+                 !                 Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
+                 !                 Lzd%Llr(iwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
+                 !                 Lnorm)
+                 !print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
+                 !call to_zero(gdim,wann(1))
+                 !call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
+                 !Put it in interpolating scaling functions
+                 !call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
+                 !call write_wannier_cube(ifile,trim(seedname)//'_test_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+                 !stop 
+                !END DEBUG
                  call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
                    (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),input%lin%confPotOrder,0.0d0,atoms%nat,rxyz,  & 
                    Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
@@ -1077,13 +1111,12 @@ program WaCo
            end if
         end if
      end do  ! closing loop on iwann
-
+!stop
      !Now if linear, write the coefficients
      if(linear .and. iproc == 0)then
         ! First construct the appropriate coefficient matrix
         allocate(umnt(nwannCon,nband),stat=i_stat)
         call memocc(i_stat,umnt,'umnt',subname)
-        bandlist = (/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15/)
         do iiwann = 1, nwannCon
            iwann = ConstList(iiwann)
            if(iwann == 0) stop 'Umnt construction: this should not happen'
@@ -1093,9 +1126,13 @@ program WaCo
            end do
         end do
         ! write the coefficients to file
-        open(99, file=trim(seedname)//'_coeff.bin', status='unknown',form='formatted')
-        call writeLinearCoefficients(99,.true.,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
-           nband,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        if(outformat) then
+           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='formatted')
+        else 
+           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
+        end if
+        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
+           nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
         close(99)
      end if
 
@@ -1107,7 +1144,7 @@ program WaCo
 
 
 !DEBUG WRITE AND READ OF LINEAR WAVEFUNCTIONS
-! Fake TMB orbs
+!!! Fake TMB orbs
 !!  call orbitals_descriptors(iproc,nproc,nwannCon,nwannCon,0, &
 !!       & orbsw%nspin,orbsw%nspinor,orbsw%nkpts,orbsw%kpts,orbsw%kwgts,wannorbs,.false.)
 !!  call orbitals_communicators(iproc,nproc,Glr,wannorbs,wanncomms)
@@ -1123,7 +1160,7 @@ program WaCo
 !!  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
 !!  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 !!
-!!  call initialize_linear_from_file(iproc,nproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
+!!  call initialize_linear_from_file(iproc,nproc,'minBasis',WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz)
 !!
 !!
 !!  do ilr=1,Lzd%nlr
@@ -1154,14 +1191,43 @@ program WaCo
 !!  call memocc(i_stat,psi,'psi',subname)
 !!  allocate(wannorbs%eval(wannorbs%norb),stat=i_stat)
 !!  call memocc(i_stat,wannorbs%eval,'wannorbs%eval',subname)
+!!  allocate(coeff(nbandCon,wannorbs%norb),stat=i_stat)
+!!  call memocc(i_stat,coeff,'coeff',subname)
 !! 
 !!  print *,'before reading the TMBs'
-!!  call readmywaves_linear(iproc,trim(seedname),WF_FORMAT_BINARY,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
-!!    psi2)
+!!  call readmywaves_linear(iproc,'minBasis',WF_FORMAT_BINARY,nbandCon,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
+!!    psi2,coeff)
 !!  print *,'after reading the TMBs', sum(psi2)
+!!
+!!  print *,'The coefficients are:'
+!!  do i_all = 1, nbandCon
+!!    do ilr=1,wannorbs%norb
+!!       print *,'coeff',i_all, ilr, coeff(ilr,i_all)
+!!    end do
+!!  end do
 !!  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
 !!  deallocate(rxyz_old,stat=i_stat)
 !!  call memocc(i_stat,i_all,'rxyz_old',subname)
+!!
+!!  indL = 1
+!!  do iwann = 1, wannorbs%norb
+!!     write(num,'(i4.4)') iwann
+!!     ilr = wannorbs%inwhichlocreg(iwann)
+!!     ldim = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
+!!     gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+!!     !allocate(wann(gdim),stat=i_stat)
+!!     !call memocc(i_stat,lwann,'lwann',subname)
+!!     call to_zero(gdim,wann(1))
+!!     call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr, Lzd%Llr(ilr),&
+!!          psi2(indL), wann(1))
+!!     indL = indL + ldim
+!!     !Put it in interpolating scaling functions
+!!     call daub_to_isf(Lzd%Glr,w,wann(1),wannr)
+!!     call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+!!     !i_all = -product(shape(wann))*kind(wann)
+!!     !deallocate(wann,stat=i_stat)
+!!     !call memocc(i_stat,i_all,'lwann',subname)
+!!  end do
 !!
 !END DEBUG
 
@@ -1173,9 +1239,11 @@ program WaCo
         i_all = -product(shape(cxyz))*kind(cxyz)
         deallocate(cxyz,stat=i_stat)
         call memocc(i_stat,i_all,'cxyz',subname)
-        i_all = -product(shape(umnt))*kind(umnt)
-        deallocate(umnt,stat=i_stat)
-        call memocc(i_stat,i_all,'umnt',subname)
+        if(iproc == 0) then
+           i_all = -product(shape(umnt))*kind(umnt)
+           deallocate(umnt,stat=i_stat)
+           call memocc(i_stat,i_all,'umnt',subname)
+        end if
         i_all = -product(shape(calcbounds))*kind(calcbounds)
         deallocate(calcbounds,stat=i_stat)
         call memocc(i_stat,i_all,'calcbounds',subname)
@@ -1202,6 +1270,12 @@ program WaCo
      deallocate(virt_list,stat=i_stat)
      call memocc(i_stat,i_all,'virt_list',subname)    
   end if
+  i_all = -product(shape(Constlist))*kind(Constlist)
+  deallocate(Constlist,stat=i_stat)
+  call memocc(i_stat,i_all,'Constlist',subname)
+  i_all = -product(shape(bandlist))*kind(bandlist)
+  deallocate(bandlist,stat=i_stat)
+  call memocc(i_stat,i_all,'bandlist',subname)
   i_all = -product(shape(umn))*kind(umn)
   deallocate(umn,stat=i_stat)
   call memocc(i_stat,i_all,'umn',subname)
@@ -1248,7 +1322,7 @@ program WaCo
 end program Waco
 
 subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilAna,WannCon,filetype,nwannCon,refpos,units,&
-           sprdfact,sprddiff,enediff,iformat,linear,sprdmult)
+           sprdfact,sprddiff,enediff,iformat,linear,nbandmB,sprdmult)
    use module_base
    use module_types
    use module_input
@@ -1257,7 +1331,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    character(len=*), intent(in) :: filename
    logical, intent(out) :: bondAna, Stereo, hamilAna, WannCon, iformat, linear
    character(len=4), intent(out) :: filetype,units
-   integer, intent(out) :: nband,nwann,nwannCon
+   integer, intent(out) :: nband,nwann,nwannCon, nbandmB
    real(gp), intent(out) :: sprdfact,sprddiff,enediff,sprdmult
    real(gp), dimension(3), intent(out) :: refpos
    ! Local variable
@@ -1291,6 +1365,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    call input_var(filetype,'cube')
    call input_var(iformat,'F', comment='! Wannier function construction, type of output file (cube, bin or etsf)')
    call input_var(linear,'F')
+   call input_var(nbandmB,'1')
    call input_var(sprdmult,'3.0',comment='!Ouput as minimal basis, spread factor for minimal basis construction')
    call input_var(nwannCon,'1',comment='! number of Wannier to construct (if 0 do all) followed by Wannier list on next &
    &     line (optional)')
@@ -1300,12 +1375,15 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
 
 end subroutine Waco_input_variables
 
-subroutine read_input_waco(filename,nwannCon,Constlist)
+subroutine read_input_waco(filename,nwannCon,Constlist,linear,nbandmB,bandlist)
   use module_base
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: nwannCon
+  logical, intent(in) :: linear
+  integer, intent(in) :: nwannCon,nbandmB
   integer, dimension(nwannCon), intent(out) :: Constlist
+  integer, dimension(nbandmB), intent(out) :: bandlist
+ 
   ! Local variable
   integer :: i,ierr
 
@@ -1318,11 +1396,22 @@ subroutine read_input_waco(filename,nwannCon,Constlist)
   ! read the Constlist
   read(22,*,iostat=ierr) (Constlist(i),i=1,nwannCon)
   close(22)
-
   if(ierr < 0) then  !reached the end of file and no Constlist, so generate the trivial one
     do i= 1, nwannCon
        Constlist(i) = i
     end do
+  end if
+
+  !read the bandlist
+  if(linear)then
+    read(22,*,iostat=ierr) (bandlist(i),i=1,nbandmB)
+    if(ierr < 0) then  !reached the end of file and no bandlist, so generate the trivial one
+      do i= 1, nbandmB
+         bandlist(i) = i
+      end do
+    end if
+  else
+    bandlist = 0
   end if
   
 
@@ -2844,717 +2933,910 @@ integer :: i,j
    end if
 END SUBROUTINE read_spread_file
 
-subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,locregCenter,&
-     locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
-     nseg_f,nvctr_f,keyg_f,keyv_f, &
-     psi_c,psi_f,eval)
-  use module_base
-  implicit none
-  logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
-  real(gp), intent(in) :: hx,hy,hz,locrad,confPotprefac
-  real(wp), intent(in) :: eval
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(nseg_f), intent(in) :: keyv_f
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(nvctr_c), intent(in) :: psi_c
-  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(gp), dimension(3), intent(in) :: locregCenter
-  !local variables
-  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-
-  if (useFormattedOutput) then
-     write(unitwf,*) iorb,eval
-     write(unitwf,*) hx,hy,hz
-     write(unitwf,*) n1,n2,n3
-     write(unitwf,*) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
-     write(unitwf,*) nat
-     do iat=1,nat
-     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf,*) nvctr_c, nvctr_f
-  else
-     write(unitwf) iorb,eval
-     write(unitwf) hx,hy,hz
-     write(unitwf) n1,n2,n3
-     write(unitwf) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
-     write(unitwf) nat
-     do iat=1,nat
-     write(unitwf) (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf) nvctr_c, nvctr_f
-  end if
-
-  ! coarse part
-  do iseg=1,nseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        tt=psi_c(i-i0+jj)
-        if (useFormattedOutput) then
-           write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
-        else
-           write(unitwf) i,i2,i3,tt
-        end if
-     enddo
-  enddo
-
-  ! fine part
-  do iseg=1,nseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        t1=psi_f(1,i-i0+jj)
-        t2=psi_f(2,i-i0+jj)
-        t3=psi_f(3,i-i0+jj)
-        t4=psi_f(4,i-i0+jj)
-        t5=psi_f(5,i-i0+jj)
-        t6=psi_f(6,i-i0+jj)
-        t7=psi_f(7,i-i0+jj)
-        if (useFormattedOutput) then
-           write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
-        else
-           write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
-        end if
-     enddo
-  enddo
-
-  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
-
-END SUBROUTINE writeonewave_linear
-
-subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,coeff)
-  use module_base
-  implicit none
-  logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
-  real(gp), intent(in) :: hx,hy,hz
-  real(wp), dimension(ntmb,norb), intent(in) :: coeff
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  !local variables
-  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-
-  ! Write the Header
-  if (useFormattedOutput) then
-     write(unitwf,*) norb,ntmb
-     write(unitwf,*) hx,hy,hz
-     write(unitwf,*) n1,n2,n3
-     write(unitwf,*) nat
-     do iat=1,nat
-     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf,*) nvctr_c, nvctr_f
-  else
-     write(unitwf) norb, ntmb
-     write(unitwf) hx,hy,hz
-     write(unitwf) n1,n2,n3
-     write(unitwf) nat
-     do iat=1,nat
-     write(unitwf) (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf) nvctr_c, nvctr_f
-  end if
-
-  ! Now write the coefficients
-  do i = 1, norb
-     do j = 1, ntmb
-        tt = coeff(j,i)
-        if (useFormattedOutput) then
-           write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
-        else
-           write(unitwf) i,j,tt
-        end if
-     end do
-  end do  
-
-  if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
-
-END SUBROUTINE writeLinearCoefficients
-
-!>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff)
-  use module_types
-  use module_base
-  use module_interfaces, except_this_one => writeonewave
-  implicit none
-  integer, intent(in) :: iproc,iformat
-  integer, intent(in) :: norb   !< number of orbitals, not basis functions
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
-  type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
-  character(len=*), intent(in) :: filename
-  !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel
-
-  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
-
-  if (iformat == WF_FORMAT_ETSF) then
-      stop 'Linear scaling with ETSF writing not implemented yet'
-!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
-  else
-     call cpu_time(tr0)
-     call system_clock(ncount1,ncount_rate,ncount_max)
-
-     ! Write the TMBs in the Plain BigDFT files.
-     do iorb=1,orbs%norbp
-        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out)
-           call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-                at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
-                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
-                psi(1,ispinor,iorb),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1,ispinor,iorb),orbs%eval(iorb+orbs%isorb))
-           close(99)
-        end do
-     enddo
-
-    ! Now write the coefficients to file
-    ! Must be careful, the orbs%norb is the number of basis functions
-    ! while the norb is the number of orbitals.
-    if(iproc == 0) then
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
-    end if
-     call cpu_time(tr1)
-     call system_clock(ncount2,ncount_rate,ncount_max)
-     tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
-     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
-  end if
-
-END SUBROUTINE writemywaves_linear
-
-subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
-     & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
-     & confPotprefac,psi,eval,psifscf)
-  use module_base
-  use module_types
-  use internal_io
-  use module_interfaces
-  implicit none
-  logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  integer, intent(out) :: confPotOrder
-  real(gp), intent(out) :: locrad, confPotprefac
-  real(wp), intent(out) :: eval
-  real(gp), dimension(3), intent(out) :: locregCenter
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
-  
-  !local variables
-  character(len=*), parameter :: subname='readonewave_linear'
-  character(len = 256) :: error
-  logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
-  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-
-  !write(*,*) 'INSIDE readonewave'
-  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,&
-       & locrad, locregCenter, confPotOrder, confPotprefac)
-  if (.not. lstat) call io_error(trim(error))
-  if (iorb_old /= iorb) stop 'readonewave_linear'
-
-  !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
-
-  tx=0.0_gp
-  ty=0.0_gp
-  tz=0.0_gp
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-  enddo
-  displ=sqrt(tx+ty+tz)
-
-  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
-
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
-     call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
-     if (.not. lstat) call io_error(trim(error))
-
-  else
-
-     if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
-             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
-     end if
-
-! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
-if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
-call mpi_finalize(i_all)
-stop 
-
-!!     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
-!!     call memocc(i_stat,psigold,'psigold',subname)
+!!subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,locregCenter,&
+!!     locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
+!!     nseg_f,nvctr_f,keyg_f,keyv_f, &
+!!     psi_c,psi_f,eval)
+!!  use module_base
+!!  implicit none
+!!  logical, intent(in) :: useFormattedOutput
+!!  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
+!!  real(gp), intent(in) :: hx,hy,hz,locrad,confPotprefac
+!!  real(wp), intent(in) :: eval
+!!  integer, dimension(nseg_c), intent(in) :: keyv_c
+!!  integer, dimension(nseg_f), intent(in) :: keyv_f
+!!  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+!!  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+!!  real(wp), dimension(nvctr_c), intent(in) :: psi_c
+!!  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+!!  real(gp), dimension(3,nat), intent(in) :: rxyz
+!!  real(gp), dimension(3), intent(in) :: locregCenter
+!!  !local variables
+!!  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
+!!  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
 !!
-!!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
-!!     do iel=1,nvctr_c_old
-!!        if (useFormattedInput) then
-!!           read(unitwf,*) i1,i2,i3,tt
-!!        else
-!!           read(unitwf) i1,i2,i3,tt
-!!        end if
-!!        psigold(i1,1,i2,1,i3,1)=tt
+!!  if (useFormattedOutput) then
+!!     write(unitwf,*) iorb,eval
+!!     write(unitwf,*) hx,hy,hz
+!!     write(unitwf,*) n1,n2,n3
+!!     write(unitwf,*) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
+!!     write(unitwf,*) nat
+!!     do iat=1,nat
+!!     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
 !!     enddo
-!!     do iel=1,nvctr_f_old
-!!        if (useFormattedInput) then
-!!           read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!     write(unitwf,*) nvctr_c, nvctr_f
+!!  else
+!!     write(unitwf) iorb,eval
+!!     write(unitwf) hx,hy,hz
+!!     write(unitwf) n1,n2,n3
+!!     write(unitwf) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
+!!     write(unitwf) nat
+!!     do iat=1,nat
+!!     write(unitwf) (rxyz(j,iat),j=1,3)
+!!     enddo
+!!     write(unitwf) nvctr_c, nvctr_f
+!!  end if
+!!
+!!  ! coarse part
+!!  do iseg=1,nseg_c
+!!     jj=keyv_c(iseg)
+!!     j0=keyg_c(1,iseg)
+!!     j1=keyg_c(2,iseg)
+!!     ii=j0-1
+!!     i3=ii/((n1+1)*(n2+1))
+!!     ii=ii-i3*(n1+1)*(n2+1)
+!!     i2=ii/(n1+1)
+!!     i0=ii-i2*(n1+1)
+!!     i1=i0+j1-j0
+!!     do i=i0,i1
+!!        tt=psi_c(i-i0+jj)
+!!        if (useFormattedOutput) then
+!!           write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
 !!        else
-!!           read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!           write(unitwf) i,i2,i3,tt
 !!        end if
-!!        psigold(i1,2,i2,1,i3,1)=t1
-!!        psigold(i1,1,i2,2,i3,1)=t2
-!!        psigold(i1,2,i2,2,i3,1)=t3
-!!        psigold(i1,1,i2,1,i3,2)=t4
-!!        psigold(i1,2,i2,1,i3,2)=t5
-!!        psigold(i1,1,i2,2,i3,2)=t6
-!!        psigold(i1,2,i2,2,i3,2)=t7
+!!     enddo
+!!  enddo
+!!
+!!  ! fine part
+!!  do iseg=1,nseg_f
+!!     jj=keyv_f(iseg)
+!!     j0=keyg_f(1,iseg)
+!!     j1=keyg_f(2,iseg)
+!!     ii=j0-1
+!!     i3=ii/((n1+1)*(n2+1))
+!!     ii=ii-i3*(n1+1)*(n2+1)
+!!     i2=ii/(n1+1)
+!!     i0=ii-i2*(n1+1)
+!!     i1=i0+j1-j0
+!!     do i=i0,i1
+!!        t1=psi_f(1,i-i0+jj)
+!!        t2=psi_f(2,i-i0+jj)
+!!        t3=psi_f(3,i-i0+jj)
+!!        t4=psi_f(4,i-i0+jj)
+!!        t5=psi_f(5,i-i0+jj)
+!!        t6=psi_f(6,i-i0+jj)
+!!        t7=psi_f(7,i-i0+jj)
+!!        if (useFormattedOutput) then
+!!           write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!        else
+!!           write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!        end if
+!!     enddo
+!!  enddo
+!!
+!!  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+!!
+!!END SUBROUTINE writeonewave_linear
+!!
+!!subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
+!!           norb,ntmb,nvctr_c,nvctr_f,coeff)
+!!  use module_base
+!!  implicit none
+!!  logical, intent(in) :: useFormattedOutput
+!!  integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  real(wp), dimension(ntmb,norb), intent(in) :: coeff
+!!  real(gp), dimension(3,nat), intent(in) :: rxyz
+!!  !local variables
+!!  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
+!!  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+!!
+!!  ! Write the Header
+!!  if (useFormattedOutput) then
+!!     write(unitwf,*) norb,ntmb
+!!     write(unitwf,*) hx,hy,hz
+!!     write(unitwf,*) n1,n2,n3
+!!     write(unitwf,*) nat
+!!     do iat=1,nat
+!!     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+!!     enddo
+!!     write(unitwf,*) nvctr_c, nvctr_f
+!!  else
+!!     write(unitwf) norb, ntmb
+!!     write(unitwf) hx,hy,hz
+!!     write(unitwf) n1,n2,n3
+!!     write(unitwf) nat
+!!     do iat=1,nat
+!!     write(unitwf) (rxyz(j,iat),j=1,3)
+!!     enddo
+!!     write(unitwf) nvctr_c, nvctr_f
+!!  end if
+!!
+!!  ! Now write the coefficients
+!!  do i = 1, norb
+!!     do j = 1, ntmb
+!!        tt = coeff(j,i)
+!!        if (useFormattedOutput) then
+!!           write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
+!!        else
+!!           write(unitwf) i,j,tt
+!!        end if
+!!     end do
+!!  end do  
+!!
+!!  if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+!!
+!!END SUBROUTINE writeLinearCoefficients
+!!
+!!!>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
+!!subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff)
+!!  use module_types
+!!  use module_base
+!!  use module_interfaces, except_this_one => writeonewave
+!!  implicit none
+!!  integer, intent(in) :: iproc,iformat
+!!  integer, intent(in) :: norb   !< number of orbitals, not basis functions
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  type(atoms_data), intent(in) :: at
+!!  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
+!!  type(local_zone_descriptors), intent(in) :: Lzd
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi  ! Should be the real linear dimension and not the global
+!!  real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
+!!  character(len=*), intent(in) :: filename
+!!  !Local variables
+!!  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr
+!!  real(kind=4) :: tr0,tr1
+!!  real(kind=8) :: tel
+!!
+!!  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+!!
+!!  if (iformat == WF_FORMAT_ETSF) then
+!!      stop 'Linear scaling with ETSF writing not implemented yet'
+!!!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+!!  else
+!!     call cpu_time(tr0)
+!!     call system_clock(ncount1,ncount_rate,ncount_max)
+!!
+!!     ! Write the TMBs in the Plain BigDFT files.
+!!     do iorb=1,orbs%norbp
+!!        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!        do ispinor=1,orbs%nspinor
+!!           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+!!                & orbs,iorb,ispinor,iorb_out)
+!!           call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
+!!                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+!!                at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+!!                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
+!!                psi(1,ispinor,iorb),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1,ispinor,iorb),orbs%eval(iorb+orbs%isorb))
+!!           close(99)
+!!        end do
 !!     enddo
 !!
-!!     ! I put nat = 1 here, since only one position is saved in wavefunction files.
-!!     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
-!!          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+!!    ! Now write the coefficients to file
+!!    ! Must be careful, the orbs%norb is the number of basis functions
+!!    ! while the norb is the number of orbitals.
+!!    if(iproc == 0) then
+!!      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
+!!           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+!!    end if
+!!     call cpu_time(tr1)
+!!     call system_clock(ncount2,ncount_rate,ncount_max)
+!!     tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!!     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+!!     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+!!  end if
 !!
-!!     i_all=-product(shape(psigold))*kind(psigold)
-!!     deallocate(psigold,stat=i_stat)
-!!     call memocc(i_stat,i_all,'psigold',subname)
+!!END SUBROUTINE writemywaves_linear
 !!
-  endif
-
-END SUBROUTINE readonewave_linear                                                     
-
-subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
-       & locrad, locregCenter, confPotOrder, confPotprefac)
-    use module_base
-    use module_types
-    use internal_io
-    implicit none
-
-    integer, intent(in) :: unitwf
-    logical, intent(in) :: formatted
-    integer, intent(out) :: iorb_old
-    integer, intent(out) :: n1_old, n2_old, n3_old
-    real(gp), intent(out) :: hx_old, hy_old, hz_old
-    logical, intent(out) :: lstat
-    real(wp), intent(out) :: eval
-    integer, intent(out) :: confPotOrder
-    real(gp), intent(out) :: locrad, confPotprefac
-    real(gp), dimension(3), intent(out) :: locregCenter
-    character(len =256), intent(out) :: error
-    ! Optional arguments
-    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
-    integer, intent(in), optional :: nat
-    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-
-    character(len = *), parameter :: subname = "io_read_descr_linear"
-    integer :: i, iat, i_stat, nat_
-    real(gp) :: rxyz(3)
-
-    lstat = .false.
-    write(error, "(A)") "cannot read psi description."
-    if (formatted) then
-       read(unitwf,*,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
-       if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions'
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,*,iostat=i_stat)
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,*,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    else
-       read(unitwf,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
-       if (i_stat /= 0) return
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,iostat=i_stat) rxyz
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    end if
-    lstat = .true.
-END SUBROUTINE io_read_descr_linear
-
-!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
-!!  have changed
-subroutine readmywaves_linear(iproc,filename,iformat,Lzd,orbs,at,rxyz_old,rxyz,  & 
-    psi,orblist)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => readmywaves_linear
-  implicit none
-  integer, intent(in) :: iproc, iformat
-  type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
-  character(len=*), intent(in) :: filename
-  integer, dimension(orbs%norb), optional :: orblist
-  !Local variables
-  character(len=*), parameter :: subname='readmywaves_linear'
-  logical :: perx,pery,perz
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
-  integer :: iorb_out,ispinor,ilr,ind
-  integer :: confPotOrder
-  real(gp) :: locrad, confPotprefac
-  real(gp), dimension(3) :: locregCenter
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel
-  real(wp), dimension(:,:,:), allocatable :: psifscf
-  !integer, dimension(orbs%norb) :: orblist2
-
-  call cpu_time(tr0)
-  call system_clock(ncount1,ncount_rate,ncount_max)
-
-  if (iformat == WF_FORMAT_ETSF) then
-     stop 'Linear scaling with ETSF writing not implemented yet'
-     !construct the orblist or use the one in argument
-     !do nb1 = 1, orbs%norb
-     !orblist2(nb1) = nb1
-     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
-     !end do
-
-     !call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     !     wfd,psi)
-  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     !conditions for periodicity in the three directions
-     !perx=(at%geocode /= 'F')
-     !pery=(at%geocode == 'P')
-     !perz=(at%geocode /= 'F')
-
-     !buffers related to periodicity
-     !WARNING: the boundary conditions are not assumed to change between new and old
-     !call ext_buffers_coarse(perx,nb1)
-     !call ext_buffers_coarse(pery,nb2)
-     !call ext_buffers_coarse(perz,nb3)
-     !allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-     !call memocc(i_stat,psifscf,'psifscf',subname)
-     allocate(psifscf(1,1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,psifscf,'psifscf',subname)
-     ind = 0
-     do iorb=1,orbs%norbp!*orbs%nspinor
-        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        do ispinor=1,orbs%nspinor
-           if(present(orblist)) then
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
-           else
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out)
-           end if           
-           call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
-                Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
-                Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
-                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
-           close(99)
-           ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
-        end do
-
-     end do
-
-     i_all=-product(shape(psifscf))*kind(psifscf)
-     deallocate(psifscf,stat=i_stat)
-     call memocc(i_stat,i_all,'psifscf',subname)
-
-  else
-     write(0,*) "Unknown wavefunction file format from filename."
-     stop
-  end if
-
-  call cpu_time(tr1)
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
-END SUBROUTINE readmywaves_linear
-
-
-subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
-  use module_base
-  use module_types
-  use module_defs
-  use module_interfaces, except_this_one => initialize_linear_from_file
-  implicit none
-  integer, intent(in) :: iproc, nproc, iformat
-  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  character(len=*), intent(in) :: filename
-  type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
-  integer, dimension(orbs%norb), optional :: orblist
-  !Local variables
-  character(len=*), parameter :: subname='initialize_linear_from_file'
-  character(len =256) :: error
-  logical :: lstat, consistent, perx, pery, perz
-  integer :: ilr, ierr, iorb_old, iorb, jorb, ispinor, iorb_out, n1_old, n2_old, n3_old
-  integer :: nlr, nvctr_c_old, nvctr_f_old, i_stat, i_all,confPotOrder, confPotOrder_old
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel,dx,dy,dz,dist,eval
-  real(gp) :: hx_old, hy_old, hz_old, mindist
-  real(gp), dimension(orbs%norb):: locrad, confPotprefac
-  real(gp), dimension(3,at%nat) :: rxyz_old
-  real(gp), dimension(3,orbs%norb) :: locregCenter
-  integer, dimension(:), allocatable :: lrtable
-  integer, dimension(orbs%norb) :: nvctr_c, nvctr_f
-  real(gp), dimension(:), allocatable :: lrad
-  real(gp), dimension(:,:), allocatable :: cxyz
-  logical, dimension(:), allocatable :: calcbounds
-
-  ! NOTES:
-  ! The orbs%norb family must be all constructed before this routine
-  ! This can be done from the input.lin since the number of basis functions should be fixed.
-
-  call to_zero(3*orbs%norb,locregCenter(1,1))
-  call to_zero(orbs%norb,locrad(1))
-  call to_zero(orbs%norb,confPotprefac(1))
-
-  ! First read the headers (reading is distributed) and then the information is communicated to all procs.
-  ! Then each proc generates a group of lrs that are communicated to all others.
-  if (iformat == WF_FORMAT_ETSF) then
-     stop 'Linear scaling with ETSF writing not implemented yet'
-  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
-     do iorb=1,orbs%norbp!*orbs%nspinor
-        do ispinor=1,orbs%nspinor
-           if(present(orblist)) then
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
-           else
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out)
-           end if          
-           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
-                & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
-                & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
-                & confPotprefac(iorb+orbs%isorb))
-           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
-           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
-           close(99)
-!TO DO: confPotOrder_old should be read from input.lin
-           if(iorb==1) confPotOrder_old = confPotOrder
-           call check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
-                rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
-           if(.not. consistent) then
-             write(*,*) 'Inconsistency in file, iorb=',iorb_out
-             call mpi_finalize(ierr)
-             stop
-           end if
-           confPotOrder_old = confPotOrder
-        end do
-     end do
-  else
-     write(0,*) "Unknown wavefunction file format from filename."
-     stop
-  end if
-
-  ! Communication of the quantities
-   call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-  ! Now that each processor has all the information, we can build the locregs
-  ! Find the number of inequivalent locregs
-  allocate(lrtable(orbs%norb),stat=i_stat)
-  call memocc(i_stat,ilr,'ilr',subname)
-  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-
-  nlr = 0
-  lrtable = 0
-  outer_loop: do iorb = 1, orbs%norb
-     do jorb = iorb+1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           cycle outer_loop
-        end if
-     end do
-     nlr = nlr + 1
-     lrtable(nlr) = iorb
-  end do outer_loop
-
-  Lzd%nlr = nlr
-  allocate(Lzd%Llr(nlr),stat=i_stat)
-  allocate(lrad(nlr),stat=i_stat)
-  call memocc(i_stat,lrad,'lrad',subname)
-  allocate(cxyz(3,nlr),stat=i_stat)
-  call memocc(i_stat,cxyz,'cxyz',subname)
-  allocate(calcbounds(nlr),stat=i_stat)
-  call memocc(i_stat,calcbounds,'calcbounds',subname)
-  
-  
-  do ilr=1,nlr
-     iorb = lrtable(ilr)
-     lrad(ilr) = locrad(iorb)
-     cxyz(1,ilr) = locregCenter(1,iorb)
-     cxyz(2,ilr) = locregCenter(2,iorb)
-     cxyz(3,ilr) = locregCenter(3,iorb)
-     calcbounds(ilr) = .true.
-     do jorb = 1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           orbs%inwhichlocreg(jorb) = ilr
-        end if
-     end do
-  end do
-
-  i_all = -product(shape(lrtable))*kind(lrtable)
-  deallocate(lrtable,stat=i_stat)
-  call memocc(i_stat,i_all,'lrtable',subname)
-
-!TO DO: CUBIC LOCREGS
-  call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
-       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
-  
-END SUBROUTINE initialize_linear_from_file
-
-subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
-           rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: confPotOrder,confPotOrder_old, n1_old, n2_old, n3_old
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx_old, hy_old, hz_old
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz, rxyz_old
-  type(local_zone_descriptors), intent(in) :: Lzd !< must already contain Glr and hgrids
-  logical, intent(out) :: consistent
-  ! Local variables
-  logical :: perx, pery, perz
-  integer :: iat
-  real(gp):: tx, ty, tz, displ, mindist  
-
-  !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
-
-  tx=0.0_gp
-  ty=0.0_gp
-  tz=0.0_gp
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-  enddo
-  displ=sqrt(tx+ty+tz)
-  consistent = .true.
-  if(hx_old /= Lzd%hgrids(1) .or. hy_old /= Lzd%hgrids(2) .or. hz_old /= Lzd%hgrids(3)) then
-    write(*,"(1x,A,6F14.10)") 'Stopping because hgrid_old /= hgrid',hx_old,hy_old,hz_old,&
-         Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3)
-    consistent = .false.
-  else if (n1_old /= Lzd%Glr%d%n1  .or. n2_old /= Lzd%Glr%d%n2 .or. n3_old /= Lzd%Glr%d%n3 ) then
-    write(*,"(1x,A,6F14.10)") 'Stopping because global cell size',&
-    n1_old,Lzd%Glr%d%n1,n2_old,Lzd%Glr%d%n2,n3_old,Lzd%Glr%d%n3
-    consistent = .false.
-  else if(displ > 1.d-3 ) then
-    write(*,*) 'Stopping because of large displacement of molecule',displ
-    consistent = .false.
-  else if(confpotOrder /= confPotOrder_old) then
-    write(*,*) 'Stopping because of inconsistent confPotOrder',confPotOrder,confPotOrder_old 
-    consistent = .false.
-  end if
-
-END SUBROUTINE check_consistency
+!!subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+!!     & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
+!!     & confPotprefac,psi,eval,psifscf)
+!!  use module_base
+!!  use module_types
+!!  use internal_io
+!!  use module_interfaces
+!!  implicit none
+!!  logical, intent(in) :: useFormattedInput
+!!  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
+!!  type(wavefunctions_descriptors), intent(in) :: wfd
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  integer, intent(out) :: confPotOrder
+!!  real(gp), intent(out) :: locrad, confPotprefac
+!!  real(wp), intent(out) :: eval
+!!  real(gp), dimension(3), intent(out) :: locregCenter
+!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+!!  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+!!  
+!!  !local variables
+!!  character(len=*), parameter :: subname='readonewave_linear'
+!!  character(len = 256) :: error
+!!  logical :: perx,pery,perz,lstat
+!!  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
+!!  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+!!  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+!!  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+!!
+!!  !write(*,*) 'INSIDE readonewave'
+!!  call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,&
+!!       & locrad, locregCenter, confPotOrder, confPotprefac)
+!!  if (.not. lstat) call io_error(trim(error))
+!!  if (iorb_old /= iorb) stop 'readonewave_linear'
+!!
+!!  !conditions for periodicity in the three directions
+!!  perx=(at%geocode /= 'F')
+!!  pery=(at%geocode == 'P')
+!!  perz=(at%geocode /= 'F')
+!!
+!!  tx=0.0_gp
+!!  ty=0.0_gp
+!!  tz=0.0_gp
+!!  do iat=1,at%nat
+!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  enddo
+!!  displ=sqrt(tx+ty+tz)
+!!
+!!  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+!!       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
+!!
+!!     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+!!     call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
+!!     if (.not. lstat) call io_error(trim(error))
+!!
+!!  else
+!!
+!!     if (iproc == 0 .and. iorb == 1) then
+!!        write(*,*) 'wavefunctions need reformatting'
+!!        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
+!!             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+!!        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
+!!             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+!!        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+!!     end if
+!!
+!!! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
+!!if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
+!!call mpi_finalize(i_all)
+!!stop 
+!!
+!!!!     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+!!!!     call memocc(i_stat,psigold,'psigold',subname)
+!!!!
+!!!!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+!!!!     do iel=1,nvctr_c_old
+!!!!        if (useFormattedInput) then
+!!!!           read(unitwf,*) i1,i2,i3,tt
+!!!!        else
+!!!!           read(unitwf) i1,i2,i3,tt
+!!!!        end if
+!!!!        psigold(i1,1,i2,1,i3,1)=tt
+!!!!     enddo
+!!!!     do iel=1,nvctr_f_old
+!!!!        if (useFormattedInput) then
+!!!!           read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!!!        else
+!!!!           read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+!!!!        end if
+!!!!        psigold(i1,2,i2,1,i3,1)=t1
+!!!!        psigold(i1,1,i2,2,i3,1)=t2
+!!!!        psigold(i1,2,i2,2,i3,1)=t3
+!!!!        psigold(i1,1,i2,1,i3,2)=t4
+!!!!        psigold(i1,2,i2,1,i3,2)=t5
+!!!!        psigold(i1,1,i2,2,i3,2)=t6
+!!!!        psigold(i1,2,i2,2,i3,2)=t7
+!!!!     enddo
+!!!!
+!!!!     ! I put nat = 1 here, since only one position is saved in wavefunction files.
+!!!!     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+!!!!          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+!!!!
+!!!!     i_all=-product(shape(psigold))*kind(psigold)
+!!!!     deallocate(psigold,stat=i_stat)
+!!!!     call memocc(i_stat,i_all,'psigold',subname)
+!!!!
+!!  endif
+!!
+!!END SUBROUTINE readonewave_linear                                                     
+!!
+!!subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
+!!       & locrad, locregCenter, confPotOrder, confPotprefac)
+!!    use module_base
+!!    use module_types
+!!    use internal_io
+!!    implicit none
+!!
+!!    integer, intent(in) :: unitwf
+!!    logical, intent(in) :: formatted
+!!    integer, intent(out) :: iorb_old
+!!    integer, intent(out) :: n1_old, n2_old, n3_old
+!!    real(gp), intent(out) :: hx_old, hy_old, hz_old
+!!    logical, intent(out) :: lstat
+!!    real(wp), intent(out) :: eval
+!!    integer, intent(out) :: confPotOrder
+!!    real(gp), intent(out) :: locrad, confPotprefac
+!!    real(gp), dimension(3), intent(out) :: locregCenter
+!!    character(len =256), intent(out) :: error
+!!    ! Optional arguments
+!!    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+!!    integer, intent(in), optional :: nat
+!!    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+!!
+!!    character(len = *), parameter :: subname = "io_read_descr_linear"
+!!    integer :: i, iat, i_stat, nat_
+!!    real(gp) :: rxyz(3)
+!!
+!!    lstat = .false.
+!!    write(error, "(A)") "cannot read psi description."
+!!    if (formatted) then
+!!       read(unitwf,*,iostat=i_stat) iorb_old,eval
+!!       if (i_stat /= 0) return
+!!       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
+!!       if (i_stat /= 0) return
+!!       !write(*,*) 'reading ',nat,' atomic positions'
+!!       if (present(nat) .And. present(rxyz_old)) then
+!!          read(unitwf,*,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          ! Sanity check
+!!          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
+!!          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+!!          do iat=1,nat
+!!             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       else
+!!          read(unitwf,*,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          do iat=1,nat_
+!!             read(unitwf,*,iostat=i_stat)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       end if
+!!       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+!!          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
+!!          if (i_stat /= 0) return
+!!       else
+!!          read(unitwf,*,iostat=i_stat) i, iat
+!!          if (i_stat /= 0) return
+!!       end if
+!!    else
+!!       read(unitwf,iostat=i_stat) iorb_old,eval
+!!       if (i_stat /= 0) return
+!!       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
+!!       if (i_stat /= 0) return
+!!       if (present(nat) .And. present(rxyz_old)) then
+!!          read(unitwf,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          ! Sanity check
+!!          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
+!!          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+!!          do iat=1,nat
+!!             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       else
+!!          read(unitwf,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          do iat=1,nat_
+!!             read(unitwf,iostat=i_stat) rxyz
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       end if
+!!       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+!!          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
+!!          if (i_stat /= 0) return
+!!       else
+!!          read(unitwf,iostat=i_stat) i, iat
+!!          if (i_stat /= 0) return
+!!       end if
+!!    end if
+!!    lstat = .true.
+!!END SUBROUTINE io_read_descr_linear
+!!
+!!subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+!!    use module_base
+!!    use module_types
+!!    use internal_io
+!!    implicit none
+!!    integer, intent(in) :: unitwf
+!!    logical, intent(in) :: formatted
+!!    integer, intent(out) :: norb_old, ntmb_old
+!!    integer, intent(out) :: n1_old, n2_old, n3_old
+!!    real(gp), intent(out) :: hx_old, hy_old, hz_old
+!!    logical, intent(out) :: lstat
+!!    character(len =256), intent(out) :: error
+!!    ! Optional arguments
+!!    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
+!!    integer, intent(in), optional :: nat
+!!    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+!!
+!!    character(len = *), parameter :: subname = "io_read_descr_linear"
+!!    integer :: i, iat, i_stat, nat_
+!!    real(gp) :: rxyz(3)
+!!
+!!    lstat = .false.
+!!    write(error, "(A)") "cannot read psi description."
+!!    if (formatted) then
+!!       read(unitwf,*,iostat=i_stat) norb_old , ntmb_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
+!!       if (i_stat /= 0) return
+!!       !write(*,*) 'reading ',nat,' atomic positions'
+!!       if (present(nat) .And. present(rxyz_old)) then
+!!          read(unitwf,*,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          ! Sanity check
+!!          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
+!!          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+!!          do iat=1,nat
+!!             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       else
+!!          read(unitwf,*,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          do iat=1,nat_
+!!             read(unitwf,*,iostat=i_stat)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       end if
+!!       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+!!          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
+!!          if (i_stat /= 0) return
+!!       else
+!!          read(unitwf,*,iostat=i_stat) i, iat
+!!          if (i_stat /= 0) return
+!!       end if
+!!    else
+!!       read(unitwf,iostat=i_stat) norb_old, ntmb_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
+!!       if (i_stat /= 0) return
+!!       read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
+!!       if (i_stat /= 0) return
+!!       if (present(nat) .And. present(rxyz_old)) then
+!!          read(unitwf,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          ! Sanity check
+!!          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
+!!          if (nat_ /= nat) stop "Mismatch in coordinate array size."
+!!          do iat=1,nat
+!!             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       else
+!!          read(unitwf,iostat=i_stat) nat_
+!!          if (i_stat /= 0) return
+!!          do iat=1,nat_
+!!             read(unitwf,iostat=i_stat) rxyz
+!!             if (i_stat /= 0) return
+!!          enddo
+!!       end if
+!!       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
+!!          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
+!!          if (i_stat /= 0) return
+!!       else
+!!          read(unitwf,iostat=i_stat) i, iat
+!!          if (i_stat /= 0) return
+!!       end if
+!!    end if
+!!    lstat = .true.
+!!END SUBROUTINE io_read_descr_coeff
+!!
+!!
+!!subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb,&
+!!     & hx,hy,hz,at,rxyz_old,rxyz,coeff)
+!!  use module_base
+!!  use module_types
+!!  use internal_io
+!!  use module_interfaces
+!!  implicit none
+!!  logical, intent(in) :: useFormattedInput
+!!  integer, intent(in) :: unitwf,iproc,n1,n2,n3,norb,ntmb
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(wp), dimension(ntmb,norb), intent(out) :: coeff
+!!  !local variables
+!!  character(len=*), parameter :: subname='readonewave_linear'
+!!  character(len = 256) :: error
+!!  logical :: perx,pery,perz,lstat
+!!  integer :: norb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_stat,i_all
+!!  integer :: ntmb_old, i1, i2,i,j
+!!  real(wp) :: tt
+!!  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+!!
+!!  !write(*,*) 'INSIDE readonewave'
+!!  call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
+!!       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
+!!  if (.not. lstat) call io_error(trim(error))
+!!
+!!  !conditions for periodicity in the three directions
+!!  perx=(at%geocode /= 'F')
+!!  pery=(at%geocode == 'P')
+!!  perz=(at%geocode /= 'F')
+!!
+!!  tx=0.0_gp
+!!  ty=0.0_gp
+!!  tz=0.0_gp
+!!  do iat=1,at%nat
+!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  enddo
+!!  displ=sqrt(tx+ty+tz)
+!!
+!!  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+!!       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
+!!       norb == norb_old .and. ntmb == ntmb_old) then
+!!
+!!     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+!!
+!!     ! Now write the coefficients
+!!     do i = 1, norb
+!!        do j = 1, ntmb
+!!           if (useFormattedInput) then
+!!              read(unitwf,*,iostat=i_stat) i1,i2,tt
+!!           else
+!!              read(unitwf,iostat=i_stat) i1,i2,tt
+!!           end if
+!!           if (i_stat /= 0) stop 'Problem reading the coefficients'
+!!           coeff(j,i) = tt  
+!!        end do
+!!     end do
+!!     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+!!
+!!  else
+!!     if (iproc == 0) then
+!!        write(*,*) 'wavefunctions need reformatting'
+!!        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
+!!             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+!!        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
+!!             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+!!        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+!!        if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
+!!        if (ntmb /= ntmb_old) write(*,*) 'Differing number of minimal basis functions',ntmb,ntmb_old
+!!     end if
+!!
+!!     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
+!!     if(iproc==0) then
+!!        write(*,*) 'This is forbiden for now in linear case!'
+!!        call mpi_finalize(i_all)
+!!        stop
+!!     end if
+!!  end if
+!!
+!!END SUBROUTINE read_coeff_minbasis
+!!
+!!
+!!!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
+!!!!  have changed
+!!subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
+!!    psi,coeff,orblist)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => readmywaves_linear
+!!  implicit none
+!!  integer, intent(in) :: iproc, iformat,norb
+!!  type(orbitals_data), intent(inout) :: orbs  ! orbs related to the basis functions
+!!  type(local_zone_descriptors), intent(in) :: Lzd
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
+!!  real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
+!!  character(len=*), intent(in) :: filename
+!!  integer, dimension(orbs%norb), optional :: orblist
+!!  !Local variables
+!!  character(len=*), parameter :: subname='readmywaves_linear'
+!!  logical :: perx,pery,perz
+!!  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
+!!  integer :: iorb_out,ispinor,ilr,ind
+!!  integer :: confPotOrder
+!!  real(gp) :: locrad, confPotprefac
+!!  real(gp), dimension(3) :: locregCenter
+!!  real(kind=4) :: tr0,tr1
+!!  real(kind=8) :: tel
+!!  real(wp), dimension(:,:,:), allocatable :: psifscf
+!!  !integer, dimension(orbs%norb) :: orblist2
+!!
+!!  call cpu_time(tr0)
+!!  call system_clock(ncount1,ncount_rate,ncount_max)
+!!
+!!  if (iformat == WF_FORMAT_ETSF) then
+!!     stop 'Linear scaling with ETSF writing not implemented yet'
+!!     !construct the orblist or use the one in argument
+!!     !do nb1 = 1, orbs%norb
+!!     !orblist2(nb1) = nb1
+!!     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+!!     !end do
+!!
+!!     !call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+!!     !     wfd,psi)
+!!  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
+!!     !conditions for periodicity in the three directions
+!!     !perx=(at%geocode /= 'F')
+!!     !pery=(at%geocode == 'P')
+!!     !perz=(at%geocode /= 'F')
+!!
+!!     !buffers related to periodicity
+!!     !WARNING: the boundary conditions are not assumed to change between new and old
+!!     !call ext_buffers_coarse(perx,nb1)
+!!     !call ext_buffers_coarse(pery,nb2)
+!!     !call ext_buffers_coarse(perz,nb3)
+!!     !allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+!!     !call memocc(i_stat,psifscf,'psifscf',subname)
+!!     allocate(psifscf(1,1,1+ndebug),stat=i_stat)
+!!     call memocc(i_stat,psifscf,'psifscf',subname)
+!!     ind = 0
+!!     do iorb=1,orbs%norbp!*orbs%nspinor
+!!        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!        do ispinor=1,orbs%nspinor
+!!           if(present(orblist)) then
+!!              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+!!                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+!!           else
+!!              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+!!                   & orbs,iorb,ispinor,iorb_out)
+!!           end if           
+!!           call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
+!!                Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
+!!                Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
+!!                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
+!!           close(99)
+!!           ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!!        end do
+!!
+!!     end do
+!!
+!!     i_all=-product(shape(psifscf))*kind(psifscf)
+!!     deallocate(psifscf,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psifscf',subname)
+!!
+!!     !Open the coefficient file 
+!!     if(iformat == WF_FORMAT_PLAIN) then
+!!        open(99,file=filename//'_coeff.bin',status='unknown',form='formatted')
+!!     else if(iformat == WF_FORMAT_BINARY) then
+!!        open(99,file=filename//'_coeff.bin',status='unknown',form='unformatted')
+!!     else
+!!        stop 'Coefficient format not implemented'
+!!     end if
+!!print *,'arriving here'
+!!     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
+!!     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff)
+!!     close(99)
+!!  else
+!!     write(0,*) "Unknown wavefunction file format from filename."
+!!     stop
+!!  end if
+!!
+!!  call cpu_time(tr1)
+!!  call system_clock(ncount2,ncount_rate,ncount_max)
+!!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!!  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+!!END SUBROUTINE readmywaves_linear
+!!
+!!
+!!subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,rxyz,orblist)
+!!  use module_base
+!!  use module_types
+!!  use module_defs
+!!  use module_interfaces, except_this_one => initialize_linear_from_file
+!!  implicit none
+!!  integer, intent(in) :: iproc, nproc, iformat
+!!  type(orbitals_data), intent(inout) :: orbs  !< orbs related to the basis functions, inwhichlocreg generated in this routine
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  character(len=*), intent(in) :: filename
+!!  type(local_zone_descriptors), intent(inout) :: Lzd !< must already contain Glr and hgrids
+!!  integer, dimension(orbs%norb), optional :: orblist
+!!  !Local variables
+!!  character(len=*), parameter :: subname='initialize_linear_from_file'
+!!  character(len =256) :: error
+!!  logical :: lstat, consistent, perx, pery, perz
+!!  integer :: ilr, ierr, iorb_old, iorb, jorb, ispinor, iorb_out, n1_old, n2_old, n3_old
+!!  integer :: nlr, nvctr_c_old, nvctr_f_old, i_stat, i_all,confPotOrder, confPotOrder_old
+!!  real(kind=4) :: tr0,tr1
+!!  real(kind=8) :: tel,dx,dy,dz,dist,eval
+!!  real(gp) :: hx_old, hy_old, hz_old, mindist
+!!  real(gp), dimension(orbs%norb):: locrad, confPotprefac
+!!  real(gp), dimension(3,at%nat) :: rxyz_old
+!!  real(gp), dimension(3,orbs%norb) :: locregCenter
+!!  integer, dimension(:), allocatable :: lrtable
+!!  integer, dimension(orbs%norb) :: nvctr_c, nvctr_f
+!!  real(gp), dimension(:), allocatable :: lrad
+!!  real(gp), dimension(:,:), allocatable :: cxyz
+!!  logical, dimension(:), allocatable :: calcbounds
+!!
+!!  ! NOTES:
+!!  ! The orbs%norb family must be all constructed before this routine
+!!  ! This can be done from the input.lin since the number of basis functions should be fixed.
+!!
+!!  call to_zero(3*orbs%norb,locregCenter(1,1))
+!!  call to_zero(orbs%norb,locrad(1))
+!!  call to_zero(orbs%norb,confPotprefac(1))
+!!
+!!  ! First read the headers (reading is distributed) and then the information is communicated to all procs.
+!!  ! Then each proc generates a group of lrs that are communicated to all others.
+!!  if (iformat == WF_FORMAT_ETSF) then
+!!     stop 'Linear scaling with ETSF writing not implemented yet'
+!!  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
+!!     do iorb=1,orbs%norbp!*orbs%nspinor
+!!        do ispinor=1,orbs%nspinor
+!!           if(present(orblist)) then
+!!              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+!!                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+!!           else
+!!              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+!!                   & orbs,iorb,ispinor,iorb_out)
+!!           end if          
+!!           call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
+!!                & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
+!!                & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
+!!                & confPotprefac(iorb+orbs%isorb))
+!!           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
+!!           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
+!!           close(99)
+!!!TO DO: confPotOrder_old should be read from input.lin
+!!           if(iorb==1) confPotOrder_old = confPotOrder
+!!           call check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
+!!                rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
+!!           if(.not. consistent) then
+!!             write(*,*) 'Inconsistency in file, iorb=',iorb_out
+!!             call mpi_finalize(ierr)
+!!             stop
+!!           end if
+!!           confPotOrder_old = confPotOrder
+!!        end do
+!!     end do
+!!  else
+!!     write(0,*) "Unknown wavefunction file format from filename."
+!!     stop
+!!  end if
+!!
+!!  ! Communication of the quantities
+!!   call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!   call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!   call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!
+!!  ! Now that each processor has all the information, we can build the locregs
+!!  ! Find the number of inequivalent locregs
+!!  allocate(lrtable(orbs%norb),stat=i_stat)
+!!  call memocc(i_stat,ilr,'ilr',subname)
+!!  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
+!!  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+!!
+!!  nlr = 0
+!!  lrtable = 0
+!!  outer_loop: do iorb = 1, orbs%norb
+!!     do jorb = iorb+1, orbs%norb
+!!        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+!!        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+!!        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+!!        dist=sqrt(dx+dy+dz)
+!!        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+!!           confPotprefac(iorb) == confPotprefac(jorb)) then
+!!           cycle outer_loop
+!!        end if
+!!     end do
+!!     nlr = nlr + 1
+!!     lrtable(nlr) = iorb
+!!  end do outer_loop
+!!
+!!  Lzd%nlr = nlr
+!!  allocate(Lzd%Llr(nlr),stat=i_stat)
+!!  allocate(lrad(nlr),stat=i_stat)
+!!  call memocc(i_stat,lrad,'lrad',subname)
+!!  allocate(cxyz(3,nlr),stat=i_stat)
+!!  call memocc(i_stat,cxyz,'cxyz',subname)
+!!  allocate(calcbounds(nlr),stat=i_stat)
+!!  call memocc(i_stat,calcbounds,'calcbounds',subname)
+!!  
+!!  
+!!  do ilr=1,nlr
+!!     iorb = lrtable(ilr)
+!!     lrad(ilr) = locrad(iorb)
+!!     cxyz(1,ilr) = locregCenter(1,iorb)
+!!     cxyz(2,ilr) = locregCenter(2,iorb)
+!!     cxyz(3,ilr) = locregCenter(3,iorb)
+!!     calcbounds(ilr) = .true.
+!!     do jorb = 1, orbs%norb
+!!        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+!!        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+!!        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+!!        dist=sqrt(dx+dy+dz)
+!!        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+!!           confPotprefac(iorb) == confPotprefac(jorb)) then
+!!           orbs%inwhichlocreg(jorb) = ilr
+!!        end if
+!!     end do
+!!  end do
+!!
+!!  i_all = -product(shape(lrtable))*kind(lrtable)
+!!  deallocate(lrtable,stat=i_stat)
+!!  call memocc(i_stat,i_all,'lrtable',subname)
+!!
+!!!TO DO: CUBIC LOCREGS
+!!  call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
+!!       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+!!  
+!!END SUBROUTINE initialize_linear_from_file
+!!
+!!subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
+!!           rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  integer, intent(in) :: confPotOrder,confPotOrder_old, n1_old, n2_old, n3_old
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), intent(in) :: hx_old, hy_old, hz_old
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz, rxyz_old
+!!  type(local_zone_descriptors), intent(in) :: Lzd !< must already contain Glr and hgrids
+!!  logical, intent(out) :: consistent
+!!  ! Local variables
+!!  logical :: perx, pery, perz
+!!  integer :: iat
+!!  real(gp):: tx, ty, tz, displ, mindist  
+!!
+!!  !conditions for periodicity in the three directions
+!!  perx=(at%geocode /= 'F')
+!!  pery=(at%geocode == 'P')
+!!  perz=(at%geocode /= 'F')
+!!
+!!  tx=0.0_gp
+!!  ty=0.0_gp
+!!  tz=0.0_gp
+!!  do iat=1,at%nat
+!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!  enddo
+!!  displ=sqrt(tx+ty+tz)
+!!  consistent = .true.
+!!  if(hx_old /= Lzd%hgrids(1) .or. hy_old /= Lzd%hgrids(2) .or. hz_old /= Lzd%hgrids(3)) then
+!!    write(*,"(1x,A,6F14.10)") 'Stopping because hgrid_old /= hgrid',hx_old,hy_old,hz_old,&
+!!         Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3)
+!!    consistent = .false.
+!!  else if (n1_old /= Lzd%Glr%d%n1  .or. n2_old /= Lzd%Glr%d%n2 .or. n3_old /= Lzd%Glr%d%n3 ) then
+!!    write(*,"(1x,A,6F14.10)") 'Stopping because global cell size',&
+!!    n1_old,Lzd%Glr%d%n1,n2_old,Lzd%Glr%d%n2,n3_old,Lzd%Glr%d%n3
+!!    consistent = .false.
+!!  else if(displ > 1.d-3 ) then
+!!    write(*,*) 'Stopping because of large displacement of molecule',displ
+!!    consistent = .false.
+!!  else if(confpotOrder /= confPotOrder_old) then
+!!    write(*,*) 'Stopping because of inconsistent confPotOrder',confPotOrder,confPotOrder_old 
+!!    consistent = .false.
+!!  end if
+!!
+!!END SUBROUTINE check_consistency

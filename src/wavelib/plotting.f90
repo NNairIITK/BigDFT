@@ -295,25 +295,25 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      nl3=1
      nbx = 1
      nbz = 1
-     nc1=n1i-31
-     nc3=n3i-31
+     nc1=n1i
+     nc3=n3i
   else
      nl1=15
      nl3=15
      nbx = 0
      nbz = 0
-     nc1=n1i
-     nc3=n3i
+     nc1=n1i-31
+     nc3=n3i-31
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
      nby = 1
-     nc2=n2i-31
+     nc2=n2i
   else
      nl2=15
      nby = 0
-     nc2=n2i
+     nc2=n2i-31
   end if
 
 !!$  !cube dimensions

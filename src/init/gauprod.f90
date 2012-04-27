@@ -449,6 +449,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   icoeff=1
   do iat=1,at%nat
      if( present(gaenes))  last_aux=ishell
+     print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
@@ -474,6 +475,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
                     Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
                         iorbtolr       (icoeff)=iat

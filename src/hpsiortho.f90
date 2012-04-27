@@ -195,6 +195,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              1.0_dp,denspot%V_XC(1,1,1,1),1,&
              denspot%rhov(1),1)
 
+        !here a external potential with spinorial indices can be added
      end if
 
      !here the potential can be mixed
@@ -839,12 +840,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       else
          npot=dpbox%ndimgrid*orbs%nspin
       end if
-      !write(*,*) 'dpbox%ndimgrid, orbs%norbp, npot, odp', dpbox%ndimgrid, orbs%norbp, npot, odp
+!      write(*,*) 'dpbox%ndimgrid, orbs%norbp, npot, odp', dpbox%ndimgrid, orbs%norbp, npot, odp
+!      write(*,*)'nspin',orbs%nspin,dpbox%i3rho_add,dpbox%ndimpot,dpbox%ndimrhopot,sum(potential)
+!      write(*,*)'iproc',iproc,'ngatherarr',dpbox%ngatherarr(:,1),dpbox%ngatherarr(:,2)
 
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region
       !this routine should then be modified or integrated in HamiltonianApplication
       if (nproc > 1) then
+
          allocate(pot1(npot+ndebug),stat=i_stat)
          call memocc(i_stat,pot1,'pot1',subname)
          ispot=1
@@ -881,7 +885,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          end if
       end if
    else
-      call gatherPotential(iproc, nproc, comgp)
+       !!if(.not.comgp%communication_complete) call gatherPotential(iproc, nproc, comgp)
+       !!if(.not.comgp%communication_complete) call wait_p2p_communication(iproc, nproc, comgp)
+       call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
 
@@ -966,7 +972,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       !       call dcopy(lzd%ndimpotisf,pot,1,pot,1) 
       pot=>pot1
+      !print *,iproc,shape(pot),shape(pot1),'shapes'
+      !print *,'potential sum',iproc,sum(pot)
    else if(iflag<2 .and. iflag>0) then
+
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,pot,'pot',subname)
       ! Cut potential
@@ -980,6 +989,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    else
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,pot,'pot',subname)
+
       ist=1
       do iorb=1,nilr
          ilr = ilrtable(iorb)
@@ -1066,9 +1076,9 @@ subroutine total_energies(energs, iter, iproc)
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
-       energs%eexctX-energs%evsic+energs%eion+energs%edisp
+       energs%eexctX-energs%evsic+energs%eion+energs%edisp!-energs%excrhoc
 
-  if (energs%c_obj /= 0) then
+  if (energs%c_obj /= 0.d0) then
      call timing(iproc,'energs_signals','ON')
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
      call timing(iproc,'energs_signals','OF')
@@ -1519,7 +1529,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
-   if (wfn%c_obj /= 0) then
+   if (wfn%c_obj /= 0.d0) then
       call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 
