@@ -204,8 +204,7 @@ void FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(void *in, gchar linear[3]);
 void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
                                                         int *iproc, int *dump);
 void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
-void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
-                                                  const gchar *geocode, const double *alat,
+void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *atoms,
                                                   int *iproc, int *dump);
 
 #endif

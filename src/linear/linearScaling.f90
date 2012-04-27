@@ -57,8 +57,6 @@ type(energy_terms) :: energs
 
 
   ! Initialize everything related to the linear scaling version ###########################################################
-  call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
-
   ! Initialize the tags for the p2p communication
   !!tag=p2p_tag(.true.)
   call init_p2p_tags(nproc)

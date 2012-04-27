@@ -127,17 +127,15 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
      !only on the fly calculation
      DistProjApply=.true.
-     call lin_input_variables_new(iproc,trim(inputs%file_lin),inputs,atoms)
   end if
-    ! Shake atoms, if required.
+  ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
 
   ! Parse input files depending on atoms.
-  call inputs_parse_add(inputs, atoms%sym, atoms%geocode, &
-       & (/ atoms%alat1, atoms%alat2, atoms%alat3/), iproc, .true.)
+  call inputs_parse_add(inputs, atoms, iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -612,7 +610,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
 END SUBROUTINE sic_input_variables_new
 
 !> Read linear input parameters
-subroutine lin_input_variables_new(iproc,filename,in,atoms)
+subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
   use module_types
   use module_input
@@ -621,6 +619,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
+  logical, intent(in) :: dump
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='lin_input_variables'
@@ -851,7 +850,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   end do
   
 
-  call input_free((iproc==0))
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE lin_input_variables_new
 
