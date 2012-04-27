@@ -998,76 +998,76 @@ end subroutine my_geocode_buffers
 
 
 
-subroutine diagonalizeHamiltonian(iproc, nproc, orbs, HamSmall, eval)
-!
-! Purpose:
-! ========
-!   Diagonalizes the Hamiltonian HamSmall and makes sure that all MPI processes give
-!   the same result. This is done by requiring that the first entry of each vector
-!   is positive.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc     process ID
-!     nproc     number of MPI processes
-!     orbs      type describing the physical orbitals psi
-!   Input / Putput arguments
-!     HamSmall  on input: the Hamiltonian
-!               on exit: the eigenvectors
-!   Output arguments
-!     eval      the associated eigenvalues 
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(orbitals_data), intent(inout) :: orbs
-real(8),dimension(orbs%norb, orbs%norb):: HamSmall
-real(8),dimension(orbs%norb):: eval
-
-! Local variables
-integer:: lwork, info, istat, iall, i, iorb, jorb
-real(8),dimension(:),allocatable:: work
-character(len=*),parameter:: subname='diagonalizeHamiltonian'
-
-  ! Get the optimal work array size
-  lwork=-1 
-  allocate(work(1), stat=istat)
-  call memocc(istat, work, 'work', subname)
-  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  lwork=work(1) 
-
-  ! Deallocate the work array ane reallocate it with the optimal size
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  call memocc(istat, iall, 'work', subname)
-  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-  call memocc(istat, work, 'work', subname)
-
-  ! Diagonalize the Hamiltonian
-  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-
-  ! Deallocate the work array.
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  call memocc(istat, iall, 'work', subname)
-  
-  ! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
-  ! the first entry of each vector is positive.
-  do iorb=1,orbs%norb
-      if(HamSmall(1,iorb)<0.d0) then
-          do jorb=1,orbs%norb
-              HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
-          end do
-      end if
-  end do
-
-
-end subroutine diagonalizeHamiltonian
+!!!subroutine diagonalizeHamiltonian(iproc, nproc, orbs, HamSmall, eval)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Diagonalizes the Hamiltonian HamSmall and makes sure that all MPI processes give
+!!!!   the same result. This is done by requiring that the first entry of each vector
+!!!!   is positive.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!   Input arguments:
+!!!!   ----------------
+!!!!     iproc     process ID
+!!!!     nproc     number of MPI processes
+!!!!     orbs      type describing the physical orbitals psi
+!!!!   Input / Putput arguments
+!!!!     HamSmall  on input: the Hamiltonian
+!!!!               on exit: the eigenvectors
+!!!!   Output arguments
+!!!!     eval      the associated eigenvalues 
+!!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(orbitals_data), intent(inout) :: orbs
+!!!real(8),dimension(orbs%norb, orbs%norb):: HamSmall
+!!!real(8),dimension(orbs%norb):: eval
+!!!
+!!!! Local variables
+!!!integer:: lwork, info, istat, iall, i, iorb, jorb
+!!!real(8),dimension(:),allocatable:: work
+!!!character(len=*),parameter:: subname='diagonalizeHamiltonian'
+!!!
+!!!  ! Get the optimal work array size
+!!!  lwork=-1 
+!!!  allocate(work(1), stat=istat)
+!!!  call memocc(istat, work, 'work', subname)
+!!!  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+!!!  lwork=work(1) 
+!!!
+!!!  ! Deallocate the work array ane reallocate it with the optimal size
+!!!  iall=-product(shape(work))*kind(work)
+!!!  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+!!!  call memocc(istat, iall, 'work', subname)
+!!!  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+!!!  call memocc(istat, work, 'work', subname)
+!!!
+!!!  ! Diagonalize the Hamiltonian
+!!!  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+!!!
+!!!  ! Deallocate the work array.
+!!!  iall=-product(shape(work))*kind(work)
+!!!  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+!!!  call memocc(istat, iall, 'work', subname)
+!!!  
+!!!  ! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
+!!!  ! the first entry of each vector is positive.
+!!!  do iorb=1,orbs%norb
+!!!      if(HamSmall(1,iorb)<0.d0) then
+!!!          do jorb=1,orbs%norb
+!!!              HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
+!!!          end do
+!!!      end if
+!!!  end do
+!!!
+!!!
+!!!end subroutine diagonalizeHamiltonian
 
 
 
@@ -1235,108 +1235,108 @@ end subroutine diagonalizeHamiltonian2
 
 
 
-subroutine buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
-!
-! Purpose:
-! =======
-!   Builds the physical orbitals psi as a linear combination of the basis functions phi. The coefficients
-!   for this linear combination are obtained by diagonalizing the Hamiltonian matrix HamSmall.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     nproc      total number of processes
-!     orbs       type describing the physical orbitals psi
-!     orbsLIN    type describing the basis functions phi
-!     comms      type containing the communication parameters for the physical orbitals psi
-!     commsLIN   type containing the communication parameters for the basis functions phi
-!     phi        the basis functions 
-!     HamSmall   the  Hamiltonian matrix
-!   Output arguments:
-!   -----------------
-!     psi        the physical orbitals 
-!
-
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(orbitals_data), intent(in) :: orbs
-type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
-real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
-real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
-real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
-
-! Local variables
-integer:: nvctrp
-
-
-  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
-             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
-  
-
-end subroutine buildWavefunction
-
-
+!!!subroutine buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
+!!!!
+!!!! Purpose:
+!!!! =======
+!!!!   Builds the physical orbitals psi as a linear combination of the basis functions phi. The coefficients
+!!!!   for this linear combination are obtained by diagonalizing the Hamiltonian matrix HamSmall.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!   Input arguments:
+!!!!   ----------------
+!!!!     iproc      process ID
+!!!!     nproc      total number of processes
+!!!!     orbs       type describing the physical orbitals psi
+!!!!     orbsLIN    type describing the basis functions phi
+!!!!     comms      type containing the communication parameters for the physical orbitals psi
+!!!!     commsLIN   type containing the communication parameters for the basis functions phi
+!!!!     phi        the basis functions 
+!!!!     HamSmall   the  Hamiltonian matrix
+!!!!   Output arguments:
+!!!!   -----------------
+!!!!     psi        the physical orbitals 
+!!!!
+!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(orbitals_data), intent(in) :: orbs
+!!!type(orbitals_data), intent(in) :: orbsLIN
+!!!type(communications_arrays), intent(in) :: comms
+!!!type(communications_arrays), intent(in) :: commsLIN
+!!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
+!!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
+!!!real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
+!!!
+!!!! Local variables
+!!!integer:: nvctrp
+!!!
+!!!
+!!!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!!  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
+!!!             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
+!!!  
+!!!
+!!!end subroutine buildWavefunction
 
 
 
-subroutine buildWavefunctionModified(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, coeff)
-
-!
-! Purpose:
-! =======
-!   Builds the physical orbitals psi as a linear combination of the basis functions phi. The coefficients
-!   for this linear combination are obtained by diagonalizing the Hamiltonian matrix HamSmall.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     nproc      total number of processes
-!     orbs       type describing the physical orbitals psi
-!     orbsLIN    type describing the basis functions phi
-!     comms      type containing the communication parameters for the physical orbitals psi
-!     commsLIN   type containing the communication parameters for the basis functions phi
-!     phi        the basis functions 
-!     coeff      the coefficients for the linear combination
-!   Output arguments:
-!   -----------------
-!     psi        the physical orbitals 
-!
-
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(orbitals_data), intent(in) :: orbs
-type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
-real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
-real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
-real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
-
-! Local variables
-integer:: nvctrp
 
 
-  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, coeff(1,1), &
-             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
-  
-
-end subroutine buildWavefunctionModified
+!!!subroutine buildWavefunctionModified(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, coeff)
+!!!
+!!!!
+!!!! Purpose:
+!!!! =======
+!!!!   Builds the physical orbitals psi as a linear combination of the basis functions phi. The coefficients
+!!!!   for this linear combination are obtained by diagonalizing the Hamiltonian matrix HamSmall.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!   Input arguments:
+!!!!   ----------------
+!!!!     iproc      process ID
+!!!!     nproc      total number of processes
+!!!!     orbs       type describing the physical orbitals psi
+!!!!     orbsLIN    type describing the basis functions phi
+!!!!     comms      type containing the communication parameters for the physical orbitals psi
+!!!!     commsLIN   type containing the communication parameters for the basis functions phi
+!!!!     phi        the basis functions 
+!!!!     coeff      the coefficients for the linear combination
+!!!!   Output arguments:
+!!!!   -----------------
+!!!!     psi        the physical orbitals 
+!!!!
+!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(orbitals_data), intent(in) :: orbs
+!!!type(orbitals_data), intent(in) :: orbsLIN
+!!!type(communications_arrays), intent(in) :: comms
+!!!type(communications_arrays), intent(in) :: commsLIN
+!!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
+!!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
+!!!real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
+!!!
+!!!! Local variables
+!!!integer:: nvctrp
+!!!
+!!!
+!!!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!!  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, coeff(1,1), &
+!!!             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
+!!!  
+!!!
+!!!end subroutine buildWavefunctionModified
 
 
 
@@ -1676,63 +1676,63 @@ end subroutine build_new_linear_combinations
 
 
 
-subroutine get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
-           confdatarr, hx, psi, potmat)
-use module_base
-use module_types
-use module_interfaces, eccept_this_one => get_potential_matrices
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(atoms_data),intent(in):: at
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(inout):: op
-type(p2pComms),intent(inout):: comon
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),intent(in):: hx
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
-
-! Local variables
-integer:: iorb, ilr, ilrold, istat, iall
-real(8),dimension(:,:),allocatable:: ttmat
-real(8):: tt1, tt2, tt3, tt4, tt5
-real(8),dimension(:),allocatable:: vpsi
-character(len=*),parameter:: subname='get_potential_matrices'
-
-allocate(vpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-call memocc(istat, vpsi, 'vpsi', subname)
-
-
-ilrold=-1
-do iorb=1,orbs%norb
-    ilr=orbs%inwhichlocreg(iorb)
-    if(ilr==ilrold) cycle
-    call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
-         confdatarr, hx, psi, ilr, vpsi)
-
-    !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
-    !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
-    !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-    !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-    !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-    !deallocate(ttmat)
-    call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, psi, vpsi, mad, potmat(1,1,ilr))
-    ilrold=ilr
-    
-end do
-
-iall=-product(shape(vpsi))*kind(vpsi)
-deallocate(vpsi, stat=istat)
-call memocc(istat, iall, 'vpsi', subname)
-
-
-
-end subroutine get_potential_matrices
+!!!subroutine get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
+!!!           confdatarr, hx, psi, potmat)
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, eccept_this_one => get_potential_matrices
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc
+!!!type(atoms_data),intent(in):: at
+!!!type(orbitals_data),intent(in):: orbs
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!type(overlapParameters),intent(inout):: op
+!!!type(p2pComms),intent(inout):: comon
+!!!type(matrixDescriptors),intent(in):: mad
+!!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!!real(8),intent(in):: hx
+!!!type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+!!!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+!!!real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
+!!!
+!!!! Local variables
+!!!integer:: iorb, ilr, ilrold, istat, iall
+!!!real(8),dimension(:,:),allocatable:: ttmat
+!!!real(8):: tt1, tt2, tt3, tt4, tt5
+!!!real(8),dimension(:),allocatable:: vpsi
+!!!character(len=*),parameter:: subname='get_potential_matrices'
+!!!
+!!!allocate(vpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+!!!call memocc(istat, vpsi, 'vpsi', subname)
+!!!
+!!!
+!!!ilrold=-1
+!!!do iorb=1,orbs%norb
+!!!    ilr=orbs%inwhichlocreg(iorb)
+!!!    if(ilr==ilrold) cycle
+!!!    call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
+!!!         confdatarr, hx, psi, ilr, vpsi)
+!!!
+!!!    !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
+!!!    !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
+!!!    !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+!!!    !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+!!!    !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+!!!    !deallocate(ttmat)
+!!!    call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, psi, vpsi, mad, potmat(1,1,ilr))
+!!!    ilrold=ilr
+!!!    
+!!!end do
+!!!
+!!!iall=-product(shape(vpsi))*kind(vpsi)
+!!!deallocate(vpsi, stat=istat)
+!!!call memocc(istat, iall, 'vpsi', subname)
+!!!
+!!!
+!!!
+!!!end subroutine get_potential_matrices
 
 
 
