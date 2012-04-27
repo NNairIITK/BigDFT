@@ -1,0 +1,63 @@
+<node>
+  <interface name="eu.etsf.bigdft.dbus.wf">
+    <method name="get_psi_compress">
+      <arg direction="in"  name="ikpt"    type="u"  />
+      <arg direction="in"  name="iorb"    type="u"  />
+      <arg direction="in"  name="ispin"   type="u"  />
+      <arg direction="in"  name="ispinor" type="u"  />
+      <arg direction="out" name="psi"     type="ad" />
+      <arg direction="out" name="psiSize" type="u"  />
+    </method>
+
+    <property name="nPsiReady" type="u" access="read" />
+    <property name="refPsiReady" type="u" access="read" />
+    <signal name="PsiReady">
+      <arg type="u" name="iter"/>
+    </signal>
+    <method name="registerPsiReady" />
+    <method name="unregisterPsiReady" />
+    <method name="donePsiReady" />
+  </interface>
+
+  <interface name="eu.etsf.bigdft.dbus.energs">
+    <property name="eKS"   type="d" access="read" />
+    <property name="eBS"   type="d" access="read" />
+    <property name="eH"    type="d" access="read" />
+    <property name="eXC"   type="d" access="read" />
+    <property name="eVxc"  type="d" access="read" />
+    <property name="eIon"  type="d" access="read" />
+    <property name="eDisp" type="d" access="read" />
+    <property name="eKin"  type="d" access="read" />
+    <property name="ePot"  type="d" access="read" />
+    <property name="eProj" type="d" access="read" />
+    <property name="trH"   type="d" access="read" />
+
+    <property name="nEnergReady" type="u" access="read" />
+    <property name="refEnergReady" type="u" access="read" />
+    <signal name="EnergReady">
+      <arg type="u" name="iter"/>
+      <arg type="u" name="kind"/>
+    </signal>
+    <method name="registerEnergReady" />
+    <method name="unregisterEnergReady" />
+    <method name="doneEnergReady" />
+  </interface>
+
+  <interface name="eu.etsf.bigdft.dbus.localFields">
+    <method name="get_denspot">
+      <arg direction="in"  name="kind"  type="u"  />
+      <arg direction="out" name="v_ext" type="ad" />
+      <arg direction="out" name="size"  type="u"  />
+    </method>
+
+    <property name="nDensPotReady" type="u" access="read" />
+    <property name="refDensPotReady" type="u" access="read" />
+    <signal name="DensPotReady">
+      <arg type="u" name="iter"/>
+      <arg type="u" name="kind"/>
+    </signal>
+    <method name="registerDensPotReady" />
+    <method name="unregisterDensPotReady" />
+    <method name="doneDensPotReady" />
+  </interface>
+</node>

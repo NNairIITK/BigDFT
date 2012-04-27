@@ -94,13 +94,19 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
                      [Build GObject bindings (default is yes).]),
             ac_use_glib=$withval, ac_use_glib="yes")
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
-  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0, [have_glib=yes], [have_glib=no])
+  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
+  PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
 else
   have_glib=no
+  have_gdbus=no
 fi
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
 fi
+if test x"$have_gdbus" = x"yes" ; then
+  AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
+fi
+AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
@@ -750,7 +756,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -814,6 +820,9 @@ tests/libs/IO-wf/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
 tests/DFT/Makefile
+tests/DFT/cubic/Makefile
+tests/DFT/linear/Makefile
+tests/DFT/postSCF/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
 ])
@@ -883,7 +892,7 @@ Options:
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
   With GLib and co.:         $have_glib
-   | linked libraries:       $GLIB_LIBS
+   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}

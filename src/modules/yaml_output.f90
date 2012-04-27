@@ -49,8 +49,8 @@ contains
     integer, intent(in), optional :: event
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing
-    integer :: lgt,evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt,iscpos
-    integer :: ianchor_pos,tabeff,towrite_lgt
+    integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
+    integer :: towrite_lgt
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=max_record_length) :: towrite

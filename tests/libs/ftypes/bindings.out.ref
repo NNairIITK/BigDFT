@@ -16,6 +16,18 @@ Test BigDFT_Atoms pseudo-potential on the fly.
  Grid is            34        32        32
  Int grid is        99        95        95
  H grids are      0.45      0.45      0.45
+ Coarse grid has   19815 points   829 segments.
+ Fine grid has       321 points    49 segments.
+ fine seg   1 has bounds (17 - 17;16;11)
+ fine seg   2 has bounds (16 - 18;14;12)
+ fine seg   3 has bounds (15 - 19;15;12)
+ fine seg   4 has bounds (15 - 19;16;12)
+ fine seg   5 has bounds (15 - 19;17;12)
+ fine seg   6 has bounds (16 - 18;18;12)
+ fine seg   7 has bounds (16 - 18;13;13)
+ fine seg   8 has bounds (15 - 19;14;13)
+ fine seg   9 has bounds (14 - 20;15;13)
+ fine seg  10 has bounds (14 - 20;16;13)
 Test calculation of grid points.
  Coarse grid has   19815 points.
  Fine grid has       321 points.
@@ -43,6 +55,18 @@ Test BigDFT_Atoms pseudo-potential evaluation.
  Grid is            41        26        69
  Int grid is        84        83       140
  H grids are 0.407690476      0.48 0.244614286
+ Coarse grid has   24084 points  2187 segments.
+ Fine grid has      3489 points   554 segments.
+ fine seg   1 has bounds ( 6 -  9; 7; 0)
+ fine seg   2 has bounds ( 1 - 11; 8; 0)
+ fine seg   3 has bounds ( 0 - 11; 9; 0)
+ fine seg   4 has bounds (41 - 41; 9; 0)
+ fine seg   5 has bounds ( 0 - 11;10; 0)
+ fine seg   6 has bounds (40 - 41;10; 0)
+ fine seg   7 has bounds ( 0 - 11;11; 0)
+ fine seg   8 has bounds (40 - 41;11; 0)
+ fine seg   9 has bounds ( 0 - 10;12; 0)
+ fine seg  10 has bounds (40 - 41;12; 0)
 Test calculation of grid points.
  Coarse grid has   24084 points.
  Fine grid has      3489 points.
@@ -56,6 +80,7 @@ Test BigDFT_LocalFields creation.
  Calculation of input guess started.
 Callback for "density-ready" signal at iter 0.
  Density calculated by C is 7.9999998876429634.
+Callback for 'eks-ready' signal at iter 0 -> -5.06042Ht.
 Callback for 'psi-ready' signal at iter 0.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000492114.
@@ -103,9 +128,11 @@ Callback for 'eks-ready' signal at iter 1 -> -5.82852Ht.
 Callback for 'psi-ready' signal at iter 1.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000530631.
+Callback for 'iter-done-wavefunctions' signal at iter 1 -> -5.82852Ht (0.492963).
 Callback for "density-ready" signal at iter 2.
  Density calculated by C is 7.9999999404922422.
 Callback for 'eks-ready' signal at iter 2 -> -5.85172Ht.
+Callback for 'iter-done-wavefunctions' signal at iter 2 -> -5.85172Ht (0.492963).
 Callback for 'psi-ready' signal at iter 2.
  Band 4 has 388056 bytes.
  Band 4 has min partial density 0 and max 0.000368661.
