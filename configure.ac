@@ -820,6 +820,9 @@ tests/libs/IO-wf/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
 tests/DFT/Makefile
+tests/DFT/cubic/Makefile
+tests/DFT/linear/Makefile
+tests/DFT/postSCF/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
 ])
