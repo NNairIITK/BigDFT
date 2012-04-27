@@ -1075,7 +1075,7 @@ subroutine total_energies(energs, iter)
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
-       energs%eexctX-energs%evsic+energs%eion+energs%edisp
+       energs%eexctX-energs%evsic+energs%eion+energs%edisp!-energs%excrhoc
 
   if (energs%c_obj /= 0.d0) then
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.

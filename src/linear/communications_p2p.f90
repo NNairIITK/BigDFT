@@ -165,9 +165,10 @@ subroutine init_p2p_tags(nproc)
   initialized=.true.
 
   ! Determine the largest possible tag
-  call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
-  if(.not.success) stop 'could not extract largest possible tag...'
-  
+  if (nproc > 1 ) then
+     call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
+     if(.not.success) stop 'could not extract largest possible tag...'
+  end if
 end subroutine init_p2p_tags
 
 

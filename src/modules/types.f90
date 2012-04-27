@@ -252,6 +252,7 @@ module module_types
      real(gp) :: trH    =0.0_gp
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
+     real(gp) :: excrhoc=0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
 
      double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.

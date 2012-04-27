@@ -332,6 +332,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   n2=KSwfn%Lzd%Glr%d%n2
   n3=KSwfn%Lzd%Glr%d%n3
 
+  !calculate the rhocore contribution to the energy value
+  if (associated(denspot%rho_C)) then
+     !calculate the XC energy of rhocore, use the rhov array as a temporary variable
+     !use Vxc and other quantities as local variables
+     call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
+     denspot%rhov=1.d-16
+     call XC_potential(atoms%geocode,'D',iproc,nproc,&
+          denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+     if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
+  end if
+
+
+
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
