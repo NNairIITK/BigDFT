@@ -313,7 +313,8 @@ real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
-
+integer :: i, j
+real(gp),dimension(:,:), allocatable :: rhoprime
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
@@ -340,6 +341,20 @@ if(iproc==0) write(*,'(a)') 'done.'
 !call cpu_time(t2)
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
+
+!DEBUG test idempotency of density matrix
+allocate(rhoprime(orbs%norb,orbs%norb))
+call dgemm('n','t', orbs%norb,orbs%norb,orbs%norb,1.d0,densKern(1,1),orbs%norb,&
+     densKern(1,1),orbs%norb,0.d0,rhoprime(1,1),orbs%norb)
+do i = 1, orbs%norb
+ do j = 1, orbs%norb
+    if(abs(rhoprime(i,j) - densKern(i,j))>1.0d-5) then
+      write(*,*) 'Not indempotent',i,j,rhoprime(i,j), densKern(i,j)
+    end if
+ end do
+end do
+deallocate(rhoprime)
+!END DEBUG
 
 
 ! Define some constant factors.
