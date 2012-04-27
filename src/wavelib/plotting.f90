@@ -490,8 +490,8 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
         end if
      else
         if (fformat == 1) then
-           suffix='-up'
-           message='spin up'
+           suffix=''
+           message='total spin'
            a=1.0_dp
            ia=1
            b=0.0_dp
@@ -510,18 +510,18 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-           suffix=''
-           message='total spin'
+           suffix='-u-d'
+           message='spin difference'
            a=1.0_dp
            ia=1
-           b=1.0_dp
+           b=-2.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-           suffix='-u-d'
-           message='spin difference'
+           suffix='-up'
+           message='spin up'
            a=1.0_dp
            ia=1
            b=-1.0_dp
