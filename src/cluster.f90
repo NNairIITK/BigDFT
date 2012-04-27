@@ -433,7 +433,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !do the last_run things regardless of infocode
      !nrepmax=0 is needed for the Band Structure calculations
      DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) .or. &
-          & (in%last_run == 1 .and. icycle == in%nrepmax)
+          & (in%last_run == 1 .and. icycle-1 == in%nrepmax)
               !print the energies only if they are meaningful
      energy = energs%eKS
      !Davidson is set to false first because used in deallocate_before_exiting

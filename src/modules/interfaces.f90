@@ -5489,7 +5489,7 @@ module module_interfaces
            nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, &
            ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
-           rxyzConf, potentialPrefac,  withKinetic, cprecr, &
+           rxyzConf, potentialPrefac,  with_kinetic, cprecr, &
            xx_c, xx_f1, xx_f, &
            xy_c, xy_f2, xy_f, &
            xz_c, xz_f4, xz_f, &
@@ -5499,7 +5499,7 @@ module module_interfaces
         implicit none
         integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
         real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
-        logical,intent(in):: withKinetic
+        logical,intent(in):: with_kinetic
         real(8),dimension(3):: rxyzConf
         integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
         integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f

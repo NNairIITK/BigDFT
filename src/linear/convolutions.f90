@@ -1,25 +1,21 @@
-subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
-     nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
-     hgrid, offsetx, offsety, offsetz, &
-     ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
-     rxyzConf, potentialPrefac, withKinetic, cprecr, &
-     xx_c, xx_f1, xx_f, &
-     xy_c, xy_f2, xy_f, &
-     xz_c, xz_f4, xz_f, &
-     y_c, y_f)
+subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
+           hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+           rxyzConf, potentialPrefac, with_kinetic, cprecr, &
+           xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
+           y_c, y_f)
 
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
-  real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
-  logical,intent(in):: withKinetic
+  integer,intent(in):: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz
+  real(gp),intent(in):: hgrid, potentialPrefac, cprecr
+  logical,intent(in):: with_kinetic
   real(8),dimension(3):: rxyzConf
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer,dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer,dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
   real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
   real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
   real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
@@ -33,76 +29,70 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
   ! Local variables
-  integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i,t,i1,i2,i3
-  integer :: icur,istart,iend,l
-  real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(wp):: tt112, tt121, tt122, tt212, tt221, tt222, tt211
-  real(wp):: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
-  real(wp), dimension(-3+lowfil:lupfil+3) :: a, aeff0, aeff1, aeff2, aeff3
-  real(wp), dimension(-3+lowfil:lupfil+3) :: b, beff0, beff1, beff2, beff3
-  real(wp), dimension(-3+lowfil:lupfil+3) :: c, ceff0, ceff1, ceff2, ceff3
-  real(wp), dimension(lowfil:lupfil) :: e, eeff0, eeff1, eeff2, eeff3
-  real(wp), dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  real(wp), dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
-  real(wp), dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  integer,parameter:: lowfil=-14,lupfil=14
+  integer:: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
+  real(wp):: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp):: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
+  real(wp),dimension(-3+lowfil:lupfil+3):: a, aeff0, aeff1, aeff2, aeff3
+  real(wp),dimension(-3+lowfil:lupfil+3):: b, beff0, beff1, beff2, beff3
+  real(wp),dimension(-3+lowfil:lupfil+3):: c, ceff0, ceff1, ceff2, ceff3
+  real(wp),dimension(lowfil:lupfil):: e, eeff0, eeff1, eeff2, eeff3
+  real(wp),dimension(-3+lowfil:lupfil+3):: aeff0_2, aeff1_2, aeff2_2, aeff3_2
+  real(wp),dimension(-3+lowfil:lupfil+3):: beff0_2, beff1_2, beff2_2, beff3_2
+  real(wp),dimension(-3+lowfil:lupfil+3):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(lowfil:lupfil):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   real(wp),dimension(:,:),allocatable:: aeff0array, beff0array, ceff0array, eeff0array
   real(wp),dimension(:,:),allocatable:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
   real(wp),dimension(:,:),allocatable:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp), dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   real(wp),dimension(:,:,:),allocatable:: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
   real(wp),dimension(:,:,:,:),allocatable:: xya_f, xyb_f, xyc_f, xye_f
   real(wp),dimension(:,:,:,:),allocatable:: xza_f, xzb_f, xzc_f, xze_f
   real(wp),dimension(:,:,:,:),allocatable:: yza_f, yzb_f, yzc_f, yze_f
-  !!real(wp),dimension(:,:,:),allocatable:: xy_c, xz_c
-  !!real(wp),dimension(:,:,:),allocatable:: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
-  !!real(wp),dimension(:,:,:),allocatable:: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
-real(8):: x0, y0, z0
-real(8):: x1, y1, z1
-real(8):: x2, y2, z2
-real(8):: x3, y3, z3
-integer:: ii, istat, iall
-character(len=*),parameter:: subname='ConvolQuartic4'
-real(8):: tt00, tt01, tt02, tt03
-real(8):: tt10, tt11, tt12, tt13
-real(8):: tt20, tt21, tt22, tt23
-real(8):: tt30, tt31, tt32, tt33
-real(8):: tt40, tt41, tt42, tt43
-real(8):: tt50, tt51, tt52, tt53
-real(8):: tt60, tt61, tt62, tt63
-real(8):: tt70, tt71, tt72, tt73
-real(8):: tt0a0, tt0a1, tt0a2, tt0a3
-real(8):: tt0b0, tt0b1, tt0b2, tt0b3
-real(8):: tt0c0, tt0c1, tt0c2, tt0c3
-real(8):: tt0e0, tt0e1, tt0e2, tt0e3
-real(8):: tt1a0, tt1a1, tt1a2, tt1a3
-real(8):: tt1b0, tt1b1, tt1b2, tt1b3
-real(8):: tt1c0, tt1c1, tt1c2, tt1c3
-real(8):: tt1e0, tt1e1, tt1e2, tt1e3
-real(8):: tt2a0, tt2a1, tt2a2, tt2a3
-real(8):: tt2b0, tt2b1, tt2b2, tt2b3
-real(8):: tt2c0, tt2c1, tt2c2, tt2c3
-real(8):: tt2e0, tt2e1, tt2e2, tt2e3
-real(8):: tt3a0, tt3a1, tt3a2, tt3a3
-real(8):: tt3b0, tt3b1, tt3b2, tt3b3
-real(8):: tt3c0, tt3c1, tt3c2, tt3c3
-real(8):: tt3e0, tt3e1, tt3e2, tt3e3
-real(8):: tt4a0, tt4a1, tt4a2, tt4a3
-real(8):: tt4b0, tt4b1, tt4b2, tt4b3
-real(8):: tt4c0, tt4c1, tt4c2, tt4c3
-real(8):: tt4e0, tt4e1, tt4e2, tt4e3
-real(8):: tt5a0, tt5a1, tt5a2, tt5a3
-real(8):: tt5b0, tt5b1, tt5b2, tt5b3
-real(8):: tt5c0, tt5c1, tt5c2, tt5c3
-real(8):: tt5e0, tt5e1, tt5e2, tt5e3
-real(8):: tt6a0, tt6a1, tt6a2, tt6a3
-real(8):: tt6b0, tt6b1, tt6b2, tt6b3
-real(8):: tt6c0, tt6c1, tt6c2, tt6c3
-real(8):: tt6e0, tt6e1, tt6e2, tt6e3
-real(8):: tt7a0, tt7a1, tt7a2, tt7a3
-real(8):: tt7b0, tt7b1, tt7b2, tt7b3
-real(8):: tt7c0, tt7c1, tt7c2, tt7c3
-real(8):: tt7e0, tt7e1, tt7e2, tt7e3
+  real(8):: x0, y0, z0
+  real(8):: x1, y1, z1
+  real(8):: x2, y2, z2
+  real(8):: x3, y3, z3
+  real(8):: tt00, tt01, tt02, tt03
+  real(8):: tt10, tt11, tt12, tt13
+  real(8):: tt20, tt21, tt22, tt23
+  real(8):: tt30, tt31, tt32, tt33
+  real(8):: tt40, tt41, tt42, tt43
+  real(8):: tt50, tt51, tt52, tt53
+  real(8):: tt60, tt61, tt62, tt63
+  real(8):: tt70, tt71, tt72, tt73
+  real(8):: tt0a0, tt0a1, tt0a2, tt0a3
+  real(8):: tt0b0, tt0b1, tt0b2, tt0b3
+  real(8):: tt0c0, tt0c1, tt0c2, tt0c3
+  real(8):: tt0e0, tt0e1, tt0e2, tt0e3
+  real(8):: tt1a0, tt1a1, tt1a2, tt1a3
+  real(8):: tt1b0, tt1b1, tt1b2, tt1b3
+  real(8):: tt1c0, tt1c1, tt1c2, tt1c3
+  real(8):: tt1e0, tt1e1, tt1e2, tt1e3
+  real(8):: tt2a0, tt2a1, tt2a2, tt2a3
+  real(8):: tt2b0, tt2b1, tt2b2, tt2b3
+  real(8):: tt2c0, tt2c1, tt2c2, tt2c3
+  real(8):: tt2e0, tt2e1, tt2e2, tt2e3
+  real(8):: tt3a0, tt3a1, tt3a2, tt3a3
+  real(8):: tt3b0, tt3b1, tt3b2, tt3b3
+  real(8):: tt3c0, tt3c1, tt3c2, tt3c3
+  real(8):: tt3e0, tt3e1, tt3e2, tt3e3
+  real(8):: tt4a0, tt4a1, tt4a2, tt4a3
+  real(8):: tt4b0, tt4b1, tt4b2, tt4b3
+  real(8):: tt4c0, tt4c1, tt4c2, tt4c3
+  real(8):: tt4e0, tt4e1, tt4e2, tt4e3
+  real(8):: tt5a0, tt5a1, tt5a2, tt5a3
+  real(8):: tt5b0, tt5b1, tt5b2, tt5b3
+  real(8):: tt5c0, tt5c1, tt5c2, tt5c3
+  real(8):: tt5e0, tt5e1, tt5e2, tt5e3
+  real(8):: tt6a0, tt6a1, tt6a2, tt6a3
+  real(8):: tt6b0, tt6b1, tt6b2, tt6b3
+  real(8):: tt6c0, tt6c1, tt6c2, tt6c3
+  real(8):: tt6e0, tt6e1, tt6e2, tt6e3
+  real(8):: tt7a0, tt7a1, tt7a2, tt7a3
+  real(8):: tt7b0, tt7b1, tt7b2, tt7b3
+  real(8):: tt7c0, tt7c1, tt7c2, tt7c3
+  real(8):: tt7e0, tt7e1, tt7e2, tt7e3
+  character(len=*),parameter:: subname='ConvolQuartic4'
 
 
 call timing(iproc,'convolQuartic ','ON')
@@ -246,7 +236,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
     do i1=0,n1
         x0=hgrid*(i1+offsetx)-rxyzConf(1)
-        if(.not. WithKinetic) then
+        if(.not. with_kinetic) then
             call getFilterQuartic(potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
             call getFilterQuartic(potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
             call getFilterQuartic(potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
@@ -590,7 +580,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   
     do i2=0,n2
         y0=hgrid*(i2+offsety)-rxyzConf(2)
-        if(.not. withKinetic) then
+        if(.not. with_kinetic) then
             call getFilterQuartic(potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
             call getFilterQuartic(potentialPrefac, hgrid, y0, beff0array(lowfil,i2), 'b')
             call getFilterQuartic(potentialPrefac, hgrid, y0, ceff0array(lowfil,i2), 'c')
@@ -991,7 +981,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
     do i3=0,n3
         z0=hgrid*(i3+offsetz)-rxyzConf(3)
-        if(.not. withKinetic) then
+        if(.not. with_kinetic) then
             call getFilterQuartic(potentialPrefac, hgrid, z0, aeff0array(lowfil,i3), 'a')
             call getFilterQuartic(potentialPrefac, hgrid, z0, beff0array(lowfil,i3), 'b')
             call getFilterQuartic(potentialPrefac, hgrid, z0, ceff0array(lowfil,i3), 'c')
