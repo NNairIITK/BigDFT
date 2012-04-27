@@ -61,7 +61,7 @@ program wvl
        & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,rxyz)
 
   call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5_gp*inputs%hx,0.5_gp*inputs%hy,0.5_gp*inputs%hz,&
        inputs,atoms,rxyz,radii_cf,dpcom,rhodsc)
