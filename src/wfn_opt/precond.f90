@@ -887,13 +887,19 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   !local variables
   logical :: sseprecond=.false.
-  integer :: idx,nf
+  integer :: idx,nf,isegf,ipsif
+
+  isegf=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+  ipsif=lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f)
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
 
         if (sseprecond) then
-           call uncompress_standard_scal(lr%d,lr%wfd,scal,x(1,idx),&
+           call uncompress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                x(1,idx),x(ipsif,idx),&
                 w%xpsig_c,w%xpsig_f)
 !commented out, not working correctly        
 !!$           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
@@ -903,8 +909,11 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
 !!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
 !!$                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
            
-           call compress_standard_scal(lr%d,lr%wfd,scal,w%ypsig_c,w%ypsig_f,&
-                y(1,idx))
+           call compress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%ypsig_c,w%ypsig_f,&
+                y(1,idx),y(ipsif,idx))
 
         else
 

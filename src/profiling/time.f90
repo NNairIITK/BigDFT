@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=67,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=70,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -83,6 +83,9 @@ module timeData
        'mix_linear    ','Other         ' ,'Other         ' ,  &
        'mix_DIIS      ','Other         ' ,'Other         ' ,  &
        'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'wf_signals    ','Communications' ,'Socket transf.' ,  &
+       'energs_signals','Communications' ,'Socket transf.' ,  &
+       'rhov_signals  ','Communications' ,'Socket transf.' ,  &
        'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
        'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
        'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
@@ -92,7 +95,7 @@ module timeData
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
-  integer :: ncounters, ncaton,nproc,nextra
+  integer :: ncounters, ncaton,nproc = 0,nextra
   real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
@@ -115,6 +118,8 @@ module timeData
       real(kind=8), dimension(ncls,0:nproc) :: timecls
       real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
 
+      ! Not initialised case.
+      if (nproc == 0) return
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&

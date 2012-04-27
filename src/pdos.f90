@@ -9,14 +9,13 @@
 
 
 !>    Perform all the projection associated to local variables
-subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
    use module_base
    use module_types
    use module_interfaces, except_this_one => local_analysis
    implicit none
    integer, intent(in) :: iproc,nproc
    real(gp), intent(in) :: hx,hy,hz
-   type(input_variables), intent(in) :: in
    type(locreg_descriptors), intent(in) :: lr
    type(orbitals_data), intent(in) :: orbs,orbsv
    type(atoms_data), intent(in) :: at
@@ -67,35 +66,36 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,lr,orbs,orbsv,psi,psiv
 
    !extract the gaussian basis from the pseudowavefunctions
    !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
-   call gaussian_pswf_basis(31,.false.,iproc,in%nspin,at,rxyz,G,Gocc)
+   call gaussian_pswf_basis(31,.false.,iproc,orbs%nspin,at,rxyz,G,Gocc)
 
    allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
    call memocc(i_stat,thetaphi,'thetaphi',subname)
    call razero(2*G%nat,thetaphi)
-   allocate(allpsigau(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
+   allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,allpsigau,'allpsigau',subname)
-
+print *,'there'
    !this routine should be simplified like gaussians_to_wavelets
    call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
-      &   lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
-
+        lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
+print *,'here'
    !the same can be done for virtual orbitals if orbsv%norb > 0
    if (orbsv%norb > 0) then
       call wavelets_to_gaussians(lr%geocode,norbpv,orbsv%nspinor,&
-         &   lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psivirt,&
-         &   allpsigau(1,orbs%norbp+min(1,norbpv)))
+           lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psivirt,&
+           allpsigau(1,orbs%norbp+min(1,norbpv)))
    end if
    !calculate dual coefficients
-   allocate(dualcoeffs(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
+   allocate(dualcoeffs(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
-   call dcopy(G%ncoeff*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
+   call dcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
    !build dual coefficients
-   call dual_gaussian_coefficients(orbs%norbp+norbpv,G,dualcoeffs)
+   call dual_gaussian_coefficients(orbs%nspinor*(orbs%norbp+norbpv),G,dualcoeffs)
+
 
    !here we can calculate the Mulliken charge population
    !for any of the elements of the basis, ordered by angular momentum
    !do that only for the occupied orbitals
-   call mulliken_charge_population(iproc,nproc,in%nspin,orbs,Gocc,G,allpsigau,dualcoeffs)
+   call mulliken_charge_population(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
 
    !also partial density of states can be analysed here
    call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
@@ -132,46 +132,90 @@ END SUBROUTINE local_analysis
 
 
 !> Calculate Mulliken charge population
-subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
+subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
+  integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
   real(gp), dimension(G%ncoeff), intent(in) :: Gocc
-  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
+  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: coeff,duals
   !local variables
   character(len=*), parameter :: subname='mulliken_charge_population'
   character(len=11) :: shname
   integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
-  real(wp) :: msum,rad,radnorm,r,sumch
+  integer :: ispinor,i
+  real(wp) :: msum,rad,radnorm,r,sumch,mnrm
   real(wp), dimension(2) :: msumiat
-  real(wp), dimension(:,:), allocatable :: mchg
+  real(wp), dimension(3) :: mi
+  real(wp), dimension(:,:), allocatable :: mchg,magn
   
   !allocate both for spins up and down
   allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
   call memocc(i_stat,mchg,'mchg',subname)
 
+  allocate(magn(G%ncoeff,3+ndebug),stat=i_stat)
+  call memocc(i_stat,magn,'magn',subname)
+
+
   !for any of the orbitals calculate the Mulliken charge
   do icoeff=1,G%ncoeff
      mchg(icoeff,1)=0.0_wp
      mchg(icoeff,2)=0.0_wp
+ 
+     magn(icoeff,1)=0.0_wp
+     magn(icoeff,2)=0.0_wp
+     magn(icoeff,3)=0.0_wp
+
      !print '(a,100(1pe12.5))','icoeff,iorb',coeff(icoeff,:)
      !print '(a,100(1pe12.5))','idualc,iorb',duals(icoeff,:)
      do iorb=1,orbs%norbp
-        if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
+        if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp .and. orbs%nspinor /= 4) then
            ispin=1
-        else
+        else if (orbs%nspinor /= 4) then
            ispin=2
         end if
-        mchg(icoeff,ispin)=mchg(icoeff,ispin)+&
-             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*&
-             coeff(icoeff,iorb)*duals(icoeff,iorb)
-             !duals(icoeff,iorb)**2
+        !reduce the charge on site
+        sumch=0.0_gp
+        do ispinor=1,orbs%nspinor
+           sumch=sumch+coeff(icoeff,ispinor,iorb)*duals(icoeff,ispinor,iorb)
+        end do
+        !reduce the magnetisation
+        if (orbs%nspinor == 4) then
+           mi(1)=coeff(icoeff,1,iorb)*duals(icoeff,3,iorb)+coeff(icoeff,3,iorb)*duals(icoeff,1,iorb)+&
+                (coeff(icoeff,4,iorb)*duals(icoeff,2,iorb)+coeff(icoeff,2,iorb)*duals(icoeff,4,iorb))
+           mi(2)=coeff(icoeff,2,iorb)*duals(icoeff,3,iorb)+coeff(icoeff,3,iorb)*duals(icoeff,2,iorb)-&
+                (coeff(icoeff,1,iorb)*duals(icoeff,4,iorb)+coeff(icoeff,4,iorb)*duals(icoeff,1,iorb))
+           mi(3)=coeff(icoeff,1,iorb)*duals(icoeff,1,iorb)+coeff(icoeff,2,iorb)*duals(icoeff,2,iorb)-&
+                (coeff(icoeff,3,iorb)*duals(icoeff,3,iorb)+coeff(icoeff,4,iorb)*duals(icoeff,4,iorb))
+        else
+           mi(1)=0.0_wp
+           mi(2)=0.0_wp
+           mi(3)=orbs%spinsgn(orbs%isorb+iorb)*sumch          
+        end if
+        do i=1,3
+           magn(icoeff,i)=magn(icoeff,i)+&
+             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*mi(i)
+        end do
+        if (orbs%nspinor /= 4) then
+           mchg(icoeff,ispin)=mchg(icoeff,ispin)+&
+                orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*sumch
+        else
+           !here the mchg represent the majority and minority spins respectively
+           !modulus of m
+           mnrm=nrm2(3,mi(1),1)
+           !majority
+           mchg(icoeff,1)=mchg(icoeff,1)+&
+                orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*0.5_gp*(sumch+mnrm)
+           !minority
+           mchg(icoeff,2)=mchg(icoeff,2)+&
+                orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*0.5_gp*(sumch-mnrm)
+        end if
+
         !if no spin polarisation equals up and down spin quantities
      end do
-     if (nspin ==1) then
+     if (orbs%nspin ==1) then
         mchg(icoeff,1)=0.5_wp*mchg(icoeff,1)
         mchg(icoeff,2)=mchg(icoeff,1)
      end if
@@ -180,13 +224,18 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   !reduce the results
   if (nproc > 1) then
      call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   if (iproc == 0) then
      !write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
      !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |Gross Chg'
      write(*,'(1x,a)')repeat('-',57)//' Mulliken Charge Population Analysis'
-     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg'
+     if (orbs%nspinor == 4) then
+        write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (Maj)| Chg (Min)  |Partial Chg| Mag Comp |  Net Chg'
+     else
+        write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg'
+     end if
   end if
 
 !  do iorb=1,orbs%norbp  
@@ -230,9 +279,20 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
               !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
               !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
               !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
-              write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
-                   iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
-                   mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+              if (orbs%nspinor /= 4) then
+                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                      mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+              else
+                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                      magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                      magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,2),' | '
+                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,3),' | '
+              end if
            end if
            sumch=sumch+Gocc(icoeff)
            icoeff=icoeff+1
@@ -258,6 +318,11 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   i_all=-product(shape(mchg))*kind(mchg)
   deallocate(mchg,stat=i_stat)
   call memocc(i_stat,i_all,'mchg',subname)
+
+  i_all=-product(shape(magn))*kind(magn)
+  deallocate(magn,stat=i_stat)
+  call memocc(i_stat,i_all,'magn',subname)
+
   
 END SUBROUTINE mulliken_charge_population
 

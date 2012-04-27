@@ -1031,53 +1031,20 @@ nullify(Qvect,dumQvect)
         endif
      endif
 
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%Lzd%Glr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-print *,' ciao1!!!'
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-   call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,ha%rxyz,&
-        ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-        ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-
-!!$     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-!!$        &   ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-!!$        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-!!$
-!!$     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-!!$        &   ha%rxyz,ha%proj,ha%Lzd,ha%nlpspd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
-!!$
-!!$     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,ha%GPU,wrk,&
-!!$        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
+          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU)
 
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
      !Qvect_tmp   =  wrk
 
-
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%Lzd%Glr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,ha%rxyz,&
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-!!$     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-!!$        &   ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-!!$        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-!!$
-!!$     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-!!$        &   ha%rxyz,ha%proj,ha%Lzd,ha%nlpspd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
-!!$
-!!$     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,ha%GPU,wrk,&
-!!$        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+          ha%energs,ha%SIC,ha%GPU)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
@@ -1171,31 +1138,11 @@ print *,' ciao1!!!'
         call lowpass_projector(ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3,ha%Lzd%Glr%wfd%nvctr_c, Qvect_tmp )
      endif
 
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%Lzd%Glr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,ha%rxyz,&
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-!!$     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
-!!$          ha%hx,ha%hy,ha%hz,&
-!!$          ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
-!!$          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-!!$
-!!$     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,&
-!!$          ha%hx,ha%hy,ha%hz,&
-!!$          ha%rxyz,ha%proj,ha%Lzd,ha%nlpspd,Qvect_tmp,wrk,ha%eproj_sum)
-!!$
-!!$     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,&
-!!$          ha%GPU,wrk,&
-!!$          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
-
+          ha%energs,ha%SIC,ha%GPU)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 

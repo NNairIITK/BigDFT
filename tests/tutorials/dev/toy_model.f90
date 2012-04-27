@@ -43,7 +43,7 @@ program wvl
   if (iproc==0) call print_logo()
 
   ! Setup names for input and output files.
-  call standard_inputfile_names(inputs, "toy")
+  call standard_inputfile_names(inputs, "toy",nproc)
   ! Read all input stuff, variables and atomic coordinates and pseudo.
   call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
 
@@ -61,10 +61,13 @@ program wvl
        & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs,inputs%hx,inputs%hy,inputs%hz,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,rxyz)
 
-  call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5_gp*inputs%hx,0.5_gp*inputs%hy,0.5_gp*inputs%hz,&
-       inputs,atoms,rxyz,radii_cf,dpcom,rhodsc)
+  !grid spacings and box of the density
+  call dpbox_set_box(dpcom,Lzd)
+  !complete dpbox initialization
+  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
+       atoms%geocode,inputs%SIC%approach,dpcom)
 
 
   ! Read wavefunctions from disk and store them in psi.
@@ -166,13 +169,16 @@ program wvl
   call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
   deallocate(rhor)
-  ! Equivalent BigDFT routine.
-  allocate(nscatterarr(0:nproc-1,4))
-  allocate(ngatherarr(0:nproc-1,2))
-  call createDensPotDescriptors(iproc,nproc,atoms,Lzd%Glr%d, &
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
-       & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
-       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+  call density_descriptors(iproc,nproc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
+       dpcom,inputs%rho_commun,rxyz,radii_cf,rhodsc)
+
+!!$  ! Equivalent BigDFT routine.
+!!$  allocate(nscatterarr(0:nproc-1,4))
+!!$  allocate(ngatherarr(0:nproc-1,2))
+!!$  call createDensPotDescriptors(iproc,nproc,atoms,Lzd%Glr%d, &
+!!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
+!!$       & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
+!!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3d))
@@ -184,7 +190,7 @@ program wvl
   call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
        GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,nscatterarr,rho_p,rhor)
+       rhodsc,nscatterarr,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 
@@ -229,7 +235,7 @@ program wvl
   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
 
   call deallocate_Lzd_except_Glr(Lzd,"main")
-  deallocate(Lzd%Glr%projflg)
+  !deallocate(Lzd%Glr%projflg)
 
   call deallocate_orbs(orbs,"main")
 

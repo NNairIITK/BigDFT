@@ -88,7 +88,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !also for non-collinear case
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,basedist=orbs%norb_par(0:,1:))
+      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -233,9 +233,12 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   !nspin*noncoll is always <= 2
   !call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
   !     & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+!!$  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+!!$       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+!!$  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.) !simple repartition
+
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
@@ -391,7 +394,7 @@ subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,
   !also for non-collinear case
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.)
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin

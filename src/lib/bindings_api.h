@@ -63,23 +63,21 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, co
                                         const double *hx, const double *hy, const double *hz,
                                         int *grid);
 
-void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(void *denspotd,
+void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
 void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd);
 void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
-                                             const void *glr, const double *hxh,
-                                             const double *hyh, const double *hzh,
-                                             const void *in, const void *atoms,
-                                             const double *rxyz,
+                                             const void *glr, const int *nspin,
+                                             const void *atoms, const double *rxyz,
                                              void *denspotd);
 void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
      (const guint *iproc, const guint *nproc, const guint *verb,
-      const gchar *geocode, const void *d, const double *hh, 
-      const void *in, void *denspot);
+      const gchar *geocode, const void *d, const void *in, void *denspot);
 
 
 void FC_FUNC_(glr_new, GLR_NEW)(void *glr);
-void FC_FUNC_(glr_init, GLR_INIT)(void *glr, void *d);
+void FC_FUNC_(glr_init, GLR_INIT)(void *glr, void *d, void *wfd);
+void FC_FUNC_(glr_get_data, GLR_GET_DATA)(void *glr, void *d, void *wfd);
 void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
@@ -91,27 +89,49 @@ void FC_FUNC_(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
-void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd, void *glr);
+void FC_FUNC_(glr_wfd_get_data, GLR_WFD_GET_DATA)(void *wfd, guint *nvctr_c, guint *nvctr_f,
+                                                  guint *nseg_c, guint *nseg_f, void *keyglob,
+                                                  void *keygloc, void *keyvglob, void * keyvloc);
+void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd);
+void FC_FUNC_(lzd_free, LZD_FREE)(void *lzd);
+void FC_FUNC_(lzd_empty, LZD_EMPTY)(void *lzd);
+void FC_FUNC_(lzd_init, LZD_INIT)(void *lzd, void *glr);
+void FC_FUNC_(lzd_set_hgrids, LZD_SET_HGRIDS)(void *lzd, const double *hgrids);
+void FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(void *lzd, double *hgrids);
+void FC_FUNC_(lzd_get_data, LZD_GET_DATA)(void *lzd, void *glr);
+void FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(void *lzd, const guint *i, void *llr);
+void FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(void *lzd, guint *nlr);
 void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-     (const guint *iproc, const guint *nproc, const void *in, const double *hx,
-      const double *hy, const double *hz, void *lzd,
-      const void *atoms, void *orbs, double *rxyz);
+     (const guint *iproc, const guint *nproc, const gchar type[3], void *lzd,
+      const void *atoms, void *orbs, const guint *npsin, const double *rxyz);
 
 
 void FC_FUNC_(orbs_new, ORBS_NEW)(void *orbs);
+void FC_FUNC_(orbs_init, ORBS_INIT)(void *orbs);
 void FC_FUNC_(orbs_free, ORBS_FREE)(void *orbs);
+void FC_FUNC_(orbs_empty, ORBS_EMPTY)(void *orbs);
+void FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(void *comm);
+void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(void *comm, void *orbs, void *lzd,
+                                              const guint *iproc, const guint *nproc);
 void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(void *comm);
-void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(int *iproc, int *nproc,
+void FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(void *comm);
+void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(guint *iproc, guint *nproc,
                                                               int *verb, void *in, void *atoms,
                                                               void *orbs, int *nelec);
 void FC_FUNC_(orbs_comm, ORBS_COMM)(void *comm, void *orbs, const void *glr,
                                     const int *iproc, const int *nproc);
-void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const void *orbs, int *norb,
-                                                        int *norbp, int *norbu,
-                                                        int *norbd, int *nspin,
-                                                        int *nspinor, int *npsidim,
-                                                        int *nkpts, int *nkptsp,
-                                                        int *isorb, int *iskpts);
+void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const void *orbs, guint *norb,
+                                                        guint *norbp, guint *norbu,
+                                                        guint *norbd, guint *nspin,
+                                                        guint *nspinor, guint *npsidim,
+                                                        guint *nkpts, guint *nkptsp,
+                                                        guint *isorb, guint *iskpts);
+void FC_FUNC_(orbs_get_eval, ORBS_GET_EVAL)(void *orbs, void *eval);
+void FC_FUNC_(orbs_get_occup, ORBS_GET_OCCUP)(void *orbs, void *occup);
+void FC_FUNC_(orbs_get_kwgts, ORBS_GET_KWGTS)(void *orbs, void *kwgts);
+void FC_FUNC_(orbs_get_kpts, ORBS_GET_KPTS)(void *orbs, void *kpts);
+
+
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
       double *hx, double *hy, double *hz,
@@ -122,17 +142,70 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
+void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, const double *psic, void *glr);
+
+void FC_FUNC_(wf_new, WF_NEW)(double *self, void *wf, void *orbs, void *comm, void *lzd);
+void FC_FUNC_(wf_free, WF_FREE)(void *wf);
+void FC_FUNC_(wf_empty, WF_EMPTY)(void *wf);
+void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi);
+void FC_FUNC_(wf_get_data, WF_GET_DATA)(void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,
                                   const void *atoms, const double *rxyz,
-                                  const void *lzd, const double *hx,
-                                  const double *hy, const double *hz,
                                   void *denspot, const void *nlpspd,
-                                  const f90_pointer_double *proj,
-                                  void *orbs, void *comms, f90_pointer_double *psi,
-                                  f90_pointer_double *hpsi, f90_pointer_double *psit,
+                                  const f90_pointer_double *proj, void *wf, void *energs,
                                   int *inputpsi, guint *norbv,
-                                  void *gbd, void *gaucoeffs, void *wfd_old, void *psi_old,
+                                  void *wfd_old, void *psi_old,
                                   void *d_old, const double *hx_old, const double *hy_old,
                                   const double *hz_old, double *rxyz_old);
+
+void FC_FUNC_(energs_new, ENERGS_NEW)(double *self, void *energs);
+void FC_FUNC_(energs_free, ENERGS_FREE)(void *energs);
+
+void FC_FUNC_(optloop_new, OPTLOOP_NEW)(double *self, void *optloop);
+void FC_FUNC_(optloop_free, OPTLOOP_FREE)(void *optloop);
+void FC_FUNC_(optloop_copy_data, OPTLOOP_COPY_DATA)(void *optloop, double *gnrm_cv,
+                                                    double *rpnrm_cv, double *gnrm_startmix,
+                                                    double *gnrm, double *rpnrm,
+                                                    guint *itrpmax, guint *nrepmax, guint *itermax,
+                                                    guint *itrp, guint *itrep, guint *iter,
+                                                    int *iscf, int *infocode);
+void FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)(void *optloop, double *gnrm_cv,
+                                                    double *rpnrm_cv, double *gnrm_startmix,
+                                                    double *gnrm, double *rpnrm,
+                                                    guint *itrpmax, guint *nrepmax, guint *itermax,
+                                                    guint *itrp, guint *itrep, guint *iter,
+                                                    int *iscf, int *infocode);
+
+void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(const guint *nproc, const guint *idsx,
+                                               const void *lr,
+                                               const guint *nat, const guint *norb,
+                                               const guint *nspinor, const guint *nkpt,
+                                               const guint *nprojel, const guint *nspin,
+                                               const guint *itrpmax, const guint *iscf,
+                                               double *peak);
+
+void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
+void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
+void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in, int *nproc,
+                                                      const gchar *rad, int *len);
+void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const void *in, double *hx, double *hy, double *hz, double *crmult, double *frmult, int *ixc, int *ncharge, double *elecfield, int *nspin, int *mpol, double *gnrm_cv, guint *itermax, guint *nrepmax, int *ncong, guint *idsx, int *dispersion, int *inputPsiId, int *output_wf_format, int *output_grid, double *rbuf, int *ncongt, int *norbv, int *nvirt, int *nplot, int *disableSym);
+void FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(void *in, guint *iscf, guint *itrpmax,
+                                              int *norbsempty, int *occopt, double *alphamix,
+                                              double *rpnrm_cv, double *gnrm_startmix,
+                                              double *Tel, double *alphadiis);
+void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach,
+                                                  int *ncount_cluster_x, double *frac_fluct,
+                                                  double *forcemax, double *randdis,
+                                                  double *betax, int *history, int *ionmov,
+                                                  double *dtion, double *strtarget,
+                                                  f90_pointer_double *qmass);
+void FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(void *in, gchar linear[3]);
+void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
+                                                        int *iproc, int *dump);
+void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
+void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
+                                                  const gchar *geocode, const double *alat,
+                                                  int *iproc, int *dump);
+
 #endif

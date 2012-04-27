@@ -48,9 +48,11 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
         call memocc(i_stat,rho,'rho',subname)
      end if
 
+     nullify(rho_p)
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
           GPU,symObj,rhodsc,psi,rho_p)
-     call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+     call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,&
+          rho_p,rho,.false.)
   end if
 
   !calculate the total density in the case of nspin==2
@@ -126,6 +128,10 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
       nspinn=orbs%nspin
    end if
 
+   if (associated(rho_p)) then
+      stop 'ERROR(sumrho): rho_p already associated, exiting...'
+   end if
+
    !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
    allocate(rho_p(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot,nspinn+ndebug),stat=i_stat)
    call memocc(i_stat,rho_p,'rho_p',subname)
@@ -162,6 +168,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
       !for each of the orbitals treated by the processor build the partial densities
       call local_partial_density(nproc,(rhodsc%icomm==1),nscatterarr,&
            rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
+
    end if
 
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
@@ -174,11 +181,12 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
  END SUBROUTINE sumrho
  
    !starting point for the communication routine of the density
-subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho,keep_rhop)
   use module_base
   use module_types
   use yaml_output
   implicit none
+  logical, intent(in) :: keep_rhop !< preserves the total density in the rho_p array
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -322,9 +330,11 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
      tmred(nspin+1,itmred)=tmred(nspin+1,itmred)+tmred(ispin,itmred)
   end do
 
-  i_all=-product(shape(rho_p))*kind(rho_p)
-  deallocate(rho_p,stat=i_stat)
-  call memocc(i_stat,i_all,'rho_p',subname)
+  if (.not. keep_rhop) then
+     i_all=-product(shape(rho_p))*kind(rho_p)
+     deallocate(rho_p,stat=i_stat)
+     call memocc(i_stat,i_all,'rho_p',subname)
+  end if
   
 
   if (nproc > 1) then
@@ -437,8 +447,8 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
                call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
             end do
 
-            !print *,'iorb,nrm',iorb,&
-                  !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
+            !print *,'iorb,nrm',iorb,npsir,&
+            !     nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 
             select case(lr%geocode)
             case('F')
@@ -463,7 +473,14 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
 
          end do
       end if
+
+      !print *,'iorb,nrmBBB',iorb,npsir,&
+      !     nrm2(lr%d%n1i*lr%d%n2i*nrhotot*max(nspin,orbs%nspinor),rho_p(1,1,1,1),1)
+
+
    enddo
+   
+
    i_all=-product(shape(psir))*kind(psir)
    deallocate(psir,stat=i_stat)
    call memocc(i_stat,i_all,'psir',subname)

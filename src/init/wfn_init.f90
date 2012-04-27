@@ -642,8 +642,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_interfaces, except_this_one => LDiagHam
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin
-  type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs after LIG
-  type(local_zone_descriptors) :: Lzde                                 !> Informtation about the locregs for LIG
+  type(local_zone_descriptors) :: Lzd        !> Information about the locregs after LIG
+  type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(orthon_data),intent(in):: orthpar 
@@ -1289,127 +1289,6 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    call memocc(i_stat,i_all,'evale',subname)
 
 END SUBROUTINE solve_eigensystem
-
-!>Writing rules, control if the last eigenvector is degenerate
-!!do this for each spin
-!!for each spin it is supposed that only the last group is not completely passed
-!!and also that the components of each of the group but the last are the same for up and 
-!!down polarisation. Do not work properly in the other cases
-subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
-   use module_base
-   use module_types
-   implicit none
-   integer, intent(in) :: nspin,norb,norbu,norbd
-   real(gp), intent(in) :: etol
-   type(orbitals_data), intent(in) :: orbse
-   !local variables
-   character(len=64) :: message
-   character(len=25) :: gapstring
-   integer :: iorb,ndegen,nwrtmsg,ikpt,iorbst
-   real(gp) :: HLIGgap
-   real(wp), dimension(2) :: preval
-
-   !loop over all the k-points of the IG 
-   iorbst=0 !starting orbital in the k-points distribution
-   !check if norbu and norbd are equal
-   if (nspin==2 .and. orbse%norbu /= orbse%norbd) then
-      write(*,*)'ERROR (write_ig_eigenvectors): the IG orbs structure should have norbu=norbd',orbse%norbu,orbse%norbd
-      stop
-   end if
-
-   do ikpt=1,orbse%nkpts
-      if (orbse%nkpts > 1 .and. orbse%nspinor >= 2) write(*,"(1x,A,I4.4,A,3F12.6)") &
-         &   "Kpt #", ikpt, " BZ coord. = ", orbse%kpts(:, ikpt)
-      preval=0.0_wp
-      nwrtmsg=0
-      ndegen=0
-      do iorb=1,orbse%norbu
-         if (nspin==1) then
-            if (nwrtmsg==1) then
-               if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
-                  !degeneracy found
-                  message='  <- found degeneracy'
-                  ndegen=ndegen+1
-               else
-                  nwrtmsg=0
-               end if
-            end if
-            if (abs(iorb - norb) <= 5) then
-               nwrtmsg=1
-               message=' <- '
-            end if
-            if (iorb == norb) then
-               !calculate the IG HOMO-LUMO gap
-               if(norb<orbse%norbu) then !I added after they left Basel.
-                  HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
-                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
-               else
-                  gapstring=''
-               end if
-               nwrtmsg=1
-               message=' <- Last InputGuess eval'//gapstring
-               preval(1)=orbse%eval(iorb+iorbst)
-            end if
-            if (iorb-1 == norb) then
-               nwrtmsg=1
-               message=' <- First virtual eval '
-            end if
-            if (nwrtmsg == 1) then
-               write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
-                  &   'evale(',iorb,')=',orbse%eval(iorb+iorbst),trim(message)
-            else
-               if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
-               write(*,'(1x,a,i0,a,1x,1pe21.14)') &
-                  &   'evale(',iorb,')=',orbse%eval(iorb+iorbst)
-            end if
-         else
-            if (nwrtmsg==1) then
-               if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol .and. &
-                  &   abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
-               !degeneracy found
-               message='  <-deg->  '
-               !ndegen=ndegen+1 removed, only for non magnetized cases
-            else if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
-               !degeneracy found
-               message='  <-deg    '
-            else if (abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
-               !degeneracy found
-               message='    deg->  '
-            else
-               nwrtmsg=0
-            end if
-         end if
-         if (iorb == norbu .and. iorb == norbd) then
-            nwrtmsg=1
-            message='  <-Last-> ' 
-            preval(1)=orbse%eval(iorb+iorbst)
-            preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
-         else if (iorb == norbu) then
-            nwrtmsg=1
-            message='  <-Last   '
-            preval(1)=orbse%eval(iorb+iorbst)
-         else if (iorb == norbd) then
-            nwrtmsg=1
-            message='    Last-> '
-            preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
-         end if
-         if (nwrtmsg==1) then
-            write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
-               &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),message,&
-               &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
-         else
-            if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
-            write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
-               &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),&
-               &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
-         end if
-      end if
-   end do
-   !increment k-points shift
-   iorbst=iorbst+orbse%norb
-end do
-END SUBROUTINE write_ig_eigenvectors
-
 
 subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
       &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)

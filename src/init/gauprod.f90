@@ -32,7 +32,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,coeffs,psi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -449,6 +449,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   icoeff=1
   do iat=1,at%nat
      if( present(gaenes))  last_aux=ishell
+     !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
@@ -474,6 +475,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
                     Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
                         iorbtolr       (icoeff)=iat

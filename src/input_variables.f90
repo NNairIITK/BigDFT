@@ -7,38 +7,58 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine set_inputfile(filename, radical, ext)
+  implicit none
+  character(len = 100), intent(out) :: filename
+  character(len = *), intent(in) :: radical, ext
+  
+  logical :: exists
+
+  write(filename, "(A)") ""
+  if (trim(radical) == "") then
+     write(filename, "(A,A,A)") "input", ".", trim(ext)
+  else
+     write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+  end if
+
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+       & write(filename, "(A,A,A)") "default", ".", trim(ext)
+end subroutine set_inputfile
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs, radical)
+subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
+  use module_base
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
+  integer, intent(in) :: nproc
 
-  character(len = 128) :: rad
+  integer :: ierr
 
-  write(rad, "(A)") ""
-  write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
+  call set_inputfile(inputs%file_dft, radical,    "dft")
+  call set_inputfile(inputs%file_geopt, radical,  "geopt")
+  call set_inputfile(inputs%file_kpt, radical,    "kpt")
+  call set_inputfile(inputs%file_perf, radical,   "perf")
+  call set_inputfile(inputs%file_tddft, radical,  "tddft")
+  call set_inputfile(inputs%file_mix, radical,    "mix")
+  call set_inputfile(inputs%file_sic, radical,    "sic")
+  call set_inputfile(inputs%file_occnum, radical, "occ")
+  call set_inputfile(inputs%file_igpop, radical,  "occup")
+  call set_inputfile(inputs%file_lin, radical,    "lin")
 
-  inputs%file_dft=trim(rad) // '.dft'
-  inputs%file_geopt=trim(rad) // '.geopt'
-  inputs%file_kpt=trim(rad) // '.kpt'
-  inputs%file_perf=trim(rad) // '.perf'
-  inputs%file_tddft=trim(rad) // '.tddft'
-  inputs%file_mix=trim(rad) // '.mix'
-  inputs%file_sic=trim(rad) // '.sic'
-  inputs%file_occnum=trim(rad) // '.occ'
-  inputs%file_igpop=trim(rad) // '.occup'
-  inputs%file_lin=trim(rad) // '.lin'
-
-  if (trim(rad) == "input") then
+  if (trim(radical) == "input") then
      inputs%dir_output="data"
   else
-     inputs%dir_output="data-"//trim(rad)
+     inputs%dir_output="data-"//trim(radical)
   end if
 
   inputs%files = INPUTS_NONE
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
@@ -70,6 +90,13 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
+
+  ! Start the signaling loop in a thread if necessary.
+  if (inputs%signaling .and. iproc == 0) then
+     call bigdft_signals_init(inputs%gmainloop, 2, inputs%domain, len(trim(inputs%domain)))
+     call bigdft_signals_start(inputs%gmainloop, inputs%signalTimeout)
+  end if
+
 END SUBROUTINE read_input_variables
 
 
@@ -217,7 +244,8 @@ subroutine default_input_variables(inputs)
   call tddft_input_variables_default(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
-
+  ! Default for signaling
+  inputs%gmainloop = 0.d0
 END SUBROUTINE default_input_variables
 
 
@@ -285,7 +313,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -397,7 +425,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
@@ -414,7 +442,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   call input_free((iproc == 0) .and. dump)
 
   !put the startmix if the mixing has to be done
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
 
@@ -610,6 +638,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
+  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
@@ -624,10 +653,11 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion'
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
   call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
   call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
-  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
@@ -650,9 +680,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
   call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/),comment=comments)
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
@@ -709,12 +740,12 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   !number of iterations for the input guess
   comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
   call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
-  comments='plot basis functions: true or false'
-  call input_var(in%lin%plotBasisFunctions,'F',comment=comments)
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
+  call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
   !transform to global orbitals in the end (T/F)
   comments='transform to global orbitals in the end (T/F)'
@@ -730,6 +761,19 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !number of orbitals per process for trace minimization during input guess.
   call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
 
+  ! how the confining potential shall be decreased
+  comments='confinement_decrease_mode: 0=linear, 1=abrupt'
+  call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
+
+  ! how much the confining potential shall be decreased
+  comments='decrease_amount, decrease_step'
+  call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
+
+  ! whether the localization radii should be enlarged after some unsuccessful iterations
+  comments='increase locrad after n steps, amount that locrad is increased'
+  call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
+  call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -767,6 +811,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
               locradType(jtype)=lrl
+              in%lin%locrad_type(jtype)=lrl
               locradType_lowaccur(jtype)=lrl
               locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)
@@ -1306,7 +1351,9 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
-  
+  call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
+  call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
+  call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)
@@ -1405,6 +1452,13 @@ subroutine free_input_variables(in)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
+
+  ! Stop the signaling stuff.
+  !Destroy C wrappers on Fortran objects,
+  ! and stop the GMainLoop.
+  if (in%gmainloop /= 0.d0) then
+     call bigdft_signals_free(in%gmainloop)
+  end if
 END SUBROUTINE free_input_variables
 
 
@@ -1678,13 +1732,13 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
               !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
               write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               !end if
               stop
@@ -1695,7 +1749,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      end do
      if (verb) then
         write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
+             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 

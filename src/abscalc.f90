@@ -85,7 +85,7 @@ program abscalc_main
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs,radical)
+      call standard_inputfile_names(inputs,radical,nproc)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 
       !Initialize memory counting
@@ -224,16 +224,16 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
    loop_cluster: do icycle=1,in%nrepmax
 
-      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
-         i_all=-product(shape(rst%psi))*kind(rst%psi)
-         deallocate(rst%psi,stat=i_stat)
+      if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
+         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
+         deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-         deallocate(rst%orbs%eval,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
+         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
          call memocc(i_stat,i_all,'eval',subname)
-         nullify(rst%orbs%eval)
+         nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
       end if
 
       if(.not. in%c_absorbtion) then 
@@ -242,8 +242,8 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
       else
 
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%psi,rst%Lzd,rst%orbs,&
-            &   rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn%psi,rst%KSwfn%Lzd,rst%KSwfn%orbs,&
+             rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -273,15 +273,15 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          end if 
 
-         i_all=-product(shape(rst%psi))*kind(rst%psi)
-         deallocate(rst%psi,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
+         deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-         deallocate(rst%orbs%eval,stat=i_stat)
+         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
+         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
          call memocc(i_stat,i_all,'eval',subname)
-         nullify(rst%orbs%eval)
+         nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
          !finalize memory counting (there are still the positions and the forces allocated)
          call memocc(0,0,'count','stop')
 
@@ -351,13 +351,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
    real(kind=8) :: peakmem
-   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
+!   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
-   real(gp) :: edisp ! Dispersion energy
+   !real(gp) :: edisp ! Dispersion energy
    type(nonlocal_psp_descriptors) :: nlpspd
    type(communications_arrays) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
+   type(energy_terms) :: energs
 
    !integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(kind=8), dimension(:,:), allocatable :: radii_cf
@@ -517,6 +518,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
 
+   Lzd%hgrids(1)=hx
+   Lzd%hgrids(2)=hy
+   Lzd%hgrids(3)=hz
+
    !variables substitution for the PSolver part
    hxh=0.5d0*hx
    hyh=0.5d0*hy
@@ -536,13 +541,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !allocate communications arrays (allocate it before Projectors because of the definition
    !of iskpts and nkptsp)
 
-   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
+   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,hx,hy,hz,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -552,9 +557,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-  !calculate the descriptors for rho and the potentials.
-   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
-        atoms,rxyz,radii_cf,dpcom,rhodsc)
+   !grid spacings and box of the density
+   call dpbox_set_box(dpcom,Lzd)
+   !complete dpbox initialization
+   call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
+        atoms%geocode,in%SIC%approach,dpcom)
+
+  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+
+!!$
+!!$  !calculate the descriptors for rho and the potentials.
+!!$   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
+!!$        atoms,rxyz,radii_cf,dpcom,rhodsc)
 
 !!$   !these arrays should be included in the comms descriptor
 !!$   !allocate values of the array for the data scattering in sumrho
@@ -640,7 +655,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    endif
 
    call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
-        & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
+        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
         psoffset,n1,n2,n3,n1i,n2i,n3i,dpcom%i3s+dpcom%i3xcsh,dpcom%n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
@@ -852,14 +867,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%output_denspot == output_denspot_DENSPOT) then
          if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
-
-            call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
-               &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
-               &   in%nspin,hxh,hyh,hzh,atoms,rxyz,dpcom%ngatherarr,rhopot(1,1,1,1))
-            !!$
-            !!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-            !!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
-            !!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+            call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
@@ -1244,18 +1253,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Lzd,dpcom,&
-             rhopot(1,1,1,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,&
+             rhopot(1,1,1,1),energs,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
@@ -1373,9 +1382,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
            Lzd%Glr%bounds,subname)
       call deallocate_Lzd_except_Glr(Lzd, subname)
-      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-      deallocate(Lzd%Glr%projflg,stat=i_stat)
-      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
+!      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+!      deallocate(Lzd%Glr%projflg,stat=i_stat)
+!      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
       call deallocate_comms(comms,subname)
 
@@ -1649,7 +1658,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,irhotot_add,irho_add,ispin
   real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
+  real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -1709,7 +1718,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd
@@ -1743,7 +1752,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
   i_all=-product(shape(locrad))*kind(locrad)
@@ -1755,7 +1764,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,dpcom%nscatterarr,&
        GPU,symObj,rhod,psi,rho_p)
   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
-       rhod,dpcom%nscatterarr,rho_p,rhopot)
+       rhod,dpcom%nscatterarr,rho_p,rhopot,.false.)
   orbse%nspin=nspin_ig
 
   !-- if spectra calculation uses a energy dependent potential

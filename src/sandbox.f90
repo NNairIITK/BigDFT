@@ -795,8 +795,8 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   deallocate(ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp',subname)
 
-
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+!WARNING: not correct!
+  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
        gaucoeffs,psi)
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)

@@ -195,7 +195,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   end if
 
   ! Printing for mixing parameters.
-  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      if (input%iscf < 10) then
         write(potden, "(A)") "potential"
      else
@@ -381,7 +381,7 @@ subroutine write_input_parameters(in)!,atoms)
 !  yaml_indent=yaml_indent-3
 
 
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
      !yaml_indent=yaml_indent+3
        if (in%iscf < 10) then
@@ -436,37 +436,49 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   character(len=*), intent(in) :: comment
   !local variables
 
-  !call yaml_flow_map('Energy terms')
+  if (iscf < 1) then
+     call yaml_flow_map('Energy terms')
   !call yaml_flow_map()
   !call yaml_indent_map('Energies')
-  if (iscf < 1) then
-     call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
-     call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
-     call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
-     call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
+     if (energs%ekin /= 0.0_gp)&
+          call yaml_map('ekin',yaml_toa(energs%ekin,fmt='(1pe18.11)'))
+     if (energs%epot /= 0.0_gp)&
+          call yaml_map('epot',yaml_toa(energs%epot,fmt='(1pe18.11)'))
+     if (energs%eproj /= 0.0_gp)&
+          call yaml_map('eproj',yaml_toa(energs%eproj,fmt='(1pe18.11)'))
+     if (energs%eh  /= 0.0_gp)&
+          call yaml_map('eha',yaml_toa(energs%eh,fmt='(1pe18.11)'))
+     if (energs%exc  /= 0.0_gp)&
      call yaml_map('exc',yaml_toa(energs%exc,fmt='(1pe18.11)'))
-     call yaml_map('vexc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
+     if (energs%evxc  /= 0.0_gp)&
+          call yaml_map('evxc',yaml_toa(energs%evxc,fmt='(1pe18.11)'))
+     if (energs%eexctX  /= 0.0_gp)&
+          call yaml_map('eexctX',yaml_toa(energs%eexctX,fmt='(1pe18.11)'))
+     if (energs%evsic  /= 0.0_gp)&
+          call yaml_map('evSIC',yaml_toa(energs%evsic,fmt='(1pe18.11)'))
+     call yaml_close_flow_map()
+     !call yaml_flow_newline()
   end if
 
-  call yaml_flow_newline()
-  call yaml_map('iter',yaml_toa(iter,fmt='(i6)'))
+  if (iter > 0) call yaml_map('iter',yaml_toa(iter,fmt='(i6)'))
   if (iscf > 1) then
      call yaml_map('tr(H)',yaml_toa(energs%trH,fmt='(1pe24.17)'))
   else
      call yaml_map('E_KS',yaml_toa(energs%eKS,fmt='(1pe24.17)'))
   end if
-  call yaml_map('gnrm',yaml_toa(gnrm,fmt='(1pe9.2)'))
+  if (gnrm > 0.0_gp) call yaml_map('gnrm',yaml_toa(gnrm,fmt='(1pe9.2)'))
   if (gnrm_zero > 0.0_gp) &
        call yaml_map('gnrm_0',yaml_toa(gnrm_zero,fmt='(1pe9.2)'))
 
-  !call yaml_close_flow_map()
   !call yaml_close_indent_map()
 
   if (iscf<1) then
      if (verbose >0) then
         write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              energs%ekin,energs%epot,energs%eproj
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
+         if (energs%eh /= 0.0_gp)& !only hartree decides since it should be removed
+              write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',&
+              energs%eh,energs%exc,energs%evxc
      end if
   end if
 
@@ -502,7 +514,10 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
   logical :: dowrite
   integer :: ikptw,iorb,ikpt,jorb,isorb,md
   real(gp) :: spinsignw,mx,my,mz,mpol
-  
+  character(len=150) :: commentline
+
+  commentline=repeat(' ',len(commentline))
+
   write(*,'(1x,a)')&
        &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
   ! Calculate and print the magnetisation
@@ -517,7 +532,6 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
            mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
         end do
      end do
-!    write(70,"(A,f9.6)")repeat(' ',yaml_indent)//"Total magnetisation: ", mpol
      write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
      call yaml_map("Total magnetization",yaml_toa(mpol,fmt='(f9.6)'))
   end if
@@ -529,14 +543,13 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
   call yaml_map('Orbitals',advance='no')
   call yaml_flow_sequence()
   call yaml_flow_newline()
-! write(70,'(a)')repeat(' ',yaml_indent)//'Orbitals: ['
+
   do ikpt=1,orbs%nkpts
      if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
-        write(*,"(1x,A,I4.4,A,3F12.6)") &
+        write(commentline,"(1x,A,I4.4,A,3F12.6)") &
              &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
-!       write(70,"(1x,A,I4.4,A,3F12.6)") &
-!             &   "# Kpt No.", ikpt-1, " BZ coord. = ", orbs%kpts(:, ikpt)
-
+        write(*,'(a)')trim(commentline)
+        call yaml_comment(trim(commentline))
         ikptw=ikpt
      else
         ikptw=UNINITIALIZED(1)
@@ -567,11 +580,9 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
                 spinsignw,ikptw,mx,my,mz)
            !yaml output (carriage return)
            if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
-!             write(70,'(a)')']'
               call yaml_close_flow_sequence()
            else
               call yaml_close_sequence_element()
-!             write(70,'(a)')','
            end if
            call yaml_flow_newline()
         end do
@@ -597,9 +608,9 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
            !yaml output (carriage return)
 
            if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
-              call yaml_close_flow_sequence()!             write(70,'(a)')']'
+              call yaml_close_flow_sequence()
            else
-              call yaml_close_sequence_element()!             write(70,'(a)')','
+              call yaml_close_sequence_element()
            end if
            call yaml_flow_newline()
         end do
@@ -625,7 +636,6 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
               if (dowrite) & 
                    write(*,'(46x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') orbs%occup(isorb + iorb),&
                    &   'e(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
-!             write(70,'(a)',advance='no')repeat(' ',46)
               call yaml_sequence_element()
               call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
                    -1.0_gp,ikptw,mx,my,mz)
@@ -643,6 +653,180 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
   end do
 !  call yaml_close_flow_sequence()
 end subroutine write_eigenvalues_data
+
+!>Writing rules, control if the last eigenvector is degenerate
+!!do this for each spin
+!!for each spin it is supposed that only the last group is not completely passed
+!!and also that the components of each of the group but the last are the same for up and 
+!!down polarisation. Do not work properly in the other cases
+subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
+   use module_base
+   use module_types
+   use yaml_output
+   implicit none
+   integer, intent(in) :: nspin,norb,norbu,norbd
+   real(gp), intent(in) :: etol
+   type(orbitals_data), intent(in) :: orbse
+   !local variables
+   character(len=64) :: message
+   character(len=25) :: gapstring
+   integer :: iorb,ndegen,nwrtmsg,ikpt,iorbst,ikptw
+   real(gp) :: HLIGgap,mx,my,mz,spinsignw
+   real(wp), dimension(2) :: preval
+  character(len=150) :: commentline
+
+  commentline=repeat(' ',len(commentline))
+
+
+   !loop over all the k-points of the IG 
+   iorbst=0 !starting orbital in the k-points distribution
+   !check if norbu and norbd are equal
+   if (nspin==2 .and. orbse%norbu /= orbse%norbd) then
+      write(*,*)'ERROR (write_ig_eigenvectors): the IG orbs structure should have norbu=norbd',orbse%norbu,orbse%norbd
+      stop
+   end if
+
+  call yaml_map('Input Guess Orbitals',advance='no')
+  call yaml_flow_sequence()
+  call yaml_flow_newline()
+
+  !always without spinors in the IG
+  mx=UNINITIALIZED(1.0_gp)
+  my=UNINITIALIZED(1.0_gp)
+  mz=UNINITIALIZED(1.0_gp)
+
+
+   do ikpt=1,orbse%nkpts
+      if (orbse%nkpts > 1 .and. orbse%nspinor >= 2) then
+         write(commentline,"(1x,A,I4.4,A,3F12.6)") &
+              &   "Kpt #", ikpt, " BZ coord. = ", orbse%kpts(:, ikpt)
+         write(*,'(a)')trim(commentline)
+         call yaml_comment(trim(commentline))
+         ikptw=ikpt
+      else
+         ikptw=UNINITIALIZED(1)
+      end if
+
+      preval=0.0_wp
+      nwrtmsg=0
+      ndegen=0
+      do iorb=1,orbse%norbu
+         if (nspin==1) then
+            spinsignw=UNINITIALIZED(1.0_gp)
+            if (nwrtmsg==1) then
+               if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
+                  !degeneracy found
+                  message='  <- found degeneracy'
+                  ndegen=ndegen+1
+               else
+                  nwrtmsg=0
+               end if
+            end if
+            if (abs(iorb - norb) <= 5) then
+               nwrtmsg=1
+               message=' <- '
+            end if
+            if (iorb == norb) then
+               !calculate the IG HOMO-LUMO gap
+               if(norb<orbse%norbu) then !I added after they left Basel.
+                  HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
+                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+               else
+                  gapstring=''
+               end if
+               nwrtmsg=1
+               message=' <- Last InputGuess eval'//gapstring
+               preval(1)=orbse%eval(iorb+iorbst)
+            end if
+            if (iorb-1 == norb) then
+               nwrtmsg=1
+               message=' <- First virtual eval '
+            end if
+            call yaml_sequence_element()
+            call write_orbital_data(orbse%eval(iorbst+iorb),&
+                 orbse%occup(iorbst+iorb),spinsignw,ikptw,mx,my,mz)
+
+            if (nwrtmsg == 1) then
+               write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                  &   'evale(',iorb,')=',orbse%eval(iorb+iorbst),trim(message)
+            else
+               if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+               write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                  &   'evale(',iorb,')=',orbse%eval(iorb+iorbst)
+            end if
+         else
+            if (nwrtmsg==1) then
+               if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol .and. &
+                  &   abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
+               !degeneracy found
+               message='  <-deg->  '
+               !ndegen=ndegen+1 removed, only for non magnetized cases
+            else if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
+               !degeneracy found
+               message='  <-deg    '
+            else if (abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
+               !degeneracy found
+               message='    deg->  '
+            else
+               nwrtmsg=0
+            end if
+         end if
+         if (iorb == norbu .and. iorb == norbd) then
+            nwrtmsg=1
+            message='  <-Last-> ' 
+            preval(1)=orbse%eval(iorb+iorbst)
+            preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
+         else if (iorb == norbu) then
+            nwrtmsg=1
+            message='  <-Last   '
+            preval(1)=orbse%eval(iorb+iorbst)
+         else if (iorb == norbd) then
+            nwrtmsg=1
+            message='    Last-> '
+            preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
+         end if
+         if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) then
+            call write_orbital_data(orbse%eval(iorb+iorbst),&
+                 orbse%occup(iorb+iorbst),&
+                 1.0_gp,ikptw,mx,my,mz)
+            call yaml_close_sequence_element()
+            call yaml_sequence_element()
+            call write_orbital_data(orbse%eval(iorb+iorbst+orbse%norbu),&
+                 orbse%occup(iorb+iorbst+orbse%norbu),&
+                 -1.0_gp,ikptw,mx,my,mz)
+         end if
+         
+         if (nwrtmsg==1) then
+            write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
+               &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),message,&
+               &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
+         else
+            if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+            write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
+               &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),&
+               &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
+         end if
+      end if
+      if (iorb == orbse%norbu .and. ikpt == orbse%nkpts) then
+         if (nwrtmsg==1) then
+            call yaml_close_flow_sequence(advance='no')
+         else
+            call yaml_close_flow_sequence()
+         end if
+      else
+         call yaml_close_sequence_element()
+      end if
+      if (nwrtmsg==1) then
+         call yaml_comment(adjustl(message))
+      else
+         call yaml_flow_newline()
+      end if
+   end do
+   !increment k-points shift
+   iorbst=iorbst+orbse%norb
+end do
+END SUBROUTINE write_ig_eigenvectors
+
 
 !> Write orbital information with NO advance
 subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
@@ -664,22 +848,52 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) &
      call yaml_map('M',yaml_toa((/mx,my,mz/),fmt='(f8.5)'))
   call yaml_close_flow_map(advance='no')
-  !the energy value is the only one which is compulsory
-! write(70,'(a,1pe21.14)',advance='no')'{ e: ',eval
-
-  !genearlly always defined
-  if (occup /= UNINITIALIZED(occup)) then 
-!    write(70,'(a,f6.4)',advance='no')', occ: ',occup
-  end if
-  if (spinsign /= UNINITIALIZED(spinsign)) then
-!    write(70,'(a,i2)',advance='no')', s: ',int(spinsign)
-  end if
-  if (ikpt /= UNINITIALIZED(ikpt)) then
-!    write(70,'(a,i5)',advance='no')', kpt: ',ikpt-1
-  end if
-  if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) then
-!    write(70,'(3(a,f8.5),a)',advance='no')', M: [',mx,', ',my,', ',mz,']'
-  end if
-! write(70,'(a)',advance='no')' }'
  
 end subroutine write_orbital_data
+
+subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: ncplx,idsx,ngroup,nkpts,itdiis
+  real(tp), dimension(ncplx,idsx+1,ngroup,nkpts), intent(in) :: rds
+  !local variables
+  integer :: j,igroup,ikpt
+  character(len=2) :: mesupdw
+  if (verbose < 10) then  
+     !we restrict the printing to the first k point only.
+     if (ngroup==1) then
+        if (verbose >0) write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,itdiis+1)!,&
+        !yaml output
+        call yaml_map('DIIS weights',yaml_toa(rds(1:ncplx,1,1,1),fmt='(1pe9.2)'))
+!        write(70,'(1x,a,1pe9.2)',advance='no')'DIIS wgts: [ ',rds(1:ncplx,1,1,1)
+        do j=2,itdiis+1
+!           write(70,'(a,1pe9.2)',advance='no')', ',rds(1:ncplx,j,1,1)
+        end do
+!        write(70,'(a)')']'
+        !'(',ttr,tti,')'
+     else if (verbose >0) then
+        do igroup=1,ngroup
+           if (igroup==1) mesupdw='up'
+           if (igroup==2) mesupdw='dw'
+           write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts'//mesupdw//':',&
+                (rds(1:ncplx,j,igroup,1),j=1,itdiis+1)
+        end do
+     end if
+  else if (verbose >0) then
+     do ikpt = 1, nkpts
+        if (ngroup==1) then
+           write(*,'(1x,a,I3.3,a,2x,9(1x,(1pe9.2)))')'DIIS wgts (kpt #', ikpt, &
+                & ')',(rds(1:ncplx,j,1,ikpt),j=1,itdiis+1)
+        else
+           do igroup=1,ngroup
+              if (igroup==1) mesupdw='up'
+              if (igroup==2) mesupdw='dw'
+              write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))')'DIIS wgts (kpt #', ikpt, &
+                   & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,itdiis+1)
+           end do
+        end if
+     end do
+  end if
+END SUBROUTINE write_diis_weights
+

@@ -32,7 +32,8 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          &   psi,Lzd,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+          KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
+          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -40,18 +41,19 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
        integer, intent(out) :: infocode
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
-       type(local_zone_descriptors), intent(inout) :: Lzd
+       !type(local_zone_descriptors), intent(inout) :: Lzd
        type(atoms_data), intent(inout) :: atoms
-       type(gaussian_basis), intent(inout) :: gbd
-       type(orbitals_data), intent(inout) :: orbs
+       !type(gaussian_basis), intent(inout) :: gbd
+       !type(orbitals_data), intent(inout) :: orbs
        type(GPU_pointers), intent(inout) :: GPU
+       type(DFT_wavefunction), intent(inout) :: KSwfn
        real(gp), intent(out) :: energy,fnoise
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(gp), dimension(6), intent(out) :: strten
        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-       real(wp), dimension(:), pointer :: psi
-       real(wp), dimension(:,:), pointer :: gaucoeffs
+       !real(wp), dimension(:), pointer :: psi
+       !real(wp), dimension(:,:), pointer :: gaucoeffs
      END SUBROUTINE cluster
   end interface
 
@@ -159,7 +161,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            inputs%inputPsiId=1
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                rst%KSwfn,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
@@ -206,7 +208,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   if (.not. experimental_modulebase_var_onlyfion) then !normal case
      call dcopy(3*atoms%nat,dfunctional,1,fxyz,1)
   else
-     call axpy(3*atoms%nat,2.0_gp*rst%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
+     call axpy(3*atoms%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
   end if
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
@@ -249,8 +251,8 @@ contains
 
     !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
     !definition which brings to Chemical Potential
-    if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap) .and. iorb_ref< -1) then
-       mu=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
+    if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
+       mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap) 
     else
        mu=UNINITIALIZED(1.0_gp)
     end if
@@ -259,19 +261,19 @@ contains
     if (iorb_ref==0) then
        functional_definition=energy
     else if (iorb_ref == -1) then
-       if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
-          functional_definition=rst%orbs%HLgap !here we should add the definition which brings to Fukui function
+       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
+          functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
        else
           stop ' ERROR (FDforces): gap not defined' 
        end if
     else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-       if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
+       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
           functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
        else
           stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
        end if
     else
-       functional_definition=rst%orbs%eval(iorb_ref)
+       functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
     end if
     
   end function functional_definition
@@ -789,7 +791,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-  integer :: ierr,ilr
   real(gp), dimension(6) :: sab
 
   call to_zero(6,strten(1)) 
@@ -3756,8 +3757,7 @@ subroutine symm_stress(dump,tens,symobj)
   integer, pointer  :: sym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
-  integer :: isym, errno, ind, nsym,k,l
-  integer :: indsym(4, AB6_MAX_SYMMETRIES)
+  integer :: isym, errno, nsym,k,l
   integer, allocatable :: symrec(:,:,:)
   real(gp),dimension(3,3) :: symtens
 
@@ -3892,9 +3892,9 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
    real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ii
+  integer :: i_all,i_stat,iorb,npot,oidx
   real(wp) :: exctXcoeff,kinstr(6)
-  real(gp) :: ekin,epot,kx,ky,kz,etest
+  real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
@@ -3975,7 +3975,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   character(len=*), parameter :: subname='erf_stress'
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
-  integer :: i,ierr,i_stat,i_all
+  integer :: ierr,i_stat,i_all
   real(kind=8) :: pi,p(3),g2,rloc,set,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2

@@ -9,7 +9,7 @@
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+     orbs,Lzd,denspot,nlpspd,comms,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -25,13 +25,13 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   type(communications_arrays), intent(out) :: comms
-  real(gp), dimension(3), intent(out) :: hgrids !< grid spacings of the daubechies grid
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
   integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
+  real(gp), dimension(3) :: h_input
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
@@ -45,14 +45,14 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
-  !initial values
-  hgrids(1)=in%hx
-  hgrids(2)=in%hy
-  hgrids(3)=in%hz  
+  !grid spacings of the zone descriptors (not correct, the set is done by system size)
+  h_input=(/ in%hx, in%hy, in%hz /)
+  call lzd_set_hgrids(Lzd,h_input) 
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),&
+  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,&
+       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
        Lzd%Glr,shift)
 
   ! A message about dispersion forces.
@@ -60,12 +60,20 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
   call initialize_DFT_local_fields(denspot)
+
+  !here the initialization of dpbox can be set up
+
+  !grid spacings and box of the density
+  call dpbox_set_box(denspot%dpbox,Lzd)
+  !complete dpbox initialization
+  call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
+       atoms%geocode,in%SIC%approach,denspot%dpbox)
+
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
-       & Lzd%Glr%d, hgrids, in, denspot)
+  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-  call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
+  call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
   ! Create orbs data structure.
@@ -73,6 +81,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+
   if (iproc == 0) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
      nMB=nB/1024/1024
@@ -86,10 +95,10 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
 
   ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -98,15 +107,19 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
           atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
+  
+!!$  !calculate the descriptors for rho and the potentials.
+!!$  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
+!!$       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+!!$       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
 
-  !calculate the descriptors for rho and the potentials.
-  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-       0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
+  !here dpbox can be put as input
+  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+       denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
+
 
   !allocate the arrays.
-  call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,denspot)
+  call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
 
   !calculate the irreductible zone for this region, if necessary.
   call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode, &
@@ -123,7 +136,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, denspot)
+subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
@@ -132,7 +145,6 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, dens
   logical, intent(in) :: verb
   character, intent(in) :: geocode
   type(grid_dimensions), intent(in) :: d
-  real(gp), intent(in) :: hgrids(3)
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
@@ -140,14 +152,16 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, dens
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   call createKernel(iproc,nproc,geocode,&
-       d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       d%n1i,d%n2i,d%n3i,&
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        ndegree_ip,denspot%pkernel,verb)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      call createKernel(0,1,geocode,&
-          d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          d%n1i,d%n2i,d%n3i,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           ndegree_ip,denspot%pkernelseq,.false.)
   else 
      denspot%pkernelseq => denspot%pkernel
@@ -785,8 +799,8 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      nspinor=1
   end if
 
-  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
-       & in%nkpt,in%kpt,in%wkpt,orbs)
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
+       in%nkpt,in%kpt,in%wkpt,orbs,.false.)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -1190,230 +1204,6 @@ END SUBROUTINE atomic_occupation_numbers
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
-  integer, intent(in) :: nspinor
-  type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(nkpt), intent(in) :: wkpt
-  real(gp), dimension(3,nkpt), intent(in) :: kpt
-  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
-  !local variables
-  character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
-  integer :: mpiflag
-  logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
-
-  allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
-
-  !assign the value of the k-points
-  orbs%nkpts=nkpt
-  !allocate vectors related to k-points
-  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:,1:nkpt) = kpt(:,:)
-  orbs%kwgts(1:nkpt) = wkpt(:)
-
-  ! Change the wavefunctions to complex if k-points are used (except gamma).
-  orbs%nspinor=nspinor
-  if (nspinor == 1) then
-     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
-     !nspinor=2 !fake, used for testing with gamma
-  end if
-  orbs%nspin = nspin
-
-  !initialise the array
-  call to_zero(nproc*(nkpt+1),orbs%norb_par(0,0))
-
-  !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-  if (.not. GPUshare) then
-     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
-     
-     if (nproc > 1) then
-        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             MPI_COMM_WORLD,ierr)
-     else
-        GPU_for_orbs(0)=GPUconv
-     end if
-     
-     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
-     deallocate(GPU_for_orbs,stat=i_stat)
-     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
-  end if
-
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-
-  !old system for calculating k-point repartition
-!!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
-!!$
-!!$  !check the distribution
-!!$  norb_tot=0
-!!$  do jproc=0,iproc-1
-!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
-!!$  end do
-!!$  !reference orbital for process
-!!$  orbs%isorb=norb_tot
-!!$  do jproc=iproc,nproc-1
-!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
-!!$  end do
-!!$
-!!$  if(norb_tot /= norb*orbs%nkpts) then
-!!$     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-!!$     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
-!!$     stop
-!!$  end if
-!!$
-!!$  !calculate the k-points related quantities
-!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,mykpts,'mykpts',subname)
-!!$
-!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
-!!$       orbs%nkptsp,mykpts,norb_par)
-!!$  if (orbs%norb_par(iproc) >0) then
-!!$     orbs%iskpts=mykpts(1)-1
-!!$  else
-!!$     orbs%iskpts=0
-!!$  end if
-!!$  i_all=-product(shape(mykpts))*kind(mykpts)
-!!$  deallocate(mykpts,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'mykpts',subname)
-
-  !new system for k-point repartition
-  norb_base=0
-  if (present(basedist)) then
-     !the first k-point takes the number of orbitals
-     do jproc=0,nproc-1
-        norb_base=norb_base+basedist(jproc,1)
-     end do
-     call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norb,basedist,norb_par)
-  else
-     call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
-  end if
-  !assign the values for norb_par and check the distribution
-  norb_tot=0
-  do jproc=0,nproc-1
-     if (jproc==iproc) orbs%isorb=norb_tot
-     do ikpt=1,orbs%nkpts
-        orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
-        orbs%norb_par(jproc,ikpt)=norb_par(jproc,ikpt)
-     end do
-     norb_tot=norb_tot+orbs%norb_par(jproc,0)
-  end do
-
-  if(norb_tot /= norb*orbs%nkpts) then
-     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-     write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
-     stop
-  end if
-
-
-
-  !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
-  !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
-  !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
-
-  !this array will be reconstructed in the orbitals_communicators routine
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
-
-  !assign the values of the orbitals data
-  orbs%norb=norb
-  orbs%norbp=orbs%norb_par(iproc,0)
-  orbs%norbu=norbu
-  orbs%norbd=norbd
-
-  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
-
-  !assign the k-point to the given orbital, counting one orbital after each other
-  jorb=0
-  do ikpt=1,orbs%nkpts
-     do iorb=1,orbs%norb
-        jorb=jorb+1 !this runs over norb*nkpts values
-        if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
-           orbs%iokpt(jorb-orbs%isorb)=ikpt
-        end if
-     end do
-  end do
-
-  !allocate occupation number and spinsign
-  !fill them in normal way
-  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
-  do ikpt=1,orbs%nkpts
-     do iorb=1,orbs%norbu
-        orbs%spinsgn(iorb+(ikpt-1)*orbs%norb)=1.0_gp
-     end do
-     do iorb=1,orbs%norbd
-        orbs%spinsgn(iorb+orbs%norbu+(ikpt-1)*orbs%norb)=-1.0_gp
-     end do
-  end do
-
-  !put a default value for the fermi energy
-  orbs%efermi = UNINITIALIZED(orbs%efermi)
-  !and also for the gap
-  orbs%HLgap = UNINITIALIZED(orbs%HLgap)
-
-  ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg (all orbitals are situated in the same locreg)
-  orbs%inwhichlocreg = 1
-
-  !initialize the starting point of the potential for each orbital (to be removed?)
-  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
-  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
-
-
-  !allocate the array which assign the k-point to processor in transposed version
-  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
-
-
-  ! Define two new arrays:
-  ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
-  !   the reference orbital of each other process.
-  ! - orbs%onWhichMPI indicates on which MPI process a given orbital
-  !   is located.
-  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
-  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(sum(orbs%norb_par)), stat=i_stat)
-  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
-  iiorb=0
-  orbs%isorb_par=0
-  do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=iiorb+1
-          orbs%onWhichMPI(iiorb)=jproc
-      end do
-      if(iproc==jproc) then
-          orbs%isorb_par(jproc)=orbs%isorb
-      end if
-  end do
-  call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
-  
-
-END SUBROUTINE orbitals_descriptors
-
-
-
-
-!> Define the descriptors of the orbitals from a given norb
-!! It uses the cubic strategy for partitioning the orbitals
 subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
@@ -1628,14 +1418,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   call MPI_Initialized(mpiflag,ierr)
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
-  
-
 END SUBROUTINE orbitals_descriptors_forLinear
-
-
-
-
-
 
 
 !> Routine which assign to each processor the repartition of nobj*nkpts objects
