@@ -627,7 +627,6 @@ type(energy_terms) :: energs
   call destroy_DFT_wavefunction(tmb)
   call destroy_DFT_wavefunction(tmbder)
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
-  call deallocateBasicArraysInput(input%lin)
   deallocate(tmb%confdatarr)
   deallocate(tmbder%confdatarr)
 

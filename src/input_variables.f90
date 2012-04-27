@@ -641,7 +641,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
-  
+  if (exists) in%files = in%files + INPUTS_LIN
+
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
@@ -1442,6 +1443,7 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%qmass',subname)
   end if
   call free_kpt_variables(in)
+  call deallocateBasicArraysInput(in%lin)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
   call xc_end()
