@@ -6816,6 +6816,16 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+        end subroutine optimize_coeffs
+
    end interface
 
 END MODULE module_interfaces

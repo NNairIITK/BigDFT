@@ -291,6 +291,27 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
       end do
   end if
 
+  !!! TEST
+  do iorb=1,tmb%orbs%norb
+    do jorb=iorb,tmb%orbs%norb
+      call random_number(tt)
+      tt=abs(tt)
+      !!if(iorb==jorb) then
+      !!    tt=1.d0
+      !!else
+      !!    tt=0.d0
+      !!end if
+      ovrlp(iorb,jorb)=tt
+      ovrlp(jorb,iorb)=tt
+    end do
+  end do
+  do iorb=1,tmb%orbs%norb
+    do jorb=1,tmb%orbs%norb
+      if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
+      if(iproc==0) write(*,'(a,2i8,es13.5)') 'ovrlp: iorb, jorb, ovrlp(jorb,iorb)', iorb, jorb, ovrlp(jorb,iorb)
+    end do
+  end do
+  call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), ovrlp, tmb)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)
