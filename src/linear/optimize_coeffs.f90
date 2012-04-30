@@ -69,7 +69,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
   write(*,*) '2'
 
   ! Solve the linear system ovrlp*grad=rhs
-  call dgesv(tmb%orbs%norb, orbs%norb, ovrlp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
+  call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
   if(info/=0) then
       write(*,'(a,i0)') 'ERROR in dgesv: info=',info
       stop
@@ -132,6 +133,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
       end do
       call dgemv('n', tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp(1,1), &
            tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, 0.d0, coeff_tmp(1,iorb), 1)
+      if(iproc==0) write(320,*) tmb%wfnmd%coeff(:,iorb),'//', coeff_tmp(:,iorb)
       tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,iorb), 1)
       if(iproc==0) write(*,'(a,i8,es14.5)') 'iorb, tt', iorb, tt
       call dscal(tmb%orbs%norb, 1/sqrt(tt), tmb%wfnmd%coeff(1,iorb), 1)

@@ -35,9 +35,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter:: subname='get_coeff'
 !For debug
-integer :: ldim,istart
+integer :: ldim,istart,lwork
 character(len=1) :: num
-real(8),dimension(:),allocatable :: Gphi, Ghphi
+real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
 
   ! Allocate the local arrays.  
@@ -291,27 +291,39 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
       end do
   end if
 
-  !!! TEST
-  do iorb=1,tmb%orbs%norb
-    do jorb=iorb,tmb%orbs%norb
-      call random_number(tt)
-      tt=abs(tt)
-      !!if(iorb==jorb) then
-      !!    tt=1.d0
-      !!else
-      !!    tt=0.d0
-      !!end if
-      ovrlp(iorb,jorb)=tt
-      ovrlp(jorb,iorb)=tt
+  !!!!! TEST
+  !!do iorb=1,tmb%orbs%norb
+  !!  do jorb=iorb,tmb%orbs%norb
+  !!    call random_number(tt)
+  !!    tt=abs(tt)
+  !!    !!if(iorb==jorb) then
+  !!    !!    tt=1.d0
+  !!    !!else
+  !!    !!    tt=0.d0
+  !!    !!end if
+  !!    ovrlp(iorb,jorb)=tt
+  !!    ovrlp(jorb,iorb)=tt
+  !!  end do
+  !!end do
+  ! test: diagnoalize overlapmatrix
+  call dcopy(tmbmix%orbs%norb**2, overlapmatrix, 1, matrixElements(1,1,1), 1)
+  lwork=100*tmbmix%orbs%norb
+  allocate(work(lwork))
+  deallocate(eval)
+  allocate(eval(tmbmix%orbs%norb))
+  call dsyev('n', 'l', tmbmix%orbs%norb, matrixElements(1,1,1), tmbmix%orbs%norb, eval, work, lwork, info)
+  do iorb=1,tmbmix%orbs%norb
+      if(iproc==0) write(330,*) iorb, eval(iorb)
+  end do
+  if(minval(eval)<0.d0) stop ' not positive definite'
+  deallocate(work)
+  do iorb=1,tmbmix%orbs%norb
+    do jorb=1,tmbmix%orbs%norb
+      if(iproc==0) write(*,'(a,2i8,es13.5)') 'overlapmatrix: iorb, jorb, overlapmatrix(jorb,iorb)', iorb, jorb, overlapmatrix(jorb,iorb)
+      !if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
     end do
   end do
-  do iorb=1,tmb%orbs%norb
-    do jorb=1,tmb%orbs%norb
-      if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
-      if(iproc==0) write(*,'(a,2i8,es13.5)') 'ovrlp: iorb, jorb, ovrlp(jorb,iorb)', iorb, jorb, ovrlp(jorb,iorb)
-    end do
-  end do
-  call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), ovrlp, tmb)
+  call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), overlapmatrix, tmbmix)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)
