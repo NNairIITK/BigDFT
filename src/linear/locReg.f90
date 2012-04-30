@@ -2747,7 +2747,7 @@ logical, intent(out) :: isoverlap
 character(len=*), parameter :: subname='check_overlap_cubic_periodic'
 integer :: azones,bzones,ii,izones,jzones, i_stat, i_all
 logical :: go1, go2, go3
-integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
+integer,dimension(3,8) :: astart,bstart,aend,bend
 
   azones = 1
   bzones = 1
@@ -2758,19 +2758,19 @@ integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
   end do
 
 !allocate astart and aend
-  allocate(astart(3,azones),stat=i_stat)
-  call memocc(i_stat,astart,'astart',subname)
-  allocate(aend(3,azones),stat=i_stat)
-  call memocc(i_stat,aend,'aend',subname)
+!!  allocate(astart(3,azones),stat=i_stat)
+!!  call memocc(i_stat,astart,'astart',subname)
+!!  allocate(aend(3,azones),stat=i_stat)
+!!  call memocc(i_stat,aend,'aend',subname)
 
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
 
 !allocate bstart and bend
-  allocate(bstart(3,bzones),stat=i_stat)
-  call memocc(i_stat,bstart,'bstart',subname)
-  allocate(bend(3,bzones),stat=i_stat)
-  call memocc(i_stat,bend,'bend',subname)
+!!  allocate(bstart(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bstart,'bstart',subname)
+!!  allocate(bend(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2790,18 +2790,18 @@ integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
   end do loop_izones
 
 ! Deallocation block
-  i_all = -product(shape(astart))*kind(astart)
-  deallocate(astart,stat=i_stat)
-  call memocc(i_stat,i_all,'astart',subname)
-  i_all = -product(shape(aend))*kind(aend)
-  deallocate(aend,stat=i_stat)
-  call memocc(i_stat,i_all,'aend',subname)
-  i_all = -product(shape(bstart))*kind(bstart)
-  deallocate(bstart,stat=i_stat)
-  call memocc(i_stat,i_all,'bstart',subname)
-  i_all = -product(shape(bend))*kind(bend)
-  deallocate(bend,stat=i_stat)
-  call memocc(i_stat,i_all,'bend',subname)
+!!  i_all = -product(shape(astart))*kind(astart)
+!!  deallocate(astart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'astart',subname)
+!!  i_all = -product(shape(aend))*kind(aend)
+!!  deallocate(aend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'aend',subname)
+!!  i_all = -product(shape(bstart))*kind(bstart)
+!!  deallocate(bstart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bstart',subname)
+!!  i_all = -product(shape(bend))*kind(bend)
+!!  deallocate(bend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bend',subname)
 
 end subroutine check_overlap_cubic_periodic
 

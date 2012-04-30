@@ -161,48 +161,6 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi
       stop 'wrong communication_strategy_overlap'
   end if
 
-! DEBUG
-!  if(iproc==0)then
-!  print *,'Hamiltonian matrix in the TMB basis'
-!  allocate(Gphi(lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f))
-!  allocate(Ghphi(lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f))
-!  istart = 0
-!  do istat = 1, llborbs%norb
-!     Gphi = 0.0d0
-!     Ghphi = 0.0d0
-!     write(num,'(I1)'),istat
-!     ilr = llborbs%inwhichlocreg(istat)
-!     ldim = lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-!     call Lpsi_to_global2(iproc, nproc, ldim, lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f, llborbs%norb, 1, 1, Lzd%Glr,&
-!          Lzd%Llr(ilr), wfnmd%phi(istart+1), Gphi)
-!     call Lpsi_to_global2(iproc, nproc, ldim, lzd%Glr%wfd%nvctr_c + 7*lzd%Glr%wfd%nvctr_f, llborbs%norb, 1, 1, Lzd%Glr,&
-!          Lzd%Llr(ilr), lhphi(istart+1), Ghphi)
-!     open(11,file='TMB_'//trim(num),status='unknown')
-!     call writeonewave(11,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
-!          lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
-!          lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
-!          lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
-!          Gphi(1),Gphi(1+lzd%Glr%wfd%nvctr_c),1.0d0)
-!     istart = istart + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-!     close(11)
-!     open(11,file='HTMB_'//trim(num),status='unknown')
-!     call writeonewave(11,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
-!          lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
-!          lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
-!          lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
-!          Ghphi(1),Ghphi(1+lzd%Glr%wfd%nvctr_c),1.0d0)
-!     close(11)
-!     do iall = 1, llborbs%norb
-!        print *,istat,llborbs%inwhichlocreg(istat),iall,llborbs%inwhichlocreg(iall),matrixElements(istat,iall,1)
-!     end do
-!print *,'size(lhphi):',llborbs%npsidim_orbs,istart
-!  end do
-!  deallocate(Gphi)
-!  end if
-!call mpi_finalize(istat)
-!stop
-!END DEBUG
-
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   do iorb=1,tmbmix%orbs%norb

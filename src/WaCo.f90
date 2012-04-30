@@ -319,7 +319,7 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-     print *,'Total number of electrons: ',2*sum(wannocc)
+     if(iproc == 0) print *,'Total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
