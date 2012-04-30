@@ -626,7 +626,7 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
     return FALSE;
   if (sizeData[0] == 0 || psiSize != sizeData[0])
     {
-      *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+      *error = g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
                            "Unable to retrieve psi.");
       g_array_free(psic, TRUE);
       return FALSE;
