@@ -291,20 +291,6 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       end do
   end if
 
-  !!!!! TEST
-  !!do iorb=1,tmb%orbs%norb
-  !!  do jorb=iorb,tmb%orbs%norb
-  !!    call random_number(tt)
-  !!    tt=abs(tt)
-  !!    !!if(iorb==jorb) then
-  !!    !!    tt=1.d0
-  !!    !!else
-  !!    !!    tt=0.d0
-  !!    !!end if
-  !!    ovrlp(iorb,jorb)=tt
-  !!    ovrlp(jorb,iorb)=tt
-  !!  end do
-  !!end do
   ! test: diagnoalize overlapmatrix
   call dcopy(tmbmix%orbs%norb**2, overlapmatrix, 1, matrixElements(1,1,1), 1)
   lwork=100*tmbmix%orbs%norb
