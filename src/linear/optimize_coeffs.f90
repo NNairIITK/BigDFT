@@ -35,7 +35,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
   ! Calculate the Lagrange multiplier matrix
   do iorb=1,orbs%norb
@@ -76,7 +76,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
 
 
   ! Improve the coefficients
-  alpha=1.d-1
+  alpha=0.d-1
   do iorb=1,orbs%norb
       do jorb=1,tmb%orbs%norb
           tmb%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-alpha*grad(jorb,iorb)

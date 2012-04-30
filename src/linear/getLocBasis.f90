@@ -291,24 +291,24 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       end do
   end if
 
-  ! test: diagnoalize overlapmatrix
-  call dcopy(tmbmix%orbs%norb**2, overlapmatrix, 1, matrixElements(1,1,1), 1)
-  lwork=100*tmbmix%orbs%norb
-  allocate(work(lwork))
-  deallocate(eval)
-  allocate(eval(tmbmix%orbs%norb))
-  call dsyev('n', 'l', tmbmix%orbs%norb, matrixElements(1,1,1), tmbmix%orbs%norb, eval, work, lwork, info)
-  do iorb=1,tmbmix%orbs%norb
-      if(iproc==0) write(330,*) iorb, eval(iorb)
-  end do
-  if(minval(eval)<0.d0) stop ' not positive definite'
-  deallocate(work)
-  do iorb=1,tmbmix%orbs%norb
-    do jorb=1,tmbmix%orbs%norb
-      if(iproc==0) write(*,'(a,2i8,es13.5)') 'overlapmatrix: iorb, jorb, overlapmatrix(jorb,iorb)', iorb, jorb, overlapmatrix(jorb,iorb)
-      !if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
-    end do
-  end do
+  !!! test: diagnoalize overlapmatrix
+  !!call dcopy(tmbmix%orbs%norb**2, overlapmatrix, 1, matrixElements(1,1,1), 1)
+  !!lwork=100*tmbmix%orbs%norb
+  !!allocate(work(lwork))
+  !!deallocate(eval)
+  !!allocate(eval(tmbmix%orbs%norb))
+  !!call dsyev('n', 'l', tmbmix%orbs%norb, matrixElements(1,1,1), tmbmix%orbs%norb, eval, work, lwork, info)
+  !!do iorb=1,tmbmix%orbs%norb
+  !!    if(iproc==0) write(330,*) iorb, eval(iorb)
+  !!end do
+  !!if(minval(eval)<0.d0) stop ' not positive definite'
+  !!deallocate(work)
+  !!do iorb=1,tmbmix%orbs%norb
+  !!  do jorb=1,tmbmix%orbs%norb
+  !!    if(iproc==0) write(*,'(a,2i8,es13.5)') 'overlapmatrix: iorb, jorb, overlapmatrix(jorb,iorb)', iorb, jorb, overlapmatrix(jorb,iorb)
+  !!    !if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
+  !!  end do
+  !!end do
   call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), overlapmatrix, tmbmix)
 
   iall=-product(shape(lhphi))*kind(lhphi)
