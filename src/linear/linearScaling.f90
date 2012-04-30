@@ -1,5 +1,5 @@
-subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,inputpsi,input_wf_format,hx,hy,hz,&
-     rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
+subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
+     rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
      eion,edisp,eexctX,scpot,psi,psit,energy)
 use module_base
 use module_types
@@ -7,7 +7,7 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, inputpsi, input_wf_format
+integer,intent(in):: iproc, nproc
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
@@ -16,6 +16,7 @@ type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 type(DFT_local_fields), intent(inout) :: denspot
+real(gp), dimension(:), intent(inout) :: rhopotold
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
@@ -28,26 +29,17 @@ type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
+real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,onefile
-real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
-real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
-integer:: jorb, ldim, sdim, ists, istl, nspin, ierr
-real(8):: ddot, tt1, tt2, tt3
+logical:: check_whether_derivatives_to_be_used
 !FOR DEBUG ONLY
-integer,dimension(:),allocatable:: debugarr
-integer :: ind1, ind2
-real(gp):: hamil,overlap
-type(confpot_data), dimension(:), allocatable :: confdatarr
-real(8),dimension(:),allocatable::  lhchi
-type(energy_terms) :: energs
+!integer,dimension(:),allocatable:: debugarr
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -61,44 +53,6 @@ type(energy_terms) :: energs
   ! Now all initializations are done ######################################################################################
 
 
-  ! Allocate the old charge density (used to calculate the variation in the charge density)
-  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
-  call memocc(istat, rhopotold, 'rhopotold', subname)
-  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
-  call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-
-  ! Generate the input guess for the TMB
-  tmb%wfnmd%bs%update_phi=.false.
-  if(inputpsi == INPUT_PSI_LINEAR) then
-     ! By doing an LCAO input guess
-     call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
-          nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
-  else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     ! By reading the basis functions and coefficients from file
-     allocate(rxyz_old(3,at%nat),stat=istat)
-     call memocc(istat,rxyz_old,'rxyz_old',subname)
-     call readmywaves_linear(iproc,trim(input%dir_output)//'minBasis',input_wf_format,orbs%norb,tmb%lzd,tmb%orbs, &
-         at,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
-     !TO DO: COEFF PROJ
-!     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
-!                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
-!      tmb%orbs%occup = 2.0_gp
-     iall = -product(shape(rxyz_old))*kind(rxyz_old)
-     deallocate(rxyz_old,stat=istat)
-     call memocc(istat,iall,'rxyz_old',subname)
-     ! Now need to calculate the charge density and the potential related to this inputguess
-     call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-     call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-     call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-          tmb%lzd, input, hx, hy ,hz, tmb%orbs, tmb%comsr, &
-          tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
-          denspot%rhov, at, denspot%dpbox%nscatterarr)
-     ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-     call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-     call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,0.5_gp*tmb%lzd%hgrids(1),&
-          0.5_gp*tmb%lzd%hgrids(2),0.5_gp*tmb%lzd%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
-     call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 ! DEBUG (SEE IF HAMILTONIAN IS GOOD)
 !!     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 !!     call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -149,7 +103,12 @@ type(energy_terms) :: energs
 !!    end do
 !!stop
 !END DEBUG
-  end if
+
+
+
+
+
+
   !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
   !! the potential from the input guess.     
   !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
@@ -159,17 +118,16 @@ type(energy_terms) :: energs
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
 
-  ! Initialize the DIIS mixing of the potential if required.
-  if(input%lin%mixHist_lowaccuracy>0) then
-      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
-  end if
-
   !end of the initialization part, will later be moved to cluster
   call timing(iproc,'INIT','PR')
 
   allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
   call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
 
+
+  ! Allocate the old charge density (used to calculate the variation in the charge density)
+  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+  call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
@@ -201,6 +159,10 @@ type(energy_terms) :: energs
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
 
+  ! Initialize the DIIS mixing of the potential if required.
+  if(input%lin%mixHist_lowaccuracy>0) then
+      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
+  end if
 
   ! Flag that indicates that the basis functions shall be improved in the following.
   tmb%wfnmd%bs%update_phi=.true.
@@ -451,9 +413,6 @@ type(energy_terms) :: energs
      call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
 
-  iall=-product(shape(rhopotOld))*kind(rhopotOld)
-  deallocate(rhopotOld, stat=istat)
-  call memocc(istat, iall, 'rhopotold', subname)
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
@@ -729,7 +688,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
-  integer:: istat, iall
   logical:: redefine_derivatives
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 

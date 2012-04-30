@@ -11,7 +11,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Calling arguments
   integer,intent(in):: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
-  type(atoms_data),intent(inout) :: at
+  type(atoms_data),intent(in) :: at
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs
   type(collective_comms),intent(in):: collcom_reference
@@ -248,9 +248,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !Arguments
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(GPU_pointers), intent(inout) :: GPU
+  type(GPU_pointers), intent(in) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(inout):: input
   type(local_zone_descriptors),intent(inout):: lzd
@@ -287,11 +287,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(energy_terms) :: energs
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
-
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------- Input Wavefunctions Creation'
-  end if
+  type(GPU_pointers) :: GPUe
 
   ! Initialize evrything
   tag=1
@@ -312,6 +308,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(inversemapping(tmbig%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
+  GPUe = GPU
 
   ! Spin for inputguess orbitals
   if (input%nspin == 4) then
@@ -511,7 +508,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
        hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
-       GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
+       GPUe,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
        denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
 
@@ -690,7 +687,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
              if(owa/=owa_old) then
                  call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
                       tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                      energs,input%SIC,GPU,.false.,&
+                      energs,input%SIC,GPUe,.false.,&
                       pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
@@ -765,7 +762,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPUe,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb,tmb)
   ! Deallocate the buffers needed for the communication of the potential.

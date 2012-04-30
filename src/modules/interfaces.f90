@@ -550,7 +550,7 @@ module module_interfaces
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-            denspot,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+            denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
             wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
          use module_defs
          use module_types
@@ -564,6 +564,7 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
+         real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1048,7 +1049,7 @@ module module_interfaces
        implicit none
        integer, intent(in) :: iproc,nproc,nspin,nlr,norb
        integer, intent(inout) :: nvirt
-       type(atoms_data), intent(inout) :: at
+       type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        integer,dimension(norb),intent(in):: mapping
@@ -2213,13 +2214,13 @@ module module_interfaces
     !!!  type(linearParameters),intent(in out):: lin
     !!!end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,inputpsi,input_wf_format,hx,hy,hz,&
-         rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
+    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
+         rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
          eion,edisp,eexctX,scpot,psi,psit,energy)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, inputpsi, input_wf_format
+      integer,intent(in):: iproc, nproc
       real(gp), intent(in) :: hx, hy, hz
       type(locreg_descriptors),intent(in) :: Glr
       type(orbitals_data),intent(inout):: orbs
@@ -2229,6 +2230,7 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(inout):: rxyz
       real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       type(DFT_local_fields), intent(inout) :: denspot
+      real(gp), dimension(:), intent(inout) :: rhopotold
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(GPU_pointers),intent(in out):: GPU
@@ -2584,9 +2586,9 @@ module module_interfaces
       !Arguments
       integer, intent(in) :: iproc,nproc
       real(gp), intent(in) :: hx, hy, hz
-      type(atoms_data), intent(inout) :: at
+      type(atoms_data), intent(in) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-      type(GPU_pointers), intent(inout) :: GPU
+      type(GPU_pointers), intent(in) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables),intent(in):: input
       type(local_zone_descriptors),intent(inout):: lzd
@@ -4462,7 +4464,7 @@ module module_interfaces
        implicit none
        integer,intent(in):: iproc,nproc
        real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(inout) :: at
+       type(atoms_data),intent(in) :: at
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        type(collective_comms),intent(in):: collcom_reference
