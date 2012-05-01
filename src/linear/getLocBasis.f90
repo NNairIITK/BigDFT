@@ -236,48 +236,47 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
-  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  if(blocksize_pdsyev<0) then
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-      call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
-  else
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-      call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
-           matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
-  end if
-  if(iproc==0) write(*,'(a)') 'done.'
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+      call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      if(blocksize_pdsyev<0) then
+          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+          call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
+      else
+          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
+               matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
+      end if
+      if(iproc==0) write(*,'(a)') 'done.'
       do iorb=1,orbs%norb
           call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
       end do
+      infoCoeff=0
+
+
+      ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
+      if(iproc==0) then
+          write(*,'(1x,a)') '-------------------------------------------------'
+          write(*,'(1x,a)') 'some selected eigenvalues:'
+          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmbmix%orbs%norb)
+              if(iorb==orbs%norb) then
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+              else if(iorb==orbs%norb+1) then
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+              else
+                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+              end if
+          end do
+          write(*,'(1x,a)') '-------------------------------------------------'
+      end if
+
+      call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
   end if
-  write(*,*) 'debug2'
-  infoCoeff=0
 
   ! TEST
   if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), overlapmatrix, tmbmix)
+      !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix)
   end if
-
-  ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
-  if(iproc==0) then
-      write(*,'(1x,a)') '-------------------------------------------------'
-      write(*,'(1x,a)') 'some selected eigenvalues:'
-      do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmbmix%orbs%norb)
-          if(iorb==orbs%norb) then
-              write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
-          else if(iorb==orbs%norb+1) then
-              write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
-          else
-              write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
-          end if
-      end do
-      write(*,'(1x,a)') '-------------------------------------------------'
-  end if
-
-  ! debug
-  call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
 
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned

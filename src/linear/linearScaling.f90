@@ -500,7 +500,7 @@ type(energy_terms) :: energs
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,1,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb)
 
@@ -694,6 +694,8 @@ real(8),intent(in):: pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
+      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy energyDiff', itSCC, -1.d0, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
   end if

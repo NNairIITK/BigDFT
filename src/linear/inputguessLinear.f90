@@ -767,7 +767,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
        write(*,*) 'debug'
        call random_number(tmb%wfnmd%coeff)
-  call get_coeff(iproc,nproc,0,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+  call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb,tmb)
   ! Deallocate the buffers needed for the communication of the potential.
