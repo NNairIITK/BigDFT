@@ -2998,7 +2998,7 @@ subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
       end do
       mat(iel,iel)=mat(iel,iel)+cmplx(.5d0,-1.d-1,kind=8)
       !mat(iel,iel)=mat(iel,iel)-cprec
-      rhs(iel)=grad(iel)
+      rhs(iel)=cmplx(grad(iel),0.d0,kind=8)
   end do
   
   

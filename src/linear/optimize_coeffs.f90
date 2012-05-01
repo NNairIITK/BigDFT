@@ -91,6 +91,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, fnrm)
   end if
   call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
 
+  ! Precondition the gradient
+  call precondition_gradient_coeff(tmb%orbs%norb, orbs%norb, ham, ovrlp, grad)
 
   ! Improve the coefficients
   tt=0.d0
@@ -197,3 +199,69 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, fnrm)
   call memocc(istat, iall, 'ovrlp_coeff', subname)
 
 end subroutine optimize_coeffs
+
+
+subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: ntmb, norb
+  real(8),dimension(ntmb,ntmb),intent(in):: ham, ovrlp
+  real(8),dimension(ntmb,norb),intent(inout):: grad
+  
+  ! Local variables
+  integer:: iorb, itmb, jtmb, info, istat, iall
+  complex(8),dimension(:,:),allocatable:: mat
+  complex(8),dimension(:,:),allocatable:: rhs
+  integer,dimension(:),allocatable:: ipiv
+  character(len=*),parameter:: subname='precondition_gradient_coeff'
+  
+  allocate(mat(ntmb,ntmb), stat=istat)
+  !call memocc(istat, mat, 'mat', subname)
+  allocate(rhs(ntmb,norb), stat=istat)
+  !call memocc(istat, mat, 'mat', subname)
+  
+  ! Build the matrix to be inverted
+  do itmb=1,ntmb
+      do jtmb=1,ntmb
+          mat(jtmb,itmb) = cmplx(ham(jtmb,itmb)+.5d0*ovrlp(jtmb,itmb),0.d0,kind=8)
+      end do
+      mat(itmb,itmb)=mat(itmb,itmb)+cmplx(0.d0,-1.d-1,kind=8)
+      !mat(itmb,itmb)=mat(itmb,itmb)-cprec
+  end do
+  do iorb=1,norb
+      do itmb=1,ntmb
+          rhs(itmb,iorb)=cmplx(grad(itmb,iorb),0.d0,kind=8)
+      end do
+  end do
+  
+  
+  allocate(ipiv(ntmb), stat=istat)
+  call memocc(istat, ipiv, 'ipiv', subname)
+  
+  call zgesv(ntmb, norb, mat(1,1), ntmb, ipiv, rhs(1,1), ntmb, info)
+  if(info/=0) then
+      stop 'ERROR in dgesv'
+  end if
+  !call dcopy(nel, rhs(1), 1, grad(1), 1)
+  do iorb=1,norb
+      do itmb=1,ntmb
+          grad(itmb,iorb)=real(rhs(itmb,iorb))
+      end do
+  end do
+  
+  iall=-product(shape(ipiv))*kind(ipiv)
+  deallocate(ipiv, stat=istat)
+  call memocc(istat, iall, 'ipiv', subname)
+  
+  iall=-product(shape(mat))*kind(mat)
+  deallocate(mat, stat=istat)
+  !call memocc(istat, iall, 'mat', subname)
+  
+  iall=-product(shape(rhs))*kind(rhs)
+  deallocate(rhs, stat=istat)
+  !call memocc(istat, iall, 'rhs', subname)
+
+end subroutine precondition_gradient_coeff
