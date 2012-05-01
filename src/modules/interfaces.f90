@@ -2103,13 +2103,13 @@ module module_interfaces
     !!!  type(DFT_wavefunction),intent(inout):: tmb, tmbder, tmbmix
     !!!end subroutine getLinearPsi
 
-    subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
+    subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
                hx,hy,hz,SIC,tmbmix,tmb)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc
+      integer,intent(in):: iproc, nproc, scf_mode
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs

@@ -519,7 +519,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
-  if(trim(input%lin%mixingmethod)=='dens') then
+  !if(trim(input%lin%mixingmethod)=='dens') then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
@@ -580,7 +581,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$
 !!$  end if
 
-  if(trim(input%lin%mixingmethod)=='pot') then
+  !if(trim(input%lin%mixingmethod)=='pot') then
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
@@ -763,7 +765,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+       write(*,*) 'debug'
+       call random_number(tmb%wfnmd%coeff)
+  call get_coeff(iproc,nproc,0,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb,tmb)
   ! Deallocate the buffers needed for the communication of the potential.

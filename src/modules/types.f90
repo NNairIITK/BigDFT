@@ -80,6 +80,9 @@ module module_types
   integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
   integer,parameter:: COMMUNICATION_P2P=1
+  integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
+  integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
+  integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
   
 
   !> Type used for the orthogonalisation parameter
@@ -145,7 +148,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
-    character(len=4):: mixingMethod
+    integer:: scf_mode
     character(len=1):: locregShape
   end type linearInputParameters
 

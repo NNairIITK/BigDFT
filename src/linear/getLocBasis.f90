@@ -1,4 +1,4 @@
-subroutine get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,&
+subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,tmbmix,tmb)
 use module_base
@@ -8,7 +8,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, scf_mode
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
@@ -35,7 +35,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter:: subname='get_coeff'
 !For debug
-integer :: ldim,istart,lwork
+integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 character(len=1) :: num
 real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
@@ -106,6 +106,22 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 !   ekin_sum,epot_sum,eproj_sum
 !endif                                                                                                                                                                       
 !END DEBUG
+
+!! TEST: precond
+  if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      !!ind2=1
+      !!do iorb=1,tmbmix%orbs%norbp
+      !!    iiorb=tmbmix%orbs%isorb+iorb
+      !!    ilr = tmbmix%orbs%inWhichLocreg(iiorb)
+      !!    ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    call choosePreconditioner2(iproc, nproc, tmbmix%orbs, tmb%lzd%llr(ilr), &
+      !!         tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+      !!         tmbmix%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), tmbmix%confdatarr(iorb)%potorder, &
+      !!         0.d0, 1, iorb, tt)
+      !!    ind2=ind2+ncnt
+      !!end do
+  end if
+
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
@@ -230,10 +246,19 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
            matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
-  do iorb=1,orbs%norb
-      call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
-  end do
+  if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+      do iorb=1,orbs%norb
+          call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
+      end do
+  end if
+  write(*,*) 'debug2'
   infoCoeff=0
+
+  ! TEST
+  if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), overlapmatrix, tmbmix)
+  end if
 
   ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
   if(iproc==0) then
@@ -269,6 +294,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   if(orbs%nspin==1) ebs=2.d0*ebs
 
 
+
   ! Project the lb coefficients on the smaller subset
   if(tmbmix%wfnmd%bs%use_derivative_basis) then
       inc=4
@@ -291,6 +317,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       end do
   end if
 
+
   !!! test: diagnoalize overlapmatrix
   !!call dcopy(tmbmix%orbs%norb**2, overlapmatrix, 1, matrixElements(1,1,1), 1)
   !!lwork=100*tmbmix%orbs%norb
@@ -309,7 +336,6 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   !!    !if(ovrlp(iorb,jorb)/=ovrlp(jorb,iorb)) stop 'not symmetric'
   !!  end do
   !!end do
-  call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,2), overlapmatrix, tmbmix)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)

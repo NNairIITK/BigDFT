@@ -317,16 +317,19 @@ type(energy_terms) :: energs
           lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
       end do
 
-      if(trim(input%lin%mixingMethod)=='dens') then
+      !if(trim(input%lin%mixingMethod)=='dens') then
+      if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
           rhopotold_out=rhopotold
       end if
 
-      if(trim(input%lin%mixingMethod)=='pot') then
+      !if(trim(input%lin%mixingMethod)=='pot') then
+      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
-      if(trim(input%lin%mixingMethod)=='pot') then
+      !if(trim(input%lin%mixingMethod)=='pot') then
+      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
@@ -497,7 +500,7 @@ type(energy_terms) :: energs
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          call get_coeff(iproc,nproc,1,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb)
 
@@ -509,7 +512,8 @@ type(energy_terms) :: energs
                denspot%rhov, at, denspot%dpcom%nscatterarr)
 
           ! Mix the density.
-          if(trim(input%lin%mixingMethod)=='dens') then
+          !if(trim(input%lin%mixingMethod)=='dens') then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -528,7 +532,8 @@ type(energy_terms) :: energs
 
 
           ! Mix the potential
-          if(trim(input%lin%mixingMethod)=='pot') then
+          !if(trim(input%lin%mixingMethod)=='pot') then
+          if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -546,7 +551,7 @@ type(energy_terms) :: energs
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
-               infoCoeff, pnrm, energy, energyDiff, input%lin%mixingMethod)
+               infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               lscv%reduce_convergence_tolerance=.true.
               exit
@@ -561,10 +566,12 @@ type(energy_terms) :: energs
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
-          if(trim(input%lin%mixingMethod)=='dens') then
+          !if(trim(input%lin%mixingMethod)=='dens') then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-          else if(trim(input%lin%mixingMethod)=='pot') then
+          !else if(trim(input%lin%mixingMethod)=='pot') then
+          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           end if
@@ -646,7 +653,9 @@ end subroutine linearScaling
 
 
 
-subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, mixingMethod)
+subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, scf_mode)
+use module_base
+use module_types
 !
 ! Purpose:
 ! ========
@@ -661,9 +670,8 @@ subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energ
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff
+integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
 real(8),intent(in):: pnrm, energy, energyDiff
-character(len=4),intent(in):: mixingMethod
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
@@ -680,9 +688,11 @@ character(len=4),intent(in):: mixingMethod
       else
           write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
       end if
-      if(mixingMethod=='dens') then
+      !if(mixingMethod=='dens') then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
-      else if(mixingMethod=='pot') then
+      !else if(mixingMethod=='pot') then
+      else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))

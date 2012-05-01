@@ -37,6 +37,18 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
+  ! Check normalization
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
+       tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
+          tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+          tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+          if(iproc==0) write(100,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
+      end do
+  end do
+
   ! Calculate the Lagrange multiplier matrix
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
@@ -47,6 +59,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
               end do
           end do
           lagmat(jorb,iorb)=tt
+          if(iproc==0) write(510,*) iorb, jorb, lagmat(jorb,iorb)
       end do
   end do
 
@@ -59,10 +72,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
           end do
           do jorb=1,orbs%norb
               do korb=1,tmb%orbs%norb
-                  tt=tt+lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
+                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
               end do
           end do
           rhs(lorb,iorb)=tt
+          if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
       end do
   end do
 
@@ -73,25 +87,31 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
       write(*,'(a,i0)') 'ERROR in dgesv: info=',info
       stop
   end if
+  call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
 
 
   ! Improve the coefficients
-  alpha=0.d-1
+  alpha=5.d-1
+  tt=0.d0
   do iorb=1,orbs%norb
       do jorb=1,tmb%orbs%norb
+          if(iproc==0) write(500,'(a,2i8,2es14.6)') 'iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)', iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)
           tmb%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-alpha*grad(jorb,iorb)
       end do
+      tt=tt+ddot(tmb%orbs%norb, grad(1,iorb), 1, grad(1,iorb), 1)
   end do
-
+  tt=sqrt(tt)
+  if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
 
   ! Normalize the coeffiecients.
   ! Loewdin
+  !call random_number(tmb%wfnmd%coeff)
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
           ovrlp_coeff(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
-          !if(iproc==0) write(*,'(a,2i8,es15.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
+          if(iproc==0) write(400,'(a,2i8,es15.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
       end do
   end do
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0
