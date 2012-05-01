@@ -266,7 +266,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
-  real(gp) :: hxh,hyh,hzh,eks
+  real(gp) :: hxh,hyh,hzh,eks,fnrm
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
@@ -769,7 +769,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        call random_number(tmb%wfnmd%coeff)
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb)
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm)
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   

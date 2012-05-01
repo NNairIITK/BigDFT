@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb)
+    hx,hy,hz,SIC,tmbmix,tmb,fnrm)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -17,7 +17,7 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
 integer,intent(out):: infoCoeff
-real(8),intent(out):: ebs
+real(8),intent(out):: ebs, fnrm
 real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -275,7 +275,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   ! TEST
   if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix)
+      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, fnrm)
   end if
 
 

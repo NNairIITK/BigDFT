@@ -2105,7 +2105,7 @@ module module_interfaces
 
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-               hx,hy,hz,SIC,tmbmix,tmb)
+               hx,hy,hz,SIC,tmbmix,tmb,fnrm)
       use module_base
       use module_types
       implicit none
@@ -2118,7 +2118,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
       integer,intent(out):: infoCoeff
-      real(8),intent(out):: ebs
+      real(8),intent(out):: ebs, fnrm
       real(8),intent(in):: hx, hy, hz
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -6816,7 +6816,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, fnrm)
           use module_base
           use module_types
           implicit none
@@ -6824,6 +6824,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+          real(8),intent(out):: fnrm
         end subroutine optimize_coeffs
 
    end interface

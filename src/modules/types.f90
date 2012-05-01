@@ -764,6 +764,9 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
+    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
   end type wfn_metadata
 
 

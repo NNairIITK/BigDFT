@@ -1,4 +1,4 @@
-subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
+subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, fnrm)
   use module_base
   use module_types
   implicit none
@@ -8,12 +8,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+  real(8),intent(out):: fnrm
 
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info
   real(8),dimension(:,:),allocatable:: lagmat, rhs, grad, ovrlp_tmp, coeff_tmp, ovrlp_coeff
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, alpha, ddot, tt2, tt3
+  real(8):: tt, ddot, tt2, tt3, mean_alpha, dnrm2
   character(len=*),parameter:: subname='optimize_coeffs'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -36,6 +37,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
 
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
 
   ! Check normalization
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
@@ -91,17 +93,35 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb)
 
 
   ! Improve the coefficients
-  alpha=5.d-1
   tt=0.d0
   do iorb=1,orbs%norb
       do jorb=1,tmb%orbs%norb
           if(iproc==0) write(500,'(a,2i8,2es14.6)') 'iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)', iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)
-          tmb%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-alpha*grad(jorb,iorb)
+          tmb%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-tmb%wfnmd%alpha_coeff(iorb)*grad(jorb,iorb)
       end do
       tt=tt+ddot(tmb%orbs%norb, grad(1,iorb), 1, grad(1,iorb), 1)
   end do
   tt=sqrt(tt)
+  fnrm=tt
   if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
+  tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
+  if(tmb%wfnmd%it_coeff_opt>1) then
+      mean_alpha=0.d0
+      do iorb=1,orbs%norb
+          tt=ddot(tmb%orbs%norb, grad(1,iorb), 1, tmb%wfnmd%grad_coeff_old(1,iorb), 1)
+          tt=tt/(dnrm2(tmb%orbs%norb, grad(1,iorb), 1)*dnrm2(tmb%orbs%norb, tmb%wfnmd%grad_coeff_old(1,iorb), 1))
+          if(iproc==0) write(*,*) 'iorb, tt', iorb, tt
+          if(tt>.8d0) then
+              tmb%wfnmd%alpha_coeff(iorb)=1.2d0*tmb%wfnmd%alpha_coeff(iorb)
+          else
+              tmb%wfnmd%alpha_coeff(iorb)=0.5d0*tmb%wfnmd%alpha_coeff(iorb)
+          end if
+          mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iorb)
+      end do
+      mean_alpha=mean_alpha/dble(orbs%norb)
+      if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
+  end if
+  call dcopy(tmb%orbs%norb*orbs%norb, grad(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
 
   ! Normalize the coeffiecients.
   ! Loewdin
