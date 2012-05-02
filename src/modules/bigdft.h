@@ -306,8 +306,9 @@ struct BigDFT_orbs_
 
 BigDFT_Orbs* bigdft_orbs_new ();
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
-guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd,
+guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr,
                                 const BigDFT_Inputs *in, guint iproc, guint nproc);
+gboolean     bigdft_orbs_get_linear(BigDFT_Orbs *orbs);
 
 /*****************************/
 /* BigDFT_Wf data structure. */

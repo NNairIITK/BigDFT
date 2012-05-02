@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-     eion,edisp,eexctX,scpot,psi,psit,energy)
+     eion,edisp,eexctX,scpot,psi,energy)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -22,7 +22,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
 real(gp),intent(in):: eion, edisp, eexctX,hx,hy,hz
 logical,intent(in):: scpot
-real(8),dimension(:),pointer,intent(out):: psi, psit
+real(8),dimension(:),pointer,intent(out):: psi
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 type(DFT_wavefunction),intent(inout),target:: tmb
@@ -32,6 +32,7 @@ type(linear_scaling_control_variables):: lscv
 integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
+real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
@@ -116,10 +117,6 @@ logical:: check_whether_derivatives_to_be_used
   !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
   !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov, at,denspot%dpbox%nscatterarr)
   !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
-
-  !end of the initialization part, will later be moved to cluster
-  call timing(iproc,'INIT','PR')
 
   allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
   call memocc(istat, lscv%locrad, 'lscv%locrad', subname)

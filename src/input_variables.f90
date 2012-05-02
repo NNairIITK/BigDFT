@@ -627,7 +627,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
+  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat, ntypes
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
@@ -782,7 +782,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
   parametersSpecified=.false.
-  do itype=1,atoms%ntypes
+  if (exists) then
+     ntypes = atoms%ntypes
+  else
+     ntypes = 0
+  end if
+  do itype=1,ntypes
       call input_var(atomname,'C',input_iostat=ios)
       call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
       call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)

@@ -95,23 +95,29 @@ void bigdft_orbs_free(BigDFT_Orbs *orbs)
   g_free(orbs);
 #endif
 }
-guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd, const BigDFT_Inputs *in,
+guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
                          guint iproc, guint nproc)
 {
   int nelec_, verb = 0;
 
+  gboolean linear = 0, withder = 0, nspinor = 1;
+
   orbs->in = in;
   FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
-  FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
-                                                           lzd->parent.parent.data,
-                                                           orbs->data, &nelec_);
+  if (!linear)
+    FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
+                                                             glr->parent.data, orbs->data, &nelec_);
+  else
+    FC_FUNC_(init_orbitals_data_for_linear, INIT_ORBITALS_DATA_FOR_LINEAR)
+      (&iproc, &nproc, &nspinor, in->data, glr->parent.data, glr->data,
+       &withder, glr->parent.rxyz.data, orbs->data);
+
   if (!orbs->comm)
     FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(&orbs->comm);
   else
     FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(orbs->comm);
-  FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(orbs->comm, orbs->data,
-                                           BIGDFT_LOCREG(lzd)->data, &iproc, &nproc);
-  
+  FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(orbs->comm, orbs->data, glr->data, &iproc, &nproc);
+
   FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(orbs->data, &orbs->norb,
                                                      &orbs->norbp, &orbs->norbu,
                                                      &orbs->norbd, &orbs->nspin,
@@ -123,6 +129,10 @@ guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd, const BigDFT_
   GET_ATTR_DBL_2D(orbs, ORBS, kpts,  KPTS);
 
   return nelec_;
+}
+gboolean bigdft_orbs_get_linear(BigDFT_Orbs *orbs)
+{
+  return FALSE;
 }
 
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,

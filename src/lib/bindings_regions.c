@@ -431,11 +431,18 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
 {
   guint i, j;
   gpointer llr;
+  guint withderorbs = 0;
 
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
-     orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
+  if (!bigdft_orbs_get_linear(orbs))
+    FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+      (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
+       orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
+  else
+    FC_FUNC_(init_local_zone_descriptors, INIT_LOCAL_ZONE_DESCRIPTORS)
+      (&iproc, &nproc, orbs->in->data, lzd->h, lzd->h + 1, lzd->h + 2,
+       lzd->parent.data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+       orbs->data, NULL, &withderorbs, lzd->data);
 
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
   lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);

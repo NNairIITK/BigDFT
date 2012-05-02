@@ -1664,7 +1664,8 @@ end subroutine init_orbitals_data_for_linear
 
 
 
-subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, orbs, derorbs, lzd)
+subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, orbs, &
+     derorbs, withderorbs, lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_local_zone_descriptors
@@ -1679,6 +1680,7 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
   real(8),dimension(3,at%nat),intent(in):: rxyz
   type(orbitals_data),intent(in):: orbs, derorbs
   type(local_zone_descriptors),intent(out):: lzd
+  logical, intent(in) :: withderorbs
   
   ! Local variables
   integer:: iat, ityp, ilr, istat, iorb, iall
@@ -1707,9 +1709,13 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
       end do
   end do
   
-  
-  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, hx, hy, hz, lzd, orbs, &
-       glr, input%lin%locrad, input%lin%locregShape, derorbs)
+  if (withderorbs) then
+     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, hx, hy, hz, lzd, orbs, &
+          glr, input%lin%locrad, input%lin%locregShape, derorbs)
+  else
+     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, hx, hy, hz, lzd, orbs, &
+          glr, input%lin%locrad, input%lin%locregShape)
+  end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)

@@ -121,7 +121,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
   if (inputpsi == INPUT_PSI_LINEAR) then
      call init_local_zone_descriptors(iproc, nproc, in, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
-          & Lzd%Glr, atoms, rxyz, lorbs, dlorbs, lzd_lin)
+          & Lzd%Glr, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
   else if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call nullify_local_zone_descriptors(lzd_lin)
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)

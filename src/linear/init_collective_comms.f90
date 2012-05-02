@@ -41,7 +41,6 @@ call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
-
 !!
 !!  tt=weight_tot
 !!  call mpi_alzd%llreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)

@@ -329,51 +329,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call init_p2p_tags(nproc)
-
-     call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
-          tmb%orbs%norb, KSwfn%orbs%norb, in, tmb%wfnmd)
-     call create_wfn_metadata('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), tmbder%orbs%norb, &
-          tmbder%orbs%norb, KSwfn%orbs%norb, in, tmbder%wfnmd)
-
      tag=0
-     call initCommsOrtho(iproc, nproc, in%nspin, &
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), tmb%lzd, tmb%lzd, &
-          tmb%orbs,  tmb%orbs, tmb%orbs%inWhichLocreg,&
-          in%lin%locregShape, tmb%op, tmb%comon)
-     call initCommsOrtho(iproc, nproc, in%nspin, &
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), tmb%lzd, tmb%lzd, &
-          tmbder%orbs, tmbder%orbs, tmbder%orbs%inWhichLocreg, &
-          in%lin%locregShape, tmbder%op, tmbder%comon)
 
-     call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, &
-          & tmb%orbs, tmb%lzd, tmb%comgp)
-     call initialize_communication_potential(iproc, nproc, denspot%dpbox%nscatterarr, &
-          & tmbder%orbs, tmb%lzd, tmbder%comgp)
-
+     call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     
      if(in%lin%useDerivativeBasisFunctions) then
-        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
         call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
-     else
-        call nullify_p2pComms(tmbder%comrp)
-        call nullify_p2pComms(tmb%comrp)
+        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
      end if
-
-
-     call nullify_p2pcomms(tmb%comsr)
-     call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmb%orbs, tmb%comsr)
-     call nullify_p2pcomms(tmbder%comsr)
-     call initialize_comms_sumrho(iproc, nproc, denspot%dpbox%nscatterarr, tmb%lzd, tmbder%orbs, tmbder%comsr)
-
-     call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmb%op%noverlaps, tmb%op%overlaps, tmb%mad)
-     call initCompressedMatmul3(tmb%orbs%norb, tmb%mad)
-     call initMatrixCompression(iproc, nproc, tmb%lzd%nlr, tmbder%orbs, &
-          tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-     call initCompressedMatmul3(tmbder%orbs%norb, tmbder%mad)
-
-     call nullify_collective_comms(tmb%collcom)
-     call nullify_collective_comms(tmbder%collcom)
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmbder%orbs, tmb%lzd, tmbder%collcom)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -509,7 +473,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
           atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
+          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,&
           energy)
 
      i_all=-product(shape(denspot0))*kind(denspot0)

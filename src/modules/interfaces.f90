@@ -2216,7 +2216,7 @@ module module_interfaces
     
     subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
          rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-         eion,edisp,eexctX,scpot,psi,psit,energy)
+         eion,edisp,eexctX,scpot,psi,energy)
       use module_base
       use module_types
       implicit none
@@ -2237,7 +2237,7 @@ module module_interfaces
       real(gp),intent(in):: eion, edisp, eexctX
       logical,intent(in):: scpot
       !real(8),dimension(orbs),intent(out):: psi
-      real(8),dimension(:),pointer,intent(out):: psi, psit
+      real(8),dimension(:),pointer,intent(out):: psi
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
       type(DFT_wavefunction),intent(inout),target:: tmb
@@ -6126,7 +6126,8 @@ module module_interfaces
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine init_local_zone_descriptors(iproc, nproc, input,hx,hy,hz, glr, at, rxyz, orbs, derorbs, lzd)
+       subroutine init_local_zone_descriptors(iproc, nproc, input,hx,hy,hz, glr, at, rxyz, orbs, &
+             derorbs, withderorbs, lzd)
          use module_base
          use module_types
          implicit none
@@ -6138,6 +6139,7 @@ module module_interfaces
          real(8),dimension(3,at%nat),intent(in):: rxyz
          type(orbitals_data),intent(in):: orbs, derorbs
          type(local_zone_descriptors),intent(out):: lzd
+         logical, intent(in) :: withderorbs
        end subroutine init_local_zone_descriptors
 
        subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &

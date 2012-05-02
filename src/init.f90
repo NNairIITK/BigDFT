@@ -2019,6 +2019,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
      allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
+     
+     tmb%wfnmd%bs%update_phi=.false.
   end if
 
   !confinement parameter
