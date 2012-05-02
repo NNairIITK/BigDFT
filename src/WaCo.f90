@@ -290,7 +290,7 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+      if(iproc == 0) write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0

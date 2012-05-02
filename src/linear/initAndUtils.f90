@@ -1065,18 +1065,18 @@ call timing(iproc,'initMatmulComp','OF')
 
 end subroutine initCompressedMatmul3
 
-subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,rxyz)
   use module_base
   use module_types
   use module_xc
   implicit none
 
-  integer, intent(in) :: iproc,nproc
-  type(input_variables), intent(in) :: input
+  integer, intent(in) :: iproc,nproc,nspin
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  character(len = 3), intent(in) :: linType
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
@@ -1089,14 +1089,14 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   !default variables
   Lzd%nlr = 1
 
-  if (input%nspin == 4) then
+  if (nspin == 4) then
      nspin_ig=1
   else
-     nspin_ig=input%nspin
+     nspin_ig=nspin
   end if
 
   linear  = .true.
-  if (input%linear == 'FUL') then
+  if (linType == 'FUL') then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -1110,18 +1110,18 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
           Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
-     if(input%nspin >= 4) linear = .false. 
+     if(nspin >= 4) linear = .false. 
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
   Lzd%linear = .true.
-  if (input%linear == 'LIG' .or. input%linear =='OFF' .or. .not. linear) then
+  if (linType == 'LIG' .or. linType =='OFF' .or. .not. linear) then
      Lzd%linear = .false.
      Lzd%nlr = 1
   end if
 
 
-  if(input%linear /= 'TMO') then
+  if(linType /= 'TMO') then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
@@ -1797,7 +1797,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpcom%nscatterarr, hx, hy, hz, &
+       tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
@@ -1840,7 +1840,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   end if
 
   !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  !!call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
   !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 

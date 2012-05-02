@@ -125,7 +125,7 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
      end do
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
  end do
-stop
+
 END SUBROUTINE global_to_local
 
 

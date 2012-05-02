@@ -105,16 +105,16 @@ program oneatom
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
-
-  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
-       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+!oneatom is to be rewritten almost completely
+!!$  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+!!$       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
+!!$       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
   !commented out, to be used in the future
@@ -232,7 +232,7 @@ program oneatom
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
           energs,in%SIC,GPU)
 
-     call total_energies(energs, iter)
+     call total_energies(energs, iter, iproc)
      energy=energs%eKS
 
      !check for convergence or whether max. numb. of iterations exceeded

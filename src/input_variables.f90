@@ -90,6 +90,13 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
+
+  ! Start the signaling loop in a thread if necessary.
+  if (inputs%signaling .and. iproc == 0) then
+     call bigdft_signals_init(inputs%gmainloop, 2, inputs%domain, len(trim(inputs%domain)))
+     call bigdft_signals_start(inputs%gmainloop, inputs%signalTimeout)
+  end if
+
 END SUBROUTINE read_input_variables
 
 
@@ -237,7 +244,8 @@ subroutine default_input_variables(inputs)
   call tddft_input_variables_default(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
-
+  ! Default for signaling
+  inputs%gmainloop = 0.d0
 END SUBROUTINE default_input_variables
 
 
@@ -1343,7 +1351,9 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
-  
+  call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
+  call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
+  call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)
@@ -1442,6 +1452,13 @@ subroutine free_input_variables(in)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
+
+  ! Stop the signaling stuff.
+  !Destroy C wrappers on Fortran objects,
+  ! and stop the GMainLoop.
+  if (in%gmainloop /= 0.d0) then
+     call bigdft_signals_free(in%gmainloop)
+  end if
 END SUBROUTINE free_input_variables
 
 
