@@ -451,12 +451,15 @@ type(energy_terms) :: energs
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
-          if(lscv%withder .and. .not.first_time_with_der) then
-              first_time_with_der=.true.
-              scf_mode=LINEAR_MIXDENS_SIMPLE
-          else
-              scf_mode=input%lin%scf_mode
-          end if
+          !!if(lscv%withder .and. .not.first_time_with_der) then
+          !!    first_time_with_der=.true.
+          !!    !scf_mode=LINEAR_MIXDENS_SIMPLE
+          !!    scf_mode=input%lin%scf_mode
+          !!    call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
+          !!else
+          !!    scf_mode=input%lin%scf_mode
+          !!end if
+          scf_mode=input%lin%scf_mode
 
           call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
@@ -530,6 +533,18 @@ type(energy_terms) :: energs
           else
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
+
+          if(lscv%withder .and. .not.first_time_with_der) then
+              first_time_with_der=.true.
+              !scf_mode=LINEAR_MIXDENS_SIMPLE
+              scf_mode=input%lin%scf_mode
+              call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
+              tmb%wfnmd%alpha_coeff=1.d-2
+              tmbder%wfnmd%alpha_coeff=1.d-2
+          else
+              scf_mode=input%lin%scf_mode
+          end if
+
           ! Calculate the coefficients
           call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&

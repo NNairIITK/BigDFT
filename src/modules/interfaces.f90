@@ -6851,6 +6851,17 @@ module module_interfaces
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine initialize_DIIS_coeff
 
+        subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(local_zone_descriptors),intent(in):: lzd
+          type(DFT_wavefunction),intent(in):: tmb
+          type(DFT_wavefunction),intent(inout):: tmbder
+        end subroutine transform_coeffs_to_derivatives
+
    end interface
 
 END MODULE module_interfaces
