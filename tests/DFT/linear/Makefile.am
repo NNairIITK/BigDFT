@@ -34,10 +34,11 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 	  incdec_decreaselinear.out*) prec="2.e-10" ;; \
 	  incdec_increaselocreg.out*) prec="3.e-10" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
-	  Linear_withder.out*)        prec="5.e-10" ;; \
-	  Linear_mixedmode.out*)      prec="2.e-10" ;; \
-	  Linear_mixedmodenew.out*)   prec="1.1e-9" ;; \
-	  Linear_mixpotential.out*)   prec="1.e-9" ;; \
+	  withder.out*)               prec="5.e-10" ;; \
+	  mix_base.out*)              prec="2.e-10" ;; \
+	  mix_new.out*)               prec="1.1e-9" ;; \
+	  mix_potential.out*)         prec="1.e-9" ;; \
+	  water.out*)                 prec="1.1e-8" ;; \
 	  moreIGorbs.out*)            prec="3.e-10" ;; \
           *)                          prec="1.1e-10" ;; \
         esac ; \
