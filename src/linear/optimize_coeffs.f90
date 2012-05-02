@@ -509,7 +509,7 @@ end subroutine initialize_DIIS_coeff
 subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => transform_coeffs_to_derivatives
   implicit none
 
   ! Calling arguments
