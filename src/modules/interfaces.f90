@@ -2105,7 +2105,7 @@ module module_interfaces
 
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-               hx,hy,hz,SIC,tmbmix,tmb,fnrm)
+               hx,hy,hz,SIC,tmbmix,tmb,fnrm,ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -2124,6 +2124,7 @@ module module_interfaces
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(SIC_data),intent(in):: SIC
       type(DFT_wavefunction),intent(inout):: tmbmix,tmb
+      type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 
 
@@ -6816,7 +6817,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, fnrm)
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
           use module_base
           use module_types
           implicit none
@@ -6824,8 +6825,31 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+          type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
         end subroutine optimize_coeffs
+
+        subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(in):: tmb
+          real(8),dimension(tmb%orbs%norb*orbs%norb),intent(in):: grad
+          real(8),dimension(tmb%orbs%norb*orbs%norb),intent(inout):: coeff
+          type(localizedDIISParameters),intent(inout):: ldiis
+        end subroutine DIIS_coeff
+
+        subroutine initialize_DIIS_coeff(isx, tmb, orbs, ldiis)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: isx
+          type(DFT_wavefunction),intent(in):: tmb
+          type(orbitals_data),intent(in):: orbs
+          type(localizedDIISParameters),intent(out):: ldiis
+        end subroutine initialize_DIIS_coeff
 
    end interface
 

@@ -32,7 +32,7 @@ character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
-type(localizedDIISParameters):: ldiis
+type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
@@ -436,6 +436,12 @@ type(energy_terms) :: energs
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
 
+      if(lscv%withder) then
+          call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
+      else
+          call initialize_DIIS_coeff(3, tmb, orbs, ldiis_coeff)
+      end if
+
       ! Now all initializations are done...
 
 
@@ -525,10 +531,9 @@ type(energy_terms) :: energs
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           ! Calculate the coefficients
-          write(*,*) 'scf_mode',scf_mode
           call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm)
+               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
 
 
           ! Calculate the charge density.
@@ -587,6 +592,7 @@ type(energy_terms) :: energs
 
       end do
 
+      call deallocateDIIS(ldiis_coeff)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then

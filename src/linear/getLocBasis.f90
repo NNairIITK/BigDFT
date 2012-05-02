@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb,fnrm)
+    hx,hy,hz,SIC,tmbmix,tmb,fnrm,ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -23,6 +23,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix, tmb
+type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
@@ -274,8 +275,9 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   ! TEST
   if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, fnrm)
+      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
 
 
