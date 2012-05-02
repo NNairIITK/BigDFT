@@ -48,7 +48,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
           tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
           tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
-          if(iproc==0) write(100,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
+          !!if(iproc==0) write(100,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
       end do
   end do
 
@@ -62,7 +62,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
               end do
           end do
           lagmat(jorb,iorb)=tt
-          if(iproc==0) write(510,*) iorb, jorb, lagmat(jorb,iorb)
+          !!if(iproc==0) write(510,*) iorb, jorb, lagmat(jorb,iorb)
       end do
   end do
 
@@ -79,7 +79,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
               end do
           end do
           rhs(lorb,iorb)=tt
-          if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
+          !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
       end do
   end do
 

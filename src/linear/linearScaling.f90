@@ -713,13 +713,16 @@ real(8),intent(in):: pnrm, energy, energyDiff
       else
           write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
       end if
-      if(infoCoeff<0) then
-          write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-      else if(infoCoeff>0) then
-          write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      !!if(infoCoeff<0) then
+      !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      !!else if(infoCoeff>0) then
+      !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(3x,a)') '- coefficients obtained by direct minimization.'
       else
           write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
       end if
+      !!end if
       !if(mixingMethod=='dens') then
       if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff

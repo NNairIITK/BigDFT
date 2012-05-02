@@ -107,7 +107,7 @@
         XC id=      1 |    Fine Wfs.= 4.00 | Max. N. Iter.=  100x 1 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       5 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=      10
-   Input wf. policy=  100 (Error         ) |  Output wf. policy=     0 (none        )
+   Input wf. policy=  100 (Linear LCAO   ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                                   (XC: Teter 93)
                                                     XC functional provided by ABINIT.
@@ -215,7 +215,7 @@
  |1  1           max number of process uses for pdsyev/pdsygv, pdgemm                
  |0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for th
  |1              in orthoconstraint: correction for non-orthogonality (0) or no corre
- |pot            mixing method: dens or pot                                          
+ |102            mixing method: 100 (direct minimization), 101 (simple dens mixing), 
  |0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iteratio
  |0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterati
  |0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized)
@@ -223,7 +223,7 @@
  |1.d-11         convergence criterion for the low accuracy part                     
  |T  4           use the derivative basis functions, Order of confinement potential (
  |50  100        number of iterations for the input guess, memory available for overl
- |F              plot basis functions: true or false                                 
+ |0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran b
  |T              transform to global orbitals in the end (T/F)                       
  |1              number of orbitals per process for trace minimization during input g
  |T              mixed mode (without and with derivatives)                           
@@ -377,7 +377,7 @@ max deviation from unity, position:  7.548191E-03  29  31
 max deviation from unity, position:  3.444719E-03  29  31
  fnrm, trace, mean alpha   5.99E-02   3.2561551321807E+01  7.32E-01
  ----------------------------------------------------------------------------- iter=6
-max deviation from unity, position:  1.368403E-03  29  31
+max deviation from unity, position:  1.368403E-03  31  29
  fnrm, trace, mean alpha   2.56E-02   3.2571731126957E+01  8.05E-01
  ----------------------------------------------------------------------------- iter=7
 max deviation from unity, position:  1.130358E-03  2  2
@@ -420,31 +420,31 @@ max deviation from unity, position:  3.739146E-03  28  29
  fnrm, trace, mean alpha   1.82E-02   3.2576195011393E+01  2.78E+00
  ---------------------------------------------------------------------------- iter=20
 max deviation from unity, position:  4.117754E-03  28  29
- fnrm, trace, mean alpha   1.82E-02   3.2576190855978E+01  3.06E+00
+ fnrm, trace, mean alpha   1.82E-02   3.2576190855977E+01  3.06E+00
  ---------------------------------------------------------------------------- iter=21
 max deviation from unity, position:  4.534420E-03  28  29
- fnrm, trace, mean alpha   1.82E-02   3.2576206740558E+01  3.36E+00
+ fnrm, trace, mean alpha   1.82E-02   3.2576206740561E+01  3.36E+00
  ---------------------------------------------------------------------------- iter=22
 max deviation from unity, position:  4.984110E-03  28  29
- fnrm, trace, mean alpha   1.81E-02   3.2576140230067E+01  3.66E+00
+ fnrm, trace, mean alpha   1.81E-02   3.2576140230052E+01  3.66E+00
  ---------------------------------------------------------------------------- iter=23
 max deviation from unity, position:  5.502896E-03  28  29
- fnrm, trace, mean alpha   2.01E-02   3.2576449795027E+01  2.14E+00
+ fnrm, trace, mean alpha   2.01E-02   3.2576449795100E+01  2.14E+00
  ---------------------------------------------------------------------------- iter=24
 max deviation from unity, position:  9.465278E-03  38  41
- fnrm, trace, mean alpha   2.39E-02   3.2575402872782E+01  1.07E+00
+ fnrm, trace, mean alpha   2.39E-02   3.2575402872635E+01  1.07E+00
  ---------------------------------------------------------------------------- iter=25
 max deviation from unity, position:  4.685991E-03  8  9
- fnrm, trace, mean alpha   2.66E-02   3.2576634712074E+01  5.35E-01
+ fnrm, trace, mean alpha   2.66E-02   3.2576634712196E+01  5.35E-01
  ---------------------------------------------------------------------------- iter=26
 max deviation from unity, position:  2.314137E-03  38  41
- fnrm, trace, mean alpha   1.93E-02   3.2576106946073E+01  4.87E-01
+ fnrm, trace, mean alpha   1.93E-02   3.2576106946069E+01  4.87E-01
  ---------------------------------------------------------------------------- iter=27
 max deviation from unity, position:  2.582620E-03  38  41
- fnrm, trace, mean alpha   1.84E-02   3.2576119015868E+01  5.36E-01
+ fnrm, trace, mean alpha   1.84E-02   3.2576119015867E+01  5.36E-01
  ---------------------------------------------------------------------------- iter=28
 max deviation from unity, position:  2.832184E-03  38  41
- fnrm, trace, mean alpha   1.84E-02   3.2576127558727E+01  5.90E-01
+ fnrm, trace, mean alpha   1.84E-02   3.2576127558726E+01  5.90E-01
  ---------------------------------------------------------------------------- iter=29
 max deviation from unity, position:  3.115435E-03  38  41
  fnrm, trace, mean alpha   1.84E-02   3.2576133718157E+01  6.49E-01
@@ -462,25 +462,25 @@ max deviation from unity, position:  4.553917E-03  38  41
  fnrm, trace, mean alpha   1.84E-02   3.2576138094209E+01  9.50E-01
  ---------------------------------------------------------------------------- iter=34
 max deviation from unity, position:  5.005169E-03  38  41
- fnrm, trace, mean alpha   1.84E-02   3.2576137114529E+01  1.04E+00
+ fnrm, trace, mean alpha   1.84E-02   3.2576137114528E+01  1.04E+00
  ---------------------------------------------------------------------------- iter=35
 max deviation from unity, position:  5.504050E-03  38  41
- fnrm, trace, mean alpha   1.84E-02   3.2576139447879E+01  1.15E+00
+ fnrm, trace, mean alpha   1.84E-02   3.2576139447880E+01  1.15E+00
  ---------------------------------------------------------------------------- iter=36
 max deviation from unity, position:  6.045125E-03  38  41
- fnrm, trace, mean alpha   1.84E-02   3.2576135074410E+01  1.26E+00
+ fnrm, trace, mean alpha   1.84E-02   3.2576135074408E+01  1.26E+00
  ---------------------------------------------------------------------------- iter=37
 max deviation from unity, position:  6.652531E-03  38  41
- fnrm, trace, mean alpha   1.85E-02   3.2576146354562E+01  1.34E+00
+ fnrm, trace, mean alpha   1.85E-02   3.2576146354569E+01  1.34E+00
  ---------------------------------------------------------------------------- iter=38
 max deviation from unity, position:  7.283187E-03  38  41
- fnrm, trace, mean alpha   1.87E-02   3.2576105066151E+01  1.31E+00
+ fnrm, trace, mean alpha   1.87E-02   3.2576105066135E+01  1.31E+00
  ---------------------------------------------------------------------------- iter=39
 max deviation from unity, position:  3.597265E-03  9  8
- fnrm, trace, mean alpha   1.90E-02   3.2576209163273E+01  1.25E+00
+ fnrm, trace, mean alpha   1.90E-02   3.2576209163299E+01  1.25E+00
  ---------------------------------------------------------------------------- iter=40
-max deviation from unity, position:  3.952411E-03  9  8
- fnrm, trace, mean alpha   1.84E-02   3.2576155155925E+01  1.36E+00
+max deviation from unity, position:  3.952411E-03  8  9
+ fnrm, trace, mean alpha   1.84E-02   3.2576155155923E+01  1.36E+00
  ---------------------------------------------------------------------------- iter=41
 max deviation from unity, position:  4.342001E-03  8  9
  fnrm, trace, mean alpha   1.84E-02   3.2576155293215E+01  1.47E+00
@@ -489,30 +489,30 @@ max deviation from unity, position:  4.769220E-03  8  9
  fnrm, trace, mean alpha   1.84E-02   3.2576132943128E+01  1.61E+00
  ---------------------------------------------------------------------------- iter=43
 max deviation from unity, position:  5.237508E-03  8  9
- fnrm, trace, mean alpha   1.84E-02   3.2576130981527E+01  1.77E+00
+ fnrm, trace, mean alpha   1.84E-02   3.2576130981526E+01  1.77E+00
  ---------------------------------------------------------------------------- iter=44
 max deviation from unity, position:  5.750563E-03  8  9
- fnrm, trace, mean alpha   1.85E-02   3.2576136671143E+01  1.88E+00
+ fnrm, trace, mean alpha   1.85E-02   3.2576136671145E+01  1.88E+00
  ---------------------------------------------------------------------------- iter=45
 max deviation from unity, position:  6.312349E-03  9  8
- fnrm, trace, mean alpha   1.88E-02   3.2576093554516E+01  1.86E+00
+ fnrm, trace, mean alpha   1.88E-02   3.2576093554512E+01  1.86E+00
  ---------------------------------------------------------------------------- iter=46
 max deviation from unity, position:  6.937369E-03  34  35
- fnrm, trace, mean alpha   1.93E-02   3.2576118023200E+01  1.74E+00
+ fnrm, trace, mean alpha   1.93E-02   3.2576118023196E+01  1.74E+00
  ---------------------------------------------------------------------------- iter=47
 max deviation from unity, position:  1.065849E-02  28  29
- fnrm, trace, mean alpha   1.94E-02   3.2576054963398E+01  1.62E+00
+ fnrm, trace, mean alpha   1.94E-02   3.2576054963408E+01  1.62E+00
  ---------------------------------------------------------------------------- iter=48
 max deviation from unity, position:  8.333619E-03  8  9
- fnrm, trace, mean alpha   1.87E-02   3.2576063586187E+01  1.56E+00
+ fnrm, trace, mean alpha   1.87E-02   3.2576063586184E+01  1.56E+00
  ---------------------------------------------------------------------------- iter=49
-max deviation from unity, position:  9.135055E-03  8  9
- fnrm, trace, mean alpha   1.88E-02   3.2576053378158E+01  1.61E+00
+max deviation from unity, position:  9.135055E-03  9  8
+ fnrm, trace, mean alpha   1.88E-02   3.2576053378174E+01  1.61E+00
  ---------------------------------------------------------------------------- iter=50
-max deviation from unity, position:  1.000898E-02  8  9
- fnrm, trace, mean alpha   1.91E-02   3.2576001690655E+01  1.46E+00
+max deviation from unity, position:  1.000898E-02  9  8
+ fnrm, trace, mean alpha   1.91E-02   3.2576001690596E+01  1.46E+00
  WARNING: not converged within 50 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, trace:   1.9108855E-02  3.2576002E+01
+ Final values for fnrm, trace:   1.9108854E-02  3.2576002E+01
  ====================================================================================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -586,7 +586,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   1   5.86E-05   -7.45413114876890859E+01   -7.4541E+01
+   it, Delta POT, energy energyDiff   1   5.86E-05   -7.45413114876986356E+01   -7.4541E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -620,10 +620,10 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   2   9.62E-06   -5.15413722310822209E+01    2.3000E+01
+   it, Delta POT, energy energyDiff   2   9.62E-06   -5.15413722310850062E+01    2.3000E+01
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.1790761044E+00  2.6889154931E+02 -2.3077870449E+01 -3.0213144208E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itout, Delta POTOUT, energy energyDiff   1   3.02E-05   -5.15413722310822209E+01   -5.1541E+01
+   itout, Delta POTOUT, energy energyDiff   1   3.02E-05   -5.15413722310850062E+01   -5.1541E+01
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -672,7 +672,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   1   4.59E-06   -5.14769566415415056E+01    6.4416E-02
+   it, Delta POT, energy energyDiff   1   4.59E-06   -5.14769566415325244E+01    6.4416E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -706,10 +706,10 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   2   2.32E-06   -5.17494784398530214E+01   -2.7252E-01
+   it, Delta POT, energy energyDiff   2   2.32E-06   -5.17494784398526804E+01   -2.7252E-01
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.0310438473E+00  2.6921955674E+02 -2.2989932440E+01 -3.0097075169E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itout, Delta POTOUT, energy energyDiff   2   3.38E-06   -5.17494784398530214E+01   -2.0811E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.0310438474E+00  2.6921955674E+02 -2.2989932440E+01 -3.0097075169E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
+   itout, Delta POTOUT, energy energyDiff   2   3.38E-06   -5.17494784398526804E+01   -2.0811E-01
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
@@ -724,45 +724,45 @@ max deviation from unity, position:  1.000898E-02  8  9
  Final values for fnrm, fnrmMax, trace:   3.7233644E-01  4.8456595E-01  -3.2844265
  ============================= Basis functions created. =============================
  the new centers of the localization regions:
-         1      7.346192917010E+00      7.083416280808E+00      7.747076065582E+00
-         2      7.290264707131E+00      6.465376763921E+00      7.723672692981E+00
+         1      7.346192917010E+00      7.083416280807E+00      7.747076065580E+00
+         2      7.290264707131E+00      6.465376763922E+00      7.723672692980E+00
          3      7.100897343129E+00      7.295705831652E+00      7.108426268692E+00
-         4      7.266861994884E+00      7.036335292743E+00      7.518738017808E+00
-         5      7.830058271613E+00      8.251676280775E+00      9.836066204892E+00
-         6      7.245965003369E+00      8.932609808942E+00      9.963798436967E+00
-         7      7.234252148901E+00      8.611724943300E+00      9.726245077445E+00
-         8      6.694455618155E+00      8.324149644072E+00      9.965160858566E+00
-         9      7.270697360110E+00      6.909629238532E+00      1.212722725560E+01
-        10      6.760651583909E+00      7.221313738049E+00      1.220543315419E+01
-        11      7.689274551230E+00      6.809070341302E+00      1.230441484356E+01
-        12      7.284054389707E+00      6.946610573294E+00      1.225661674677E+01
-        13      7.595640353877E+00      8.319417939091E+00      1.419388509892E+01
+         4      7.266861994885E+00      7.036335292743E+00      7.518738017807E+00
+         5      7.830058271614E+00      8.251676280776E+00      9.836066204888E+00
+         6      7.245965003370E+00      8.932609808940E+00      9.963798436965E+00
+         7      7.234252148903E+00      8.611724943301E+00      9.726245077448E+00
+         8      6.694455618153E+00      8.324149644073E+00      9.965160858563E+00
+         9      7.270697360111E+00      6.909629238534E+00      1.212722725560E+01
+        10      6.760651583904E+00      7.221313738050E+00      1.220543315420E+01
+        11      7.689274551229E+00      6.809070341289E+00      1.230441484358E+01
+        12      7.284054389711E+00      6.946610573309E+00      1.225661674674E+01
+        13      7.595640353877E+00      8.319417939092E+00      1.419388509892E+01
         14      6.679060462129E+00      8.597132729447E+00      1.472042288202E+01
-        15      7.256329533310E+00      8.688015692347E+00      1.452476291380E+01
+        15      7.256329533310E+00      8.688015692346E+00      1.452476291380E+01
         16      7.473735668039E+00      8.516374709141E+00      1.485758108890E+01
         17      7.275677429795E+00      7.011565007268E+00      1.690142891445E+01
         18      7.287909361642E+00      6.922712824121E+00      1.704596141515E+01
         19      7.193007451966E+00      6.660785853422E+00      1.698712666059E+01
-        20      7.247964198004E+00      7.293389686760E+00      1.677063587314E+01
+        20      7.247964198003E+00      7.293389686760E+00      1.677063587314E+01
         21      7.240325251170E+00      8.550350494650E+00      1.948795677433E+01
-        22      7.567130677153E+00      8.424535071358E+00      1.926526128210E+01
+        22      7.567130677154E+00      8.424535071358E+00      1.926526128210E+01
         23      7.239546950739E+00      8.591870599215E+00      1.931292256914E+01
-        24      6.957929439842E+00      8.554975412316E+00      1.904144301461E+01
-        25      6.869685669053E+00      7.073047719864E+00      2.209971768906E+01
-        26      7.807738331224E+00      7.200312263451E+00      2.143092678933E+01
+        24      6.957929439842E+00      8.554975412316E+00      1.904144301462E+01
+        25      6.869685669054E+00      7.073047719865E+00      2.209971768906E+01
+        26      7.807738331223E+00      7.200312263451E+00      2.143092678933E+01
         27      7.107312487054E+00      7.033994927222E+00      2.152700967894E+01
-        28      7.220195751335E+00      6.584066302783E+00      2.145345792589E+01
-        29      7.291853104257E+00      8.543040864339E+00      2.402973301956E+01
-        30      7.008389588481E+00      8.352305190678E+00      2.416021248690E+01
+        28      7.220195751335E+00      6.584066302782E+00      2.145345792589E+01
+        29      7.291853104258E+00      8.543040864339E+00      2.402973301956E+01
+        30      7.008389588479E+00      8.352305190678E+00      2.416021248690E+01
         31      7.226577702113E+00      8.590606056178E+00      2.387058639829E+01
-        32      7.475801277547E+00      8.643221157233E+00      2.384550622291E+01
-        33      7.253993270033E+00      8.251007808813E+00      5.657494040439E+00
+        32      7.475801277549E+00      8.643221157233E+00      2.384550622290E+01
+        33      7.253993270033E+00      8.251007808814E+00      5.657494040439E+00
         34      9.048600521374E+00      5.604900730092E+00      7.526407094859E+00
         35      5.457996085910E+00      5.604194681539E+00      7.526321549886E+00
         36      9.049738928271E+00      9.901481448960E+00      9.877001255770E+00
         37      5.455943227314E+00      9.901982633296E+00      9.877158554458E+00
         38      9.050697831469E+00      5.604879687174E+00      1.222712330175E+01
-        39      5.456200119623E+00      5.604311965216E+00      1.222680474580E+01
+        39      5.456200119622E+00      5.604311965216E+00      1.222680474580E+01
         40      9.048449471758E+00      9.900787606472E+00      1.457794514257E+01
         41      5.457054588665E+00      9.901864429008E+00      1.457775746078E+01
         42      9.049627312590E+00      5.604123448049E+00      1.692863893143E+01
@@ -807,7 +807,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   1   1.20E-05   -5.53428529201312358E+01   -3.5934E+00
+   it, Delta POT, energy energyDiff   1   1.20E-05   -5.53428529201316906E+01   -3.5934E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -841,7 +841,7 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   2   2.70E-06   -5.18913230642350527E+01    3.4515E+00
+   it, Delta POT, energy energyDiff   2   2.70E-06   -5.18913230642345411E+01    3.4515E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -875,10 +875,10 @@ max deviation from unity, position:  1.000898E-02  8  9
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta POT, energy energyDiff   3   1.58E-06   -5.17234107532507323E+01    1.6791E-01
+   it, Delta POT, energy energyDiff   3   1.58E-06   -5.17234107532498797E+01    1.6791E-01
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.4992844819E+00  2.7172662314E+02 -2.2995816089E+01 -3.0104333536E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itout, Delta POTOUT, energy energyDiff   3   7.98E-06   -5.17234107532507323E+01    2.6068E-02
+   itout, Delta POTOUT, energy energyDiff   3   7.98E-06   -5.17234107532498797E+01    2.6068E-02
  Calculating charge density...
    calculating the density kernel... done.
    Calculation finished. TOTAL CHARGE =   4.999998012795E+01
@@ -899,9 +899,9 @@ max deviation from unity, position:  1.000898E-02  8  9
  average noise along y direction:   2.01392667E-02
  average noise along z direction:   2.27214904E-02
  total average noise            :   3.15721558E-02
- clean forces norm (Ha/Bohr): maxval=  1.931308571100E-01  fnrm2=  4.815460151466E-01
- raw forces:                  maxval=  1.925083389649E-01  fnrm2=  4.827248029378E-01
- CPU time/ELAPSED time for root process     0        19.87        19.80
+ clean forces norm (Ha/Bohr): maxval=  1.931308571102E-01  fnrm2=  4.815460151467E-01
+ raw forces:                  maxval=  1.925083389649E-01  fnrm2=  4.827248029379E-01
+ CPU time/ELAPSED time for root process     0        20.37        20.33
  Final values of the Forces for each atom
      1      C -1.74803E-02  7.08530E-03  3.32466E-02
      2      C  2.13673E-02 -2.31074E-02  1.90609E-02
@@ -930,6 +930,6 @@ max deviation from unity, position:  1.000898E-02  8  9
     25      H  1.22170E-01 -1.16458E-01  5.23190E-03
     26      H  7.16252E-03  1.15692E-01 -1.54478E-01
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 163432 allocations and 163432 deallocations, remaining memory(B): 0
+ 150885 allocations and 150885 deallocations, remaining memory(B): 0
  memory occupation peak: 106 MB
  for the array  psirz in the routine apply_position_operators

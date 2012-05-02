@@ -765,8 +765,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-       write(*,*) 'debug'
-       call random_number(tmb%wfnmd%coeff)
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb,tmb,fnrm)
