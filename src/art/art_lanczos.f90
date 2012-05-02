@@ -60,7 +60,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   integer      :: i, j, k, i_err, ivec, ierror
   real(kind=8) :: a1, a0, b2, b1, c1, norm, ran3
   real(kind=8) :: excited_energy, sum2, invsum
-  !real(kind=8) :: dr2
+  real(kind=8) :: dr2
   real(kind=8), dimension(3) :: boxl
   real(kind=8), dimension(VECSIZE)         :: newpos, newforce, ref_force
   real(kind=8), dimension(maxvec)          :: diag
@@ -115,14 +115,14 @@ subroutine lanczos( maxvec, new_projection, produit )
      if ( iproc == 0 ) then           ! Initial movement.
         do i = 1, natoms, 1
            if ( constr(i) == 0 .and. in_system(i) == 0 ) then
-              !do
+              do
                 dx(i) = 0.5d0 - ran3()
                 dy(i) = 0.5d0 - ran3()
                 dz(i) = 0.5d0 - ran3()
-                                         ! displacement is isotropic
-                !dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
-                !if ( dr2 < 0.25d0 ) exit 
-              !end do
+                                      ! displacement is isotropic
+                dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
+                if ( dr2 < 0.25d0 ) exit 
+              end do
            end if
         end do
 
