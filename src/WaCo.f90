@@ -356,9 +356,11 @@ program WaCo
       if(iproc == 0) print *,'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)  
 
       open(22,file='Wannier_charge.dat',status='unknown')
+      do iwann = 1, plotwann
+          write(22, '(E14.6, 2x, E14.6)') 0.0_dp, 0.0_dp
+      end do
       do iat = 1, atoms%nat
-         write(22, '(E14.6, 2x, E14.6)') charge(iat)/maxval(charge), charge(iat)
-!         write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
+         write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
       end do
       close(22)
 
