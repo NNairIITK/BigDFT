@@ -640,7 +640,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   nullify(in%lin%locrad_type)
 
   !Linear input parameters
-  call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
   if (exists) in%files = in%files + INPUTS_LIN
 
   ! Read the number of iterations and convergence criterion for the basis functions BF

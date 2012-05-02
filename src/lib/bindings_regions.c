@@ -434,6 +434,7 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
   guint withderorbs = 0;
 
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
+
   if (!bigdft_orbs_get_linear(orbs))
     FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
       (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,

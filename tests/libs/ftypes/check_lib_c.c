@@ -140,7 +140,7 @@ int main(int argc, char **argv)
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new();
+  wf = bigdft_wf_new(FALSE);
   atoms = BIGDFT_ATOMS(wf->lzd);
 
   atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     {
       bigdft_wf_free(wf);
 
-      wf = bigdft_wf_new();
+      wf = bigdft_wf_new(FALSE);
       atoms = BIGDFT_ATOMS(wf->lzd);
     }
   fprintf(stdout, " Ok\n");

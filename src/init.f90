@@ -1980,16 +1980,17 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmb%orthpar%nItOrtho = in%lin%nItOrtho
+     tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
-  tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  tmb%orthpar%nItOrtho = in%lin%nItOrtho
-  tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-  tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
-
-  tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-  tmbder%orthpar%nItOrtho = in%lin%nItOrtho
-  tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-  tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+     tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmbder%orthpar%nItOrtho = in%lin%nItOrtho
+     tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+  end if
 
   !SIC parameters
   KSwfn%SIC = in%SIC
