@@ -80,6 +80,9 @@ module module_types
   integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
   integer,parameter:: COMMUNICATION_P2P=1
+  integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
+  integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
+  integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
   
 
   !> Type used for the orthogonalisation parameter
@@ -145,7 +148,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
-    character(len=4):: mixingMethod
+    integer:: scf_mode
     character(len=1):: locregShape
   end type linearInputParameters
 
@@ -574,7 +577,7 @@ module module_types
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
-    logical:: communication_complete
+    logical:: communication_complete, messages_posted
   end type p2pComms
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
@@ -637,7 +640,7 @@ module module_types
     integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
     integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
     integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
-    integer:: nptsp_c, ndimpsi_c
+    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f
     integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
@@ -645,27 +648,27 @@ module module_types
   end type collective_comms
 
 
-!> Contains all parameters for the basis with which we calculate the properties
-!! like energy and forces. Since we may also use the derivative of the trace
-!! minimizing orbitals, this basis may be larger than only the trace minimizing
-!! orbitals. In case we don't use the derivatives, these parameters are identical
-!! from those in lin%orbs etc.
-type,public:: largeBasis
-    type(communications_arrays):: comms, gcomms
-    type(orbitals_data):: orbs, gorbs
-    !type(local_zone_descriptors):: lzd
-    !type(p2pCommsRepartition):: comrp
-    type(p2pComms):: comrp
-    !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon
-    type(overlapParameters):: op
-    !type(p2pCommsGatherPot):: comgp
-    type(p2pComms):: comgp
-    type(matrixDescriptors):: mad
-    type(collectiveComms):: collComms
-    !type(p2pCommsSumrho):: comsr
-    type(p2pComms):: comsr
-end type largeBasis
+!!!!> Contains all parameters for the basis with which we calculate the properties
+!!!!! like energy and forces. Since we may also use the derivative of the trace
+!!!!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!!!!! orbitals. In case we don't use the derivatives, these parameters are identical
+!!!!! from those in lin%orbs etc.
+!!!type,public:: largeBasis
+!!!    type(communications_arrays):: comms, gcomms
+!!!    type(orbitals_data):: orbs, gorbs
+!!!    !type(local_zone_descriptors):: lzd
+!!!    !type(p2pCommsRepartition):: comrp
+!!!    type(p2pComms):: comrp
+!!!    !type(p2pCommsOrthonormality):: comon
+!!!    type(p2pComms):: comon
+!!!    type(overlapParameters):: op
+!!!    !type(p2pCommsGatherPot):: comgp
+!!!    type(p2pComms):: comgp
+!!!    type(matrixDescriptors):: mad
+!!!    type(collectiveComms):: collComms
+!!!    !type(p2pCommsSumrho):: comsr
+!!!    type(p2pComms):: comsr
+!!!end type largeBasis
 
 
 type,public:: workarrays_quartic_convolutions
@@ -768,6 +771,9 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
+    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
   end type wfn_metadata
 
 

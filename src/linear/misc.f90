@@ -1,4 +1,4 @@
-subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, onWhichAtom, hxh, hyh, hzh, it)
+subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, hxh, hyh, hzh, it)
 !
 ! Plots the orbitals
 !
@@ -13,7 +13,6 @@ type(locreg_descriptors), intent(in) :: Glr
 real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
 integer:: nat
 real(8),dimension(3,nat):: rxyz
-integer,dimension(orbs%norbp):: onWhichAtom
 real(8):: hxh, hyh, hzh
 integer:: it
 
@@ -38,7 +37,7 @@ unit3=10*iproc+9
     orbLoop: do iorb=1,orbs%norbp
         phir=0.d0
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        iiAt=onWhichAtom(iorb)
+        iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
