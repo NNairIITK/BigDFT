@@ -523,14 +523,14 @@ type(energy_terms) :: energs
                   call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
-                   TEST ###############################################################################################
+                  !! TEST ###############################################################################################
                   write(*,*) 'test: orthonormalize derivatives'
                   allocate(ovrlp_tmp(tmbder%orbs%norb,tmbder%orbs%norb))
                   call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                        tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
                        tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi, ovrlp_tmp)
                   deallocate(ovrlp_tmp)
-                   END TEST ###########################################################################################
+                  !! END TEST ###########################################################################################
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
