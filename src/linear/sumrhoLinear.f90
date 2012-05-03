@@ -307,13 +307,14 @@ integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, j
 integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
-integer,allocatable :: astart(:,:), aend(:,:), bstart(:,:),bend(:,:)
+integer,dimension(3,4) :: astart, aend, bstart,bend
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
-
+integer :: i, j
+real(gp),dimension(:,:), allocatable :: rhoprime
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
@@ -340,6 +341,20 @@ if(iproc==0) write(*,'(a)') 'done.'
 !call cpu_time(t2)
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
+
+!DEBUG test idempotency of density matrix
+!!allocate(rhoprime(orbs%norb,orbs%norb))
+!!call dgemm('n','t', orbs%norb,orbs%norb,orbs%norb,1.d0,densKern(1,1),orbs%norb,&
+!!     densKern(1,1),orbs%norb,0.d0,rhoprime(1,1),orbs%norb)
+!!do i = 1, orbs%norb
+!! do j = 1, orbs%norb
+!!    if(abs(rhoprime(i,j) - densKern(i,j))>1.0d-5) then
+!!      write(*,*) 'Not indempotent',i,j,rhoprime(i,j), densKern(i,j)
+!!    end if
+!! end do
+!!end do
+!!deallocate(rhoprime)
+!END DEBUG
 
 
 ! Define some constant factors.
@@ -400,21 +415,9 @@ do iorb=1,comsr%noverlaps(iproc)
            if(lzd%llr(ilr)%outofzone(ii) > 0) azones = azones * 2
            if(lzd%llr(jlr)%outofzone(ii) > 0) bzones = bzones * 2
         end do
-      
-        !allocate astart and aend
-        allocate(astart(3,azones),stat=istat)
-        call memocc(istat,astart,'astart',subname)
-        allocate(aend(3,azones),stat=istat)
-        call memocc(istat,aend,'aend',subname)
-       
+
         !FRACTURE THE FIRST LOCALIZATION REGION
         call fracture_periodic_zone_ISF(azones,lzd%Glr,lzd%Llr(ilr),lzd%Llr(ilr)%outofzone(:),astart,aend)
-       
-        !allocate bstart and bend
-        allocate(bstart(3,bzones),stat=istat)
-        call memocc(istat,bstart,'bstart',subname)
-        allocate(bend(3,bzones),stat=istat)
-        call memocc(istat,bend,'bend',subname)
        
         !FRACTURE SECOND LOCREG
         call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
@@ -513,18 +516,6 @@ do iorb=1,comsr%noverlaps(iproc)
               end do
           end do !jzones
        end do !izones
-       iall=-product(shape(astart))*kind(astart)
-       deallocate(astart, stat=istat)
-       call memocc(istat, iall, 'astart', subname)
-       iall=-product(shape(bstart))*kind(bstart)
-       deallocate(bstart, stat=istat)
-       call memocc(istat, iall, 'bstart', subname)
-       iall=-product(shape(aend))*kind(aend)
-       deallocate(aend, stat=istat)
-       call memocc(istat, iall, 'aend', subname)
-       iall=-product(shape(bend))*kind(bend)
-       deallocate(bend, stat=istat)
-       call memocc(istat, iall, 'bend', subname)
     end do
 end do
 call mpi_barrier(mpi_comm_world, ierr)

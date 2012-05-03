@@ -104,14 +104,15 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   type(input_variables), intent(in) :: in
   type(denspot_distribution), intent(in) :: dpbox
 
+  integer :: ndim
+
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
        & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, in, wfn%wfnmd)
   wfn%wfnmd%bs%use_derivative_basis=.false.
 
   call initCommsOrtho(iproc, nproc, in%nspin, &
        lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &
-       wfn%orbs,  wfn%orbs, wfn%orbs%inWhichLocreg,&
-       in%lin%locregShape, wfn%op, wfn%comon)
+       wfn%orbs, in%lin%locregShape, wfn%op, wfn%comon)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, lzd, wfn%comgp)
@@ -121,9 +122,10 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   call nullify_p2pcomms(wfn%comsr)
   call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
-  call initMatrixCompression(iproc, nproc, lzd%nlr, wfn%orbs, wfn%op%noverlaps, &
+  ndim = maxval(wfn%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
        & wfn%op%overlaps, wfn%mad)
-  call initCompressedMatmul3(wfn%orbs%norb, wfn%mad)
+  call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)

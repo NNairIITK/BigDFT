@@ -705,8 +705,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
-  comments='mixing method: dens or pot'
-  call input_var(in%lin%mixingMethod,'dens',comment=comments)
+  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)'
+  call input_var(in%lin%scf_mode,'100',ranges=(/100,102/),comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
   comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &

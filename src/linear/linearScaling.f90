@@ -29,16 +29,17 @@ type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode
 real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
-type(localizedDIISParameters):: ldiis
+type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used
+logical:: check_whether_derivatives_to_be_used, coeffs_copied, first_time_with_der
+integer:: jjorb
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
 
@@ -49,7 +50,6 @@ logical:: check_whether_derivatives_to_be_used
 
   ! Initialize everything related to the linear scaling version ###########################################################
   ! Initialize the tags for the p2p communication
-  !!tag=p2p_tag(.true.)
 
   ! Now all initializations are done ######################################################################################
 
@@ -134,16 +134,19 @@ logical:: check_whether_derivatives_to_be_used
           lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
       end do
 
-      if(trim(input%lin%mixingMethod)=='dens') then
+      !if(trim(input%lin%mixingMethod)=='dens') then
+      if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
           rhopotold_out=rhopotold
       end if
 
-      if(trim(input%lin%mixingMethod)=='pot') then
+      !if(trim(input%lin%mixingMethod)=='pot') then
+      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
-      if(trim(input%lin%mixingMethod)=='pot') then
+      !if(trim(input%lin%mixingMethod)=='pot') then
+      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
@@ -199,6 +202,8 @@ logical:: check_whether_derivatives_to_be_used
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
+  coeffs_copied=.false.
+  first_time_with_der=.false.
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
 
@@ -224,6 +229,18 @@ logical:: check_whether_derivatives_to_be_used
       ! Check whether the derivatives shall be used or not.
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
+      if(lscv%withder .and. lscv%lowaccur_converged .and. .not.coeffs_copied) then
+          tmbder%wfnmd%coeff=0.d0
+          do iorb=1,orbs%norb
+              jjorb=0
+              do jorb=1,tmbder%orbs%norb,4
+                  jjorb=jjorb+1
+                  tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
+              end do
+          end do
+          coeffs_copied=.true.
+      end if
+
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
@@ -240,6 +257,12 @@ logical:: check_whether_derivatives_to_be_used
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
 
+      if(lscv%withder) then
+          call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
+      else
+          call initialize_DIIS_coeff(3, tmb, orbs, ldiis_coeff)
+      end if
+
       ! Now all initializations are done...
 
 
@@ -249,6 +272,12 @@ logical:: check_whether_derivatives_to_be_used
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
+          if(lscv%withder .and. .not.first_time_with_der) then
+              first_time_with_der=.true.
+              scf_mode=LINEAR_MIXDENS_SIMPLE
+          else
+              scf_mode=input%lin%scf_mode
+          end if
 
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
@@ -271,6 +300,11 @@ logical:: check_whether_derivatives_to_be_used
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
+              !reset counter for optimization of coefficients (otherwise step size will be decreases...)
+              tmb%wfnmd%it_coeff_opt=0
+              tmbder%wfnmd%it_coeff_opt=0
+              tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+              tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
           end if
 
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
@@ -279,6 +313,8 @@ logical:: check_whether_derivatives_to_be_used
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
                        .false., tmb%lzd, tmb, tmbder, denspot)
+                  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+                       tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
               end if
           end if
 
@@ -315,9 +351,9 @@ logical:: check_whether_derivatives_to_be_used
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix,tmb)
+               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
 
 
           ! Calculate the charge density.
@@ -327,7 +363,8 @@ logical:: check_whether_derivatives_to_be_used
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
           ! Mix the density.
-          if(trim(input%lin%mixingMethod)=='dens') then
+          !if(trim(input%lin%mixingMethod)=='dens') then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -346,7 +383,8 @@ logical:: check_whether_derivatives_to_be_used
 
 
           ! Mix the potential
-          if(trim(input%lin%mixingMethod)=='pot') then
+          !if(trim(input%lin%mixingMethod)=='pot') then
+          if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -364,7 +402,7 @@ logical:: check_whether_derivatives_to_be_used
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
-               infoCoeff, pnrm, energy, energyDiff, input%lin%mixingMethod)
+               infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               lscv%reduce_convergence_tolerance=.true.
               exit
@@ -374,15 +412,18 @@ logical:: check_whether_derivatives_to_be_used
 
       end do
 
+      call deallocateDIIS(ldiis_coeff)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
-          if(trim(input%lin%mixingMethod)=='dens') then
+          !if(trim(input%lin%mixingMethod)=='dens') then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-          else if(trim(input%lin%mixingMethod)=='pot') then
+          !else if(trim(input%lin%mixingMethod)=='pot') then
+          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           end if
@@ -401,7 +442,6 @@ logical:: check_whether_derivatives_to_be_used
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
 
-  !!call cancelCommunicationPotential(iproc, nproc, tmb%comgp)
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   if(tmbder%wfnmd%bs%use_derivative_basis) then
@@ -465,7 +505,9 @@ end subroutine linearScaling
 
 
 
-subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, mixingMethod)
+subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, scf_mode)
+use module_base
+use module_types
 !
 ! Purpose:
 ! ========
@@ -480,9 +522,8 @@ subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energ
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff
+integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
 real(8),intent(in):: pnrm, energy, energyDiff
-character(len=4),intent(in):: mixingMethod
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
@@ -492,17 +533,24 @@ character(len=4),intent(in):: mixingMethod
       else
           write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
       end if
-      if(infoCoeff<0) then
-          write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-      else if(infoCoeff>0) then
-          write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      !!if(infoCoeff<0) then
+      !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      !!else if(infoCoeff>0) then
+      !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(3x,a)') '- coefficients obtained by direct minimization.'
       else
           write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
       end if
-      if(mixingMethod=='dens') then
+      !!end if
+      !if(mixingMethod=='dens') then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
-      else if(mixingMethod=='pot') then
+      !else if(mixingMethod=='pot') then
+      else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
+      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy energyDiff', itSCC, pnrm, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
   end if
