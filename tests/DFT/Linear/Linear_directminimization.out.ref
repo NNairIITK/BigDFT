@@ -499,7 +499,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   1   4.64E-01   -9.77034088753120855E+00   -9.7703E+00
+   it, fnrm coeff, energy, energyDiff   1   4.64E-01   -9.77034088753120855E+00   -9.7703E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -513,7 +513,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   2   1.86E-01   -7.61818027037849888E+00    2.1522E+00
+   it, fnrm coeff, energy, energyDiff   2   1.86E-01   -7.61818027037847756E+00    2.1522E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -527,7 +527,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   3   6.14E-02   -7.85433650074685019E+00   -2.3616E-01
+   it, fnrm coeff, energy, energyDiff   3   6.14E-02   -7.85433650074685019E+00   -2.3616E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -541,7 +541,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   4   2.46E-02   -7.83623975421027907E+00    1.8097E-02
+   it, fnrm coeff, energy, energyDiff   4   2.46E-02   -7.83623975421027197E+00    1.8097E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -555,7 +555,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   5   7.35E-03   -7.83990449390745781E+00   -3.6647E-03
+   it, fnrm coeff, energy, energyDiff   5   7.35E-03   -7.83990449390759281E+00   -3.6647E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -569,7 +569,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   6   2.97E-03   -7.83401791572223161E+00    5.8866E-03
+   it, fnrm coeff, energy, energyDiff   6   2.97E-03   -7.83401791572210371E+00    5.8866E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -583,7 +583,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   7   1.32E-03   -7.83492935393852363E+00   -9.1144E-04
+   it, fnrm coeff, energy, energyDiff   7   1.32E-03   -7.83492935393858048E+00   -9.1144E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -597,7 +597,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   8   4.69E-04   -7.83534603656026363E+00   -4.1668E-04
+   it, fnrm coeff, energy, energyDiff   8   4.69E-04   -7.83534603656024942E+00   -4.1668E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -611,7 +611,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   9   2.09E-04   -7.83502447765279797E+00    3.2156E-04
+   it, fnrm coeff, energy, energyDiff   9   2.09E-04   -7.83502447765275534E+00    3.2156E-04
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.7859817455E+00  3.1265121809E+01 -5.5392992398E+00 -7.2355925532E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
  Reduce the confining potential to 100.00% of its initial value.
@@ -649,7 +649,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   1   7.31E-02   -7.48756983991448877E+00    3.4745E-01
+   it, fnrm coeff, energy, energyDiff   1   7.31E-02   -7.48756983991438219E+00    3.4745E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -663,7 +663,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   2   4.68E-02   -7.88652416071868956E+00   -3.9895E-01
+   it, fnrm coeff, energy, energyDiff   2   4.68E-02   -7.88652416071877482E+00   -3.9895E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -677,7 +677,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   3   2.48E-02   -7.86835243712188159E+00    1.8172E-02
+   it, fnrm coeff, energy, energyDiff   3   2.48E-02   -7.86835243712188870E+00    1.8172E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -691,7 +691,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   4   2.29E-02   -7.92708441373504158E+00   -5.8732E-02
+   it, fnrm coeff, energy, energyDiff   4   2.29E-02   -7.92708441373502737E+00   -5.8732E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -705,7 +705,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   5   2.46E-02   -7.86096646471880334E+00    6.6118E-02
+   it, fnrm coeff, energy, energyDiff   5   2.46E-02   -7.86096646471879623E+00    6.6118E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -719,7 +719,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   6   5.18E-03   -7.87738598645843879E+00   -1.6420E-02
+   it, fnrm coeff, energy, energyDiff   6   5.18E-03   -7.87738598645843879E+00   -1.6420E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -733,7 +733,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   7   2.21E-03   -7.87906255455741800E+00   -1.6766E-03
+   it, fnrm coeff, energy, energyDiff   7   2.21E-03   -7.87906255455739668E+00   -1.6766E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -747,7 +747,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   8   1.34E-03   -7.87941424433732962E+00   -3.5169E-04
+   it, fnrm coeff, energy, energyDiff   8   1.34E-03   -7.87941424433731541E+00   -3.5169E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -761,7 +761,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   9   5.40E-04   -7.87945656302082753E+00   -4.2319E-05
+   it, fnrm coeff, energy, energyDiff   9   5.40E-04   -7.87945656302084174E+00   -4.2319E-05
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.2014890445E+00  3.0860595517E+01 -5.4341819665E+00 -7.0970242022E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
  Reduce the confining potential to 100.00% of its initial value.
@@ -804,7 +804,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   1   5.09E-02   -8.17022599749130407E+00   -2.9077E-01
+   it, fnrm coeff, energy, energyDiff   1   5.09E-02   -8.17022599749128275E+00   -2.9077E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -818,7 +818,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   2   1.14E-01   -8.97798159620019121E+00   -8.0776E-01
+   it, fnrm coeff, energy, energyDiff   2   1.14E-01   -8.97798159620021963E+00   -8.0776E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -832,7 +832,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   3   9.48E-02   -8.96692146209052865E+00    1.1060E-02
+   it, fnrm coeff, energy, energyDiff   3   9.48E-02   -8.96692146209055707E+00    1.1060E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -846,7 +846,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   4   7.35E-02   -8.96068201901266903E+00    6.2394E-03
+   it, fnrm coeff, energy, energyDiff   4   7.35E-02   -8.96068201901251982E+00    6.2394E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -860,7 +860,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   5   3.16E-02   -9.01033329596805643E+00   -4.9651E-02
+   it, fnrm coeff, energy, energyDiff   5   3.16E-02   -9.01033329596821986E+00   -4.9651E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -874,7 +874,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   6   7.92E-03   -9.02593755764697292E+00   -1.5604E-02
+   it, fnrm coeff, energy, energyDiff   6   7.92E-03   -9.02593755764683081E+00   -1.5604E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -888,7 +888,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   7   4.62E-03   -9.02584880718826454E+00    8.8750E-05
+   it, fnrm coeff, energy, energyDiff   7   4.62E-03   -9.02584880718824323E+00    8.8750E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -902,7 +902,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   8   2.66E-03   -9.02368857999133311E+00    2.1602E-03
+   it, fnrm coeff, energy, energyDiff   8   2.66E-03   -9.02368857999131180E+00    2.1602E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -916,7 +916,7 @@ max deviation from unity, position:  9.228079E-03  17  17
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by direct minimization.
-   it, fnrm coeff, energy energyDiff   9   9.64E-04   -9.02346903948415857E+00    2.1954E-04
+   it, fnrm coeff, energy, energyDiff   9   9.64E-04   -9.02346903948422963E+00    2.1954E-04
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.4658875742E+00  2.9527715124E+01 -4.7591210988E+00 -6.2094689941E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
  Calculating charge density...
@@ -939,9 +939,9 @@ max deviation from unity, position:  9.228079E-03  17  17
  average noise along y direction:   5.40279239E-03
  average noise along z direction:  -7.92621452E-03
  total average noise            :   1.50867031E-02
- clean forces norm (Ha/Bohr): maxval=  7.992044314635E-02  fnrm2=  1.015715467434E-02
- raw forces:                  maxval=  8.230431615420E-02  fnrm2=  1.043044512456E-02
- CPU time/ELAPSED time for root process     0        20.52        20.45
+ clean forces norm (Ha/Bohr): maxval=  7.992044314636E-02  fnrm2=  1.015715467434E-02
+ raw forces:                  maxval=  8.230431615421E-02  fnrm2=  1.043044512456E-02
+ CPU time/ELAPSED time for root process     0        21.64        20.75
  Final values of the Forces for each atom
      1     Be  9.76415E-03  1.32968E-03 -1.68707E-02
      2     Be  6.53132E-03  4.67937E-04  5.20961E-03

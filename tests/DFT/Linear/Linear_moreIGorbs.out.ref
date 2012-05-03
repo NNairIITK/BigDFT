@@ -387,7 +387,7 @@ max deviation from unity, position:  9.098254E-02  35  35
  fnrm, trace, mean alpha   4.59E-01   7.1991458689772E+00  6.04E-01
  ----------------------------------------------------------------------------- iter=5
 max deviation from unity, position:  4.860091E-02  40  40
- fnrm, trace, mean alpha   4.07E-01   7.0692632956580E+00  6.41E-01
+ fnrm, trace, mean alpha   4.07E-01   7.0692632956579E+00  6.41E-01
  ----------------------------------------------------------------------------- iter=6
 max deviation from unity, position:  4.333681E-02  38  40
  fnrm, trace, mean alpha   4.05E-01   6.9634166621161E+00  6.61E-01
@@ -429,7 +429,7 @@ max deviation from unity, position:  1.658262E-02  42  43
  fnrm, trace, mean alpha   5.30E-01   6.5160429946521E+00  9.64E-01
  ---------------------------------------------------------------------------- iter=19
 max deviation from unity, position:  1.639173E-02  42  43
- fnrm, trace, mean alpha   5.23E-01   6.5079247722983E+00  6.42E-01
+ fnrm, trace, mean alpha   5.23E-01   6.5079247722984E+00  6.42E-01
  ---------------------------------------------------------------------------- iter=20
 max deviation from unity, position:  1.297313E-02  37  39
  fnrm, trace, mean alpha   5.14E-01   6.5005897123773E+00  3.74E-01
@@ -461,7 +461,7 @@ max deviation from unity, position:  1.023113E-02  40  37
 max deviation from unity, position:  9.893576E-03  40  37
  fnrm, trace, mean alpha   4.38E-01   6.4385607409254E+00  2.75E-01
  ---------------------------------------------------------------------------- iter=30
-max deviation from unity, position:  9.392920E-03  37  40
+max deviation from unity, position:  9.392920E-03  40  37
  fnrm, trace, mean alpha   4.30E-01   6.4327371484872E+00  2.84E-01
  ---------------------------------------------------------------------------- iter=31
 max deviation from unity, position:  8.742012E-03  37  40
@@ -510,19 +510,19 @@ max deviation from unity, position:  8.752154E-03  18  20
  fnrm, trace, mean alpha   3.14E-01   6.3470227510422E+00  3.98E-01
  ---------------------------------------------------------------------------- iter=46
 max deviation from unity, position:  9.419176E-03  18  20
- fnrm, trace, mean alpha   3.08E-01   6.3409139806499E+00  4.38E-01
+ fnrm, trace, mean alpha   3.08E-01   6.3409139806498E+00  4.38E-01
  ---------------------------------------------------------------------------- iter=47
 max deviation from unity, position:  1.010348E-02  18  20
- fnrm, trace, mean alpha   3.04E-01   6.3347806545167E+00  4.02E-01
+ fnrm, trace, mean alpha   3.04E-01   6.3347806545170E+00  4.02E-01
  ---------------------------------------------------------------------------- iter=48
 max deviation from unity, position:  1.079632E-02  18  20
- fnrm, trace, mean alpha   3.00E-01   6.3286526487443E+00  4.03E-01
+ fnrm, trace, mean alpha   3.00E-01   6.3286526487439E+00  4.03E-01
  ---------------------------------------------------------------------------- iter=49
 max deviation from unity, position:  1.148985E-02  18  20
- fnrm, trace, mean alpha   2.97E-01   6.3224686206263E+00  3.92E-01
+ fnrm, trace, mean alpha   2.97E-01   6.3224686206264E+00  3.92E-01
  ---------------------------------------------------------------------------- iter=50
 max deviation from unity, position:  1.217031E-02  18  20
- fnrm, trace, mean alpha   2.94E-01   6.3161111471209E+00  3.87E-01
+ fnrm, trace, mean alpha   2.94E-01   6.3161111471210E+00  3.87E-01
  WARNING: not converged within 50 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, trace:   2.9412169E-01  6.3161111E+00
  ====================================================================================
@@ -628,7 +628,7 @@ max deviation from unity, position:  1.217031E-02  18  20
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.01E-06   -6.78531657692784620E+01    3.8289E+00
+   it, Delta DENS, energy, energyDiff   2   1.01E-06   -6.78531657692786894E+01    3.8289E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -662,10 +662,10 @@ max deviation from unity, position:  1.217031E-02  18  20
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.01E-07   -6.74234162959207310E+01    4.2975E-01
+   it, Delta DENS, energy, energyDiff   3   5.01E-07   -6.74234162959206742E+01    4.2975E-01
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2785553377E+01  3.5482126998E+02 -2.6143230395E+01 -3.4201144591E+01  0.0000000000E+00  3.0212549286E+02  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   1   1.98E-06   -6.74234162959207310E+01   -6.7423E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   1.98E-06   -6.74234162959206742E+01   -6.7423E+01
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
@@ -715,7 +715,7 @@ max deviation from unity, position:  1.217031E-02  18  20
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.70E-06   -6.95481984288375656E+01   -2.1248E+00
+   it, Delta DENS, energy, energyDiff   1   1.70E-06   -6.95481984288377362E+01   -2.1248E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -749,7 +749,7 @@ max deviation from unity, position:  1.217031E-02  18  20
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.32E-07   -6.93703050840365449E+01    1.7789E-01
+   it, Delta DENS, energy, energyDiff   2   8.32E-07   -6.93703050840362607E+01    1.7789E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -783,10 +783,10 @@ max deviation from unity, position:  1.217031E-02  18  20
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.11E-07   -6.93400955289368994E+01    3.0210E-02
+   it, Delta DENS, energy, energyDiff   3   4.11E-07   -6.93400955289369563E+01    3.0210E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.4711354991E+01  3.5459706681E+02 -2.5464895915E+01 -3.3307729328E+01  0.0000000000E+00  3.0212549286E+02  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   2   1.47E-06   -6.93400955289368994E+01   -1.9167E+00
+   itout, Delta DENSOUT, energy, energyDiff   2   1.47E-06   -6.93400955289369563E+01   -1.9167E+00
  Calculating charge density...
    calculating the density kernel... done.
    Calculation finished. TOTAL CHARGE =   6.199999540461E+01
@@ -807,9 +807,9 @@ max deviation from unity, position:  1.217031E-02  18  20
  average noise along y direction:   2.94960433E-02
  average noise along z direction:   1.29276758E-02
  total average noise            :   3.82785282E-02
- clean forces norm (Ha/Bohr): maxval=  1.167793989769E-01  fnrm2=  9.501769849584E-02
+ clean forces norm (Ha/Bohr): maxval=  1.167793989768E-01  fnrm2=  9.501769849582E-02
  raw forces:                  maxval=  1.346715177439E-01  fnrm2=  1.004937954975E-01
- CPU time/ELAPSED time for root process     0        11.38        11.32
+ CPU time/ELAPSED time for root process     0        11.20        11.18
  Final values of the Forces for each atom
      1      C -1.57321E-02 -5.52078E-02  4.99241E-02
      2      C -1.57393E-02  8.18534E-02  8.53147E-03
@@ -844,6 +844,6 @@ max deviation from unity, position:  1.217031E-02  18  20
     31      H -1.05457E-02 -2.94282E-02 -9.61135E-03
     32      H  6.19563E-03 -1.45893E-02 -1.24372E-02
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 79290 allocations and 79290 deallocations, remaining memory(B): 0
+ 79296 allocations and 79296 deallocations, remaining memory(B): 0
  memory occupation peak: 100 MB
  for the array  psir in the routine local_hamiltonian

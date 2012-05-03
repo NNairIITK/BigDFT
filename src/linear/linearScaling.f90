@@ -522,12 +522,12 @@ type(energy_terms) :: energs
                   call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
-                  !!!! TEST ###############################################################################################
-                  !!!write(*,*) 'test: orthonormalize derivatives'
-                  !!call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-                  !!     tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
-                  !!     tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi)
-                  !!!! END TEST ###########################################################################################
+                  !! TEST ###############################################################################################
+                  !write(*,*) 'test: orthonormalize derivatives'
+                  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+                       tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
+                       tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi)
+                  !! END TEST ###########################################################################################
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
@@ -749,9 +749,9 @@ real(8),intent(in):: pnrm, energy, energyDiff
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
   end if
