@@ -767,6 +767,8 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
   allocate(wf)
   wf%c_obj = self
   call wf_init(wf)
+  call orbs_init(wf%orbs)
+  call nullify_local_zone_descriptors(wf%lzd)
   orbs => wf%orbs
   comm => wf%comms
   lzd => wf%Lzd
@@ -781,8 +783,6 @@ subroutine wf_init(wf)
   nullify(wf%psit)
   nullify(wf%spsi)
   nullify(wf%comms%nvctr_par)
-  call orbs_init(wf%orbs)
-  call nullify_local_zone_descriptors(wf%lzd)
 end subroutine wf_init
 subroutine wf_get_data(wf, orbs, comm, lzd)
   use module_types

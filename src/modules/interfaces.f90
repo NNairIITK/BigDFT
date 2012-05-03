@@ -6126,22 +6126,6 @@ module module_interfaces
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine init_local_zone_descriptors(iproc, nproc, input,hx,hy,hz, glr, at, rxyz, orbs, &
-             derorbs, withderorbs, lzd)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         real(gp),intent(in):: hx,hy,hz
-         type(input_variables),intent(in):: input
-         type(locreg_descriptors),intent(in):: glr
-         type(atoms_data),intent(in):: at
-         real(8),dimension(3,at%nat),intent(in):: rxyz
-         type(orbitals_data),intent(in):: orbs, derorbs
-         type(local_zone_descriptors),intent(out):: lzd
-         logical, intent(in) :: withderorbs
-       end subroutine init_local_zone_descriptors
-
        subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
                   denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
          use module_base

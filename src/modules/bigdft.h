@@ -140,6 +140,7 @@ typedef struct BigDFT_Inputs_
 #define BIGDFT_INPUTS_TDDFT  32
 #define BIGDFT_INPUTS_SIC    64
 #define BIGDFT_INPUTS_FREQ  128
+#define BIGDFT_INPUTS_LIN   256
 
 BigDFT_Inputs* bigdft_inputs_new             (const gchar *radical);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);

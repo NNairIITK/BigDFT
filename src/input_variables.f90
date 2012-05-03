@@ -627,7 +627,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat, ntypes
+  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
@@ -782,52 +782,51 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
   parametersSpecified=.false.
-  if (exists) then
-     ntypes = atoms%ntypes
-  else
-     ntypes = 0
-  end if
-  do itype=1,ntypes
-      call input_var(atomname,'C',input_iostat=ios)
-      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
-      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-      if(ios/=0) then
-          ! The parameters were not specified for all atom types.
-          if(iproc==0) then
-              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
-                       & for the following atom types:"
-              do jtype=1,atoms%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
-              end do
-          end if
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
-      ! The reading was succesful. Check whether this atom type is actually present.
-      found=.false.
-      do jtype=1,atoms%ntypes
-          if(trim(atomname)==trim(atoms%atomnames(jtype))) then
-              found=.true.
-              parametersSpecified(jtype)=.true.
-              in%lin%norbsPerType(jtype)=npt
-              in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
-              in%lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lrl
-              in%lin%locrad_type(jtype)=lrl
-              locradType_lowaccur(jtype)=lrl
-              locradType_highaccur(jtype)=lrh
-              atoms%rloc(jtype,:)=locradType(jtype)
-          end if
-      end do
-      if(.not.found) then
-          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
-                     "', which is not present in the file containing the atomic coordinates."
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
+  do itype=1,atoms%ntypes
+     if (exists) then
+        call input_var(atomname,'C',input_iostat=ios)
+     else
+        call input_var(atomname,trim(atoms%atomnames(itype)),input_iostat=ios)
+     end if
+     call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+     call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     if(ios/=0) then
+        ! The parameters were not specified for all atom types.
+        if(iproc==0) then
+           write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+                & for the following atom types:"
+           do jtype=1,atoms%ntypes
+              if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
+           end do
+        end if
+        call mpi_barrier(mpi_comm_world, ierr)
+        stop
+     end if
+     ! The reading was succesful. Check whether this atom type is actually present.
+     found=.false.
+     do jtype=1,atoms%ntypes
+        if(trim(atomname)==trim(atoms%atomnames(jtype))) then
+           found=.true.
+           parametersSpecified(jtype)=.true.
+           in%lin%norbsPerType(jtype)=npt
+           in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
+           in%lin%potentialPrefac_highaccuracy(jtype)=pph
+           locradType(jtype)=lrl
+           in%lin%locrad_type(jtype)=lrl
+           locradType_lowaccur(jtype)=lrl
+           locradType_highaccur(jtype)=lrh
+           atoms%rloc(jtype,:)=locradType(jtype)
+        end if
+     end do
+     if(.not.found) then
+        if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+             "', which is not present in the file containing the atomic coordinates."
+        call mpi_barrier(mpi_comm_world, ierr)
+        stop
+     end if
   end do
 
   nlr=0

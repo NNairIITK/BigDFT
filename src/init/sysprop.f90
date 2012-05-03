@@ -119,19 +119,17 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
-  if (inputpsi == INPUT_PSI_LINEAR) then
-     call init_local_zone_descriptors(iproc, nproc, in, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
-          & Lzd%Glr, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
-  else if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call nullify_local_zone_descriptors(lzd_lin)
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     ! for this routine, Lzd must already have Glr and hgrids
-     call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
-          input_wf_format,lzd_lin,lorbs,atoms,rxyz)
-     !what to do with derivatives?
-  end if
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     if (inputpsi == INPUT_PSI_LINEAR) then
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
+     else
+        call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
+             input_wf_format,lzd_lin,lorbs,atoms,rxyz)
+        !what to do with derivatives?
+     end if
      call update_wavefunctions_size(lzd_lin,lorbs)
      call update_wavefunctions_size(lzd_lin,dlorbs)
   end if

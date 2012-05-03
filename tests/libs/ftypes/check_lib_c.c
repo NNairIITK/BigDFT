@@ -43,6 +43,7 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
 static void output_inputs(const BigDFT_Inputs *in)
 {
   fprintf(stdout, " Read 'test.dft' file: %d\n", (in->files & BIGDFT_INPUTS_DFT));
+  fprintf(stdout, " Read 'test.lin' file: %d\n", (in->files & BIGDFT_INPUTS_LIN));
   fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
           in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
 }
@@ -140,7 +141,7 @@ int main(int argc, char **argv)
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new(FALSE);
+  wf = bigdft_wf_new(TRUE);
   atoms = BIGDFT_ATOMS(wf->lzd);
 
   atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
     {
       bigdft_wf_free(wf);
 
-      wf = bigdft_wf_new(FALSE);
+      wf = bigdft_wf_new(TRUE);
       atoms = BIGDFT_ATOMS(wf->lzd);
     }
   fprintf(stdout, " Ok\n");
@@ -160,7 +161,7 @@ int main(int argc, char **argv)
     fprintf(stdout, " Atom %d -> type %d\n", i, atoms->iatype[i]);
   fprintf(stdout, "Test BigDFT_Atoms structure syncing.\n");
   atoms->geocode = 'F';
-  atoms->atomnames[0] = strdup("O");
+  atoms->atomnames[0] = strdup("C");
   atoms->atomnames[1] = strdup("H");
   atoms->alat[0] = 5.;
   atoms->alat[1] = 5.;
@@ -200,14 +201,28 @@ int main(int argc, char **argv)
   /* Typical cluster run. */
   fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
   in = bigdft_inputs_new("test");
-  output_inputs(in);
-
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  output_inputs(in);
+
   fprintf(stdout, "Test BigDFT_Wf define.\n");
   nelec = bigdft_wf_define(wf, in, 0, 1);
+  fprintf(stdout, "Test BigDFT_Wf free.\n");
+  bigdft_wf_free(wf);
+  fprintf(stdout, " Ok\n");
+  fprintf(stdout, "Test BigDFT_Inputs free.\n");
+  bigdft_inputs_free(in);
+  fprintf(stdout, " Ok\n");
+
+  if (argc > 2)
+    {
+      stdout_fileno_old = redirect_init(out_pipe);
+      FC_FUNC_(memocc_report, MEMOCC_REPORT)();
+      redirect_dump(out_pipe, stdout_fileno_old);
+    }
 
   /* Test restarting the wavefunction definition. */
+  wf = bigdft_wf_new(FALSE);
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
@@ -216,6 +231,7 @@ int main(int argc, char **argv)
     }
   output_atoms(BIGDFT_ATOMS(wf->lzd));
 
+  in = bigdft_inputs_new("test");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
 
