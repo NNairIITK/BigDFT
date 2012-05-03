@@ -106,6 +106,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
        & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, in, wfn%wfnmd)
+  wfn%wfnmd%bs%use_derivative_basis=.false.
 
   call initCommsOrtho(iproc, nproc, in%nspin, &
        lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &

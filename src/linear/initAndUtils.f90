@@ -1686,7 +1686,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
-  
+
   ! Count the number of localization regions
   lzd%nlr=0
   do iat=1,at%nat
@@ -1749,7 +1749,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   real(8),dimension(:,:),allocatable:: locregCenter
   real(8),dimension(:),allocatable:: lphilarge
   type(local_zone_descriptors):: lzd_tmp
-
 
   !tag=1
   call wait_p2p_communication(iproc, nproc, tmbmix%comgp)

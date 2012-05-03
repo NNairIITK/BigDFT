@@ -456,20 +456,10 @@ subroutine orbs_free(orbs)
 END SUBROUTINE orbs_free
 subroutine orbs_empty(orbs)
   use module_types
-  use m_profiling
   implicit none
   type(orbitals_data), intent(inout) :: orbs
 
-  integer :: i_all, i_stat
-
-  if (associated(orbs%norb_par)) then
-     call deallocate_orbs(orbs,"orbs_empty")
-  end if
-  if (associated(orbs%eval)) then
-     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-     deallocate(orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%eval',"orbs_empty")
-  end if
+  call deallocate_orbitals_data(orbs,"orbs_empty")
 END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base

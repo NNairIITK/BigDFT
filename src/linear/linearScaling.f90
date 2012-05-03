@@ -289,7 +289,6 @@ logical:: check_whether_derivatives_to_be_used
               tmbmix => tmb
           end if
 
-
           ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then

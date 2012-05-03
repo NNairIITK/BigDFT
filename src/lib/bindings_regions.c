@@ -432,6 +432,7 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
   guint i, j;
   gpointer llr;
   guint withderorbs = 0;
+  void *dorbs;
 
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
 
@@ -439,9 +440,13 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
     (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
      orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
   if (bigdft_orbs_get_linear(orbs))
-    FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
-      (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
-       orbs->data, NULL, &withderorbs, lzd->data);
+    {
+      FC_FUNC_(orbs_new, ORBS_NEW)(&dorbs);
+      FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
+        (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+         orbs->data, dorbs, &withderorbs, lzd->data);
+      FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
+    }
 
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
   /* if (lzd->nlr > 0) */
