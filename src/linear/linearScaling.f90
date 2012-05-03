@@ -46,6 +46,7 @@ integer :: ind1, ind2
 real(gp):: hamil,overlap
 type(confpot_data), dimension(:), allocatable :: confdatarr
 real(8),dimension(:),allocatable::  lhchi
+real(8),dimension(:,:),allocatable:: ovrlp_tmp
 type(energy_terms) :: energs
 
   if(iproc==0) then
@@ -522,6 +523,14 @@ type(energy_terms) :: energs
                   call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
+                   TEST ###############################################################################################
+                  write(*,*) 'test: orthonormalize derivatives'
+                  allocate(ovrlp_tmp(tmbder%orbs%norb,tmbder%orbs%norb))
+                  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+                       tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
+                       tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi, ovrlp_tmp)
+                  deallocate(ovrlp_tmp)
+                   END TEST ###########################################################################################
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
