@@ -140,6 +140,7 @@ typedef struct BigDFT_Inputs_
 #define BIGDFT_INPUTS_TDDFT  32
 #define BIGDFT_INPUTS_SIC    64
 #define BIGDFT_INPUTS_FREQ  128
+#define BIGDFT_INPUTS_LIN   256
 
 BigDFT_Inputs* bigdft_inputs_new             (const gchar *radical);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
@@ -300,14 +301,16 @@ struct BigDFT_orbs_
   const BigDFT_Inputs *in;
 
   /* Private. */
+  gboolean linear, withder;
   void *data;
   void *comm;
 };
 
-BigDFT_Orbs* bigdft_orbs_new ();
+BigDFT_Orbs* bigdft_orbs_new (gboolean linear);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
-guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Lzd *lzd,
+guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr,
                                 const BigDFT_Inputs *in, guint iproc, guint nproc);
+gboolean     bigdft_orbs_get_linear(BigDFT_Orbs *orbs);
 
 /*****************************/
 /* BigDFT_Wf data structure. */
@@ -337,6 +340,8 @@ typedef struct BigDFT_wf_
   f90_pointer_double *psi, *hpsi, *psit, *spsi;
 
   /* private. */
+  int inputpsi;
+  guint input_wf_format;
   void *data;
   void *data_lzd;
   void *diis;
@@ -353,7 +358,7 @@ typedef enum
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
 
-BigDFT_Wf* bigdft_wf_new ();
+BigDFT_Wf* bigdft_wf_new (gboolean linear);
 BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);

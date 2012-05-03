@@ -428,7 +428,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   real(gp) :: rx,ry,rz,cutoff
 
 
-
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
 
@@ -648,7 +647,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      end if
   end do !on ilr
 
-
   ! Communicate the locregs
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
@@ -659,7 +657,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      !!if(iproc==root) write(*,'(a,3i5,2l3)') 'iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)
      !if(iproc==root) write(*,'(a,3i5,l3)') 'iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)
      !!call communicate_locreg_descriptors(iproc, root, llr(ilr), communicate_bounds)
-     call communicate_locreg_descriptors(iproc, root, llr(ilr))
+     if (nproc > 1) then
+        call communicate_locreg_descriptors(iproc, root, llr(ilr))
+     end if
      if (Llr(ilr)%geocode=='F') then
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.

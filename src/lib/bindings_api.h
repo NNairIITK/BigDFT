@@ -152,9 +152,10 @@ void FC_FUNC_(wf_get_data, WF_GET_DATA)(void *wf, void *orbs, void *comm, void *
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,
                                   const void *atoms, const double *rxyz,
-                                  void *denspot, const void *nlpspd,
-                                  const f90_pointer_double *proj, void *wf, void *energs,
-                                  int *inputpsi, guint *norbv,
+                                  void *denspot, const double *denspot0, const void *nlpspd,
+                                  const f90_pointer_double *proj, void *wf,
+                                  void *tmb, void* tmbder, void *energs,
+                                  const int *inputpsi, const guint *input_wf_format, guint *norbv,
                                   void *wfd_old, void *psi_old,
                                   void *d_old, const double *hx_old, const double *hy_old,
                                   const double *hz_old, double *rxyz_old);
@@ -204,8 +205,7 @@ void FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(void *in, gchar linear[3]);
 void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
                                                         int *iproc, int *dump);
 void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
-void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
-                                                  const gchar *geocode, const double *alat,
+void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *atoms,
                                                   int *iproc, int *dump);
 
 #endif

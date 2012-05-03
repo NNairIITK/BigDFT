@@ -839,7 +839,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: istat, iall, iis1, iie1, i1
+  integer:: iis1, iie1, i1
 
 !  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -875,7 +875,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: istat, iall, iis1, iie1, i1
+  integer:: iis1, iie1, i1
 
 
 !  call deallocate_orbitals_data(lzd%orbs, subname)
@@ -1214,7 +1214,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   ! Calling arguments
   type(p2pComms),intent(inout):: p2pcomm
   character(len=*),intent(in):: subname
-  integer :: ierr
+
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
   !!call checkAndDeallocatePointer(p2pcomm%istarr, 'p2pcomm%istarr', subname)
@@ -1378,9 +1378,6 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   ! Calling arguments
   type(matrixDescriptors),intent(inout):: mad
   character(len=*),intent(in):: subname
-
-  ! Local variables
-  integer:: iis1, iis2, iie1, iie2, i1, i2
 
   call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
   call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)

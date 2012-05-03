@@ -1678,39 +1678,37 @@ end subroutine init_orbitals_data_for_linear
 
 
 
-subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at, rxyz, orbs, derorbs, lzd)
+subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorbs, lzd)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => init_local_zone_descriptors
+  use module_interfaces
   implicit none
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  real(gp),intent(in) :: hx, hy, hz
   type(input_variables),intent(in):: input
-  type(locreg_descriptors),intent(in):: glr
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
   type(orbitals_data),intent(in):: orbs, derorbs
-  type(local_zone_descriptors),intent(out):: lzd
+  type(local_zone_descriptors),intent(inout):: lzd
+  logical, intent(in) :: withderorbs
   
   ! Local variables
   integer:: iat, ityp, ilr, istat, iorb, iall
   real(8),dimension(:,:),allocatable:: locregCenter
-  character(len=*),parameter:: subname='init_local_zone_descriptors'
-
+  character(len=*),parameter:: subname='lzd_init_llr'
 
   call timing(iproc,'init_locregs  ','ON')
   
-  call nullify_local_zone_descriptors(lzd)
-  
+  nullify(lzd%llr)
+  nullify(lzd%doHamAppl)
+
   ! Count the number of localization regions
   lzd%nlr=0
   do iat=1,at%nat
       ityp=at%iatype(iat)
       lzd%nlr=lzd%nlr+input%lin%norbsPerType(ityp)
   end do
-  
   
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -1724,26 +1722,23 @@ subroutine init_local_zone_descriptors(iproc, nproc, input, hx, hy, hz, glr, at,
       end do
   end do
   
-  
-  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, hx, hy, hz, lzd, orbs, &
-       glr, input%lin%locrad, input%lin%locregShape, derorbs)
+  if (withderorbs) then
+     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
+          & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
+          & lzd%glr, input%lin%locrad, input%lin%locregShape, derorbs)
+  else
+     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
+          & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
+          & lzd%glr, input%lin%locrad, input%lin%locregShape)
+  end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
-
-
-  call nullify_locreg_descriptors(lzd%Glr)
-  call copy_locreg_descriptors(Glr, lzd%Glr, subname)
-
-  lzd%hgrids(1)=hx
-  lzd%hgrids(2)=hy
-  lzd%hgrids(3)=hz
-
+  
   call timing(iproc,'init_locregs  ','OF')
 
-end subroutine init_local_zone_descriptors
-
+end subroutine lzd_init_llr
 
 
 subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, tmbmix, denspot, &
@@ -1772,7 +1767,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   real(8),dimension(:,:),allocatable:: locregCenter
   real(8),dimension(:),allocatable:: lphilarge
   type(local_zone_descriptors):: lzd_tmp
-
 
   !tag=1
   call wait_p2p_communication(iproc, nproc, tmbmix%comgp)

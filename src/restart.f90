@@ -803,8 +803,8 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
   real(wp), dimension(ntmb,norb), intent(in) :: coeff
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
-  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+  integer :: iat,i,j
+  real(wp) :: tt
 
   ! Write the Header
   if (useFormattedOutput) then
@@ -939,10 +939,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+  integer :: iorb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_all
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
-  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -1331,7 +1329,6 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
-  logical :: perx,pery,perz
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
   integer :: iorb_out,ispinor,ilr,ind
   integer :: confPotOrder
@@ -1436,9 +1433,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   character(len =256) :: error
   logical :: lstat, consistent, perx, pery, perz
   integer :: ilr, ierr, iorb_old, iorb, jorb, ispinor, iorb_out, n1_old, n2_old, n3_old
-  integer :: nlr, nvctr_c_old, nvctr_f_old, i_stat, i_all,confPotOrder, confPotOrder_old
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel,dx,dy,dz,dist,eval
+  integer :: nlr, i_stat, i_all,confPotOrder, confPotOrder_old
+  real(kind=8) :: dx,dy,dz,dist,eval
   real(gp) :: hx_old, hy_old, hz_old, mindist
   real(gp), dimension(orbs%norb):: locrad, confPotprefac
   real(gp), dimension(3,at%nat) :: rxyz_old
