@@ -782,29 +782,20 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
   parametersSpecified=.false.
-  do itype=1,atoms%ntypes
+  itype = 1
+  do
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
+        if (ios /= 0) exit
      else
-        call input_var(atomname,trim(atoms%atomnames(itype)),input_iostat=ios)
+        call input_var(atomname,trim(atoms%atomnames(itype)))
+        itype = itype + 1
      end if
      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-     if(ios/=0) then
-        ! The parameters were not specified for all atom types.
-        if(iproc==0) then
-           write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
-                & for the following atom types:"
-           do jtype=1,atoms%ntypes
-              if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
-           end do
-        end if
-        call mpi_barrier(mpi_comm_world, ierr)
-        stop
-     end if
      ! The reading was succesful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%ntypes
@@ -822,12 +813,28 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         end if
      end do
      if(.not.found) then
-        if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+        if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
              "', which is not present in the file containing the atomic coordinates."
-        call mpi_barrier(mpi_comm_world, ierr)
-        stop
      end if
+     if (itype > atoms%ntypes) exit
   end do
+  found  = .true.
+  do jtype=1,atoms%ntypes
+     found = found .and. parametersSpecified(jtype)
+  end do
+  if (.not. found) then
+     ! The parameters were not specified for all atom types.
+     if(iproc==0) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+             & for the following atom types:"
+        do jtype=1,atoms%ntypes
+           if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
+        end do
+        write(*,*)
+     end if
+     call mpi_barrier(mpi_comm_world, ierr)
+     stop
+  end if
 
   nlr=0
   do iat=1,atoms%nat

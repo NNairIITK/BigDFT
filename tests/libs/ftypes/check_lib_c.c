@@ -110,6 +110,19 @@ static void output_locreg(const BigDFT_LocReg *glr)
   g_free(cgrid);
   g_free(fgrid);
 }
+static void output_llr(const BigDFT_Lzd *lzd)
+{
+  guint i;
+
+  fprintf(stdout, " Lzd has %d local regions.\n", lzd->nlr);
+  for (i = 0; i < lzd->nlr; i++)
+    {
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine segments.\n",
+              i, lzd->Llr[i]->nseg_c, lzd->Llr[i]->nseg_f);
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine elements.\n",
+              i, lzd->Llr[i]->nvctr_c, lzd->Llr[i]->nvctr_f);
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -161,7 +174,7 @@ int main(int argc, char **argv)
     fprintf(stdout, " Atom %d -> type %d\n", i, atoms->iatype[i]);
   fprintf(stdout, "Test BigDFT_Atoms structure syncing.\n");
   atoms->geocode = 'F';
-  atoms->atomnames[0] = strdup("C");
+  atoms->atomnames[0] = strdup("O");
   atoms->atomnames[1] = strdup("H");
   atoms->alat[0] = 5.;
   atoms->alat[1] = 5.;
@@ -201,12 +214,15 @@ int main(int argc, char **argv)
   /* Typical cluster run. */
   fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
   in = bigdft_inputs_new("test");
+  fprintf(stdout, " base Ok\n");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  fprintf(stdout, " additional Ok\n");
   output_inputs(in);
 
   fprintf(stdout, "Test BigDFT_Wf define.\n");
   nelec = bigdft_wf_define(wf, in, 0, 1);
+  output_llr(wf->lzd);
   fprintf(stdout, "Test BigDFT_Wf free.\n");
   bigdft_wf_free(wf);
   fprintf(stdout, " Ok\n");

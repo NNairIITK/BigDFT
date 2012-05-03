@@ -1698,7 +1698,6 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='lzd_init_llr'
 
-
   call timing(iproc,'init_locregs  ','ON')
   
   nullify(lzd%llr)
