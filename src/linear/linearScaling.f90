@@ -39,7 +39,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used, coeffs_copied, first_time_with_der
-integer:: jjorb
+integer:: jorb, jjorb
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
 
