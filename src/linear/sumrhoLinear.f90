@@ -398,6 +398,7 @@ call timing(iproc,'sumrho_TMB    ','ON')
 is=nscatterarr(iproc,3) 
 ie=is+nscatterarr(iproc,1)-1
 
+
 totalCharge=0.d0
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
@@ -407,6 +408,12 @@ do iorb=1,comsr%noverlaps(iproc)
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
         istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+        !!tt = (lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+        !!tt=sqrt(tt)
+        !!write(200,*) tt, densKern(iiorb,jjorb)
+        !!if(tt>6.d0) cycle
 
         azones = 1
         bzones = 1
@@ -435,6 +442,7 @@ do iorb=1,comsr%noverlaps(iproc)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
               ! Now loop over all points in the box in which the orbitals overlap.
+              !if(i3s>i3e) write(*,*) 'no calculation done'
               do i3=i3s,i3e !bounds in z direction
                   i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
                   j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box

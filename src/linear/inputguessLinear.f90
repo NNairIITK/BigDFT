@@ -873,7 +873,7 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, ovrlp)
+     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)

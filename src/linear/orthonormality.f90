@@ -1,5 +1,5 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, ovrlp)
+           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -16,15 +16,17 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(orthon_data),intent(in):: orthpar
   type(basis_performance_options),intent(in):: bpo
   real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
   real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
   real(8):: maxError, tt, dnrm2
+  real(8),dimension(:,:),allocatable:: ovrlp
 
 
+  allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
   do it=1,nItOrtho
@@ -103,6 +105,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   end do
 
 
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
 
 
 end subroutine orthonormalizeLocalized

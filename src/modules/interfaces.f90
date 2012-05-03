@@ -3248,7 +3248,7 @@ module module_interfaces
      end subroutine globalLoewdin
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, ovrlp)
+                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi)
        use module_base
        use module_types
        implicit none
@@ -3262,7 +3262,6 @@ module module_interfaces
        type(orthon_data),intent(in):: orthpar
        type(basis_performance_options),intent(in):: bpo
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
-       real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)

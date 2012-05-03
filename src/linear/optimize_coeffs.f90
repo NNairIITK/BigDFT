@@ -66,48 +66,48 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       end do
   end do
 
-  ! Calculate the right hand side
-  do iorb=1,orbs%norb
-      do lorb=1,tmb%orbs%norb
-          tt=0.d0
-          do korb=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(korb,iorb)*ham(korb,lorb)
-          end do
-          do jorb=1,orbs%norb
-              do korb=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
-              end do
-          end do
-          rhs(lorb,iorb)=tt
-          !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
-      end do
-  end do
-
-  ! Solve the linear system ovrlp*grad=rhs
-  call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
-  call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
-  if(info/=0) then
-      write(*,'(a,i0)') 'ERROR in dgesv: info=',info
-      stop
-  end if
-  call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
-
-  !!!! NEW VERSION - TEST ######################################################
+  !!! Calculate the right hand side
   !!do iorb=1,orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!         tt=0.d0
-  !!         do korb=1,tmb%orbs%norb
-  !!             tt=tt+ham(korb,jorb)*tmb%wfnmd%coeff(korb,iorb)
-  !!         end do
-  !!         do korb=1,orbs%norb
-  !!             do lorb=1,tmb%orbs%norb
-  !!                 tt=tt-lagmat(korb,iorb)*ovrlp(lorb,jorb)*tmb%wfnmd%coeff(lorb,korb)
-  !!             end do
-  !!         end do
-  !!         grad(jorb,iorb)=tt
+  !!    do lorb=1,tmb%orbs%norb
+  !!        tt=0.d0
+  !!        do korb=1,tmb%orbs%norb
+  !!            tt=tt+tmb%wfnmd%coeff(korb,iorb)*ham(korb,lorb)
+  !!        end do
+  !!        do jorb=1,orbs%norb
+  !!            do korb=1,tmb%orbs%norb
+  !!                tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
+  !!            end do
+  !!        end do
+  !!        rhs(lorb,iorb)=tt
+  !!        !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
   !!    end do
   !!end do
-  !!!! #########################################################################
+
+  !!! Solve the linear system ovrlp*grad=rhs
+  !!call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  !!call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
+  !!if(info/=0) then
+  !!    write(*,'(a,i0)') 'ERROR in dgesv: info=',info
+  !!    stop
+  !!end if
+  !!call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
+
+  !! NEW VERSION - TEST ######################################################
+  do iorb=1,orbs%norb
+      do jorb=1,tmb%orbs%norb
+           tt=0.d0
+           do korb=1,tmb%orbs%norb
+               tt=tt+ham(korb,jorb)*tmb%wfnmd%coeff(korb,iorb)
+           end do
+           do korb=1,orbs%norb
+               do lorb=1,tmb%orbs%norb
+                   tt=tt-lagmat(korb,iorb)*ovrlp(lorb,jorb)*tmb%wfnmd%coeff(lorb,korb)
+               end do
+           end do
+           grad(jorb,iorb)=tt
+      end do
+  end do
+  !! #########################################################################
 
   ! Precondition the gradient
   call precondition_gradient_coeff(tmb%orbs%norb, orbs%norb, ham, ovrlp, grad)
