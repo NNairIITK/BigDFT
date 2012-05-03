@@ -73,11 +73,11 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    call razero(2*G%nat,thetaphi)
    allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,allpsigau,'allpsigau',subname)
-print *,'there'
+!print *,'there'
    !this routine should be simplified like gaussians_to_wavelets
    call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
         lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
-print *,'here'
+!print *,'here'
    !the same can be done for virtual orbitals if orbsv%norb > 0
    if (orbsv%norb > 0) then
       call wavelets_to_gaussians(lr%geocode,norbpv,orbsv%nspinor,&
