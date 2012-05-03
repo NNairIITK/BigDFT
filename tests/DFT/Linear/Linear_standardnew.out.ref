@@ -550,12 +550,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999614209E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 1 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   4.84E-06   -4.66573643565149609E+01   -4.6657E+01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -584,12 +583,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999634310E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 2 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   1.97E-06   -3.77645412627541361E+01    8.8928E+00
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -618,12 +616,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999632814E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 3 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3   7.89E-07   -3.82419207495272246E+01   -4.7738E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -652,14 +649,25 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999633030E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 4 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   4   4.12E-07   -3.78391228691620540E+01    4.0280E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.4669723799E+00  1.8121999652E+02 -1.7221085086E+01 -2.2542124624E+01  0.0000000000E+00  1.4252680649E+02  0.0000000000E+00
    itout, Delta DENSOUT, energy, energyDiff   1   3.07E-06   -3.78391228691620540E+01   -3.7839E+01
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm   1.248803E+01    8.70E-01
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   1    4.12E-07   -3.78391228691620540E+01
+   > energy difference to last iteration: -3.783912E+01
+ ############################################################################################
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -700,12 +708,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999517606E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 1 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   9.34E-07   -3.71360298983399275E+01    7.0309E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -734,12 +741,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999515220E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 2 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   4.64E-07   -3.77377025798132593E+01   -6.0167E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -768,12 +774,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999515583E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 3 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3   2.22E-07   -3.76328671776932708E+01    1.0484E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -802,14 +807,25 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999515488E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 4 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   4   1.12E-07   -3.76577638373128138E+01   -2.4897E-02
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.7705126928E+00  1.8080391396E+02 -1.7436075081E+01 -2.2825931399E+01  0.0000000000E+00  1.4252680649E+02  0.0000000000E+00
    itout, Delta DENSOUT, energy, energyDiff   2   8.36E-07   -3.76577638373128138E+01    1.8136E-01
+ ############################################################################################
+ at iteration 2 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm   2.088639E+01    2.56E-01
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   2    1.12E-07   -3.76577638373128138E+01
+   > energy difference to last iteration:  1.813590E-01
+ ############################################################################################
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
@@ -894,12 +910,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999600684E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 1 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   3.57E-06   -3.82327886106890276E+01   -5.7502E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -928,12 +943,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999592317E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 2 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   1.79E-06   -4.10562187101667746E+01   -2.8234E+00
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -962,12 +976,11 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999592113E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 3 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3   8.96E-07   -4.15045675630768471E+01   -4.4835E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -996,14 +1009,25 @@ max deviation from unity, position:  3.884783E-04  10  11
    Calculation finished. TOTAL CHARGE =   3.799999592068E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   149  107  103   proc    8 ... done.
- ############################################################################################
- at iteration 4 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   4   4.49E-07   -4.17048235230422506E+01   -2.0026E-01
- ############################################################################################
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.4299053477E+01  1.7470506472E+02 -1.5499048434E+01 -2.0271536610E+01  0.0000000000E+00  1.4252680649E+02  0.0000000000E+00
    itout, Delta DENSOUT, energy, energyDiff   3   3.29E-06   -4.17048235230422506E+01   -4.0471E+00
+ ############################################################################################
+ at iteration 3 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -4.655084E+00    7.20E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   3    4.49E-07   -4.17048235230422506E+01
+   > energy difference to last iteration: -4.047060E+00
+ ############################################################################################
  Calculating charge density...
    calculating the density kernel... done.
    Calculation finished. TOTAL CHARGE =   3.799999592068E+01
@@ -1026,7 +1050,7 @@ max deviation from unity, position:  3.884783E-04  10  11
  total average noise            :   3.03302354E-02
  clean forces norm (Ha/Bohr): maxval=  3.142515418099E-02  fnrm2=  1.189563602585E-02
  raw forces:                  maxval=  3.509764737926E-02  fnrm2=  1.289213858975E-02
- CPU time/ELAPSED time for root process     0        15.98        15.93
+ CPU time/ELAPSED time for root process     0        16.45        16.36
  Final values of the Forces for each atom
      1      C  3.09728E-02 -9.60513E-04  3.79863E-03
      2      C  1.26456E-02  2.70159E-02  1.27666E-03

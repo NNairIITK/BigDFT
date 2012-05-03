@@ -1865,7 +1865,7 @@ module module_interfaces
 !!$     end subroutine readmywaves
 
 
-        subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,&
+        subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                    infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb)
           use module_base
           use module_types
@@ -1877,7 +1877,7 @@ module module_interfaces
           real(8),dimension(3,at%nat):: rxyz
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers), intent(inout) :: GPU
-          real(8),intent(out):: trH
+          real(8),intent(out):: trH, fnrm
           type(nonlocal_psp_descriptors),intent(in):: nlpspd
           real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
           type(localizedDIISParameters),intent(inout):: ldiis

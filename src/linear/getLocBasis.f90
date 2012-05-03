@@ -363,7 +363,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,&
+    denspot,GPU,trH,fnrm,&
     infoBasisFunctions,nlpspd,proj,ldiis,&
     SIC, &
     locrad,tmb)
@@ -388,7 +388,7 @@ type(orbitals_data):: orbs
 real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
-real(8),intent(out):: trH
+real(8),intent(out):: trH, fnrm
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -399,7 +399,7 @@ real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, fnrm, meanAlpha
+real(8):: trHold, factor, fnrmMax, meanAlpha
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS

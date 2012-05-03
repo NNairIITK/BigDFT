@@ -26,8 +26,8 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode
-real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf
+real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace,fnrm_tmb
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
@@ -479,7 +479,7 @@ type(energy_terms) :: energs
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
+              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
@@ -605,9 +605,11 @@ type(energy_terms) :: energs
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
+              info_scf=it_scc
               lscv%reduce_convergence_tolerance=.true.
               exit
           else
+              info_scf=-1
               lscv%reduce_convergence_tolerance=.false.
           end if
 
@@ -629,10 +631,14 @@ type(energy_terms) :: energs
                    'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           end if
       end if
+      call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
+           fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
+
       energyoldout=energy
 
       ! Deallocate DIIS structures.
       call deallocateDIIS(ldiis)
+
 
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
@@ -727,21 +733,16 @@ integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
 real(8),intent(in):: pnrm, energy, energyDiff
 
   if(iproc==0) then
-      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
-      write(*,'(1x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
-      if(infoBasisFunctions<0) then
-          write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-      else
-          write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
-      end if
+      write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a,i0,a)') 'at iteration ', itSCC, ' of the density optimization:'
       !!if(infoCoeff<0) then
       !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
       !!else if(infoCoeff>0) then
       !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
       if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a)') '- coefficients obtained by direct minimization.'
+          write(*,'(3x,a)') 'coefficients obtained by direct minimization.'
       else
-          write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
+          write(*,'(3x,a)') 'coefficients obtained by diagonalization.'
       end if
       !!end if
       !if(mixingMethod=='dens') then
@@ -753,10 +754,72 @@ real(8),intent(in):: pnrm, energy, energyDiff
       else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       end if
-      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
   end if
 
 end subroutine printSummary
+
+
+
+subroutine print_info(iproc, itout, info_tmb, info_coeff, scf_mode, target_function, &
+           fnrm_tmb, pnrm, value_tmb, energy, energyDiff)
+use module_base
+use module_types
+!
+! Purpose:
+! ========
+!   Print a short summary of some values calculated during the last iteration in the self
+!   consistency cycle.
+! 
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, itout, info_tmb, info_coeff, scf_mode, target_function
+real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
+
+  if(iproc==0) then
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+      write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
+      write(*,'(3x,a)') '> basis functions optimization:'
+      if(target_function==TARGET_FUNCTION_IS_TRACE) then
+          write(*,'(5x,a)') '- target function is trace'
+      else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
+          write(*,'(5x,a)') '- target function is energy'
+      end if
+      if(info_tmb<0) then
+          write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+      else
+          write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_tmb, ' iterations.'
+      end if
+      write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', value_tmb, fnrm_tmb
+      write(*,'(3x,a)') '> density optimization:'
+      if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(5x,a)') '- using direct minimization.'
+      else
+          write(*,'(5x,a)') '- using diagonalization / mixing.'
+      end if
+      if(info_coeff<0) then
+          write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+      else
+          write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_coeff, ' iterations.'
+      end if
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+      else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, fnrm coeff, energy', itout, pnrm, energy
+      end if
+      write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+  end if
+
+end subroutine print_info
 
 
 
