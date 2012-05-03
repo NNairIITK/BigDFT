@@ -107,7 +107,7 @@
         XC id=      1 |    Fine Wfs.= 5.00 | Max. N. Iter.=  100x 1 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       5 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=      10
-   Input wf. policy=  100 (Error         ) |  Output wf. policy=     0 (none        )
+   Input wf. policy=  100 (Linear LCAO   ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                                   (XC: Teter 93)
                                                     XC functional provided by ABINIT.
@@ -198,7 +198,7 @@
  |1  1           max number of process uses for pdsyev/pdsygv, pdgemm                
  |0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for th
  |1              in orthoconstraint: correction for non-orthogonality (0) or no corre
- |dens           mixing method: dens or pot                                          
+ |101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 
  |0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iteratio
  |0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterati
  |0.5d0 0.5d0  1.d-13 low accuracy: mixing parameter (when optimized / not optimized)
@@ -206,7 +206,7 @@
  |1.d-11         convergence criterion for the low accuracy part                     
  |F  4           use the derivative basis functions, Order of confinement potential (
  |50  100        number of iterations for the input guess, memory available for overl
- |F              plot basis functions: true or false                                 
+ |0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran b
  |T              transform to global orbitals in the end (T/F)                       
  |1              number of orbitals per process for trace minimization during input g
  |F              mixed mode (without and with derivatives)                           
@@ -369,7 +369,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.49E-06   -1.61212210028185261E+01   -1.6121E+01
+   it, Delta DENS, energy, energyDiff   1   4.49E-06   -1.61212210028185190E+01   -1.6121E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -400,7 +400,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.00E-06   -1.29795660076579047E+01    3.1417E+00
+   it, Delta DENS, energy, energyDiff   2   2.00E-06   -1.29795660076578905E+01    3.1417E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -431,7 +431,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.04E-07   -1.33750003562740325E+01   -3.9543E-01
+   it, Delta DENS, energy, energyDiff   3   7.04E-07   -1.33750003562740467E+01   -3.9543E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -462,10 +462,10 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.82E-07   -1.31383609339646874E+01    2.3664E-01
+   it, Delta DENS, energy, energyDiff   4   3.82E-07   -1.31383609339646590E+01    2.3664E-01
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.6559630478E+00  4.0010813071E+01 -6.3582169213E+00 -8.3232465539E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   1   2.82E-06   -1.31383609339646874E+01   -1.3138E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   2.82E-06   -1.31383609339646590E+01   -1.3138E+01
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -511,7 +511,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.10E-07   -1.29944875747898614E+01    1.4387E-01
+   it, Delta DENS, energy, energyDiff   1   4.10E-07   -1.29944875747898472E+01    1.4387E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -542,7 +542,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.35E-07   -1.31869189380532426E+01   -1.9243E-01
+   it, Delta DENS, energy, energyDiff   2   2.35E-07   -1.31869189380532781E+01   -1.9243E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -573,7 +573,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.86E-08   -1.31606560594775281E+01    2.6263E-02
+   it, Delta DENS, energy, energyDiff   3   9.86E-08   -1.31606560594775566E+01    2.6263E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -604,10 +604,10 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   5.30E-08   -1.31798317849978623E+01   -1.9176E-02
+   it, Delta DENS, energy, energyDiff   4   5.30E-08   -1.31798317849978055E+01   -1.9176E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.9191872347E+00  3.9781732897E+01 -6.3355479374E+00 -8.2932507324E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   2   3.67E-07   -1.31798317849978623E+01   -4.1471E-02
+   itout, Delta DENSOUT, energy, energyDiff   2   3.67E-07   -1.31798317849978055E+01   -4.1471E-02
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
@@ -669,7 +669,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.96E-06   -1.35283644121470665E+01   -3.4853E-01
+   it, Delta DENS, energy, energyDiff   1   2.96E-06   -1.35283644121470594E+01   -3.4853E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -700,7 +700,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.48E-06   -1.44336680877605126E+01   -9.0530E-01
+   it, Delta DENS, energy, energyDiff   2   1.48E-06   -1.44336680877604771E+01   -9.0530E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -731,7 +731,7 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.39E-07   -1.45739087998476542E+01   -1.4024E-01
+   it, Delta DENS, energy, energyDiff   3   7.39E-07   -1.45739087998476684E+01   -1.4024E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application... done.
@@ -762,10 +762,10 @@ max deviation from unity, position:  8.220803E-05  14  14
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.70E-07   -1.46491317101700069E+01   -7.5223E-02
+   it, Delta DENS, energy, energyDiff   4   3.70E-07   -1.46491317101699856E+01   -7.5223E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.2130396878E+00  3.7730370950E+01 -5.6230802272E+00 -7.3539736035E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   3   2.73E-06   -1.46491317101700069E+01   -1.4693E+00
+   itout, Delta DENSOUT, energy, energyDiff   3   2.73E-06   -1.46491317101699856E+01   -1.4693E+00
  Calculating charge density...
    calculating the density kernel... done.
    Calculation finished. TOTAL CHARGE =   1.399999849412E+01
@@ -786,9 +786,9 @@ max deviation from unity, position:  8.220803E-05  14  14
  average noise along y direction:   1.08697083E-02
  average noise along z direction:   8.37205427E-03
  total average noise            :   1.67423141E-02
- clean forces norm (Ha/Bohr): maxval=  4.241675859749E-02  fnrm2=  7.124248490483E-03
- raw forces:                  maxval=  4.444553240976E-02  fnrm2=  7.447872707850E-03
- CPU time/ELAPSED time for root process     0         7.68         7.65
+ clean forces norm (Ha/Bohr): maxval=  4.241675859749E-02  fnrm2=  7.124248490484E-03
+ raw forces:                  maxval=  4.444553240976E-02  fnrm2=  7.447872707851E-03
+ CPU time/ELAPSED time for root process     0         7.47         7.45
  Final values of the Forces for each atom
      1      C  3.76437E-02 -1.85588E-02  6.14032E-03
      2      C -2.75123E-02  2.76562E-02  9.00892E-04
@@ -799,6 +799,6 @@ max deviation from unity, position:  8.220803E-05  14  14
      7      H -1.62648E-02 -8.96460E-03  2.01656E-02
      8      H  1.07571E-02  2.12086E-02 -6.38406E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 23954 allocations and 23954 deallocations, remaining memory(B): 0
+ 23887 allocations and 23887 deallocations, remaining memory(B): 0
  memory occupation peak: 95 MB
  for the array  psirz in the routine apply_position_operators

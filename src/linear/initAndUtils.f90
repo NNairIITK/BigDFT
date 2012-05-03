@@ -2220,6 +2220,16 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
       allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
+      allocate(wfnmd%alpha_coeff(norb), stat=istat)
+      call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
+      wfnmd%alpha_coeff=0.2d0 !default value, must check whether this is a good choice
+
+      allocate(wfnmd%grad_coeff_old(llbnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
+      wfnmd%grad_coeff_old=0.d0 !default value
+
+      wfnmd%it_coeff_opt=0
+
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
 

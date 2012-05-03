@@ -266,7 +266,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
-  real(gp) :: hxh,hyh,hzh,eks
+  real(gp) :: hxh,hyh,hzh,eks,fnrm
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
@@ -519,7 +519,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
-  if(trim(input%lin%mixingmethod)=='dens') then
+  !if(trim(input%lin%mixingmethod)=='dens') then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
@@ -580,7 +581,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$
 !!$  end if
 
-  if(trim(input%lin%mixingmethod)=='pot') then
+  !if(trim(input%lin%mixingmethod)=='pot') then
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
@@ -763,9 +765,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  call get_coeff(iproc,nproc,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+  call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb)
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm)
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   
@@ -2995,7 +2997,7 @@ subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
       end do
       mat(iel,iel)=mat(iel,iel)+cmplx(.5d0,-1.d-1,kind=8)
       !mat(iel,iel)=mat(iel,iel)-cprec
-      rhs(iel)=grad(iel)
+      rhs(iel)=cmplx(grad(iel),0.d0,kind=8)
   end do
   
   

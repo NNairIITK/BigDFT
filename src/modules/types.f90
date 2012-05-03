@@ -80,6 +80,9 @@ module module_types
   integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
   integer,parameter:: COMMUNICATION_P2P=1
+  integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
+  integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
+  integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
   
 
   !> Type used for the orthogonalisation parameter
@@ -145,7 +148,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
-    character(len=4):: mixingMethod
+    integer:: scf_mode
     character(len=1):: locregShape
   end type linearInputParameters
 
@@ -768,6 +771,9 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
+    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
   end type wfn_metadata
 
 

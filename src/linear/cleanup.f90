@@ -1438,6 +1438,14 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeff_proj, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
 
+  iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
+  deallocate(wfnmd%alpha_coeff, stat=istat)
+  call memocc(istat, iall, 'wfnmd%alpha_coeff', subname)
+
+  iall=-product(shape(wfnmd%grad_coeff_old))*kind(wfnmd%grad_coeff_old)
+  deallocate(wfnmd%grad_coeff_old, stat=istat)
+  call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
+
 end subroutine destroy_wfn_metadata
 
 
