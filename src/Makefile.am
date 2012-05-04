@@ -359,7 +359,6 @@ low_level = \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
