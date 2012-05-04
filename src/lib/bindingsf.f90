@@ -181,11 +181,12 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
-subroutine glr_get_dimensions(glr , n, ni)
+subroutine glr_get_dimensions(glr , n, ni, ns, nsi, norb)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  integer, dimension(3), intent(out) :: n, ni
+  integer, dimension(3), intent(out) :: n, ni, ns, nsi
+  integer, intent(out) :: norb
 
   n(1) = glr%d%n1
   n(2) = glr%d%n2
@@ -193,6 +194,15 @@ subroutine glr_get_dimensions(glr , n, ni)
   ni(1) = glr%d%n1i
   ni(2) = glr%d%n2i
   ni(3) = glr%d%n3i
+
+  ns(1) = glr%ns1
+  ns(2) = glr%ns2
+  ns(3) = glr%ns3
+  nsi(1) = glr%nsi1
+  nsi(2) = glr%nsi2
+  nsi(3) = glr%nsi3
+  
+  norb = glr%Localnorb
 end subroutine glr_get_dimensions
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
@@ -415,14 +425,14 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
-subroutine inputs_get_lin(in, linear)
+subroutine inputs_get_perf(in, linear)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 3), intent(out) :: linear
+  integer, intent(out) :: linear
   
   linear = in%linear
-END SUBROUTINE inputs_get_lin
+END SUBROUTINE inputs_get_perf
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none

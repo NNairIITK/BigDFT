@@ -153,6 +153,11 @@ module module_types
     character(len=1):: locregShape
   end type linearInputParameters
 
+  integer, parameter, public :: INPUT_IG_OFF  = 0
+  integer, parameter, public :: INPUT_IG_LIG  = 1
+  integer, parameter, public :: INPUT_IG_FULL = 2
+  integer, parameter, public :: INPUT_IG_TMO  = 3
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
@@ -219,7 +224,7 @@ module module_types
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
-     character(len=3) :: linear
+     integer :: linear
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
      character(len = 64) :: domain !< Domain to get the IP from hostname.

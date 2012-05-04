@@ -122,7 +122,8 @@ void bigdft_locreg_set_size(BigDFT_LocReg *glr, const double h[3],
   FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
                                      glr->radii, &crmult, &frmult, glr->h, glr->h + 1,
                                      glr->h + 2, glr->data, glr->parent.shift);
-  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni,
+                                                   glr->ns, glr->nsi, &glr->norb);
   glr->crmult = crmult;
   glr->frmult = frmult;
 
@@ -143,7 +144,8 @@ static void bigdft_locreg_copy_data(BigDFT_LocReg *glr,
                                     const double *radii, const double h[3],
                                     double crmult, double frmult)
 {
-  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni,
+                                                   glr->ns, glr->nsi, &glr->norb);
   bigdft_locreg_set_radii(glr, radii);
   glr->h[0] = h[0];
   glr->h[1] = h[1];
@@ -164,9 +166,9 @@ static void bigdft_locreg_copy_wfd(BigDFT_LocReg *glr)
                                                &glr->nseg_c, &glr->nseg_f, &tmp2D, &tmp2D2,
                                                &tmp, &tmp2);
   glr->keyglob  = (guint*)tmp2D.data;
-  glr->keygloc  = (guint*)tmp2D.data;
+  glr->keygloc  = (guint*)tmp2D2.data;
   glr->keyvglob = (guint*)tmp.data;
-  glr->keyvloc  = (guint*)tmp.data;
+  glr->keyvloc  = (guint*)tmp2.data;
 }
 void bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr)
 {
@@ -426,7 +428,7 @@ void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
   FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->h);
   bigdft_locreg_copy_data(&lzd->parent, radii, lzd->h, crmult, frmult);
 }
-void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
+void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
                        BigDFT_Orbs *orbs, guint iproc, guint nproc)
 {
   guint i, j;
@@ -437,7 +439,7 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
 
   FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
+    (&iproc, &nproc, &type, lzd->data, lzd->parent.parent.data,
      orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
   if (bigdft_orbs_get_linear(orbs))
     {
@@ -465,4 +467,47 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
           bigdft_locreg_copy_wfd(lzd->Llr[i]);
         }
     }
+}
+gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
+                             BigDFT_Grid gridType, guint ilr)
+{
+  memset(iter, 0, sizeof(BigDFT_LocRegIter));
+  iter->glr  = (ilr)?lzd->Llr[ilr - 1]:&lzd->parent;
+  iter->nseg = (gridType == GRID_COARSE)?iter->glr->nseg_c:iter->glr->nseg_c + iter->glr->nseg_f;
+  iter->iseg = (gridType == GRID_COARSE)?(guint)-1:iter->glr->nseg_c - 1;
+
+  switch (lzd->parent.parent.geocode)
+    {
+    case 'S':
+      iter->grid[0] = lzd->parent.n[0] + 1;
+      iter->grid[1] = lzd->parent.n[1];
+      iter->grid[2] = lzd->parent.n[2] + 1;
+      break;
+    case 'F':
+      iter->grid[0] = lzd->parent.n[0];
+      iter->grid[1] = lzd->parent.n[1];
+      iter->grid[2] = lzd->parent.n[2];
+      break;
+    default:
+      fprintf(stderr, "WARNING: unknown geocode.\n");
+    case 'P':
+      iter->grid[0] = lzd->parent.n[0] + 1;
+      iter->grid[1] = lzd->parent.n[1] + 1;
+      iter->grid[2] = lzd->parent.n[2] + 1;
+      break;
+    }
+
+  return bigdft_lzd_iter_next(iter);
+}
+gboolean bigdft_lzd_iter_next(BigDFT_LocRegIter *iter)
+{
+  if (!bigdft_locreg_iter_next(iter))
+    return FALSE;
+  
+  iter->z  += (double)iter->glr->ns[2] / (double)iter->grid[2];
+  iter->y  += (double)iter->glr->ns[1] / (double)iter->grid[1];
+  iter->x0 += (double)iter->glr->ns[0] / (double)iter->grid[0];
+  iter->x1 += (double)iter->glr->ns[0] / (double)iter->grid[0];
+
+  return TRUE;
 }

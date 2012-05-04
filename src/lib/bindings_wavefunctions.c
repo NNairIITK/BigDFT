@@ -523,6 +523,8 @@ guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guin
   FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
 
   bigdft_lzd_define(wf->lzd, in->linear, &wf->parent, iproc, nproc);
+  if (wf->parent.linear)
+    FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(wf->lzd->data, wf->parent.data);
 
   return nelec;
 }

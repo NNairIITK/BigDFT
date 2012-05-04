@@ -11,7 +11,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Calling arguments
   integer,intent(in):: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
-  type(atoms_data),intent(in) :: at
+  type(atoms_data),intent(inout) :: at
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs
   type(collective_comms),intent(in):: collcom_reference
@@ -248,7 +248,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !Arguments
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
-  type(atoms_data), intent(in) :: at
+  type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(in) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot

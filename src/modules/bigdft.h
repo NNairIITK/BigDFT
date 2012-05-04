@@ -124,8 +124,8 @@ typedef struct BigDFT_Inputs_
   double strtarget[6];
   f90_pointer_double qmass;
 
-  /* LIN file variables (partial. */
-  gchar linear[3];
+  /* PERF file variables (partial. */
+  guint linear;
 
   /* Private. */
   void *data;
@@ -169,7 +169,8 @@ typedef struct BigDFT_locReg_
   gboolean dispose_has_run;
 #endif
 
-  guint n[3], ni[3];
+  guint n[3], ni[3], ns[3], nsi[3];
+  guint norb;
 
   /* Values that have been used to built this localisation region. */
   double h[3];
@@ -257,8 +258,11 @@ void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
                                          double crmult, double frmult);
 void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                          double crmult, double frmult);
-void        bigdft_lzd_define           (BigDFT_Lzd *lzd, const gchar type[3],
+void        bigdft_lzd_define           (BigDFT_Lzd *lzd, guint type,
                                          BigDFT_Orbs *orbs, guint iproc, guint nproc);
+gboolean    bigdft_lzd_iter_new         (const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
+                                         BigDFT_Grid gridType, guint ilr);
+gboolean    bigdft_lzd_iter_next        (BigDFT_LocRegIter *iter);
 
 
 /*******************************/

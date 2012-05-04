@@ -82,7 +82,8 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         void *glr, double *shift);
-void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, int *n, int *ni);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, guint *n, guint *ni,
+                                                      guint *ns, guint *nsi, guint *norb);
 void FC_FUNC_(glr_empty, GLR_EMPTY)(void *glr);
 void FC_FUNC_(glr_free, GLR_FREE)(void *glr);
 void FC_FUNC_(glr_set_wave_descriptors,
@@ -201,7 +202,7 @@ void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach
                                                   double *betax, int *history, int *ionmov,
                                                   double *dtion, double *strtarget,
                                                   f90_pointer_double *qmass);
-void FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(void *in, gchar linear[3]);
+void FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(void *in, guint *linear);
 void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
                                                         int *iproc, int *dump);
 void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);

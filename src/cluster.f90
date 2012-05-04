@@ -1256,8 +1256,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
-           if(in%linear == 'OFF') linflag = 0
-           if(in%linear == 'TMO') linflag = 2
+           if(in%linear == INPUT_IG_OFF) linflag = 0
+           if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 

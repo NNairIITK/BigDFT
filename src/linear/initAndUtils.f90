@@ -382,7 +382,6 @@ end do
           Glr, lzd%Llr, calculateBounds)
  end if
 
-
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)
  call memocc(istat, iall, 'calculateBounds', subname)
@@ -1076,7 +1075,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  character(len = 3), intent(in) :: linType
+  integer, intent(in) :: linType
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
@@ -1096,7 +1095,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   end if
 
   linear  = .true.
-  if (linType == 'FUL') then
+  if (linType == INPUT_IG_FULL) then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -1115,13 +1114,13 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
   ! If we are using cubic code : by choice or because locregs are too big
   Lzd%linear = .true.
-  if (linType == 'LIG' .or. linType =='OFF' .or. .not. linear) then
+  if (linType == INPUT_IG_LIG .or. linType == INPUT_IG_OFF .or. .not. linear) then
      Lzd%linear = .false.
      Lzd%nlr = 1
   end if
 
 
-  if(linType /= 'TMO') then
+  if(linType /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
@@ -1211,7 +1210,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
-  character(len=*), intent(in) :: linearmode
+  integer, intent(in) :: linearmode
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(out) :: Lzd
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -1237,7 +1236,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   end if
 
   linear  = .true.
-  if (linearmode == 'LIG' .or. linearmode == 'FUL') then
+  if (linearmode == INPUT_IG_LIG .or. linearmode == INPUT_IG_FULL) then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -1254,7 +1253,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
-  if (linearmode =='OFF' .or. .not. linear) then
+  if (linearmode == INPUT_IG_OFF .or. .not. linear) then
      linear = .false.
      Lzd%nlr = 1
   end if
@@ -1266,7 +1265,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   call nullify_locreg_descriptors(Lzd%Glr)
   call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
 
-  if(linearmode /= 'TMO') then
+  if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
