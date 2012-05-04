@@ -83,7 +83,9 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   real(wp), dimension(:,:,:), allocatable :: e,eg,e_tmp,eg_tmp
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
+  type(paw_objects) ::paw !dummy herem, only used for PAW
   
+  paw%usepaw=0 !Not using PAW
   
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
@@ -252,7 +254,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   if (iproc==0) write (*,'(1x,a)',advance="no") "Orthogonality..."
   
-  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
   !
   ! set v orthogonal to all occupied psi
   !
@@ -262,7 +264,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! orthonormalize v through the projections
   !
-  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
   !
   ! untranspose v 
   !
@@ -501,7 +503,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! orthogonalize gradient directions (a bit more stable)
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,g,in%orthpar)
+     call orthogonalize(iproc,nproc,orbsv,commsv,g,in%orthpar,paw)
      !
      ! untranspose gradients
      !
@@ -798,7 +800,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! orthonormalize v set
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+     call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
      !
      ! untranspose v 
      !

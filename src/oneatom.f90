@@ -82,6 +82,7 @@ program oneatom
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
+  paw%usepaw=0 !Not using PAW
   !call nullify_gaussian_basis(proj_G)
 
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
@@ -195,7 +196,7 @@ program oneatom
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,psi,in%orthpar)
+  call orthogonalize(iproc,nproc,orbs,comms,psi,in%orthpar,paw)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -279,7 +280,7 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar) 
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,paw) 
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)

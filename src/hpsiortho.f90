@@ -1094,6 +1094,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   if(paw%usepaw==1) then
     !In PAW: spsi is used.
     call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,paw%spsi,trH) !n(m)
+    !call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,psit,trH) !n(m)
   else
     !In NC: spsi=psi
     call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,psit,trH) !n(m)
@@ -1292,7 +1293,7 @@ end subroutine write_energies
 
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar) 
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,paw) 
    use module_base
    use module_types
    use module_interfaces, except_this_one_A => hpsitopsi
@@ -1304,6 +1305,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
    type(orthon_data), intent(in) :: orthpar
    type(diis_objects), intent(inout) :: diis
    real(wp), dimension(:), pointer :: psi,psit,hpsi
+   type(paw_objects),intent(inout)::paw
    !local variables
    !n(c) character(len=*), parameter :: subname='hpsitopsi'
 
@@ -1324,6 +1326,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
    !transpose the hpsi wavefunction
    call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
       &   hpsi,work=psi)
+   !PAW:
+   !transpose the spsi wavefunction
+   if(paw%usepaw==1) then
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
+      &   paw%spsi,work=psi)
+   end if
 
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
    !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
@@ -1340,12 +1348,17 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
          &   'Orthogonalization...'
    end if
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
 
    !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
       &   psit,work=hpsi,outadd=psi(1))
+  
+   if(paw%usepaw==1) then
+   !retranspose the spsi wavefunction
+     call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,paw%spsi,work=hpsi)
+   end if
 
    if (nproc == 1) then
       nullify(psit)
@@ -1459,7 +1472,7 @@ END SUBROUTINE select_active_space
 
 
 !>   First orthonormalisation
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
@@ -1470,6 +1483,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
    type(communications_arrays), intent(in) :: comms
    type(orthon_data):: orthpar
    real(wp), dimension(:) , pointer :: psi,hpsi,psit
+   type(paw_objects),intent(in)::paw
    !local variables
    character(len=*), parameter :: subname='first_orthon'
    integer :: i_stat
@@ -1497,7 +1511,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
    call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
       &   work=hpsi,outadd=psit(1))
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
 
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 

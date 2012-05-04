@@ -1177,10 +1177,20 @@ subroutine applyprojector_paw(ncplx,istart_c,&
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
         do ispinor=1,nspinor,ncplx
+!           call wpdot_wrap(ncplx,  &
+!                nvctr_c,nvctr_f,nseg_c,nseg_f,&
+!                keyv,keyg,&
+!                psi(1,ispinor), &
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!                keyv_p,&!nlpspd%keyv_p(jseg_c),&
+!                keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+!                proj(istart_j),&
+!                cprj(ispinor,jlmn))
+!Test projectors
            call wpdot_wrap(ncplx,  &
                 nvctr_c,nvctr_f,nseg_c,nseg_f,&
                 keyv,keyg,&
-                psi(1,ispinor), &
+                proj(istart_j), &
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 keyv_p,&!nlpspd%keyv_p(jseg_c),&
                 keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
@@ -1202,6 +1212,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 !  end do
   do ispinor=1,nspinor
      cprj_out%cp(ispinor,:)=cprj(ispinor,:)
+     write(*,*)'cpjr',cprj_out%cp(ispinor,:)
   end do
 
   if(sij_opt==1 .or. sij_opt==3) then
@@ -1723,7 +1734,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   type(gaussian_basis), intent(in) :: proj_G
   type(paw_objects),intent(inout)::paw
   !local variables
-  integer :: i_shell,sij_opt
+  integer :: i_shell,sij_opt,ii
   integer :: ncplx,j
   character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,m,icplx
@@ -1744,11 +1755,6 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
-  !initialize to zero hpsi and spsi:
-  !in wpdot_wrap in applyprojector_paw, we do y=(a^T*x)+y
-  !with y=(hpsi or spsi)
-  hpsi(1:wfd%nvctr_c+7*wfd%nvctr_f,:)=0.0_wp  
-  paw%spsi(ispsi:ispsi+wfd%nvctr_c+7*wfd%nvctr_f*ncplx)=0.0_wp
 
   !calculate the scalar product with all the projectors of the atom
   !index for performing the calculation with all the projectors
@@ -1765,6 +1771,12 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
         paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
         sij_opt,paw%sij(:,ityp))  
 
+  !DEBUG
+  !do ii=1,wfd%nvctr_c+7*wfd%nvctr_f
+  !   write(400,*)ii,hpsi(ii,1)
+  !   write(401,*)ii,paw%spsi(ispsi+ii-1)
+  !end do
+  !DEBUG
   eproj=eproj+&
         &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 

@@ -237,7 +237,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(gaussian_basis),dimension(atoms%ntypes)::proj_G
-  type(paw_objects)::paw
   type(diis_objects) :: diis
   !type(denspot_distribution) :: denspotd
   real(gp), dimension(3) :: shift,hgrids
@@ -272,6 +271,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !Variables for WVL+PAW
   integer:: iatyp
   type(rholoc_objects)::rholoc_tmp
+  type(paw_objects)::paw
+
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -306,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
-  paw%usepaw=0
+  paw%usepaw=0 !Not using PAW
   !nullify(paw%paw_ij%dij)
 
   norbv=abs(in%norbv)
@@ -697,7 +698,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
        & inputpsi /= INPUT_PSI_EMPTY) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,hpsi,psit,in%orthpar)
+     call first_orthon(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,hpsi,psit,in%orthpar,paw)
   end if
 
   !save the new atomic positions in the rxyz_old array
@@ -984,7 +985,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               idsx_actual_before=diis%idsx
 
               !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar)
+              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,paw)
 
               if (in%inputPsiId == 0) then
                  if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &

@@ -1146,9 +1146,12 @@ real(8),dimension(lin%gorbs%npsidim_orbs),intent(inout):: phi
 integer:: iorb, ist, i1, i2, i3, jj, iiAt, istat, iall, ierr
 real(8):: tt, cut, hxh, hyh, hzh, ttIn, ttOut, ttIntot, ttOuttot
 type(workarr_sumrho) :: w
+type(paw_objects)::paw
 real(8),dimension(:),allocatable:: phir
 real(8),dimension(:),pointer:: phiWork
 character(len=*),parameter:: subname='cutoffOutsideLocreg'
+
+paw%usepaw=0 !Not using PAW
 
 !write(*,*) 'in cutoffOutsideLocreg'
 
@@ -1215,7 +1218,7 @@ call mpi_barrier(mpi_comm_world,ierr)
 allocate(phiWork(max(lin%gorbs%npsidim_orbs,lin%gorbs%npsidim_comp)),stat=istat)
 call memocc(istat,phiWork,'phiWork',subname)
 call transpose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
-call orthogonalize(iproc,nproc,lin%orbs,lin%comms,Glr%wfd,phi,input)
+call orthogonalize(iproc,nproc,lin%orbs,lin%comms,Glr%wfd,phi,input,paw)
 call untranspose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
 iall=-product(shape(phiWork))*kind(phiWork)
 deallocate(phiWork,stat=istat)

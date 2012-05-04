@@ -15,6 +15,8 @@ module module_types
   use module_base, only : gp,wp,dp,tp
   implicit none
 
+  public  nullify_gaussian_basis
+
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000
   integer, parameter :: INPUT_PSI_RANDOM       = -2

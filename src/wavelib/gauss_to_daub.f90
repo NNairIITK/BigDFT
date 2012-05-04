@@ -392,6 +392,7 @@ contains
          do i=leftx,rightx
             x=real(i-i0*16,gp)*h
             r=x-z0
+            !write(200,*)r*hgrid !DEBUG
             r2=r/a1
             r2=r2*r2
             r2=0.5_gp*r2

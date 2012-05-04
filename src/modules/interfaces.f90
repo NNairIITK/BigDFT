@@ -459,7 +459,7 @@ module module_interfaces
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
       END SUBROUTINE reformatmywaves
 
-      subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
+      subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
          implicit none
@@ -468,6 +468,7 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(communications_arrays), intent(in) :: comms
          type(orthon_data):: orthpar
+         type(paw_objects),intent(in)::paw
          real(wp), dimension(:) , pointer :: psi,hpsi,psit
       END SUBROUTINE first_orthon
 
@@ -599,7 +600,7 @@ module module_interfaces
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
       END SUBROUTINE SynchronizeHamiltonianApplication
 
-      subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar)
+      subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,paw)
          !n(c) use module_base
          use module_types
          implicit none
@@ -609,6 +610,7 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          type(orthon_data), intent(in) :: orthpar
          type(diis_objects), intent(inout) :: diis
+         type(paw_objects),intent(inout)::paw
          real(wp), dimension(:), pointer :: psi,psit,hpsi
       END SUBROUTINE hpsitopsi
 

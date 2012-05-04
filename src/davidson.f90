@@ -60,6 +60,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    do iatyp=1,at%ntypes
    call nullify_gaussian_basis(proj_G(iatyp))
    end do
+   paw%usepaw=0 !Not using PAW
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -171,12 +172,12 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    !     nvirtep=orbsv%norbp
 
    !this is the same also in serial
-   call orthogonalize(iproc,nproc,orbsv,commsv,psivirt,in%orthpar)
+   call orthogonalize(iproc,nproc,orbsv,commsv,psivirt,in%orthpar,paw)
 
    if (occorbs) then
       call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psivirt,msg)
       !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
-      call orthogonalize(iproc,nproc,orbsv,commsv,psivirt,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,psivirt,in%orthpar,paw)
    end if
 
    !retranspose v
@@ -316,7 +317,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !control the previous value of idsx_actual
       idsx_actual_before=diis%idsx
 
-      call hpsitopsi(iproc,nproc,orbsv,Lzd%Glr,commsv,iter,diis,in%idsx,psivirt,psitvirt,hpsivirt,in%orthpar)
+      call hpsitopsi(iproc,nproc,orbsv,Lzd%Glr,commsv,iter,diis,in%idsx,psivirt,psitvirt,hpsivirt,in%orthpar,paw)
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -325,7 +326,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
          if (nproc == 1) psitvirt => psivirt
          !project psivirt such that they are orthogonal to all occupied psi
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
-         call orthogonalize(iproc,nproc,orbsv,commsv,psitvirt,in%orthpar)
+         call orthogonalize(iproc,nproc,orbsv,commsv,psitvirt,in%orthpar,paw)
          !retranspose the psivirt
          call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,psitvirt,&
             &   work=psiw,outadd=psivirt(1))
@@ -474,7 +475,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(paw_objects)::paw
 
    !Nullify PAW objects
-   paw%usepaw=0
+   paw%usepaw=0  !Not using PAW
    do iatyp=1,at%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
    end do
@@ -595,12 +596,12 @@ subroutine davidson(iproc,nproc,in,at,&
    !     nvirtep=orbsv%norbp
 
    !this is the same also in serial
-   call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+   call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
 
    if (occorbs) then
       call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
       !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
    end if
 
    !retranspose v
@@ -1197,12 +1198,12 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','OF')
 
       !these routines should work both in parallel or in serial
-      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
 
       if (occorbs) then
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
          !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-         call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+         call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
       end if
 
       !retranspose v
