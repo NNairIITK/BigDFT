@@ -6053,12 +6053,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, lnorb, llbnorb, norb
+         integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -6071,12 +6071,12 @@ module module_interfaces
          type(wfn_metadata),intent(inout):: wfnmd
        end subroutine destroy_wfn_metadata
 
-       subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
+       subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, lnorb, norb
+         integer,intent(in):: nphi, lnorb, norb, norbp
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(out):: wfn
        end subroutine create_DFT_wavefunction

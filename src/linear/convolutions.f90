@@ -132,7 +132,7 @@ allocate(beff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, beff0_2auxarray, 'beff0_2auxarray', subname)
 allocate(ceff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, ceff0_2auxarray, 'ceff0_2auxarray', subname)
-allocate(eeff0_2auxarray(lowfil:lupfil,0:i), stat=istat)
+allocate(eeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, eeff0_2auxarray, 'eeff0_2auxarray', subname)
 aeff0_2auxarray=0.d0
 beff0_2auxarray=0.d0

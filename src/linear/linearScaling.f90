@@ -109,12 +109,12 @@ type(energy_terms) :: energs
   call update_wavefunctions_size(tmb%lzd,tmbder%orbs)
 
   call create_wfn_metadata('l', max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%orbs%norb, &
-       tmb%orbs%norb, orbs%norb, input, tmb%wfnmd)
+       tmb%orbs%norb, orbs%norb, orbs%norbp, input, tmb%wfnmd)
   allocate(tmb%psi(tmb%wfnmd%nphi), stat=istat)
   call memocc(istat, tmb%psi, 'tmb%psi', subname)
 
   call create_wfn_metadata('l', max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp), tmbder%orbs%norb, &
-       tmbder%orbs%norb, orbs%norb, input, tmbder%wfnmd)
+       tmbder%orbs%norb, orbs%norb, orbs%norbp, input, tmbder%wfnmd)
   allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=istat)
   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
