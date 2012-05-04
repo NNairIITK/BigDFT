@@ -58,8 +58,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
+          !do korb=1,jorb
           do korb=1,tmbopt%orbs%norb
-              trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
+              tt = kernel(korb,jorb)*lagmat(korb,jorb)
+              !if(korb/=jorb) tt=tt*2.d0
+              trH = trH + tt
           end do
       end do
   else

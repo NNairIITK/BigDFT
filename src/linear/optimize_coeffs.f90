@@ -13,7 +13,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, kkorb, ierr
-  real(8),dimension(:,:),allocatable:: lagmat, rhs, grad, ovrlp_tmp, coeff_tmp, ovrlp_coeff, gradp
+  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, coeff_tmp, ovrlp_coeff, gradp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, tt2, tt3, mean_alpha, dnrm2
   character(len=*),parameter:: subname='optimize_coeffs'
@@ -24,8 +24,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   allocate(rhs(tmb%orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, rhs, 'rhs', subname)
 
-  allocate(grad(tmb%orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, grad, 'grad', subname)
+  !!allocate(grad(tmb%orbs%norb,orbs%norb), stat=istat)
+  !!call memocc(istat, grad, 'grad', subname)
 
   allocate(gradp(tmb%orbs%norb,orbs%norbp), stat=istat)
   call memocc(istat, gradp, 'gradp', subname)
@@ -260,9 +260,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   deallocate(rhs, stat=istat)
   call memocc(istat, iall, 'rhs', subname)
 
-  iall=-product(shape(grad))*kind(grad)
-  deallocate(grad, stat=istat)
-  call memocc(istat, iall, 'grad', subname)
+  !!iall=-product(shape(grad))*kind(grad)
+  !!deallocate(grad, stat=istat)
+  !!call memocc(istat, iall, 'grad', subname)
 
   iall=-product(shape(gradp))*kind(gradp)
   deallocate(gradp, stat=istat)
