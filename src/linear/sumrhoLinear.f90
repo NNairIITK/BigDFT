@@ -409,7 +409,6 @@ do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
     ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
     istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    !do jorb=1,comsr%noverlaps(iproc)
     do jorb=1,iorb
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
