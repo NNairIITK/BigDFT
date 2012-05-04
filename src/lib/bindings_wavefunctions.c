@@ -248,6 +248,10 @@ gboolean bigdft_read_wave_descr(const char *filename, int *norbu,
 /******************************************/
 static void bigdft_wf_dispose(GObject *atoms);
 static void bigdft_wf_finalize(GObject *atoms);
+static void bigdft_wf_get_property(GObject* obj, guint property_id,
+                                   GValue *value, GParamSpec *pspec);
+static void bigdft_wf_set_property(GObject* obj, guint property_id,
+                                   const GValue *value, GParamSpec *pspec);
 
 #ifdef HAVE_GLIB
 enum {
@@ -255,6 +259,13 @@ enum {
   ONE_WAVE_READY_SIGNAL,
   LAST_SIGNAL
 };
+
+enum
+  {
+    WF_PROP_0,
+    INPUT_PROP,
+    FORMAT_PROP
+  };
 
 G_DEFINE_TYPE(BigDFT_Wf, bigdft_wf, BIGDFT_ORBS_TYPE)
 
@@ -299,8 +310,8 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
   /* Connect the overloading methods. */
   G_OBJECT_CLASS(klass)->dispose      = bigdft_wf_dispose;
   G_OBJECT_CLASS(klass)->finalize     = bigdft_wf_finalize;
-  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
-  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+  G_OBJECT_CLASS(klass)->set_property = bigdft_wf_set_property;
+  G_OBJECT_CLASS(klass)->get_property = bigdft_wf_get_property;
 
   bigdft_wf_signals[PSI_READY_SIGNAL] =
     g_signal_new("psi-ready", G_TYPE_FROM_CLASS(klass),
@@ -314,6 +325,48 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
 		 0, NULL, NULL, g_cclosure_marshal_ONE_WAVE,
                  G_TYPE_NONE, 5, G_TYPE_UINT, G_TYPE_ARRAY, G_TYPE_UINT,
                  G_TYPE_UINT, G_TYPE_UINT, NULL);
+
+  g_object_class_install_property(G_OBJECT_CLASS(klass), INPUT_PROP,
+				  g_param_spec_int("init-id", "Initialisation method",
+                                                   "Method used to initialise these wavefunctions.",
+                                                   -1000, 101, 0, G_PARAM_READABLE));
+  g_object_class_install_property(G_OBJECT_CLASS(klass), FORMAT_PROP,
+				  g_param_spec_uint("disk-format", "Format when on disk",
+                                                    "Format to read or write wavefunctions to disk.",
+                                                    0, 3, 0, G_PARAM_READABLE));
+}
+
+static void bigdft_wf_get_property(GObject* obj, guint property_id,
+                                   GValue *value, GParamSpec *pspec)
+{
+  BigDFT_Wf *self = BIGDFT_WF(obj);
+
+  switch (property_id)
+    {
+    case INPUT_PROP:
+      g_value_set_int(value, self->inputpsi);
+      break;
+    case FORMAT_PROP:
+      g_value_set_uint(value, self->input_wf_format);
+      break;
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, property_id, pspec);
+      break;
+    }
+}
+static void bigdft_wf_set_property(GObject* obj, guint property_id,
+                                   const GValue *value, GParamSpec *pspec)
+{
+  BigDFT_Wf *self = BIGDFT_WF(obj);
+
+  switch (property_id)
+    {
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, property_id, pspec);
+      break;
+    }
 }
 #endif
 
@@ -381,11 +434,14 @@ void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
 }
 #endif  
 
-BigDFT_Wf* bigdft_wf_new(gboolean linear)
+BigDFT_Wf* bigdft_wf_new(int inputPsiId)
 {
   double self;
   BigDFT_Wf *wf;
+  gboolean linear;
 
+  FC_FUNC_(inputs_get_linear, INPUTS_GET_LINEAR)(&linear, &inputPsiId);
+    
 #ifdef HAVE_GLIB
   wf = BIGDFT_WF(g_object_new(BIGDFT_WF_TYPE, "linear", linear, NULL));
 #else
@@ -400,6 +456,8 @@ BigDFT_Wf* bigdft_wf_new(gboolean linear)
   FC_FUNC_(wf_get_psi, WF_GET_PSI)(wf->data, &wf->psi);
 
   wf->lzd = bigdft_lzd_new_with_fortran(wf->data_lzd);
+
+  wf->inputpsi = inputPsiId;
 
   return wf;
 }
@@ -455,8 +513,12 @@ void FC_FUNC_(wf_copy_from_fortran, WF_COPY_FROM_FORTRAN)
 guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
 {
   int nelec;
+  const gchar *dir = "data";
 
   nelec = bigdft_orbs_define(&wf->parent, &wf->lzd->parent, in, iproc, nproc);
+
+  FC_FUNC_(input_check_psi_id, INPUT_CHECK_PSI_ID)
+    (&wf->inputpsi, &wf->input_wf_format, dir, strlen(dir), wf->parent.data, wf->parent.data, &iproc);
 
   FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
 

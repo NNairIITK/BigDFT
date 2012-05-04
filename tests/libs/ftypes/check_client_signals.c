@@ -363,7 +363,7 @@ int main(int argc, const char **argv)
 
   /* Load test BigDFT run. */
   in = bigdft_inputs_new("test");
-  wf = bigdft_wf_new(FALSE);
+  wf = bigdft_wf_new(in->inputPsiId);
   bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "test.ascii");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));

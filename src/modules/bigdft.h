@@ -358,7 +358,7 @@ typedef enum
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
 
-BigDFT_Wf* bigdft_wf_new (gboolean linear);
+BigDFT_Wf* bigdft_wf_new (int inputPsiId);
 BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);

@@ -115,7 +115,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   end if
   ! Done orbs
 
-  call input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
+  inputpsi = in%inputPsiId
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)

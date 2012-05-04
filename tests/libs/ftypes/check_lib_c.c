@@ -154,7 +154,7 @@ int main(int argc, char **argv)
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new(TRUE);
+  wf = bigdft_wf_new(100);
   atoms = BIGDFT_ATOMS(wf->lzd);
 
   atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
     {
       bigdft_wf_free(wf);
 
-      wf = bigdft_wf_new(TRUE);
+      wf = bigdft_wf_new(100);
       atoms = BIGDFT_ATOMS(wf->lzd);
     }
   fprintf(stdout, " Ok\n");
@@ -238,7 +238,8 @@ int main(int argc, char **argv)
     }
 
   /* Test restarting the wavefunction definition. */
-  wf = bigdft_wf_new(FALSE);
+  in = bigdft_inputs_new("test");
+  wf = bigdft_wf_new(in->inputPsiId);
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
@@ -247,7 +248,6 @@ int main(int argc, char **argv)
     }
   output_atoms(BIGDFT_ATOMS(wf->lzd));
 
-  in = bigdft_inputs_new("test");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
 

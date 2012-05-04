@@ -431,6 +431,15 @@ subroutine inputs_get_files(in, files)
 
   files = in%files
 END SUBROUTINE inputs_get_files
+subroutine inputs_get_linear(linear, inputPsiId)
+  use module_types
+  implicit none
+  integer, intent(out) :: linear
+  integer, intent(in) :: inputPsiId
+
+  linear = 0
+  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+END SUBROUTINE inputs_get_linear
 
 subroutine orbs_new(orbs)
   use module_types
