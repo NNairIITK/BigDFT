@@ -189,7 +189,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           end if
           mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iiorb)
       end do
-      mean_alpha=mean_alpha/dble(orbs%norbp)
+      mean_alpha=mean_alpha/dble(orbs%norb)
       call mpiallred(mean_alpha, 1, mpi_sum, mpi_comm_world, ierr)
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
