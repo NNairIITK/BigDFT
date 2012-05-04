@@ -126,6 +126,7 @@ module module_types
   integer, parameter, public :: INPUTS_TDDFT =  32
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
+  integer, parameter, public :: INPUTS_LIN   = 256
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 

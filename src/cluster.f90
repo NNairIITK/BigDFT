@@ -213,7 +213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   logical :: refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.,scpot
   integer :: nvirt,norbv
-  integer :: i
+  integer :: i, input_wf_format, tag
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
@@ -225,6 +225,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
+  type(DFT_wavefunction) :: tmb
+  type(DFT_wavefunction) :: tmbder
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
@@ -232,6 +234,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Charge density/potential,ionic potential, pkernel
   type(DFT_local_fields) :: denspot
   type(DFT_optimization_loop) :: optLoop
+  real(gp), dimension(:), allocatable:: denspot0
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
@@ -319,8 +322,27 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !here we can put KSwfn
-  call system_initialization(iproc,nproc,in,atoms,rxyz,&
-       KSwfn%orbs,KSwfn%Lzd,denspot,nlpspd,KSwfn%comms,shift,proj,radii_cf)
+  call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+       KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+       KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
+
+  ! We complete here the definition of DFT_wavefunction structures.
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     call init_p2p_tags(nproc)
+     tag=0
+
+     call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     
+     if(in%lin%useDerivativeBasisFunctions) then
+        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
+        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+        tmbder%wfnmd%bs%use_derivative_basis=.true.
+     end if
+
+     allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
+     call memocc(i_stat, denspot0, 'denspot0', subname)
+  end if
 
   optLoop%iscf = in%iscf
   optLoop%itrpmax = in%itrpmax
@@ -351,6 +373,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         denspot%c_obj = UNINITIALIZED(denspot%c_obj)
         optloop%c_obj = UNINITIALIZED(optloop%c_obj)
      end if
+  else
+     KSwfn%c_obj  = 0.d0
+     tmb%c_obj    = 0.d0
+     tmbder%c_obj = 0.d0
   end if
 
   !variables substitution for the PSolver part
@@ -394,61 +420,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  if (in%inputPsiId /= INPUT_PSI_LINEAR .and. in%inputPsiId /= INPUT_PSI_MEMORY_LINEAR) then
-     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
-          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
-  else
-     inputpsi = in%inputPsiId
-     !call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-     !this does not work with ndebug activated
-
-     !!if(.not.lin%transformToGlobal) then
-     !!    ! psi and psit will not be calculated, so only allocate them with size 1
-     !!    orbs%npsidim=1
-     !!end if
-     !!allocate(psi(orbs%npsidim), stat=i_stat)
-     !!call memocc(i_stat, psi, 'psi', subname)
-     !!allocate(psit(orbs%npsidim), stat=i_stat)
-     !!call memocc(i_stat, psit, 'psit', subname)
-     scpot=.true.
-     energs%eexctX=0.0_gp   !Exact exchange is not calculated right now 
-     ! This is the main routine that does everything related to the linear scaling version.
-
-     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb), stat=i_stat)
-     call memocc(i_stat, KSwfn%orbs%eval, 'orbs%eval', subname)
-     KSwfn%orbs%eval=-.5d0
-
-     call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-          KSwfn%orbs,KSwfn%comms,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          rxyz,fion,fdisp,denspot,&
-          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,KSwfn%psit,&
-          energy)
-
-     ! debug
-
-     !!! debug: write psi to file
-     !!call writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
-     !!        orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Lzd%Glr%wfd,psi)
-     !!return
-
-     !temporary allocation of the density
-     allocate(denspot%rho_work(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
-          denspot%dpbox%n3p*KSwfn%orbs%nspin+ndebug,1)),stat=i_stat)
-     call memocc(i_stat,denspot%rho_work,'rho',subname)
-     call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*KSwfn%orbs%nspin,&
-          denspot%rhov(1),1,denspot%rho_work(1),1)
-
-     if (nproc > 1) then
-        i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-        deallocate(KSwfn%psit,stat=i_stat)
-        call memocc(i_stat,i_all,'KSwfn%psit',subname)
-     else
-        nullify(KSwfn%psit)
-     end if
-     ! denspot%rho_full => denspot%rhov
-
-  end if
+  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -465,14 +439,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   hy_old=KSwfn%Lzd%hgrids(2)
   hz_old=KSwfn%Lzd%hgrids(3)
 
+  !end of the initialization part
+  call timing(iproc,'INIT','PR')
+
   !start the optimization
+  energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
   skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-
-     !end of the initialization part
-     call timing(iproc,'INIT','PR')
-
-     energs%eexctX=0.0_gp
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -494,6 +467,33 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         return
      end if
   else
+     KSwfn%orbs%eval=-.5d0  ! I don't think this is usefull...
+
+     scpot=.true.
+     call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
+          KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
+          atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+          rxyz,fion,fdisp,denspot,denspot0,&
+          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,&
+          energy)
+
+     i_all=-product(shape(denspot0))*kind(denspot0)
+     deallocate(denspot0, stat=i_stat)
+     call memocc(i_stat, i_all, 'denspot0', subname)
+
+     call destroy_DFT_wavefunction(tmb)
+     call destroy_DFT_wavefunction(tmbder)
+
+     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+
+     call finalize_p2p_tags()
+  
+     !temporary allocation of the density
+     allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     call memocc(i_stat,denspot%rho_work,'rho',subname)
+     call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+          denspot%rhov(1),1,denspot%rho_work(1),1)
+
      infocode = 0
   end if skip_if_linear
 
@@ -1091,7 +1091,12 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) deallocate(KSwfn%confdatarr)
+    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+       deallocate(KSwfn%confdatarr)
+    else
+       deallocate(tmb%confdatarr)
+       deallocate(tmbder%confdatarr)
+    end if
 
     ! Free radii_cf
     i_all=-product(shape(radii_cf))*kind(radii_cf)

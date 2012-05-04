@@ -93,3 +93,40 @@ subroutine kswfn_mpi_copy(psic, jproc, iorbp, psiSize)
   call MPI_SEND((/ iorbp, psiSize /), 2, MPI_INTEGER, jproc, 123, MPI_COMM_WORLD, ierr)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, MPI_COMM_WORLD, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
+
+subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc, nproc, norb_cubic
+  type(DFT_wavefunction), intent(inout) :: wfn
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(input_variables), intent(in) :: in
+  type(denspot_distribution), intent(in) :: dpbox
+
+  integer :: ndim
+
+  call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
+       & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, in, wfn%wfnmd)
+  wfn%wfnmd%bs%use_derivative_basis=.false.
+
+  call initCommsOrtho(iproc, nproc, in%nspin, &
+       lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &
+       wfn%orbs, in%lin%locregShape, wfn%op, wfn%comon)
+
+  call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
+       & wfn%orbs, lzd, wfn%comgp)
+
+  call nullify_p2pComms(wfn%comrp)
+
+  call nullify_p2pcomms(wfn%comsr)
+  call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
+
+  ndim = maxval(wfn%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
+       & wfn%op%overlaps, wfn%mad)
+  call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
+
+  call nullify_collective_comms(wfn%collcom)
+  call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+END SUBROUTINE kswfn_init_comm

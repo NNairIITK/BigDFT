@@ -117,8 +117,7 @@ void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
   int iproc = 0, dump = 0;
 
-  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->sym, &atoms->geocode,
-                                               atoms->alat, &iproc, &dump);
+  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, &iproc, &dump);
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
 
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */

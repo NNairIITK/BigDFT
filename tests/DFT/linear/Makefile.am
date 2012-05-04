@@ -33,7 +33,7 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
           large.out*)                 prec="5.e-10" ;; \
-          directmin.out*)             prec="1.e-10" ;; \
+          directmin.out*)             prec="1.1e-10" ;; \
 	  incdec_decreaselinear.out*) prec="2.e-10" ;; \
 	  incdec_increaselocreg.out*) prec="3.e-10" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \

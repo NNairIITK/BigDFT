@@ -1946,7 +1946,7 @@ subroutine position_operators(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n
 
   !$omp parallel default(none)&
   !$omp shared(psir,psirx,psiry,psirz,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order,Gn1i,Gn2i,Gn3i)&
   !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ttx,tty,ttz,potx,poty,potz)
@@ -2354,7 +2354,7 @@ subroutine r_operator(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
 
   !$omp parallel default(none)&
   !$omp shared(psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order,Gn1i,Gn2i,Gn3i)&
   !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ttx,tty,ttz,potx,poty,potz)

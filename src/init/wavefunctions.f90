@@ -700,16 +700,19 @@ subroutine inputs_parse_params(in, iproc, dump)
   end if
 end subroutine inputs_parse_params
 
-subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
+subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  type(symmetry_data), intent(in) :: sym
-  character, intent(in) :: geocode
-  real(gp), intent(in) :: alat(3)
+  type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
 
   ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
+       & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+
+  ! Linear scaling (if given)
+  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR .or. &
+       & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add

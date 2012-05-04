@@ -73,11 +73,11 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    call razero(2*G%nat,thetaphi)
    allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,allpsigau,'allpsigau',subname)
-print *,'there'
+!print *,'there'
    !this routine should be simplified like gaussians_to_wavelets
    call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
         lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
-print *,'here'
+!print *,'here'
    !the same can be done for virtual orbitals if orbsv%norb > 0
    if (orbsv%norb > 0) then
       call wavelets_to_gaussians(lr%geocode,norbpv,orbsv%nspinor,&
@@ -339,7 +339,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    !local variables
    character(len=*), parameter :: subname='gaussian_pdos'
    integer :: icoeff,i_all,i_stat,ierr,iorb !n(c) ispin
-   integer :: jproc,nspin
+   integer :: jproc!,nspin
    real(wp) :: rsum,tnorm
    integer, dimension(:), allocatable :: norb_displ
    real(wp), dimension(:,:), allocatable :: pdos
@@ -350,19 +350,20 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    call memocc(i_stat,pdos,'pdos',subname)
 
    !for any of the orbitals calculate the Mulliken charge
-   nspin=1
+!   nspin=1
    do icoeff=1,G%ncoeff
       do iorb=1,orbs%norbp
          !useful only for finding the spins
-         if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
+!         if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
             !n(c) ispin=1
-         else
-            nspin=2
+!         else
+!            nspin=2
             !n(c) ispin=2
-         end if
+!         end if
          pdos(icoeff,orbs%isorb+iorb)=coeff(icoeff,iorb)*duals(icoeff,iorb)
       end do
    end do
+!   if (iproc==0) write(*,*) 'ey :', orbs%spinsgn(orbs%isorb+iorb), nspin
 
    !gather the results to the root process
    if (nproc > 1) then
@@ -386,7 +387,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    !now the results have to be written
    if (iproc == 0) then
       !renormalize the density of states to 10 (such as to gain a digit)
-      tnorm=5.0_wp*real(nspin,wp)
+      tnorm=5.0_wp*real(orbs%nspin,wp)
       do iorb=1,orbs%norb
          rsum=0.0_wp
          do icoeff=1,G%ncoeff
@@ -397,7 +398,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
       end do
 
       !first spin up, then spin down
-      if (nspin == 2) then
+      if (orbs%nspin == 2) then
          open(unit=12,file='pdos-up.dat',status='unknown')
       else
          open(unit=12,file='pdos.dat',status='unknown')
@@ -410,7 +411,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
       close(unit=12)
       if (orbs%norbd /= 0) then
          open(unit=12,file='pdos-down.dat',status='unknown')
-        write(12,'(a,a13,5x, a)')  & 
+        write(12,'(a,a13,5x,i6,a)')  & 
           '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
          do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
            write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,orbs%eval(iorb)*Ha_eV,pdos(1:G%ncoeff+1,iorb)

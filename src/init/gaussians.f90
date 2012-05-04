@@ -26,11 +26,9 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   !local variables
   integer, parameter :: nshell_max=10 !n(c) nterm_max=3
   real(gp), parameter :: range=3.0_gp !in atomic units
-  integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid,j
-  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points,nsteps,i
+  integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
+  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points
   real(gp) :: hg,x,scalprod,charge,occ,combine_exponents,tt,mexpo
-  real(gp) :: expo,length,hgrid,center,fx,gauint0
-  real(gp), dimension(16) :: multipoles
   real(gp), dimension(nshell_max+1) :: shells
     
   open(unit=79,file=filename//'-wfn.dat',status='unknown')

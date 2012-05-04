@@ -431,23 +431,38 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
 {
   guint i, j;
   gpointer llr;
+  guint withderorbs = 0;
+  void *dorbs;
 
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
+
   FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
     (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
      orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
+  if (bigdft_orbs_get_linear(orbs))
+    {
+      FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
+      FC_FUNC_(orbs_new, ORBS_NEW)(&dorbs);
+      FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
+        (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+         orbs->data, dorbs, &withderorbs, lzd->data);
+      FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
+    }
 
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
-  lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);
-  for (i = 0; i < lzd->nlr; i++)
+  if (lzd->nlr > 0)
     {
-      j = i + 1;
-      FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(lzd->data, &j, &llr);
-      lzd->Llr[i] = bigdft_locreg_new_from_fortran(llr);
-      lzd->Llr[i]->parent.data = lzd->parent.data;
-      bigdft_atoms_copy_from_fortran(&lzd->Llr[i]->parent);
-      bigdft_locreg_copy_data(lzd->Llr[i], lzd->parent.radii, lzd->h,
-                              lzd->parent.crmult, lzd->parent.frmult);
-      bigdft_locreg_copy_wfd(lzd->Llr[i]);
+      lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);
+      for (i = 0; i < lzd->nlr; i++)
+        {
+          j = i + 1;
+          FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(lzd->data, &j, &llr);
+          lzd->Llr[i] = bigdft_locreg_new_from_fortran(llr);
+          lzd->Llr[i]->parent.data = lzd->parent.parent.data;
+          bigdft_atoms_copy_from_fortran(&lzd->Llr[i]->parent);
+          bigdft_locreg_copy_data(lzd->Llr[i], lzd->parent.radii, lzd->h,
+                                  lzd->parent.crmult, lzd->parent.frmult);
+          bigdft_locreg_copy_wfd(lzd->Llr[i]);
+        }
     }
 }
