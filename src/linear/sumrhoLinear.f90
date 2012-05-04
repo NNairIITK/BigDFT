@@ -277,8 +277,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,norbp,isorb,lzd,input,hx,hy,hz,orbs,&
-     comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+     comsr,densKern,nrho,rho,at,nscatterarr)
 !
 use module_base
 use module_types
@@ -287,7 +287,7 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb, norbp, isorb, ld_coeff
+integer,intent(in):: iproc, nproc, nrho
 real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
@@ -295,7 +295,8 @@ type(orbitals_data),intent(in):: orbs
 !type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
 !real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(ld_coeff,norb),intent(in):: coeff
+!real(8),dimension(ld_coeff,norb),intent(in):: coeff
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -309,7 +310,7 @@ integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-real(8),dimension(:,:),allocatable:: densKern
+!real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
@@ -322,23 +323,23 @@ if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 !lin%comsr%computComplete=.false.
 
 
-! Allocate the density kernel.
-allocate(densKern(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, densKern, 'densKern', subname)
+!!! Allocate the density kernel.
+!!allocate(densKern(orbs%norb,orbs%norb), stat=istat)
+!!call memocc(istat, densKern, 'densKern', subname)
 
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t1)
 ! Calculate the density kernel.
-if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
-call timing(iproc,'sumrho_TMB    ','ON')
-if(norbp>0) then
-    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
-         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
-else
-    call to_zero(orbs%norb**2, densKern(1,1))
-end if
-call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-call timing(iproc,'sumrho_TMB    ','OF')
+!!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+!!call timing(iproc,'sumrho_TMB    ','ON')
+!!if(norbp>0) then
+!!    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+!!         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
+!!else
+!!    call to_zero(orbs%norb**2, densKern(1,1))
+!!end if
+!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!call timing(iproc,'sumrho_TMB    ','OF')
 
 
 if(iproc==0) write(*,'(a)') 'done.'
@@ -545,9 +546,9 @@ call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 
-iall=-product(shape(densKern))*kind(densKern)
-deallocate(densKern, stat=istat)
-call memocc(istat, iall, 'densKern', subname)
+!!iall=-product(shape(densKern))*kind(densKern)
+!!deallocate(densKern, stat=istat)
+!!call memocc(istat, iall, 'densKern', subname)
 
 end subroutine sumrhoForLocalizedBasis2
 
@@ -622,3 +623,28 @@ end subroutine sumrhoForLocalizedBasis2
 !!!!end subroutine setCommunicationInformation2
 
 
+subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
+  real(8),dimension(ld_coeff,norb),intent(in):: coeff
+  real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
+
+  ! Local variables
+  integer:: ierr
+
+  if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+  !call timing(iproc,'sumrho_TMB    ','ON')
+  if(norbp>0) then
+      call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+           coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
+  else
+      call to_zero(norb_tmb**2, kernel(1,1))
+  end if
+  call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
+  !call timing(iproc,'sumrho_TMB    ','OF')
+
+end subroutine calculate_density_kernel

@@ -2896,24 +2896,27 @@ module module_interfaces
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,norbp,isorb,lzd,input,hx,hy,hz,orbs,comsr,&
-          ld_coeff,coeff,nrho,rho,at,nscatterarr)
-       use module_base
-       use module_types
-       use libxc_functionals
-       implicit none
-       integer,intent(in):: iproc, nproc, nrho, norb, norbp, isorb, ld_coeff
-       real(gp),intent(in):: hx, hy, hz
-       type(local_zone_descriptors),intent(in):: lzd
-       type(input_variables),intent(in):: input
-       type(orbitals_data),intent(in):: orbs
-       !type(p2pCommsSumrho),intent(inout):: comsr
-       type(p2pComms),intent(inout):: comsr
-       real(8),dimension(orbs%norb,norb),intent(in):: coeff
-       real(8),dimension(nrho),intent(out),target:: rho
-       type(atoms_data),intent(in):: at
-       integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-     end subroutine sumrhoForLocalizedBasis2
+        subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+             comsr,densKern,nrho,rho,at,nscatterarr)
+          use module_base
+          use module_types
+          implicit none
+          
+          ! Calling arguments
+          integer,intent(in):: iproc, nproc, nrho
+          real(gp),intent(in):: hx, hy, hz
+          type(local_zone_descriptors),intent(in):: lzd
+          type(input_variables),intent(in):: input
+          type(orbitals_data),intent(in):: orbs
+          !type(p2pCommsSumrho),intent(inout):: comsr
+          type(p2pComms),intent(inout):: comsr
+          !real(8),dimension(orbs%norb,norb),intent(in):: coeff
+          !real(8),dimension(ld_coeff,norb),intent(in):: coeff
+          real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern
+          real(8),dimension(nrho),intent(out),target:: rho
+          type(atoms_data),intent(in):: at
+          integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        end subroutine sumrhoForLocalizedBasis2
 
 
      !!subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
@@ -6860,6 +6863,15 @@ module module_interfaces
           type(DFT_wavefunction),intent(in):: tmb
           type(DFT_wavefunction),intent(inout):: tmbder
         end subroutine transform_coeffs_to_derivatives
+
+        subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
+          real(8),dimension(ld_coeff,norb),intent(in):: coeff
+          real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
+        end subroutine calculate_density_kernel
 
    end interface
 

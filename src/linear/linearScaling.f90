@@ -38,7 +38,7 @@ type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,onefile, coeffs_copied, first_time_with_der
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
-real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old, density_kernel
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format, ndim, jjorb
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
@@ -227,10 +227,17 @@ type(energy_terms) :: energs
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-     call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
+     allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+     call memocc(istat, density_kernel, 'density_kernel', subname)
+     call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+          tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
+     call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, input, hx, hy ,hz, tmb%orbs, tmb%comsr, &
-          tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+          density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
           denspot%rhov, at, denspot%dpcom%nscatterarr)
+     iall = -product(shape(density_kernel))*kind(density_kernel)
+     deallocate(density_kernel,stat=istat)
+     call memocc(istat,iall,'density_kernel',subname)
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
@@ -551,17 +558,26 @@ type(energy_terms) :: energs
               scf_mode=input%lin%scf_mode
           end if
 
+
           ! Calculate the coefficients
           call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
 
+          allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+          call memocc(istat, density_kernel, 'density_kernel', subname)
+          call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
 
           ! Calculate the charge density.
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
+          call sumrhoForLocalizedBasis2(iproc, nproc, &
                tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+               density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                denspot%rhov, at, denspot%dpcom%nscatterarr)
+
+          iall = -product(shape(density_kernel))*kind(density_kernel)
+          deallocate(density_kernel,stat=istat)
+          call memocc(istat,iall,'density_kernel',subname)
 
           ! Mix the density.
           !if(trim(input%lin%mixingMethod)=='dens') then
@@ -677,9 +693,16 @@ type(energy_terms) :: energs
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, tmb%lzd, input, hx, hy, hz, &
-       tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+  allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+  call memocc(istat, density_kernel, 'density_kernel', subname)
+  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+  call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
+       tmbmix%orbs, tmbmix%comsr, density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
        denspot%rhov, at,denspot%dpcom%nscatterarr)
+  iall = -product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel,stat=istat)
+  call memocc(istat,iall,'density_kernel',subname)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
