@@ -288,13 +288,20 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
-  do iorb=1,orbs%norb
-      do jorb=1,tmbmix%orbs%norb
-          do korb=1,tmbmix%orbs%norb
-              ebs = ebs + tmbmix%wfnmd%coeff(jorb,iorb)*tmbmix%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
-          end do
+  do jorb=1,tmbmix%orbs%norb
+      do korb=1,jorb
+          tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          if(korb/=jorb) tt=2.d0*tt
+          ebs = ebs + tt
       end do
   end do
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,tmbmix%orbs%norb
+  !!        do korb=1,tmbmix%orbs%norb
+  !!            ebs = ebs + tmbmix%wfnmd%coeff(jorb,iorb)*tmbmix%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+  !!        end do
+  !!    end do
+  !!end do
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
 
