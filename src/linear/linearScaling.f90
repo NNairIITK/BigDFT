@@ -559,15 +559,16 @@ type(energy_terms) :: energs
           end if
 
 
+          allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+          call memocc(istat, density_kernel, 'density_kernel', subname)
+
           ! Calculate the coefficients
           call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
+               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,ldiis_coeff)
 
-          allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
-          call memocc(istat, density_kernel, 'density_kernel', subname)
-          call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+          !!call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+          !!     tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -695,7 +696,7 @@ type(energy_terms) :: energs
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   call memocc(istat, density_kernel, 'density_kernel', subname)
-  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
        tmbmix%orbs, tmbmix%comsr, density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &

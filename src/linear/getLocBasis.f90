@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb,fnrm,ldiis_coeff)
+    hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -23,6 +23,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix, tmb
+real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
@@ -279,6 +280,9 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
+
+  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
 
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
