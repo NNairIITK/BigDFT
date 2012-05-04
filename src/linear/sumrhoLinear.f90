@@ -403,13 +403,14 @@ call timing(iproc,'sumrho_TMB    ','ON')
 is=nscatterarr(iproc,3) 
 ie=is+nscatterarr(iproc,1)-1
 
-
+! This sum is "symmetric", so only do the second loop (jorb) only up to iorb and multiply by two if iorb/=jorb.
 totalCharge=0.d0
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
     ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
     istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    do jorb=1,comsr%noverlaps(iproc)
+    !do jorb=1,comsr%noverlaps(iproc)
+    do jorb=1,iorb
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
         istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
@@ -446,6 +447,10 @@ do iorb=1,comsr%noverlaps(iproc)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
+              if(iorb/=jorb) then
+                  ! Multiply by two since these elements appear twice (but are calculated only once).
+                  factorTimesDensKern = 2.d0*factorTimesDensKern
+              end if
               ! Now loop over all points in the box in which the orbitals overlap.
               !if(i3s>i3e) write(*,*) 'no calculation done'
               do i3=i3s,i3e !bounds in z direction
