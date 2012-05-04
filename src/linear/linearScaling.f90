@@ -227,7 +227,7 @@ type(energy_terms) :: energs
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-     call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+     call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
           tmb%lzd, input, hx, hy ,hz, tmb%orbs, tmb%comsr, &
           tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
           denspot%rhov, at, denspot%dpcom%nscatterarr)
@@ -558,7 +558,7 @@ type(energy_terms) :: energs
 
 
           ! Calculate the charge density.
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
                tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
                tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                denspot%rhov, at, denspot%dpcom%nscatterarr)
@@ -677,8 +677,9 @@ type(energy_terms) :: energs
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, tmb%lzd, input, hx, hy, hz, &
+       tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+       denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 

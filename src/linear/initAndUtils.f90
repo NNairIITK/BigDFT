@@ -2227,7 +2227,7 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
       wfnmd%alpha_coeff=0.2d0 !default value, must check whether this is a good choice
 
-      allocate(wfnmd%grad_coeff_old(llbnorb,norb), stat=istat)
+      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
       wfnmd%grad_coeff_old=0.d0 !default value
 

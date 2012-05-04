@@ -277,7 +277,7 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,&
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,norbp,isorb,lzd,input,hx,hy,hz,orbs,&
      comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
 !
 use module_base
@@ -287,7 +287,7 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
+integer,intent(in):: iproc, nproc, nrho, norb, norbp, isorb, ld_coeff
 real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
@@ -331,11 +331,16 @@ call memocc(istat, densKern, 'densKern', subname)
 ! Calculate the density kernel.
 if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
 call timing(iproc,'sumrho_TMB    ','ON')
-!!call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
-!!     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
-call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), ld_coeff, &
-     coeff(1,1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
+if(norbp>0) then
+    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
+else
+    call to_zero(orbs%norb**2, densKern(1,1))
+end if
+call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 call timing(iproc,'sumrho_TMB    ','OF')
+
+
 if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t2)

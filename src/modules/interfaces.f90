@@ -2896,13 +2896,13 @@ module module_interfaces
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,comsr,&
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,norbp,isorb,lzd,input,hx,hy,hz,orbs,comsr,&
           ld_coeff,coeff,nrho,rho,at,nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
        implicit none
-       integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
+       integer,intent(in):: iproc, nproc, nrho, norb, norbp, isorb, ld_coeff
        real(gp),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
        type(input_variables),intent(in):: input

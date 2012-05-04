@@ -55,19 +55,27 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!$    end do
   !!$end do
 
-  ! Calculate the Lagrange multiplier matrix
-  do iorb=1,orbs%norb
+  call distribute_coefficients(orbs, tmb)
+
+  ! Calculate the Lagrange multiplier matrix. Use ovrlp_coeff as temporary array.
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
       do jorb=1,orbs%norb
           tt=0.d0
           do korb=1,tmb%orbs%norb
               do lorb=1,tmb%orbs%norb
-                  tt=tt+tmb%wfnmd%coeff(korb,jorb)*tmb%wfnmd%coeff(lorb,iorb)*ham(lorb,korb)
+                  tt=tt+tmb%wfnmd%coeff(korb,jorb)*tmb%wfnmd%coeffp(lorb,iorb)*ham(lorb,korb)
               end do
           end do
-          lagmat(jorb,iorb)=tt
+          !lagmat(jorb,iorb)=tt
+          ovrlp_coeff(jorb,iorb)=tt
           !!if(iproc==0) write(510,*) iorb, jorb, lagmat(jorb,iorb)
       end do
   end do
+
+  ! Gather together the complete matrix
+  call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
+       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
 
   !!! Calculate the right hand side
   !!do iorb=1,orbs%norb
@@ -95,7 +103,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!end if
   !!call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
 
-  call distribute_coefficients(orbs, tmb)
 
   !! NEW VERSION - TEST ######################################################
   !do iorb=1,orbs%norb
@@ -145,8 +152,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Precondition the gradient
   call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
 
-  !!call collect_coefficients(orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
-  !!call collect_coefficients(orbs, tmb, gradp, grad)
 
   ! Improve the coefficients
   if (ldiis_coeff%isx > 0) then
@@ -159,8 +164,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
 
-  !!call collect_coefficients(orbs, tmb)
-  !!call collect_coefficients(orbs, tmb, gradp, grad)
 
   tt=0.d0
   do iorb=1,orbs%norbp
@@ -179,8 +182,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       mean_alpha=0.d0
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
-          tt=ddot(tmb%orbs%norb, gradp(1,iorb), 1, tmb%wfnmd%grad_coeff_old(1,iiorb), 1)
-          tt=tt/(dnrm2(tmb%orbs%norb, gradp(1,iorb), 1)*dnrm2(tmb%orbs%norb, tmb%wfnmd%grad_coeff_old(1,iiorb), 1))
+          tt=ddot(tmb%orbs%norb, gradp(1,iorb), 1, tmb%wfnmd%grad_coeff_old(1,iorb), 1)
+          tt=tt/(dnrm2(tmb%orbs%norb, gradp(1,iorb), 1)*dnrm2(tmb%orbs%norb, tmb%wfnmd%grad_coeff_old(1,iorb), 1))
           !if(iproc==0) write(*,*) 'iorb, tt', iorb, tt
           if(tt>.85d0) then
               tmb%wfnmd%alpha_coeff(iiorb)=1.1d0*tmb%wfnmd%alpha_coeff(iiorb)
@@ -194,28 +197,33 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
   call collect_coefficients(orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
-  call collect_coefficients(orbs, tmb, gradp, grad)
+  !call collect_coefficients(orbs, tmb, gradp, grad)
 
-  call dcopy(tmb%orbs%norb*orbs%norb, grad(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
+  call dcopy(tmb%orbs%norb*orbs%norbp, gradp(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
 
 
-  ! Normalize the coeffiecients.
-  ! Loewdin
-  !call random_number(tmb%wfnmd%coeff)
-  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
-       tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-  do iorb=1,orbs%norb
+  ! Normalize the coeffiecients (Loewdin)
+
+  ! Calculate the overlap matrix among the coefficients with resct to ovrlp. Use lagmat as temporary array.
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
+       tmb%wfnmd%coeffp(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  do iorb=1,orbs%norbp
       do jorb=1,orbs%norb
-          ovrlp_coeff(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
-          !if(iproc==0) write(400,'(a,2i8,es15.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
+          lagmat(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
       end do
   end do
+  ! Gather together the complete matrix
+  call mpi_allgatherv(lagmat(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
 
-  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-       ovrlp_coeff(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-  call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+  ! Build the new linear combinations
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+       ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  ! Gather together the results partial results.
+  call collect_coefficients(orbs, tmb, coeff_tmp(1,1), tmb%wfnmd%coeff)
 
   !!! Gram schmidt
   !!do iorb=1,orbs%norb
