@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !>   Write a field in the ISF basis in the ETSF format
-subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
      x, nspin)
   use module_base
   use module_types
@@ -18,13 +18,13 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
 
   implicit none
   character(len=*), intent(in) :: filename,message
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,nspin
+  integer, intent(in) :: n1i,n2i,n3i,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i,nspin), target, intent(in) :: x
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   !local variables
-  integer :: nl1,nl2,nl3,nbx,nby,nbz,iat, ncid, i3, i2, i_stat, i_all
+  integer :: nl1,nl2,nl3,nbx,nby,nbz,iat, ncid, i3, i2, i_stat, i_all,nc1,nc2,nc3
   double precision, dimension(3, 3), target :: rprim
   double precision, dimension(:,:), allocatable, target :: xred
   double precision, dimension(:), allocatable, target :: znucl
@@ -45,19 +45,25 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
      nl3=1
      nbx = 1
      nbz = 1
+     nc1=n1i
+     nc3=n3i
   else
      nl1=15
      nl3=15
      nbx = 0
      nbz = 0
+     nc1=n1i-31
+     nc3=n3i-31
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
      nby = 1
+     nc2=n2i
   else
      nl2=15
      nby = 0
+     nc2=n2i-31
   end if
 
   call etsf_io_low_open_create(ncid, trim(filename) // ".etsf.nc", 3.3, lstat, &
@@ -90,9 +96,9 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
   ! Specific dims of interest.
   dims%number_of_atom_species        = at%ntypes
   dims%number_of_atoms               = at%nat
-  dims%number_of_grid_points_vector1 = 2*(n1+nbx)
-  dims%number_of_grid_points_vector2 = 2*(n2+nby)
-  dims%number_of_grid_points_vector3 = 2*(n3+nbz)
+  dims%number_of_grid_points_vector1 = nc1!2*(n1+nbx)
+  dims%number_of_grid_points_vector2 = nc2!2*(n2+nby)
+  dims%number_of_grid_points_vector3 = nc3!2*(n3+nbz)
   if (nspin == 1) then
      dims%number_of_components       = 1
   else
@@ -126,13 +132,13 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
   end if
 
   ! We fill up the geometry
-  rprim = reshape((/ (hxh * 2*(n1+nbx)),0.0_gp,0.0_gp, &
-       & 0.0_gp,(hyh * 2*(n2+nby)),0.0_gp, &
-       & 0.0_gp,0.0_gp,(hzh * 2*(n3+nbz)) /), (/ 3, 3 /))
+  rprim = reshape((/ (hxh * nc1),0.0_gp,0.0_gp, &
+       & 0.0_gp,(hyh *nc2),0.0_gp, &
+       & 0.0_gp,0.0_gp,(hzh *nc3) /), (/ 3, 3 /))
   allocate(xred(3, at%nat),stat=i_stat)
   call memocc(i_stat,xred,'xred',subname)
   do iat = 1, at%nat, 1
-     xred(:, iat) = rxyz(:, iat) / (/ hxh * 2*(n1+nbx), hyh * 2*(n2+nby), hzh * 2*(n3+nbz) /)
+     xred(:, iat) = rxyz(:, iat) / (/ hxh * nc1, hyh * nc2, hzh * nc3 /)
   end do
   allocate(znucl(at%ntypes),stat=i_stat)
   call memocc(i_stat,znucl,'znucl',subname)
@@ -172,19 +178,19 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
   end if
   
   ! We fill up the density.
-  allocate(buffer(2*(n1+nbx), dims%number_of_components),stat=i_stat)
+  allocate(buffer(nc1, dims%number_of_components),stat=i_stat)
   call memocc(i_stat,buffer,'buffer',subname)
-  do i3=0,2*(n3+nbz) - 1
-     do i2=0,2*(n2+nby) - 1
-        buffer(:, 1) = x(nl1:nl1+2*(n1+nbx)-1,i2+nl2,i3+nl3, 1)
+  do i3=0,nc3 - 1
+     do i2=0,nc2 - 1
+        buffer(:, 1) = x(nl1:nl1+nc1-1,i2+nl2,i3+nl3, 1)
         if (dims%number_of_components > 1) then
-           buffer(:, 2) = x(nl1:nl1+2*(n1+nbx)-1,i2+nl2,i3+nl3, 2)
+           buffer(:, 2) = x(nl1:nl1+nc1-1,i2+nl2,i3+nl3, 2)
            buffer(:, 3) = buffer(:, 1) + buffer(:, 2)
            buffer(:, 4) = buffer(:, 1) - buffer(:, 2)
         end if
         call etsf_io_low_write_var(ncid, "density", buffer, &
              & lstat, error_data = error, start = (/ 1, 1, i2 + 1, i3 + 1, 1 /), &
-             & count = (/ 0, 2*(n1+nbx), 1, 1,0 /))
+             & count = (/ 0, nc1, 1, 1,0 /))
         if (.not. lstat) then
            call etsf_io_low_error_to_str(error_string, error)
            write(0, "(A)") trim(error_string)

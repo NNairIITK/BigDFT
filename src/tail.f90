@@ -277,7 +277,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wfdb%nvctr_f=nvctrb_f
      wfdb%nseg_c=nsegb_c
      wfdb%nseg_f=nsegb_f
-     wfdb%keyv => keyv
+     wfdb%keyvloc => keyv
+     wfdb%keyvglob => keyv
      wfdb%keygloc => keyg
      wfdb%keyglob => keyg
 !!$     allocate(wfdb%keygloc(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
@@ -355,14 +356,14 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   !allocate the fake orbital structure for the application of projectors
   call orbitals_descriptors(0,1,1,1,0,1,1,1, &
-       & reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb)
+       reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb,.false.)
 
   do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
           keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
           nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
@@ -927,7 +928,7 @@ END SUBROUTINE applylocpotkinone
 
 !> Applies all the projectors onto a single wavefunction
 !! Input: psi_c,psi_f
-!! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
+!! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initialized to zero at the beginning)
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,&
      !nseg_p,keyg_p,keyv_p,nvctr_p,&
@@ -978,7 +979,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
               call applyprojector(1,l,i,psppar(0,0,ityp),npspcode(ityp),&
                    nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                   nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                   nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                    nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
 !!$                   keyv_p(jseg_c),keyg_p(1,jseg_c),&
                    proj(istart_c),psi,hpsi,eproj)

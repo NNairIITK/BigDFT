@@ -8,7 +8,8 @@ EXTRA_DIST = \
 	read.dft \
 	posinp.xyz \
 	write.out.ref \
-	read.out.ref
+	read.out.ref \
+        check_lib.out.ref
 
 PPFILES = psppar.O
 
@@ -16,17 +17,22 @@ if HAVE_ETSF_IO
 etsf_tests = write_etsf.report read_etsf.report exportwf_etsf.report check_lib_etsf.report
 endif
 
+if BUILD_BINDINGS
+bindings_tests = check_lib_bindings.report
+bindings_bin = check_lib_c
+endif
+
 # Checks to do.
 check: write_plain.report write_binary.report \
 	read_plain.report read_binary.report \
 	exportwf.report check_lib_plain.report check_lib_binary.report \
-	$(etsf_tests) check_lib_bindings.report
+	$(etsf_tests) $(bindings_tests)
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 
-check_PROGRAMS = check_lib check_lib_c
+check_PROGRAMS = check_lib $(bindings_bin)
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@

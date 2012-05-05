@@ -149,28 +149,29 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
         if (n2.gt.nd2) stop 'n2 beyond borders'
         if (n3.gt.nd3) stop 'n3 beyond borders'
 
-        i=1
+        !$omp parallel do default(private) shared (x,xx,n1,n2,n3)
         do i3=0,n3
            do i2=0,n2
               do i1=0,n1
+                 i=1+i1+i2*(n1+1)+i3*(n1+1)*(n2+1) 
                  xx(i)=x(i1,i2,i3)
-                 i=i+1
               enddo
            enddo
         enddo
+        !$omp end parallel do
 
         call synthese_per_old(n1,n2,n3,xx,yy,ww)
 
-        i=1
+        !$omp parallel do default(private) shared (x,yy,n1,n2,n3)
         do i3=0,n3
            do i2=0,n2
               do i1=0,n1
+                 i=1+i1+i2*(n1+1)+i3*(n1+1)*(n2+1) 
                  x(i1,i2,i3)=yy(i)
-                 i=i+1
               enddo
            enddo
         enddo
-
+        !$omp end parallel do
      enddo
 
      i_all=-product(shape(ww))*kind(ww)
@@ -216,6 +217,8 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   n2=nd2
   n3=nd3
 
+  !write(21,*) 'ana_repeated_per'
+
   if (num_trans.ge.1)  then
 
      allocate(yy((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
@@ -239,27 +242,29 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
      do i_trans=2,num_trans
 
-        i=1
+        !$omp parallel do default(private) shared (x,xx,n1,n2,n3)
         do i3=0,n3
            do i2=0,n2
               do i1=0,n1
+                 i=1+i1+i2*(n1+1)+i3*(n1+1)*(n2+1)
                  xx(i)=x(i1,i2,i3)
                  i=i+1
               enddo
            enddo
         enddo
-
+        !$omp end parallel do    
         call analyse_per_old(n1,n2,n3,xx,yy,ww)
 
-        i=1
+        !$omp parallel do default(private) shared (x,yy,n1,n2,n3)
         do i3=0,n3
            do i2=0,n2
               do i1=0,n1
+                 i=1+i1+i2*(n1+1)+i3*(n1+1)*(n2+1)
                  x(i1,i2,i3)=yy(i)
-                 i=i+1
               enddo
            enddo
         enddo
+        !$omp end parallel do
 
         n1=(n1+1)/2-1
         n2=(n2+1)/2-1

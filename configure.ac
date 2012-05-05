@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.21],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.4],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -52,7 +52,6 @@ AC_FC_WRAPPERS()
 AX_FC_FLUSH()
 AX_FC_DEFS()
 AX_FC_F2003()
-AX_FC_POINTER()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
 AX_FC_MOD()
@@ -80,6 +79,34 @@ AC_CHECK_TOOL(AR, ar, :)
 if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
+
+dnl Look for GLib and friends for bindings.
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="yes")
+if test x"$ac_build_bindings" = x"yes" ; then
+  AX_FC_POINTER()
+  if test $F90_1D_POINTER_SIZE = 0 ; then
+    ac_build_bindings="warn"
+  fi
+fi
+AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
+AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
+                     [Build GObject bindings (default is yes).]),
+            ac_use_glib=$withval, ac_use_glib="yes")
+if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
+  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
+  PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+else
+  have_glib=no
+  have_gdbus=no
+fi
+if test x"$have_glib" = x"yes" ; then
+  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+fi
+if test x"$have_gdbus" = x"yes" ; then
+  AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
+fi
+AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
@@ -729,7 +756,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -793,6 +820,9 @@ tests/libs/IO-wf/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
 tests/DFT/Makefile
+tests/DFT/cubic/Makefile
+tests/DFT/linear/Makefile
+tests/DFT/postSCF/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
 ])
@@ -826,9 +856,10 @@ Basics:
 Build:
   Library ABINIT:            $ac_build_lib_ABINIT
   Library BigDFT:            $ac_build_lib_BigDFT
-  Main binaries (cluster...):$ac_build_bin_cluster
+  Main binaries (bigdft,...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
+  Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
   Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
@@ -860,6 +891,8 @@ Options:
   With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
+  With GLib and co.:         $have_glib
+   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
@@ -871,7 +904,7 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
@@ -881,6 +914,9 @@ if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_et
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"
+  fi
+  if test x"$ac_build_bindings" = x"warn" ; then
+    echo "  C bindings:                disabled by tests"
   fi
 fi
 

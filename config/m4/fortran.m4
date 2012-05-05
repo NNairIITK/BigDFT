@@ -781,8 +781,10 @@ void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
   *size = (int)(((long)pt2 - (long)pt1) / sizeof(void*));
 }
 ], [ax_fc_run=`./conftest$EXEEXT`],
- [AC_MSG_WARN(C compiler cannot link Fortran and C or cannot find the pointer shift value.)
-  ax_fc_run="0 0"])
+ [AC_MSG_WARN([C compiler cannot link Fortran and C or cannot find the pointer shift value.])
+  ax_fc_run="0 0"],
+ [AC_MSG_WARN([Cross compiling, cannot test pointer length, using Gfortran values.])
+  ax_fc_run="0 $[5]"])
   LIBS="$LIBS_SVG"
   rm -f pttest.o
 
@@ -791,31 +793,31 @@ void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
   AC_LANG_POP(Fortran)
   }
 
-  test_dim "1D" ":" "2" "1"
+  test_dim "1D" ":" "2" "1" "6"
   F90_1D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
   AC_SUBST(F90_1D_POINTER_SHIFT)
   F90_1D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
   AC_SUBST(F90_1D_POINTER_SIZE)
 
-  test_dim "2D" ":,:" "2,1" "1,1"
+  test_dim "2D" ":,:" "2,1" "1,1" "9"
   F90_2D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
   AC_SUBST(F90_2D_POINTER_SHIFT)
   F90_2D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
   AC_SUBST(F90_2D_POINTER_SIZE)
 
-  test_dim "3D" ":,:,:" "2,1,1" "1,1,1"
+  test_dim "3D" ":,:,:" "2,1,1" "1,1,1" "12"
   F90_3D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
   AC_SUBST(F90_3D_POINTER_SHIFT)
   F90_3D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
   AC_SUBST(F90_3D_POINTER_SIZE)
 
-  test_dim "4D" ":,:,:,:" "2,1,1,1" "1,1,1,1"
+  test_dim "4D" ":,:,:,:" "2,1,1,1" "1,1,1,1" "15"
   F90_4D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
   AC_SUBST(F90_4D_POINTER_SHIFT)
   F90_4D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
   AC_SUBST(F90_4D_POINTER_SIZE)
 
-  test_dim "5D" ":,:,:,:,:" "2,1,1,1,1" "1,1,1,1,1"
+  test_dim "5D" ":,:,:,:,:" "2,1,1,1,1" "1,1,1,1,1" "18"
   F90_5D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
   AC_SUBST(F90_5D_POINTER_SHIFT)
   F90_5D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`

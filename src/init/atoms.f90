@@ -27,6 +27,10 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
      deallocate(atoms%atomnames,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%atomnames',subname)
+     ! Parameters for Linear input guess
+     i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+     deallocate(atoms%rloc,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%rloc',subname)
   end if
 
   ! Deallocations related to pseudos.
@@ -196,10 +200,13 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
+  ! Parameters for Linear input guess
+  allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+  call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 !> Calculate symmetries and update
-subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
+subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
   use defs_basis
@@ -208,6 +215,7 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   logical, intent(in) :: disableSym
+  real(gp), intent(in) :: tol
   real(gp), intent(in) :: elecfield(3)
   !local variables
   character(len=*), parameter :: subname='atoms_set_symmetries'
@@ -217,58 +225,46 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
 
   ! Calculate the symmetries, if needed
   if (atoms%geocode /= 'F') then
-     if (.not. disableSym) then
-        if (atoms%sym%symObj < 0) then
-           call symmetry_new(atoms%sym%symObj)
-        end if
-        ! New values
-        rprimd(:,:) = 0
-        rprimd(1,1) = atoms%alat1
-        rprimd(2,2) = atoms%alat2
-        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
-        rprimd(3,3) = atoms%alat3
-        call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
-        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,xRed,'xRed',subname)
-        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
-        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
-        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call symmetry_set_structure(atoms%sym%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-        i_all=-product(shape(xRed))*kind(xRed)
-        deallocate(xRed,stat=i_stat)
-        call memocc(i_stat,i_all,'xRed',subname)
-        if (atoms%geocode == 'S') then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-           call symmetry_set_periodicity(atoms%sym%symObj, &
-                & (/ .true., .false., .true. /), ierr)
-        else if (atoms%geocode == 'F') then
-           call symmetry_set_periodicity(atoms%sym%symObj, &
-                & (/ .false., .false., .false. /), ierr)
-        end if
-        !if (all(in%elecfield(:) /= 0)) then
-        !     ! I'm not sure what this subroutine does!
-        !   call symmetry_set_field(atoms%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
-        !elseif (in%elecfield(2) /= 0) then
-        !   call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        if (elecfield(2) /= 0) then
-           call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
-        end if
-     else
-        call deallocate_symmetry(atoms%sym, subname)
+     if (atoms%sym%symObj < 0) then
         call symmetry_new(atoms%sym%symObj)
-        rprimd(1,1) = 0.5d0
-        rprimd(2,1) = 1d0
-        rprimd(3,1) = 1d0
-        rprimd(1,2) = 2d0
-        rprimd(2,2) = 0d0
-        rprimd(3,2) = 1d0
-        rprimd(1,3) = 3d0
-        rprimd(2,3) = 0d0
-        rprimd(3,3) = 1d0
-        call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
-        call symmetry_set_structure(atoms%sym%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+     end if
+     ! Adjust tolerance
+     if (tol > 0._gp) call symmetry_set_tolerance(atoms%sym%symObj, tol, ierr)
+     ! New values
+     rprimd(:,:) = 0
+     rprimd(1,1) = atoms%alat1
+     rprimd(2,2) = atoms%alat2
+     if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
+     rprimd(3,3) = atoms%alat3
+     call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
+     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,xRed,'xRed',subname)
+     xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
+     xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
+     xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
+     call symmetry_set_structure(atoms%sym%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+     i_all=-product(shape(xRed))*kind(xRed)
+     deallocate(xRed,stat=i_stat)
+     call memocc(i_stat,i_all,'xRed',subname)
+     if (atoms%geocode == 'S') then
+        call symmetry_set_periodicity(atoms%sym%symObj, &
+             & (/ .true., .false., .true. /), ierr)
+     else if (atoms%geocode == 'F') then
+        call symmetry_set_periodicity(atoms%sym%symObj, &
+             & (/ .false., .false., .false. /), ierr)
+     end if
+     !if (all(in%elecfield(:) /= 0)) then
+     !     ! I'm not sure what this subroutine does!
+     !   call symmetry_set_field(atoms%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+     !elseif (in%elecfield(2) /= 0) then
+     !   call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+     if (elecfield(2) /= 0) then
+        call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+     end if
+     if (disableSym) then
+        call symmetry_set_n_sym(atoms%sym%symObj, 1, &
+             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
      end if
   else
      call deallocate_symmetry(atoms%sym, subname)
@@ -1170,10 +1166,11 @@ END SUBROUTINE charge_and_spol
 
 ! Init routine for bindings
 !> Allocate a new atoms_data type, for bindings.
-subroutine atoms_new(atoms)
+subroutine atoms_new(atoms, sym)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
+  type(symmetry_data), pointer :: sym
   
   allocate(atoms)
   atoms%geocode = "F"
@@ -1184,26 +1181,50 @@ subroutine atoms_new(atoms)
   atoms%sym%symObj = -1
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
+  sym => atoms%sym
+  nullify(atoms%nlccpar)
+  nullify(atoms%paw_l)
+  nullify(atoms%paw_NofL)
+  nullify(atoms%paw_nofchannels)
+  nullify(atoms%paw_nofgaussians)
+  nullify(atoms%paw_Greal)
+  nullify(atoms%paw_Gimag)
+  nullify(atoms%paw_Gcoeffs)
+  nullify(atoms%paw_H_matrices)
+  nullify(atoms%paw_S_matrices)
+  nullify(atoms%paw_Sm1_matrices)
 END SUBROUTINE atoms_new
-subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
+subroutine atoms_set_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
    use module_types
    use module_interfaces
    implicit none
    logical, intent(out) :: lstat
-   type(atoms_data), pointer :: atoms
+   type(atoms_data), intent(inout) :: atoms
    integer, intent(in) :: ln
-   character(len = ln), intent(in) :: filename
+   character, intent(in) :: filename(ln)
    real(gp), dimension(:,:), pointer :: rxyz
 
-   integer :: status
+   integer :: status, i
+   character(len = 1024) :: filename_
+
+   write(filename_, "(A)") " "
+   do i = 1, ln
+      write(filename_(i:i), "(A1)") filename(i)
+   end do
 
    lstat = .true.
-   allocate(atoms)
-   call read_atomic_file(filename, 0, atoms, rxyz, status)
+   call read_atomic_file(trim(filename_), 0, atoms, rxyz, status)
    lstat = (status == 0)
-END SUBROUTINE atoms_new_from_file
+ END SUBROUTINE atoms_set_from_file
 !> Deallocate a new atoms_data type, for bindings.
+subroutine atoms_empty(atoms)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+
+  call deallocate_atoms(atoms, "atoms_free")
+END SUBROUTINE atoms_empty
 subroutine atoms_free(atoms)
   use module_types
   implicit none
@@ -1214,6 +1235,24 @@ subroutine atoms_free(atoms)
 END SUBROUTINE atoms_free
 
 ! Set routines for bindings
+subroutine atoms_read_variables(atoms, nspin, occup, ln)
+  use module_types
+  use m_profiling
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  integer, intent(in) :: nspin, ln
+  character, intent(in) :: occup(ln)
+
+  integer :: i
+  character(len = 1024) :: filename_
+
+  write(filename_, "(A)") " "
+  do i = 1, ln
+     write(filename_(i:i), "(A1)") occup(i)
+  end do
+
+  call read_atomic_variables(atoms, trim(filename_), nspin)
+END SUBROUTINE atoms_read_variables
 subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
   use m_profiling
@@ -1504,7 +1543,7 @@ subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, 
   end if
 END SUBROUTINE atoms_write
 
-subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
+subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use module_base
   use module_types
   use m_ab6_kpoints
@@ -1512,9 +1551,12 @@ subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
   implicit none
   type(symmetry_data), intent(inout) :: sym
   integer, intent(in) :: n1i, n2i, n3i, nspin
+  character(len = 1), intent(in) :: geocode
 
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
-  integer :: i_stat, nsym, i_all
+  integer :: i_stat, nsym, i_all, i_third
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
 
   if (associated(sym%irrzon)) then
      i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
@@ -1535,17 +1577,38 @@ subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
-        allocate(sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+        i_third = 1
+        if (geocode == "S") i_third = n2i
+        allocate(sym%irrzon(n1i*(n2i - i_third + 1)*n3i,2,i_third+ndebug),stat=i_stat)
         call memocc(i_stat,sym%irrzon,'irrzon',subname)
-        allocate(sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+        allocate(sym%phnons(2,n1i*(n2i - i_third + 1)*n3i,i_third+ndebug),stat=i_stat)
         call memocc(i_stat,sym%phnons,'phnons',subname)
-        call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
-             &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+        if (geocode /= "S") then
+           call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
+                &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+        else
+           allocate(irrzon(n1i*n3i,2,1+ndebug),stat=i_stat)
+           call memocc(i_stat,irrzon,'irrzon',subname)
+           allocate(phnons(2,n1i*n3i,1+ndebug),stat=i_stat)
+           call memocc(i_stat,phnons,'phnons',subname)
+           do i_third = 1, n2i, 1
+              call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
+                   & nspin, nspin, sym%symObj, i_stat)
+              sym%irrzon(:,:,i_third:i_third) = irrzon
+              call dcopy(2*n1i*n3i, phnons, 1, sym%phnons(1,1,i_third), 1)
+           end do
+           i_all=-product(shape(irrzon))*kind(irrzon)
+           deallocate(irrzon,stat=i_stat)
+           call memocc(i_stat,i_all,'irrzon',subname)
+           i_all=-product(shape(phnons))*kind(phnons)
+           deallocate(phnons,stat=i_stat)
+           call memocc(i_stat,i_all,'phnons',subname)
+        end if
      end if
   end if
 
   if (.not. associated(sym%irrzon)) then
-     ! Allocate anyway to small size other size the bounds check does not pass.
+     ! Allocate anyway to small size otherwise the bounds check does not pass.
      allocate(sym%irrzon(1,2,1+ndebug),stat=i_stat)
      call memocc(i_stat,sym%irrzon,'irrzon',subname)
      allocate(sym%phnons(2,1,1+ndebug),stat=i_stat)

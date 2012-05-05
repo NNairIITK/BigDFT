@@ -202,7 +202,7 @@ module defs_basis
 !Complex constants
  complex(dpc), parameter :: czero=(0._dp,0._dp)
  complex(dpc), parameter :: cone =(1._dp,0._dp)
- complex(dpc) ,parameter :: j_dpc=(0._dp,1.0_dp)
+ complex(dpc), parameter :: j_dpc=(0._dp,1.0_dp)
 
 !Character constants
  character(len=1), parameter :: ch10 = char(10)

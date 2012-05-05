@@ -26,7 +26,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    !Local variables
    integer, parameter :: lupfil=14
    real(gp), parameter ::eps_mach=1.e-12_gp
-   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,i_stat
+   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
    real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
    character(len=*), parameter :: subname='system_size'
 
@@ -238,6 +238,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    Glr%ns1=0
    Glr%ns2=0
    Glr%ns3=0
+   Glr%nsi1=0
+   Glr%nsi2=0
+   Glr%nsi3=0
 
    !while using k-points this condition should be disabled
    !evaluate if the conditiond for the hybrid evaluation if periodic BC hold
@@ -246,9 +249,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
   !allocate projflg
-   allocate(Glr%projflg(atoms%nat),stat=i_stat)
-   call memocc(i_stat,Glr%projflg,'Glr%projflg',subname)
-   Glr%projflg = 1 
+!   allocate(Glr%projflg(atoms%nat),stat=i_stat)
+!   call memocc(i_stat,Glr%projflg,'Glr%projflg',subname)
+!   Glr%projflg = 1 
    
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.

@@ -14,7 +14,6 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
-   use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -88,7 +87,7 @@ program BigDFT
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs, radical)
+      call standard_inputfile_names(inputs, radical, nproc)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       if (iproc == 0) then
          call print_general_parameters(nproc,inputs,atoms)
@@ -110,6 +109,7 @@ program BigDFT
       end if
 
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+
 
       if (inputs%ncount_cluster_x > 1) then
          open(unit=16,file='geopt.mon',status='unknown',position='append')
@@ -158,7 +158,7 @@ program BigDFT
 
 !      call deallocate_lr(rst%Lzd%Glr,subname)    
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArraysInput(atoms,inputs%lin)
+      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArraysInput(inputs%lin)
 
       call free_restart_objects(rst,subname)
 

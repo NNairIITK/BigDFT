@@ -1,7 +1,7 @@
 !!****p* BigDFT/sandbox
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2011 CEA
+!!    Copyright (C) 2011-2012 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,7 +12,7 @@
 program sandbox
 !!  use BigDFT_API
 !!  use Poisson_Solver
-!!  implicit none
+  implicit none
 !!  character(len=*), parameter :: subname='sandbox'
 !!  logical :: dokernel=.false.
 !!  logical :: endloop
@@ -795,8 +795,8 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   deallocate(ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp',subname)
 
-
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+!WARNING: not correct!
+  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
        gaucoeffs,psi)
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)

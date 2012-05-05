@@ -713,6 +713,207 @@ subroutine Convolkinetic(n1,n2,n3, &
 
 END SUBROUTINE Convolkinetic
 
+!!$!> One of the most CPU intensive routines
+!!$!!   y = (kinetic energy operator)x + (cprec*I)x 
+!!$subroutine Convolkinetic_SSE(n1,n2,n3, &
+!!$     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+!!$     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)
+!!$  use module_base
+!!$  implicit none
+!!$!dee
+!!$  !integer :: iend_test,count_rate_test,count_max_test,istart_test
+!!$  
+!!$  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+!!$  real(wp), intent(in) :: cprecr
+!!$  real(gp), intent(in) :: hgrid
+!!$  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+!!$  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+!!$  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+!!$  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
+!!$  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f
+!!$  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+!!$  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+!!$  !local variables
+!!$  integer, parameter :: lowfil=-14,lupfil=14
+!!$  !logical :: firstcall=.true. 
+!!$  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+!!$  !integer(8) :: clock0,clock1,clock2,ncount_max,ncount_rate
+!!$
+!!$  integer(8) :: ncount1,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0,ncount_max,ncount_rate
+!!$
+!!$  integer :: i,t,i1,i2,i3
+!!$  integer :: icur,istart,iend,l
+!!$  real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,tel
+!!$  !real(kind=8) :: tel
+!!$  real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c
+!!$  real(wp), dimension(lowfil:lupfil) :: e
+!!$  !------------------ REZA ------------------------------
+!!$  integer, save::ntimes=0
+!!$  real(8)::time1,time2
+!!$  real(8), save::time=0.d0,count=0.d0,time_f=0.d0
+!!$  real(8), save::dtime1_p1=0.d0,dtime2_p1=0.d0,dtime3_p1=0.d0
+!!$  real(8), save::dtime1_p2=0.d0,dtime2_p2=0.d0,dtime3_p2=0.d0
+!!$  real(8), save::dtime1_p3=0.d0,dtime2_p3=0.d0,dtime3_p3=0.d0
+!!$  real(8), save::dtime1_p4=0.d0,dtime2_p4=0.d0,dtime3_p4=0.d0
+!!$  real(4), allocatable, dimension(:,:,:) :: x_c_s
+!!$  real(4), allocatable, dimension(:,:,:,:) :: x_f_s
+!!$  real(4), allocatable, dimension(:,:,:) :: y_c_s
+!!$  real(4), allocatable, dimension(:,:,:,:) :: y_f_s
+!!$  real(4), dimension(-3+lowfil:lupfil+3) :: a_s,b_s,c_s
+!!$  real(4), dimension(lowfil:lupfil) :: e_s
+!!$  real(4) :: cprecr_s
+!!$  !------------------------------------------------------
+!!$
+!!$  scale=-.5_wp/real(hgrid**2,wp)
+!!$  !---------------------------------------------------------------------------
+!!$  ! second derivative filters for Daubechies 16
+!!$  !  <phi|D^2|phi_i>
+!!$  a(0)=   -3.5536922899131901941296809374_wp*scale
+!!$  a(1)=    2.2191465938911163898794546405_wp*scale
+!!$  a(2)=   -0.6156141465570069496314853949_wp*scale
+!!$  a(3)=    0.2371780582153805636239247476_wp*scale
+!!$  a(4)=   -0.0822663999742123340987663521_wp*scale
+!!$  a(5)=    0.02207029188482255523789911295638968409_wp*scale
+!!$  a(6)=   -0.409765689342633823899327051188315485e-2_wp*scale
+!!$  a(7)=    0.45167920287502235349480037639758496e-3_wp*scale
+!!$  a(8)=   -0.2398228524507599670405555359023135e-4_wp*scale
+!!$  a(9)=    2.0904234952920365957922889447361e-6_wp*scale
+!!$  a(10)=  -3.7230763047369275848791496973044e-7_wp*scale
+!!$  a(11)=  -1.05857055496741470373494132287e-8_wp*scale
+!!$  a(12)=  -5.813879830282540547959250667e-11_wp*scale
+!!$  a(13)=   2.70800493626319438269856689037647576e-13_wp*scale
+!!$  a(14)=  -6.924474940639200152025730585882e-18_wp*scale
+!!$
+!!$  a(15)=0.0_wp
+!!$  a(16)=0.0_wp 
+!!$  a(17)=0.0_wp
+!!$  
+!!$  do i=1,14+3
+!!$     a(-i)=a(i)
+!!$  enddo
+!!$  !  <phi|D^2|psi_i>
+!!$  c(-17)=0.0_wp
+!!$  c(-16)=0.0_wp
+!!$  c(-15)=0.0_wp
+!!$  
+!!$  c(-14)=     -3.869102413147656535541850057188e-18_wp*scale
+!!$  c(-13)=      1.5130616560866154733900029272077362e-13_wp*scale
+!!$  c(-12)=     -3.2264702314010525539061647271983988409e-11_wp*scale
+!!$  c(-11)=     -5.96264938781402337319841002642e-9_wp*scale
+!!$  c(-10)=     -2.1656830629214041470164889350342e-7_wp*scale
+!!$  c(-9 )=      8.7969704055286288323596890609625e-7_wp*scale
+!!$  c(-8 )=     -0.00001133456724516819987751818232711775_wp*scale
+!!$  c(-7 )=      0.00021710795484646138591610188464622454_wp*scale
+!!$  c(-6 )=     -0.0021356291838797986414312219042358542_wp*scale
+!!$  c(-5 )=      0.00713761218453631422925717625758502986_wp*scale
+!!$  c(-4 )=     -0.0284696165863973422636410524436931061_wp*scale
+!!$  c(-3 )=      0.14327329352510759457155821037742893841_wp*scale
+!!$  c(-2 )=     -0.42498050943780130143385739554118569733_wp*scale
+!!$  c(-1 )=      0.65703074007121357894896358254040272157_wp*scale
+!!$  c( 0 )=     -0.42081655293724308770919536332797729898_wp*scale
+!!$  c( 1 )=     -0.21716117505137104371463587747283267899_wp*scale
+!!$  c( 2 )=      0.63457035267892488185929915286969303251_wp*scale
+!!$  c( 3 )=     -0.53298223962800395684936080758073568406_wp*scale
+!!$  c( 4 )=      0.23370490631751294307619384973520033236_wp*scale
+!!$  c( 5 )=     -0.05657736973328755112051544344507997075_wp*scale
+!!$  c( 6 )=      0.0080872029411844780634067667008050127_wp*scale
+!!$  c( 7 )=     -0.00093423623304808664741804536808932984_wp*scale
+!!$  c( 8 )=      0.00005075807947289728306309081261461095_wp*scale
+!!$  c( 9 )=     -4.62561497463184262755416490048242e-6_wp*scale
+!!$  c( 10)=      6.3919128513793415587294752371778e-7_wp*scale
+!!$  c( 11)=      1.87909235155149902916133888931e-8_wp*scale
+!!$  c( 12)=      1.04757345962781829480207861447155543883e-10_wp*scale
+!!$  c( 13)=     -4.84665690596158959648731537084025836e-13_wp*scale
+!!$  c( 14)=      1.2392629629188986192855777620877e-17_wp*scale
+!!$
+!!$  c(15)=0.0_wp
+!!$  c(16)=0.0_wp
+!!$  c(17)=0.0_wp
+!!$  !  <psi|D^2|phi_i>
+!!$  do i=-14-3,14+3
+!!$     b(i)=c(-i)
+!!$  enddo
+!!$  !<psi|D^2|psi_i>
+!!$  e(0)=   -24.875846029392331358907766562_wp*scale
+!!$  e(1)=   -7.1440597663471719869313377994_wp*scale
+!!$  e(2)=   -0.04251705323669172315864542163525830944_wp*scale
+!!$  e(3)=   -0.26995931336279126953587091167128839196_wp*scale
+!!$  e(4)=    0.08207454169225172612513390763444496516_wp*scale
+!!$  e(5)=   -0.02207327034586634477996701627614752761_wp*scale
+!!$  e(6)=    0.00409765642831595181639002667514310145_wp*scale
+!!$  e(7)=   -0.00045167920287507774929432548999880117_wp*scale
+!!$  e(8)=    0.00002398228524507599670405555359023135_wp*scale
+!!$  e(9)=   -2.0904234952920365957922889447361e-6_wp*scale
+!!$  e(10)=   3.7230763047369275848791496973044e-7_wp*scale
+!!$  e(11)=   1.05857055496741470373494132287e-8_wp*scale
+!!$  e(12)=   5.8138798302825405479592506674648873655e-11_wp*scale
+!!$  e(13)=  -2.70800493626319438269856689037647576e-13_wp*scale
+!!$  e(14)=   6.924474940639200152025730585882e-18_wp*scale
+!!$  do i=1,14
+!!$    e(-i)=e(i)
+!!$  enddo
+!!$
+!!$
+!!$  ! Scaling function part
+!!$
+!!$!call system_clock(istart_test,count_rate_test,count_max_test)
+!!$
+!!$  !------------------ REZA ------------------------------
+!!$    allocate(x_c_s(0:n1,0:n2,0:n3),x_f_s(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),y_c_s(0:n1,0:n2,0:n3))
+!!$    allocate(y_f_s(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
+!!$    x_c_s=real(x_c,4)
+!!$    x_f_s=real(x_f,4)
+!!$    cprecr_s=real(cprecr,4)
+!!$    a_s=real(a,4)
+!!$    b_s=real(b,4)
+!!$    c_s=real(c,4)
+!!$    e_s=real(e,4)
+!!$    !---------------------------------------------------------------------------
+!!$    !call cpu_time(time1)
+!!$    !---------------------------------------------------------------------------
+!!$    call system_clock(ncount0,ncount_rate,ncount_max)
+!!$    call convolut_ib_sse_cxyz(n1,n2,n3,ibyz_c,ibxz_c,ibxy_c,cprecr_s,x_c_s,y_c_s,a_s(-14))
+!!$    !---------------------------------------------------------------------------
+!!$    call convolut_ib_sse_fx_wss(n1,n2,n3,ibyz_f,cprecr_s, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fx_sws_wws(n1,n2,n3,ibyz_f,cprecr_s, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fx_ssw_wsw(n1,n2,n3,ibyz_f,cprecr_s, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fx_sww_www(n1,n2,n3,ibyz_f,cprecr_s, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    !---------------------------------------------------------------------------
+!!$    call convolut_ib_sse_fy_sws(n1,n2,n3,ibxz_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fy_wss_wws(n1,n2,n3,ibxz_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fy_ssw_sww(n1,n2,n3,ibxz_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fy_wsw_www(n1,n2,n3,ibxz_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    !---------------------------------------------------------------------------
+!!$    call convolut_ib_sse_fz_ssw(n1,n2,n3,ibxy_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fz_wss_wsw(n1,n2,n3,ibxy_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fz_sws_sww(n1,n2,n3,ibxy_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    call convolut_ib_sse_fz_wws_www(n1,n2,n3,ibxy_f, &
+!!$      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x_f_s,y_f_s,a_s(-14),b_s(-14),c_s(-14),e_s(-14))
+!!$    !---------------------------------------------------------------------------
+!!$    !call cpu_time(time2)
+!!$    call system_clock(ncount1,ncount_rate,ncount_max)
+!!$    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+!!$    write(99,*) 'Convolkinetic',tel,y_c_s,y_f_s
+!!$    y_c=real(y_c_s,8)
+!!$    y_f=real(y_f_s,8)
+!!$    deallocate(x_c_s,x_f_s,y_c_s,y_f_s)
+!!$  !------------------------------------------------------
+!!$
+!!$
+!!$  END SUBROUTINE Convolkinetic_SSE
+
+
 subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3)

@@ -17,7 +17,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    integer, intent(inout) :: nvirt
-  type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(gp), intent(out) :: eks
@@ -88,7 +88,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !also for non-collinear case
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,basedist=orbs%norb_par(0:,1:))
+      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -153,7 +153,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,nlr,norb
   integer, intent(inout) :: nvirt
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer,dimension(norb),intent(in):: mapping
@@ -233,9 +233,12 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   !nspin*noncoll is always <= 2
   !call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
   !     & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+!!$  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+!!$       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+!!$  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.) !simple repartition
+
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
@@ -243,7 +246,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   deallocate(orbse%inWhichLocreg,stat=istat)
   call memocc(istat,iall,'orbse%inWhichLocreg',subname)
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse)
+  call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
 
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
@@ -391,7 +394,7 @@ subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,
   !also for non-collinear case
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.)
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin
@@ -493,7 +496,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    !Arguments
    integer, intent(in) :: nspin,nspinor
    integer, intent(out) :: norbe,norbsc
-   type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(in) :: at
    logical, dimension(4,2,at%natsc), intent(out) :: scorb
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
    real(gp), dimension(at%nat), intent(out) :: locrad
@@ -504,7 +507,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode,mxpl,mxchg
    integer :: norbat,iorbsc_count,niasc,nlsc
-   real(gp) :: rcov,rprb,ehomo
+   real(gp) :: rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    real(kind=8), dimension(nmax,lmax+1) :: neleconf
    integer, dimension(lmax+1) :: nl
@@ -525,7 +528,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
       !print *,'iat',iat,l,norbe,norbat,nl(:)
       !calculate the localisation radius for the input orbitals 
       call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-         &   neleconf,nsccode,mxpl,mxchg,at%amu(ity))
+         &   neleconf,nsccode,mxpl,mxchg,amu)
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
       nsccode=at%iasctype(iat)
       if (nsccode/=0) then !the atom has some semicore orbitals
@@ -538,7 +541,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
             iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
             if (nlsc > 2) then
                write(*,*)'ERROR, atom:',iat,&
-                  &   ': cannot admit more than two semicore shells per channel'
+                  &   ': cannot admit more than two semicore shells per channel',nlsc
                stop
             end if
             do i=1,nlsc
@@ -778,7 +781,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
          !positions for the nlcc arrays
          call nlcc_start_position(ity,at,ngv,ngc,islcc)
-
+         !print *,'debug',ity,ngv,ngc,islcc,at%nlccpar(:,:),'acc',shape(at%nlccpar),'end'
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
          call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
             &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
             &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
@@ -1230,7 +1236,6 @@ subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
 
          !positions for the nlcc arrays
          call nlcc_start_position(ity,at,ngv,ngc,islcc)
-
          call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
             &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
             &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&

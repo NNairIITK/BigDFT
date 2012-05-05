@@ -32,7 +32,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,coeffs,psi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -361,6 +361,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         firstperityx( ityx)=iat
         !positions for the nlcc arrays
         call nlcc_start_position(ityp,at,ngv,ngc,islcc)
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
 
 
         if( present(gaenes)) then
@@ -446,6 +449,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   icoeff=1
   do iat=1,at%nat
      if( present(gaenes))  last_aux=ishell
+     !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
@@ -471,6 +475,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
                     Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
                         iorbtolr       (icoeff)=iat
@@ -1248,7 +1253,7 @@ function gauint(a,c,l)
   !local variables
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod,gauint0
+  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
 
   !quick check
   !if (c==0.0_gp) then
@@ -1664,8 +1669,8 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
      call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
-          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),&
+          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),&
+          wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
           psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
 
      !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
