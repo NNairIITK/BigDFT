@@ -216,7 +216,7 @@ char * compress_program="\
 #elif defined (cl_amd_fp64)\n\
 #pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
 #endif\n\
-__kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint *  restrict keyg_c, __global const uint const *  restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
+__kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint *  restrict keyg_c, __global const uint * restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
@@ -246,7 +246,7 @@ i1=ii-i2*(n1)+ig-(*first-1);\n\
 //psi_g(i1,1,i2,1,i3,1)=psi_c[ig]\n\
 psi_c[ig] = psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1];\n\
 };\n\
-__kernel void compress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint *  restrict keyg_c, __global const uint const *  restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
+__kernel void compress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint *  restrict keyg_c, __global const uint *  restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
