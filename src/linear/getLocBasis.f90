@@ -2894,7 +2894,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
-  if(iproc==0) write(*,'(a,2es15.6,l5)') 'trH, ldiis%trmin, ldiis%resetDIIS', trH, ldiis%trmin, ldiis%resetDIIS
+  !if(iproc==0) write(*,'(a,2es15.6,l5)') 'trH, ldiis%trmin, ldiis%resetDIIS', trH, ldiis%trmin, ldiis%resetDIIS
 
   ! Now come some checks whether the trace is descreasing or not. This further decides
   ! whether we should use DIIS or SD.
@@ -2909,7 +2909,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
       ldiis%itBest=it
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
-      if(iproc==0) write(*,*) 'everything ok, copy last psi...'
+      !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
       ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
@@ -2966,7 +2966,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
              ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
              offset=0
              istdest=1
-             if(iproc==0) write(*,*) 'copy DIIS history psi...'
+             !if(iproc==0) write(*,*) 'copy DIIS history psi...'
              do iorb=1,tmbopt%orbs%norbp
                  iiorb=tmbopt%orbs%isorb+iorb
                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
@@ -2978,7 +2978,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
                  istdest=istdest+ncount
              end do
          else
-             if(iproc==0) write(*,*) 'copy last psi...'
+             !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
          end if
          ldiis%isx=0

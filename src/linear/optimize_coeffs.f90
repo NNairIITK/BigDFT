@@ -637,29 +637,29 @@ subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
       stop
   end if
 
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          do jorb=1,tmbder%orbs%norb
-              write(200,'(2i8,es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb)
-          end do
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,tmbder%orbs%norb
+  !!            write(200,'(2i8,es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!end if
 
   ! Normalize the coeffiecients.
   ! Loewdin
   call dgemm('n', 'n', tmbder%orbs%norb, orbs%norb, tmbder%orbs%norb, 1.d0, ovrlp(1,1,1), tmbder%orbs%norb, &
        tmbder%wfnmd%coeff(1,1), tmbder%orbs%norb, 0.d0, coeff_tmp(1,1), tmbder%orbs%norb)
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          do jorb=1,tmbder%orbs%norb
-              write(200,'(2i8,2es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb), coeff_tmp(jorb,iorb)
-          end do
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,tmbder%orbs%norb
+  !!            write(200,'(2i8,2es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb), coeff_tmp(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!end if
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
           ovrlp_coeff(jorb,iorb)=ddot(tmbder%orbs%norb, tmbder%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
-          if(iproc==0) write(400,'(a,2i8,es15.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
+          !!if(iproc==0) write(400,'(a,2i8,es15.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
       end do
   end do
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0

@@ -274,7 +274,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
       end if
   end if
-  if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
+  !!if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
   if(.not.ldiis%switchSD) then
@@ -379,7 +379,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           lphioldopt => lphilargeold
       end if
       tmbopt%confdatarr => tmb%confdatarr
-      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
+      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi)
