@@ -637,12 +637,12 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
   comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'

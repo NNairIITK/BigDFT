@@ -185,6 +185,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 0, &
        orbs, lagmat, ovrlp2, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+  !!call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 1, &
+  !!     orbs, lagmat, ovrlp2, mad, &
+  !!     ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 

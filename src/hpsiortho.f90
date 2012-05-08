@@ -998,9 +998,14 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
             write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
             stop
          end if
-
+!!write(*,*) 'i3s,i3e',i3s,i3e
+!!write(*,'(a,2i8)') 'lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i',lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+!!write(*,*) 'lzd%glr%d%n1i',lzd%glr%d%n1i
          call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
               comgp%recvBuf, pot(ist), i3s, i3e)
+!!do i_stat=1,size_lpot
+!!    write(200+iproc,*) i_stat, pot(ist+i_stat-1)
+!!end do
 
          ist = ist + size_lpot
       end do

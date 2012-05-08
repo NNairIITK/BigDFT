@@ -4486,7 +4486,7 @@ module module_interfaces
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
     subroutine build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-               tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
+               tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, ovrlp, lphi)
       use module_base
       use module_types
       implicit none
@@ -4498,7 +4498,7 @@ module module_interfaces
       real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
       real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
       real(8),dimension(3,at%nat),intent(in):: rxyz
-      real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham
+      real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham, ovrlp
       real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
     end subroutine build_input_guess
 

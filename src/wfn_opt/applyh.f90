@@ -140,6 +140,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      end if
 
      !apply the potential to the psir wavefunction and calculate potential energy
+     !write(*,*) 'iorb, orbs%ispot(iorb)',iorb, orbs%ispot(iorb)
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
           pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
      !this ispot has to be better defined inside denspot structure

@@ -211,6 +211,8 @@ type(energy_terms) :: energs
      ! By doing an LCAO input guess
      call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
           nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+     !!call random_seed()
+     !!call random_number(tmb%psi)
   else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      ! By reading the basis functions and coefficients from file
      allocate(rxyz_old(3,at%nat),stat=istat)

@@ -70,6 +70,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       do jorb=1,tmbopt%orbs%norb
           trH = trH + lagmat(jorb,jorb)
       end do
+      !!!trH=0.d0
+      !!!istat=1
+      !!!do jorb=1,tmbopt%orbs%norbp
+      !!!    tt1=ddot(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
+      !!!    !write(*,*) 'tt1',tt1
+      !!!    call daxpy(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, -tt1, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
+      !!!    !lhphiopt=1.d-10
+      !!!    trH = trH + tt1
+      !!!    istat=istat+tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f
+      !!!end do
+      !!!call mpiallred(trH, 1, mpi_sum, mpi_comm_world, istat)
   end if
 
 
@@ -139,7 +150,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-          if(tt>.9d0 .and. trH<trHold) then
+          !if(tt>.9d0 .and. trH<trHold) then
+          !if(tt>.7d0 .and. trH<trHold) then
+          if(tt>.6d0 .and. trH<trHold) then
               alpha(iorb)=alpha(iorb)*1.1d0
           else
               alpha(iorb)=alpha(iorb)*.6d0
@@ -177,6 +190,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
+  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmbopt%orbs%norb)
 
   iall=-product(shape(lagmat))*kind(lagmat)

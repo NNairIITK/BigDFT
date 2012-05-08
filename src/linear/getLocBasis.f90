@@ -271,7 +271,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
-      call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
+      !!call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
+      !!call dcopy(tmbmix%orbs%norb, eval(1), 1, tmbmix%orbs%eval(1), 1)
   end if
 
   ! TEST
