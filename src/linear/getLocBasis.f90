@@ -412,12 +412,12 @@ real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, fnrmMax, meanAlpha
-integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
+integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, variable_locregs
+logical:: withConfinement, variable_locregs, emergency_exit
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
@@ -436,6 +436,17 @@ type(energy_terms) :: energs
   ! Calculate the kernel
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
+
+  !!write(*,*) 'DEBUG KERNEL'
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if(jorb==iorb) then
+  !!            kernel(jorb,iorb)=1.d0
+  !!        else
+  !!            kernel(jorb,iorb)=0.d0
+  !!        end if
+  !!    end do
+  !!end do
 
 
   
@@ -676,24 +687,31 @@ type(energy_terms) :: energs
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
+      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
           if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
-          else
+          else if(fnrm<tmb%wfnmd%bs%conv_crit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
+          else if(emergency_exit) then
+              if(iproc==0) then
+                  write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
+                      ' iterations to keep presumably good TMBs before they deteriorate too much.'
+                  write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
@@ -2876,6 +2894,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
+  if(iproc==0) write(*,'(a,2es15.6,l5)') 'trH, ldiis%trmin, ldiis%resetDIIS', trH, ldiis%trmin, ldiis%resetDIIS
 
   ! Now come some checks whether the trace is descreasing or not. This further decides
   ! whether we should use DIIS or SD.
@@ -2890,6 +2909,8 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
       ldiis%itBest=it
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
+      if(iproc==0) write(*,*) 'everything ok, copy last psi...'
+      call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
       ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
       ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
@@ -2945,6 +2966,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
              ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
              offset=0
              istdest=1
+             if(iproc==0) write(*,*) 'copy DIIS history psi...'
              do iorb=1,tmbopt%orbs%norbp
                  iiorb=tmbopt%orbs%isorb+iorb
                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
@@ -2956,11 +2978,14 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
                  istdest=istdest+ncount
              end do
          else
+             if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
          end if
          ldiis%isx=0
          ldiis%switchSD=.true.
       end if
+      ! to indicate that no orthonormalization is required... (CHECK THIS!)
+      if(ldiis%isx==0) ldiis%switchSD=.true. 
   end if
 
 end subroutine DIISorSD
