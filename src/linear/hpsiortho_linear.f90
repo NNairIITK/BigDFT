@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -20,6 +20,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  logical,intent(out):: emergency_exit
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
@@ -30,7 +31,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
 
-
+  ! by default no quick exit
+  emergency_exit=.false.
+ 
 
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call allocateSendBufferOrtho(tmbopt%comon, subname)
@@ -84,12 +87,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                    if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                    call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-               else
+               else if(.not.variable_locregs) then
+                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+               else 
                    ! It is not possible to use the old orbitals since the locregs might have changed.
-                   if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+                   !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+                   if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
+                   emergency_exit=.true.
                end if
            else
                consecutive_rejections=0
+               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+               emergency_exit=.true.
            end if
        else
            consecutive_rejections=0
@@ -250,6 +260,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
       end if
   end if
+  if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
   if(.not.ldiis%switchSD) then
@@ -354,6 +365,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           lphioldopt => lphilargeold
       end if
       tmbopt%confdatarr => tmb%confdatarr
+      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi)
