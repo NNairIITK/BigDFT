@@ -26,9 +26,9 @@ type(DFT_wavefunction),intent(inout):: tmbmix, tmb
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
+integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb,borb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
-real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
+real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix,test
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: tt
 logical:: withConfinement
@@ -104,24 +104,24 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 !DEBUG
 !if (iproc==0) then
 !   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!   ekin_sum,epot_sum,eproj_sum
+!   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
 !endif                                                                                                                                                                       
 !END DEBUG
 
 !! TEST: precond
-  if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      !!ind2=1
-      !!do iorb=1,tmbmix%orbs%norbp
-      !!    iiorb=tmbmix%orbs%isorb+iorb
-      !!    ilr = tmbmix%orbs%inWhichLocreg(iiorb)
-      !!    ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!    call choosePreconditioner2(iproc, nproc, tmbmix%orbs, tmb%lzd%llr(ilr), &
-      !!         tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-      !!         tmbmix%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), tmbmix%confdatarr(iorb)%potorder, &
-      !!         0.d0, 1, iorb, tt)
-      !!    ind2=ind2+ncnt
-      !!end do
-  end if
+  !!if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  !!    ind2=1
+  !!    do iorb=1,tmbmix%orbs%norbp
+  !!        iiorb=tmbmix%orbs%isorb+iorb
+  !!        ilr = tmbmix%orbs%inWhichLocreg(iiorb)
+  !!        ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!        call choosePreconditioner2(iproc, nproc, tmbmix%orbs, tmb%lzd%llr(ilr), &
+  !!             tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+  !!             tmbmix%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), tmbmix%confdatarr(iorb)%potorder, &
+  !!             0.d0, 1, iorb, tt)
+  !!        ind2=ind2+ncnt
+  !!    end do
+  !!end if
 
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -249,9 +249,31 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
           end do
       end do
   end do
+
+  !DEBUG
+  ! Check Hamiltonian
+  !!allocate(test(orbs%norb,orbs%norb))
+  !!test=0.d0
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        do korb=1,tmbmix%orbs%norb
+  !!          do borb = 1, tmbmix%orbs%norb
+  !!            test(iorb,jorb) = test(iorb,jorb) + tmbmix%wfnmd%coeff(korb,iorb)*tmbmix%wfnmd%coeff(borb,jorb)*&
+  !!            matrixElements(korb,borb,1)
+  !!          end do
+  !!        end do
+  !!    end do
+  !!end do
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!       if(iproc==0)print *,'test:',test(iorb,jorb)
+  !!    end do
+  !!end do 
+  !!print *,'ebs',2.0_dp*ebs
+  !END DEBUG
+
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
-
 
 
   ! Project the lb coefficients on the smaller subset
@@ -681,7 +703,6 @@ type(energy_terms) :: energs
 
      ! Flush the standard output
      !flush(unit=6) 
-
 
   end do iterLoop
 

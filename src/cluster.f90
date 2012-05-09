@@ -467,14 +467,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         return
      end if
   else
-     KSwfn%orbs%eval=-.5d0  ! I don't think this is usefull...
+
+     ! I don't think this is usefull...
+     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
+     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
+     !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
           KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
           atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,&
+          nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
           energy)
 
      i_all=-product(shape(denspot0))*kind(denspot0)

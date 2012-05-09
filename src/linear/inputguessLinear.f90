@@ -236,7 +236,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb)
+     nlpspd, proj, GPU, lphi,orbs,tmb,energs)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -261,6 +261,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
+  type(energy_terms),intent(inout) :: energs
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -283,7 +284,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer :: nlocregPerMPI,jproc,jlrold,infoCoeff
   !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
-  type(energy_terms) :: energs
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
   type(GPU_pointers) :: GPUe

@@ -2217,7 +2217,7 @@ module module_interfaces
     
     subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
          rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-         eion,edisp,eexctX,scpot,psi,energy)
+         energs,scpot,psi,energy)
       use module_base
       use module_types
       implicit none
@@ -2235,7 +2235,7 @@ module module_interfaces
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(GPU_pointers),intent(in out):: GPU
-      real(gp),intent(in):: eion, edisp, eexctX
+      type(energy_terms),intent(inout) :: energs
       logical,intent(in):: scpot
       !real(8),dimension(orbs),intent(out):: psi
       real(8),dimension(:),pointer,intent(out):: psi
@@ -2580,7 +2580,7 @@ module module_interfaces
     subroutine inputguessConfinement(iproc, nproc, at, &
          input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
-         lphi,orbs,tmb)
+         lphi,orbs,tmb,energs)
       use module_base
       use module_types
       implicit none
@@ -2600,6 +2600,7 @@ module module_interfaces
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
       type(orbitals_data),intent(in):: orbs
       type(DFT_wavefunction),intent(inout):: tmb
+      type(energy_terms),intent(out) :: energs
     end subroutine inputguessConfinement
 
 

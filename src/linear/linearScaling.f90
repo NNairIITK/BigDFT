@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-     eion,edisp,eexctX,scpot,psi,energy)
+     energs,scpot,psi,energy)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -20,7 +20,8 @@ real(gp), dimension(:), intent(inout) :: rhopotold
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
-real(gp),intent(in):: eion, edisp, eexctX,hx,hy,hz
+type(energy_terms),intent(inout) :: energs
+real(gp),intent(in):: hx,hy,hz
 logical,intent(in):: scpot
 real(8),dimension(:),pointer,intent(out):: psi
 real(gp), dimension(:), pointer :: rho,pot
@@ -30,7 +31,7 @@ type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode
-real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
+real(8):: pnrm,trace
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -351,10 +352,14 @@ integer:: jorb, jjorb
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
 
+          ! Calculate the total energy.
+          energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+          energyDiff=energy-energyold
+          energyold=energy
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
@@ -370,17 +375,10 @@ integer:: jorb, jjorb
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
-
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
           call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
-               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,ehart,eexcu,vexcu)
-
-          ! Calculate the total energy.
-          energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
-          energyDiff=energy-energyold
-          energyold=energy
-
+               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,energs%eh,energs%exc,energs%evxc)
 
           ! Mix the potential
           !if(trim(input%lin%mixingMethod)=='pot') then
@@ -417,7 +415,7 @@ integer:: jorb, jjorb
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
+              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           !if(trim(input%lin%mixingMethod)=='dens') then
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&

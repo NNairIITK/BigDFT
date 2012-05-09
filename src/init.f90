@@ -2147,7 +2147,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call inputguessConfinement(iproc, nproc, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb)
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs)
 
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
@@ -2160,9 +2160,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
      !TO DO: COEFF PROJ
-!     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
-!                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
-!      tmb%orbs%occup = 2.0_gp
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
