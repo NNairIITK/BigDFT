@@ -236,7 +236,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb)
+     nlpspd, proj, GPU, lphi,orbs,tmb,overlapmatrix)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -261,6 +261,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -771,7 +772,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, density_kernel, 'density_kernel', subname)
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel)
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.)
   iall = -product(shape(density_kernel))*kind(density_kernel)
   deallocate(density_kernel,stat=istat)
   call memocc(istat,iall,'density_kernel',subname)

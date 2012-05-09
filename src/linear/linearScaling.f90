@@ -36,9 +36,9 @@ type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),target:: tmb
 type(DFT_wavefunction),target:: tmbder
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,onefile, coeffs_copied, first_time_with_der
+logical:: check_whether_derivatives_to_be_used,onefile, coeffs_copied, first_time_with_der,calculate_overlap_matrix
 real(8),dimension(:),allocatable:: psit_c, psit_f, philarge, lphiovrlp, psittemp_c, psittemp_f
-real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old, density_kernel
+real(8),dimension(:,:),allocatable:: ovrlp, philarge_root,rxyz_old, density_kernel, overlapmatrix
 integer:: jorb, ldim, sdim, ists, istl, nspin, ierr,inputpsi,input_wf_format, ndim, jjorb
 !FOR DEBUG ONLY
 integer,dimension(:),allocatable:: debugarr
@@ -209,8 +209,25 @@ type(energy_terms) :: energs
   tmb%wfnmd%bs%update_phi=.false.
   if(inputpsi == INPUT_PSI_LINEAR) then
      ! By doing an LCAO input guess
+     ! Allocate the transposed TMBs
+     allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=istat)
+     call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+     allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=istat)
+     call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+     allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+     call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
      call inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, tmb%lzd, tmb%orbs, rxyz, denspot ,rhopotold, &
-          nlpspd, proj, GPU,  tmb%psi, orbs, tmb)
+          nlpspd, proj, GPU,  tmb%psi, orbs, tmb, overlapmatrix)
+     ! Deallocate the transposed TMBs
+     iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+     deallocate(tmb%psit_c, stat=istat)
+     call memocc(istat, iall, 'tmb%psit_c', subname)
+     iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+     deallocate(tmb%psit_f, stat=istat)
+     call memocc(istat, iall, 'tmb%psit_f', subname)
+     iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+     deallocate(overlapmatrix, stat=istat)
+     call memocc(istat, iall, 'overlapmatrix', subname)
      !!call random_seed()
      !!call random_number(tmb%psi)
   else if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
@@ -540,13 +557,23 @@ type(energy_terms) :: energs
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
+
+              ! Allocate the transposed TMBs
+              allocate(tmbmix%psit_c(tmbmix%collcom%ndimind_c), stat=istat)
+              call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+              allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
+              call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+              call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
           end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              calculate_overlap_matrix=.true.
           else
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              calculate_overlap_matrix=.false.
           end if
 
           if(lscv%withder .and. .not.first_time_with_der) then
@@ -567,7 +594,7 @@ type(energy_terms) :: energs
           ! Calculate the coefficients
           call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,ldiis_coeff)
+               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,ldiis_coeff)
 
           !!call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
           !!     tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
@@ -632,9 +659,33 @@ type(energy_terms) :: energs
               lscv%reduce_convergence_tolerance=.false.
           end if
 
+          if(it_scc<lscv%nit_scc_when_optimizing) then
+              ! Deallocate the transposed TMBs
+              iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+              deallocate(tmbmix%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmbmix%psit_c', subname)
+              iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+              deallocate(tmbmix%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmbmix%psit_f', subname)
+              iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+              deallocate(overlapmatrix, stat=istat)
+              call memocc(istat, iall, 'overlapmatrix', subname)
+          end if
+
       end do
 
       call deallocateDIIS(ldiis_coeff)
+
+      ! Deallocate the transposed TMBs
+      iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+      deallocate(tmbmix%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmbmix%psit_c', subname)
+      iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+      deallocate(tmbmix%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmbmix%psit_f', subname)
+      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+      deallocate(overlapmatrix, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix', subname)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
