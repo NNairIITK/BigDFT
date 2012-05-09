@@ -598,7 +598,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   !this value can also be inserted as a parameter
   !fpi=pi^-1/4 pi^-1/2, pi^-1/4 comes from sqrt(gamma(x)) and pi^-1/2 from Ylm.
   !fpi=(4.0_gp*atan(1.0_gp))**(-.75_gp)
-  fpi=0.42377720812375763
+  fpi=0.42377720812375763_gp
 
   rx=rxyz(1) 
   ry=rxyz(2) 
@@ -728,7 +728,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
 
   !fpi= (4.0*math.atan(1.0))**(-0.75) factor in spherical harmonics
   !fpi=pi^-1/2 from Ylm.
-  fpi=0.56418958354775628
+  fpi=0.56418958354775628_gp
 
   rx=rxyz(1) 
   ry=rxyz(2) 
@@ -808,13 +808,13 @@ subroutine gamma_factor(l,fgamma)
  integer,intent(in)::l
  
  if(l==0) then
-   fgamma= 0.70710678118654757 !1.0/sqrt(2.0)
+   fgamma= 0.70710678118654757_gp !1.0/sqrt(2.0)
  elseif(l==1) then
-   fgamma= 0.86602540378443860 !sqrt(3)/2.0
+   fgamma= 0.8660254037844386_gp !sqrt(3)/2.0
  elseif(l==2) then
-   fgamma= 1.3693063937629153  !sqrt(3*5)/(2.0*sqrt(2))
+   fgamma= 1.3693063937629153_gp  !sqrt(3*5)/(2.0*sqrt(2))
  elseif(l==3) then
-   fgamma= 2.5617376914898995  !sqrt(7*5*3)/(4.0) 
+   fgamma= 2.5617376914898995_gp  !sqrt(7*5*3)/(4.0) 
  else
     write(*,'(1x,a)')'error found!'
     write(*,'(1x,a,i4)')&

@@ -1177,26 +1177,14 @@ subroutine applyprojector_paw(ncplx,istart_c,&
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
         do ispinor=1,nspinor,ncplx
-!           call wpdot_wrap(ncplx,  &
-!                nvctr_c,nvctr_f,nseg_c,nseg_f,&
-!                keyv,keyg,&
-!                psi(1,ispinor), &
-!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!                keyv_p,&!nlpspd%keyv_p(jseg_c),&
-!                keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
-!                proj(istart_j),&
-!                cprj(ispinor,jlmn))
-!Test projectors
            call wpdot_wrap(ncplx,  &
                 nvctr_c,nvctr_f,nseg_c,nseg_f,&
                 keyv,keyg,&
-                proj(istart_j), &
+                psi(1,ispinor), &
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p,&!nlpspd%keyv_p(jseg_c),&
-                keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+                keyv_p,keyg_p,&
                 proj(istart_j),&
                 cprj(ispinor,jlmn))
-           !write(300,*)jlmn,cprj(ispinor,jlmn)
         end do !ispinor
         istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
      end do !i_m
@@ -1223,21 +1211,61 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      call calculate_dprj(paw_ij%dij(:,1),iaux)
      !
      !apply non-local operator
-     call apply_non_local_operator(hpsi,nvctr_c+7*nvctr_f,ncplx)
+     istart_j=istart_c
+     call apply_non_local_operator(hpsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
      eproj=eproj+eproj_i
+  !
+  !DEBUG: calculate <PSI|H|PSI>
+  !
+     do ispinor=1,nspinor,ncplx
+        call wpdot_wrap(ncplx,  &
+             nvctr_c,nvctr_f,nseg_c,nseg_f,&
+             keyv,keyg,&
+             psi(1,ispinor), &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             keyv_p,&!nlpspd%keyv_p(jseg_c),&
+             keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+             hpsi,&
+             scpr(1))
+     end do !ispinor
+     write(*,*)'erase me: applyprojector_paw l242'
+     write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
   end if
   if(sij_opt==2 .or. sij_opt==3) then
   !CALCULATE |S|PSI>
      dprj=0.0_wp
      !Pending: check if it works  for cplex_dij=2
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     !DEBUG
+     write(*,*)'erase me, applyprojector_paw, l1248'
+     write(*,*)'sij=',sij(1:iaux)
+     !END DEBUG
      !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
      call calculate_dprj(sij(1:iaux),iaux)
      !
      !apply non-local operator
-     call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx)
+     istart_j=istart_c
+     call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
+  !
+  !DEBUG: calculate <PSI|S|PSI>
+  !
+     do ispinor=1,nspinor,ncplx
+        call wpdot_wrap(ncplx,  &
+             nvctr_c,nvctr_f,nseg_c,nseg_f,&
+             keyv,keyg,&
+             psi(1,ispinor), &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             keyv_p,&!nlpspd%keyv_p(jseg_c),&
+             keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
+             spsi,&
+             scpr(1))
+     end do !ispinor
+     write(*,*)'erase me: applyprojector_paw l253'
+     write(*,*)'<psi|S|psi>= ',scpr(1:ncplx)
   end if
 
+  !update istart_c, note that we only used istart_j above.
+  istart_c=istart_j
   deallocate(cprj)
   deallocate(dprj)
 
@@ -1287,17 +1315,18 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      end do
   end subroutine calculate_dprj 
 
-  subroutine apply_non_local_operator(apham,dim1,dim2)
+  subroutine apply_non_local_operator(apham,dim1,dim2,istart)
 
      implicit none
      integer,intent(in)::dim1,dim2
+     integer,intent(inout)::istart
      real(wp),dimension(dim1,dim2), intent(inout) :: apham
+     
  
      !build a single array via daxpy for the projectors
      !apply the non-local operator on the wavefunction
      !for the moment use the traditional waxpy instead of daxpy, for test purposes
      eproj_i=0.0_gp
-     !istart_j=istart_c  !this line may not be needed.
      jlmn=0
      do j_shell=1,proj_G%nshltot
         j_l=proj_G%nam(j_shell)
@@ -1311,11 +1340,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                    keyv_p,&!nlpspd%keyv_p(jseg_c),&
                    keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
-                   proj(istart_c),&
+                   proj(istart),&
                    nvctr_c,nvctr_f,nseg_c,nseg_f,&
                    keyv,keyg,&
                    apham(1,ispinor))
-              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+              istart=istart+(mbvctr_c+7*mbvctr_f)*ncplx
            end do
         end do
      end do

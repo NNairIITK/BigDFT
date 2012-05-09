@@ -600,19 +600,29 @@ module module_interfaces
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
       END SUBROUTINE SynchronizeHamiltonianApplication
 
-      subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,paw)
+      subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,&
+         Lzd,paw,at,hx,hy,hz,rxyz,proj,nlpspd,eproj_sum,proj_G)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,idsx,iter
-         type(locreg_descriptors), intent(in) :: lr
          type(communications_arrays), intent(in) :: comms
          type(orbitals_data), intent(in) :: orbs
          type(orthon_data), intent(in) :: orthpar
          type(diis_objects), intent(inout) :: diis
-         type(paw_objects),intent(inout)::paw
          real(wp), dimension(:), pointer :: psi,psit,hpsi
+         type(paw_objects),intent(inout)::paw
+         type(local_zone_descriptors), intent(in) :: Lzd
+         real(gp), intent(in) :: hx,hy,hz
+         type(atoms_data), intent(in) :: at
+         type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
+         type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+         real(gp), intent(out) :: eproj_sum
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
       END SUBROUTINE hpsitopsi
+
+
 
       subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
             &   psi,hpsi,psit,orthpar,passmat,& !mandatory

@@ -317,7 +317,8 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !control the previous value of idsx_actual
       idsx_actual_before=diis%idsx
 
-      call hpsitopsi(iproc,nproc,orbsv,Lzd%Glr,commsv,iter,diis,in%idsx,psivirt,psitvirt,hpsivirt,in%orthpar,paw)
+      call hpsitopsi(iproc,nproc,orbsv,commsv,iter,diis,in%idsx,psivirt,psitvirt,hpsivirt,in%orthpar,&
+           Lzd,paw,at,hx,hy,hz,rxyz,proj,nlpspd,eproj_sum,proj_G)
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi

@@ -985,7 +985,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               idsx_actual_before=diis%idsx
 
               !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,paw)
+              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,&
+                                Lzd,paw,atoms,hx,hy,hz,rxyz,proj,nlpspd,eproj_sum,proj_G)
 
               if (in%inputPsiId == 0) then
                  if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &

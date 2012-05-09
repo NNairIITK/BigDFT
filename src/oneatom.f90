@@ -280,7 +280,8 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,paw) 
+     call hpsitopsi(iproc,nproc,orbs,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,&
+          lzd,paw,atoms,in%hx,in%hy,in%hz,rxyz,proj,nlpspd,eproj_sum,proj_G) 
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)

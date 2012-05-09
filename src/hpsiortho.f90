@@ -1290,24 +1290,170 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
 
 end subroutine write_energies
 
+!!> This is a temporary routine, for the PAW case
+!!> Operations after h|psi> 
+!!! (transposition, orthonormalisation, inverse transposition)
+!subroutine hpsitopsi_paw(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,&
+!   Lzd,paw)
+!   !at,hx,hy,hz,rxyz,proj,Lzd,nlpspd,eproj_sum,proj_G,paw)
+!   use module_base
+!   use module_types
+!   use module_interfaces, except_this_one_A => hpsitopsi_paw
+!   implicit none
+!   integer, intent(in) :: iproc,nproc,idsx,iter
+!   !real(gp), intent(in) :: hx,hy,hz
+!   !type(atoms_data), intent(in) :: at
+!   type(local_zone_descriptors), intent(in) :: Lzd
+!   !type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
+!   type(communications_arrays), intent(in) :: comms
+!   type(orbitals_data), intent(in) :: orbs
+!   type(orthon_data), intent(in) :: orthpar
+!   type(diis_objects), intent(inout) :: diis
+!   type(paw_objects),intent(inout)::paw
+!   !type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+!   !real(gp), intent(out) :: eproj_sum
+!   !real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!   !real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+!   real(wp), dimension(:), pointer :: psi,psit,hpsi
+!   !local variables
+!   integer :: i_all,i_stat
+!   real(wp), dimension(:), pointer :: work
+!   character(len=*), parameter :: subname='hpsitopsi_paw'
+!
+!   nullify(work)
+!
+!   !adjust the save variables for DIIS/SD switch
+!   if (iter == 1) then
+!      diis%ids=0
+!      diis%mids=1
+!      diis%idiistol=0
+!   end if
+!   !update variables at each iteration step
+!   if (idsx > 0) then
+!      diis%mids=mod(diis%ids,idsx)+1
+!      diis%ids=diis%ids+1
+!   end if
+!
+!   diis%energy_min=min(diis%energy_min,diis%energy)
+!
+!   !transpose the hpsi wavefunction
+!   call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+!      &   hpsi,work=psi)
+!   !PAW:
+!   !transpose the spsi wavefunction
+!   !if(paw%usepaw==1) then
+!   !  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+!   !   &   paw%spsi,work=psi)
+!   !end if
+!
+!   !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
+!   !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
+!
+!   !apply the minimization method (DIIS or steepest descent)
+!   call timing(iproc,'Diis          ','ON')
+!
+!   call psimix(iproc,nproc,sum(comms%ncntt(0:nproc-1)),orbs,comms,diis,hpsi,psit)
+!   
+!   !Update spsi, hpsi and cprj, since psi has changed
+!   !Pending: make this with the transposed wavefunctions:
+!   !if(paw%usepaw==1) then
+!   !  !retranspose psi
+!   !  !
+!   !  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+!   !     &   psit,work=hpsi,outadd=psi(1))
+!   !  !
+!   !  !Calculate  hpsi,spsi and cprj with new psi
+!   !  if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
+!   !  call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+!   !       proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
+!   !  !
+!   !  !transpose psit
+!   !  !here we cannot erase hpsi, so we use work
+!   !  allocate(work(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+!   !  call memocc(i_stat,work,'work',subname)
+!   !  !
+!   !  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit,work=work)
+!   !  !transpose spsi 
+!   !  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
+!   !end if
+!
+!   call timing(iproc,'Diis          ','OF')
+!
+!   if (iproc == 0 .and. verbose > 1) then
+!      write(*,'(1x,a)',advance='no')&
+!         &   'Orthogonalization...'
+!   end if
+!
+!   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
+!
+!   !!PENDING: PAW HPSI and PSI should also be modified
+!   !!in orthogonalize, probably, we need to unstranspose hpsi at the end
+!
+!   !!       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+!
+!   !if(paw%usepaw==0) then
+!     call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+!        &   psit,work=hpsi,outadd=psi(1))
+!   !else
+!
+!   !  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+!   !     &   psit,work=work,outadd=psi(1))
+!   !  !retranspose the spsi wavefunction
+!   !  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
+!
+!   !  !deallocate temporary array
+!   !  i_all=-product(shape(work))*kind(work)
+!   !  deallocate(work,stat=i_stat)
+!   !  call memocc(i_stat,i_all,'work',subname)
+!
+!   !end if
+!
+!
+!   if (nproc == 1) then
+!      nullify(psit)
+!   end if
+!
+!   if (iproc == 0 .and. verbose > 1) then
+!      write(*,'(1x,a)')&
+!         &   'done.'
+!   end if
+!
+!   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
+!
+!   !previous value already filled
+!   diis%energy_old=diis%energy
+!
+!END SUBROUTINE hpsitopsi_paw
+
+
 
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,paw) 
+subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar,&
+   Lzd,paw,at,hx,hy,hz,rxyz,proj,nlpspd,eproj_sum,proj_G)
    use module_base
    use module_types
    use module_interfaces, except_this_one_A => hpsitopsi
    implicit none
    integer, intent(in) :: iproc,nproc,idsx,iter
-   type(locreg_descriptors), intent(in) :: lr
    type(communications_arrays), intent(in) :: comms
    type(orbitals_data), intent(in) :: orbs
    type(orthon_data), intent(in) :: orthpar
    type(diis_objects), intent(inout) :: diis
    real(wp), dimension(:), pointer :: psi,psit,hpsi
    type(paw_objects),intent(inout)::paw
+   type(local_zone_descriptors), intent(in) :: Lzd
+   real(gp), intent(in) :: hx,hy,hz
+   type(atoms_data), intent(in) :: at
+   type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
+   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   real(gp), intent(out) :: eproj_sum
+   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    !local variables
-   !n(c) character(len=*), parameter :: subname='hpsitopsi'
+   integer :: i_all,i_stat
+   real(wp), dimension(:), pointer :: work
+   character(len=*), parameter :: subname='hpsitopsi'
 
    !adjust the save variables for DIIS/SD switch
    if (iter == 1) then
@@ -1324,14 +1470,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
    diis%energy_min=min(diis%energy_min,diis%energy)
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
+   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
       &   hpsi,work=psi)
-   !PAW:
-   !transpose the spsi wavefunction
-   if(paw%usepaw==1) then
-     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
-      &   paw%spsi,work=psi)
-   end if
 
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
    !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
@@ -1340,6 +1480,29 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
    call timing(iproc,'Diis          ','ON')
 
    call psimix(iproc,nproc,sum(comms%ncntt(0:nproc-1)),orbs,comms,diis,hpsi,psit)
+  
+   !PENDING: 
+   !Update spsi, since psi has change
+   !Pending: make this with the transposed wavefunctions:
+   if(paw%usepaw==1) then
+     !retranspose psit
+     call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+        &   psit,work=hpsi,outadd=psi(1))
+
+     !Calculate  hpsi,spsi and cprj with new psi
+     if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
+     call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+          proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
+     !
+     !transpose psit
+     !here we cannot erase hpsi, so we use work
+     allocate(work(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+     call memocc(i_stat,work,'work',subname)
+     !
+     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit,work=work)
+     !transpose spsi 
+     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
+   end if
 
    call timing(iproc,'Diis          ','OF')
 
@@ -1348,16 +1511,28 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
          &   'Orthogonalization...'
    end if
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
+   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw,hpsi)
+
+   !PENDING: PAW HPSI and PSI should also be modified
+   !in orthogonalize, probably, we need to unstranspose hpsi at the end
 
    !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
-   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
-      &   psit,work=hpsi,outadd=psi(1))
-  
-   if(paw%usepaw==1) then
-   !retranspose the spsi wavefunction
-     call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,paw%spsi,work=hpsi)
+   if(paw%usepaw==0) then
+     call untranspose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
+        &   psit,work=hpsi,outadd=psi(1))
+   else
+     !
+     call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+        &   psit,work=work,outadd=psi(1))
+     !retranspose the spsi wavefunction
+     call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
+     !
+     !deallocate temporary array
+     i_all=-product(shape(work))*kind(work)
+     deallocate(work,stat=i_stat)
+     call memocc(i_stat,i_all,'work',subname)
+     !
    end if
 
    if (nproc == 1) then
