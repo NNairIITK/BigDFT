@@ -248,10 +248,6 @@ gboolean bigdft_read_wave_descr(const char *filename, int *norbu,
 /******************************************/
 static void bigdft_wf_dispose(GObject *atoms);
 static void bigdft_wf_finalize(GObject *atoms);
-static void bigdft_wf_get_property(GObject* obj, guint property_id,
-                                   GValue *value, GParamSpec *pspec);
-static void bigdft_wf_set_property(GObject* obj, guint property_id,
-                                   const GValue *value, GParamSpec *pspec);
 
 #ifdef HAVE_GLIB
 enum {
@@ -270,6 +266,11 @@ enum
 G_DEFINE_TYPE(BigDFT_Wf, bigdft_wf, BIGDFT_ORBS_TYPE)
 
 static guint bigdft_wf_signals[LAST_SIGNAL] = { 0 };
+
+static void bigdft_wf_get_property(GObject* obj, guint property_id,
+                                   GValue *value, GParamSpec *pspec);
+static void bigdft_wf_set_property(GObject* obj, guint property_id,
+                                   const GValue *value, GParamSpec *pspec);
 
 static void g_cclosure_marshal_ONE_WAVE(GClosure *closure,
                                         GValue *return_value,

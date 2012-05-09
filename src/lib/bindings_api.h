@@ -62,6 +62,9 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, co
                                         const double *radii, const double *mult,
                                         const double *hx, const double *hy, const double *hz,
                                         int *grid);
+void FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
+     (void *sym, const gchar *geocode, const guint *n1i, const guint *n2i,
+      const guint *n3i, const guint *nspin);
 
 void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
@@ -103,7 +106,7 @@ void FC_FUNC_(lzd_get_data, LZD_GET_DATA)(void *lzd, void *glr);
 void FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(void *lzd, const guint *i, void *llr);
 void FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(void *lzd, guint *nlr);
 void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-     (const guint *iproc, const guint *nproc, const gchar type[3], void *lzd,
+     (const guint *iproc, const guint *nproc, const guint *type, void *lzd,
       const void *atoms, void *orbs, const guint *npsin, const double *rxyz);
 
 
@@ -131,6 +134,9 @@ void FC_FUNC_(orbs_get_eval, ORBS_GET_EVAL)(void *orbs, void *eval);
 void FC_FUNC_(orbs_get_occup, ORBS_GET_OCCUP)(void *orbs, void *occup);
 void FC_FUNC_(orbs_get_kwgts, ORBS_GET_KWGTS)(void *orbs, void *kwgts);
 void FC_FUNC_(orbs_get_kpts, ORBS_GET_KPTS)(void *orbs, void *kpts);
+void FC_FUNC_(orbs_get_inwhichlocreg, ORBS_GET_INWHICHLOCREG)(void *orbs, void *locreg);
+void FC_FUNC_(orbs_get_onwhichmpi, ORBS_GET_ONWHICHMPI)(void *orbs, void *mpi);
+void FC_FUNC_(orbs_get_onwhichatom, ORBS_GET_ONWHICHATOM)(void *orbs, void *atom);
 
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)

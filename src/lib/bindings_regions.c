@@ -422,6 +422,12 @@ void bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
   lzd->h[1] = lzd->parent.h[1];
   lzd->h[2] = lzd->parent.h[2];
 }
+void bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint nspin)
+{
+  FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
+    (lzd->parent.parent.sym, &lzd->parent.parent.geocode,
+     lzd->parent.ni, lzd->parent.ni + 1, lzd->parent.ni + 2, &nspin);
+}
 void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                   double crmult, double frmult)
 {
@@ -448,9 +454,13 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
       FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
         (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
          orbs->data, dorbs, &withderorbs, lzd->data);
+      GET_ATTR_UINT(orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
+      GET_ATTR_UINT(orbs, ORBS, onwhichmpi,    ONWHICHMPI);
+      GET_ATTR_UINT(orbs, ORBS, onwhichatom,   ONWHICHATOM);
       FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
     }
 
+  /* Get the llr array. */
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
   if (lzd->nlr > 0)
     {

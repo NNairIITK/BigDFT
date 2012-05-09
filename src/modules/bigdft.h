@@ -256,6 +256,7 @@ BigDFT_Lzd* bigdft_lzd_new_from_fortran (void *fortran_lzd);
 void        bigdft_lzd_free             (BigDFT_Lzd *lzd);
 void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
                                          double crmult, double frmult);
+void        bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint npsin);
 void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                          double crmult, double frmult);
 void        bigdft_lzd_define           (BigDFT_Lzd *lzd, guint type,
@@ -300,6 +301,8 @@ struct BigDFT_orbs_
      /* integer, dimension(:,:), pointer :: norb_par */
   double *eval, *occup;
   double *kwgts, *kpts;
+
+  guint *inwhichlocreg, *onwhichmpi, *onwhichatom;
 
   /* Pointers on building objects. */
   const BigDFT_Inputs *in;
