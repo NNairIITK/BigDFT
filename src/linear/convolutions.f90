@@ -217,15 +217,48 @@ call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yzb_f(1,nfl3,nfl1,nfl2
 call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yzc_f(1,nfl3,nfl1,nfl2))
 call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yze_f(1,nfl3,nfl1,nfl2))
 
-aeff0=0.d0 ; beff0=0.d0 ; ceff0=0.d0 ; eeff0=0.0
-aeff1=0.d0 ; beff1=0.d0 ; ceff1=0.d0 ; eeff1=0.0
-aeff2=0.d0 ; beff2=0.d0 ; ceff2=0.d0 ; eeff2=0.0
-aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
-aeff0_2=0.d0 ; beff0_2=0.d0 ; ceff0_2=0.d0 ; eeff0_2=0.0
-aeff1_2=0.d0 ; beff1_2=0.d0 ; ceff1_2=0.d0 ; eeff1_2=0.0
-aeff2_2=0.d0 ; beff2_2=0.d0 ; ceff2_2=0.d0 ; eeff2_2=0.0
-aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
+call to_zero(lupfil-lowfil+7, aeff0(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff1(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff3(-3+lowfil))
+
+call to_zero(lupfil-lowfil+7, beff0(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff1(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff3(-3+lowfil))
+
+call to_zero(lupfil-lowfil+7, ceff0(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff1(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff3(-3+lowfil))
+
+call to_zero(lupfil-lowfil+1, eeff0(lowfil))
+call to_zero(lupfil-lowfil+1, eeff1(lowfil))
+call to_zero(lupfil-lowfil+1, eeff2(lowfil))
+call to_zero(lupfil-lowfil+1, eeff3(lowfil))
+
+
+call to_zero(lupfil-lowfil+7, aeff0_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff1_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff2_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, aeff3_2(-3+lowfil))
+
+call to_zero(lupfil-lowfil+7, beff0_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff1_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff2_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, beff3_2(-3+lowfil))
+
+call to_zero(lupfil-lowfil+7, ceff0_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff1_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff2_2(-3+lowfil))
+call to_zero(lupfil-lowfil+7, ceff3_2(-3+lowfil))
+
+call to_zero(lupfil-lowfil+1, eeff0_2(lowfil))
+call to_zero(lupfil-lowfil+1, eeff1_2(lowfil))
+call to_zero(lupfil-lowfil+1, eeff2_2(lowfil))
+call to_zero(lupfil-lowfil+1, eeff3_2(lowfil))
+
 
 
   !!$!$omp parallel default(private) &
