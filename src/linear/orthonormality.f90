@@ -204,7 +204,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       end do
       call build_linear_combination_transposed(orbs%norb, ovrlp2, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
 
-      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+      !call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)

@@ -59,7 +59,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, &
            psit_c, psit_f, psit_f, ovrlp)
-      call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
+      !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
       iall=-product(shape(psit_c))*kind(psit_c)
       deallocate(psit_c, stat=istat)
       call memocc(istat, iall, 'psit_c', subname)
@@ -156,8 +156,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
            lhphi, hpsit_c, hpsit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, &
            psit_c, hpsit_c, psit_f, hpsit_f, matrixElements)
-      call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-      ! not necessary to untranpose hpsit...
+      !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
       iall=-product(shape(psit_c))*kind(psit_c)
       deallocate(psit_c, stat=istat)
       call memocc(istat, iall, 'psit_c', subname)

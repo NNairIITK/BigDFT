@@ -838,7 +838,7 @@ end type linear_scaling_control_variables
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
-     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets

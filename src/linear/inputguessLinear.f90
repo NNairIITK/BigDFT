@@ -2058,7 +2058,7 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
         end do
         call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
   
-      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
+      !!call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
       call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)
   
   
