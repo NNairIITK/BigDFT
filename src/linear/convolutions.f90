@@ -108,10 +108,10 @@ allocate(ceff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, ceff0array, 'ceff0array', subname)
 allocate(eeff0array(lowfil:lupfil,0:i), stat=istat)
 call memocc(istat, eeff0array, 'eeff0array', subname)
-aeff0array=0.d0
-beff0array=0.d0
-ceff0array=0.d0
-eeff0array=0.d0
+call to_zero((i+1)*(lupfil-lowfil+7), aeff0array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), beff0array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), ceff0array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+1), eeff0array(lowfil,0))
 
 allocate(aeff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, aeff0_2array, 'aeff0_2array', subname)
@@ -121,10 +121,10 @@ allocate(ceff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, ceff0_2array, 'ceff0_2array', subname)
 allocate(eeff0_2array(lowfil:lupfil,0:i), stat=istat)
 call memocc(istat, eeff0_2array, 'eeff0_2array', subname)
-aeff0_2array=0.d0
-beff0_2array=0.d0
-ceff0_2array=0.d0
-eeff0_2array=0.d0
+call to_zero((i+1)*(lupfil-lowfil+7), aeff0_2array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), beff0_2array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), ceff0_2array(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+1), eeff0_2array(lowfil,0))
 
 allocate(aeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, aeff0_2auxarray, 'aeff0_2auxarray', subname)
@@ -134,10 +134,10 @@ allocate(ceff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, ceff0_2auxarray, 'ceff0_2auxarray', subname)
 allocate(eeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
 call memocc(istat, eeff0_2auxarray, 'eeff0_2auxarray', subname)
-aeff0_2auxarray=0.d0
-beff0_2auxarray=0.d0
-ceff0_2auxarray=0.d0
-eeff0_2auxarray=0.d0
+call to_zero((i+1)*(lupfil-lowfil+7), aeff0_2auxarray(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), beff0_2auxarray(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), ceff0_2auxarray(-3+lowfil,0))
+call to_zero((i+1)*(lupfil-lowfil+7), eeff0_2auxarray(-3+lowfil,0))
 
 allocate(xya_c(0:n2,0:n1,0:n3), stat=istat)
 call memocc(istat, xya_c, 'xya_c', subname)
@@ -147,10 +147,10 @@ allocate(xyc_c(0:n2,0:n1,0:n3), stat=istat)
 call memocc(istat, xyc_c, 'xyc_c', subname)
 allocate(xye_c(0:n2,0:n1,0:n3), stat=istat)
 call memocc(istat, xye_c, 'xye_c', subname)
-xya_c=0.d0
-xyb_c=0.d0
-xyc_c=0.d0
-xye_c=0.d0
+call to_zero((n1+1)*(n2+1)*(n3+1), xya_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xyb_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xyc_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xye_c(0,0,0))
 
 allocate(xza_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, xza_c, 'xza_c', subname)
@@ -160,10 +160,10 @@ allocate(xzc_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, xzc_c, 'xzc_c', subname)
 allocate(xze_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, xze_c, 'xze_c', subname)
-xza_c=0.d0
-xzb_c=0.d0
-xzc_c=0.d0
-xze_c=0.d0
+call to_zero((n1+1)*(n2+1)*(n3+1), xza_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xzb_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xzc_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), xze_c(0,0,0))
 
 allocate(yza_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, yza_c, 'yza_c', subname)
@@ -173,10 +173,10 @@ allocate(yzc_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, yzc_c, 'yzc_c', subname)
 allocate(yze_c(0:n3,0:n1,0:n2), stat=istat)
 call memocc(istat, yze_c, 'yze_c', subname)
-yza_c=0.d0
-yzb_c=0.d0
-yzc_c=0.d0
-yze_c=0.d0
+call to_zero((n1+1)*(n2+1)*(n3+1), yza_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), yzb_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), yzc_c(0,0,0))
+call to_zero((n1+1)*(n2+1)*(n3+1), yze_c(0,0,0))
 
 allocate(xya_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
 call memocc(istat, xya_f, 'xya_f', subname)
@@ -186,10 +186,10 @@ allocate(xyc_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
 call memocc(istat, xyc_f, 'xyc_f', subname)
 allocate(xye_f(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
 call memocc(istat, xye_f, 'xye_f', subname)
-xya_f=0.d0
-xyb_f=0.d0
-xyc_f=0.d0
-xye_f=0.d0
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xya_f(1,nfl2,nfl1,nfl3))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xyb_f(1,nfl2,nfl1,nfl3))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xyc_f(1,nfl2,nfl1,nfl3))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xye_f(1,nfl2,nfl1,nfl3))
 
 allocate(xza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, xza_f, 'xza_f', subname)
@@ -199,10 +199,10 @@ allocate(xzc_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, xzc_f, 'xzc_f', subname)
 allocate(xze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, xze_f, 'xze_f', subname)
-xza_f=0.d0
-xzb_f=0.d0
-xzc_f=0.d0
-xze_f=0.d0
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xza_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xzb_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xzc_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xze_f(1,nfl3,nfl1,nfl2))
 
 allocate(yza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, yza_f, 'yza_f', subname)
@@ -212,10 +212,10 @@ allocate(yzc_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, yzc_f, 'yzc_f', subname)
 allocate(yze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, yze_f, 'yze_f', subname)
-yza_f=0.d0
-yzb_f=0.d0
-yzc_f=0.d0
-yze_f=0.d0
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yza_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yzb_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yzc_f(1,nfl3,nfl1,nfl2))
+call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yze_f(1,nfl3,nfl1,nfl2))
 
 aeff0=0.d0 ; beff0=0.d0 ; ceff0=0.d0 ; eeff0=0.0
 aeff1=0.d0 ; beff1=0.d0 ; ceff1=0.d0 ; eeff1=0.0
