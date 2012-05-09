@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat)
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, tmbopt%psit_c, tmbopt%psit_f, &       tmbopt%can_use_transposed)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -380,9 +380,21 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi)
+           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+           tmbopt%can_use_transposed)
 
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          ! This is not the ideal place for this...
+          if(tmbopt%can_use_transposed) then
+              tmbopt%can_use_transposed=.false.
+              iall = -product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+              deallocate(tmbopt%psit_c,stat=istat)
+              call memocc(istat,iall,'tmbopt%psit_c',subname)
+              iall = -product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+              deallocate(tmbopt%psit_f,stat=istat)
+              call memocc(istat,iall,'tmbopt%psit_f',subname)
+          end if
+
           ! Optimize the locreg centers and potentially the shape of the basis functions.
           call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
           call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &

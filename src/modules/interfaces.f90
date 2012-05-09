@@ -3255,7 +3255,7 @@ module module_interfaces
      end subroutine globalLoewdin
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi)
+                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
@@ -3269,6 +3269,8 @@ module module_interfaces
        type(orthon_data),intent(in):: orthpar
        type(basis_performance_options),intent(in):: bpo
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
+       real(8),dimension(:),pointer,intent(out):: psit_c, psit_f
+       logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
@@ -4801,7 +4803,7 @@ module module_interfaces
       !!end subroutine initMatrixCompression
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
-                 lphi, lhphi, lagmat)
+                 lphi, lhphi, lagmat,  psit_c, psit_f, can_use_transposed)
         use module_base
         use module_types
         implicit none
@@ -4817,6 +4819,8 @@ module module_interfaces
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
+        real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f
+        logical,intent(inout):: can_use_transposed
       end subroutine orthoconstraintNonorthogonal
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)

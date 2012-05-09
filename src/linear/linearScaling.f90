@@ -552,7 +552,17 @@ type(energy_terms) :: energs
                   !write(*,*) 'test: orthonormalize derivatives'
                   call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                        tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
-                       tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi)
+                       tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi, tmbder%psit_c, tmbder%psit_f, &
+                       tmbder%can_use_transposed)
+                  if(tmbder%can_use_transposed) then
+                      ! This is not optimal, these quantities will be recalculated...
+                      iall = -product(shape(tmbder%psit_c))*kind(tmbder%psit_c)
+                      deallocate(tmbder%psit_c,stat=istat)
+                      call memocc(istat,iall,'tmbder%psit_c',subname)
+                      iall = -product(shape(tmbder%psit_f))*kind(tmbder%psit_f)
+                      deallocate(tmbder%psit_f,stat=istat)
+                      call memocc(istat,iall,'tmbder%psit_f',subname)
+                  end if
                   !! END TEST ###########################################################################################
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)

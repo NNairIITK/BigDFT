@@ -873,6 +873,8 @@ real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
 ! Local variables
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
+real(8),dimension(:),pointer:: psit_c, psit_f
+logical:: can_use_transposed
 character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
@@ -881,7 +883,16 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi)
+     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
+
+if(can_use_transposed) then
+    iall=-product(shape(psit_c))*kind(psit_c)
+    deallocate(psit_c, stat=istat)
+    call memocc(istat, iall, 'psit_c', subname)
+    iall=-product(shape(psit_f))*kind(psit_f)
+    deallocate(psit_f, stat=istat)
+    call memocc(istat, iall, 'psit_f', subname)
+end if
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)

@@ -846,6 +846,7 @@ end type linear_scaling_control_variables
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
 
      !data properties
+     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
