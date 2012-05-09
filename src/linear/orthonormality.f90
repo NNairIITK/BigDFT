@@ -84,7 +84,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !!iall=-product(shape(psit_f))*kind(psit_f)
           !!deallocate(psit_f, stat=istat)
           !!call memocc(istat, iall, 'psit_f', subname)
-          ! Normalize
+
+          ! Normalize... could this be done in the tranposed layout?
           ist=1
           do iorb=1,orbs%norbp
              iiorb=orbs%isorb+iorb

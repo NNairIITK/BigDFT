@@ -54,7 +54,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, tmbopt%psit_c, tmbopt%psit_f, &       tmbopt%can_use_transposed)
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, &
+       tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
   ! Calculate trace (or band structure energy, resp.)
