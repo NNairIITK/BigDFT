@@ -271,7 +271,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2
-  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel, ovrlp
+  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
   real(8), dimension(:,:,:),allocatable:: ham
   integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable:: covered
@@ -490,8 +490,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
        tmbig%lzd, tmbig%orbs, tmbig%comon, &
        tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi)
-  allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
-  call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
+  !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
+  !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -761,7 +761,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, ovrlp, lphi)
+           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -2543,7 +2543,7 @@ end subroutine buildLinearCombinations_new
 
 
 subroutine build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, ovrlp, lphi)
+           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => build_input_guess
@@ -2558,7 +2558,7 @@ type(input_variables),intent(in):: input
 real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
 real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham, ovrlp
+real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham!, ovrlp
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
