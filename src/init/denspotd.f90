@@ -189,7 +189,7 @@ subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
 
   denspot%rhov_is = status
   
-  if (denspot%c_obj /= 0.d0) then
+  if (denspot%c_obj /= 0) then
      call denspot_emit_rhov(denspot, istep, iproc, nproc)
   end if
 end subroutine denspot_set_rhov_status

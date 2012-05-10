@@ -633,7 +633,7 @@ END SUBROUTINE proj_get_dimensions
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
   type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
@@ -791,7 +791,7 @@ END SUBROUTINE gpu_free
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
   type(communications_arrays), pointer :: comm
@@ -932,7 +932,7 @@ END SUBROUTINE orbs_get_iorbp
 subroutine energs_new(self, energs)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(energy_terms), pointer :: energs
 
   allocate(energs)
@@ -972,7 +972,7 @@ END SUBROUTINE energs_copy_data
 subroutine optloop_new(self, optloop)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_optimization_loop), pointer :: optloop
 
   allocate(optloop)

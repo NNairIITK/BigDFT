@@ -268,7 +268,7 @@ module module_types
      real(gp) :: excrhoc=0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
 
-     double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -837,7 +837,7 @@ end type linear_scaling_control_variables
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
-     double precision :: c_obj = 0.d0                !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -873,7 +873,7 @@ end type linear_scaling_control_variables
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
-     double precision :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -903,7 +903,7 @@ end type linear_scaling_control_variables
      real(gp) :: rpnrm_cv      !< convergence criterion of the mixing loop.
      real(gp) :: gnrm_startmix !< gnrm value to start mixing after.
 
-     double precision :: c_obj = 0.d0 !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0 !< Storage of the C wrapper object.
   end type DFT_optimization_loop
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -1064,7 +1064,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0.d0
+    rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 

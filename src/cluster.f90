@@ -374,9 +374,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         optloop%c_obj = UNINITIALIZED(optloop%c_obj)
      end if
   else
-     KSwfn%c_obj  = 0.d0
-     tmb%c_obj    = 0.d0
-     tmbder%c_obj = 0.d0
+     KSwfn%c_obj  = 0
+     tmb%c_obj    = 0
+     tmbder%c_obj = 0
   end if
 
   !variables substitution for the PSolver part
@@ -763,7 +763,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,VTwfn%psi,'psivirt',subname)
         !to avoid problems with the bindings
-        VTwfn%c_obj=0.d0
+        VTwfn%c_obj=0
 
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
@@ -1318,13 +1318,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               return
            end if
 
-           if (opt%c_obj /= 0.) then
+           if (opt%c_obj /= 0) then
               call optloop_emit_iter(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
            end if
 
            opt%iter = opt%iter + 1
         end do wfn_loop
-        if (opt%c_obj /= 0.) then
+        if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
 
@@ -1391,13 +1391,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',opt%itrep
            !              yaml_indent=yaml_indent-3 !end list element
         end if
-        if (opt%c_obj /= 0.) then
+        if (opt%c_obj /= 0) then
            call optloop_emit_iter(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
         end if
         
         opt%itrep = opt%itrep + 1
      end do subd_loop
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_done(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
      end if
 
@@ -1425,13 +1425,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         !      if (opt%itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
         !      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End opt%itrp:',opt%itrp
      end if
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_iter(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
      end if
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
-  if (opt%c_obj /= 0.) then
+  if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
 

@@ -1078,7 +1078,7 @@ subroutine total_energies(energs, iter, iproc)
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
        energs%eexctX-energs%evsic+energs%eion+energs%edisp!-energs%excrhoc
 
-  if (energs%c_obj /= 0.d0) then
+  if (energs%c_obj /= 0) then
      call timing(iproc,'energs_signals','ON')
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
      call timing(iproc,'energs_signals','OF')
@@ -1529,7 +1529,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
-   if (wfn%c_obj /= 0.d0) then
+   if (wfn%c_obj /= 0) then
       call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 

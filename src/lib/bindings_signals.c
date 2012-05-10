@@ -435,6 +435,9 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
   bmain = g_malloc0(sizeof(BigDFT_Main));
 
 #ifdef G_THREADS_ENABLED
+#if GLIB_MINOR_VERSION < 24
+  g_thread_init(NULL);
+#endif
   error = (GError*)0;
   bmain->loop = g_main_loop_new(NULL, FALSE);
   ld_thread = g_thread_create(bigdft_main, (gpointer)bmain->loop, FALSE, &error);
