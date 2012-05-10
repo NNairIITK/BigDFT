@@ -286,28 +286,12 @@ subroutine deallocateBasicArraysInput(lin)
     nullify(lin%locrad_highaccuracy)
   end if 
 
-
-  if(associated(lin%locrad_lowaccuracy)) then
-    i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
-    deallocate(lin%locrad_lowaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_lowaccuracy',subname)
-    nullify(lin%locrad_lowaccuracy)
-  end if 
-
-  if(associated(lin%locrad_highaccuracy)) then
-    i_all = -product(shape(lin%locrad_highaccuracy))*kind(lin%locrad_highaccuracy)
-    deallocate(lin%locrad_highaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
-    nullify(lin%locrad_highaccuracy)
-  end if 
-
   if(associated(lin%locrad_type)) then
     i_all = -product(shape(lin%locrad_type))*kind(lin%locrad_type)
     deallocate(lin%locrad_type,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad_type',subname)
     nullify(lin%locrad_type)
   end if 
-
 
 end subroutine deallocateBasicArraysInput
 

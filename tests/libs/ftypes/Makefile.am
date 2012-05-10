@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = 
+SUBDIRS =
 
 check_PROGRAMS = check_lib_c check_client_signals
 

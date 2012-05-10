@@ -103,6 +103,7 @@ fi
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
 fi
+AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = "yes")
 if test x"$have_gdbus" = x"yes" ; then
   AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
 fi

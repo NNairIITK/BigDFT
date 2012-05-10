@@ -612,6 +612,10 @@ GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *ene
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
+void bigdft_signals_client_create_thread(GSocket *socket, BigDFT_Energs *energs,
+                                         BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                         BigDFT_OptLoop *optloop, GCancellable *cancellable,
+                                         GDestroyNotify destroy, gpointer data);
 #endif
 
 double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
