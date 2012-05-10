@@ -290,7 +290,7 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+      if(iproc == 0) write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0
@@ -319,7 +319,7 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-     print *,'Total number of electrons: ',2*sum(wannocc)
+     if(iproc == 0) print *,'Total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
@@ -356,9 +356,11 @@ program WaCo
       if(iproc == 0) print *,'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)  
 
       open(22,file='Wannier_charge.dat',status='unknown')
+      do iwann = 1, plotwann
+          write(22, '(E14.6, 2x, E14.6)') 0.0_dp, 0.0_dp
+      end do
       do iat = 1, atoms%nat
-         write(22, '(E14.6, 2x, E14.6)') charge(iat)/maxval(charge), charge(iat)
-!         write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
+         write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
       end do
       close(22)
 

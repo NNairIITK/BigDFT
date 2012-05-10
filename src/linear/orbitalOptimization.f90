@@ -28,9 +28,9 @@ allocate(mat(ldiis%isx+1,ldiis%isx+1), stat=istat)
 call memocc(istat, mat, 'mat', subname)
 allocate(rhs(ldiis%isx+1), stat=istat)
 call memocc(istat, rhs, 'rhs', subname)
-lwork=100*ldiis%isx
-allocate(work(lwork), stat=istat)
-call memocc(istat, work, 'work', subname)
+!lwork=100*ldiis%isx
+!allocate(work(lwork), stat=istat)
+!call memocc(istat, work, 'work', subname)
 allocate(ipiv(ldiis%isx+1), stat=istat)
 call memocc(istat, ipiv, 'ipiv', subname)
 
@@ -114,23 +114,40 @@ do iorb=1,orbs%norbp
             mat(i,j)=ldiis%mat(i,j,iorb)
         end do
     end do
-    mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
+    !mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
     rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
-
-    ! Solve the linear system
+    !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
+    do i=1,min(ldiis%isx,ldiis%is)+1
+       do j=1,min(ldiis%isx,ldiis%is)+1
+          mat(j,i) = mat(i,j)
+       end do
+    end do
+    ! solve linear system, supposing it is general. More stable, no need of work array
     if(ldiis%is>1) then
-       call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
-            ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-       
-       if (info /= 0) then
-          write(*,'(a,i0)') 'ERROR in dsysv (subroutine optimizeDIIS), info=', info
-          stop
-       end if
+     call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
+                   ipiv(1),rhs(1),ldiis%isx+1,info)
+     if (info /= 0) then
+        write(*,'(a,i0)') 'ERROR in dgesv (subroutine optimizeDIIS), info=', info
+        stop
+     end if
     else
        rhs(1)=1.d0
     endif
 
+
+    ! Solve the linear system
+    !!if(ldiis%is>1) then
+    !!   call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
+    !!        ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
+    !!   
+    !!   if (info /= 0) then
+    !!      write(*,'(a,i0)') 'ERROR in dsysv (subroutine optimizeDIIS), info=', info
+    !!      stop
+    !!   end if
+    !!else
+    !!   rhs(1)=1.d0
+    !!endif
 
     ! Make a new guess for the orbital.
     !ilr=onWhichAtom(iorb)
@@ -174,9 +191,9 @@ iall=-product(shape(rhs))*kind(rhs)
 deallocate(rhs, stat=istat)
 call memocc(istat, iall, 'rhs', subname)
 
-iall=-product(shape(work))*kind(work)
-deallocate(work, stat=istat)
-call memocc(istat, iall, 'work', subname)
+!iall=-product(shape(work))*kind(work)
+!deallocate(work, stat=istat)
+!call memocc(istat, iall, 'work', subname)
 
 iall=-product(shape(ipiv))*kind(ipiv)
 deallocate(ipiv, stat=istat)

@@ -34,7 +34,6 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
 
   call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 
-
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_c, 'istartend_c', subname)

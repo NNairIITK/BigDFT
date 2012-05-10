@@ -126,6 +126,7 @@ module module_types
   integer, parameter, public :: INPUTS_TDDFT =  32
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
+  integer, parameter, public :: INPUTS_LIN   = 256
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
@@ -219,6 +220,10 @@ module module_types
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
+     logical :: signaling  !< Expose results on DBus or Inet.
+     integer :: signalTimeout !< Timeout for inet connection.
+     character(len = 64) :: domain !< Domain to get the IP from hostname.
+     double precision :: gmainloop !< Internal C pointer on the signaling structure.
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
@@ -255,6 +260,7 @@ module module_types
      real(gp) :: trH    =0.0_gp
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
+     real(gp) :: excrhoc=0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
 
      double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
@@ -393,6 +399,8 @@ module module_types
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
+     integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
+     real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
   end type denspot_distribution
 
@@ -819,13 +827,13 @@ end type linear_scaling_control_variables
      integer :: rhov_is
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpcom !< parallel distribution of density and potential
+     type(denspot_distribution) :: dpbox !< distribution of density and potential box
      character(len=3) :: PSquiet
-     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
+     !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
-     double precision :: c_obj = 0                !< Storage of the C wrapper object.
+     double precision :: c_obj = 0.d0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -862,8 +870,38 @@ end type linear_scaling_control_variables
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
-     double precision :: c_obj !< Storage of the C wrapper object.
+     double precision :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
   end type DFT_wavefunction
+
+  !> Flags for optimization loop id
+  integer, parameter, public :: OPTLOOP_HAMILTONIAN   = 0
+  integer, parameter, public :: OPTLOOP_SUBSPACE      = 1
+  integer, parameter, public :: OPTLOOP_WAVEFUNCTIONS = 2
+  integer, parameter, public :: OPTLOOP_N_LOOPS       = 3
+
+  !> Used to control the optimization of wavefunctions
+  type, public :: DFT_optimization_loop
+     integer :: iscf !< Kind of optimization scheme.
+
+     integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
+     integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
+     integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+
+     integer :: itrp    !< actual number of mixing cycle.
+     integer :: itrep   !< actual number of re-diagonalisation runs.
+     integer :: iter    !< actual number of minimization iterations.
+
+     integer :: infocode !< return value after optimization loop.
+
+     real(gp) :: gnrm   !< actual value of cv criterion of the minimization loop.
+     real(gp) :: rpnrm  !< actual value of cv criterion of the mixing loop.
+
+     real(gp) :: gnrm_cv       !< convergence criterion of the minimization loop.
+     real(gp) :: rpnrm_cv      !< convergence criterion of the mixing loop.
+     real(gp) :: gnrm_startmix !< gnrm value to start mixing after.
+
+     double precision :: c_obj = 0.d0 !< Storage of the C wrapper object.
+  end type DFT_optimization_loop
 
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
@@ -1023,7 +1061,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0
+    rst%KSwfn%c_obj = 0.d0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 
@@ -1381,7 +1419,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
-    integer :: i_all,i_stat
+!    integer :: i_all,i_stat
 
     write(0,*) "TODO, remove me"
     

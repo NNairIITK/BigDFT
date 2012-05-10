@@ -1,3 +1,12 @@
+subroutine glr_get_psi_size(glr, psisize)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: glr
+  integer, intent(out) :: psisize
+
+  psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
+END SUBROUTINE glr_get_psi_size
+
 subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_base
   use module_types
@@ -22,3 +31,102 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
      nullify(KSwfn%psit)
   end if
 end subroutine kswfn_free_scf_data
+
+subroutine kswfn_emit_psi(KSwfn, iter, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(in) :: KSwfn
+  integer, intent(in) :: iter, iproc, nproc
+
+  integer, parameter :: SIGNAL_DONE = -1
+  integer, parameter :: SIGNAL_WAIT = -2
+  integer :: message, ierr, data(2), orbSize
+  integer :: status(MPI_STATUS_SIZE)
+
+  call timing(iproc,'wf_signals    ','ON')
+  if (iproc == 0) then
+     ! Only iproc 0 emit the signal. This call is blocking.
+     ! All other procs are blocked by the bcast to wait for
+     ! possible transfer to proc 0.
+     call wf_emit_psi(KSwfn%c_obj, iter)
+     if (nproc > 1) then
+        ! After handling the signal, iproc 0 broadcasts to other
+        ! proc to continue (jproc == -1).
+        message = SIGNAL_DONE
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+  else
+     message = SIGNAL_WAIT
+     do
+        if (message == SIGNAL_DONE) then
+           exit
+        end if
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        
+        if (message > 0 .and. iproc == message) then
+           ! Will have to send to iproc 0 some of psi.
+           call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, MPI_COMM_WORLD, status, ierr)
+           call glr_get_psi_size(KSwfn%Lzd%Glr, orbSize)
+           call MPI_SEND(KSwfn%psi(1 + data(1) * orbSize), data(2), MPI_DOUBLE_PRECISION, &
+                & 0, 123, MPI_COMM_WORLD, ierr)
+        end if
+     end do
+  end if
+  call timing(iproc,'wf_signals    ','OF')
+END SUBROUTINE kswfn_emit_psi
+
+subroutine kswfn_mpi_copy(psic, jproc, iorbp, psiSize)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: psiSize, jproc, iorbp
+  real(wp), intent(inout) :: psic(psiSize)
+
+  integer :: ierr
+  integer :: status(MPI_STATUS_SIZE)
+
+  if (jproc == 0) return
+
+  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+
+  call MPI_SEND((/ iorbp, psiSize /), 2, MPI_INTEGER, jproc, 123, MPI_COMM_WORLD, ierr)
+  call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, MPI_COMM_WORLD, status, ierr)
+END SUBROUTINE kswfn_mpi_copy
+
+subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc, nproc, norb_cubic
+  type(DFT_wavefunction), intent(inout) :: wfn
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(input_variables), intent(in) :: in
+  type(denspot_distribution), intent(in) :: dpbox
+
+  integer :: ndim
+
+  call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
+       & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
+  wfn%wfnmd%bs%use_derivative_basis=.false.
+
+  call initCommsOrtho(iproc, nproc, in%nspin, &
+       lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &
+       wfn%orbs, in%lin%locregShape, wfn%op, wfn%comon)
+
+  call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
+       & wfn%orbs, lzd, wfn%comgp)
+
+  call nullify_p2pComms(wfn%comrp)
+
+  call nullify_p2pcomms(wfn%comsr)
+  call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
+
+  ndim = maxval(wfn%op%noverlaps)
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
+       & wfn%op%overlaps, wfn%mad)
+  call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
+
+  call nullify_collective_comms(wfn%collcom)
+  call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+END SUBROUTINE kswfn_init_comm

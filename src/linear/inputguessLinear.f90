@@ -236,7 +236,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb,overlapmatrix)
+     nlpspd, proj, GPU, lphi,orbs,tmb,energs,overlapmatrix)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -257,11 +257,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
+  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
+  type(energy_terms),intent(inout) :: energs
+   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -284,18 +285,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer :: nlocregPerMPI,jproc,jlrold,infoCoeff
   !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
-  type(energy_terms) :: energs
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
-
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------- Input Wavefunctions Creation'
-  end if
+  type(GPU_pointers) :: GPUe
 
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
-       tmbig, tmbgauss, rxyz, denspot%dpcom%nscatterarr)
+       tmbig, tmbgauss, rxyz, denspot%dpbox%nscatterarr)
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -311,6 +307,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(inversemapping(tmbig%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
+  GPUe = GPU
 
   ! Spin for inputguess orbitals
   if (input%nspin == 4) then
@@ -511,10 +508,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
-       hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
-       GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
+       hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
+       GPUe,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+       denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -524,7 +521,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   !if(trim(input%lin%mixingmethod)=='dens') then
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
@@ -586,7 +583,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   !if(trim(input%lin%mixingmethod)=='pot') then
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
   !call dcopy(tmbig%orbs%npsidim,psi,1,hpsi,1)
@@ -607,8 +604,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Post the messages for the communication of the potential.
   call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
-  !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmbig%comgp)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbig%comgp)
+  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmbig%comgp%nrecvbuf, tmbig%comgp%recvbuf, tmbig%comgp)
 
 
@@ -648,11 +645,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
 
 
-  call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpcom%ngatherarr(0,1))
+  call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
 
   !!tmbig%comgp%communication_complete=.false.
   call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-       denspot%dpcom,denspot%rhov,denspot%pot_work,tmbig%comgp)
+       denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
   tmbig%lzd%hgrids(1)=hx
   tmbig%lzd%hgrids(2)=hy
@@ -692,8 +689,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              if(owa/=owa_old) then
                  call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                      tmbig%lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                      energs,input%SIC,GPU,.false.,&
+                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                      energs,input%SIC,GPUe,.false.,&
                       pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
@@ -766,7 +763,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, density_kernel, 'density_kernel', subname)
@@ -2714,7 +2711,8 @@ type(collective_comms):: collcom_vectors
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &
+           collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
   end if
 
 
@@ -2743,8 +2741,8 @@ type(collective_comms):: collcom_vectors
       call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
-           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
-
+           tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &
+           collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
 
       ! Calculate the gradient grad.
       ilrold=0

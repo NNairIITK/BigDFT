@@ -7,11 +7,13 @@
 #define FALSE 0
 #define gboolean int
 #define g_malloc(A) malloc(A)
+#define g_malloc0(A) malloc(A)
 #define g_free(A)   free(A)
 #define guint unsigned int
 #define gchar char
 #define GObject void
 #define gpointer void*
+#define GQuark int
 #endif
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"
@@ -84,5 +86,13 @@ typedef struct f90_pointer_int_
   int *data;
   void *info[F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT];
 } f90_pointer_int;
+typedef struct f90_pointer_int_2D_
+{
+#if F90_2D_POINTER_SHIFT > 0
+  void *shift[F90_2D_POINTER_SHIFT];
+#endif
+  int *data;
+  void *info[F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT];
+} f90_pointer_int_2D;
 
 #endif

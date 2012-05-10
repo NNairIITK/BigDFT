@@ -318,7 +318,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           call destroy_new_locregs(iproc, nproc, tmb)
           !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
           call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-               .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
           call update_ldiis_arrays(tmb, subname, ldiis)
@@ -337,13 +337,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       if(variable_locregs) then
           call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
           ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
-          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &                            
                tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
           call destroy_new_locregs(iproc, nproc, tmblarge)
           !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-               .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call update_ldiis_arrays(tmblarge, subname, ldiis)
@@ -413,13 +413,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
-              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+              call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &                            
                    tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)    
               call destroy_new_locregs(iproc, nproc, tmb)
               !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
                    inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-                   .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                   .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                    tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
               call update_ldiis_arrays(tmb, subname, ldiis)
@@ -432,8 +432,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           end if
 
 
-          !!call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, tmb%comgp)
-          call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &
+          !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
+          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
 
           ! Transform back to small locreg
@@ -446,13 +446,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           if(variable_locregs) then
               call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
               ! this communication is useless, but otherwise the wait in destroy_new_locregs makes problems... to be solved               
-              call post_p2p_communication(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, &                            
+              call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &                            
                    tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)    
               call destroy_new_locregs(iproc, nproc, tmblarge)
               !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-                   .false., denspot%dpcom%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                   .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                    tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
               call update_ldiis_arrays(tmblarge, subname, ldiis)
