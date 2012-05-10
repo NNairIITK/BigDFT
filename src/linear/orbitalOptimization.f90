@@ -114,7 +114,7 @@ do iorb=1,orbs%norbp
             mat(i,j)=ldiis%mat(i,j,iorb)
         end do
     end do
-    !mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
+    mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
     rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
     !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
