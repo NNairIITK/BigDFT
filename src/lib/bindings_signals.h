@@ -29,6 +29,7 @@ typedef struct BigDFT_Main_
 #ifdef HAVE_GLIB
   GSocket *socket, *recv;
   GSource *source;
+  GAsyncQueue *message;
   guint wf_id, denspot_id, energs_id, optloop_id, vext_id;
   guint optloop_iter_ham_id, optloop_iter_sub_id, optloop_iter_wfn_id;
   guint optloop_done_ham_id, optloop_done_sub_id, optloop_done_wfn_id;

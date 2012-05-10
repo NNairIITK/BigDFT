@@ -651,6 +651,8 @@ void bigdft_signals_free_main(gpointer self)
     g_object_unref(bmain->socket);
   if (bmain->source)
     g_source_unref(bmain->source);
+  if (bmain->message)
+    g_async_queue_unref(bmain->message);
 
   if (bmain->loop)
     {

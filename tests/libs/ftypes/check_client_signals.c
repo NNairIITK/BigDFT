@@ -405,16 +405,17 @@ int main(int argc, const char **argv)
     socket = bigdft_signals_client_new(argv[1], NULL, &error);
   else
     socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
+  source = (GSource*)0;
   if (socket)
     {
-      source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop,
-                                                   NULL, onClosedSocket, loop);
-      g_source_attach(source, NULL);
+      /* source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop, */
+      /*                                              NULL, onClosedSocket, loop); */
+      /* g_source_attach(source, NULL); */
+      bigdft_signals_client_create_thread(socket, energs, wf, denspot, optloop,
+                                          NULL, onClosedSocket, loop);
 
       g_main_loop_run(loop);
     }
-  else
-    source = (GSource*)0;
 
   g_object_unref(wf);
   g_object_unref(energs);
