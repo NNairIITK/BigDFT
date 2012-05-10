@@ -923,7 +923,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged) then
+  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
+     input%lin%locrad_increase_amount>0.d0) then
       lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
       !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
