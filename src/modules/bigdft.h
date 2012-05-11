@@ -317,7 +317,7 @@ BigDFT_Orbs* bigdft_orbs_new (gboolean linear);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
 guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr,
                                 const BigDFT_Inputs *in, guint iproc, guint nproc);
-gboolean     bigdft_orbs_get_linear(BigDFT_Orbs *orbs);
+gboolean     bigdft_orbs_get_linear(const BigDFT_Orbs *orbs);
 
 /*****************************/
 /* BigDFT_Wf data structure. */
@@ -366,7 +366,7 @@ typedef enum
   } BigDFT_Spinor;
 
 BigDFT_Wf* bigdft_wf_new (int inputPsiId);
-BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
+BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj, gboolean linear);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
 void       bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot,
@@ -381,6 +381,8 @@ guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspo
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc);
+BigDFT_LocReg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                    BigDFT_Spin ispin, guint iproc);
 gboolean   bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                        BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                        guint iproc, double *psic, guint psiSize);

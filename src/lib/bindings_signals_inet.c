@@ -15,6 +15,8 @@ typedef enum
     BIGDFT_SIGNAL_NONE,
     BIGDFT_SIGNAL_E_READY,
     BIGDFT_SIGNAL_PSI_READY,
+    BIGDFT_SIGNAL_TMB_READY,
+    BIGDFT_SIGNAL_TMBDER_READY,
     BIGDFT_SIGNAL_DENSPOT_READY,
     BIGDFT_SIGNAL_OPTLOOP_READY,
     BIGDFT_SIGNAL_CONNECTION_CLOSED
@@ -529,9 +531,8 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
   if (!socket || !g_socket_is_connected(socket) || g_socket_is_closed(socket))
     return;
 
-  /* Get the wave-function size. */
-  bigdft_wf_get_psi_compress(wf, 1, 1, BIGDFT_SPIN_UP, BIGDFT_PARTIAL_DENSITY,
-                             &signal.kind, 0);
+  if (bigdft_orbs_get_linear(&wf->parent))
+    signal.id = BIGDFT_SIGNAL_TMB_READY;
 
   /* We emit the signal on the socket. */
   size = g_socket_send(socket, (const gchar*)(&signal),
@@ -621,7 +622,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
   while (1);
 }
 
-static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, guint psiSize,
+static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter,
                                  guint ikpt, guint iorb, BigDFT_Spin ispin, GQuark quark,
                                  GAsyncQueue *message, GCancellable *cancellable, GError **error)
 {
@@ -629,8 +630,6 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
   gssize size, psize;
   GArray *psic;
   guint sizeData[2];
-
-  psic = g_array_sized_new(FALSE, FALSE, sizeof(double), psiSize);
 
   /* g_print("Client: send get psi.\n"); */
   answer.id = BIGDFT_SIGNAL_ANSWER_GET_PSI;
@@ -650,14 +649,14 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
                          "Connection closed by peer.");
   if (size <= 0)
     return FALSE;
-  if (sizeData[0] == 0 || psiSize != sizeData[0])
+  if (sizeData[0] == 0)
     {
       *error = g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-                           "Unable to retrieve psi.");
-      g_array_free(psic, TRUE);
+                           "Unable to retrieve psi, psi not found.");
       return FALSE;
     }
-          
+
+  psic = g_array_sized_new(FALSE, FALSE, sizeof(double), sizeData[0]);
   psize = 0;
   do
     {
@@ -673,10 +672,10 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
         }
       psize += size;
     }
-  while (psize < sizeof(double) * psiSize);
+  while (psize < sizeof(double) * sizeData[0]);
   /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(double) * sizeData[0]); */
   /* g_print("Client: emitting signal.\n"); */
-  psic = g_array_set_size(psic, psiSize);
+  psic = g_array_set_size(psic, sizeData[0]);
   if (message)
     {
       g_async_queue_push(message, GINT_TO_POINTER(BIGDFT_SIGNAL_PSI_READY));
@@ -779,7 +778,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
   BigDFT_Signals signal;
   BigDFT_SignalReply answer;
   gssize size;
-  gboolean ret;
+  gboolean ret, retAnswer;
   guint ikpt, iorb;
   GQuark quark;
   gchar *details;
@@ -797,6 +796,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
 
   /* g_print("Client: get signal %d at iter %d.\n", signal.id, signal.iter); */
   ret = TRUE;
+  retAnswer = FALSE;
   switch (signal.id)
     {
     case BIGDFT_SIGNAL_E_READY:
@@ -821,6 +821,16 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
           break;
         }
       break;
+    case BIGDFT_SIGNAL_TMB_READY:
+      if (!bigdft_orbs_get_linear(&wf->parent))
+        {
+          
+          *error = g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+                               "Wavefunctions are not linear minimal basis.");
+          ret    = FALSE;
+          retAnswer = TRUE;
+          break;
+        }
     case BIGDFT_SIGNAL_PSI_READY:
       /* We test event pending for all possible wavefunctions. */
       for (ikpt = 1; ikpt <= BIGDFT_ORBS(wf)->nkpts; ikpt++)
@@ -834,7 +844,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
                                                g_signal_lookup("one-wave-ready",
                                                                BIGDFT_WF_TYPE),
                                                quark, FALSE))
-                ret = client_handle_wf(socket, wf, signal.iter, signal.kind,
+                ret = client_handle_wf(socket, wf, signal.iter,
                                        ikpt, iorb, BIGDFT_SPIN_UP, quark,
                                        message, cancellable, error);
               if (!ret)
@@ -921,7 +931,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
     default:
       break;
     }
-  if (ret)
+  if (ret || retAnswer)
     {
       /* g_print("Client: send signal done %d.\n", signal.id); */
       answer.id = BIGDFT_SIGNAL_ANSWER_DONE;
@@ -932,6 +942,20 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
     }
   return ret;
 }
+static gboolean testCancel(gpointer user_data)
+{
+  BigDFT_Main *bmain = (BigDFT_Main*)user_data;
+
+  if (g_cancellable_is_cancelled(bmain->cancellable))
+    {
+      g_source_destroy(bmain->source);
+      if (bmain->destroy)
+        bmain->destroy(bmain->destroyData);
+      return FALSE;
+    }
+  
+  return TRUE;
+}
 
 static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
                                  gpointer user_data)
@@ -940,14 +964,6 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
   GError *error;
   
   error = (GError*)0;
-
-  if (bmain->cancellable && g_cancellable_is_cancelled(bmain->cancellable))
-    {
-      g_source_destroy(g_main_current_source());
-      if (bmain->destroy)
-        bmain->destroy(bmain->destroyData);
-      return FALSE;
-    }
 
   if ((condition & G_IO_IN) > 0)
     {
@@ -966,6 +982,7 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
               if (bmain->destroy)
                 bmain->destroy(bmain->destroyData);
             }
+          g_error_free(error);
           return (error->code != G_IO_ERROR_CLOSED);
         }
       g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
@@ -1042,12 +1059,12 @@ static gboolean onMainClientTransfer(gpointer user_data)
   return TRUE;
 }
 
-GSource* _signals_client_create_source(BigDFT_Main *bmain,
-                                       GSocket *socket, BigDFT_Energs *energs,
-                                       BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                       BigDFT_OptLoop *optloop,
-                                       GCancellable *cancellable,
-                                       GDestroyNotify destroy, gpointer data)
+static GSource* _signals_client_create_source(BigDFT_Main *bmain,
+                                              GSocket *socket, BigDFT_Energs *energs,
+                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                              BigDFT_OptLoop *optloop,
+                                              GCancellable *cancellable,
+                                              GDestroyNotify destroy, gpointer data)
 {
   GSource *source;
 
@@ -1101,6 +1118,7 @@ static gpointer _signals_client_thread(gpointer data)
   GAsyncQueue *message;
   GMainContext *context;
   GMainLoop *loop;
+  GSource *source;
 
   /* g_printerr("Creating a new thread %p for data retrieval.\n", (gpointer)g_thread_self()); */
   message = ct->message;
@@ -1115,12 +1133,17 @@ static gpointer _signals_client_thread(gpointer data)
                                                 ct->optloop, ct->cancellable,
                                                 (GDestroyNotify)g_main_loop_quit, (gpointer)loop);
   g_source_attach(bmain->source, context);
+  source = g_idle_source_new();
+  g_source_set_callback(source, testCancel, bmain, (GDestroyNotify)0);
+  if (bmain->cancellable)
+    g_source_attach(source, context);
   g_async_queue_push(bmain->message, GINT_TO_POINTER(BIGDFT_SIGNAL_ANSWER_DONE));
 
   /* g_printerr("Running loop in thread %p.\n", (gpointer)g_thread_self()); */
   g_main_loop_run(loop);
   /* g_printerr("Terminating loop in thread %p.\n", (gpointer)g_thread_self()); */
 
+  g_source_unref(source);
   g_main_loop_unref(loop);
   g_main_context_unref(context);
 

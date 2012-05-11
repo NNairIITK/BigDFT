@@ -30,7 +30,7 @@ typedef struct BigDFT_Main_
   GSocket *socket, *recv;
   GSource *source;
   GAsyncQueue *message;
-  guint wf_id, denspot_id, energs_id, optloop_id, vext_id;
+  guint wf_id, tmb_id, denspot_id, energs_id, optloop_id, vext_id;
   guint optloop_iter_ham_id, optloop_iter_sub_id, optloop_iter_wfn_id;
   guint optloop_done_ham_id, optloop_done_sub_id, optloop_done_wfn_id;
   guint optloop_sync;
@@ -40,7 +40,7 @@ typedef struct BigDFT_Main_
   gpointer destroyData;
 #endif
 
-  BigDFT_Wf *wf;
+  BigDFT_Wf *wf, *tmb;
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   BigDFT_OptLoop *optloop;

@@ -901,32 +901,31 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
 END SUBROUTINE wf_iorbp_to_psi
 
-subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
+subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   use module_types
   implicit none
 
-  integer, intent(out) :: iorbp, iproc
+  integer, intent(out) :: iorbp, isorb, iproc
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ikpt, iorb, ispin, ispinor
-
-  integer :: iorbtot
 
   iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
   if (ispin == 1) iorbp = iorbp + (iorb - 1) * orbs%nspinor
   if (ispin == 2) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
   iorbp = iorbp + ispinor - 1
 
-  iorbtot = 0
+  isorb = 0
   do iproc = 0, size(orbs%norb_par, 1) - 1, 1
-     if (iorbp >= iorbtot .and. iorbp < iorbtot + orbs%norb_par(iproc, 0)) then
-        iorbp = iorbp - iorbtot
+     if (iorbp >= isorb .and. iorbp < isorb + orbs%norb_par(iproc, 0)) then
+        iorbp = iorbp - isorb
         return
      end if
-     iorbtot = iorbtot + orbs%norb_par(iproc, 0)
+     isorb = isorb + orbs%norb_par(iproc, 0)
   end do
 
-  iorbp = -1;
-  iproc = -1;
+  iorbp = -1
+  isorb = -1
+  iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
 subroutine energs_new(self, energs)

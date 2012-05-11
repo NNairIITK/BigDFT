@@ -2148,7 +2148,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb)
-
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -2232,8 +2231,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
    ! Emit that new wavefunctions are ready.
-   if (KSwfn%c_obj /= 0) then
+   if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR &
+        & .and. KSwfn%c_obj /= 0) then
       call kswfn_emit_psi(KSwfn, 0, iproc, nproc)
+   end if
+   if ((inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) &
+        & .and. tmb%c_obj /= 0) then
+      call kswfn_emit_psi(tmb, 0, iproc, nproc)
    end if
 
 END SUBROUTINE input_wf

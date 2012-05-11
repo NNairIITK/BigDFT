@@ -356,35 +356,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%iter = 0
   optLoop%infocode = 0
 
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call wf_new_wrapper(KSwfn%c_obj, KSwfn)
-        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
-        call bigdft_signals_add_wf(in%gmainloop, KSwfn%c_obj)
-        call energs_new_wrapper(energs%c_obj, energs)
-        call bigdft_signals_add_energs(in%gmainloop, energs%c_obj)
-        call localfields_new_wrapper(denspot%c_obj, denspot)
-        call bigdft_signals_add_denspot(in%gmainloop, denspot%c_obj)
-        call optloop_new_wrapper(optLoop%c_obj, optLoop)
-        call bigdft_signals_add_optloop(in%gmainloop, optLoop%c_obj)
-     else
-        KSwfn%c_obj = UNINITIALIZED(KSwfn%c_obj)
-        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
-        optloop%c_obj = UNINITIALIZED(optloop%c_obj)
-     end if
-  else
-     KSwfn%c_obj  = 0
-     tmb%c_obj    = 0
-     tmbder%c_obj = 0
-  end if
+  call system_signaling(iproc, in%signaling, in%gmainloop, &
+       & KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & radii_cf, in%crmult, in%frmult)
 
   !variables substitution for the PSolver part
-
-  n1i=KSwfn%Lzd%Glr%d%n1i
-  n2i=KSwfn%Lzd%Glr%d%n2i
-  n3i=KSwfn%Lzd%Glr%d%n3i
-
   n1=KSwfn%Lzd%Glr%d%n1
   n2=KSwfn%Lzd%Glr%d%n2
   n3=KSwfn%Lzd%Glr%d%n3
@@ -402,13 +378,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
-
-
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,denspot%psoffset,&
-       n1,n2,n3,n1i,n2i,n3i,&
+       n1,n2,n3,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3pi,&
        denspot%V_ext,denspot%pkernel)
   !calculate effective ionic potential, including counter ions if any.
@@ -602,6 +576,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   deallocate(denspot%V_ext,stat=i_stat)
   call memocc(i_stat,i_all,'denspot%V_ext',subname)
   nullify(denspot%V_ext)
+
+  !variables substitution for the PSolver part
+  n1i=KSwfn%Lzd%Glr%d%n1i
+  n2i=KSwfn%Lzd%Glr%d%n2i
+  n3i=KSwfn%Lzd%Glr%d%n3i
 
   if (inputpsi /= INPUT_PSI_EMPTY) then
      !------------------------------------------------------------------------
@@ -1128,6 +1107,7 @@ contains
        call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
        call wf_free_wrapper(KSwfn%c_obj)
+       call wf_free_wrapper(tmb%c_obj)
     end if
 
 !!$    if(inputpsi ==  INPUT_PSI_LINEAR) then

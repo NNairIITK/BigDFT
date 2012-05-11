@@ -91,14 +91,18 @@ static gpointer bigdft_main(gpointer data)
 void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpointer *wf_)
 {
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
+  BigDFT_Wf *wf      = BIGDFT_WF(*wf_);
 #ifdef HAVE_GDBUS
   BigdftDBusObjectSkeleton *obj;
-  BigdftDBusWf *wf;
+  BigdftDBusWf *dbus_wf;
 #endif
 
-  bmain->wf = BIGDFT_WF(*wf_);
+  if (bigdft_orbs_get_linear(&wf->parent))
+    bmain->tmb = wf;
+  else
+    bmain->wf = wf;
 #ifdef HAVE_GLIB
-  g_object_ref(G_OBJECT(*wf_));
+  g_object_ref(wf);
 #endif
 
   switch (bmain->kind)
@@ -107,9 +111,9 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
 #ifdef HAVE_GDBUS
       obj = bigdft_dbus_object_skeleton_new("/outputs/DFT_wavefunctions");
       /* Wavefunctions. */
-      wf = bigdft_dbus_wf_skeleton_new();
-      bigdft_dbus_wf_set_n_psi_ready(wf, 0);
-      bigdft_dbus_wf_set_ref_psi_ready(wf, 0);
+      dbus_wf = bigdft_dbus_wf_skeleton_new();
+      bigdft_dbus_wf_set_n_psi_ready(dbus_wf, 0);
+      bigdft_dbus_wf_set_ref_psi_ready(dbus_wf, 0);
       g_signal_connect(G_OBJECT(wf), "handle-register-psi-ready",
                        G_CALLBACK(onRegisterPsiReady), (gpointer)0);
       g_signal_connect(G_OBJECT(wf), "handle-unregister-psi-ready",
@@ -119,9 +123,9 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       g_signal_connect(G_OBJECT(wf), "handle-get-psi-compress",
                        G_CALLBACK(onGetPsiCompress), (gpointer)bmain->wf);
       g_signal_connect(G_OBJECT(bmain->wf), "psi-ready",
-                       G_CALLBACK(onPsiReady), (gpointer)wf);
-      bigdft_dbus_object_skeleton_set_wf(obj, wf);
-      g_object_unref(wf);
+                       G_CALLBACK(onPsiReady), (gpointer)dbus_wf);
+      bigdft_dbus_object_skeleton_set_wf(obj, dbus_wf);
+      g_object_unref(dbus_wf);
 
       g_dbus_object_manager_server_export(bmain->manager, G_DBUS_OBJECT_SKELETON(obj));
       g_object_unref(obj);
@@ -131,8 +135,12 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      bmain->wf_id = g_signal_connect(G_OBJECT(bmain->wf), "psi-ready",
-                                     G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+      if (bigdft_orbs_get_linear(&wf->parent))
+        bmain->tmb_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
+                                         G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+      else
+        bmain->wf_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
+                                        G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
 #else
       fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
@@ -156,7 +164,10 @@ void FC_FUNC_(bigdft_signals_rm_wf, BIGDFT_SIGNALS_RM_WF)(gpointer *self)
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_id);
+      if (bmain->wf_id)
+        g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_id);
+      if (bmain->tmb_id)
+        g_signal_handler_disconnect(G_OBJECT(bmain->tmb), bmain->tmb_id);
 #else
       fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
@@ -667,6 +678,8 @@ void bigdft_signals_free_main(gpointer self)
 #ifdef HAVE_GLIB
   if (bmain->wf)
     g_object_unref(bmain->wf);
+  if (bmain->tmb)
+    g_object_unref(bmain->tmb);
   if (bmain->denspot)
     g_object_unref(bmain->denspot);
   if (bmain->energs)
