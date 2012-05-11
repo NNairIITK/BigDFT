@@ -84,12 +84,11 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-  ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
-  ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
-  ! gathered as well since the locregs changed.
-
-  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  !!!! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
+  !!!! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
+  !!!! gathered as well since the locregs changed.
+  !!!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  !!!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -101,10 +100,22 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   lzd%doHamAppl=.true.
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
-  call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
-       energs,SIC,GPU,&
-       pkernel=denspot%pkernelseq)
+  !!call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
+  !!     proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+  !!     energs,SIC,GPU,&
+  !!     pkernel=denspot%pkernelseq)
+  if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
+  call NonLocalHamiltonianApplication(iproc,at,tmbmix%orbs,rxyz,&
+       proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
+  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+       lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq)
+  call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+
   deallocate(confdatarrtmp)
 !DEBUG
 !if (iproc==0) then
@@ -625,21 +636,33 @@ type(energy_terms) :: energs
       call memocc(istat, tmb%lzd%doHamAppl, 'tmb%lzd%doHamAppl', subname)
       tmb%lzd%doHamAppl=.true.
 
+      !!if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
+      !!    ! The messages for this point to point communication have been posted in the subroutine linearScaling.
+      !!    !!call gatherPotential(iproc, nproc, tmb%comgp)
+
+      !!    ! Build the required potential
+      !!    !!tmb%comgp%communication_complete=.false.
+      !!   call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      !!   call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+      !!end if
+
+      !!call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
+      !!     proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+      !!     energs,SIC,GPU,&
+      !!     pkernel=denspot%pkernelseq)
+      if (tmb%orbs%npsidim_orbs > 0) call to_zero(tmb%orbs%npsidim_orbs,lhphi(1))
+      call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,rxyz,&
+           proj,tmb%lzd,nlpspd,tmb%psi,lhphi,energs%eproj)
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
-          ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-          !!call gatherPotential(iproc, nproc, tmb%comgp)
-
-          ! Build the required potential
-          !!tmb%comgp%communication_complete=.false.
-         call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-         call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+          call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
-
-      call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
-           energs,SIC,GPU,&
-           pkernel=denspot%pkernelseq)
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
+           tmb%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq)
+      call SynchronizeHamiltonianApplication(nproc,tmb%orbs,tmb%lzd,GPU,lhphi,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
       iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
       deallocate(tmb%lzd%doHamAppl,stat=istat)
