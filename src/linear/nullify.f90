@@ -124,6 +124,7 @@ subroutine nullify_local_zone_descriptors(lzd)
  
   !nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
+  lzd%nlr = 0
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
   !!nullify(lzd%cutoffweight) 

@@ -100,6 +100,10 @@ void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd);
 void FC_FUNC_(lzd_free, LZD_FREE)(void *lzd);
 void FC_FUNC_(lzd_empty, LZD_EMPTY)(void *lzd);
 void FC_FUNC_(lzd_init, LZD_INIT)(void *lzd, void *glr);
+void FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)(const guint *iproc, const guint *nproc,
+                                          const void *in, const void *at, const double *rxyz,
+                                          const void *orbs, const void *derorbs,
+                                          const guint *withderorbs, void *lzd);
 void FC_FUNC_(lzd_set_hgrids, LZD_SET_HGRIDS)(void *lzd, const double *hgrids);
 void FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(void *lzd, double *hgrids);
 void FC_FUNC_(lzd_get_data, LZD_GET_DATA)(void *lzd, void *glr);
