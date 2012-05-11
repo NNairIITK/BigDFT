@@ -70,6 +70,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
           call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
           call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
+          call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
           call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
           can_use_transposed=.true.
           iall=-product(shape(psittemp_c))*kind(psittemp_c)
@@ -85,20 +86,24 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !!deallocate(psit_f, stat=istat)
           !!call memocc(istat, iall, 'psit_f', subname)
 
-          ! Normalize... could this be done in the tranposed layout?
-          ist=1
-          do iorb=1,orbs%norbp
-             iiorb=orbs%isorb+iorb
-             ilr=orbs%inwhichlocreg(iiorb)
-             ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          !!! Normalize... could this be done in the tranposed layout?
+          !!ist=1
+          !!do iorb=1,orbs%norbp
+          !!   iiorb=orbs%isorb+iorb
+          !!   ilr=orbs%inwhichlocreg(iiorb)
+          !!   ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
-             ! Normalize
-             tt=dnrm2(ncount, lphi(ist), 1)
-             call dscal(ncount, 1/tt, lphi(ist), 1)
+          !!   ! Normalize
+          !!   tt=dnrm2(ncount, lphi(ist), 1)
+          !!   call dscal(ncount, 1/tt, lphi(ist), 1)
 
-             ist=ist+ncount
-          end do
-          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          !!   ist=ist+ncount
+          !!end do
+          !!call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+
+          !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+
+
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           call globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
 

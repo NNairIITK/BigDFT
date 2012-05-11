@@ -6879,6 +6879,17 @@ module module_interfaces
           real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
         end subroutine calculate_density_kernel
 
+        subroutine calculate_norm_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(collective_comms),intent(in):: collcom
+          real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
+          real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
+        end subroutine calculate_norm_transposed
+
    end interface
 
 END MODULE module_interfaces
