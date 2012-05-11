@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -20,6 +20,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  logical,intent(out):: emergency_exit
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
@@ -30,7 +31,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
 
-
+  ! by default no quick exit
+  emergency_exit=.false.
+ 
 
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call allocateSendBufferOrtho(tmbopt%comon, subname)
@@ -51,7 +54,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat)
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, &
+       tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -59,7 +63,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
           do korb=1,tmbopt%orbs%norb
-              trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
+              tt = kernel(korb,jorb)*lagmat(korb,jorb)
+              trH = trH + tt
           end do
       end do
   else
@@ -67,6 +72,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       do jorb=1,tmbopt%orbs%norb
           trH = trH + lagmat(jorb,jorb)
       end do
+      !!!trH=0.d0
+      !!!istat=1
+      !!!do jorb=1,tmbopt%orbs%norbp
+      !!!    tt1=ddot(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
+      !!!    !write(*,*) 'tt1',tt1
+      !!!    call daxpy(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, -tt1, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
+      !!!    !lhphiopt=1.d-10
+      !!!    trH = trH + tt1
+      !!!    istat=istat+tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f
+      !!!end do
+      !!!call mpiallred(trH, 1, mpi_sum, mpi_comm_world, istat)
   end if
 
 
@@ -81,12 +97,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                    if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                    call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-               else
+               else if(.not.variable_locregs) then
+                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+               else 
                    ! It is not possible to use the old orbitals since the locregs might have changed.
-                   if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+                   !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+                   if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
+                   emergency_exit=.true.
                end if
            else
                consecutive_rejections=0
+               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+               emergency_exit=.true.
            end if
        else
            consecutive_rejections=0
@@ -136,7 +159,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-          if(tt>.9d0 .and. trH<trHold) then
+          !if(tt>.9d0 .and. trH<trHold) then
+          !if(tt>.7d0 .and. trH<trHold) then
+          if(tt>.6d0 .and. trH<trHold) then
               alpha(iorb)=alpha(iorb)*1.1d0
           else
               alpha(iorb)=alpha(iorb)*.6d0
@@ -174,6 +199,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
+  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmbopt%orbs%norb)
 
   iall=-product(shape(lagmat))*kind(lagmat)
@@ -247,6 +273,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
       end if
   end if
+  !!if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
   if(.not.ldiis%switchSD) then
@@ -351,11 +378,24 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           lphioldopt => lphilargeold
       end if
       tmbopt%confdatarr => tmb%confdatarr
+      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
+           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+           tmbopt%can_use_transposed)
 
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          ! This is not the ideal place for this...
+          if(tmbopt%can_use_transposed) then
+              tmbopt%can_use_transposed=.false.
+              iall = -product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+              deallocate(tmbopt%psit_c,stat=istat)
+              call memocc(istat,iall,'tmbopt%psit_c',subname)
+              iall = -product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+              deallocate(tmbopt%psit_f,stat=istat)
+              call memocc(istat,iall,'tmbopt%psit_f',subname)
+          end if
+
           ! Optimize the locreg centers and potentially the shape of the basis functions.
           call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
           call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &

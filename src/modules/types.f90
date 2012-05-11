@@ -770,6 +770,7 @@ end type linear_scaling_control_variables
     integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
@@ -845,7 +846,7 @@ end type linear_scaling_control_variables
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
-     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
@@ -853,6 +854,7 @@ end type linear_scaling_control_variables
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
 
      !data properties
+     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis

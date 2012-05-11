@@ -1955,7 +1955,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
   type(input_variables), intent(in) :: in
-  type(GPU_pointers), intent(in) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
@@ -1975,8 +1975,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin
+  integer :: i_stat, nspin, i_all
   type(gaussian_basis) :: Gvirt
+  real(8),dimension(:,:),allocatable:: tempmat, density_kernel
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -2144,10 +2145,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
      ! By doing an LCAO input guess
+     allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
+     allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=i_stat)
+     call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+     allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
+     call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
      call inputguessConfinement(iproc, nproc, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs)
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs,tempmat)
+     i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+     deallocate(tmb%psit_c, stat=i_stat)
+     call memocc(i_stat, i_all, 'tmb%psit_c', subname)
+     i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+     deallocate(tmb%psit_f, stat=i_stat)
+     call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+     deallocate(tempmat)
 
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
@@ -2163,11 +2176,18 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-     call sumrhoForLocalizedBasis2(iproc, nproc, KSwfn%orbs%norb,&
+     allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+     call memocc(i_stat, density_kernel, 'density_kernel', subname)
+     call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, KSwfn%orbs%norb, KSwfn%orbs%norbp, KSwfn%orbs%isorb, &
+       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
+     call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          tmb%orbs, tmb%comsr, tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, &
+          tmb%orbs, tmb%comsr, density_kernel, &
           KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, atoms, denspot%dpbox%nscatterarr)
+     i_all = -product(shape(density_kernel))*kind(density_kernel)
+     deallocate(density_kernel,stat=i_stat)
+     call memocc(i_stat,i_all,'density_kernel',subname)
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)

@@ -2065,7 +2065,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
 end subroutine destroy_new_locregs
 
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
+subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_DFT_wavefunction
@@ -2073,7 +2073,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, norb
+  integer,intent(in):: nphi, lnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(out):: wfn
 
@@ -2081,7 +2081,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   integer:: istat
   character(len=*),parameter:: subname='create_DFT_wavefunction'
 
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, input, wfn%wfnmd)
 
   allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
   call memocc(istat, wfn%psi, 'wfn%psi', subname)
@@ -2187,14 +2187,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, llbnorb, norb
+  integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(wfn_metadata),intent(out):: wfnmd
 
@@ -2214,11 +2214,14 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
       allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
+      allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
+      call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
+
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
       wfnmd%alpha_coeff=0.2d0 !default value, must check whether this is a good choice
 
-      allocate(wfnmd%grad_coeff_old(llbnorb,norb), stat=istat)
+      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
       wfnmd%grad_coeff_old=0.d0 !default value
 

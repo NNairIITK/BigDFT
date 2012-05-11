@@ -236,7 +236,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb,energs)
+     nlpspd, proj, GPU, lphi,orbs,tmb,energs,overlapmatrix)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -250,7 +250,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(GPU_pointers), intent(in) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(inout):: input
   type(local_zone_descriptors),intent(inout):: lzd
@@ -262,6 +262,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   type(energy_terms),intent(inout) :: energs
+   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -272,7 +273,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2
-  real(8),dimension(:,:),allocatable::  lhchi, locregCenter
+  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
   real(8), dimension(:,:,:),allocatable:: ham
   integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable:: covered
@@ -487,6 +488,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
        tmbig%lzd, tmbig%orbs, tmbig%comon, &
        tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi)
+  !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
+  !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -762,9 +765,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPUe,infoCoeff,energs%ebs,nlpspd,proj,&
+  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, density_kernel, 'density_kernel', subname)
+  call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm)
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.)
+  iall = -product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel,stat=istat)
+  call memocc(istat,iall,'density_kernel',subname)
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   
@@ -862,6 +870,8 @@ real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
 ! Local variables
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
+real(8),dimension(:),pointer:: psit_c, psit_f
+logical:: can_use_transposed
 character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
@@ -870,7 +880,16 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, ovrlp)
+     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
+
+if(can_use_transposed) then
+    iall=-product(shape(psit_c))*kind(psit_c)
+    deallocate(psit_c, stat=istat)
+    call memocc(istat, iall, 'psit_c', subname)
+    iall=-product(shape(psit_f))*kind(psit_f)
+    deallocate(psit_f, stat=istat)
+    call memocc(istat, iall, 'psit_f', subname)
+end if
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -2048,7 +2067,7 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
         end do
         call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
   
-      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
+      !!call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
       call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)
   
   
@@ -2548,14 +2567,14 @@ type(input_variables),intent(in):: input
 real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
 real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham
+real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham!, ovrlp
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
 integer:: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
-integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold
-real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
-real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
+integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold, lwork
+real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr, work, eval
+real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold, hamtemp
 integer,dimension(:),allocatable:: recvcounts, displs
 real(8):: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
@@ -2576,6 +2595,14 @@ type(collective_comms):: collcom_vectors
 !!        end do
 !!    end do
 !!end do
+
+!!allocate(hamtemp(tmbig%orbs%norb,tmbig%orbs%norb))
+!!call dcopy(tmbig%orbs%norb**2, ham(1,1,1), 1, hamtemp(1,1), 1)
+!!lwork=100*tmbig%orbs%norb
+!!allocate(work(lwork))
+!!allocate(eval(tmbig%orbs%norb))
+!!!call dsygv(1, 'v', 'l', tmbig%orbs%norb, ham, tmbig%orbs%norb, ovrlp, tmbig%orbs%norb, eval, work, lwork, istat)
+!!call dsyev('v', 'l', tmbig%orbs%norb, hamtemp, tmbig%orbs%norb, eval, work, lwork, istat)
 
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
@@ -2742,6 +2769,15 @@ type(collective_comms):: collcom_vectors
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), tmb%lzd%nlr, mpi_comm_world, &
            matmin%mlr, mad, lcoeff, lgrad, opm, comom, trace, collcom_vectors, tmb%orthpar, tmb%wfnmd%bpo)
+      !!trace=0.d0
+      !!do iorb=1,tmb%orbs%norbp
+      !!    ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+      !!    tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+      !!    call daxpy(matmin%mlr(ilr)%norbinlr, -tt, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+      !!    trace=trace+tt
+      !!end do
+      !!call mpiallred(trace, 1, mpi_sum, mpi_comm_world, istat)
+
       ! Calculate the gradient norm.
       fnrm=0.d0
       do iorb=1,tmb%orbs%norbp
@@ -2785,11 +2821,15 @@ type(collective_comms):: collcom_vectors
      meanAlpha=meanAlpha/dble(tmb%orbs%norb)
 
       ! Precondition the gradient.
-      do iorb=1,tmb%orbs%norbp
-          ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-          iilr=matmin%inWhichLocregOnMPI(iorb)
-          call precondition_gradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
-      end do
+      !if(it>500) then
+          do iorb=1,tmb%orbs%norbp
+              ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+              iilr=matmin%inWhichLocregOnMPI(iorb)
+              !if(iproc==0) write(*,*) 'matmin%mlr(ilr)%norbinlr, matmin%norbmax',matmin%mlr(ilr)%norbinlr, matmin%norbmax
+              !call precondition_gradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), eval(tmb%orbs%isorb+iorb), lgrad(1,iorb))
+              call precondition_gradient(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+          end do
+      !end if
   
 
       ! Write some informations to the screen, but only every 1000th iteration.
@@ -2870,6 +2910,22 @@ type(collective_comms):: collcom_vectors
   else
      call vcopy(sendcount,coeffPad(1),1,coeff(1,1),1)
   end if
+
+  !!!! DEBUG: diagonalize Hamiltonian
+  !!write(*,*) 'debug: diagonalize ham'
+  !!!!lwork=100*tmbig%orbs%norb
+  !!!!allocate(work(lwork))
+  !!!!allocate(eval(tmbig%orbs%norb))
+  !!!call dsygv(1, 'v', 'l', tmbig%orbs%norb, ham, tmbig%orbs%norb, ovrlp, tmbig%orbs%norb, eval, work, lwork, istat)
+  !!call dsyev('v', 'l', tmbig%orbs%norb, ham, tmbig%orbs%norb, eval, work, lwork, istat)
+  !!tt=0.d0
+  !!do istat=1,tmb%orbs%norb
+  !!    tt=tt+eval(istat)
+  !!end do
+  !!if(iproc==0) write(*,* ) 'trace after diag',tt
+  !!deallocate(work)
+  !!deallocate(eval)
+  !!call dcopy(tmb%orbs%norb*tmbig%orbs%norb, ham, 1, coeff, 1)
 
   call deallocateArrays()
 
@@ -2993,6 +3049,7 @@ subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
           mat(jel,iel) = cmplx(ham(jel,iel),0.d0,kind=8)
       end do
       mat(iel,iel)=mat(iel,iel)+cmplx(.5d0,-1.d-1,kind=8)
+      !mat(iel,iel)=mat(iel,iel)+cmplx(-cprec,1.d-2,kind=8)
       !mat(iel,iel)=mat(iel,iel)-cprec
       rhs(iel)=cmplx(grad(iel),0.d0,kind=8)
   end do
@@ -3003,7 +3060,7 @@ subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
   
   call zgesv(nel, 1, mat(1,1), nel, ipiv, rhs(1), nel, info)
   if(info/=0) then
-      stop 'ERROR in dgesv'
+      stop 'ERROR in zgesv'
   end if
   !call dcopy(nel, rhs(1), 1, grad(1), 1)
   do iel=1,nel

@@ -1,6 +1,6 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb,fnrm,ldiis_coeff)
+    hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -23,12 +23,15 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix, tmb
+real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
+real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
+logical,intent(in):: calculate_overlap_matrix
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
 integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb,borb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
-real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix,test
+real(8),dimension(:,:),allocatable:: ovrlp,test
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: tt
 logical:: withConfinement
@@ -50,25 +53,27 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
-  if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(tmbmix%collcom%ndimind_c))
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
-      call memocc(istat, psit_f, 'psit_f', subname)
-      call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, psit_c, &
-           psit_c, psit_f, psit_f, ovrlp)
-      call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-      iall=-product(shape(psit_c))*kind(psit_c)
-      deallocate(psit_c, stat=istat)
-      call memocc(istat, iall, 'psit_c', subname)
-      iall=-product(shape(psit_f))*kind(psit_f)
-      deallocate(psit_f, stat=istat)
-      call memocc(istat, iall, 'psit_f', subname)
-  else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, ovrlp)
-  else
-      stop 'wrong communication_strategy_overlap'
+  if(calculate_overlap_matrix) then
+      if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+          !!allocate(psit_c(tmbmix%collcom%ndimind_c))
+          !!call memocc(istat, psit_c, 'psit_c', subname)
+          !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
+          !!call memocc(istat, psit_f, 'psit_f', subname)
+          call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
+          call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, tmbmix%psit_c, &
+               tmbmix%psit_c, tmbmix%psit_f, tmbmix%psit_f, overlapmatrix)
+          !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
+          !!iall=-product(shape(psit_c))*kind(psit_c)
+          !!deallocate(psit_c, stat=istat)
+          !!call memocc(istat, iall, 'psit_c', subname)
+          !!iall=-product(shape(psit_f))*kind(psit_f)
+          !!deallocate(psit_f, stat=istat)
+          !!call memocc(istat, iall, 'psit_f', subname)
+      else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+          call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, overlapmatrix)
+      else
+          stop 'wrong communication_strategy_overlap'
+      end if
   end if
 
 
@@ -142,27 +147,26 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      allocate(psit_c(tmbmix%collcom%ndimind_c))
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*tmbmix%collcom%ndimind_f))
-      call memocc(istat, psit_f, 'psit_f', subname)
+      !!allocate(psit_c(tmbmix%collcom%ndimind_c))
+      !!call memocc(istat, psit_c, 'psit_c', subname)
+      !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
+      !!call memocc(istat, psit_f, 'psit_f', subname)
       allocate(hpsit_c(tmbmix%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
       allocate(hpsit_f(7*tmbmix%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
+      !!call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
       call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
            lhphi, hpsit_c, hpsit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, &
-           psit_c, hpsit_c, psit_f, hpsit_f, matrixElements)
-      call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-      ! not necessary to untranpose hpsit...
-      iall=-product(shape(psit_c))*kind(psit_c)
-      deallocate(psit_c, stat=istat)
-      call memocc(istat, iall, 'psit_c', subname)
-      iall=-product(shape(psit_f))*kind(psit_f)
-      deallocate(psit_f, stat=istat)
-      call memocc(istat, iall, 'psit_f', subname)
+           tmbmix%psit_c, hpsit_c, tmbmix%psit_f, hpsit_f, matrixElements)
+      !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
+      !!iall=-product(shape(psit_c))*kind(psit_c)
+      !!deallocate(psit_c, stat=istat)
+      !!call memocc(istat, iall, 'psit_c', subname)
+      !!iall=-product(shape(psit_f))*kind(psit_f)
+      !!deallocate(psit_f, stat=istat)
+      !!call memocc(istat, iall, 'psit_f', subname)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -187,9 +191,10 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   end do
 
 
-  allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
-  call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-  overlapmatrix=ovrlp
+  !!allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+  !!call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+  !!overlapmatrix=ovrlp
+  call dcopy(tmbmix%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
@@ -228,7 +233,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
-      call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
+      !!call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
+      !!call dcopy(tmbmix%orbs%norb, eval(1), 1, tmbmix%orbs%eval(1), 1)
   end if
 
   ! TEST
@@ -238,15 +244,18 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
 
+  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
-  do iorb=1,orbs%norb
-      do jorb=1,tmbmix%orbs%norb
-          do korb=1,tmbmix%orbs%norb
-              ebs = ebs + tmbmix%wfnmd%coeff(jorb,iorb)*tmbmix%wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
-          end do
+  do jorb=1,tmbmix%orbs%norb
+      do korb=1,jorb
+          tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          if(korb/=jorb) tt=2.d0*tt
+          ebs = ebs + tt
       end do
   end do
 
@@ -334,16 +343,16 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   deallocate(ovrlp, stat=istat)
   call memocc(istat, iall, 'ovrlp', subname)
 
-  iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-  deallocate(overlapmatrix, stat=istat)
-  call memocc(istat, iall, 'overlapmatrix', subname)
+  !!iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+  !!deallocate(overlapmatrix, stat=istat)
+  !!call memocc(istat, iall, 'overlapmatrix', subname)
 
 end subroutine get_coeff
 
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,&
+    denspot,GPU,trH,fnrm,&
     infoBasisFunctions,nlpspd,proj,ldiis,&
     SIC, &
     locrad,tmb)
@@ -368,7 +377,7 @@ type(orbitals_data):: orbs
 real(8),dimension(3,at%nat):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
-real(8),intent(out):: trH
+real(8),intent(out):: trH, fnrm
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -379,13 +388,13 @@ real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, fnrm, meanAlpha
-integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
+real(8):: trHold, factor, fnrmMax, meanAlpha
+integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, variable_locregs
+logical:: withConfinement, variable_locregs, emergency_exit
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
@@ -405,6 +414,19 @@ type(energy_terms) :: energs
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
 
+  !!write(*,*) 'DEBUG KERNEL'
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if(jorb==iorb) then
+  !!            kernel(jorb,iorb)=1.d0
+  !!        else
+  !!            kernel(jorb,iorb)=0.d0
+  !!        end if
+  !!    end do
+  !!end do
+
+  tmb%can_use_transposed=.false.
+  tmblarge%can_use_transposed=.false.
 
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -500,9 +522,21 @@ type(energy_terms) :: energs
 
   call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
        tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-       tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, ovrlp)
+       tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+       tmbopt%can_use_transposed)
+       !!write(*,*) 'after first ortho: tmbopt%can_use_transposed',tmbopt%can_use_transposed
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      ! This is not the ideal place for this...
+      if(tmbopt%can_use_transposed) then
+          tmbopt%can_use_transposed=.false.
+          iall = -product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+          deallocate(tmbopt%psit_c,stat=istat)
+          call memocc(istat,iall,'tmbopt%psit_c',subname)
+          iall = -product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+          deallocate(tmbopt%psit_f,stat=istat)
+          call memocc(istat,iall,'tmbopt%psit_f',subname)
+      end if
       ! Optimize the locreg centers and potentially the shape of the basis functions.
       call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
       call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
@@ -646,24 +680,31 @@ type(energy_terms) :: energs
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization) then
+      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
           if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
-          else
+          else if(fnrm<tmb%wfnmd%bs%conv_crit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
+          else if(emergency_exit) then
+              if(iproc==0) then
+                  write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
+                      ' iterations to keep presumably good TMBs before they deteriorate too much.'
+                  write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
@@ -2855,6 +2896,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
+  !if(iproc==0) write(*,'(a,2es15.6,l5)') 'trH, ldiis%trmin, ldiis%resetDIIS', trH, ldiis%trmin, ldiis%resetDIIS
 
   ! Now come some checks whether the trace is descreasing or not. This further decides
   ! whether we should use DIIS or SD.
@@ -2869,6 +2911,8 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
       ldiis%itBest=it
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
+      !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
+      call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
       ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
       ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
@@ -2924,6 +2968,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
              ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
              offset=0
              istdest=1
+             !if(iproc==0) write(*,*) 'copy DIIS history psi...'
              do iorb=1,tmbopt%orbs%norbp
                  iiorb=tmbopt%orbs%isorb+iorb
                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
@@ -2935,11 +2980,14 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
                  istdest=istdest+ncount
              end do
          else
+             !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
          end if
          ldiis%isx=0
          ldiis%switchSD=.true.
       end if
+      ! to indicate that no orthonormalization is required... (CHECK THIS!)
+      if(ldiis%isx==0) ldiis%switchSD=.true. 
   end if
 
 end subroutine DIISorSD

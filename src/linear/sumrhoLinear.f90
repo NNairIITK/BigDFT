@@ -277,8 +277,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,&
-     comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+     comsr,densKern,nrho,rho,at,nscatterarr)
 !
 use module_base
 use module_types
@@ -287,7 +287,7 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
+integer,intent(in):: iproc, nproc, nrho
 real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
@@ -295,7 +295,8 @@ type(orbitals_data),intent(in):: orbs
 !type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
 !real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(ld_coeff,norb),intent(in):: coeff
+!real(8),dimension(ld_coeff,norb),intent(in):: coeff
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -309,7 +310,7 @@ integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-real(8),dimension(:,:),allocatable:: densKern
+!real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
@@ -322,20 +323,25 @@ if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 !lin%comsr%computComplete=.false.
 
 
-! Allocate the density kernel.
-allocate(densKern(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, densKern, 'densKern', subname)
+!!! Allocate the density kernel.
+!!allocate(densKern(orbs%norb,orbs%norb), stat=istat)
+!!call memocc(istat, densKern, 'densKern', subname)
 
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t1)
 ! Calculate the density kernel.
-if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
-call timing(iproc,'sumrho_TMB    ','ON')
-!!call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
-!!     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
-call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), ld_coeff, &
-     coeff(1,1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
-call timing(iproc,'sumrho_TMB    ','OF')
+!!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+!!call timing(iproc,'sumrho_TMB    ','ON')
+!!if(norbp>0) then
+!!    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+!!         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
+!!else
+!!    call to_zero(orbs%norb**2, densKern(1,1))
+!!end if
+!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!call timing(iproc,'sumrho_TMB    ','OF')
+
+
 if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t2)
@@ -398,15 +404,22 @@ call timing(iproc,'sumrho_TMB    ','ON')
 is=nscatterarr(iproc,3) 
 ie=is+nscatterarr(iproc,1)-1
 
+! This sum is "symmetric", so only do the second loop (jorb) only up to iorb and multiply by two if iorb/=jorb.
 totalCharge=0.d0
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
     ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
     istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    do jorb=1,comsr%noverlaps(iproc)
+    do jorb=1,iorb
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
         istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+        !!tt = (lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+        !!tt=sqrt(tt)
+        !!write(200,*) tt, densKern(iiorb,jjorb)
+        !!if(tt>6.d0) cycle
 
         azones = 1
         bzones = 1
@@ -434,7 +447,12 @@ do iorb=1,comsr%noverlaps(iproc)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
+              if(iorb/=jorb) then
+                  ! Multiply by two since these elements appear twice (but are calculated only once).
+                  factorTimesDensKern = 2.d0*factorTimesDensKern
+              end if
               ! Now loop over all points in the box in which the orbitals overlap.
+              !if(i3s>i3e) write(*,*) 'no calculation done'
               do i3=i3s,i3e !bounds in z direction
                   i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
                   j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box
@@ -528,9 +546,9 @@ call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 
-iall=-product(shape(densKern))*kind(densKern)
-deallocate(densKern, stat=istat)
-call memocc(istat, iall, 'densKern', subname)
+!!iall=-product(shape(densKern))*kind(densKern)
+!!deallocate(densKern, stat=istat)
+!!call memocc(istat, iall, 'densKern', subname)
 
 end subroutine sumrhoForLocalizedBasis2
 
@@ -605,3 +623,28 @@ end subroutine sumrhoForLocalizedBasis2
 !!!!end subroutine setCommunicationInformation2
 
 
+subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
+  real(8),dimension(ld_coeff,norb),intent(in):: coeff
+  real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
+
+  ! Local variables
+  integer:: ierr
+
+  if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+  !call timing(iproc,'sumrho_TMB    ','ON')
+  if(norbp>0) then
+      call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+           coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
+  else
+      call to_zero(norb_tmb**2, kernel(1,1))
+  end if
+  call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
+  !call timing(iproc,'sumrho_TMB    ','OF')
+
+end subroutine calculate_density_kernel
