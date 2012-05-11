@@ -206,6 +206,7 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
   lscv%increase_locreg=0.d0
   lscv%decrease_factor_total=1.d10 !initialize to some large value
   lscv%ifail=0
+  lscv%enlarge_locreg=.false.
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! or to tmbder if we use the derivatives.
@@ -855,6 +856,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       else
           lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
       end if
+      if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
+
 
   else
 
@@ -945,6 +948,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
           write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
       end if
       lscv%locreg_increased=.true.
+      lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(lscv%locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
