@@ -239,11 +239,23 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
       ! First to some initialization and determine the value of some control parameters.
 
       ! Initialize DIIS...
-      call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-      ldiis%DIISHistMin=input%lin%DIISHistMin
-      ldiis%DIISHistMax=input%lin%DIISHistMax
-      ldiis%alphaSD=input%lin%alphaSD
-      ldiis%alphaDIIS=input%lin%alphaDIIS
+      ! Keep the history in the high accuracy case.
+      !if(.not.lscv%lowaccur_converged) then
+          if(itout>1) call deallocateDIIS(ldiis)
+          call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+          ldiis%DIISHistMin=input%lin%DIISHistMin
+          ldiis%DIISHistMax=input%lin%DIISHistMax
+          ldiis%alphaSD=input%lin%alphaSD
+          ldiis%alphaDIIS=input%lin%alphaDIIS
+          ldiis%icountSDSatur=0
+          ldiis%icountSwitch=0
+          ldiis%icountDIISFailureTot=0
+          ldiis%icountDIISFailureCons=0
+          ldiis%is=0
+          ldiis%switchSD=.false.
+          ldiis%trmin=1.d100
+          ldiis%trold=1.d100
+      !end if
 
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
@@ -534,8 +546,8 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 
       energyoldout=energy
 
-      ! Deallocate DIIS structures.
-      call deallocateDIIS(ldiis)
+      !!! Deallocate DIIS structures.
+      !!call deallocateDIIS(ldiis)
 
 
       call check_for_exit(input, lscv)
@@ -543,6 +555,9 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 
 
   end do outerLoop
+
+  ! Deallocate DIIS structures.
+  call deallocateDIIS(ldiis)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
@@ -943,7 +958,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   end if
 
   redefine_derivatives=.false.
-  if(lscv%lowaccur_converged) then
+  if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
       if(iproc==0) then
           write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
       end if

@@ -459,16 +459,17 @@ type(energy_terms) :: energs
           stop
       end if
   end if
-  ldiis%icountSDSatur=0
-  ldiis%icountSwitch=0
-  ldiis%icountDIISFailureTot=0
-  ldiis%icountDIISFailureCons=0
-  ldiis%is=0
-  ldiis%switchSD=.false.
-  ldiis%trmin=1.d100
-  ldiis%trold=1.d100
+  !!ldiis%icountSDSatur=0
+  !!ldiis%icountSwitch=0
+  !!ldiis%icountDIISFailureTot=0
+  !!ldiis%icountDIISFailureCons=0
+  !!ldiis%is=0
+  !!ldiis%switchSD=.false.
+  !!ldiis%trmin=1.d100
+  !!ldiis%trold=1.d100
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
+  !write(*,*) 'ldiis%is',ldiis%is
 
   !print *,'TEST2'
   !print *,iproc,(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE),&
