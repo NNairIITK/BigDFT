@@ -31,7 +31,7 @@ type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf, nit_highaccur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -228,34 +228,53 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
   call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
 
+  ! Initialize DIIS...
+  !!if(.not.lscv%lowaccur_converged) then
+      call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+      ldiis%DIISHistMin=input%lin%DIISHistMin
+      ldiis%DIISHistMax=input%lin%DIISHistMax
+      ldiis%alphaSD=input%lin%alphaSD
+      ldiis%alphaDIIS=input%lin%alphaDIIS
+      ldiis%icountSDSatur=0
+      ldiis%icountSwitch=0
+      ldiis%icountDIISFailureTot=0
+      ldiis%icountDIISFailureCons=0
+      ldiis%is=0
+      ldiis%switchSD=.false.
+      ldiis%trmin=1.d100
+      ldiis%trold=1.d100
+  !!end if
+
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   coeffs_copied=.false.
   first_time_with_der=.false.
+  nit_highaccur=0
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+      if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
 
       ! First to some initialization and determine the value of some control parameters.
 
-      ! Initialize DIIS...
-      ! Keep the history in the high accuracy case.
-      !if(.not.lscv%lowaccur_converged) then
-          if(itout>1) call deallocateDIIS(ldiis)
-          call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-          ldiis%DIISHistMin=input%lin%DIISHistMin
-          ldiis%DIISHistMax=input%lin%DIISHistMax
-          ldiis%alphaSD=input%lin%alphaSD
-          ldiis%alphaDIIS=input%lin%alphaDIIS
-          ldiis%icountSDSatur=0
-          ldiis%icountSwitch=0
-          ldiis%icountDIISFailureTot=0
-          ldiis%icountDIISFailureCons=0
-          ldiis%is=0
-          ldiis%switchSD=.false.
-          ldiis%trmin=1.d100
-          ldiis%trold=1.d100
-      !end if
+      !!! Initialize DIIS...
+      !!! Keep the history in the high accuracy case.
+      !!if(.not.lscv%lowaccur_converged) then
+      !!    if(itout>1) call deallocateDIIS(ldiis)
+      !!    call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+      !!    ldiis%DIISHistMin=input%lin%DIISHistMin
+      !!    ldiis%DIISHistMax=input%lin%DIISHistMax
+      !!    ldiis%alphaSD=input%lin%alphaSD
+      !!    ldiis%alphaDIIS=input%lin%alphaDIIS
+      !!    ldiis%icountSDSatur=0
+      !!    ldiis%icountSwitch=0
+      !!    ldiis%icountDIISFailureTot=0
+      !!    ldiis%icountDIISFailureCons=0
+      !!    ldiis%is=0
+      !!    ldiis%switchSD=.false.
+      !!    ldiis%trmin=1.d100
+      !!    ldiis%trold=1.d100
+      !!end if
 
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
@@ -289,14 +308,21 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
       call set_optimization_variables(input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, lscv)
 
+      if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
+      if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
+
+      !!if(iproc==0) write(*,*) 'MIDDLE 1: ldiis%hphiHist(1)',ldiis%hphiHist(1)
       ! Adjust the confining potential if required.
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
+      !!if(iproc==0) write(*,*) 'MIDDLE 2: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       ! Somce special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
+
+      !!if(iproc==0) write(*,*) 'MIDDLE: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       if(lscv%withder) then
           call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
@@ -341,15 +367,60 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
+              !!if(iproc==0 .and. lscv%lowaccur_converged) then
+              !!    do istat=1,size(ldiis%phiHist)
+              !!        write(300+itout,*) istat, ldiis%phiHist(istat)
+              !!    end do
+              !!end if
+              !!write(1000+iproc,*) ldiis%mat
+              !!write(1000+iproc,*) '----- itout',itout
+              !!if(iproc==0) write(*,*) 'BEFORE: ldiis%hphiHist(1)',ldiis%hphiHist(1)
+              !!if(size(ldiis%hphiHist)>0) write(3300+iproc,*) 'ldiis%hphiHist(1)',ldiis%hphiHist(1)
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
+              !!if(iproc==0) write(*,*) 'AFTER: ldiis%hphiHist(1)',ldiis%hphiHist(1)
+              !!if(size(ldiis%hphiHist)>0) write(3300+iproc,*) 'ldiis%hphiHist(1)',ldiis%hphiHist(1)
+              !!write(1100+iproc,*) ldiis%mat
+              !!write(1100+iproc,*) '----- itout',itout
+              !!if(iproc==0 .and. lscv%lowaccur_converged) then
+              !!    do istat=1,size(ldiis%phiHist)
+              !!        write(200+itout,*) istat, ldiis%phiHist(istat)
+              !!    end do
+              !!end if
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
               tmb%wfnmd%it_coeff_opt=0
               tmbder%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
+
+              !!write(*,*) 'nit_highaccur',nit_highaccur
+              if(nit_highaccur<=1) then
+                  call deallocateDIIS(ldiis)
+                  call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+                  ldiis%DIISHistMin=input%lin%DIISHistMin
+                  ldiis%DIISHistMax=input%lin%DIISHistMax
+                  ldiis%alphaSD=input%lin%alphaSD
+                  ldiis%alphaDIIS=input%lin%alphaDIIS
+                  ldiis%icountSDSatur=0
+                  ldiis%icountSwitch=0
+                  ldiis%icountDIISFailureTot=0
+                  ldiis%icountDIISFailureCons=0
+                  ldiis%is=0
+                  ldiis%switchSD=.false.
+                  ldiis%trmin=1.d100
+                  ldiis%trold=1.d100
+              else
+                  ! Since the potential changes, the values of ldiis%trmin should be reset.
+                  ldiis%switchSD=.false.
+                  ldiis%trmin=1.d100
+                  ldiis%trold=1.d100
+              end if
           end if
+
+          ! Initialize DIIS...
+          ! Keep the history in the high accuracy case.
+          !if(.not.lscv%lowaccur_converged) then
 
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -871,7 +942,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       else
           lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
       end if
-      if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
+      !!if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
 
 
   else

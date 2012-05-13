@@ -469,7 +469,7 @@ type(energy_terms) :: energs
   !!ldiis%trold=1.d100
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
-  !write(*,*) 'ldiis%is',ldiis%is
+  !!write(*,*) 'ldiis%is',ldiis%is
 
   !print *,'TEST2'
   !print *,iproc,(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE),&
@@ -801,7 +801,6 @@ type(energy_terms) :: energs
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
-
 
 
 contains
