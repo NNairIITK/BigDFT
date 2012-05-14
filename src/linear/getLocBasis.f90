@@ -108,7 +108,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   call NonLocalHamiltonianApplication(iproc,at,tmbmix%orbs,rxyz,&
        proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
   call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
        lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)

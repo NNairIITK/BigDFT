@@ -688,13 +688,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              if(owa/=owa_old) then
-                 call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                      energs,input%SIC,GPUe,.false.,&
-                      pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
                       proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
+                 call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
+                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                      energs,input%SIC,GPUe,.false.,&
+                      pkernel=denspot%pkernelseq)!,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
                  ii_old=ii
              else
                  call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)

@@ -15,7 +15,7 @@
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
+subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
   use module_base
@@ -23,13 +23,13 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,nproc,ipotmethod,ixc
   real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
-  real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+  real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
@@ -112,6 +112,10 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   ilrold=-1
   iiilr=0
   comm_loop: do it=1,nit_for_comm
+
+     if(it==2) then
+         call full_local_potential(iproc,nproc,orbs,lzd,2,dpbox,potential,pot,comgp)
+     end if
    
      !loop on the localisation regions (so to create one work array set per lr)
      loop_lr: do ilr=1,Lzd%nlr
