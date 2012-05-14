@@ -46,7 +46,7 @@ program conv_check_fft
   !objects for the 3D Poisson solver
   real(kind=8), dimension(:), allocatable :: rhopot,rhopot2,rhopot1
   real(kind=8), dimension(:), pointer :: pkernel,pkernel2
-  integer :: plan,plan1,plan1_,plan2,plan3,plan3_,size1,size2,sizeh,switch_alg,geo1,geo2,geo3
+  integer :: plan,plan1,plan1_,plan2,plan3,plan3_,size1,size2,sizek,switch_alg,geo1,geo2,geo3
   real(kind=8) :: scal
   integer :: count_0
 
@@ -288,14 +288,14 @@ program conv_check_fft
    scal=1.d0/dble(n1*n2*n3)
 
    size1=n1*n2*n3
-   sizeh=n1*n2*n3/2
    size2=2*n1*n2*n3
+   sizek=(n1/2+1)*n2*n3
    call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
    call cudamalloc(size2,work_GPU)
    call cudamalloc(size2,psi_GPU)
-   call cudamalloc(size1,k_GPU)
+   call cudamalloc(sizek,k_GPU)
    call reset_gpu_data(size1,rhopot2,work_GPU)
-   call reset_gpu_data(size1,pkernel2,k_GPU)
+   call reset_gpu_data(sizek,pkernel2,k_GPU)
 
    call nanosec(tsc0);
    do i=1,ntimes
@@ -355,15 +355,15 @@ program conv_check_fft
 
    scal=(1.0d0*1.0d0*1.0d0)/dble(n1*n2*n3)
 
-   size1=n1*n2*n3
-   sizeh=n1*n2*n3/8
+   size1=n1*n2*n3/8
    size2=2*n1*n2*n3
+   sizek=(n1/2+1)*n2*n3
    call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
    call cudamalloc(size2,work_GPU)
    call cudamalloc(size2,psi_GPU)
-   call cudamalloc(size1,k_GPU)
-   call reset_gpu_data(sizeh,rhopot2,work_GPU)
-   call reset_gpu_data(size1,pkernel2,k_GPU)
+   call cudamalloc(sizek,k_GPU)
+   call reset_gpu_data(size1,rhopot2,work_GPU)
+   call reset_gpu_data(sizek,pkernel2,k_GPU)
 
    call nanosec(tsc0);
    do i=1,ntimes
@@ -372,7 +372,7 @@ program conv_check_fft
    call synchronize()
    call nanosec(tsc1)
 
-   call get_gpu_data(sizeh,rhopot2,work_GPU)
+   call get_gpu_data(size1,rhopot2,work_GPU)
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
@@ -424,15 +424,15 @@ program conv_check_fft
 
    scal=(-16.0_dp*atan(1.0_dp)*dble(0.2_dp))/dble(n1*n2*n3)
 
-   size1=n1*n2*n3
-   sizeh=n1*n2*n3/2
+   size1=n1*n2*n3/2
    size2=2*n1*n2*n3
+   sizek=(n1/2+1)*n2*n3
    call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
    call cudamalloc(size2,work_GPU)
    call cudamalloc(size2,psi_GPU)
-   call cudamalloc(size1,k_GPU)
-   call reset_gpu_data(sizeh,rhopot2,work_GPU)
-   call reset_gpu_data(size1,pkernel2,k_GPU)
+   call cudamalloc(sizek,k_GPU)
+   call reset_gpu_data(size1,rhopot2,work_GPU)
+   call reset_gpu_data(sizek,pkernel2,k_GPU)
 
    call nanosec(tsc0);
    do i=1,ntimes
@@ -441,7 +441,7 @@ program conv_check_fft
    call synchronize()
    call nanosec(tsc1)
 
-   call get_gpu_data(sizeh,rhopot2,work_GPU)
+   call get_gpu_data(size1,rhopot2,work_GPU)
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
