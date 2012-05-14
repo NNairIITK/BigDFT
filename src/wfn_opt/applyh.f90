@@ -41,11 +41,39 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nlocregs,maxsize,ilrold,ii,iiorb
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
+  real(wp), dimension(:,:), allocatable :: vsicpsir
+  real(wp), dimension(:,:,:), allocatable :: psir
+
+  if(present(dpbox) .and. present(potential) .and. present(comgp)) then
+     maxsize=0
+     ilrold=-1
+     nlocregs=0
+     do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        ii=lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+        if(ii>maxSize) maxsize=ii
+        if(ilr/=ilrold) nlocregs=nlocregs+1
+        ilrold=ilr
+     end do
+  else
+     maxsize=0
+     ilrold=-1
+     nlocregs=1
+     do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        ilr=orbs%inwhichlocreg(iiorb)
+        ii=lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+        if(ii>maxSize) maxsize=ii
+     end do
+  end if
+
+  !!allocate(psir(maxsize,orbs%nspinor+ndebug,nlocregs),stat=i_stat)
+  !!call memocc(i_stat,psir,'psir',subname)
 
   !some checks
   exctXcoeff=xc_exctXfac()
@@ -84,10 +112,10 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      if (orbs%nspinor == 2) npot=1
 
      ! Wavefunction in real space
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug,1),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
 
-     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1,1))
 
      ! wavefunction after application of the self-interaction potential
      if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -136,7 +164,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      else if (ipotmethod == 3) then 
         !in this scheme first we have calculated the potential then we apply it
         call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,&
-             psir(1,1),1,vsicpsir(1,1),1)
+             psir(1,1,1),1,vsicpsir(1,1),1)
         !for the moment the ODP is supposed to be valid only with one lr
         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
              pot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin+&
@@ -155,17 +183,17 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      if (ipotmethod==1) then !Exact Exchange
         ispot=1+Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*(orbs%nspin+iorb-1)
         !add to the psir function the part of the potential coming from the exact exchange
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1,1),1)
      else if (ipotmethod == 2) then !PZ scheme
         !subtract the sic potential from the vpsi function
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1,1),1)
         !add the SIC correction to the potential energy
         epot=epot-alphaSIC*eSICi
         !accumulate the Double-Counted SIC energy
         eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
      else if (ipotmethod == 3) then !NK scheme
         !add the sic potential from the vpsi function
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1,1),1)
         epot=epot+alphaSIC*eSICi
         !accumulate the Double-Counted SIC energy
         eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
