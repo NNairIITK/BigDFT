@@ -254,6 +254,8 @@ BigDFT_Lzd* bigdft_lzd_new();
 BigDFT_Lzd* bigdft_lzd_new_with_fortran (void *fortran_lzd);
 BigDFT_Lzd* bigdft_lzd_new_from_fortran (void *fortran_lzd);
 void        bigdft_lzd_free             (BigDFT_Lzd *lzd);
+gboolean    bigdft_lzd_check            (const BigDFT_Lzd *lzd);
+void        bigdft_lzd_emit_defined     (BigDFT_Lzd *lzd);
 void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
                                          double crmult, double frmult);
 void        bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint npsin);

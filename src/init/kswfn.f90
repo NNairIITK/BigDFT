@@ -129,3 +129,17 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
 END SUBROUTINE kswfn_init_comm
+
+subroutine kswfn_emit_lzd(Wfn, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(in) :: Wfn
+  integer, intent(in) :: iproc, nproc
+
+  call timing(iproc,'wf_signals    ','ON')
+  if (iproc == 0) then
+     call wf_emit_lzd(Wfn%c_obj)
+  end if
+  call timing(iproc,'wf_signals    ','OF')
+END SUBROUTINE kswfn_emit_lzd

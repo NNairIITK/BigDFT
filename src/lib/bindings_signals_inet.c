@@ -653,7 +653,7 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter,
     {
       *error = g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
                            "Unable to retrieve psi, psi not found.");
-      return FALSE;
+      return TRUE;
     }
 
   psic = g_array_sized_new(FALSE, FALSE, sizeof(double), sizeData[0]);
@@ -847,6 +847,12 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
                 ret = client_handle_wf(socket, wf, signal.iter,
                                        ikpt, iorb, BIGDFT_SPIN_UP, quark,
                                        message, cancellable, error);
+              if (*error)
+                {
+                  g_warning("Client: %s", (*error)->message);
+                  g_error_free(*error);
+                  *error = (GError*)0;
+                }
               if (!ret)
                 break;
             }

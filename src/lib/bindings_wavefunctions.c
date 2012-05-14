@@ -359,8 +359,6 @@ static void bigdft_wf_get_property(GObject* obj, guint property_id,
 static void bigdft_wf_set_property(GObject* obj, guint property_id,
                                    const GValue *value, GParamSpec *pspec)
 {
-  BigDFT_Wf *self = BIGDFT_WF(obj);
-
   switch (property_id)
     {
     default:
@@ -422,9 +420,19 @@ void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
   GET_ATTR_DBL(orbs, ORBS, occup, OCCUP);
   GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 #ifdef HAVE_GLIB
+  g_return_if_fail(bigdft_lzd_check((*wf)->lzd));
   g_signal_emit(G_OBJECT(*wf), bigdft_wf_signals[PSI_READY_SIGNAL],
                 0 /* details */, *istep, NULL);
 #endif  
+}
+void FC_FUNC_(wf_emit_lzd, WF_EMIT_LZD)(BigDFT_Wf **wf)
+{
+  BigDFT_Orbs *orbs;
+
+  orbs = &(*wf)->parent;
+  GET_ATTR_UINT  (orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
+
+  bigdft_lzd_emit_defined((*wf)->lzd);
 }
 #ifdef HAVE_GLIB
 void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
@@ -665,7 +673,13 @@ static BigDFT_LocReg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
   if (!bigdft_orbs_get_linear(&wf->parent))
     return &wf->lzd->parent;
   else
-    return wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp] - 1];
+    {
+#ifdef HAVE_GLIB
+      g_return_val_if_fail(iorbp < wf->parent.norb, (BigDFT_LocReg*)0);
+      g_return_val_if_fail(wf->parent.inwhichlocreg[iorbp] <= wf->lzd->nlr, (BigDFT_LocReg*)0);
+#endif
+      return wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp] - 1];
+    }
 }
 static void _wf_get_psi_start_size(const BigDFT_Wf *wf, guint iorbp, guint isorb,
                                    guint *psis, guint *orbSize)
@@ -674,6 +688,9 @@ static void _wf_get_psi_start_size(const BigDFT_Wf *wf, guint iorbp, guint isorb
   guint i, orbSize_;
 
   lr = _wf_get_locreg(wf, iorbp + isorb);
+#ifdef HAVE_GLIB
+  g_return_if_fail(lr);
+#endif
   FC_FUNC_(glr_get_psi_size, GLR_GET_PSI_SIZE)(lr->data, orbSize);
 
   if (!bigdft_orbs_get_linear(&wf->parent))
@@ -683,7 +700,10 @@ static void _wf_get_psi_start_size(const BigDFT_Wf *wf, guint iorbp, guint isorb
       *psis = 0;
       for (i = 0; i < iorbp; i++)
         {
-          lr = wf->lzd->Llr[wf->parent.inwhichlocreg[i + isorb] - 1];
+          lr = _wf_get_locreg(wf, i + isorb);
+#ifdef HAVE_GLIB
+          g_return_if_fail(lr);
+#endif
           FC_FUNC_(glr_get_psi_size, GLR_GET_PSI_SIZE)(lr->data, &orbSize_);
           *psis += orbSize_;
         }
@@ -696,6 +716,7 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
 {
   guint orbSize, dpsi;
   int iorbp, isorb, jproc;
+  long psiAlloc;
 
   *psiSize = 0;
 
@@ -703,12 +724,21 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
     return (const double*)0;
   
   _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, &dpsi, &orbSize);
-  *psiSize = orbSize;
-  if (ispinor == BIGDFT_PARTIAL_DENSITY && wf->parent.nspinor == 2)
-    *psiSize *= 2;
   if (ispinor == BIGDFT_IMAG && wf->parent.nspinor == 2)
     dpsi += orbSize;
 
+  /* Dimension checks. */
+  FC_FUNC_(wf_get_psi_size, WF_GET_PSI_SIZE)(wf->psi, &psiAlloc);
+  if ((long)dpsi >= psiAlloc)
+    {
+      fprintf(stderr, "WARNING: inconsistency in psi allocation"
+              " size (%ld) and accessor (%d).\n", psiAlloc, dpsi);
+      return (const double*)0;
+    }
+
+  *psiSize = orbSize;
+  if (ispinor == BIGDFT_PARTIAL_DENSITY && wf->parent.nspinor == 2)
+    *psiSize *= 2;    
   return (iproc == jproc)?wf->psi->data + dpsi:(const double*)0;
 }
 gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
@@ -717,6 +747,7 @@ gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb
 {
   guint orbSize, dpsi;
   int iorbp, isorb, jproc;
+  long psiAlloc;
 
   if (!_wf_get_iorbp(wf, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
     return FALSE;
@@ -735,6 +766,16 @@ gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb
     }
   if (ispinor == BIGDFT_IMAG && wf->parent.nspinor == 2)
     dpsi += orbSize;
+
+  /* Dimension checks. */
+  FC_FUNC_(wf_get_psi_size, WF_GET_PSI_SIZE)(wf->psi, &psiAlloc);
+  if ((long)dpsi >= psiAlloc)
+    {
+      fprintf(stderr, "WARNING: inconsistency in psi allocation"
+              " size (%ld) and accessor (%d).\n", psiAlloc, dpsi);
+      return FALSE;
+    }
+    
   if (iproc == jproc)
     memcpy(psic, wf->psi->data + dpsi, sizeof(double) * psiSize);
   else

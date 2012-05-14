@@ -225,6 +225,37 @@ double* bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psi
   
   return psir;
 }
+gboolean bigdft_locreg_check(const BigDFT_LocReg *glr)
+{
+  guint n[3], ni[3], ns[3], nsi[3], norb;
+  BigDFT_LocReg ref;
+
+  /* Check the consistency of everything with Fortran values. */
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, n, ni, ns, nsi, &norb);
+  if (n[0] != glr->n[0] || n[1] != glr->n[1] || n[2] != glr->n[2])
+    return FALSE;
+  if (ni[0] != glr->ni[0] || ni[1] != glr->ni[1] || ni[2] != glr->ni[2])
+    return FALSE;
+  if (ns[0] != glr->ns[0] || ns[1] != glr->ns[1] || ns[2] != glr->ns[2])
+    return FALSE;
+  if (nsi[0] != glr->nsi[0] || nsi[1] != glr->nsi[1] || nsi[2] != glr->nsi[2])
+    return FALSE;
+
+  ref.wfd = glr->wfd;
+  bigdft_locreg_copy_wfd(&ref);
+  if (ref.nvctr_c != glr->nvctr_c || ref.nvctr_f != glr->nvctr_f)
+    return FALSE;
+  if (ref.nseg_c != glr->nseg_c || ref.nseg_f != glr->nseg_f)
+    return FALSE;
+  if (ref.keygloc != glr->keygloc || ref.keyvloc != glr->keyvloc)
+    return FALSE;
+  if (ref.keyglob != glr->keyglob || ref.keyvglob != glr->keyvglob)
+    return FALSE;
+
+  return TRUE;
+}
+
+
 gboolean bigdft_locreg_iter_new(const BigDFT_LocReg *glr, BigDFT_LocRegIter *iter, BigDFT_Grid gridType)
 {
   memset(iter, 0, sizeof(BigDFT_LocRegIter));
@@ -290,7 +321,14 @@ static void bigdft_lzd_dispose(GObject *atoms);
 static void bigdft_lzd_finalize(GObject *atoms);
 
 #ifdef HAVE_GLIB
+enum {
+  LZD_DEFINED_SIGNAL,
+  LAST_LZD_SIGNAL
+};
+
 G_DEFINE_TYPE(BigDFT_Lzd, bigdft_lzd, BIGDFT_LOCREG_TYPE)
+
+static guint bigdft_lzd_signals[LAST_LZD_SIGNAL] = { 0 };
 
 static void bigdft_lzd_class_init(BigDFT_LzdClass *klass)
 {
@@ -299,6 +337,12 @@ static void bigdft_lzd_class_init(BigDFT_LzdClass *klass)
   G_OBJECT_CLASS(klass)->finalize     = bigdft_lzd_finalize;
   /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
   /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+
+  bigdft_lzd_signals[LZD_DEFINED_SIGNAL] =
+    g_signal_new("defined", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+		 0, NULL, NULL, g_cclosure_marshal_VOID__VOID,
+                 G_TYPE_NONE, 0, NULL);
 }
 #endif
 
@@ -483,7 +527,55 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
       FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
     }
   _lzd_wrap_llr(lzd);
+
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(lzd), bigdft_lzd_signals[LZD_DEFINED_SIGNAL],
+                0 /* details */, NULL);
+#endif
 }
+void bigdft_lzd_emit_defined(BigDFT_Lzd *lzd)
+{
+  guint ilr, j;
+
+  /* First, sync. */
+  FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(lzd->parent.data, lzd->parent.n, lzd->parent.ni,
+                                                   lzd->parent.ns, lzd->parent.nsi,
+                                                   &lzd->parent.norb);
+  bigdft_locreg_copy_wfd(&lzd->parent);
+  for (ilr = 0; ilr < lzd->nlr; ilr++)
+    {
+      j = ilr + 1;
+      FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(lzd->data, &j, &lzd->Llr[ilr]->data);
+      FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(lzd->Llr[ilr]->data, lzd->Llr[ilr]->n,
+                                                       lzd->Llr[ilr]->ni, lzd->Llr[ilr]->ns,
+                                                       lzd->Llr[ilr]->nsi, &lzd->Llr[ilr]->norb);
+      bigdft_locreg_copy_wfd(lzd->Llr[ilr]);
+    }
+  
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(lzd), bigdft_lzd_signals[LZD_DEFINED_SIGNAL],
+                0 /* details */, NULL);
+#endif
+}
+gboolean bigdft_lzd_check(const BigDFT_Lzd *lzd)
+{
+  guint nlr, ilr;
+
+  /* Check the consistency of everything with Fortran values. */
+
+  /* nlr. */
+  FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &nlr);
+  if (nlr != lzd->nlr)
+    return FALSE;
+
+  for (ilr = 0; ilr < lzd->nlr; ilr++)
+    if (!bigdft_locreg_check(lzd->Llr[ilr]))
+      return FALSE;
+  
+  return TRUE;
+}
+
 gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
                              BigDFT_Grid gridType, guint ilr)
 {

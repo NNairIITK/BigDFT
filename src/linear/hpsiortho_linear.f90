@@ -461,4 +461,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
 
+  ! Emit that new wavefunctions are ready.
+  if (tmb%c_obj /= 0) then
+     call kswfn_emit_psi(tmb, it, iproc, nproc)
+  end if
+
 end subroutine hpsitopsi_linear

@@ -878,6 +878,14 @@ subroutine wf_get_psi(wf, psi)
   end interface
   call inquire_address1(psi, wf%psi)
 end subroutine wf_get_psi
+subroutine wf_get_psi_size(psi, psiSize)
+  use module_types
+  implicit none
+  real(wp), dimension(:), pointer :: psi
+  integer(kind = 8), intent(out) :: psiSize
+
+  psiSize = product(shape(psi))
+end subroutine wf_get_psi_size
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
   implicit none

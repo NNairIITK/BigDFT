@@ -1823,6 +1823,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
+  ! Emit that lzd has been changed.
+  if (tmbmix%c_obj /= 0) then
+     call kswfn_emit_lzd(tmbmix, iproc, nproc)
+  end if
+
 end subroutine redefine_locregs_quantities
 
 
