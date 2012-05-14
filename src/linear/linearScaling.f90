@@ -367,26 +367,8 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-              !!if(iproc==0 .and. lscv%lowaccur_converged) then
-              !!    do istat=1,size(ldiis%phiHist)
-              !!        write(300+itout,*) istat, ldiis%phiHist(istat)
-              !!    end do
-              !!end if
-              !!write(1000+iproc,*) ldiis%mat
-              !!write(1000+iproc,*) '----- itout',itout
-              !!if(iproc==0) write(*,*) 'BEFORE: ldiis%hphiHist(1)',ldiis%hphiHist(1)
-              !!if(size(ldiis%hphiHist)>0) write(3300+iproc,*) 'ldiis%hphiHist(1)',ldiis%hphiHist(1)
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
-              !!if(iproc==0) write(*,*) 'AFTER: ldiis%hphiHist(1)',ldiis%hphiHist(1)
-              !!if(size(ldiis%hphiHist)>0) write(3300+iproc,*) 'ldiis%hphiHist(1)',ldiis%hphiHist(1)
-              !!write(1100+iproc,*) ldiis%mat
-              !!write(1100+iproc,*) '----- itout',itout
-              !!if(iproc==0 .and. lscv%lowaccur_converged) then
-              !!    do istat=1,size(ldiis%phiHist)
-              !!        write(200+itout,*) istat, ldiis%phiHist(istat)
-              !!    end do
-              !!end if
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
               tmb%wfnmd%it_coeff_opt=0
