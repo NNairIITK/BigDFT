@@ -711,17 +711,17 @@ type(energy_terms) :: energs
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
       if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-                  ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              infoBasisFunctions=-1
-          else if(fnrm<tmb%wfnmd%bs%conv_crit) then
+          if(fnrm<tmb%wfnmd%bs%conv_crit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
+          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+                  ' iterations! Exiting loop due to limitations of iterations.'
+              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              infoBasisFunctions=-1
           else if(emergency_exit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
