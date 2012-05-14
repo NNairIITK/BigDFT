@@ -724,6 +724,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
 
   call input_var(in%lin%lowaccuray_converged,'1.d-11',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
+  call input_var(in%lin%highaccuracy_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the high accuracy part') !lr408
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
@@ -766,7 +768,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='increase locrad after n steps, amount that locrad is increased'
   call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
   call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
-  
+
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)

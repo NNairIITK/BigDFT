@@ -369,7 +369,7 @@ type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
 type(energy_terms) :: energs
 
-
+integer :: i,j 
 
 
   ! Allocate all local arrays.
@@ -378,8 +378,6 @@ type(energy_terms) :: energs
   ! Calculate the kernel
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
-
-
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
@@ -486,7 +484,7 @@ type(energy_terms) :: energs
 
       ! Update the kernel if required.
       if(tmb%wfnmd%bs%nit_unitary_loop>0) then                          
-          call update_kernel(tmb%orbs%norb, Umat, kernel)
+          !call update_kernel(tmb%orbs%norb, Umat, kernel)
       end if
 
       if(variable_locregs) then

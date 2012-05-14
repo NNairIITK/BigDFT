@@ -223,6 +223,7 @@ type(energy_terms) :: energs
      !TO DO: COEFF PROJ
 !     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
 !                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
+!      tmb%orbs%occup = 2.0_gp
      iall = -product(shape(rxyz_old))*kind(rxyz_old)
      deallocate(rxyz_old,stat=istat)
      call memocc(istat,iall,'rxyz_old',subname)
@@ -562,8 +563,16 @@ type(energy_terms) :: energs
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
           if(trim(input%lin%mixingMethod)=='dens') then
-              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                   'itout, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+              if (lscv%lowaccur_converged) then !lr408
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                      energy-energyoldout
+              else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                      energy-energyoldout
+              end if
+
           else if(trim(input%lin%mixingMethod)=='pot') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                    'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
@@ -974,6 +983,8 @@ subroutine check_for_exit(input, lscv)
   if(lscv%lowaccur_converged) then
       lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
       if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+          lscv%exit_outer_loop=.true.
+      else if (lscv%pnrm_out<input%lin%highaccuracy_converged) then !lr408
           lscv%exit_outer_loop=.true.
       end if
   end if

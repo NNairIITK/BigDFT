@@ -1297,6 +1297,17 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    real(gp), dimension(:,:), allocatable :: rxyz_file
    character(len = 1) :: code
 
+   integer :: confPotOrder !lr408
+   real(gp) :: locrad, confPotprefac !lr408
+   real(gp), dimension(3) :: locregCenter !lr408
+   character(len=3) :: in_name !lr408
+   type(local_zone_descriptors) :: Lzd 
+   integer, dimension(1) :: orblist
+   character(len=100) :: filename_start
+   real(wp), allocatable, dimension(:) :: lpsi
+   type(orbitals_data) :: lin_orbs
+   type(communications_arrays) :: comms
+
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
 
@@ -1328,7 +1339,39 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       read(filename(i+1:i+1),*) code
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
-!ispinor = 1; ispin = 1 ; ikpt=1 
+      !ispinor = 1; ispin = 1 ; ikpt=1 
+
+
+      i = index(filename, "/",back=.true.)+1
+      read(filename(i:i+3),*) in_name ! lr408
+
+      if (in_name == 'min') then
+         ! Create orbs data structure.
+         call nullify_orbitals_data(lin_orbs)
+         call copy_orbitals_data(orbs, lin_orbs, subname)
+
+         lin_orbs%norb = 1
+         lin_orbs%norbp = 1
+
+         ! need to change the lr info so relates to locregs not global
+         ! need to copy Glr and hgrids into Lzd
+         Lzd%Glr = lr
+         Lzd%hgrids(1) = hx
+         Lzd%hgrids(2) = hy
+         Lzd%hgrids(3) = hz
+         orblist = iorbp
+
+         i = index(filename, "-",back=.true.)+1
+         read(filename(1:i),*) filename_start
+         filename_start = trim(filename_start)//"/minBasis"
+
+         if (iproc == 0) print*,'Initialize linear'
+         call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
+              Lzd,lin_orbs,at,rxyz,orblist)
+
+         allocate(lpsi(1:Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f))
+      end if
+
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else
@@ -1336,8 +1379,22 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       end if
 
       !@ todo geocode should be passed in the localisation regions descriptors
-      call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
-           & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      if (in_name /= 'min') then
+         call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
+              & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      else
+         call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
+              lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1)%wfd,rxyz_file,rxyz,&
+              locrad,locregCenter,confPotOrder,confPotPrefac,&
+              lpsi(1),eval_fake,psifscf)
+
+         call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
+
+         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+              lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
+
+         deallocate(lpsi)
+      end if
 
       ! Update iorbp
       iorbp = (ikpt - 1) * orbs%norb + (ispin - 1) * orbs%norbu + iorbp

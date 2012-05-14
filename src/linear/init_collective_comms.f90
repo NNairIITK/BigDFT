@@ -368,7 +368,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_c(i,i2,i3)
            iitot=iitot+1
-           if(tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c .and. i==i1 .and. jproc<=nproc-2) then
+           if((tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c) .and. i==i1 .and. jproc<=nproc-2) then
                if(tt==weight_tot_c .and. jproc==nproc-1) then
                    ! this process also has to take the remaining points, even if they have no weight
                    iitot=lzd%glr%wfd%nvctr_c-ii2
@@ -427,8 +427,10 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
   if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_c) stop 'ii/=lzd%glr%wfd%nvctr_c'
-
+  if(ii/=lzd%glr%wfd%nvctr_c) then
+     write(*,*) 'ii/=lzd%glr%wfd%nvctr_c',ii,lzd%glr%wfd%nvctr_c
+     stop
+  end if
 
   jproc=0
   tt=0.d0
@@ -453,7 +455,7 @@ real(8):: tt, tt2, weight_c_ideal, weight_f_ideal
        do i=i0,i1
            tt=tt+weight_f(i,i2,i3)
            iitot=iitot+1
-           if(tt>=weight_f_ideal .or. iseg==iend .and. i==i1 .and. jproc<=nproc-2) then
+           if((tt>=weight_f_ideal .or. iseg==iend) .and. i==i1 .and. jproc<=nproc-2) then
                if(tt==weight_tot_f .and. jproc==nproc-1) then
                    ! this process also has to take the remaining points, even if they have no weight
                    iitot=lzd%glr%wfd%nvctr_f-ii2
@@ -1301,6 +1303,7 @@ gridpoint_start_f=-1
   if(minval(iextract_c)<1) stop 'minval(iextract_c)<1'
 
   ! Rearrange the communicated data
+  iextract_f = 0
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
       jj=ii-1
@@ -1321,7 +1324,10 @@ gridpoint_start_f=-1
       iextract_f(i)=ind
       gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
   end do
-  if(sum(iextract_f)/=nint(weightp_f*(weightp_f+1.d0)*.5d0)) stop 'sum(iextract_f)/=nint(weightp_f*(weightp_f+1.d0)*.5d0)'
+  !if(sum(iextract_f)/=nint(weightp_f*(weightp_f+1.d0)*.5d0,kind=8)) then
+  !  print*,sum(real(iextract_f,dp)),nint(weightp_f*(weightp_f+1.d0)*.5d0,kind=8)
+  !  stop 'sum(iextract_f)/=nint(weightp_f*(weightp_f+1.d0)*.5d0)'
+  !end if
   if(maxval(iextract_f)>sum(nrecvcounts_f)) stop 'maxval(iextract_f)>sum(nrecvcounts_f)'
   if(minval(iextract_f)<1) stop 'minval(iextract_f)<1'
 
@@ -2511,3 +2517,4 @@ subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
   end do
 
 end subroutine compress_matrix_for_allreduce
+

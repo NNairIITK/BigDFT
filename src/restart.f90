@@ -1059,13 +1059,16 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     if (formatted) then
        read(unitwf,*,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions'
+       write(*,*) 'reading ',nat,' atomic positions' !*
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
           if (i_stat /= 0) return
@@ -1094,6 +1097,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     else
        read(unitwf,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
+
        read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
        read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
@@ -1469,7 +1473,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            else
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
-           end if          
+           end if      
            call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
                 & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
                 & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
@@ -1488,7 +1492,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
-     call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
      if(.not. consistent) then
        call mpi_finalize(ierr)
        stop
@@ -1499,9 +1503,9 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   end if
 
   ! Communication of the quantities
-   call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   ! Now that each processor has all the information, we can build the locregs
   ! Find the number of inequivalent locregs
