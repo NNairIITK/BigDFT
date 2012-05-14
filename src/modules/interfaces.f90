@@ -672,7 +672,7 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc)
+            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
          use module_base
          use module_types
          use module_xc
@@ -694,6 +694,9 @@ module module_interfaces
          real(dp), dimension(:), pointer, optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
          real(wp), dimension(:), pointer, optional :: psirocc
+         type(denspot_distribution),intent(in),optional :: dpbox
+         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+         type(p2pComms),intent(inout), optional:: comgp
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&

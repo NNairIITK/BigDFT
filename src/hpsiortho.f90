@@ -377,7 +377,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc)
+     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
    use module_base
    use module_types
    use module_xc
@@ -400,6 +400,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
    real(wp), dimension(:), pointer, optional :: psirocc
+   type(denspot_distribution),intent(in),optional :: dpbox
+   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   type(p2pComms),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
