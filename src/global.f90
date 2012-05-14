@@ -15,7 +15,7 @@ program MINHOP
   use module_types
   use module_interfaces
   use m_ab6_symmetry
-
+  use yaml_output
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
   logical :: newmin,CPUcheck,occured,exist_poslocm
@@ -50,6 +50,8 @@ program MINHOP
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
+
+  if (iproc ==0) call yaml_set_stream(unit=70,filename='global-logfile.yaml')
 
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
@@ -106,8 +108,8 @@ program MINHOP
   endif
   close(12)
 
-  call standard_inputfile_names(inputs_opt,'input')
-  call standard_inputfile_names(inputs_md,'mdinput')
+  call standard_inputfile_names(inputs_opt,'input',nproc)
+  call standard_inputfile_names(inputs_md,'mdinput',nproc)
 
   call read_atomic_file('poscur',iproc,atoms,pos)
 
@@ -137,6 +139,7 @@ program MINHOP
 
   ! Read associated pseudo files. Based on the inputs_opt set
   call init_atomic_values((iproc == 0), atoms, inputs_opt%ixc)
+  call read_atomic_variables(atoms, trim(inputs_opt%file_igpop),inputs_opt%nspin)
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
@@ -165,7 +168,7 @@ program MINHOP
   allocate(rcov(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rcov,'rcov',subname)
 
-      call give_rcov(iproc,atoms,atoms%nat,rcov)
+  call give_rcov(iproc,atoms,atoms%nat,rcov)
 
 ! read random offset
   open(unit=11,file='rand.inp')
@@ -238,8 +241,6 @@ program MINHOP
 
      if (iproc == 0) write(*,*) '# read ',npmin,'poslow files'
   endif
-
-
 
   av_ekinetic=0.d0
   av_ediff=0.d0
@@ -372,12 +373,12 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-       if(iproc==0 .and. CPUcheck)then
+     call cpu_time(tcpu2)
+     if(iproc==0 .and. CPUcheck)then
         open(unit=55,file='CPUlimit_global',status='unknown')
         read(55,*,end=555) cpulimit 
         cpulimit=cpulimit*3600
         write(*,'(a,i5,i3,2(1x,e9.2))') '# iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
-        call cpu_time(tcpu2)
         tleft=cpulimit-(tcpu2-tcpu1)
        end if
 555    continue
@@ -2037,9 +2038,13 @@ end subroutine fixfrag_posvel
 subroutine give_rcov(iproc,atoms,nat,rcov)
   !    use module_base
   use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc,nat
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(out) :: rcov(nat)
-  integer, intent(in) :: iproc
+  !Local variables
+  integer :: iat
 
   do iat=1,nat
      if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
