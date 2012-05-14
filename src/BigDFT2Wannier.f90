@@ -355,7 +355,7 @@ program BigDFT2Wannier
                end do
             end do
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-            pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
+            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f !max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
          end do
 
          call deallocate_projectors()
@@ -614,7 +614,7 @@ program BigDFT2Wannier
                end do
             end do
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-            pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
+            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f !max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
          end do
 
          call timing(iproc,'CrtProjectors ','OF')
