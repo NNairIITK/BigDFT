@@ -675,7 +675,7 @@ program BigDFT2Wannier
       if (iproc == 0) call write_amn(seedname, orbsb%norb, n_kpts, orbsp%norb, amnk)
 
       !TEST NEW SCHEME
-      !!allocate(pwork(npsidim),stat=i_stat)
+      !!allocate(pwork(npsidim2),stat=i_stat)
       !!call memocc(i_stat,pwork,'pwork',subname)
       !!call untranspose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
       !!allocate(pvirt(npsidim2))
@@ -688,12 +688,19 @@ program BigDFT2Wannier
       !!         pvirt(j+pshft) = sph_daub(j+pshft) - amnk(nb,np)*psi_etsf(j,i) 
       !!      end do
       !!   end do
-      !!   pshft = pshft +  max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
+      !!   pshft = pshft +  Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       !!end do
-      !!call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,pvirt,work=pwork)
+      !!!call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,pvirt,work=pwork)
       !!i_all = -product(shape(pwork))*kind(pwork)
       !!deallocate(pwork,stat=i_stat)
       !!call memocc(i_stat,i_all,'pwork',subname)
+      !!allocate(orbsp%eval(orbsp%norb))
+      !!orbsp%eval = 0.5_dp
+      !!call writemywaves(iproc,trim(input%dir_output) // "virtuals",2,orbsp,Glr%d%n1,Glr%d%n2,&
+      !!     Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,pvirt)
+      !!print *,'Generated the symproj'
+      !!call mpi_finalize(ierr)
+      !!stop
       !END TEST
 
       call deallocate_amnk_calculation()
