@@ -537,9 +537,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
       if (.not. onlypot) then
-         call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-              SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
+         if(present(dpbox) .and. present(potential) .and. present(comgp)) then
+            call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                 SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,&
+                 dpbox,potential,comgp)
+         else
+            call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                 SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
+         end if
 !!$      i_all=-product(shape(fake_pot))*kind(fake_pot)
 !!$      deallocate(fake_pot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'fake_pot',subname)

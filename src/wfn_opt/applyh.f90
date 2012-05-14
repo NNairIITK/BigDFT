@@ -16,7 +16,8 @@
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
 subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
-     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
+     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
+     dpbox,potential,comgp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
@@ -33,6 +34,10 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(denspot_distribution),intent(in),optional :: dpbox
+  !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+  real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+  type(p2pComms),intent(inout), optional:: comgp
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
