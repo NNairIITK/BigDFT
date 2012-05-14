@@ -252,7 +252,7 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
   first_time_with_der=.false.
   nit_highaccur=0
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
-      if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
+      !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
 
       ! First to some initialization and determine the value of some control parameters.

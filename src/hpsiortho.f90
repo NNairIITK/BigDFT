@@ -890,6 +890,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
        call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
+   call timing(iproc,'Pot_commun    ','OF') 
 
    !########################################################################
    ! Determine the dimension of the potential array and orbs%ispot
@@ -902,6 +903,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 !!$   end if
 !!$   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
 !!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
+   call timing(iproc,'Pot_after_comm','ON')
 
    if(Lzd%nlr > 1) then
       allocate(ilrtable(orbs%norbp),stat=i_stat)
@@ -1041,7 +1044,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       end if
    end if
 
-   call timing(iproc,'Pot_commun    ','OF') 
+   call timing(iproc,'Pot_after_comm','OF')
 
 END SUBROUTINE full_local_potential
 

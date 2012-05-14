@@ -98,11 +98,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   call timing(iproc,'convolQuartic ','ON')
 
-  ! Allocate all arrays
-  call init_local_arrays()
 
   ! Flag indicating whether a confing quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
+
+  ! Allocate all arrays
+  call init_local_arrays()
 
 
   !!$!$omp parallel default(private) &
@@ -1322,10 +1323,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xyc_c, 'xyc_c', subname)
       allocate(xye_c(0:n2,0:n1,0:n3), stat=istat)
       call memocc(istat, xye_c, 'xye_c', subname)
-      call to_zero((n1+1)*(n2+1)*(n3+1), xya_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xyb_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xyc_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xye_c(0,0,0))
+      !!if(with_confpot) then
+         call to_zero((n1+1)*(n2+1)*(n3+1), xya_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xyb_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xyc_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xye_c(0,0,0))
+      !!end if
       
       allocate(xza_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, xza_c, 'xza_c', subname)
@@ -1335,10 +1338,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xzc_c, 'xzc_c', subname)
       allocate(xze_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, xze_c, 'xze_c', subname)
-      call to_zero((n1+1)*(n2+1)*(n3+1), xza_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xzb_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xzc_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), xze_c(0,0,0))
+      !!if(with_confpot) then
+         call to_zero((n1+1)*(n2+1)*(n3+1), xza_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xzb_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xzc_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), xze_c(0,0,0))
+      !!end if
       
       allocate(yza_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, yza_c, 'yza_c', subname)
@@ -1348,10 +1353,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, yzc_c, 'yzc_c', subname)
       allocate(yze_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, yze_c, 'yze_c', subname)
-      call to_zero((n1+1)*(n2+1)*(n3+1), yza_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), yzb_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), yzc_c(0,0,0))
-      call to_zero((n1+1)*(n2+1)*(n3+1), yze_c(0,0,0))
+      !!if(with_confpot) then
+         call to_zero((n1+1)*(n2+1)*(n3+1), yza_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), yzb_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), yzc_c(0,0,0))
+         call to_zero((n1+1)*(n2+1)*(n3+1), yze_c(0,0,0))
+      !!end if
       
       allocate(xya_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
       call memocc(istat, xya_f, 'xya_f', subname)
@@ -1361,10 +1368,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xyc_f, 'xyc_f', subname)
       allocate(xye_f(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
       call memocc(istat, xye_f, 'xye_f', subname)
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xya_f(1,nfl2,nfl1,nfl3))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xyb_f(1,nfl2,nfl1,nfl3))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xyc_f(1,nfl2,nfl1,nfl3))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xye_f(1,nfl2,nfl1,nfl3))
+      !!if(with_confpot) then
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xya_f(1,nfl2,nfl1,nfl3))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xyb_f(1,nfl2,nfl1,nfl3))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xyc_f(1,nfl2,nfl1,nfl3))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xye_f(1,nfl2,nfl1,nfl3))
+      !!end if
       
       allocate(xza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
       call memocc(istat, xza_f, 'xza_f', subname)
@@ -1374,10 +1383,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xzc_f, 'xzc_f', subname)
       allocate(xze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
       call memocc(istat, xze_f, 'xze_f', subname)
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xza_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xzb_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xzc_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xze_f(1,nfl3,nfl1,nfl2))
+      !!if(with_confpot) then
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xza_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xzb_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xzc_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xze_f(1,nfl3,nfl1,nfl2))
+      !!end if
       
       allocate(yza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
       call memocc(istat, yza_f, 'yza_f', subname)
@@ -1387,10 +1398,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, yzc_f, 'yzc_f', subname)
       allocate(yze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
       call memocc(istat, yze_f, 'yze_f', subname)
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yza_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yzb_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yzc_f(1,nfl3,nfl1,nfl2))
-      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yze_f(1,nfl3,nfl1,nfl2))
+      !!if(with_confpot) then
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yza_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yzb_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yzc_f(1,nfl3,nfl1,nfl2))
+         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yze_f(1,nfl3,nfl1,nfl2))
+      !!end if
       
       
       call to_zero(lupfil-lowfil+7, aeff0(-3+lowfil))
