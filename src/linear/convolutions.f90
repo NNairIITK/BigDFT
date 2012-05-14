@@ -1323,12 +1323,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xyc_c, 'xyc_c', subname)
       allocate(xye_c(0:n2,0:n1,0:n3), stat=istat)
       call memocc(istat, xye_c, 'xye_c', subname)
-      !!if(with_confpot) then
+      if(with_confpot) then
          call to_zero((n1+1)*(n2+1)*(n3+1), xya_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xyb_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xyc_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xye_c(0,0,0))
-      !!end if
+      end if
       
       allocate(xza_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, xza_c, 'xza_c', subname)
@@ -1338,12 +1338,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       call memocc(istat, xzc_c, 'xzc_c', subname)
       allocate(xze_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, xze_c, 'xze_c', subname)
-      !!if(with_confpot) then
+      if(with_confpot) then
          call to_zero((n1+1)*(n2+1)*(n3+1), xza_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xzb_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xzc_c(0,0,0))
          call to_zero((n1+1)*(n2+1)*(n3+1), xze_c(0,0,0))
-      !!end if
+      end if
       
       allocate(yza_c(0:n3,0:n1,0:n2), stat=istat)
       call memocc(istat, yza_c, 'yza_c', subname)
