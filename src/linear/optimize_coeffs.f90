@@ -464,7 +464,7 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
       ! Solve the linear system
       do istat=1,ldiis%isx+1
           do iall=1,ldiis%isx+1
-              if(iproc==0) write(500,*) istat, iall, mat(iall,istat)
+              !!if(iproc==0) write(500,*) istat, iall, mat(iall,istat)
           end do
       end do
       if(ldiis%is>1) then
@@ -669,14 +669,14 @@ subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
        ovrlp_coeff(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmbder%orbs%norb)
   call dcopy(tmbder%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmbder%wfnmd%coeff(1,1), 1)
 
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          do jorb=1,tmbder%orbs%norb
-              write(210,'(2i8,es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb)
-          end do
-      end do
-  end if
-  call mpi_barrier(mpi_comm_world,istat)
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,tmbder%orbs%norb
+  !!            write(210,'(2i8,es14.6)') iorb, jorb, tmbder%wfnmd%coeff(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!end if
+  !!call mpi_barrier(mpi_comm_world,istat)
 
 
   iall=-product(shape(ovrlp))*kind(ovrlp)

@@ -67,7 +67,7 @@ do iorb=1,orbs%norbp
        do i=1,ldiis%isx-1
           do j=1,i
              ldiis%mat(j,i,iorb)=ldiis%mat(j+1,i+1,iorb)
-             write(3100+iproc,*) ldiis%mat(j,i,iorb)
+             !!write(3100+iproc,*) ldiis%mat(j,i,iorb)
           end do
        end do
     end if
