@@ -358,6 +358,9 @@ int main(int argc, const char **argv)
 
   g_mem_set_vtable (glib_mem_profiler_table);
   g_type_init ();
+#if GLIB_MINOR_VERSION < 24
+  g_thread_init(NULL);
+#endif
 
   loop = g_main_loop_new (NULL, FALSE);
 

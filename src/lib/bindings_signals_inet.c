@@ -1047,6 +1047,7 @@ static gboolean onMainClientTransfer(gpointer user_data)
       bigdft_optloop_emit(optloop, kind, energs);
       break;
     case BIGDFT_SIGNAL_CONNECTION_CLOSED:
+      g_source_destroy(g_main_current_source());
       if (ct->destroy)
         ct->destroy(ct->destroyData);
       return FALSE;
@@ -1133,7 +1134,7 @@ static gpointer _signals_client_thread(gpointer data)
                                                 ct->optloop, ct->cancellable,
                                                 (GDestroyNotify)g_main_loop_quit, (gpointer)loop);
   g_source_attach(bmain->source, context);
-  source = g_idle_source_new();
+  source = g_timeout_source_new_seconds(1);
   g_source_set_callback(source, testCancel, bmain, (GDestroyNotify)0);
   if (bmain->cancellable)
     g_source_attach(source, context);
@@ -1149,7 +1150,7 @@ static gpointer _signals_client_thread(gpointer data)
 
   g_async_queue_push(message, GINT_TO_POINTER(BIGDFT_SIGNAL_CONNECTION_CLOSED));
   g_async_queue_unref(message);
-  /* g_printerr("Terminating thread %p.\n", (gpointer)g_thread_self()); */
+  g_printerr("Terminating thread %p.\n", (gpointer)g_thread_self());
   return (gpointer)0;
 }
 
