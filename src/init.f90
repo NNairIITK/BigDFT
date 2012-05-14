@@ -1256,7 +1256,7 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,potshortcut,symObj,GPU,input,proj_G)
+     nspin,potshortcut,symObj,GPU,input,proj_G,paw)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1284,6 +1284,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
+   type(paw_objects),intent(inout)::paw
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    integer, intent(in) ::potshortcut
    !local variables
@@ -1307,15 +1308,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   integer :: i!,iorb,jorb,icplx
   real(gp), dimension(:), allocatable :: ovrlp
   real(gp), dimension(:,:), allocatable :: smat,tmp
-  type(paw_objects)::paw !This is to be filled for PAW
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
    allocate(locrad(at%nat+ndebug),stat=i_stat)
    call memocc(i_stat,locrad,'locrad',subname)
-
-   !Nullify paw object
-   !nullify(paw%paw_ij%dij)
 
    if (iproc == 0) then
       write(*,'(1x,a)')&
@@ -1405,16 +1402,22 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
      !for testing
      !application of the hamiltonian for gaussian based treatment
-     !call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
-     !     nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+     !orbse%nspin=nspin
+     !call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
+     !GPU,symObj,denspot%rhod,psi,denspot%rho_psi)
+     !call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,&
+     !   denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+     !orbse%nspin=nspin_ig
      !   
      !!-- if spectra calculation uses a energy dependent potential
      !!    input_wf_diag will write (to be used in abscalc)
      !!    the density to the file electronic_density.cube
      !!  The writing is activated if  5th bit of  in%potshortcut is on.
-     !   call plot_density_cube_old(at%geocode,'electronic_density',&
-     !        iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
-     !        nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
+     !   call plot_density_cube_old('electronic_density',&
+     !        iproc,nproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
+     !        Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,denspot%dpcom%nscatterarr(iproc,2),&
+     !        nspin,hxh,hyh,hzh,at,rxyz,denspot%dpcom%ngatherarr,&
+     !        denspot%rhov(1+denspot%dpcom%nscatterarr(iproc,4)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i))
      !---
 
 
@@ -1422,10 +1425,19 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)
     
+    allocate(paw%spsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+    call memocc(i_stat,paw%spsi,'spsi',subname)
+
     !This is allocated in DiagHam
     nullify(psit)
 
     nullify(G%rxyz)
+
+    !Set orbs%eval=-0.5.
+    !This will be done in LDiagHam
+    !For the moment we skip this, since hpsi is not yet calculated
+    !and it an input argument in LDiagHam.
+    orbs%eval(:)=-0.5_wp
 
     call deallocate_input_wfs()
     return 

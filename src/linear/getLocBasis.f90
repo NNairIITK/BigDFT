@@ -127,7 +127,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(paw_objects)::paw
 
   !nullify paw objects:
-  !nullify(paw%paw_ij%dij)
+  paw%usepaw=0 !Not using paw
+  call nullify_paw_objects(paw)
   do iatyp=1,at%ntypes
   call nullify_gaussian_basis(proj_G(iatyp))
   end do
@@ -560,7 +561,8 @@ character(len=3):: orbname, comment
   type(paw_objects)::paw
 
   !nullify paw objects:
-  !nullify(paw%paw_ij%dij)
+  call nullify_paw_objects(paw)
+  paw%usepaw=0 !Not using PAW
   do iatyp=1,at%ntypes
   call nullify_gaussian_basis(proj_G(iatyp))
   end do

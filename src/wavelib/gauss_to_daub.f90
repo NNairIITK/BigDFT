@@ -294,6 +294,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,ncplx_g,ncplx_k,&
   include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
+  !when calculating "r2" in gauss_to_scf 
   a1=gau_a(1)/hgrid
   if(ncplx_g==2) a2=gau_a(2)*hgrid*hgrid
 
@@ -391,6 +392,7 @@ contains
          do i=leftx,rightx
             x=real(i-i0*16,gp)*h
             r=x-z0
+            !write(200,*)r*hgrid !DEBUG
             r2=r/a1
             r2=r2*r2
             r2=0.5_gp*r2
@@ -453,8 +455,8 @@ contains
                r2=r*r
                cval=real(cos(a2*r2),wp)
                sval=real(sin(a2*r2),wp)
-               r2=a1*r2
-               func=real(dexp(real(r2,kind=8)),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
                ww(i-leftx,1,1)=func*cval
                ww(i-leftx,1,2)=func*sval
             enddo
@@ -466,8 +468,8 @@ contains
                cval=real(cos(a2*r2),wp)
                sval=real(sin(a2*r2),wp)
                coeff=r**n_gau
-               r2=a1*r2
-               func=real(dexp(real(r2,kind=8)),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
                func=real(coeff,wp)*func
                ww(i-leftx,1,1)=func*cval
                ww(i-leftx,1,2)=func*sval
@@ -486,8 +488,8 @@ contains
                rk=real(i,gp)*h
                cval2=real(cos(kval*rk),wp)
                sval2=real(sin(kval*rk),wp)
-               r2=a1*r2
-               func=real(dexp(real(r2,kind=8)),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
                ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
                ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
             enddo
@@ -502,8 +504,8 @@ contains
                cval2=real(cos(kval*rk),wp)
                sval2=real(sin(kval*rk),wp)
                coeff=r**n_gau
-               r2=a1*r2
-               func=real(dexp(real(r2,kind=8)),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
                func=real(coeff,wp)*func
                ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
                ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)

@@ -15,6 +15,8 @@ module module_types
   use module_base, only : gp,wp,dp,tp
   implicit none
 
+  public  nullify_gaussian_basis
+
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000
   integer, parameter :: INPUT_PSI_RANDOM       = -2
@@ -1021,6 +1023,8 @@ end type workarrays_quartic_convolutions
     integer,dimension(:,:,:),pointer::indlmn
     type(paw_ij_objects),dimension(:),allocatable :: paw_ij
     type(cprj_objects),dimension(:,:),allocatable :: cprj
+    real(wp),dimension(:),pointer :: spsi
+    real(wp),dimension(:,:),pointer :: sij
   end type paw_objects
 
 contains
@@ -1847,6 +1851,12 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
+subroutine nullify_paw_objects(paw)
+  implicit none
+  type(paw_objects),intent(inout)::paw
+  
+  !nullify(paw%cprj) 
+end subroutine nullify_paw_objects
 subroutine nullify_gaussian_basis(G)
 
   implicit none

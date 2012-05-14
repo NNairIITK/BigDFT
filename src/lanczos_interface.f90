@@ -1000,7 +1000,8 @@ nullify(Qvect,dumQvect)
      type(paw_objects)::paw
 
      !Nullify PAW pointers:
-     !nullify(paw%paw_ij%dij)
+     paw%usepaw=0 !Not using PAW here
+     call nullify_paw_objects(paw)
      do iatyp=1,ha%at%ntypes
         call nullify_gaussian_basis(proj_G(iatyp))
      end do
@@ -1145,7 +1146,8 @@ print *,' ciao1!!!'
      type(paw_objects)::paw
 
      !nullify PAW objects:
-     !nullify(paw%paw_ij%dij)
+     paw%usepaw=0 !Not using PAW here
+     call nullify_paw_objects(paw)
      do k=1,ha%at%ntypes
         call nullify_gaussian_basis(proj_G(k))
      end do    

@@ -77,12 +77,13 @@ program oneatom
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
 ! Nullify paw objects:
-  !nullify(paw%paw_ij%dij)
-  allocate(proj_G(atoms%ntypes))
+  allocate(proj_G(atoms%ntypes),stat=i_stat)
+  !call memocc(i_stat,proj_G,'proj_G',subname)
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
-  !call nullify_gaussian_basis(proj_G)
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
 
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
@@ -195,7 +196,7 @@ program oneatom
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,psi,in%orthpar)
+  call orthogonalize(iproc,nproc,orbs,comms,psi,in%orthpar,paw)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -279,7 +280,8 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar) 
+     call hpsitopsi(iproc,nproc,orbs,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,&
+          lzd,paw,atoms,in%hx,in%hy,in%hz,rxyz,proj,nlpspd,eproj_sum,proj_G) 
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)
@@ -308,7 +310,9 @@ program oneatom
   
   call deallocate_diis_objects(diis,subname)
 
-  deallocate(proj_G)
+  !i_all=-product(shape(proj_G))*kind(proj_G)
+  deallocate(proj_G,stat=i_stat)
+  !call memocc(i_stat,i_all,'proj_G',subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)

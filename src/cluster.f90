@@ -237,7 +237,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(gaussian_basis),dimension(atoms%ntypes)::proj_G
-  type(paw_objects)::paw
   type(diis_objects) :: diis
   !type(denspot_distribution) :: denspotd
   real(gp), dimension(3) :: shift,hgrids
@@ -272,6 +271,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !Variables for WVL+PAW
   integer:: iatyp
   type(rholoc_objects)::rholoc_tmp
+  type(paw_objects)::paw
+
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -306,7 +307,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
-  !nullify(paw%paw_ij%dij)
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -537,7 +539,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,&
           nlpspd,proj,ixc,psi,hpsi,psit,&
-          Gvirt,nspin,0,atoms%sym,GPU,in,proj_G)
+          Gvirt,nspin,0,atoms%sym,GPU,in,proj_G,paw)
      denspot%rhov_is=KS_POTENTIAL
 
      if (nvirt > norbv) then
@@ -696,7 +698,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
        & inputpsi /= INPUT_PSI_EMPTY) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,hpsi,psit,in%orthpar)
+     call first_orthon(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,hpsi,psit,in%orthpar,paw)
   end if
 
   !save the new atomic positions in the rxyz_old array
@@ -977,13 +979,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,&
                    in%ncong,in%iscf,&
                    ekin_sum,epot_sum,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,eexctX,eion,edisp,&
-                   psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
+                   psi,psit,hpsi,gnrm,gnrm_zero,diis%energy,paw)
 
               !control the previous value of idsx_actual
               idsx_actual_before=diis%idsx
 
               !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar)
+              if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar,&
+                                Lzd,paw,atoms,hx,hy,hz,rxyz,proj,nlpspd,eproj_sum,proj_G)
 
               if (in%inputPsiId == 0) then
                  if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
@@ -1603,7 +1606,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
           &   Lzd%Glr,nlpspd,ncongt,denspot%pot_full,hx,rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
-          proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum)
+          proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum,proj_G,paw)
 
      i_all=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
      deallocate(denspot%pot_full,stat=i_stat)

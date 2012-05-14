@@ -223,10 +223,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(paw_objects)::paw
 
   !nullify paw objects:
-  !nullify(paw%paw_ij%dij)
   do iatyp=1,at%ntypes
   call nullify_gaussian_basis(proj_G(iatyp))
   end do
+  paw%usepaw=0  !not using PAW
+  call nullify_paw_objects(paw)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
