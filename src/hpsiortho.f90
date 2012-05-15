@@ -1002,37 +1002,39 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
-      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,pot,'pot',subname)
+       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
+         allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+         call memocc(i_stat,pot,'pot',subname)
 
-      ist=1
-      do iorb=1,nilr
-         ilr = ilrtable(iorb)
-         !determine the dimension of the potential array (copied from full_local_potential)
-         if (xc_exctXfac() /= 0.0_gp) then
-            stop 'exctX not yet implemented!'
-         else
-            size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
-         end if
+         ist=1
+         do iorb=1,nilr
+            ilr = ilrtable(iorb)
+            !determine the dimension of the potential array (copied from full_local_potential)
+            if (xc_exctXfac() /= 0.0_gp) then
+               stop 'exctX not yet implemented!'
+            else
+               size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+            end if
 
-         ! Extract the part of the potential which is needed for the current localization region.
-         i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-         i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-         if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
-            write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
-            stop
-         end if
+            ! Extract the part of the potential which is needed for the current localization region.
+            i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+            i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
+               write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
+               stop
+            end if
 !!write(*,*) 'i3s,i3e',i3s,i3e
 !!write(*,'(a,2i8)') 'lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i',lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
 !!write(*,*) 'lzd%glr%d%n1i',lzd%glr%d%n1i
-         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-              comgp%recvBuf, pot(ist), i3s, i3e)
+            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
+                 comgp%recvBuf, pot(ist), i3s, i3e)
 !!do i_stat=1,size_lpot
 !!    write(200+iproc,*) i_stat, pot(ist+i_stat-1)
 !!end do
 
-         ist = ist + size_lpot
-      end do
+            ist = ist + size_lpot
+         end do
+      end if
    end if
 
    i_all=-product(shape(ilrtable))*kind(ilrtable)

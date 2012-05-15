@@ -648,8 +648,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
 
   !!tmbig%comgp%communication_complete=.false.
-  call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-       denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
+  !!call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
+  !!     denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
   tmbig%lzd%hgrids(1)=hx
   tmbig%lzd%hgrids(2)=hy
@@ -694,7 +694,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                  call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
                       tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
                       energs,input%SIC,GPUe,.false.,&
-                      pkernel=denspot%pkernelseq)!,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
+                      pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
                  ii_old=ii
              else
                  call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)
@@ -714,10 +714,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate the parameters needed for the communication of the potential.
   call deallocate_p2pComms(tmbig%comgp, subname)
 
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
-   if(ii/=ndim_lhchi) then
+  if(associated(denspot%pot_work)) then
+      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work, stat=istat)
+      call memocc(istat, iall, 'denspot%pot_work', subname)
+  end if
+  if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if

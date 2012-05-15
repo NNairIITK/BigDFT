@@ -66,7 +66,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
      nit_for_comm=2
      allocate(psir(maxsize,orbs%nspinor+ndebug,orbs%norbp),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
-     call to_zero(maxsize*(orbs%nspinor+ndebug)*orbs%norbp,psir(1,1,1))
+     if(maxsize*(orbs%nspinor+ndebug)*orbs%norbp>0) call to_zero(maxsize*(orbs%nspinor+ndebug)*orbs%norbp,psir(1,1,1))
      allocate(wrk_lh_arr(orbs%norbp))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
