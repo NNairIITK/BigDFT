@@ -187,6 +187,28 @@ gboolean bigdft_orbs_get_linear(const BigDFT_Orbs *orbs)
 {
   return orbs->linear;
 }
+static gboolean _orbs_get_iorbp(const BigDFT_Orbs *orbs, guint ikpt, guint iorb,
+                                BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                int *iorbp, int *isorb, int *jproc)
+{
+  guint ispinor_;
+
+  if (ispin == BIGDFT_SPIN_DOWN && orbs->norbd == 0)
+    return FALSE;
+  if (ispinor == BIGDFT_IMAG && orbs->nspinor == 1)
+    return FALSE;
+  
+  /* Get the shift to apply on wf->psi to get the right orbital. */
+  ispinor_  = (ispinor != BIGDFT_PARTIAL_DENSITY)?ispinor:BIGDFT_REAL;
+  ispinor_ += 1;
+  ispin    += 1;
+  FC_FUNC_(orbs_get_iorbp, ORBS_GET_IORBP)(orbs->data, iorbp, isorb, jproc,
+                                           &ikpt, &iorb, &ispin, &ispinor_);
+  if (iorbp < 0)
+    return FALSE;
+
+  return TRUE;
+}
 
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
                                                double h[3], int n[3], int *nspinor)
@@ -539,19 +561,24 @@ guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guin
 {
   int nelec;
   const gchar *dir = "data";
+  BigDFT_Orbs *orbs;
 
-  nelec = bigdft_orbs_define(&wf->parent, &wf->lzd->parent, in, iproc, nproc);
+  orbs = &wf->parent;
+  nelec = bigdft_orbs_define(orbs, &wf->lzd->parent, in, iproc, nproc);
 
   FC_FUNC_(input_check_psi_id, INPUT_CHECK_PSI_ID)
-    (&wf->inputpsi, &wf->input_wf_format, dir, strlen(dir), wf->parent.data, wf->parent.data, &iproc);
+    (&wf->inputpsi, &wf->input_wf_format, dir, strlen(dir), orbs->data, orbs->data, &iproc);
 
   FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
 
-  bigdft_lzd_define(wf->lzd, in->linear, &wf->parent, iproc, nproc);
+  bigdft_lzd_define(wf->lzd, in->linear, orbs, iproc, nproc);
   if (wf->parent.linear)
     {
-      FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(wf->lzd->data, wf->parent.data);
+      FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(wf->lzd->data, orbs->data);
     }
+  GET_ATTR_UINT  (orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
+  GET_ATTR_UINT  (orbs, ORBS, onwhichmpi,    ONWHICHMPI);
+  GET_ATTR_UINT  (orbs, ORBS, onwhichatom,   ONWHICHATOM);
 
   return nelec;
 }
@@ -646,28 +673,6 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
 
   return infocode;
 }
-static gboolean _wf_get_iorbp(const BigDFT_Wf *wf, guint ikpt, guint iorb,
-                              BigDFT_Spin ispin, BigDFT_Spinor ispinor,
-                              int *iorbp, int *isorb, int *jproc)
-{
-  guint ispinor_;
-
-  if (ispin == BIGDFT_SPIN_DOWN && wf->parent.norbd == 0)
-    return FALSE;
-  if (ispinor == BIGDFT_IMAG && wf->parent.nspinor == 1)
-    return FALSE;
-  
-  /* Get the shift to apply on wf->psi to get the right orbital. */
-  ispinor_  = (ispinor != BIGDFT_PARTIAL_DENSITY)?ispinor:BIGDFT_REAL;
-  ispinor_ += 1;
-  ispin    += 1;
-  FC_FUNC_(orbs_get_iorbp, ORBS_GET_IORBP)(wf->parent.data, iorbp, isorb, jproc,
-                                           &ikpt, &iorb, &ispin, &ispinor_);
-  if (iorbp < 0)
-    return FALSE;
-
-  return TRUE;
-}
 static BigDFT_LocReg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
 {
   if (!bigdft_orbs_get_linear(&wf->parent))
@@ -720,7 +725,7 @@ const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint 
 
   *psiSize = 0;
 
-  if (!_wf_get_iorbp(wf, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
+  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
     return (const double*)0;
   
   _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, &dpsi, &orbSize);
@@ -749,7 +754,7 @@ gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb
   int iorbp, isorb, jproc;
   long psiAlloc;
 
-  if (!_wf_get_iorbp(wf, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
+  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
     return FALSE;
 
   _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, &dpsi, &orbSize);
@@ -782,6 +787,26 @@ gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb
     FC_FUNC_(kswfn_mpi_copy, KSWFN_MPI_COPY)(psic, &jproc, &dpsi, &psiSize);
   
   return TRUE;
+}
+void bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
+                                  BigDFT_WfFileFormats format, const double *psic,
+                                  guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize)
+{
+  guint unitwf = 99, ln, ispinor;
+  int iorbp, isorb, jproc;
+
+  ln = strlen(filename);
+  for (ispinor = 1; ispinor <= wf->parent.nspinor; ispinor++)
+    {
+      _orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor - 1, &iorbp, &isorb, &jproc);
+      iorbp += 1;
+      FC_FUNC_(orbs_open_file, ORBS_OPEN_FILE)(wf->parent.data, &unitwf, filename, &ln,
+                                               &format, &iorbp, &ispinor);
+      bigdft_locreg_write_psi_compress(wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp + isorb - 1] - 1],
+                                       unitwf, format, wf->parent.linear, iorbp + isorb,
+                                       wf->lzd->parent.n, psic + psiSize * (ispinor - 1));
+      FC_FUNC_(close_file, CLOSE_FILE)(&unitwf);
+    }
 }
 double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                  BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc)
@@ -824,7 +849,7 @@ BigDFT_LocReg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
   if (!bigdft_orbs_get_linear(&wf->parent))
     return &wf->lzd->parent;
 
-  if (!_wf_get_iorbp(wf, ikpt, iorb, ispin, BIGDFT_REAL, &iorbp, &isorb, &jproc) || jproc != iproc)
+  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, BIGDFT_REAL, &iorbp, &isorb, &jproc) || jproc != iproc)
     return (BigDFT_LocReg*)0;
   
   return wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp + isorb] - 1];

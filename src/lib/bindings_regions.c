@@ -130,6 +130,7 @@ static void _locreg_copy_d(BigDFT_LocReg *glr)
 {
   FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni, glr->ns, glr->nsi,
                                                    glr->nfl, glr->nfu, &glr->norb);
+  FC_FUNC_(glr_get_locreg_data, GLR_GET_LOCREG_DATA)(glr->data, &glr->locrad, glr->locregCenter);
 }
 static void _locreg_copy_wfd(BigDFT_LocReg *glr)
 {
@@ -235,6 +236,30 @@ double* bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psi
   
   return psir;
 }
+void bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
+                                      guint unitwf, BigDFT_WfFileFormats format,
+                                      gboolean linear, guint iorb, const guint n[3], const double *psic)
+{
+  guint useFormattedOutput = (format == BIGDFT_WF_FORMAT_PLAIN), confPotOrder = 4;
+  double eval = 0., confPotprefac = 0.;
+
+  if (linear)
+    FC_FUNC_(writeonewave_linear, WRITEONEWAVE_LINEAR)
+      (&unitwf, &useFormattedOutput, &iorb, n, n + 1, n + 2, lr->h, lr->h + 1, lr->h + 2,
+       &lr->locregCenter, &lr->locrad, &confPotOrder, &confPotprefac,
+       &lr->parent.nat, lr->parent.rxyz.data,
+       &lr->nseg_c, &lr->nvctr_c, lr->keyglob, lr->keyvglob,
+       &lr->nseg_f, &lr->nvctr_f, lr->keyglob + lr->nseg_c, lr->keyvglob + lr->nseg_c,
+       psic, psic + lr->nvctr_c, &eval);
+  else
+    FC_FUNC(writeonewave, WRITEONEWAVE)
+      (&unitwf, &useFormattedOutput, &iorb, n, n + 1, n + 2,
+       lr->h, lr->h + 1, lr->h + 2, &lr->parent.nat, lr->parent.rxyz.data,
+       &lr->nseg_c, &lr->nvctr_c, lr->keyglob, lr->keyvglob,
+       &lr->nseg_f, &lr->nvctr_f, lr->keyglob + 2 * lr->nseg_c, lr->keyvglob + lr->nseg_c,
+       psic, psic + lr->nvctr_c, &eval);
+}
+
 gboolean bigdft_locreg_check(const BigDFT_LocReg *glr)
 {
   guint n[3], ni[3], ns[3], nsi[3], nfl[3], nfu[3], norb;
@@ -391,6 +416,8 @@ static void _free_llr(BigDFT_Lzd *lzd)
     {
       for (i = 0; i < lzd->nlr; i++)
         {
+          /* Free only the Glr atoms data. */
+          F90_2D_POINTER_INIT(&lzd->Llr[i]->parent.rxyz);
           /* We free only the C wrapper. */
           lzd->Llr[i]->data = (gpointer)0;
           lzd->Llr[i]->parent.data = (gpointer)0;
@@ -466,6 +493,8 @@ static void _allocate_llr(BigDFT_Lzd *lzd)
           lzd->Llr[i]->parent.data = lzd->parent.parent.data;
           if (lzd->Llr[i]->parent.data)
             bigdft_atoms_copy_from_fortran(&lzd->Llr[i]->parent);
+          memcpy(&lzd->Llr[i]->parent.rxyz, &lzd->parent.parent.rxyz,
+                 sizeof(f90_pointer_double_2D) + 3 * sizeof(double));
           /* Copy some building values. */
           bigdft_locreg_set_radii(lzd->Llr[i], lzd->parent.radii);
           bigdft_locreg_set_size(lzd->Llr[i], lzd->parent.h, lzd->parent.crmult, lzd->parent.frmult);
@@ -598,6 +627,7 @@ void bigdft_lzd_set_n_locreg(BigDFT_Lzd *lzd, guint nlr)
   FC_FUNC_(lzd_set_nlr, LZD_SET_NLR)(lzd->data, &nlr, &lzd->parent.parent.geocode);
   _allocate_llr(lzd);
 }
+
 gboolean bigdft_lzd_check(const BigDFT_Lzd *lzd)
 {
   guint nlr, ilr;

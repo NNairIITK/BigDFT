@@ -564,6 +564,9 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, gpointer data)
     }
   fprintf(stdout, " Band 4 has min partial density %g and max %g.\n", minDens, maxDens);
 
+  if (iter == 0)
+    bigdft_wf_write_psi_compress(wf, "wave", BIGDFT_WF_FORMAT_PLAIN, psic, 1, 4, BIGDFT_SPIN_UP, size);
+
   g_free(psir);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);

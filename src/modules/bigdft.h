@@ -20,6 +20,14 @@ typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
 typedef struct BigDFT_Energs_ BigDFT_Energs;
 typedef struct BigDFT_OptLoop_ BigDFT_OptLoop;
 
+typedef enum
+  {
+    BIGDFT_WF_FORMAT_NONE,
+    BIGDFT_WF_FORMAT_PLAIN,
+    BIGDFT_WF_FORMAT_BINARY,
+    BIGDFT_WF_FORMAT_ETSF
+  } BigDFT_WfFileFormats;
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -183,6 +191,9 @@ typedef struct BigDFT_locReg_
   guint *keyglob, *keygloc;
   guint *keyvloc, *keyvglob;
 
+  /* Additionnal values. */
+  double locrad, locregCenter[3];
+
   /* TODO: bindings to values... */
 
   /* Private. */
@@ -210,6 +221,10 @@ void           bigdft_locreg_init_wfd      (BigDFT_LocReg *glr);
 void           bigdft_locreg_init_bounds   (BigDFT_LocReg *lr);
 gboolean*      bigdft_locreg_get_grid      (const BigDFT_LocReg *glr, BigDFT_Grid gridType);
 double*        bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psic);
+void           bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
+                                                guint unitwf, BigDFT_WfFileFormats format,
+                                                gboolean linear, guint iorb, const guint n[3],
+                                                const double *psic);
 typedef struct _BigDFT_LocRegIter
 {
   const BigDFT_LocReg *glr;
@@ -392,6 +407,9 @@ gboolean   bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint io
                                        guint iproc, double *psic, guint psiSize);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
+void       bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
+                                        BigDFT_WfFileFormats format, const double *psic,
+                                        guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
                                   BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
                                   BigDFT_OptLoop *params, const BigDFT_Inputs *in,

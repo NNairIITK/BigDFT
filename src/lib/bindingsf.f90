@@ -100,6 +100,32 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
   call inquire_pointer5(pt_c, pt_f, size_c)
 end subroutine f90_pointer_5D_init
 
+subroutine open_write_file(unitwf, name, ln, bin)
+  implicit none
+  integer, intent(in) :: unitwf, ln, bin
+  character(len = 1), dimension(ln), intent(in) :: name
+
+  character(len = ln) :: filename
+  integer :: i
+  
+  write(filename, *)
+  do i = 1, ln, 1
+     filename(i:i) = name(i)(1:1)
+  end do
+  if (bin == 1) then
+     open(unit = unitwf, file = trim(filename), status = 'unknown', form = "unformatted")
+  else
+     open(unit = unitwf, file = trim(filename), status = 'unknown')
+  end if
+END SUBROUTINE open_write_file
+
+subroutine close_file(unitwf)
+  implicit none
+  integer, intent(in) :: unitwf
+
+  close(unit = unitwf)
+END SUBROUTINE close_file
+
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use Poisson_Solver, only: ck => createKernel
   implicit none
@@ -238,6 +264,16 @@ subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   glr%nsi2 = nsi(2)
   glr%nsi3 = nsi(3)
 end subroutine glr_set_dimensions
+subroutine glr_get_locreg_data(glr, locrad, locregCenter)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: glr
+  double precision, dimension(3), intent(out) :: locregCenter
+  double precision, intent(out) :: locrad
+
+  locrad = glr%locrad
+  locregCenter = glr%locregCenter
+end subroutine glr_get_locreg_data
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
   implicit none
@@ -669,6 +705,24 @@ subroutine orbs_get_onwhichatom(orbs, atom)
   
   atom => orbs%onwhichatom
 END SUBROUTINE orbs_get_onwhichatom
+subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
+  use module_types
+  use module_interfaces
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor
+  character(len = 1), dimension(ln), intent(in) :: name
+
+  character(len = ln) :: filename
+  integer :: i, iorb_out
+  
+  write(filename, *)
+  do i = 1, ln, 1
+     filename(i:i) = name(i)(1:1)
+  end do
+  call open_filename_of_iorb(unitwf, (iformat == WF_FORMAT_BINARY), trim(filename), &
+       & orbs, iorbp, ispinor, iorb_out)
+END SUBROUTINE orbs_open_file
 
 subroutine proj_new(nlpspd)
   use module_types
