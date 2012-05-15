@@ -1694,7 +1694,8 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
-        real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+        !real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+        real(wp), intent(in) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
