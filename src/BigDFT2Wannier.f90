@@ -31,7 +31,7 @@ program BigDFT2Wannier
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3
    real :: tcpu0,tcpu1,tel
-   real(kind=8) :: znorm,xnorm,ortho
+   real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
@@ -325,9 +325,6 @@ program BigDFT2Wannier
          call ext_buffers(perx,nbl1,nbr1)
          call ext_buffers(pery,nbl2,nbr2)
          call ext_buffers(perz,nbl3,nbr3)
-         if(nbl1 > 0)nbl1 = nbl1 - 1
-         if(nbl2 > 0)nbl2 = nbl2 - 1
-         if(nbl3 > 0)nbl3 = nbl3 - 1   
 
          ! Calculation of the spherical harmonics in parallel.
          ! It is done in the real space and then converted in the Daubechies representation.
@@ -338,11 +335,11 @@ program BigDFT2Wannier
             r0x=ctr_proj(np,1)*b1+nbl1*input%hx*0.5
             r0y=ctr_proj(np,2)*b2+nbl2*input%hy*0.5
             r0z=ctr_proj(np,3)*b3+nbl3*input%hz*0.5
-            do k=1,nz
+            do k=1+nbl3,nz-nbr3
                zz=(k-1)*input%hz*0.5-r0z
-               do j=1,ny
+               do j=1+nbl2,ny-nbr2
                   yy=(j-1)*input%hy*0.5-r0y
-                  do i=1,nx
+                  do i=1+nbl1,nx-nbl1
                      ind=(k-1)*ny*nx+(j-1)*nx+i
                      xx=(i-1)*input%hx*0.5-r0x
                      call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
@@ -354,8 +351,14 @@ program BigDFT2Wannier
                   end do
                end do
             end do
+            xnorm = ddot(nz*ny*nx,sph_har_etsf(1),1,sph_har_etsf(1),1)
+            call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
+            if(w_sph .or. w_ang .or. w_rad) then
+               call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+            end if
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f !max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
+            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f 
          end do
 
          call deallocate_projectors()
@@ -436,10 +439,12 @@ program BigDFT2Wannier
 
       end if
 
-      ! Define which unoccupied orbitals have to be read.
-      ! Here, virt_list nominates the virtual orbitals chosen in pre-check mode.
       call timing(iproc,'CrtDescriptors','ON')
 
+!######################################################################################
+!######################################################################################
+      ! Define which unoccupied orbitals have to be read.
+      ! Here, virt_list nominates the virtual orbitals chosen in pre-check mode.
       allocate(virt_list(n_virt),stat=i_stat)
       call memocc(i_stat,virt_list,'virt_list',subname)
       if (n_virt .ne. 0) then
@@ -461,14 +466,6 @@ program BigDFT2Wannier
       call split_vectors_for_parallel(iproc,nproc,n_occ+n_virt,orbsb)
       call orbitals_communicators(iproc,nproc,Glr,orbsb,commsb)
 
-      ! Algorithm to compute the scalar product of the input guess:
-      ! The term 'sqrt(bx(1)*by(2)*bz(3))' is there to normalize spherical harmonics.
-      ! Wavefunctions calculated by BigDFT already are normalized.
-      if (iproc==0) then
-         write(*,*) '!==================================!'
-         write(*,*) '!  Calculating amnk=<psi|sph_har>  !'
-         write(*,*) '!==================================!'
-      end if
 
       call timing(iproc,'CrtDescriptors','OF')
       call timing(iproc,'CrtProjectors ','ON')
@@ -554,10 +551,21 @@ program BigDFT2Wannier
    i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
    deallocate(orbsv%eval,stat=i_stat)
    call memocc(i_stat,i_all,'orbsv%eval',subname)
+   i_all = -product(shape(rxyz_old))*kind(rxyz_old)
+   deallocate(rxyz_old,stat=i_stat)
+   call memocc(i_stat,i_all,'rxyz_old',subname)
 
-      i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-      deallocate(rxyz_old,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz_old',subname)
+!###################################################################################
+!###################################################################################
+
+      ! Algorithm to compute the scalar product of the input guess:
+      ! The term 'sqrt(bx(1)*by(2)*bz(3))' is there to normalize spherical harmonics.
+      ! Wavefunctions calculated by BigDFT already are normalized.
+      if (iproc==0) then
+         write(*,*) '!==================================!'
+         write(*,*) '!  Calculating amnk=<psi|sph_har>  !'
+         write(*,*) '!==================================!'
+      end if
 
       ! - b1, b2 and b3 are the norm of the lattice parameters.
       b1=atoms%alat1
@@ -586,9 +594,6 @@ program BigDFT2Wannier
          call ext_buffers(perx,nbl1,nbr1)
          call ext_buffers(pery,nbl2,nbr2)
          call ext_buffers(perz,nbl3,nbr3)
-         if(nbl1 > 0)nbl1 = nbl1 - 1
-         if(nbl2 > 0)nbl2 = nbl2 - 1
-         if(nbl3 > 0)nbl3 = nbl3 - 1
 
          pshft = 0
          do npp=1, orbsp%norbp
@@ -597,11 +602,12 @@ program BigDFT2Wannier
             r0x=ctr_proj(np,1)*b1+nbl1*input%hx*0.5
             r0y=ctr_proj(np,2)*b2+nbl2*input%hy*0.5
             r0z=ctr_proj(np,3)*b3+nbl3*input%hz*0.5
-            do k=1,nz
+            call to_zero(nz*ny*nx,sph_har_etsf(1))
+            do k=1+nbl3,nz-nbr3
                zz=(k-1)*input%hz*0.5-r0z
-               do j=1,ny
+               do j=1+nbl2,ny-nbr2
                   yy=(j-1)*input%hy*0.5-r0y
-                  do i=1,nx
+                  do i=1+nbl1,nx-nbr1
                      ind=(k-1)*ny*nx+(j-1)*nx+i
                      xx=(i-1)*input%hx*0.5-r0x
                      call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
@@ -613,8 +619,16 @@ program BigDFT2Wannier
                   end do
                end do
             end do
+            xnorm = ddot(nz*ny*nx,sph_har_etsf(1),1,sph_har_etsf(1),1)
+            call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
+            if(w_sph .or. w_ang .or. w_rad) then
+               call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+            end if
+            !print *,'before isf_to_daub',sqrt(ddot(nz*ny*nx,sph_har_etsf(1),1,sph_har_etsf(1),1))
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f !max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
+            !print *,'after isf_to_daub',sqrt(ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1),1,sph_daub(1),1))
+            pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f 
          end do
 
          call timing(iproc,'CrtProjectors ','OF')
@@ -682,12 +696,16 @@ program BigDFT2Wannier
       !!pshft = 0
       !!do npp=1, orbsp%norbp
       !!   np=npp+orbsp%isorb 
-      !!   do i = 1,orbsb%norbp*orbsb%nspinor
+      !!   call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,pvirt(1+pshft),1)
+      !!   do i = 1,orbsb%norbp*orbsb%nspinor    !Should be on all bands
       !!      nb = i + orbsb%isorb
+      !!      !print *,'amnk(nb,np)',nb,np,amnk(nb,np),ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi_etsf(1,i),1,psi_etsf(1,i),1)
       !!      do j=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!         pvirt(j+pshft) = sph_daub(j+pshft) - amnk(nb,np)*psi_etsf(j,i) 
+      !!         pvirt(j+pshft) = pvirt(j+pshft) - amnk(nb,np)*psi_etsf(j,i) 
       !!      end do
       !!   end do
+      !!   print *,'Norm of proj',np,ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,sph_daub(1+pshft),1)
+      !!   print *,'Norm of Symproj',np,ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,pvirt(1+pshft),1,pvirt(1+pshft),1)
       !!   pshft = pshft +  Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       !!end do
       !!!call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,pvirt,work=pwork)
@@ -2610,6 +2628,173 @@ subroutine radialpart(rvalue, zona, np, nx, ny, nz, ix, iy, iz, &
       &   exp(-(zona(np)/0.529177208)*rr/3.0d0)
 
 END SUBROUTINE radialpart
+
+! This routine writes .cube files for radial part, angular part and
+! the spherical harmonic given in argument
+subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
+      &   hxh, hyh, hzh, atoms, rxyz, sph_har, func_r, ylm)
+   use module_types
+   implicit none
+
+   ! I/O variables
+   logical, intent(in) :: w_sph, w_ang, w_rad                     !logicals controlling the plottings
+   character(len=7), intent(in) :: fn1                            !basic name for the spherical harmonics
+   character(len=6), intent(in) :: fn2                            !basic name for the radial functions
+   character(len=3), intent(in) :: fn3                            !basic name for the ylm
+   integer, intent(in) :: np                                      !number of the projector
+   real(kind=8), intent(in) :: hxh, hyh, hzh                      !grid spacing
+   type(locreg_descriptors), intent(in) :: Glr
+   type(atoms_data), intent(in) :: atoms
+   real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i), intent(in) :: sph_har, func_r, ylm
+   ! Local variables
+   character(len=13) :: subname1
+   character(len=12) :: subname2
+   character(len=9) :: subname3
+   character(len=3) :: np_c
+   integer :: i, j, rem, ix, iy, iz
+   integer :: nl1, nl2, nl3, nbx, nby, nbz, nc1, nc2, nc3
+
+   ! Concatenations to write the names of .cube files
+   if (np>0 .and. np<10) then 
+      write(np_c, '(i1)') np
+      subname1=fn1//'000'//np_c
+      subname2=fn2//'000'//np_c
+      subname3=fn3//'000'//np_c
+   else  
+      if (np>9 .and. np<100) then
+         write(np_c, '(i2)') np
+         subname1=fn1//'00'//np_c
+         subname2=fn2//'00'//np_c
+         subname3=fn3//'00'//np_c
+      else
+         if (np>99 .and. np<1000) then
+            write(np_c, '(i3)') np
+            subname1=fn1//'0'//np_c
+            subname2=fn2//'0'//np_c
+            subname3=fn3//'0'//np_c
+         else
+            if (np>999 .and. np<10000) then
+               write(np_c, '(i4)') np
+               subname1=fn1//np_c
+               subname2=fn2//np_c
+               subname3=fn3//np_c
+            end if
+         end if
+      end if
+   end if
+
+  !conditions for periodicity in the three directions
+  !value of the buffer in the x and z direction
+  if (atoms%geocode /= 'F') then
+     nl1=1
+     nl3=1
+     nbx = 1
+     nbz = 1
+     nc1=Glr%d%n1i
+     nc3=Glr%d%n3i
+  else
+     nl1=15
+     nl3=15
+     nbx = 0
+     nbz = 0
+     nc1=Glr%d%n1i-31
+     nc3=Glr%d%n3i-31
+  end if
+  !value of the buffer in the y direction
+  if (atoms%geocode == 'P') then
+     nl2=1
+     nby = 1
+     nc2=Glr%d%n2i
+  else
+     nl2=15
+     nby = 0
+     nc2=Glr%d%n2i-31
+  end if
+
+
+   rem=nc3-floor(nc3/6.d0)*6
+
+   ! Write the sph_harxxx.cube files
+   if (w_sph .eqv. .true.) then
+      OPEN(12, FILE=trim(subname1)//'.cube', STATUS='unknown')
+      write(12,*) ' CUBE file for ISF field'
+      write(12,*) ' Case for'
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
+      do i=1, atoms%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      end do
+      ! Volumetric data in batches of 6 values per line, 'z'-direction first.
+      do ix=0,nc1-1
+         do iy=0,nc2-1 
+            do iz=0,nc3-1 
+               write(12,'(E14.6)',advance='no') real(sph_har(ix+nl1,iy+nl2,iz+nl3))
+               if ( ( (mod(iz+6-rem,6) .eq. 0) .and. (iz+1 .ne. nc3) ) .or. (iz+1 .eq. 1) ) then
+                  write(12,'(a)') ''
+               end if
+            end do
+         end do
+      end do
+      CLOSE(12)
+   end if
+
+   ! Write the func_rxxx.cube file
+   if (w_rad .eqv. .true.) then
+      OPEN(13, FILE=trim(subname2)//'.cube', STATUS='unknown')
+      write(12,*) ' CUBE file for ISF field'
+      write(12,*) ' Case for'
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
+      do i=1, atoms%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      end do
+      ! Volumetric data in batches of 6 values per line, 'z'-direction first.
+      do ix=0, nc1-1
+         do iy=0, nc2-1
+            do iz=0, nc3-1
+               write(13,'(E14.6)',advance='no') real(func_r(ix+nl1,iy+nl2,iz+nl3))
+               if ( ( (mod(iz+6-rem,6) .eq. 0) .and. (iz+1 .ne. nc3) ) .or. (iz+1 .eq. 1) ) then
+                  write(13,'(a)') ''
+               end if
+            end do
+         end do
+      end do
+      CLOSE(13)
+   end if
+
+   ! Write the ylmxxx.cube file
+   if (w_ang .eqv. .true.) then
+      OPEN(14, FILE=trim(subname3)//'.cube', STATUS='unknown')
+      write(12,*) ' CUBE file for ISF field'
+      write(12,*) ' Case for'
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc1, hxh, 0.0_gp, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc2, 0.0_gp, hyh, 0.0_gp
+      write(12,'(I4,1X,F12.6,2(1X,F12.6))') nc3, 0.0_gp, 0.0_gp, hzh
+      do i=1, atoms%nat
+         write(12,'(I4,1X,F12.6,3(1X,F12.6))') atoms%nzatom(atoms%iatype(i)), real(0.d0), (real(rxyz(j,i)), j=1,3)
+      end do
+      ! Volumetric data in batches of 6 values per line, 'z'-direction first.
+      do ix=0, nc1-1
+         do iy=0, nc2-1
+            do iz=0, nc3-1
+               write(14,'(E14.6)',advance='no') real(ylm(ix+nl1,iy+nl2,iz+nl3))
+               if ( ( (mod(iz+6-rem,6) .eq. 0) .and. (iz+1 .ne. nc3) ) .or. (iz+1 .eq. 1) ) then
+                  write(14,'(a)') ''
+               end if
+            end do
+         end do
+      end do
+      CLOSE(14)
+   end if
+
+END SUBROUTINE write_functions
+
 
 subroutine write_cube(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, n_proj, nx, ny, nz, &
       &   n_at, bx, by, bz, Z, at_pos, sph_har, func_r, ylm)
