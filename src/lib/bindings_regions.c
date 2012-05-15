@@ -249,7 +249,7 @@ void bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
        &lr->locregCenter, &lr->locrad, &confPotOrder, &confPotprefac,
        &lr->parent.nat, lr->parent.rxyz.data,
        &lr->nseg_c, &lr->nvctr_c, lr->keyglob, lr->keyvglob,
-       &lr->nseg_f, &lr->nvctr_f, lr->keyglob + lr->nseg_c, lr->keyvglob + lr->nseg_c,
+       &lr->nseg_f, &lr->nvctr_f, lr->keyglob + 2 * lr->nseg_c, lr->keyvglob + lr->nseg_c,
        psic, psic + lr->nvctr_c, &eval);
   else
     FC_FUNC(writeonewave, WRITEONEWAVE)
