@@ -2184,6 +2184,7 @@ subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f,
   real(8),dimension(:),allocatable:: psiwork_c, psiwork_f, psitwork_c, psitwork_f
   integer:: istat, iall
   character(len=*),parameter:: subname='transpose_localized'
+  real(8):: t1, t2, time
   
   allocate(psiwork_c(collcom%ndimpsi_c), stat=istat)
   call memocc(istat, psiwork_c, 'psiwork_c', subname)
@@ -2204,7 +2205,14 @@ subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f,
 
   call timing(iproc,'Un-TransComm  ','ON')
   if(nproc>1) then
+      call mpi_barrier(mpi_comm_world,istat)
+      t1=mpi_wtime()
       call transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+      call mpi_barrier(mpi_comm_world,istat)
+      t2=mpi_wtime()
+      time=t2-t1
+      call mpiallred(time, 1, mpi_sum, mpi_comm_world, istat)
+      if(iproc==0) write(*,*) 'coll time',time/dble(nproc)
   else
       psitwork_c=psiwork_c
       psitwork_f=psiwork_f

@@ -23,7 +23,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
   real(8),dimension(:),allocatable:: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt, dnrm2
+  real(8):: maxError, tt, dnrm2, t1, t2, time, dataamount
   real(8),dimension(:,:),allocatable:: ovrlp
 
 
@@ -40,8 +40,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call memocc(istat, psit_c, 'psit_c', subname)
           allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, psit_f, 'psit_f', subname)
+  call mpi_barrier(mpi_comm_world, istat)
+  t1=mpi_wtime()
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+  call mpi_barrier(mpi_comm_world, istat)
+  t2=mpi_wtime()
           call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+          dataamount=dble(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f))
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           ! Allocate the send and receive buffers for the communication.
           call allocateSendBufferOrtho(comon, subname)
@@ -50,15 +55,28 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
                lphi, comon%nsendBuf, comon%sendBuf)
           ! Post the send messages.
+  call mpi_barrier(mpi_comm_world, istat)
+  t1=mpi_wtime()
           call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
           allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
           call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
           call wait_p2p_communication(iproc, nproc, comon)
+  call mpi_barrier(mpi_comm_world, istat)
+  t2=mpi_wtime()
           call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
                comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
           !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
+          dataamount=dble(comon%nrecvbuf)
       end if
+  time=t2-t1
+  call mpiallred(time, 1, mpi_sum, mpi_comm_world, istat)
+  call mpiallred(dataamount, 1, mpi_sum, mpi_comm_world, istat)
+  tt=dble(size(lphi))
+  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, istat)
+  if(iproc==0) write(*,*) 'tt',tt
+
+  if(iproc==0) write(*,*) 'total data (GB), time', dataamount*8.d-9, time/dble(nproc)
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
 

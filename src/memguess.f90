@@ -836,7 +836,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, ignore => local_hamiltonian
    use Poisson_Solver
    use module_xc
 
@@ -1061,7 +1061,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot(1,1,1,1),psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
