@@ -23,7 +23,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
   real(8),dimension(:),allocatable:: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt, dnrm2
+  real(8):: maxError
   real(8),dimension(:,:),allocatable:: ovrlp
 
 
@@ -59,6 +59,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
       end if
+
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
 
