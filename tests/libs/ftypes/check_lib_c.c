@@ -43,6 +43,7 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
 static void output_inputs(const BigDFT_Inputs *in)
 {
   fprintf(stdout, " Read 'test.dft' file: %d\n", (in->files & BIGDFT_INPUTS_DFT));
+  fprintf(stdout, " Read 'test.lin' file: %d\n", (in->files & BIGDFT_INPUTS_LIN));
   fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
           in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
 }
@@ -109,6 +110,19 @@ static void output_locreg(const BigDFT_LocReg *glr)
   g_free(cgrid);
   g_free(fgrid);
 }
+static void output_llr(const BigDFT_Lzd *lzd)
+{
+  guint i;
+
+  fprintf(stdout, " Lzd has %d local regions.\n", lzd->nlr);
+  for (i = 0; i < lzd->nlr; i++)
+    {
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine segments.\n",
+              i, lzd->Llr[i]->nseg_c, lzd->Llr[i]->nseg_f);
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine elements.\n",
+              i, lzd->Llr[i]->nvctr_c, lzd->Llr[i]->nvctr_f);
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -140,7 +154,7 @@ int main(int argc, char **argv)
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new();
+  wf = bigdft_wf_new(100);
   atoms = BIGDFT_ATOMS(wf->lzd);
 
   atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
@@ -148,7 +162,7 @@ int main(int argc, char **argv)
     {
       bigdft_wf_free(wf);
 
-      wf = bigdft_wf_new();
+      wf = bigdft_wf_new(100);
       atoms = BIGDFT_ATOMS(wf->lzd);
     }
   fprintf(stdout, " Ok\n");
@@ -200,14 +214,32 @@ int main(int argc, char **argv)
   /* Typical cluster run. */
   fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
   in = bigdft_inputs_new("test");
-  output_inputs(in);
-
+  fprintf(stdout, " base Ok\n");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  fprintf(stdout, " additional Ok\n");
+  output_inputs(in);
+
   fprintf(stdout, "Test BigDFT_Wf define.\n");
   nelec = bigdft_wf_define(wf, in, 0, 1);
+  output_llr(wf->lzd);
+  fprintf(stdout, "Test BigDFT_Wf free.\n");
+  bigdft_wf_free(wf);
+  fprintf(stdout, " Ok\n");
+  fprintf(stdout, "Test BigDFT_Inputs free.\n");
+  bigdft_inputs_free(in);
+  fprintf(stdout, " Ok\n");
+
+  if (argc > 2)
+    {
+      stdout_fileno_old = redirect_init(out_pipe);
+      FC_FUNC_(memocc_report, MEMOCC_REPORT)();
+      redirect_dump(out_pipe, stdout_fileno_old);
+    }
 
   /* Test restarting the wavefunction definition. */
+  in = bigdft_inputs_new("test");
+  wf = bigdft_wf_new(in->inputPsiId);
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {

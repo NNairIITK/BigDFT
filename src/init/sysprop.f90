@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
-subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     orbs,Lzd,denspot,nlpspd,comms,shift,proj,radii_cf)
+subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+     orbs,lorbs,dlorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -17,18 +17,20 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   use vdwcorrection
   implicit none
   integer, intent(in) :: iproc,nproc 
+  integer, intent(out) :: inputpsi, input_wf_format
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  type(orbitals_data), intent(out) :: orbs
-  type(local_zone_descriptors), intent(out) :: Lzd
+  type(orbitals_data), intent(out) :: orbs, lorbs, dlorbs
+  type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-  type(communications_arrays), intent(out) :: comms
+  type(communications_arrays), intent(out) :: comms, lcomms, dlcomms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
+  character(len = *), parameter :: subname = "system_initialization"
   integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
@@ -76,11 +78,31 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
-  ! Create orbs data structure.
+  ! Create global orbs data structure.
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
+  ! Create linear orbs data structure.
+  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
+          & .false., rxyz, lorbs)
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
+          & in%lin%useDerivativeBasisFunctions, rxyz, dlorbs)
+  end if
+
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+     call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
+     call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
+
+     if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs, dlorbs)
+
+     if(.not.in%lin%transformToGlobal) then
+        ! psi and psit will not be calculated, so only allocate them with size 1
+        orbs%npsidim_orbs=1
+        orbs%npsidim_comp=1
+     end if
+  end if
 
   if (iproc == 0) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
@@ -93,12 +115,30 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   end if
   ! Done orbs
 
-  ! Calculate all projectors, or allocate array for on-the-fly calculation
-  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
+  inputpsi = in%inputPsiId
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+  call nullify_local_zone_descriptors(lzd_lin)
+  lzd_lin%nlr = 0
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
+     call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
+     if (inputpsi == INPUT_PSI_LINEAR) then
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
+     else
+        call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
+             input_wf_format,lzd_lin,lorbs,atoms,rxyz)
+        !what to do with derivatives?
+     end if
+     call update_wavefunctions_size(lzd_lin,lorbs)
+     call update_wavefunctions_size(lzd_lin,dlorbs)
+  end if
+
+  ! Calculate all projectors, or allocate array for on-the-fly calculation
+  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -117,7 +157,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
        denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
 
-
   !allocate the arrays.
   call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
 
@@ -126,7 +165,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -2104,3 +2143,44 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
   
+subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & radii_cf, crmult, frmult)
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  logical, intent(in) :: signaling
+  double precision, intent(in) :: gmainloop
+  type(DFT_wavefunction), intent(inout) :: KSwfn, tmb, tmbder
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(inout) :: energs
+  real(gp), dimension(:,:), intent(in) :: radii_cf
+  real(gp), intent(in) :: crmult, frmult
+
+  if (signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call wf_new_wrapper(KSwfn%c_obj, KSwfn, 0)
+        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, crmult, frmult)
+        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj)
+        call wf_new_wrapper(tmb%c_obj, tmb, 1)
+        call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
+        call bigdft_signals_add_wf(gmainloop, tmb%c_obj)
+        call energs_new_wrapper(energs%c_obj, energs)
+        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
+        call localfields_new_wrapper(denspot%c_obj, denspot)
+        call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
+        call optloop_new_wrapper(optLoop%c_obj, optLoop)
+        call bigdft_signals_add_optloop(gmainloop, optLoop%c_obj)
+     else
+        KSwfn%c_obj   = UNINITIALIZED(KSwfn%c_obj)
+        tmb%c_obj     = UNINITIALIZED(tmb%c_obj)
+        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
+        optloop%c_obj = UNINITIALIZED(optloop%c_obj)
+     end if
+  else
+     KSwfn%c_obj  = 0
+     tmb%c_obj    = 0
+     tmbder%c_obj = 0
+  end if
+END SUBROUTINE system_signaling

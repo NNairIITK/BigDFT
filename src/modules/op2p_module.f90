@@ -400,6 +400,7 @@ module overlap_point_to_point
       !real communication
       isnow=1
       isnow_results=1
+      irnow_results=1
       ncommsstep_results=0
       do istep=0,OP2P%nsteps_max
          !print *,'istep,iproc',istep,iproc,nsteps_max

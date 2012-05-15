@@ -1,6 +1,7 @@
-#include "glib.h"
-#include "glib-object.h"
-#include "gio/gio.h"
+#include <glib.h>
+#include <glib-object.h>
+#include <gio/gio.h>
+#include <glib/gstdio.h>
 
 #include "bigdft.h"
 
@@ -279,18 +280,17 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic,
   double *psir, *psii;
   guint i, n;
   double minDens, maxDens, norm;
+  BigDFT_LocReg *lr;
 
   g_print("Get one wave (%d,%d,%d) at iter %d.\n", ikpt, iorb, ispin, iter);
-
-  psir = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), (double*)psic->data);
+  lr = bigdft_wf_get_locreg(wf, ikpt, iorb, ispin, 0);
+  psir = bigdft_locreg_convert_to_isf(lr, (double*)psic->data);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
-    psii = bigdft_locreg_convert_to_isf(BIGDFT_LOCREG(wf->lzd), (double*)psic->data + psic->len / 2);
+    psii = bigdft_locreg_convert_to_isf(lr, (double*)psic->data + psic->len / 2);
 
   minDens = G_MAXDOUBLE;
   maxDens = 0.;
-  n = BIGDFT_LOCREG(wf->lzd)->ni[0] * 
-    BIGDFT_LOCREG(wf->lzd)->ni[1] * 
-    BIGDFT_LOCREG(wf->lzd)->ni[2];
+  n = lr->ni[0] * lr->ni[1] * lr->ni[2];
   norm = 0.;
   for (i = 0; i < n; i++)
     {
@@ -358,13 +358,25 @@ int main(int argc, const char **argv)
 
   g_mem_set_vtable (glib_mem_profiler_table);
   g_type_init ();
+#if GLIB_MINOR_VERSION < 24
+  g_thread_init(NULL);
+#endif
 
   loop = g_main_loop_new (NULL, FALSE);
 
   /* Load test BigDFT run. */
-  in = bigdft_inputs_new("test");
-  wf = bigdft_wf_new();
-  bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "test.ascii");
+  if (argc > 2)
+    {
+      g_chdir(argv[2]);
+      in = bigdft_inputs_new(NULL);
+    }
+  else
+    in = bigdft_inputs_new("test");
+  wf = bigdft_wf_new(in->inputPsiId);
+  if (argc > 2)
+    bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.xyz");
+  else
+    bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "test.ascii");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
   bigdft_atoms_set_psp(BIGDFT_ATOMS(wf->lzd), in->ixc, in->nspin, (const gchar*)0);
@@ -405,16 +417,17 @@ int main(int argc, const char **argv)
     socket = bigdft_signals_client_new(argv[1], NULL, &error);
   else
     socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
+  source = (GSource*)0;
   if (socket)
     {
-      source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop,
-                                                   NULL, onClosedSocket, loop);
-      g_source_attach(source, NULL);
+      /* source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop, */
+      /*                                              NULL, onClosedSocket, loop); */
+      /* g_source_attach(source, NULL); */
+      bigdft_signals_client_create_thread(socket, energs, wf, denspot, optloop,
+                                          NULL, onClosedSocket, loop);
 
       g_main_loop_run(loop);
     }
-  else
-    source = (GSource*)0;
 
   g_object_unref(wf);
   g_object_unref(energs);

@@ -122,7 +122,8 @@ void bigdft_locreg_set_size(BigDFT_LocReg *glr, const double h[3],
   FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
                                      glr->radii, &crmult, &frmult, glr->h, glr->h + 1,
                                      glr->h + 2, glr->data, glr->parent.shift);
-  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni,
+                                                   glr->ns, glr->nsi, &glr->norb);
   glr->crmult = crmult;
   glr->frmult = frmult;
 
@@ -143,7 +144,8 @@ static void bigdft_locreg_copy_data(BigDFT_LocReg *glr,
                                     const double *radii, const double h[3],
                                     double crmult, double frmult)
 {
-  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni,
+                                                   glr->ns, glr->nsi, &glr->norb);
   bigdft_locreg_set_radii(glr, radii);
   glr->h[0] = h[0];
   glr->h[1] = h[1];
@@ -164,9 +166,9 @@ static void bigdft_locreg_copy_wfd(BigDFT_LocReg *glr)
                                                &glr->nseg_c, &glr->nseg_f, &tmp2D, &tmp2D2,
                                                &tmp, &tmp2);
   glr->keyglob  = (guint*)tmp2D.data;
-  glr->keygloc  = (guint*)tmp2D.data;
+  glr->keygloc  = (guint*)tmp2D2.data;
   glr->keyvglob = (guint*)tmp.data;
-  glr->keyvloc  = (guint*)tmp.data;
+  glr->keyvloc  = (guint*)tmp2.data;
 }
 void bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr)
 {
@@ -384,6 +386,30 @@ BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd)
 
   return lzd;
 }
+static void _lzd_wrap_llr(BigDFT_Lzd *lzd)
+{
+  guint i, j;
+  gpointer llr;
+
+  /* Get the llr array. */
+  FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
+  if (lzd->nlr > 0)
+    {
+      lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);
+      for (i = 0; i < lzd->nlr; i++)
+        {
+          j = i + 1;
+          FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(lzd->data, &j, &llr);
+          lzd->Llr[i] = bigdft_locreg_new_from_fortran(llr);
+          lzd->Llr[i]->parent.data = lzd->parent.parent.data;
+          if (lzd->Llr[i]->parent.data)
+            bigdft_atoms_copy_from_fortran(&lzd->Llr[i]->parent);
+          bigdft_locreg_copy_data(lzd->Llr[i], lzd->parent.radii, lzd->h,
+                                  lzd->parent.crmult, lzd->parent.frmult);
+          bigdft_locreg_copy_wfd(lzd->Llr[i]);
+        }
+    }
+}
 BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd)
 {
   BigDFT_Lzd *lzd;
@@ -399,6 +425,7 @@ BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd)
   FC_FUNC_(lzd_get_data, LZD_GET_DATA)(lzd->data, &lzd->parent.data);
   FC_FUNC_(glr_get_data, GLR_GET_DATA)(lzd->parent.data, &lzd->parent.d, &lzd->parent.wfd);
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
+  _lzd_wrap_llr(lzd);
 
   return lzd;
 }
@@ -420,34 +447,83 @@ void bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
   lzd->h[1] = lzd->parent.h[1];
   lzd->h[2] = lzd->parent.h[2];
 }
+void bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint nspin)
+{
+  FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
+    (lzd->parent.parent.sym, &lzd->parent.parent.geocode,
+     lzd->parent.ni, lzd->parent.ni + 1, lzd->parent.ni + 2, &nspin);
+}
 void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                   double crmult, double frmult)
 {
   FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->h);
   bigdft_locreg_copy_data(&lzd->parent, radii, lzd->h, crmult, frmult);
 }
-void bigdft_lzd_define(BigDFT_Lzd *lzd, const gchar type[3],
+void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
                        BigDFT_Orbs *orbs, guint iproc, guint nproc)
 {
-  guint i, j;
-  gpointer llr;
+  guint withderorbs = 0;
+  void *dorbs;
 
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
-  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
-    (&iproc, &nproc, type, lzd->data, lzd->parent.parent.data,
-     orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
 
-  FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
-  lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);
-  for (i = 0; i < lzd->nlr; i++)
+  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+    (&iproc, &nproc, &type, lzd->data, lzd->parent.parent.data,
+     orbs->data, &orbs->nspin, lzd->parent.parent.rxyz.data);
+  if (bigdft_orbs_get_linear(orbs))
     {
-      j = i + 1;
-      FC_FUNC_(lzd_get_llr, LZD_GET_LLR)(lzd->data, &j, &llr);
-      lzd->Llr[i] = bigdft_locreg_new_from_fortran(llr);
-      lzd->Llr[i]->parent.data = lzd->parent.data;
-      bigdft_atoms_copy_from_fortran(&lzd->Llr[i]->parent);
-      bigdft_locreg_copy_data(lzd->Llr[i], lzd->parent.radii, lzd->h,
-                              lzd->parent.crmult, lzd->parent.frmult);
-      bigdft_locreg_copy_wfd(lzd->Llr[i]);
+      FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
+      FC_FUNC_(orbs_new, ORBS_NEW)(&dorbs);
+      FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
+        (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
+         orbs->data, dorbs, &withderorbs, lzd->data);
+      GET_ATTR_UINT(orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
+      GET_ATTR_UINT(orbs, ORBS, onwhichmpi,    ONWHICHMPI);
+      GET_ATTR_UINT(orbs, ORBS, onwhichatom,   ONWHICHATOM);
+      FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
     }
+  _lzd_wrap_llr(lzd);
+}
+gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
+                             BigDFT_Grid gridType, guint ilr)
+{
+  memset(iter, 0, sizeof(BigDFT_LocRegIter));
+  iter->glr  = (ilr)?lzd->Llr[ilr - 1]:&lzd->parent;
+  iter->nseg = (gridType == GRID_COARSE)?iter->glr->nseg_c:iter->glr->nseg_c + iter->glr->nseg_f;
+  iter->iseg = (gridType == GRID_COARSE)?(guint)-1:iter->glr->nseg_c - 1;
+
+  switch (lzd->parent.parent.geocode)
+    {
+    case 'S':
+      iter->grid[0] = lzd->parent.n[0] + 1;
+      iter->grid[1] = lzd->parent.n[1];
+      iter->grid[2] = lzd->parent.n[2] + 1;
+      break;
+    case 'F':
+      iter->grid[0] = lzd->parent.n[0];
+      iter->grid[1] = lzd->parent.n[1];
+      iter->grid[2] = lzd->parent.n[2];
+      break;
+    default:
+      fprintf(stderr, "WARNING: unknown geocode.\n");
+    case 'P':
+      iter->grid[0] = lzd->parent.n[0] + 1;
+      iter->grid[1] = lzd->parent.n[1] + 1;
+      iter->grid[2] = lzd->parent.n[2] + 1;
+      break;
+    }
+
+  return bigdft_lzd_iter_next(iter);
+}
+gboolean bigdft_lzd_iter_next(BigDFT_LocRegIter *iter)
+{
+  if (!bigdft_locreg_iter_next(iter))
+    return FALSE;
+  
+  iter->z  += (double)iter->glr->ns[2] / (double)iter->grid[2];
+  iter->y  += (double)iter->glr->ns[1] / (double)iter->grid[1];
+  iter->x0 += (double)iter->glr->ns[0] / (double)iter->grid[0];
+  iter->x1 += (double)iter->glr->ns[0] / (double)iter->grid[0];
+
+  return TRUE;
 }

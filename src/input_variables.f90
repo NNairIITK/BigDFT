@@ -124,20 +124,18 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
   if(inputs%inputpsiid==100) DistProjApply=.true.
-  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+  if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
-     call lin_input_variables_new(iproc,trim(inputs%file_lin),inputs,atoms)
   end if
-    ! Shake atoms, if required.
+  ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
 
   ! Parse input files depending on atoms.
-  call inputs_parse_add(inputs, atoms%sym, atoms%geocode, &
-       & (/ atoms%alat1, atoms%alat2, atoms%alat3/), iproc, .true.)
+  call inputs_parse_add(inputs, atoms, iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -246,6 +244,15 @@ subroutine default_input_variables(inputs)
   call sic_input_variables_default(inputs)
   ! Default for signaling
   inputs%gmainloop = 0.d0
+  ! Default for lin.
+  nullify(inputs%lin%potentialPrefac)
+  nullify(inputs%lin%potentialPrefac_lowaccuracy)
+  nullify(inputs%lin%potentialPrefac_highaccuracy)
+  nullify(inputs%lin%norbsPerType)
+  nullify(inputs%lin%locrad)
+  nullify(inputs%lin%locrad_lowaccuracy)
+  nullify(inputs%lin%locrad_highaccuracy)
+  nullify(inputs%lin%locrad_type)
 END SUBROUTINE default_input_variables
 
 
@@ -612,7 +619,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
 END SUBROUTINE sic_input_variables_new
 
 !> Read linear input parameters
-subroutine lin_input_variables_new(iproc,filename,in,atoms)
+subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
   use module_types
   use module_input
@@ -621,6 +628,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
+  logical, intent(in) :: dump
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='lin_input_variables'
@@ -632,17 +640,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
-  ! Begin by nullifying all the pointers
-  nullify(in%lin%potentialPrefac)
-  nullify(in%lin%locrad)
-  nullify(in%lin%locrad_lowaccuracy)
-  nullify(in%lin%locrad_highaccuracy)
-  nullify(in%lin%norbsPerType)
-  nullify(in%lin%locrad_type)
-
   !Linear input parameters
-  call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
-  
+  call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
+  if (exists) in%files = in%files + INPUTS_LIN
+
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
@@ -705,8 +706,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
-  comments='mixing method: dens or pot'
-  call input_var(in%lin%mixingMethod,'dens',comment=comments)
+  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)'
+  call input_var(in%lin%scf_mode,'100',ranges=(/100,102/),comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
   comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
@@ -782,48 +783,59 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
   parametersSpecified=.false.
-  do itype=1,atoms%ntypes
-      call input_var(atomname,'C',input_iostat=ios)
-      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
-      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-      if(ios/=0) then
-          ! The parameters were not specified for all atom types.
-          if(iproc==0) then
-              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
-                       & for the following atom types:"
-              do jtype=1,atoms%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
-              end do
-          end if
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
-      ! The reading was succesful. Check whether this atom type is actually present.
-      found=.false.
-      do jtype=1,atoms%ntypes
-          if(trim(atomname)==trim(atoms%atomnames(jtype))) then
-              found=.true.
-              parametersSpecified(jtype)=.true.
-              in%lin%norbsPerType(jtype)=npt
-              in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
-              in%lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lrl
-              in%lin%locrad_type(jtype)=lrl
-              locradType_lowaccur(jtype)=lrl
-              locradType_highaccur(jtype)=lrh
-              atoms%rloc(jtype,:)=locradType(jtype)
-          end if
-      end do
-      if(.not.found) then
-          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
-                     "', which is not present in the file containing the atomic coordinates."
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
+  itype = 1
+  do
+     if (exists) then
+        call input_var(atomname,'C',input_iostat=ios)
+        if (ios /= 0) exit
+     else
+        call input_var(atomname,trim(atoms%atomnames(itype)))
+        itype = itype + 1
+     end if
+     call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+     call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     ! The reading was succesful. Check whether this atom type is actually present.
+     found=.false.
+     do jtype=1,atoms%ntypes
+        if(trim(atomname)==trim(atoms%atomnames(jtype))) then
+           found=.true.
+           parametersSpecified(jtype)=.true.
+           in%lin%norbsPerType(jtype)=npt
+           in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
+           in%lin%potentialPrefac_highaccuracy(jtype)=pph
+           locradType(jtype)=lrl
+           in%lin%locrad_type(jtype)=lrl
+           locradType_lowaccur(jtype)=lrl
+           locradType_highaccur(jtype)=lrh
+           atoms%rloc(jtype,:)=locradType(jtype)
+        end if
+     end do
+     if(.not.found) then
+        if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
+             "', which is not present in the file containing the atomic coordinates."
+     end if
+     if (itype > atoms%ntypes) exit
   end do
+  found  = .true.
+  do jtype=1,atoms%ntypes
+     found = found .and. parametersSpecified(jtype)
+  end do
+  if (.not. found) then
+     ! The parameters were not specified for all atom types.
+     if(iproc==0) then
+        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+             & for the following atom types:"
+        do jtype=1,atoms%ntypes
+           if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
+        end do
+        write(*,*)
+     end if
+     call mpi_barrier(mpi_comm_world, ierr)
+     stop
+  end if
 
   nlr=0
   do iat=1,atoms%nat
@@ -851,7 +863,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   end do
   
 
-  call input_free((iproc==0))
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE lin_input_variables_new
 
@@ -1323,7 +1335,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
-  inputs%linear='OFF'
+  inputs%linear=INPUT_IG_OFF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1349,7 +1361,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
-  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
+       & "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
@@ -1443,6 +1456,7 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%qmass',subname)
   end if
   call free_kpt_variables(in)
+  call deallocateBasicArraysInput(in%lin)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
   call xc_end()

@@ -132,7 +132,8 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
 !  type(grid_dimensions), intent(in) :: grid
 !  real(gp), intent(in) :: hxh, hyh, hzh
 !  type(input_variables), intent(in) :: in
-  character(len=*), intent(in) :: geocode,SICapproach
+  character(len=1), intent(in) :: geocode
+  character(len=4), intent(in) :: SICapproach
 !  type(atoms_data), intent(in) :: atoms
 !  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -188,7 +189,7 @@ subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
 
   denspot%rhov_is = status
   
-  if (denspot%c_obj /= 0.d0) then
+  if (denspot%c_obj /= 0) then
      call denspot_emit_rhov(denspot, istep, iproc, nproc)
   end if
 end subroutine denspot_set_rhov_status

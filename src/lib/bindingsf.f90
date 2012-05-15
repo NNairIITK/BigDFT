@@ -181,11 +181,12 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
-subroutine glr_get_dimensions(glr , n, ni)
+subroutine glr_get_dimensions(glr , n, ni, ns, nsi, norb)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  integer, dimension(3), intent(out) :: n, ni
+  integer, dimension(3), intent(out) :: n, ni, ns, nsi
+  integer, intent(out) :: norb
 
   n(1) = glr%d%n1
   n(2) = glr%d%n2
@@ -193,6 +194,15 @@ subroutine glr_get_dimensions(glr , n, ni)
   ni(1) = glr%d%n1i
   ni(2) = glr%d%n2i
   ni(3) = glr%d%n3i
+
+  ns(1) = glr%ns1
+  ns(2) = glr%ns2
+  ns(3) = glr%ns3
+  nsi(1) = glr%nsi1
+  nsi(2) = glr%nsi2
+  nsi(3) = glr%nsi3
+  
+  norb = glr%Localnorb
 end subroutine glr_get_dimensions
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
@@ -415,14 +425,14 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
-subroutine inputs_get_lin(in, linear)
+subroutine inputs_get_perf(in, linear)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 3), intent(out) :: linear
+  integer, intent(out) :: linear
   
   linear = in%linear
-END SUBROUTINE inputs_get_lin
+END SUBROUTINE inputs_get_perf
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none
@@ -431,6 +441,15 @@ subroutine inputs_get_files(in, files)
 
   files = in%files
 END SUBROUTINE inputs_get_files
+subroutine inputs_get_linear(linear, inputPsiId)
+  use module_types
+  implicit none
+  integer, intent(out) :: linear
+  integer, intent(in) :: inputPsiId
+
+  linear = 0
+  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+END SUBROUTINE inputs_get_linear
 
 subroutine orbs_new(orbs)
   use module_types
@@ -456,20 +475,10 @@ subroutine orbs_free(orbs)
 END SUBROUTINE orbs_free
 subroutine orbs_empty(orbs)
   use module_types
-  use m_profiling
   implicit none
   type(orbitals_data), intent(inout) :: orbs
 
-  integer :: i_all, i_stat
-
-  if (associated(orbs%norb_par)) then
-     call deallocate_orbs(orbs,"orbs_empty")
-  end if
-  if (associated(orbs%eval)) then
-     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-     deallocate(orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%eval',"orbs_empty")
-  end if
+  call deallocate_orbitals_data(orbs,"orbs_empty")
 END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base
@@ -565,6 +574,30 @@ subroutine orbs_get_kwgts(orbs, kwgts)
   
   kwgts => orbs%kwgts
 END SUBROUTINE orbs_get_kwgts
+subroutine orbs_get_inwhichlocreg(orbs, locreg)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: locreg
+  
+  locreg => orbs%inwhichlocreg
+END SUBROUTINE orbs_get_inwhichlocreg
+subroutine orbs_get_onwhichmpi(orbs, mpi)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: mpi
+  
+  mpi => orbs%onwhichmpi
+END SUBROUTINE orbs_get_onwhichmpi
+subroutine orbs_get_onwhichatom(orbs, atom)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: atom
+  
+  atom => orbs%onwhichatom
+END SUBROUTINE orbs_get_onwhichatom
 
 subroutine proj_new(nlpspd)
   use module_types
@@ -600,7 +633,7 @@ END SUBROUTINE proj_get_dimensions
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
   type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
@@ -758,7 +791,7 @@ END SUBROUTINE gpu_free
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
   type(communications_arrays), pointer :: comm
@@ -767,6 +800,8 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
   allocate(wf)
   wf%c_obj = self
   call wf_init(wf)
+  call orbs_init(wf%orbs)
+  call nullify_local_zone_descriptors(wf%lzd)
   orbs => wf%orbs
   comm => wf%comms
   lzd => wf%Lzd
@@ -866,38 +901,37 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
 END SUBROUTINE wf_iorbp_to_psi
 
-subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
+subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   use module_types
   implicit none
 
-  integer, intent(out) :: iorbp, iproc
+  integer, intent(out) :: iorbp, isorb, iproc
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ikpt, iorb, ispin, ispinor
-
-  integer :: iorbtot
 
   iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
   if (ispin == 1) iorbp = iorbp + (iorb - 1) * orbs%nspinor
   if (ispin == 2) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
   iorbp = iorbp + ispinor - 1
 
-  iorbtot = 0
+  isorb = 0
   do iproc = 0, size(orbs%norb_par, 1) - 1, 1
-     if (iorbp >= iorbtot .and. iorbp < iorbtot + orbs%norb_par(iproc, 0)) then
-        iorbp = iorbp - iorbtot
+     if (iorbp >= isorb .and. iorbp < isorb + orbs%norb_par(iproc, 0)) then
+        iorbp = iorbp - isorb
         return
      end if
-     iorbtot = iorbtot + orbs%norb_par(iproc, 0)
+     isorb = isorb + orbs%norb_par(iproc, 0)
   end do
 
-  iorbp = -1;
-  iproc = -1;
+  iorbp = -1
+  isorb = -1
+  iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
 subroutine energs_new(self, energs)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(energy_terms), pointer :: energs
 
   allocate(energs)
@@ -937,7 +971,7 @@ END SUBROUTINE energs_copy_data
 subroutine optloop_new(self, optloop)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_optimization_loop), pointer :: optloop
 
   allocate(optloop)

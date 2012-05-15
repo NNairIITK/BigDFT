@@ -1253,7 +1253,7 @@ function gauint(a,c,l)
   !local variables
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod,gauint0
+  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
 
   !quick check
   !if (c==0.0_gp) then

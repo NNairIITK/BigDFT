@@ -119,12 +119,13 @@ void bigdft_localfields_emit_v_ext(BigDFT_LocalFields *denspot)
 #endif
 }
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
+BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
                                            const BigDFT_Inputs *in,
                                            guint iproc, guint nproc)
 {
   BigDFT_LocalFields *localfields;
   double self;
+  gchar SICapproach[4] = "NO  ", rho_commun[3] = "DBL";
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
@@ -145,10 +146,14 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
      &localfields->psoffset);
 
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc, &nproc, lzd->parent.d, localfields->h, localfields->h + 1,
-     localfields->h + 2, in->data,
-     lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
-     lzd->parent.radii, localfields->dpbox, localfields->rhod);
+    (&iproc, &nproc, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
+     SICapproach, localfields->dpbox);
+  FC_FUNC_(density_descriptors, DENSITY_DESCRIPTORS)(&iproc, &nproc, &in->nspin,
+                                                     &in->crmult, &in->frmult,
+                                                     lzd->parent.parent.data,
+                                                     localfields->dpbox, rho_commun,
+                                                     lzd->parent.parent.rxyz.data,
+                                                     lzd->parent.radii, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, lzd->parent.data,
                                           &in->nspin, lzd->parent.parent.data,
 					  lzd->parent.parent.rxyz.data,
