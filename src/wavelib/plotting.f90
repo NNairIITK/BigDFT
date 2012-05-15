@@ -295,25 +295,25 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      nl3=1
      nbx = 1
      nbz = 1
-     nc1=n1i-31
-     nc3=n3i-31
+     nc1=n1i
+     nc3=n3i
   else
      nl1=15
      nl3=15
      nbx = 0
      nbz = 0
-     nc1=n1i
-     nc3=n3i
+     nc1=n1i-31
+     nc3=n3i-31
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
      nby = 1
-     nc2=n2i-31
+     nc2=n2i
   else
      nl2=15
      nby = 0
-     nc2=n2i
+     nc2=n2i-31
   end if
 
 !!$  !cube dimensions
@@ -490,8 +490,8 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
         end if
      else
         if (fformat == 1) then
-           suffix='-up'
-           message='spin up'
+           suffix=''
+           message='total spin'
            a=1.0_dp
            ia=1
            b=0.0_dp
@@ -510,18 +510,18 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-           suffix=''
-           message='total spin'
+           suffix='-u-d'
+           message='spin difference'
            a=1.0_dp
            ia=1
-           b=1.0_dp
+           b=-2.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-           suffix='-u-d'
-           message='spin difference'
+           suffix='-up'
+           message='spin up'
            a=1.0_dp
            ia=1
            b=-1.0_dp

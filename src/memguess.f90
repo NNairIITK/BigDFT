@@ -433,7 +433,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
@@ -844,8 +844,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(in) :: orbs
-   type(local_zone_descriptors), intent(in) :: Lzd
+   type(orbitals_data), intent(inout) :: orbs
+   type(local_zone_descriptors), intent(inout) :: Lzd
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'

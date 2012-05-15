@@ -7,6 +7,7 @@
 
 #include "bigdft.h"
 #include "bindings.h"
+#include "bindings_api.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -45,29 +46,6 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
   double *val = (double*)(&pt);
   *add = val[0];
 }
-
-
-void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
-void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
-void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in, int *nproc,
-                                                      const gchar *rad, int *len);
-void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const void *in, double *hx, double *hy, double *hz, double *crmult, double *frmult, int *ixc, int *ncharge, double *elecfield, int *nspin, int *mpol, double *gnrm_cv, int *itermax, int *nrepmax, int *ncong, int *idsx, int *dispersion, int *inputPsiId, int *output_wf_format, int *output_grid, double *rbuf, int *ncongt, int *norbv, int *nvirt, int *nplot, int *disableSym);
-void FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(void *in, int *iscf, int *itrpmax,
-                                              int *norbsempty, int *occopt, double *alphamix,
-                                              double *rpnrm_cv, double *gnrm_startmix,
-                                              double *Tel, double *alphadiis);
-void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach,
-                                                  int *ncount_cluster_x, double *frac_fluct,
-                                                  double *forcemax, double *randdis,
-                                                  double *betax, int *history, int *ionmov,
-                                                  double *dtion, double *strtarget,
-                                                  f90_pointer_double *qmass);
-void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
-                                                        int *iproc, int *dump);
-void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
-void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
-                                                  const gchar *geocode, const double *alat,
-                                                  int *iproc, int *dump);
 
 static BigDFT_Inputs* bigdft_inputs_init()
 {
@@ -126,6 +104,7 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
                                                in->strtarget, &in->qmass);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
+  FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(in->data, in->linear);
   
   return in;
 }
@@ -138,8 +117,7 @@ void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
   int iproc = 0, dump = 0;
 
-  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->sym, &atoms->geocode,
-                                               atoms->alat, &iproc, &dump);
+  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, &iproc, &dump);
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
 
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
@@ -383,24 +361,254 @@ void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kin
 #endif  
 }
 
+/*********************************/
+/* BigDFT_OptLoop data structure */
+/*********************************/
+#ifdef HAVE_GLIB
+enum {
+  SYNC_FORTRAN,
+  ITER_HAMILTONIAN,
+  ITER_SUBSPACE,
+  ITER_WAVEFUNCTIONS,
+  DONE_HAMILTONIAN,
+  DONE_SUBSPACE,
+  DONE_WAVEFUNCTIONS,
+  LAST_SIGNAL_OPTLOOP
+};
+
+G_DEFINE_TYPE(BigDFT_OptLoop, bigdft_optloop, G_TYPE_OBJECT)
+
+static guint bigdft_optloop_signals[LAST_SIGNAL_OPTLOOP] = { 0 };
+
+static void bigdft_optloop_dispose(GObject *optloop);
+static void bigdft_optloop_finalize(GObject *optloop);
+
+static void bigdft_optloop_class_init(BigDFT_OptLoopClass *klass)
+{
+  /* Connect the overloading methods. */
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_optloop_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_optloop_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
+  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+
+  bigdft_optloop_signals[SYNC_FORTRAN] =
+    g_signal_new("sync-fortran", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__VOID,
+                 G_TYPE_NONE, 0, NULL);
+
+  bigdft_optloop_signals[ITER_HAMILTONIAN] =
+    g_signal_new("iter-hamiltonian", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+
+  bigdft_optloop_signals[ITER_SUBSPACE] =
+    g_signal_new("iter-subspace", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+
+  bigdft_optloop_signals[ITER_WAVEFUNCTIONS] =
+    g_signal_new("iter-wavefunctions", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+
+  bigdft_optloop_signals[DONE_HAMILTONIAN] =
+    g_signal_new("done-hamiltonian", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+
+  bigdft_optloop_signals[DONE_SUBSPACE] =
+    g_signal_new("done-subspace", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+
+  bigdft_optloop_signals[DONE_WAVEFUNCTIONS] =
+    g_signal_new("done-wavefunctions", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+        	 0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
+                 G_TYPE_NONE, 1, G_TYPE_OBJECT, NULL);
+}
+#endif
+
+static void bigdft_optloop_init(BigDFT_OptLoop *obj)
+{
+#ifdef HAVE_GLIB
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_OptLoop) - sizeof(GObject));
+#else
+  memset(obj, 0, sizeof(BigDFT_OptLoop));
+#endif
+  obj->iscf = 0;
+  obj->itrpmax = 1;
+  obj->nrepmax = 1;
+  obj->itermax = 50;
+  obj->gnrm_cv = 1e-4;
+  obj->rpnrm_cv = 1e-4;
+  obj->gnrm_startmix = 0.;
+}
+static void bigdft_optloop_dispose(GObject *obj)
+{
+#ifdef HAVE_GLIB
+  BigDFT_OptLoop *optloop = BIGDFT_OPTLOOP(obj);
+
+  if (optloop->dispose_has_run)
+    return;
+  optloop->dispose_has_run = TRUE;
+
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_optloop_parent_class)->dispose(obj);
+#endif
+}
+static void bigdft_optloop_finalize(GObject *obj)
+{
+  BigDFT_OptLoop *optloop = BIGDFT_OPTLOOP(obj);
+
+  if (optloop->data)
+    FC_FUNC_(optloop_free, OPTLOOP_FREE)(&optloop->data);
+
+#ifdef HAVE_GLIB
+  G_OBJECT_CLASS(bigdft_optloop_parent_class)->finalize(obj);
+#endif
+}
+BigDFT_OptLoop* bigdft_optloop_new()
+{
+  BigDFT_OptLoop *optloop;
+  double self;
+
+#ifdef HAVE_GLIB
+  optloop = BIGDFT_OPTLOOP(g_object_new(BIGDFT_OPTLOOP_TYPE, NULL));
+#else
+  optloop = g_malloc(sizeof(BigDFT_OptLoop));
+  bigdft_optloop_init(optloop);
+#endif
+  self = *((double*)&optloop);
+  FC_FUNC_(optloop_new, OPTLOOP_NEW)(&self, &optloop->data);
+  FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)
+    (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
+     &optloop->gnrm, &optloop->rpnrm,
+     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
+     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     &optloop->iscf, &optloop->infocode);
+
+  return optloop;
+}
+void FC_FUNC_(optloop_new_wrapper, OPTLOOP_NEW_WRAPPER)(double *self, void *obj)
+{
+  BigDFT_OptLoop *optloop;
+
+  optloop = bigdft_optloop_new_from_fortran(obj);
+  *self = *((double*)&optloop);
+}
+BigDFT_OptLoop* bigdft_optloop_new_from_fortran(void *obj)
+{
+  BigDFT_OptLoop *optloop;
+
+#ifdef HAVE_GLIB
+  optloop = BIGDFT_OPTLOOP(g_object_new(BIGDFT_OPTLOOP_TYPE, NULL));
+#else
+  optloop = g_malloc(sizeof(BigDFT_OptLoop));
+  bigdft_optloop_init(optloop);
+#endif
+  optloop->data = obj;
+
+  return optloop;
+}
+void FC_FUNC_(optloop_free_wrapper, OPTLOOP_FREE_WRAPPER)(gpointer *obj)
+{
+  BigDFT_OptLoop *optloop = BIGDFT_OPTLOOP(*obj);
+
+  optloop->data = (gpointer)0;
+  bigdft_optloop_free(optloop);
+}
+void bigdft_optloop_free(BigDFT_OptLoop *optloop)
+{
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(optloop));
+#else
+  bigdft_optloop_finalize(optloop);
+  g_free(optloop);
+#endif
+}
+void FC_FUNC_(optloop_emit, OPTLOOP_EMIT)(BigDFT_OptLoop **obj, BigDFT_OptLoopIds *kind,
+                                          BigDFT_Energs **energs)
+{
+  BigDFT_OptLoop *optloop = BIGDFT_OPTLOOP(*obj);
+
+  bigdft_optloop_copy_from_fortran(optloop);
+  bigdft_optloop_emit(optloop, *kind, *energs);
+}
+void bigdft_optloop_emit(BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind, BigDFT_Energs *energs)
+{
+#ifdef HAVE_GLIB
+  switch (kind)
+    {
+    case BIGDFT_OPTLOOP_ITER_HAMILTONIAN:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[ITER_HAMILTONIAN],
+                    0 /* details */, energs, NULL);
+      break;
+    case BIGDFT_OPTLOOP_ITER_SUBSPACE:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[ITER_SUBSPACE],
+                    0 /* details */, energs, NULL);
+      break;
+    case BIGDFT_OPTLOOP_ITER_WAVEFUNCTIONS:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[ITER_WAVEFUNCTIONS],
+                    0 /* details */, energs, NULL);
+      break;
+    case BIGDFT_OPTLOOP_DONE_HAMILTONIAN:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[DONE_HAMILTONIAN],
+                    0 /* details */, energs, NULL);
+      break;
+    case BIGDFT_OPTLOOP_DONE_SUBSPACE:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[DONE_SUBSPACE],
+                    0 /* details */, energs, NULL);
+      break;
+    case BIGDFT_OPTLOOP_DONE_WAVEFUNCTIONS:
+      g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[DONE_WAVEFUNCTIONS],
+                    0 /* details */, energs, NULL);
+      break;
+    default:
+      break;
+    }
+#endif
+}
+void bigdft_optloop_copy_from_fortran(BigDFT_OptLoop *optloop)
+{
+  FC_FUNC_(optloop_copy_data, OPTLOOP_COPY_DATA)
+    (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
+     &optloop->gnrm, &optloop->rpnrm,
+     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
+     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     &optloop->iscf, &optloop->infocode);
+}
+void bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop)
+{
+  FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)
+    (optloop->data, &optloop->gnrm_cv, &optloop->rpnrm_cv, &optloop->gnrm_startmix,
+     &optloop->gnrm, &optloop->rpnrm,
+     &optloop->itrpmax, &optloop->nrepmax, &optloop->itermax,
+     &optloop->itrp, &optloop->itrep, &optloop->iter,
+     &optloop->iscf, &optloop->infocode);
+
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(optloop), bigdft_optloop_signals[SYNC_FORTRAN],
+                0 /* details */, NULL);
+#endif
+}
+
 
 /******************/
 /* Miscellaneous. */
 /******************/
-void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(const int *nproc, const int *idsx,
-                                               const void *lr,
-                                               const int *nat, const int *norb,
-                                               const int *nspinor, const int *nkpt,
-                                               const guint *nprojel, const int *nspin,
-                                               const int *itrpmax, const int *iscf,
-                                               double *peak);
-double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
                               const BigDFT_Orbs *orbs, const BigDFT_Proj *proj)
 {
   double peak;
-  int nat = -1;
 
-  FC_FUNC(memoryestimator, MEMORYESTIMATOR)(&nproc, &in->idsx, lr->data, &nat,
+  FC_FUNC(memoryestimator, MEMORYESTIMATOR)(&nproc, &in->idsx, lr->data, &lr->parent.nat,
                                             &orbs->norb, &orbs->nspinor, &orbs->nkpts,
                                             &proj->nprojel, &orbs->nspin, &in->itrpmax,
                                             &in->iscf, &peak);

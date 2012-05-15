@@ -43,6 +43,7 @@ static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
 static void output_inputs(const BigDFT_Inputs *in)
 {
   fprintf(stdout, " Read 'test.dft' file: %d\n", (in->files & BIGDFT_INPUTS_DFT));
+  fprintf(stdout, " Read 'test.lin' file: %d\n", (in->files & BIGDFT_INPUTS_LIN));
   fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
           in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
 }
@@ -60,7 +61,8 @@ static void output_atoms(const BigDFT_Atoms *atoms)
 static void output_locreg(const BigDFT_LocReg *glr)
 {
   guint i, n;
-  gboolean *cgrid, *fgrid;
+  gboolean *cgrid, *fgrid, valid;
+  BigDFT_LocRegIter iter;
 
   for (i = 0; i < BIGDFT_ATOMS(glr)->ntypes; i++)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
@@ -85,6 +87,13 @@ static void output_locreg(const BigDFT_LocReg *glr)
           glr->ni[1], glr->ni[2]);
   fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", glr->h[0],
           glr->h[1], glr->h[2]);
+  fprintf(stdout, " Coarse grid has %7d points %5d segments.\n", glr->nvctr_c, glr->nseg_c);
+  fprintf(stdout, " Fine grid has   %7d points %5d segments.\n", glr->nvctr_f, glr->nseg_f);
+
+  for (valid = bigdft_locreg_iter_new(glr, &iter, GRID_FINE); valid && iter.iseg - glr->nseg_c < 10;
+       valid = bigdft_locreg_iter_next(&iter))
+    fprintf(stdout, " fine seg %3d has bounds (%2d - %2d;%2d;%2d)\n",
+            iter.iseg - glr->nseg_c + 1, iter.i0, iter.i1, iter.i2, iter.i3);
 
   fprintf(stdout, "Test calculation of grid points.\n");
   cgrid = bigdft_locreg_get_grid(glr, GRID_COARSE);
@@ -100,6 +109,19 @@ static void output_locreg(const BigDFT_LocReg *glr)
 
   g_free(cgrid);
   g_free(fgrid);
+}
+static void output_llr(const BigDFT_Lzd *lzd)
+{
+  guint i;
+
+  fprintf(stdout, " Lzd has %d local regions.\n", lzd->nlr);
+  for (i = 0; i < lzd->nlr; i++)
+    {
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine segments.\n",
+              i, lzd->Llr[i]->nseg_c, lzd->Llr[i]->nseg_f);
+      fprintf(stdout, " region %d has (%4d/%4d) coarse/fine elements.\n",
+              i, lzd->Llr[i]->nvctr_c, lzd->Llr[i]->nvctr_f);
+    }
 }
 
 int main(int argc, char **argv)
@@ -132,7 +154,7 @@ int main(int argc, char **argv)
   FC_FUNC_(memocc_verbose, MEMOCC_VERBOSE)();
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
-  wf = bigdft_wf_new();
+  wf = bigdft_wf_new(TRUE);
   atoms = BIGDFT_ATOMS(wf->lzd);
 
   atoms->comment = strdup("Test BigDFT_Atoms reading a wrong file.");
@@ -140,7 +162,7 @@ int main(int argc, char **argv)
     {
       bigdft_wf_free(wf);
 
-      wf = bigdft_wf_new();
+      wf = bigdft_wf_new(TRUE);
       atoms = BIGDFT_ATOMS(wf->lzd);
     }
   fprintf(stdout, " Ok\n");
@@ -192,13 +214,31 @@ int main(int argc, char **argv)
   /* Typical cluster run. */
   fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
   in = bigdft_inputs_new("test");
-  output_inputs(in);
-
+  fprintf(stdout, " base Ok\n");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
+  fprintf(stdout, " additional Ok\n");
+  output_inputs(in);
+
+  fprintf(stdout, "Test BigDFT_Wf define.\n");
   nelec = bigdft_wf_define(wf, in, 0, 1);
+  output_llr(wf->lzd);
+  fprintf(stdout, "Test BigDFT_Wf free.\n");
+  bigdft_wf_free(wf);
+  fprintf(stdout, " Ok\n");
+  fprintf(stdout, "Test BigDFT_Inputs free.\n");
+  bigdft_inputs_free(in);
+  fprintf(stdout, " Ok\n");
+
+  if (argc > 2)
+    {
+      stdout_fileno_old = redirect_init(out_pipe);
+      FC_FUNC_(memocc_report, MEMOCC_REPORT)();
+      redirect_dump(out_pipe, stdout_fileno_old);
+    }
 
   /* Test restarting the wavefunction definition. */
+  wf = bigdft_wf_new(FALSE);
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   if (!bigdft_atoms_set_structure_from_file(BIGDFT_ATOMS(wf->lzd), "posinp.ascii"))
     {
@@ -207,6 +247,7 @@ int main(int argc, char **argv)
     }
   output_atoms(BIGDFT_ATOMS(wf->lzd));
 
+  in = bigdft_inputs_new("test");
   bigdft_atoms_set_symmetries(BIGDFT_ATOMS(wf->lzd), !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, BIGDFT_ATOMS(wf->lzd));
 
@@ -346,18 +387,28 @@ static gboolean exit_loop(gpointer data)
   fprintf(stdout, "Error, signals timeout.\n");
   return FALSE;
 }
+static void onIterDone(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer data)
+{
+  fprintf(stdout, "Callback for 'iter-done-wavefunctions' signal at iter %d -> %gHt (%g).\n",
+          optloop->iter, energs->eKS, optloop->gnrm);
+}
 #endif
 
 static gpointer optimize_psi_thread(gpointer data)
 {
   BigDFT_Data *container = (BigDFT_Data*)data;
-  BigDFT_optLoopParams p;
+  BigDFT_OptLoop *p;
   
   fprintf(stdout, " Calculation of optimization started.\n");
-  bigdft_optloopparams_init(&p);
-  p.itermax = 2;
+  p = bigdft_optloop_new();
+  p->itermax = 2;
+  g_signal_connect(G_OBJECT(p), "iter-wavefunctions",
+                   G_CALLBACK(onIterDone), (gpointer)0);
+  g_signal_connect(G_OBJECT(p), "done-wavefunctions",
+                   G_CALLBACK(onIterDone), (gpointer)0);
+  bigdft_optloop_sync_to_fortran(p);
   bigdft_wf_optimization_loop(container->wf, container->denspot, container->proj,
-                              container->energs, 0, 1, &p);
+                              container->energs, p, 0, 1);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));
@@ -366,6 +417,7 @@ static gpointer optimize_psi_thread(gpointer data)
 #endif
   fprintf(stdout, " Calculation of optimization finished.\n");
 
+  bigdft_optloop_free(p);
   return (gpointer)0;
 }
 static gboolean optimize_psi(gpointer data)

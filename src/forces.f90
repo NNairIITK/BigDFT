@@ -796,7 +796,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-  integer :: ierr,ilr
   real(gp), dimension(6) :: sab
 
   call to_zero(6,strten(1)) 
@@ -3763,8 +3762,7 @@ subroutine symmetrize_stress(dump,tens,symobj)
   integer, pointer  :: sym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
-  integer :: isym, errno, ind, nsym,k,l
-  integer :: indsym(4, AB6_MAX_SYMMETRIES)
+  integer :: isym, errno, nsym,k,l
   integer, allocatable :: symrec(:,:,:)
   real(gp),dimension(3,3) :: symtens
 
@@ -3896,9 +3894,9 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
    real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ii
+  integer :: i_all,i_stat,iorb,npot,oidx
   real(wp) :: exctXcoeff,kinstr(6)
-  real(gp) :: ekin,epot,kx,ky,kz,etest
+  real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
@@ -3979,7 +3977,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   character(len=*), parameter :: subname='erf_stress'
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
-  integer :: i,ierr,i_stat,i_all
+  integer :: ierr,i_stat,i_all
   real(kind=8) :: pi,p(3),g2,rloc,set,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2

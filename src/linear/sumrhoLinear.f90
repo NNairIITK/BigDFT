@@ -307,13 +307,14 @@ integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, j
 integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
-integer,allocatable :: astart(:,:), aend(:,:), bstart(:,:),bend(:,:)
+integer,dimension(3,4) :: astart, aend, bstart,bend
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
-
+integer :: i, j
+real(gp),dimension(:,:), allocatable :: rhoprime
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
@@ -341,6 +342,20 @@ if(iproc==0) write(*,'(a)') 'done.'
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
 
+!DEBUG test idempotency of density matrix
+!!allocate(rhoprime(orbs%norb,orbs%norb))
+!!call dgemm('n','t', orbs%norb,orbs%norb,orbs%norb,1.d0,densKern(1,1),orbs%norb,&
+!!     densKern(1,1),orbs%norb,0.d0,rhoprime(1,1),orbs%norb)
+!!do i = 1, orbs%norb
+!! do j = 1, orbs%norb
+!!    if(abs(rhoprime(i,j) - densKern(i,j))>1.0d-5) then
+!!      write(*,*) 'Not indempotent',i,j,rhoprime(i,j), densKern(i,j)
+!!    end if
+!! end do
+!!end do
+!!deallocate(rhoprime)
+!END DEBUG
+
 
 ! Define some constant factors.
 hxh=.5d0*hx
@@ -363,90 +378,8 @@ else
 end if
 call timing(iproc,'p2pSumrho_wait','ON')
 
-! Check whether the communication has completed.
-if(iproc==0) write(*,'(3x,a)',advance='no') 'waiting for communication to complete... '
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
-nfast=0
-nsameproc=0
-testLoop: do
-    do jproc=0,nproc-1
-        do korb=1,comsr%noverlaps(jproc)
-            if(comsr%communComplete(korb,jproc)) cycle
-            call mpi_test(comsr%comarr(8,korb,jproc), sendComplete, stat, ierr)
-            call mpi_test(comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)
-            ! Attention: mpi_test is a local function.
-            if(sendComplete .and. receiveComplete) comsr%communComplete(korb,jproc)=.true.
-        end do
-    end do
-    ! If we made it until here, either all all the communication is
-    ! complete or we better wait for each single orbital.
-    exit testLoop
-end do testLoop
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
-!if(iproc==0) write(*,'(a,es12.4)') 'time for test:',time
 
-! Since mpi_test is a local function, check whether the communication has completed on all processes.
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
-call mpiallred(comsr%communComplete(1,0), nproc*maxval(comsr%noverlaps), mpi_land, mpi_comm_world, ierr)
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
-!if(iproc==0) write(*,'(a,es12.4)') 'time for allreduce:',time
-
-
-
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
-! Wait for the communications that have not completed yet
-nslow=0
-do jproc=0,nproc-1
-    do korb=1,comsr%noverlaps(jproc)
-        if(comsr%communComplete(korb,jproc)) then
-            mpisource=comsr%comarr(1,korb,jproc)
-            mpidest=comsr%comarr(5,korb,jproc)
-            if(mpisource==mpidest) then
-                nsameproc=nsameproc+1
-            else
-                nfast=nfast+1
-            end if
-            cycle
-        end if
-        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
-        nslow=nslow+1
-        call mpi_wait(comsr%comarr(8,korb,jproc), stat, ierr)
-        call mpi_wait(comsr%comarr(9,korb,jproc), stat, ierr)
-        comsr%communComplete(korb,jproc)=.true.
-        comsr%computComplete(korb,jproc)=.true.
-    end do
-end do
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
-!if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
-if (verbose >3) then
-   if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
-else
-   if(iproc==0) write(*,'(a,f5.1,a)') 'done.'
-end if
-!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
-!                       nfast, ' could be overlapped with computation.'
-!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
-
-
-do iorb=1,comsr%noverlaps(iproc)
-    if(.not. comsr%communComplete(iorb,iproc)) then
-        write(*,'(a,i0,a,i0,a)') 'ERROR: communication of orbital ', iorb, ' to process ', iproc, ' failed!'
-        stop
-    end if
-    !!if(.not. lin%comsr%computComplete(iorb,iproc)) then
-    !!    write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
-    !!    stop
-    !!end if
-end do
+call wait_p2p_communication(iproc, nproc, comsr)
 
 
 
@@ -468,12 +401,12 @@ ie=is+nscatterarr(iproc,1)-1
 totalCharge=0.d0
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
-    ilr=comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
-    istri=comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
+    ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
+    istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
     do jorb=1,comsr%noverlaps(iproc)
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
-        jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
-        istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+        jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
+        istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
 
         azones = 1
         bzones = 1
@@ -482,21 +415,9 @@ do iorb=1,comsr%noverlaps(iproc)
            if(lzd%llr(ilr)%outofzone(ii) > 0) azones = azones * 2
            if(lzd%llr(jlr)%outofzone(ii) > 0) bzones = bzones * 2
         end do
-      
-        !allocate astart and aend
-        allocate(astart(3,azones),stat=istat)
-        call memocc(istat,astart,'astart',subname)
-        allocate(aend(3,azones),stat=istat)
-        call memocc(istat,aend,'aend',subname)
-       
+
         !FRACTURE THE FIRST LOCALIZATION REGION
         call fracture_periodic_zone_ISF(azones,lzd%Glr,lzd%Llr(ilr),lzd%Llr(ilr)%outofzone(:),astart,aend)
-       
-        !allocate bstart and bend
-        allocate(bstart(3,bzones),stat=istat)
-        call memocc(istat,bstart,'bstart',subname)
-        allocate(bend(3,bzones),stat=istat)
-        call memocc(istat,bend,'bend',subname)
        
         !FRACTURE SECOND LOCREG
         call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
@@ -508,8 +429,8 @@ do iorb=1,comsr%noverlaps(iproc)
               i1e=min(aend(1,izones)-1,bend(1,jzones)-1)
               i2s=max(astart(2,izones),bstart(2,jzones))
               i2e=min(aend(2,izones)-1,bend(2,jzones)-1)
-              i3s=max(comsr%startingindex(iorb,1),comsr%startingindex(jorb,1))
-              i3e=min(comsr%startingindex(iorb,2),comsr%startingindex(jorb,2))
+              i3s=max(comsr%ise3(iorb,1),comsr%ise3(jorb,1))
+              i3e=min(comsr%ise3(iorb,2),comsr%ise3(jorb,2))
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
@@ -520,15 +441,22 @@ do iorb=1,comsr%noverlaps(iproc)
                   indi3=i3d*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
                   indj3=j3d*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
                   !indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
-                  indl3=modulo(i3-is,Lzd%Glr%d%n3i+1)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  !indl3=(modulo(i3-1,Lzd%Glr%d%n3i)-is+1)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  indl3=(modulo(i3,Lzd%Glr%d%n3i+1)-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
                   do i2=i2s,i2e !bounds in y direction
                       i2d=i2 + ishift2 !y coordinate of orbital iorb with respect to the overlap box
                       j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
                       indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
                       !indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                      indl2=modulo(i2,Lzd%Glr%d%n2i+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
-                      m=mod(i1e-i1s+1,4)
+                      !indl2=(modulo(i2-1,Lzd%Glr%d%n2i)+1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      indl2=(modulo(i2,Lzd%Glr%d%n2i+1))*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      ! For all other than free BC, choose m such that the unrolled part is never used.
+                      if(Lzd%Glr%geocode=='F') then
+                          m=mod(i1e-i1s+1,4)
+                      else
+                          m=i1e-i1s+1
+                      end if
                       if(m/=0) then
                           ! The following five variables hold some intermediate results to speed up the code.
                           i1d0= ishift1 
@@ -542,6 +470,7 @@ do iorb=1,comsr%noverlaps(iproc)
                               indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
                               indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
                               !indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
+                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1 !index for which the charge density is beeing calculated
                               indLarge = indLarge0 + modulo(i1,Lzd%Glr%d%n1i+1) !index for which the charge density is beeing calculated
                               tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
                               rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
@@ -565,15 +494,19 @@ do iorb=1,comsr%noverlaps(iproc)
                               tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
                               tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
                               tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
-                              indLarge = indLarge0 + modulo(i1,Lzd%Glr%d%n1i+1)
+                              !indLarge = indLarge0 + modulo(i1-1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1
                               rho(indLarge  ) = rho(indLarge  ) + tt0
-                              indLarge = indLarge0 +modulo(i1+1,Lzd%Glr%d%n1i+1)
+                              !indLarge = indLarge0 +modulo(i1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+1
                               rho(indLarge) = rho(indLarge) + tt1
                               !rho(indLarge+1) = rho(indLarge+1) + tt1
-                              indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i+1)
+                              !indLarge = indLarge0 + modulo(i1+1,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+2
                               rho(indLarge) = rho(indLarge) + tt2
                               !rho(indLarge+2) = rho(indLarge+2) + tt1
-                              indLarge = indLarge0 + modulo(i1+3,Lzd%Glr%d%n1i+1)
+                              !indLarge = indLarge0 + modulo(i1+2,Lzd%Glr%d%n1i)+1
+                              indLarge = indLarge0 + i1+3
                               rho(indLarge) = rho(indLarge) + tt3
                               !rho(indLarge+3) = rho(indLarge+3) + tt1
                               totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
@@ -583,18 +516,6 @@ do iorb=1,comsr%noverlaps(iproc)
               end do
           end do !jzones
        end do !izones
-       iall=-product(shape(astart))*kind(astart)
-       deallocate(astart, stat=istat)
-       call memocc(istat, iall, 'astart', subname)
-       iall=-product(shape(bstart))*kind(bstart)
-       deallocate(bstart, stat=istat)
-       call memocc(istat, iall, 'bstart', subname)
-       iall=-product(shape(aend))*kind(aend)
-       deallocate(aend, stat=istat)
-       call memocc(istat, iall, 'aend', subname)
-       iall=-product(shape(bend))*kind(bend)
-       deallocate(bend, stat=istat)
-       call memocc(istat, iall, 'bend', subname)
     end do
 end do
 call mpi_barrier(mpi_comm_world, ierr)
@@ -613,229 +534,74 @@ call memocc(istat, iall, 'densKern', subname)
 
 end subroutine sumrhoForLocalizedBasis2
 
-!!!!> Initializes the parameters needed for the communication of the orbitals
-!!!!! when calculating the charge density.
-!!!!!
-!!!!! input arguments
-!!!!!  @param jproc        process to which the orbital shall be sent
-!!!!!  @param iorb         orbital that is to be sent
-!!!!!  @param istDest      the position on the MPI process to which it should be sent
-!!!!!  @param tag          communication tag
-!!!!!  @param lin          type containing the parameters for the linear scaling version
-!!!!! output arguments
-!!!!!  @param commsSumrho  contains the parameters
-!!!subroutine setCommunicationInformation(jproc, iorb, istDest, tag, lin, commsSumrho)
-!!!use module_base
-!!!use module_types
-!!!implicit none
-!!!
-!!!! Calling arguments
-!!!integer,intent(in):: jproc, iorb, istDest, tag
-!!!type(linearParameters),intent(in):: lin
-!!!integer,dimension(9),intent(out):: commsSumrho
-!!!
-!!!! Local variables
-!!!integer:: mpisource, ist, jorb, jlr
-!!!
-!!!! on which MPI process is the orbital that has to be sent to jproc
-!!!mpisource=lin%orbs%onWhichMPI(iorb)
-!!!commsSumrho(1)=mpisource
-!!!
-!!!! starting index of the orbital on that MPI process
-!!!ist=1
-!!!do jorb=lin%orbs%isorb_par(mpisource)+1,iorb-1
-!!!    !jlr=lin%onWhichAtomAll(jorb)
-!!!    jlr=lin%orbs%inWhichLocreg(jorb)
-!!!    ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!end do
-!!!commsSumrho(2)=ist
-!!!
-!!!! amount of data to be sent
-!!!!jlr=lin%onWhichAtomAll(iorb)
-!!!jlr=lin%orbs%inWhichLocreg(iorb)
-!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!
-!!!! localization region to which this orbital belongs to
-!!!!commsSumrho(4)=lin%onWhichAtomAll(iorb)
-!!!commsSumrho(4)=lin%orbs%inWhichLocreg(iorb)
-!!!
-!!!! to which MPI process should this orbital be sent
-!!!commsSumrho(5)=jproc
-!!!
-!!!! the position on the MPI process to which it should be sent
-!!!commsSumrho(6)=istDest
-!!!
-!!!! the tag for this communication
-!!!commsSumrho(7)=tag
-!!!
-!!!! commsSumrho(8): this entry is used a request for the mpi_isend.
-!!!
-!!!! commsSumrho(9): this entry is used a request for the mpi_irecv.
-!!!
-!!!
-!!!end subroutine setCommunicationInformation
+
+!!!!!> Initializes the parameters needed for the communication of the orbitals
+!!!!!! when calculating the charge density.
+!!!!!!
+!!!!!! input arguments
+!!!!!!  @param jproc        process to which the orbital shall be sent
+!!!!!!  @param iorb         orbital that is to be sent
+!!!!!!  @param istDest      the position on the MPI process to which it should be sent
+!!!!!!  @param tag          communication tag
+!!!!!!  @param lin          type containing the parameters for the linear scaling version
+!!!!!! output arguments
+!!!!!!  @param commsSumrho  contains the parameters
+!!!!subroutine setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr, Llr, &
+!!!!           onWhichAtomAll, orbs, commsSumrho)
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
+!!!!type(locreg_descriptors),dimension(nlr),intent(in):: Llr
+!!!!type(orbitals_data):: orbs
+!!!!integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+!!!!integer,dimension(6),intent(out):: commsSumrho
+!!!!
+!!!!! Local variables
+!!!!integer:: mpisource, ist, jorb, jlr
+!!!!
+!!!!! on which MPI process is the orbital that has to be sent to jproc
+!!!!mpisource=orbs%onWhichMPI(iorb)
+!!!!commsSumrho(1)=mpisource
+!!!!
+!!!!! starting index of the orbital on that MPI process
+!!!!ist=1
+!!!!do jorb=orbs%isorb_par(mpisource)+1,iorb-1
+!!!!    jlr=onWhichAtomAll(jorb)
+!!!!    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!!    ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
+!!!!end do
+!!!!jlr=onWhichAtomAll(iorb)
+!!!!ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!!commsSumrho(2)=ist
+!!!!
+!!!!! amount of data to be sent
+!!!!jlr=onWhichAtomAll(iorb)
+!!!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!!commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
+!!!!
+!!!!!!! localization region to which this orbital belongs to
+!!!!!!commsSumrho(4)=onWhichAtomAll(iorb)
+!!!!
+!!!!! to which MPI process should this orbital be sent
+!!!!!commsSumrho(5)=jproc
+!!!!commsSumrho(4)=jproc
+!!!!
+!!!!! the position on the MPI process to which it should be sent
+!!!!!commsSumrho(6)=istDest
+!!!!commsSumrho(5)=istDest
+!!!!
+!!!!! the tag for this communication
+!!!!!commsSumrho(7)=tag
+!!!!commsSumrho(6)=tag
+!!!!
+!!!!! commsSumrho(8): this entry is used as request for the mpi_isend.
+!!!!
+!!!!! commsSumrho(9): this entry is used as request for the mpi_irecv.
+!!!!
+!!!!
+!!!!end subroutine setCommunicationInformation2
 
 
-
-
-!> Initializes the parameters needed for the communication of the orbitals
-!! when calculating the charge density.
-!!
-!! input arguments
-!!  @param jproc        process to which the orbital shall be sent
-!!  @param iorb         orbital that is to be sent
-!!  @param istDest      the position on the MPI process to which it should be sent
-!!  @param tag          communication tag
-!!  @param lin          type containing the parameters for the linear scaling version
-!! output arguments
-!!  @param commsSumrho  contains the parameters
-subroutine setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr, Llr, &
-           onWhichAtomAll, orbs, commsSumrho)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
-type(locreg_descriptors),dimension(nlr),intent(in):: Llr
-type(orbitals_data):: orbs
-integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-integer,dimension(9),intent(out):: commsSumrho
-
-! Local variables
-integer:: mpisource, ist, jorb, jlr
-
-! on which MPI process is the orbital that has to be sent to jproc
-mpisource=orbs%onWhichMPI(iorb)
-commsSumrho(1)=mpisource
-
-! starting index of the orbital on that MPI process
-ist=1
-do jorb=orbs%isorb_par(mpisource)+1,iorb-1
-    jlr=onWhichAtomAll(jorb)
-    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-    ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
-end do
-jlr=onWhichAtomAll(iorb)
-ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*(is3ovrlp-1)
-commsSumrho(2)=ist
-
-! amount of data to be sent
-jlr=onWhichAtomAll(iorb)
-!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
-
-! localization region to which this orbital belongs to
-commsSumrho(4)=onWhichAtomAll(iorb)
-
-! to which MPI process should this orbital be sent
-commsSumrho(5)=jproc
-
-! the position on the MPI process to which it should be sent
-commsSumrho(6)=istDest
-
-! the tag for this communication
-commsSumrho(7)=tag
-
-! commsSumrho(8): this entry is used as request for the mpi_isend.
-
-! commsSumrho(9): this entry is used as request for the mpi_irecv.
-
-
-end subroutine setCommunicationInformation2
-
-subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-!type(p2pCommsSumrho),intent(inout):: comsr
-type(p2pComms),intent(inout):: comsr
-real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
-real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
-
-! Local variables
-integer:: jproc, nreceives, nsends, iorb, mpisource, istsource, ncount, lrsource, mpidest, istdest, tag, ierr
-integer:: ist, istr, ilr
-
-
-! Communicate the orbitals for the calculation of the charge density.
-! Since we use non blocking point to point communication, only post the message
-! and continues with other calculations.
-! Be aware that you must not modify the send buffer without checking whether
-! the communications has completed.
-if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
-nreceives=0
-nsends=0
-comsr%communComplete=.false.
-procLoop1: do jproc=0,nproc-1
-    orbsLoop1: do iorb=1,comsr%noverlaps(jproc)
-        mpisource=comsr%comarr(1,iorb,jproc)
-        istsource=comsr%comarr(2,iorb,jproc)
-        ncount=comsr%comarr(3,iorb,jproc)
-        lrsource=comsr%comarr(4,iorb,jproc)
-        mpidest=comsr%comarr(5,iorb,jproc)
-        istdest=comsr%comarr(6,iorb,jproc)
-        tag=comsr%comarr(7,iorb,jproc)
-        if(ncount==0) then
-            ! No communication is needed. This should be improved in the initialization, i.e. this communication
-            ! with 0 elements should be removed from comgp%noverlaps etc.
-            comsr%comarr(8,iorb,jproc)=mpi_request_null
-            comsr%comarr(9,iorb,jproc)=mpi_request_null
-            comsr%communComplete(iorb,jproc)=.true.
-            if(iproc==mpidest) then
-                ! This is just to make the check at the end happy.
-                nreceives=nreceives+1
-            end if
-        else
-            if(mpisource/=mpidest) then
-                ! The orbitals are on different processes, so we need a point to point communication.
-                if(iproc==mpisource) then
-                    !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                    !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comsr%comarr(8,iorb,jproc), ierr)
-                    call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                         comsr%comarr(8,iorb,jproc), ierr)
-                    comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
-                    nsends=nsends+1
-                else if(iproc==mpidest) then
-                   !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, &
-                   !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                    call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                         comsr%comarr(9,iorb,jproc), ierr)
-                    comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
-                    nreceives=nreceives+1
-                else
-                    comsr%comarr(8,iorb,jproc)=mpi_request_null
-                    comsr%comarr(9,iorb,jproc)=mpi_request_null
-                end if
-            else
-                ! The orbitals are on the same process, so simply copy them.
-                if(iproc==mpisource) then
-                    !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                    call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                    comsr%comarr(8,iorb,jproc)=mpi_request_null
-                    comsr%comarr(9,iorb,jproc)=mpi_request_null
-                    nsends=nsends+1
-                    nreceives=nreceives+1
-                    comsr%communComplete(iorb,mpisource)=.true.
-                else
-                    comsr%comarr(8,iorb,jproc)=mpi_request_null
-                    comsr%comarr(9,iorb,jproc)=mpi_request_null
-                    comsr%communComplete(iorb,mpisource)=.true.
-                end if
-            end if
-        end if
-    end do orbsLoop1
-end do procLoop1
-if(iproc==0) write(*,'(a)') 'done.'
-
-if(nreceives/=comsr%noverlaps(iproc)) then
-    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comsr%noverlaps(iproc)', nreceives,&
-         comsr%noverlaps(iproc)
-    stop
-end if
-call mpi_barrier(mpi_comm_world, ierr)
-
-end subroutine postCommunicationSumrho2

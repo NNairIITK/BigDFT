@@ -1,4 +1,4 @@
-subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, onWhichAtom, hxh, hyh, hzh, it)
+subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, hxh, hyh, hzh, it)
 !
 ! Plots the orbitals
 !
@@ -13,7 +13,6 @@ type(locreg_descriptors), intent(in) :: Glr
 real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
 integer:: nat
 real(8),dimension(3,nat):: rxyz
-integer,dimension(orbs%norbp):: onWhichAtom
 real(8):: hxh, hyh, hzh
 integer:: it
 
@@ -38,7 +37,7 @@ unit3=10*iproc+9
     orbLoop: do iorb=1,orbs%norbp
         phir=0.d0
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        iiAt=onWhichAtom(iorb)
+        iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
@@ -720,74 +719,3 @@ write(*,'(1x,a)') '-------------------------------------------------------------
 
 
 end subroutine print_orbital_distribution
-
-
-!!!!subroutine copy_linearInputParameters_to_linearParameters(ntypes, nlr, input, lin)
-!!!!  use module_base
-!!!!  use module_types
-!!!!  implicit none
-!!!!
-!!!!  ! Calling arguments
-!!!!  integer,intent(in):: ntypes, nlr
-!!!!  type(input_variables),intent(in):: input
-!!!!  type(linearParameters),intent(out):: lin
-!!!!
-!!!!  ! Local variables
-!!!!  integer:: itype, ilr
-!!!!
-!!!!  lin%nit_lowaccuracy = input%lin%nit_lowaccuracy
-!!!!  lin%nit_highaccuracy = input%lin%nit_highaccuracy
-!!!!  lin%nItBasis_lowaccuracy = input%lin%nItBasis_lowaccuracy
-!!!!  lin%nItBasis_highaccuracy = input%lin%nItBasis_highaccuracy
-!!!!  lin%nItInnerLoop = input%lin%nItInnerLoop
-!!!!  lin%convCrit = input%lin%convCrit
-!!!!  lin%DIISHistMin = input%lin%DIISHistMin
-!!!!  lin%DIISHistMax = input%lin%DIISHistMax
-!!!!  lin%alphaDIIS = input%lin%alphaDIIS
-!!!!  lin%alphaSD = input%lin%alphaSD
-!!!!  lin%nItPrecond = input%lin%nItPrecond
-!!!!  lin%locregShape = input%lin%locregShape
-!!!!  lin%blocksize_pdsyev = input%lin%blocksize_pdsyev
-!!!!  lin%blocksize_pdgemm = input%lin%blocksize_pdgemm
-!!!!  lin%nproc_pdsyev = input%lin%nproc_pdsyev
-!!!!  lin%nproc_pdgemm = input%lin%nproc_pdgemm
-!!!!  lin%methTransformOverlap = input%lin%methTransformOverlap
-!!!!  lin%nItOrtho = input%lin%nItOrtho
-!!!!  lin%correctionOrthoconstraint = input%lin%correctionOrthoconstraint
-!!!!  lin%mixingMethod = input%lin%mixingMethod
-!!!!  lin%mixHist_lowaccuracy = input%lin%mixHist_lowaccuracy
-!!!!  lin%nItSCCWhenOptimizing_lowaccuracy = input%lin%nItSCCWhenOptimizing_lowaccuracy
-!!!!  lin%nItSCCWhenFixed_lowaccuracy = input%lin%nItSCCWhenFixed_lowaccuracy
-!!!!  lin%mixHist_highaccuracy = input%lin%mixHist_highaccuracy
-!!!!  lin%nItSCCWhenOptimizing_highaccuracy = input%lin%nItSCCWhenOptimizing_highaccuracy
-!!!!  lin%nItSCCWhenFixed_highaccuracy = input%lin%nItSCCWhenFixed_highaccuracy
-!!!!  lin%alphaMixWhenOptimizing_lowaccuracy = input%lin%alphaMixWhenOptimizing_lowaccuracy
-!!!!  lin%alphaMixWhenFixed_lowaccuracy = input%lin%alphaMixWhenFixed_lowaccuracy
-!!!!  lin%convCritMix = input%lin%convCritMix
-!!!!  lin%alphaMixWhenOptimizing_highaccuracy = input%lin%alphaMixWhenOptimizing_highaccuracy
-!!!!  lin%alphaMixWhenFixed_highaccuracy = input%lin%alphaMixWhenFixed_highaccuracy
-!!!!  lin%lowaccuray_converged = input%lin%lowaccuray_converged
-!!!!  lin%useDerivativeBasisFunctions = input%lin%useDerivativeBasisFunctions
-!!!!  lin%ConfPotOrder = input%lin%ConfPotOrder
-!!!!  lin%nItInguess = input%lin%nItInguess
-!!!!  lin%memoryForCommunOverlapIG = input%lin%memoryForCommunOverlapIG
-!!!!  lin%plotBasisFunctions = input%lin%plotBasisFunctions
-!!!!  lin%transformToGlobal = input%lin%transformToGlobal
-!!!!  lin%norbsPerProcIG = input%lin%norbsPerProcIG
-!!!!  lin%mixedmode = input%lin%mixedmode
-!!!!  do itype=1,ntypes
-!!!!      lin%norbsPerType(itype) = input%lin%norbsPerType(itype)
-!!!!      lin%potentialPrefac_lowaccuracy(itype) = input%lin%potentialPrefac_lowaccuracy(itype)
-!!!!      lin%potentialPrefac_highaccuracy(itype) = input%lin%potentialPrefac_highaccuracy(itype)
-!!!!  end do
-!!!!
-!!!!  ! Initialize lin%potentialPrefac to some value (will be adjusted later)
-!!!!  lin%potentialPrefac=-1.d0
-!!!!
-!!!!  ! Assign the localization radius to each atom.
-!!!!  do ilr=1,nlr
-!!!!      lin%locrad(ilr) = input%lin%locrad(ilr)
-!!!!  end do
-!!!!  
-!!!!end subroutine copy_linearInputParameters_to_linearParameters
-

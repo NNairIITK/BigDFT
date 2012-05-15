@@ -146,22 +146,26 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
-subroutine glr_init(glr, d)
+subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
 
   call nullify_locreg_descriptors(glr)
   d => glr%d
+  wfd => glr%wfd
 end subroutine glr_init
-subroutine glr_get_data(glr, d)
+subroutine glr_get_data(glr, d, wfd)
   use module_types
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
 
   d => glr%d
+  wfd => glr%wfd
 end subroutine glr_get_data
 subroutine glr_free(glr)
   use module_types
@@ -207,6 +211,25 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
+     & keyglob, keygloc, keyvglob, keyvloc)
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(out) :: nvctr_c, nvctr_f, nseg_c, nseg_f
+  integer, dimension(:,:), pointer :: keyglob, keygloc
+  integer, dimension(:), pointer :: keyvglob, keyvloc
+
+  nvctr_c = wfd%nvctr_c
+  nvctr_f = wfd%nvctr_f
+  nseg_c  = wfd%nseg_c
+  nseg_f  = wfd%nseg_f
+  keyglob => wfd%keyglob
+  keygloc => wfd%keygloc
+  keyvglob => wfd%keyvglob
+  keyvloc => wfd%keyvloc
+END SUBROUTINE glr_wfd_get_data
+
 subroutine lzd_new(lzd)
   use module_types
   implicit none
@@ -231,6 +254,14 @@ subroutine lzd_get_data(lzd, glr)
 
   glr => lzd%glr
 end subroutine lzd_get_data
+subroutine lzd_copy_data(lzd, nlr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: lzd
+  integer, intent(out) :: nlr
+
+  nlr = lzd%nlr
+end subroutine lzd_copy_data
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -255,6 +286,16 @@ subroutine lzd_get_hgrids(Lzd, hgrids)
   !initial values
   hgrids = Lzd%hgrids
 END SUBROUTINE lzd_get_hgrids
+subroutine lzd_get_llr(Lzd, i, llr)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: Lzd
+  integer, intent(in) :: i
+  type(locreg_descriptors), pointer :: llr
+
+  llr => Lzd%Llr(i)
+END SUBROUTINE lzd_get_llr
 
 subroutine inputs_new(in)
   use module_types
@@ -374,6 +415,14 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
+subroutine inputs_get_lin(in, linear)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 3), intent(out) :: linear
+  
+  linear = in%linear
+END SUBROUTINE inputs_get_lin
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none
@@ -407,20 +456,10 @@ subroutine orbs_free(orbs)
 END SUBROUTINE orbs_free
 subroutine orbs_empty(orbs)
   use module_types
-  use m_profiling
   implicit none
   type(orbitals_data), intent(inout) :: orbs
 
-  integer :: i_all, i_stat
-
-  if (associated(orbs%norb_par)) then
-     call deallocate_orbs(orbs,"orbs_empty")
-  end if
-  if (associated(orbs%eval)) then
-     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-     deallocate(orbs%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%eval',"orbs_empty")
-  end if
+  call deallocate_orbitals_data(orbs,"orbs_empty")
 END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base
@@ -691,80 +730,6 @@ subroutine localfields_get_pot_work(denspot, pot)
   pot => denspot%pot_work
 END SUBROUTINE localfields_get_pot_work
 
-subroutine localfields_full_density(denspot, rho_full, iproc, new)
-  use module_base
-  use module_types
-  use m_profiling
-  implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  integer, intent(in) :: iproc
-  integer, intent(out) :: new
-  real(gp), dimension(:), pointer :: rho_full
-
-  character(len = *), parameter :: subname = "localfields_full_density"
-  integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
-
-  new = 0
-  nslice = max(denspot%dpbox%ndimpot, 1)
-  if (nslice < denspot%dpbox%ndimgrid) then
-     if (iproc == 0) then
-        !allocate full density in pot_ion array
-        allocate(rho_full(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_full,'rho_full',subname)
-        new = 1
-        
-        ! Ask to gather density to other procs.
-        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-     end if
-
-     if (denspot%dpbox%ndimrhopot > 0) then
-        irhoxcsh = nslice / denspot%dpbox%n3p * denspot%dpbox%i3xcsh
-     else
-        irhoxcsh = 0
-     end if     
-     do irhodim = 1, denspot%dpbox%nrhodim, 1
-        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
-             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
-             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-             mpidtypd,0,MPI_COMM_WORLD,ierr)
-     end do
-  else
-     rho_full => denspot%rhov
-  end if
-END SUBROUTINE localfields_full_density
-subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
-  use module_base
-  use module_types
-  use m_profiling
-  implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  integer, intent(in) :: iproc
-  integer, intent(out) :: new
-  real(gp), pointer :: pot_full(:)
-
-  character(len = *), parameter :: subname = "localfields_full_potential"
-  integer :: i_stat, ierr
-
-  new = 0
-  if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
-     if (iproc == 0) then
-        !allocate full density in pot_ion array
-        allocate(pot_full(denspot%dpbox%ndimgrid+ndebug),stat=i_stat)
-        call memocc(i_stat,pot_full,'pot_full',subname)
-        new = 1
-      
-        ! Ask to gather density to other procs.
-        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-     end if
-
-     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
-          mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
-          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
-  else
-     pot_full => denspot%rhov
-  end if
-END SUBROUTINE localfields_full_v_ext
-
 subroutine gpu_new(GPU)
   use module_types
   implicit none
@@ -792,6 +757,8 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
   allocate(wf)
   wf%c_obj = self
   call wf_init(wf)
+  call orbs_init(wf%orbs)
+  call nullify_local_zone_descriptors(wf%lzd)
   orbs => wf%orbs
   comm => wf%comms
   lzd => wf%Lzd
@@ -958,3 +925,151 @@ subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
   evsum  = energs%evsum
   evsic  = energs%evsic
 END SUBROUTINE energs_copy_data
+
+subroutine optloop_new(self, optloop)
+  use module_types
+  implicit none
+  double precision, intent(in) :: self
+  type(DFT_optimization_loop), pointer :: optloop
+
+  allocate(optloop)
+  optloop%c_obj = self
+END SUBROUTINE optloop_new
+subroutine optloop_free(optloop)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), pointer :: optloop
+
+  deallocate(optloop)
+END SUBROUTINE optloop_free
+subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
+     &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(in) :: optloop
+  integer, intent(out) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
+  real(gp), intent(out) :: gnrm, rpnrm, gnrm_cv, rpnrm_cv, gnrm_startmix
+
+  gnrm_cv = optloop%gnrm_cv 
+  rpnrm_cv = optloop%rpnrm_cv 
+  gnrm_startmix = optloop%gnrm_startmix 
+  gnrm = optloop%gnrm 
+  rpnrm = optloop%rpnrm 
+
+  itrpmax = optloop%itrpmax 
+  nrepmax = optloop%nrepmax 
+  itermax = optloop%itermax 
+  itrp = optloop%itrp 
+  itrep = optloop%itrep 
+  iter = optloop%iter 
+  iscf = optloop%iscf 
+  infocode = optloop%infocode
+END SUBROUTINE optloop_copy_data
+subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
+     &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  integer, intent(in) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
+  real(gp), intent(in) :: gnrm, rpnrm, gnrm_cv, rpnrm_cv, gnrm_startmix
+
+  optloop%gnrm_cv = gnrm_cv 
+  optloop%rpnrm_cv = rpnrm_cv 
+  optloop%gnrm_startmix = gnrm_startmix 
+  optloop%gnrm = gnrm 
+  optloop%rpnrm = rpnrm 
+
+  optloop%itrpmax = itrpmax 
+  optloop%nrepmax = nrepmax 
+  optloop%itermax = itermax 
+  optloop%itrp = itrp 
+  optloop%itrep = itrep 
+  optloop%iter = iter 
+  optloop%iscf = iscf 
+  optloop%infocode = infocode
+END SUBROUTINE optloop_sync_data
+subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(in) :: energs
+  integer, intent(in) :: id, iproc, nproc
+
+  call optloop_emit_iter(optloop, id + OPTLOOP_N_LOOPS, energs, iproc, nproc)
+END SUBROUTINE optloop_emit_done
+subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(in) :: energs
+  integer, intent(in) :: id, iproc, nproc
+
+  integer, parameter :: SIGNAL_DONE = -1
+  integer, parameter :: SIGNAL_WAIT = -2
+  integer :: message, ierr
+
+  call timing(iproc,'energs_signals','ON')
+  if (iproc == 0) then
+     ! Only iproc 0 emit the signal. This call is blocking.
+     ! All other procs are blocked by the bcast to wait for
+     ! possible transfer to proc 0.
+     call optloop_emit(optloop%c_obj, id, energs%c_obj)
+     if (nproc > 1) then
+        ! After handling the signal, iproc 0 broadcasts to other
+        ! proc to continue (jproc == -1).
+        message = SIGNAL_DONE
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+  else
+     message = SIGNAL_WAIT
+     do
+        if (message == SIGNAL_DONE) then
+           exit
+        end if
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        
+        if (message >= 0) then
+           ! sync values from proc 0.
+           call optloop_bcast(optloop, iproc)
+        end if
+     end do
+  end if
+  call timing(iproc,'energs_signals','OF')
+END SUBROUTINE optloop_emit_iter
+subroutine optloop_bcast(optloop, iproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  integer, intent(in) :: iproc
+
+  integer :: iData(4), ierr
+  real(gp) :: rData(3)
+
+  if (iproc == 0) then
+     iData(1) = optloop%iscf
+     iData(2) = optloop%itrpmax
+     iData(3) = optloop%nrepmax
+     iData(4) = optloop%itermax
+
+     rData(1) = optloop%gnrm_cv
+     rData(2) = optloop%rpnrm_cv
+     rData(3) = optloop%gnrm_startmix
+
+     call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+  end if
+  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+  if (iproc /= 0) then
+     optloop%iscf = iData(1)
+     optloop%itrpmax = iData(2)
+     optloop%nrepmax = iData(3)
+     optloop%itermax = iData(4)
+
+     optloop%gnrm_cv = rData(1)
+     optloop%rpnrm_cv = rData(2)
+     optloop%gnrm_startmix = rData(3)
+  end if
+END SUBROUTINE optloop_bcast

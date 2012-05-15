@@ -24,8 +24,8 @@ __kernel void uncompress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, 
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
 do {\n\
@@ -55,8 +55,8 @@ __kernel void uncompress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, ui
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_f;\n\
 do {\n\
@@ -115,8 +115,8 @@ __kernel void uncompress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint ns
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
 do {\n\
@@ -157,8 +157,8 @@ __kernel void uncompress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_f;\n\
 do {\n\
@@ -220,8 +220,8 @@ __kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, ui
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
 do {\n\
@@ -250,8 +250,8 @@ __kernel void compress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
-__global const size_t * first;\n\
-__global const size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
 do {\n\
@@ -278,12 +278,12 @@ psi_c[ig] = psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + 
 };\n\
 \n\
 //hypothesis : nseg_f > 0\n\
-__kernel void compress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint *  restrict keyg_f, __global uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
+__kernel void compress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint *  restrict keyg_f, __global const uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
-__global size_t * first;\n\
-__global size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_f;\n\
 do {\n\
@@ -325,12 +325,12 @@ psi_f[igr * 7 + i + 4*64] = tmp_o[4*64];\n\
 psi_f[igr * 7 + i + 5*64] = tmp_o[5*64];\n\
 psi_f[igr * 7 + i + 6*64] = tmp_o[6*64];\n\
 };\n\
-__kernel void compress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint *  restrict keyg_f, __global uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
+__kernel void compress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint *  restrict keyg_f, __global const uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
-__global size_t * first;\n\
-__global size_t * middle;\n\
+__global const uint * first;\n\
+__global const uint * middle;\n\
 size_t half;\n\
 first = keyv_f;\n\
 do {\n\

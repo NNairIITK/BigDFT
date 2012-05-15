@@ -153,7 +153,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,nlr,norb
   integer, intent(inout) :: nvirt
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer,dimension(norb),intent(in):: mapping

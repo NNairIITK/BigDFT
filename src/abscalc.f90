@@ -547,7 +547,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -557,9 +557,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-  !calculate the descriptors for rho and the potentials.
-   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
-        atoms,rxyz,radii_cf,dpcom,rhodsc)
+   !grid spacings and box of the density
+   call dpbox_set_box(dpcom,Lzd)
+   !complete dpbox initialization
+   call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
+        atoms%geocode,in%SIC%approach,dpcom)
+
+  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+
+!!$
+!!$  !calculate the descriptors for rho and the potentials.
+!!$   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
+!!$        atoms,rxyz,radii_cf,dpcom,rhodsc)
 
 !!$   !these arrays should be included in the comms descriptor
 !!$   !allocate values of the array for the data scattering in sumrho
@@ -1372,9 +1382,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
            Lzd%Glr%bounds,subname)
       call deallocate_Lzd_except_Glr(Lzd, subname)
-      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-      deallocate(Lzd%Glr%projflg,stat=i_stat)
-      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
+!      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+!      deallocate(Lzd%Glr%projflg,stat=i_stat)
+!      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
       call deallocate_comms(comms,subname)
 

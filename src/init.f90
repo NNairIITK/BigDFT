@@ -1946,27 +1946,26 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-     denspot,nlpspd,proj,KSwfn,energs,inputpsi,norbv,&
+     denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
      wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
   implicit none
 
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
-  !type(orbitals_data), intent(inout) :: orbs
-  !type(communications_arrays), intent(in) :: comms
   type(DFT_local_fields), intent(inout) :: denspot
-  type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+  type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunctions
+  real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
   type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(wp), dimension(:), pointer :: psi_old
-  integer, intent(out) :: inputpsi, norbv
+  integer, intent(out) :: norbv
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   !type(gaussian_basis), intent(inout) :: gbd
@@ -1976,58 +1975,76 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  logical :: onefile
-  integer :: input_wf_format, i_stat, nspin
+  integer :: i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmb%orthpar%nItOrtho = in%lin%nItOrtho
+     tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
+     tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmbder%orthpar%nItOrtho = in%lin%nItOrtho
+     tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+  end if
+
   !SIC parameters
   KSwfn%SIC = in%SIC
   !exact exchange parallelization parameter
   KSwfn%exctxpar=in%exctxpar
-  !confinement parameter
-  allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
-  call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
 
-  norbv=abs(in%norbv)
-  inputpsi=in%inputPsiId
-  input_wf_format=WF_FORMAT_NONE !default value
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",KSwfn%orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
   !avoid allocation of the eigenvalues array in case of restart
   if (inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_GAUSS) then
+       & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
+
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
+  if (inputpsi /= INPUT_PSI_LCAO) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
+     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
+     
+     tmb%wfnmd%bs%update_phi=.false.
+  end if
 
-  call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
+  !confinement parameter
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%confdatarr(tmb%orbs%norbp))
+     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
+     
+     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
+     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+  else
+     allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
+     call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
+  end if
 
+  if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+     call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
+  end if
+
+  norbv=abs(in%norbv)
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
@@ -2120,6 +2137,49 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
 
+  case (INPUT_PSI_LINEAR)
+     if (iproc == 0) then
+        write(*,'(1x,a)')&
+             '------------------------------------------------------- Input Wavefunctions Creation'
+     end if
+
+     ! By doing an LCAO input guess
+     call inputguessConfinement(iproc, nproc, atoms, in, &
+          & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb)
+
+  case (INPUT_PSI_MEMORY_LINEAR)
+     if (iproc == 0) then
+        write( *,'(1x,a)')&
+             &   '---------------------------------------------------- Reading Wavefunctions from disk'
+     end if
+
+     ! By reading the basis functions and coefficients from file
+     call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
+          & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+     !TO DO: COEFF PROJ
+!     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
+!                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
+!      tmb%orbs%occup = 2.0_gp
+     ! Now need to calculate the charge density and the potential related to this inputguess
+     call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+     call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+     call sumrhoForLocalizedBasis2(iproc, nproc, KSwfn%orbs%norb,&
+          tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          tmb%orbs, tmb%comsr, tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, &
+          KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          denspot%rhov, atoms, denspot%dpbox%nscatterarr)
+     ! Must initialize rhopotold (FOR NOW... use the trivial one)
+     call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+          denspot%rhov(1), 1, denspot0(1), 1)
+     call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+     call updatePotential(iproc,nproc,atoms%geocode,in%ixc,in%nspin,denspot%dpbox%hgrids(1),&
+          denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
+     call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+
   case default
 
      !     if (iproc == 0) then
@@ -2142,20 +2202,19 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if
 
-
   !all the input format need first_orthon except the LCAO input_guess
   ! WARNING: at the momemt the linear scaling version does not need first_orthon.
   ! hpsi and psit have been allocated during the LCAO input guess.
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
-       & inputpsi /= INPUT_PSI_EMPTY) then
+       & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  if(inputpsi /= INPUT_PSI_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2178,3 +2237,47 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
    end if
 
 END SUBROUTINE input_wf
+
+subroutine input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
+  use module_types
+  implicit none
+  integer, intent(out) :: inputpsi, input_wf_format
+  integer, intent(in) :: iproc
+  type(input_variables), intent(in) :: in
+  type(orbitals_data), intent(in) :: orbs, lorbs
+
+  logical :: onefile
+
+  inputpsi=in%inputPsiId
+  input_wf_format=WF_FORMAT_NONE !default value
+  !for the inputPsiId==2 case, check 
+  !if the wavefunctions are all present
+  !otherwise switch to normal input guess
+  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
+     ! Test ETSF file.
+     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LCAO
+     end if
+  end if
+  ! Test if the files are there for initialization via reading files
+  if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+     ! Test ETSF file.
+     inquire(file=trim(in%dir_output)//"minBasis.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(in%dir_output)//"minBasis",lorbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LINEAR
+     end if
+  end if
+END SUBROUTINE input_check_psi_id

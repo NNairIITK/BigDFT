@@ -14,7 +14,8 @@ typedef enum
   {
     BIGDFT_SIGNAL_E_READY,
     BIGDFT_SIGNAL_PSI_READY,
-    BIGDFT_SIGNAL_DENSPOT_READY
+    BIGDFT_SIGNAL_DENSPOT_READY,
+    BIGDFT_SIGNAL_OPTLOOP_READY,
   } BigDFT_SignalIds;
 typedef struct _BigDFT_Signals
 {
@@ -26,15 +27,217 @@ typedef struct _BigDFT_Signals
 typedef enum
   {
     BIGDFT_SIGNAL_ANSWER_DONE,
+    BIGDFT_SIGNAL_ANSWER_WAIT,
     BIGDFT_SIGNAL_ANSWER_GET_E,
+    BIGDFT_SIGNAL_ANSWER_GET_OPTLOOP,
     BIGDFT_SIGNAL_ANSWER_GET_DENSPOT,
-    BIGDFT_SIGNAL_ANSWER_GET_PSI
+    BIGDFT_SIGNAL_ANSWER_GET_PSI,
+    BIGDFT_SIGNAL_ANSWER_SYNC_OPTLOOP,
   } BigDFT_SignalAnswers;
 typedef struct _BigDFT_SignalReply
 {
   BigDFT_SignalAnswers id;
   guint ikpt, iorb, kind;
 } BigDFT_SignalReply;
+
+static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
+                                     GCancellable *cancellable, GError **error);
+
+
+static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
+                      GSocket **socket_, BigDFT_OptLoopIds kind)
+{
+  GSocket *socket = (GSocket*)(*socket_);
+  GError *error;
+  gssize size, psize;
+  BigDFT_Signals signal = {BIGDFT_SIGNAL_OPTLOOP_READY, 0, kind};
+  BigDFT_SignalReply answer;
+  BigDFT_OptLoop optloop_;
+  guint iproc = 0;
+
+  error = (GError*)0;
+  if (!socket || !g_socket_is_connected(socket) || g_socket_is_closed(socket))
+    return;
+
+  /* We emit the signal on the socket. */
+  size = g_socket_send(socket, (const gchar*)(&signal),
+                       sizeof(BigDFT_Signals), NULL, &error);
+  if (size != sizeof(BigDFT_Signals))
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+      return;
+    }
+  
+  /* We wait for the answer. */
+  do
+    {
+      size = g_socket_receive(socket, (gchar*)(&answer),
+                              sizeof(BigDFT_SignalReply), NULL, &error);
+      if (size <= 0)
+        {
+          /* Connection has been closed on the other side. */
+          g_object_unref(socket);
+          *socket_ = (gpointer)0;
+          return;
+        }
+      if (size != sizeof(BigDFT_SignalReply))
+        {
+          g_warning("%s", error->message);
+          g_error_free(error);
+          return;
+        }
+      switch (answer.id)
+        {
+        case BIGDFT_SIGNAL_ANSWER_DONE:
+          return;
+        case BIGDFT_SIGNAL_ANSWER_WAIT:
+          break;
+        case BIGDFT_SIGNAL_ANSWER_GET_E:
+          size = g_socket_send(socket, (const gchar*)energs,
+                               sizeof(BigDFT_Energs), NULL, &error);
+          if (size != sizeof(BigDFT_Energs))
+            {
+              g_warning("%s", error->message);
+              g_error_free(error);
+            }
+          break;
+        case BIGDFT_SIGNAL_ANSWER_GET_OPTLOOP:
+          size = g_socket_send(socket, (const gchar*)optloop,
+                               sizeof(BigDFT_OptLoop), NULL, &error);
+          if (size != sizeof(BigDFT_OptLoop))
+            {
+              g_warning("%s", error->message);
+              g_error_free(error);
+            }
+          break;
+        case BIGDFT_SIGNAL_ANSWER_SYNC_OPTLOOP:
+          size = 0;
+          do
+            {
+              psize = g_socket_receive(socket, (gchar*)(&optloop_) + size,
+                                       sizeof(BigDFT_OptLoop), NULL, &error);
+              if (psize == 0)
+                {
+                  g_object_unref(socket);
+                  *socket_ = (gpointer)0;
+                  return;
+                }
+              if (psize <= 0)
+                {
+                  g_warning("%s", error->message);
+                  g_error_free(error);
+                  return;
+                }
+              size += psize;
+            }
+          while (size < sizeof(BigDFT_OptLoop));
+          memcpy((void*)((char*)optloop + sizeof(GObject)),
+                 (const void*)((char*)(&optloop_) + sizeof(GObject)),
+                 sizeof(BigDFT_OptLoop) - sizeof(GObject) - sizeof(gpointer));
+          bigdft_optloop_sync_to_fortran(optloop);
+          FC_FUNC_(optloop_bcast, OPTLOOP_BCAST)(optloop->data, &iproc);
+          break;
+        default:
+          g_warning("Server: wrong client answer after optloop emission.");
+          return;
+        }
+    }
+  while (1);
+}
+static gboolean client_handle_optloop(GSocket *socket, BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind,
+                                      BigDFT_Energs *energs, GCancellable *cancellable, GError **error)
+{
+  BigDFT_SignalReply answer;
+  gssize size, psize;
+  BigDFT_OptLoop optloop_;
+  gboolean ret;
+
+  ret = client_handle_energs(socket, energs, cancellable, error);
+  if (!ret)
+    return FALSE;
+
+  /* g_print("Client: send get E.\n"); */
+  answer.id = BIGDFT_SIGNAL_ANSWER_GET_OPTLOOP;
+  size = g_socket_send(socket, (const gchar*)(&answer),
+                       sizeof(BigDFT_SignalReply), cancellable, error);
+  /* g_print("Client: send %ld / %ld.\n", size, sizeof(BigDFT_SignalReply)); */
+  if (size != sizeof(BigDFT_SignalReply))
+    return FALSE;
+  psize = 0;
+  do
+    {
+      size = g_socket_receive(socket, (gchar*)(&optloop_) + psize,
+                              sizeof(BigDFT_OptLoop), cancellable, error);
+      if (size == 0)
+        *error = g_error_new(G_IO_ERROR, G_IO_ERROR_CLOSED,
+                             "Connection closed by peer.");
+      if (size <= 0)
+        return FALSE;
+      psize += size;
+    }
+  while (psize < sizeof(BigDFT_OptLoop));
+  /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(BigDFT_OptLoop)); */
+  memcpy((void*)((char*)optloop + sizeof(GObject)),
+         (const void*)((char*)(&optloop_) + sizeof(GObject)),
+         sizeof(BigDFT_OptLoop) - sizeof(GObject) - sizeof(gpointer));
+  bigdft_optloop_emit(optloop, kind, energs);
+  
+  return TRUE;
+}
+static void onOptLoopSyncInet(BigDFT_OptLoop *optloop, gpointer data)
+{
+  GSocket *socket = (GSocket*)data;
+  BigDFT_SignalReply answer;
+  gssize size;
+  GError *error;
+
+  error = (GError*)0;
+
+  answer.id = BIGDFT_SIGNAL_ANSWER_SYNC_OPTLOOP;
+  size = g_socket_send(socket, (const gchar*)(&answer),
+                       sizeof(BigDFT_SignalReply), NULL, &error);
+  /* g_print("Client: send %ld / %ld.\n", size, sizeof(BigDFT_SignalReply)); */
+  if (size != sizeof(BigDFT_SignalReply))
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+      return;
+    }
+
+  size = g_socket_send(socket, (gchar*)optloop,
+                       sizeof(BigDFT_OptLoop), NULL, &error);
+  if (size != sizeof(BigDFT_OptLoop))
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+      return;
+    }
+}
+void onIterHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_HAMILTONIAN);
+}
+void onIterSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_SUBSPACE);
+}
+void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_WAVEFUNCTIONS);
+}
+void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_HAMILTONIAN);
+}
+void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_SUBSPACE);
+}
+void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+{
+  onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_WAVEFUNCTIONS);
+}
 
 static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
                             GSocket **socket_, BigDFT_DensPotIds kind)
@@ -45,7 +248,6 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
   BigDFT_Signals signal = {BIGDFT_SIGNAL_DENSPOT_READY, iter, kind};
   BigDFT_SignalReply answer;
   guint iproc = 0, i, s, nvects, sizeData[2], new;
-  double *pot_work;
   f90_pointer_double tmp;
 
   error = (GError*)0;
@@ -67,7 +269,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -76,7 +278,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("%s", error->message);
+          g_warning("(%ld / %ld) %s", size, sizeof(BigDFT_SignalReply), error->message);
           g_error_free(error);
           return;
         }
@@ -101,11 +303,11 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
       switch (kind)
         {
         case BIGDFT_DENSPOT_DENSITY:
-          FC_FUNC_(localfields_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
+          FC_FUNC_(denspot_full_density, DENSPOT_FULL_DENSITY)(localfields->data,
                                                                    &tmp, &iproc, &new);
           break;
         case BIGDFT_DENSPOT_V_EXT:
-          FC_FUNC_(localfields_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
+          FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(localfields->data,
                                                                &tmp, &iproc, &new);
           break;
         }
@@ -170,7 +372,7 @@ static gboolean client_handle_denspot(GSocket *socket, BigDFT_LocalFields *densp
   psize = 0;
   if (kind == BIGDFT_DENSPOT_DENSITY)
     target = (gchar*)denspot->rhov;
-  else if (kind = BIGDFT_DENSPOT_V_EXT)
+  else if (kind == BIGDFT_DENSPOT_V_EXT)
     target = (gchar*)denspot->v_ext;
   do
     {
@@ -190,7 +392,7 @@ static gboolean client_handle_denspot(GSocket *socket, BigDFT_LocalFields *densp
       denspot->rhov_is = BIGDFT_RHO_IS_ELECTRONIC_DENSITY;
       bigdft_localfields_emit_rhov(denspot, iter);
     }
-  else if (kind = BIGDFT_DENSPOT_V_EXT)
+  else if (kind == BIGDFT_DENSPOT_V_EXT)
       bigdft_localfields_emit_v_ext(denspot);
 
   return TRUE;
@@ -223,7 +425,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -250,8 +452,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
     }
   while (1);
 }
-static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs, guint iter,
-                                     BigDFT_EnergsIds kind,
+static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
                                      GCancellable *cancellable, GError **error)
 {
   BigDFT_SignalReply answer;
@@ -283,7 +484,6 @@ static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs, gui
          (const void*)((char*)(&energs_) + sizeof(GObject)),
          sizeof(BigDFT_Energs) - sizeof(GObject) - sizeof(gpointer));
   /* g_print("Client: emitting signal kind %d.\n", signal.kind); */
-  bigdft_energs_emit(energs, iter, kind);
   
   return TRUE;
 }
@@ -322,7 +522,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
     {
       size = g_socket_receive(socket, (gchar*)(&answer),
                               sizeof(BigDFT_SignalReply), NULL, &error);
-      if (size == 0)
+      if (size <= 0)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
@@ -426,7 +626,7 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
     return FALSE;
   if (sizeData[0] == 0 || psiSize != sizeData[0])
     {
-      *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+      *error = g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
                            "Unable to retrieve psi.");
       g_array_free(psic, TRUE);
       return FALSE;
@@ -450,6 +650,7 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, gui
   while (psize < sizeof(double) * psiSize);
   /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(double) * sizeData[0]); */
   /* g_print("Client: emitting signal.\n"); */
+  psic = g_array_set_size(psic, psiSize);
   bigdft_wf_emit_one_wave(wf, iter, psic, quark,
                           answer.ikpt, answer.iorb, answer.kind);
   g_array_unref(psic);
@@ -461,27 +662,27 @@ gboolean onClientConnection(GSocket *socket, GIOCondition condition,
                             gpointer user_data)
 {
   GError *error;
-  BigDFT_Main *main = (BigDFT_Main*)user_data;
+  BigDFT_Main *bmain = (BigDFT_Main*)user_data;
 
   error = (GError*)0;
 
   if ((condition & G_IO_IN) > 0)
     {
       /* g_print("Server: client requesting connection.\n"); */
-      main->recv = g_socket_accept(socket, NULL, &error);
-      if (!main->recv)
+      bmain->recv = g_socket_accept(socket, NULL, &error);
+      if (!bmain->recv)
         {
           g_warning("Server: %s", error->message);
           g_error_free(error);
         }
-      g_socket_set_blocking(main->recv, TRUE);
+      g_socket_set_blocking(bmain->recv, TRUE);
       /* g_print("Server: client connected.\n"); */
     }
 
-  if ((condition & G_IO_HUP) > 0 && main->recv)
+  if ((condition & G_IO_HUP) > 0 && bmain->recv)
     {
-      g_object_unref(main->recv);
-      main->recv = (GSocket*)0;
+      g_object_unref(bmain->recv);
+      bmain->recv = (GSocket*)0;
     }
 
   return TRUE;
@@ -510,16 +711,16 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
   g_object_unref(dns);
   for (tmp = lst; tmp && !connect; tmp = g_list_next(tmp))
     {
-      sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
-      connect = g_socket_connect(socket, sockaddr, cancellable, error);
-      /* g_print(" | try to connect to '%s' -> %d.\n", */
-              /* g_inet_address_to_string((GInetAddress*)tmp->data), connect); */
-      if (!connect)
+      if (*error)
         {
           g_warning("%s", (*error)->message);
           g_error_free(*error);
           *error = (GError*)0;
         }
+      sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
+      connect = g_socket_connect(socket, sockaddr, cancellable, error);
+      /* g_print(" | try to connect to '%s' -> %d.\n", */
+              /* g_inet_address_to_string((GInetAddress*)tmp->data), connect); */
       g_object_unref(sockaddr);
     }
   g_resolver_free_addresses(lst);
@@ -532,15 +733,16 @@ GSocket* bigdft_signals_client_new(const gchar *hostname,
 }
 
 
-gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *energs,
-                                      BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                      GCancellable *cancellable, GError **error)
+static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *energs,
+                                             BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                             BigDFT_OptLoop *optloop,
+                                             GCancellable *cancellable, GError **error)
 {
   BigDFT_Signals signal;
   BigDFT_SignalReply answer;
   gssize size;
   gboolean ret;
-  guint ikpt, iorb, ispin;
+  guint ikpt, iorb;
   GQuark quark;
   gchar *details;
 
@@ -567,8 +769,9 @@ gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *energs,
                                            g_signal_lookup("eks-ready",
                                                            BIGDFT_ENERGS_TYPE),
                                            0, FALSE))
-            ret = client_handle_energs(socket, energs, signal.iter, signal.kind,
-                                       cancellable, error);
+            ret = client_handle_energs(socket, energs, cancellable, error);
+          if (ret)
+            bigdft_energs_emit(energs, signal.iter, signal.kind);
           break;
         }
       break;
@@ -616,12 +819,59 @@ gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *energs,
           break;
         }
       break;
+    case BIGDFT_SIGNAL_OPTLOOP_READY:
+      switch (signal.kind)
+        {
+        case BIGDFT_OPTLOOP_ITER_HAMILTONIAN:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("iter-hamiltonian",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        case BIGDFT_OPTLOOP_ITER_SUBSPACE:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("iter-subspace",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        case BIGDFT_OPTLOOP_ITER_WAVEFUNCTIONS:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("iter-wavefunctions",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        case BIGDFT_OPTLOOP_DONE_HAMILTONIAN:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("done-hamiltonian",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        case BIGDFT_OPTLOOP_DONE_SUBSPACE:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("done-subspace",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        case BIGDFT_OPTLOOP_DONE_WAVEFUNCTIONS:
+          if (g_signal_has_handler_pending(optloop,
+                                           g_signal_lookup("done-wavefunctions",
+                                                           BIGDFT_OPTLOOP_TYPE),
+                                           0, FALSE))
+            ret = client_handle_optloop(socket, optloop, signal.kind, energs, cancellable, error);
+          break;
+        }
+      break;
     default:
       break;
     }
   if (ret)
     {
-      /* g_print("Client: send signal done.\n"); */
+      /* g_print("Client: send signal done %d.\n", signal.id); */
       answer.id = BIGDFT_SIGNAL_ANSWER_DONE;
       size = g_socket_send(socket, (const gchar*)(&answer),
                            sizeof(BigDFT_SignalReply), cancellable, error);
@@ -634,26 +884,37 @@ gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *energs,
 static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
                                  gpointer user_data)
 {
-  BigDFT_Main *main = (BigDFT_Main*)user_data;
+  BigDFT_Main *bmain = (BigDFT_Main*)user_data;
   GError *error;
   
   error = (GError*)0;
 
+  if (bmain->cancellable && g_cancellable_is_cancelled(bmain->cancellable))
+    {
+      g_source_destroy(g_main_current_source());
+      if (bmain->destroy)
+        bmain->destroy(bmain->destroyData);
+      return FALSE;
+    }
+
   if ((condition & G_IO_IN) > 0)
     {
-      if (!bigdft_signals_client_handle(socket, main->energs, main->wf, main->denspot,
-                                        NULL, &error))
+      g_signal_handler_unblock(G_OBJECT(bmain->optloop), bmain->optloop_sync);
+      if (!bigdft_signals_client_handle(socket, bmain->energs, bmain->wf, bmain->denspot,
+                                        bmain->optloop, NULL, &error))
         {
+          g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
           if (error->code != G_IO_ERROR_CLOSED)
             g_warning("Client: %s", error->message);
           else
             {
               g_source_destroy(g_main_current_source());
-              if (main->destroy)
-                main->destroy(main->destroyData);
+              if (bmain->destroy)
+                bmain->destroy(bmain->destroyData);
             }
           return (error->code != G_IO_ERROR_CLOSED);
         }
+      g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
     }
 
   if ((condition & G_IO_HUP) > 0)
@@ -664,27 +925,38 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
 
 GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                             BigDFT_OptLoop *optloop,
+                                             GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data)
 {
   GSource *source;
-  BigDFT_Main *main;
+  BigDFT_Main *bmain;
 
-  main = g_malloc0(sizeof(BigDFT_Main));
-  main->wf = wf;
+  bmain = g_malloc0(sizeof(BigDFT_Main));
+  bmain->wf = wf;
   if (wf)
     g_object_ref(wf);
-  main->energs = energs;
+  bmain->energs = energs;
   if (energs)
     g_object_ref(energs);
-  main->denspot = denspot;
+  bmain->denspot = denspot;
   if (denspot)
     g_object_ref(denspot);
-  main->destroy = destroy;
-  main->destroyData = data;
+  bmain->optloop = optloop;
+  if (optloop)
+    {
+      g_object_ref(optloop);
+      bmain->optloop_sync = g_signal_connect(G_OBJECT(bmain->optloop), "sync-fortran",
+                                             G_CALLBACK(onOptLoopSyncInet), (gpointer)socket);
+      g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
+    }
+  bmain->cancellable = cancellable;
+  bmain->destroy = destroy;
+  bmain->destroyData = data;
   
-  source = g_socket_create_source(socket, G_IO_IN | G_IO_HUP, NULL);
+  source = g_socket_create_source(socket, G_IO_IN | G_IO_HUP, cancellable);
   g_source_set_callback(source, (GSourceFunc)onClientTransfer,
-                        main, bigdft_signals_free_main);
+                        bmain, bigdft_signals_free_main);
   
   return source;
 }

@@ -19,6 +19,7 @@ endif
 
 if BUILD_BINDINGS
 bindings_tests = check_lib_bindings.report
+bindings_bin = check_lib_c
 endif
 
 # Checks to do.
@@ -31,7 +32,7 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 
-check_PROGRAMS = check_lib check_lib_c
+check_PROGRAMS = check_lib $(bindings_bin)
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
