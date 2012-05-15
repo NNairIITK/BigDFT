@@ -55,6 +55,22 @@ Test BigDFT_Wf free.
  Ok
 Test BigDFT_Inputs free.
  Ok
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+Test BigDFT_Lzd set nlr.
+Test BigDFT_Locreg set dims 0.
+Test BigDFT_Locreg set dims 1.
+Test BigDFT_Locreg set dims 2.
+ Lzd has 3 local regions.
+ region 0 has (   0/   0) coarse/fine segments.
+ region 0 has (   0/   0) coarse/fine elements.
+ region 1 has (   3/   1) coarse/fine segments.
+ region 1 has (  30/  10) coarse/fine elements.
+ region 2 has (   6/   2) coarse/fine segments.
+ region 2 has (  60/  20) coarse/fine elements.
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2

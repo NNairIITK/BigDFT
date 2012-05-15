@@ -181,11 +181,11 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
-subroutine glr_get_dimensions(glr , n, ni, ns, nsi, norb)
+subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  integer, dimension(3), intent(out) :: n, ni, ns, nsi
+  integer, dimension(3), intent(out) :: n, ni, ns, nsi, nfl, nfu
   integer, intent(out) :: norb
 
   n(1) = glr%d%n1
@@ -194,6 +194,13 @@ subroutine glr_get_dimensions(glr , n, ni, ns, nsi, norb)
   ni(1) = glr%d%n1i
   ni(2) = glr%d%n2i
   ni(3) = glr%d%n3i
+
+  nfl(1) = glr%d%nfl1
+  nfl(2) = glr%d%nfl2
+  nfl(3) = glr%d%nfl3
+  nfu(1) = glr%d%nfu1
+  nfu(2) = glr%d%nfu2
+  nfu(3) = glr%d%nfu3
 
   ns(1) = glr%ns1
   ns(2) = glr%ns2
@@ -204,6 +211,45 @@ subroutine glr_get_dimensions(glr , n, ni, ns, nsi, norb)
   
   norb = glr%Localnorb
 end subroutine glr_get_dimensions
+subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+  integer, dimension(3), intent(in) :: n, ni, ns, nsi, nfl, nfu
+
+  glr%d%n1 = n(1)
+  glr%d%n2 = n(2)
+  glr%d%n3 = n(3)
+  glr%d%n1i = ni(1)
+  glr%d%n2i = ni(2)
+  glr%d%n3i = ni(3)
+
+  glr%d%nfl1 = nfl(1)
+  glr%d%nfl2 = nfl(2)
+  glr%d%nfl3 = nfl(3)
+  glr%d%nfu1 = nfu(1)
+  glr%d%nfu2 = nfu(2)
+  glr%d%nfu3 = nfu(3)
+
+  glr%ns1 = ns(1)
+  glr%ns2 = ns(2)
+  glr%ns3 = ns(3)
+  glr%nsi1 = nsi(1)
+  glr%nsi2 = nsi(2)
+  glr%nsi3 = nsi(3)
+end subroutine glr_set_dimensions
+subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+  integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
+
+  glr%wfd%nseg_c = nseg_c
+  glr%wfd%nseg_f = nseg_f
+  glr%wfd%nvctr_c = nvctr_c
+  glr%wfd%nvctr_f = nvctr_f
+  call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
+END SUBROUTINE glr_set_wfd_dims
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
    use module_base
@@ -221,6 +267,15 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine glr_set_bounds(lr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: lr
+  
+  call locreg_bounds(lr%d%n1,lr%d%n2,lr%d%n3, &
+       & lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+       & lr%wfd,lr%bounds)
+END SUBROUTINE glr_set_bounds
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
   use module_types
@@ -287,6 +342,22 @@ subroutine lzd_empty(lzd)
 
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
+subroutine lzd_set_nlr(lzd, nlr, geocode)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: lzd
+  integer, intent(in) :: nlr
+  character(len = 1), intent(in) :: geocode
+
+  integer :: i
+  
+  lzd%nlr = nlr
+  allocate(lzd%Llr(Lzd%nlr))
+  do i = 1, nlr, 1
+     call nullify_locreg_descriptors(lzd%Llr(i))
+     lzd%Llr(i)%geocode = geocode
+  end do
+END SUBROUTINE lzd_set_nlr
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
   use module_types

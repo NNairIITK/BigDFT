@@ -85,8 +85,12 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         void *glr, double *shift);
-void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, guint *n, guint *ni,
-                                                      guint *ns, guint *nsi, guint *norb);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(const void *glr, guint *n, guint *ni,
+                                                      guint *ns, guint *nsi, guint *nfl,
+                                                      guint *nfu, guint *norb);
+void FC_FUNC_(glr_set_dimensions, GLR_SET_DIMENSIONS)(void *glr, const guint *n, const guint *ni,
+                                                      const guint *ns, const guint *nsi,
+                                                      const guint *nfl, const guint *nfu);
 void FC_FUNC_(glr_empty, GLR_EMPTY)(void *glr);
 void FC_FUNC_(glr_free, GLR_FREE)(void *glr);
 void FC_FUNC_(glr_set_wave_descriptors,

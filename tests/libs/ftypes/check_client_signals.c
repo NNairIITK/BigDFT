@@ -284,6 +284,7 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic,
 
   g_print("Get one wave (%d,%d,%d) at iter %d.\n", ikpt, iorb, ispin, iter);
   lr = bigdft_wf_get_locreg(wf, ikpt, iorb, ispin, 0);
+  g_return_if_fail(psic->len == (lr->nvctr_c + 7 * lr->nvctr_f));
   psir = bigdft_locreg_convert_to_isf(lr, (double*)psic->data);
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     psii = bigdft_locreg_convert_to_isf(lr, (double*)psic->data + psic->len / 2);
@@ -383,8 +384,9 @@ int main(int argc, const char **argv)
   radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(wf->lzd), in->crmult, in->frmult, 0.);
   bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
   g_free(radii);
-  bigdft_lzd_set_size(wf->lzd, in->h, in->crmult, in->frmult);
-  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(wf->lzd));
+  bigdft_locreg_set_size(BIGDFT_LOCREG(wf->lzd), in->h, in->crmult, in->frmult);
+  bigdft_lzd_init_d(wf->lzd);
+  bigdft_locreg_init_wfd(BIGDFT_LOCREG(wf->lzd));
   bigdft_wf_define(wf, in, 0, 1);
   g_signal_connect(G_OBJECT(wf), "one-wave-ready::1-4-up",
                    G_CALLBACK(onPsiReady), (gpointer)0);

@@ -169,14 +169,15 @@ typedef struct BigDFT_locReg_
   gboolean dispose_has_run;
 #endif
 
-  guint n[3], ni[3], ns[3], nsi[3];
-  guint norb;
-
   /* Values that have been used to built this localisation region. */
   double h[3];
   double *radii;
   double crmult, frmult;
-  
+
+  /* Sizes of the boxes (taken from d). */
+  guint n[3], ni[3], ns[3], nsi[3], nfl[3], nfu[3];
+  guint norb;
+
   /* Values of the wfd descriptor. */
   guint nvctr_c, nvctr_f, nseg_c, nseg_f;
   guint *keyglob, *keygloc;
@@ -195,16 +196,20 @@ typedef enum
     GRID_FINE
   } BigDFT_Grid;
 
-BigDFT_LocReg* bigdft_locreg_new                 ();
-void           bigdft_locreg_free                (BigDFT_LocReg *glr);
-void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
-void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, const double h[3],
-                                                  double crmult, double frmult);
-void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
-gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
-                                                  BigDFT_Grid gridType);
-double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
-                                                  const double *psic);
+BigDFT_LocReg* bigdft_locreg_new           ();
+void           bigdft_locreg_free          (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_radii     (BigDFT_LocReg *glr, const double *radii);
+void           bigdft_locreg_set_size      (BigDFT_LocReg *glr, const double h[3],
+                                            double crmult, double frmult);
+void           bigdft_locreg_set_d_dims    (BigDFT_LocReg *lr, guint n[3], guint ni[3],
+                                            guint ns[3], guint nsi[3], guint nfl[3], guint nfu[3]);
+void           bigdft_locreg_set_wfd_dims  (BigDFT_LocReg *lr, guint nseg_c, guint nseg_f,
+                                            guint nvctr_c, guint nvctr_f);
+void           bigdft_locreg_init_d        (BigDFT_LocReg *glr);
+void           bigdft_locreg_init_wfd      (BigDFT_LocReg *glr);
+void           bigdft_locreg_init_bounds   (BigDFT_LocReg *lr);
+gboolean*      bigdft_locreg_get_grid      (const BigDFT_LocReg *glr, BigDFT_Grid gridType);
+double*        bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psic);
 typedef struct _BigDFT_LocRegIter
 {
   const BigDFT_LocReg *glr;
@@ -213,9 +218,9 @@ typedef struct _BigDFT_LocRegIter
   guint i3, i2, i1, i0;
   double x0, x1, y, z;
 } BigDFT_LocRegIter;
-gboolean       bigdft_locreg_iter_new            (const BigDFT_LocReg *glr,
-                                                  BigDFT_LocRegIter *iter, BigDFT_Grid gridType);
-gboolean       bigdft_locreg_iter_next           (BigDFT_LocRegIter *iter);
+gboolean       bigdft_locreg_iter_new      (const BigDFT_LocReg *glr,
+                                            BigDFT_LocRegIter *iter, BigDFT_Grid gridType);
+gboolean       bigdft_locreg_iter_next     (BigDFT_LocRegIter *iter);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -240,9 +245,6 @@ struct BigDFT_lzd_
   gboolean dispose_has_run;
 #endif
 
-  /* Values binded from the Fortran object. */
-  double h[3];
-
   /* Bind of Llr array. */
   guint nlr;
   BigDFT_LocReg **Llr;
@@ -256,8 +258,8 @@ BigDFT_Lzd* bigdft_lzd_new_from_fortran (void *fortran_lzd);
 void        bigdft_lzd_free             (BigDFT_Lzd *lzd);
 gboolean    bigdft_lzd_check            (const BigDFT_Lzd *lzd);
 void        bigdft_lzd_emit_defined     (BigDFT_Lzd *lzd);
-void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
-                                         double crmult, double frmult);
+void        bigdft_lzd_init_d           (BigDFT_Lzd *lzd);
+void        bigdft_lzd_set_n_locreg     (BigDFT_Lzd *lzd, guint nlr);
 void        bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint npsin);
 void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                          double crmult, double frmult);

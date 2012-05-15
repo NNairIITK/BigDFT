@@ -2162,10 +2162,9 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, ene
      if (iproc == 0) then
         call wf_new_wrapper(KSwfn%c_obj, KSwfn, 0)
         call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, crmult, frmult)
-        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj)
         call wf_new_wrapper(tmb%c_obj, tmb, 1)
         call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
-        call bigdft_signals_add_wf(gmainloop, tmb%c_obj)
+        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj, tmb%c_obj)
         call energs_new_wrapper(energs%c_obj, energs)
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot)
