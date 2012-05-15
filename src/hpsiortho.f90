@@ -146,7 +146,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
-     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -175,14 +175,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,ixc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn)
+        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              wfn%Lzd%Glr%d%n1i,wfn%Lzd%Glr%d%n2i,wfn%Lzd%Glr%d%n3i,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,denspot%pkernel,denspot%V_ext,energs%eh,0.0_dp,.true.,&
              quiet=denspot%PSquiet) !optional argument
         !this is not true, there is also Vext
-        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn)
+        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
@@ -212,7 +212,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            end if
         end if
      end if
-     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn)
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, itwfn, iproc, nproc)
 
      if (savefields) then
         if (associated(denspot%rho_work)) then
@@ -1055,11 +1055,12 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 END SUBROUTINE free_full_potential
 
 !> Calculate total energies from the energy terms
-subroutine total_energies(energs, iter)
+subroutine total_energies(energs, iter, iproc)
+  use module_base
   use module_types
   implicit none
   type(energy_terms), intent(inout) :: energs
-  integer, intent(in) :: iter
+  integer, intent(in) :: iter, iproc
 
   !band structure energy calculated with occupation numbers
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
@@ -1068,7 +1069,9 @@ subroutine total_energies(energs, iter)
        energs%eexctX-energs%evsic+energs%eion+energs%edisp
 
   if (energs%c_obj /= 0) then
+     call timing(iproc,'energs_signals','ON')
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
+     call timing(iproc,'energs_signals','OF')
   end if
 end subroutine total_energies
 
@@ -1318,8 +1321,8 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
    end if
 
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
-      call wf_emit_psi(wfn%c_obj, iter)
+   if (wfn%c_obj /= 0) then
+      call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1516,8 +1519,8 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
-   if (iproc == 0 .and. wfn%c_obj /= 0) then
-      call wf_emit_psi(wfn%c_obj, iter)
+   if (wfn%c_obj /= 0) then
+      call kswfn_emit_psi(wfn, iter, iproc, nproc)
    end if
 
    if(.not.  keeppsit) then

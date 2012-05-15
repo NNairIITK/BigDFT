@@ -211,6 +211,9 @@ module module_types
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
+     logical :: signaling  !< Expose results on DBus or Inet.
+     integer :: signalTimeout !< Timeout for inet connection.
+     character(len = 64) :: domain !< Domain to get the IP from hostname.
 
      !orthogonalisation data
      type(orthon_data) :: orthpar

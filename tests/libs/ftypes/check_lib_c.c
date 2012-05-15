@@ -102,10 +102,10 @@ static void output_locreg(const BigDFT_LocReg *glr)
   g_free(fgrid);
 }
 
-int main(guint argc, char **argv)
+int main(int argc, char **argv)
 {
   BigDFT_Atoms *atoms;
-  guint i, n, nelec;
+  guint i, nelec;
   double *radii, peak;
   double h[3] = {0.45, 0.45, 0.45};
 #define CRMULT 5.
@@ -241,6 +241,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
+  bigdft_localfields_create_poisson_kernels(denspot, wf->lzd, in, 0, 1);
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
@@ -394,10 +395,12 @@ static gpointer calculate_psi_0_thread(gpointer data)
   BigDFT_Data *container = (BigDFT_Data*)data;
   
   fprintf(stdout, " Calculation of input guess started.\n");
-  bigdft_wf_calculate_psi0(container->wf, container->denspot, container->proj, 0, 1);
+  bigdft_wf_calculate_psi0(container->wf, container->denspot,
+                           container->proj, container->energs, 0, 1);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(container->wf));
   g_object_unref(G_OBJECT(container->denspot));
+  g_object_unref(G_OBJECT(container->energs));
   /* g_object_unref(G_OBJECT(container->proj)); */
   /* Chain up with the SCF loop. */
   g_idle_add(optimize_psi, data);
@@ -417,6 +420,7 @@ static gboolean calculate_psi_0(gpointer data)
 #ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(ct->denspot));
   g_object_ref(G_OBJECT(ct->wf));
+  g_object_ref(G_OBJECT(ct->energs));
   /* g_object_ref(G_OBJECT(ct->proj)); */
 #endif
 #ifdef G_THREADS_ENABLED
@@ -444,7 +448,7 @@ static void onDensReady(BigDFT_LocalFields *denspot, guint istep, gpointer data)
   /* Do something with the density. */
   fprintf(stdout, "Callback for \"density-ready\" signal at iter %d.\n", istep);
   dens = 0.;
-  for (i = 0; i < denspot->glr->ni[0] * denspot->glr->ni[1] * denspot->glr->ni[2]; i++)
+  for (i = 0; i < denspot->ni[0] * denspot->ni[1] * denspot->ni[2]; i++)
     dens += denspot->rhov[i];
   dens *= denspot->h[0] * denspot->h[1] * denspot->h[2];
   fprintf(stdout, " Density calculated by C is %16.16f.\n", dens);
@@ -494,7 +498,8 @@ static gpointer calculate_ionic_pot_thread(gpointer data)
   BigDFT_Data *container = (BigDFT_Data*)data;
   
   fprintf(stdout, " Calculation of ionic potential started.\n");
-  bigdft_localfields_create_effective_ionic_pot(container->denspot, container->in, 0, 1);
+  bigdft_localfields_create_effective_ionic_pot(container->denspot, container->wf->lzd,
+                                                container->in, 0, 1);
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(container->denspot));
 #endif

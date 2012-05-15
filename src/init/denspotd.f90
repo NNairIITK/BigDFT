@@ -13,8 +13,6 @@ subroutine initialize_DFT_local_fields(denspot)
   use module_types
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  !local variables
-  integer :: i
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
@@ -178,19 +176,125 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
        dpbox%nrhodim
 end subroutine denspot_communications
 
-subroutine denspot_set_rhov_status(denspot, status, istep)
+subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
   use module_base
   use module_types
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: status, istep
+  integer, intent(in) :: status, istep, iproc, nproc
 
   denspot%rhov_is = status
   
   if (denspot%c_obj /= 0) then
-     call denspot_emit_rhov(denspot%c_obj, istep)
+     call denspot_emit_rhov(denspot, istep, iproc, nproc)
   end if
 end subroutine denspot_set_rhov_status
+
+subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iter, iproc, nproc
+
+  character(len = *), parameter :: subname = "denspot_emit_rhov"
+  integer, parameter :: SIGNAL_DONE = -1
+  integer, parameter :: SIGNAL_DENSITY = 0
+  integer :: message, ierr, i_stat, i_all, new
+  real(gp), pointer :: full_dummy(:)
+  interface
+     subroutine localfields_full_density(denspot, rho_full, iproc, new)
+       use module_types
+       implicit none
+       type(DFT_local_fields), intent(in) :: denspot
+       integer, intent(in) :: iproc
+       integer, intent(out) :: new
+       real(gp), dimension(:), pointer :: rho_full
+     END SUBROUTINE localfields_full_density
+  end interface
+
+  call timing(iproc,'rhov_signals  ','ON')
+  if (iproc == 0) then
+     ! Only iproc 0 emit the signal. This call is blocking.
+     ! All other procs are blocked by the bcast to wait for
+     ! possible transfer to proc 0.
+     call localfields_emit_rhov(denspot%c_obj, iter)
+     if (nproc > 1) then
+        ! After handling the signal, iproc 0 broadcasts to other
+        ! proc to continue (jproc == -1).
+        message = SIGNAL_DONE
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+  else
+     do
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        if (message == SIGNAL_DONE) then
+           exit
+        else if (message == SIGNAL_DENSITY) then
+           allocate(full_dummy(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+           call memocc(i_stat,full_dummy,'full_dummy',subname)
+           ! Gather density to iproc 0
+           call localfields_full_density(denspot, full_dummy, iproc, new)
+           i_all=-product(shape(full_dummy))*kind(full_dummy)
+           deallocate(full_dummy,stat=i_stat)
+           call memocc(i_stat,i_all,'full_dummy',subname)
+        end if
+     end do
+  end if
+  call timing(iproc,'rhov_signals  ','OF')
+END SUBROUTINE denspot_emit_rhov
+subroutine denspot_emit_v_ext(denspot, iproc, nproc)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc, nproc
+
+  character(len = *), parameter :: subname = "denspot_emit_v_ext"
+  integer, parameter :: SIGNAL_DONE = -1
+  integer :: message, ierr, i_stat, i_all, new
+  real(gp), pointer :: full_dummy(:)
+  interface
+     subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
+       use module_types
+       implicit none
+       type(DFT_local_fields), intent(in) :: denspot
+       integer, intent(in) :: iproc
+       integer, intent(out) :: new
+       real(gp), pointer :: pot_full(:)
+     END SUBROUTINE localfields_full_v_ext
+  end interface
+
+  call timing(iproc,'rhov_signals  ','ON')
+  if (iproc == 0) then
+     ! Only iproc 0 emit the signal. This call is blocking.
+     ! All other procs are blocked by the bcast to wait for
+     ! possible transfer to proc 0.
+     call localfields_emit_v_ext(denspot%c_obj)
+     if (nproc > 1) then
+        ! After handling the signal, iproc 0 broadcasts to other
+        ! proc to continue (jproc == -1).
+        message = SIGNAL_DONE
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+  else
+     do
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        if (message == SIGNAL_DONE) then
+           exit
+        else
+           allocate(full_dummy(1+ndebug),stat=i_stat)
+           call memocc(i_stat,full_dummy,'full_dummy',subname)
+           ! Gather density to iproc 0
+           call localfields_full_v_ext(denspot, full_dummy, iproc, new)
+           i_all=-product(shape(full_dummy))*kind(full_dummy)
+           deallocate(full_dummy,stat=i_stat)
+           call memocc(i_stat,i_all,'full_dummy',subname)
+        end if
+     end do
+  end if
+  call timing(iproc,'rhov_signals  ','OF')
+END SUBROUTINE denspot_emit_v_ext
 
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base

@@ -155,6 +155,14 @@ subroutine glr_init(glr, d)
   call nullify_locreg_descriptors(glr)
   d => glr%d
 end subroutine glr_init
+subroutine glr_get_data(glr, d)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout), target :: glr
+  type(grid_dimensions), pointer :: d
+
+  d => glr%d
+end subroutine glr_get_data
 subroutine glr_free(glr)
   use module_types
   implicit none
@@ -215,6 +223,14 @@ subroutine lzd_init(lzd, glr)
   call nullify_local_zone_descriptors(lzd)
   glr => lzd%glr
 end subroutine lzd_init
+subroutine lzd_get_data(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), target, intent(inout) :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  glr => lzd%glr
+end subroutine lzd_get_data
 subroutine lzd_free(lzd)
   use module_types
   implicit none
@@ -230,6 +246,15 @@ subroutine lzd_empty(lzd)
 
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
+subroutine lzd_get_hgrids(Lzd, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), intent(out) :: hgrids(3)
+  !initial values
+  hgrids = Lzd%hgrids
+END SUBROUTINE lzd_get_hgrids
 
 subroutine inputs_new(in)
   use module_types
@@ -536,6 +561,16 @@ subroutine localfields_new(self, denspotd, rhod, dpbox)
   dpbox => denspotd%dpbox
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
+subroutine localfields_get_data(denspotd, rhod, dpbox)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in), target :: denspotd
+  type(denspot_distribution), pointer :: dpbox
+  type(rho_descriptors), pointer :: rhod
+
+  rhod => denspotd%rhod
+  dpbox => denspotd%dpbox
+END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd)
   use module_types
   use m_profiling
@@ -586,16 +621,17 @@ subroutine localfields_free(denspotd)
 
   deallocate(denspotd)
 END SUBROUTINE localfields_free
-subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
-  integer, intent(out) :: rhov_is
+  integer, intent(out) :: rhov_is, ni(3)
   real(gp), intent(out) :: hgrid(3)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
   hgrid = denspot%dpbox%hgrids
+  ni = denspot%dpbox%ndims
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 subroutine localfields_get_rhov(denspot, rhov)
@@ -638,6 +674,96 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+subroutine localfields_get_rho_work(denspot, rho)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: rho
+
+  rho => denspot%rho_work
+END SUBROUTINE localfields_get_rho_work
+subroutine localfields_get_pot_work(denspot, pot)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pot
+
+  pot => denspot%pot_work
+END SUBROUTINE localfields_get_pot_work
+
+subroutine localfields_full_density(denspot, rho_full, iproc, new)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  integer, intent(out) :: new
+  real(gp), dimension(:), pointer :: rho_full
+
+  character(len = *), parameter :: subname = "localfields_full_density"
+  integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
+
+  new = 0
+  nslice = max(denspot%dpbox%ndimpot, 1)
+  if (nslice < denspot%dpbox%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(rho_full(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+        call memocc(i_stat,rho_full,'rho_full',subname)
+        new = 1
+        
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     if (denspot%dpbox%ndimrhopot > 0) then
+        irhoxcsh = nslice / denspot%dpbox%n3p * denspot%dpbox%i3xcsh
+     else
+        irhoxcsh = 0
+     end if     
+     do irhodim = 1, denspot%dpbox%nrhodim, 1
+        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+             mpidtypd,0,MPI_COMM_WORLD,ierr)
+     end do
+  else
+     rho_full => denspot%rhov
+  end if
+END SUBROUTINE localfields_full_density
+subroutine localfields_full_v_ext(denspot, pot_full, iproc, new)
+  use module_base
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(in) :: iproc
+  integer, intent(out) :: new
+  real(gp), pointer :: pot_full(:)
+
+  character(len = *), parameter :: subname = "localfields_full_potential"
+  integer :: i_stat, ierr
+
+  new = 0
+  if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
+     if (iproc == 0) then
+        !allocate full density in pot_ion array
+        allocate(pot_full(denspot%dpbox%ndimgrid+ndebug),stat=i_stat)
+        call memocc(i_stat,pot_full,'pot_full',subname)
+        new = 1
+      
+        ! Ask to gather density to other procs.
+        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     end if
+
+     call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
+          mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
+          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+  else
+     pot_full => denspot%rhov
+  end if
+END SUBROUTINE localfields_full_v_ext
 
 subroutine gpu_new(GPU)
   use module_types
@@ -665,15 +791,34 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
 
   allocate(wf)
   wf%c_obj = self
+  call wf_init(wf)
+  orbs => wf%orbs
+  comm => wf%comms
+  lzd => wf%Lzd
+end subroutine wf_new
+subroutine wf_init(wf)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: wf
+
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
   nullify(wf%spsi)
+  nullify(wf%comms%nvctr_par)
+end subroutine wf_init
+subroutine wf_get_data(wf, orbs, comm, lzd)
+  use module_types
+  implicit none
+  type(DFT_wavefunction), target, intent(in) :: wf
+  type(orbitals_data), pointer :: orbs
+  type(communications_arrays), pointer :: comm
+  type(local_zone_descriptors), pointer :: lzd
+
   orbs => wf%orbs
   comm => wf%comms
-  nullify(wf%comms%nvctr_par)
   lzd => wf%Lzd
-end subroutine wf_new
+end subroutine wf_get_data
 subroutine wf_empty(wf)
   use module_types
   use m_profiling
@@ -763,7 +908,7 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
 
   iorbtot = 0
   do iproc = 0, size(orbs%norb_par, 1) - 1, 1
-     if (iorbp >= iorbtot .and. iorbp < orbs%norb_par(iproc, 0)) then
+     if (iorbp >= iorbtot .and. iorbp < iorbtot + orbs%norb_par(iproc, 0)) then
         iorbp = iorbp - iorbtot
         return
      end if
@@ -773,14 +918,6 @@ subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
   iorbp = -1;
   iproc = -1;
 END SUBROUTINE orbs_get_iorbp
-subroutine glr_get_psi_size(glr, psisize)
-  use module_types
-  implicit none
-  type(locreg_descriptors), intent(in) :: glr
-  integer, intent(out) :: psisize
-
-  psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
-END SUBROUTINE glr_get_psi_size
 
 subroutine energs_new(self, energs)
   use module_types

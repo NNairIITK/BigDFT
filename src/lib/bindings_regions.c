@@ -2,6 +2,7 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
+#include <gio/gio.h>
 #endif
 
 #include "bigdft.h"
@@ -56,7 +57,6 @@ static void bigdft_locreg_dispose(GObject *obj)
 static void bigdft_locreg_finalize(GObject *obj)
 {
   BigDFT_LocReg *glr = BIGDFT_LOCREG(obj);
-  guint i;
 
   if (glr->data)
     FC_FUNC_(glr_free, GLR_FREE)(&glr->data);
@@ -121,6 +121,18 @@ void bigdft_locreg_free(BigDFT_LocReg *glr)
   bigdft_locreg_finalize(glr);
   g_free(glr);
 #endif
+}
+static void bigdft_locreg_copy_data(BigDFT_LocReg *glr,
+                                    const double *radii, const double h[3],
+                                    double crmult, double frmult)
+{
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, (int*)glr->n, (int*)glr->ni);
+  bigdft_locreg_set_radii(glr, radii);
+  glr->h[0] = h[0];
+  glr->h[1] = h[1];
+  glr->h[2] = h[2];
+  glr->crmult = crmult;
+  glr->frmult = frmult;
 }
 void bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr)
 {
@@ -266,6 +278,23 @@ BigDFT_Lzd* bigdft_lzd_new_with_fortran(void *fortran_lzd)
 
   return lzd;
 }
+BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd)
+{
+  BigDFT_Lzd *lzd;
+
+#ifdef HAVE_GLIB
+  lzd = BIGDFT_LZD(g_object_new(BIGDFT_LZD_TYPE, NULL));
+#else
+  lzd = g_malloc(sizeof(BigDFT_Lzd));
+  bigdft_lzd_init(lzd);
+#endif
+
+  lzd->data = fortran_lzd;
+  FC_FUNC_(lzd_get_data, LZD_GET_DATA)(lzd->data, &lzd->parent.data);
+  FC_FUNC_(glr_get_data, GLR_GET_DATA)(lzd->parent.data, &lzd->parent.d);
+
+  return lzd;
+}
 void bigdft_lzd_free(BigDFT_Lzd *lzd)
 {
 #ifdef HAVE_GLIB
@@ -283,4 +312,10 @@ void bigdft_lzd_set_size(BigDFT_Lzd *lzd, const double h[3],
   lzd->h[0] = lzd->parent.h[0];
   lzd->h[1] = lzd->parent.h[1];
   lzd->h[2] = lzd->parent.h[2];
+}
+void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
+                                  double crmult, double frmult)
+{
+  FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->h);
+  bigdft_locreg_copy_data(&lzd->parent, radii, lzd->h, crmult, frmult);
 }

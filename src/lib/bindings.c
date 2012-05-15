@@ -2,6 +2,7 @@
 
 #ifdef HAVE_GLIB
 #include <glib-object.h>
+#include <gio/gio.h>
 #endif
 
 #include "bigdft.h"
@@ -271,15 +272,11 @@ static void bigdft_energs_class_init(BigDFT_EnergsClass *klass)
 
 static void bigdft_energs_init(BigDFT_Energs *obj)
 {
-  double self;
-
 #ifdef HAVE_GLIB
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Energs) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Energs));
 #endif
-  self = *((double*)&obj);
-  FC_FUNC_(energs_new, ENERGS_NEW)(&self, &obj->data);
 }
 static void bigdft_energs_dispose(GObject *obj)
 {
@@ -298,13 +295,37 @@ static void bigdft_energs_finalize(GObject *obj)
 {
   BigDFT_Energs *energs = BIGDFT_ENERGS(obj);
 
-  FC_FUNC_(energs_free, ENERGS_FREE)(&energs->data);
+  if (energs->data)
+    FC_FUNC_(energs_free, ENERGS_FREE)(&energs->data);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_energs_parent_class)->finalize(obj);
 #endif
 }
 BigDFT_Energs* bigdft_energs_new()
+{
+  BigDFT_Energs *energs;
+  double self;
+
+#ifdef HAVE_GLIB
+  energs = BIGDFT_ENERGS(g_object_new(BIGDFT_ENERGS_TYPE, NULL));
+#else
+  energs = g_malloc(sizeof(BigDFT_Energs));
+  bigdft_energs_init(energs);
+#endif
+  self = *((double*)&energs);
+  FC_FUNC_(energs_new, ENERGS_NEW)(&self, &energs->data);
+
+  return energs;
+}
+void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, void *obj)
+{
+  BigDFT_Energs *energs;
+
+  energs = bigdft_energs_new_from_fortran(obj);
+  *self = *((double*)&energs);
+}
+BigDFT_Energs* bigdft_energs_new_from_fortran(void *obj)
 {
   BigDFT_Energs *energs;
 
@@ -314,8 +335,16 @@ BigDFT_Energs* bigdft_energs_new()
   energs = g_malloc(sizeof(BigDFT_Energs));
   bigdft_energs_init(energs);
 #endif
+  energs->data = obj;
 
   return energs;
+}
+void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
+{
+  BigDFT_Energs *energs = BIGDFT_ENERGS(*obj);
+
+  energs->data = (gpointer)0;
+  bigdft_energs_free(energs);
 }
 void bigdft_energs_free(BigDFT_Energs *energs)
 {
@@ -327,22 +356,26 @@ void bigdft_energs_free(BigDFT_Energs *energs)
 #endif
 }
 void FC_FUNC_(energs_emit, ENERGS_EMIT)(BigDFT_Energs **obj, guint *istep,
-                                        BigDFT_EnergsKind *kind)
+                                        BigDFT_EnergsIds *kind)
 {
-  BigDFT_Energs *energs = *obj;
+  BigDFT_Energs *energs = BIGDFT_ENERGS(*obj);
 
-#ifdef HAVE_GLIB
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
     (energs->data, &energs->eh, &energs->exc,
      &energs->evxc, &energs->eion, &energs->edisp,
      &energs->ekin, &energs->epot, &energs->eproj,
      &energs->eexctX, &energs->ebs, &energs->eKS,
      &energs->trH, &energs->evsum, &energs->evsic);
-  switch (*kind)
+  bigdft_energs_emit(*obj, *istep, *kind);
+}
+void bigdft_energs_emit(BigDFT_Energs *energs, guint istep, BigDFT_EnergsIds kind)
+{
+#ifdef HAVE_GLIB
+  switch (kind)
     {
-    case BIGDFT_E_KS:
+    case BIGDFT_ENERGS_EKS:
       g_signal_emit(G_OBJECT(energs), bigdft_energs_signals[EKS_READY_SIGNAL],
-                    0 /* details */, *istep, NULL);
+                    0 /* details */, istep, NULL);
       break;
     default:
       break;
@@ -373,4 +406,3 @@ double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_I
                                             &in->iscf, &peak);
   return peak;
 }
-
