@@ -192,9 +192,11 @@ bindings_files = lib/bindings_api.h \
 else
 bindings_files = lib/bindingsf_fake.f90
 endif
+
+EXTRA_DIST += lib/bindings_dbus.xml
 if HAVE_GDBUS
-bindings_files += lib/bindings_dbus.c lib/bindings_dbus.h \
-	lib/bindings_signals_dbus.c
+bindings_files += lib/bindings_signals_dbus.c
+nodist_bindings_files = lib/bindings_dbus.c lib/bindings_dbus.h
 
 lib/bindings_dbus.h: lib/bindings_dbus.c
 lib/bindings_dbus.c: lib/bindings_dbus.xml
@@ -202,7 +204,6 @@ lib/bindings_dbus.c: lib/bindings_dbus.xml
                       --generate-c-code $(srcdir)/lib/bindings_dbus \
                       --c-namespace BigdftDBus \
                       --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
-
 endif
 
 if HAVE_FC_FLUSH
@@ -414,6 +415,7 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
 libbigdft_a_LIBADD = $(modules_objects) 
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
