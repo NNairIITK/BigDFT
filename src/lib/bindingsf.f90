@@ -383,7 +383,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
   integer, intent(in) :: nlr
-  character(len = 1), intent(in) :: geocode
+  character, intent(in) :: geocode
 
   integer :: i
   
