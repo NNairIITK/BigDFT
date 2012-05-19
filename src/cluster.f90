@@ -1483,6 +1483,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      !write this warning only if the system is closed shell
      call check_closed_shell(KSwfn%orbs,lcs)  
      if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0 .and. lcs) then
+        call yaml_newline()
         call yaml_open_map('Energy inconsistencies')
         call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
         call yaml_map('Sum of Eigenvalues',energs%evsum,fmt='(1pe22.14)')

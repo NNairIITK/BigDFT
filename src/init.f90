@@ -2213,9 +2213,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
         stop
      end if
-     allocate(denspot%rho_work(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*&
-          denspot%dpbox%n3p*KSwfn%orbs%nspin+ndebug),stat=i_stat)
-     call dcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*KSwfn%orbs%nspin,&
+     call yaml_newline()
+     call yaml_comment('Saving the KS potential obtained from IG')
+     allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+     call dcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if
 

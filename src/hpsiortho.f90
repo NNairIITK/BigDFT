@@ -222,9 +222,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            stop
         end if
 
-        allocate(denspot%rho_work(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*&
-             denspot%dpbox%n3p*wfn%orbs%nspin+ndebug),stat=i_stat)
-        call dcopy(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*wfn%orbs%nspin,denspot%rhov(1),1,&
+        allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+        call dcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
 
@@ -234,8 +233,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            write(*,*)'ERROR: need a reference potential to correct the hamiltonian!'
            stop
         end if
+        call yaml_newline()
+        call yaml_comment('Calculating potential delta')
         !subtract the previous potential from the new one
-        call axpy(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*wfn%orbs%nspin,&
+        call axpy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
              -1.0_dp,denspot%rho_work(1),1,denspot%rhov(1),1)
 
         !deallocation should be deplaced
@@ -311,7 +312,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_work,subname)
   !----
-  if (iproc==0 .and. verbose > 0) call yaml_map('Hamiltonian Applied',.true.)
+  if (iproc==0 .and. verbose > 0) then
+     if (correcth) then
+        call yaml_map('Hamiltonian Applied',.false.)
+        call yaml_comment('Only local potential')
+     else
+        call yaml_map('Hamiltonian Applied',.true.)
+     end if
+  end if
 
 end subroutine psitohpsi
 
@@ -1188,6 +1196,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !write this warning only if the system is closed shell
      call check_closed_shell(wfn%orbs,lcs)
      if (lcs) then
+        call yaml_newline()
         call yaml_open_map('Energy inconsistencies')
            call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
            call yaml_map('Trace of the Hamiltonian',energs%trH,fmt='(1pe22.14)')

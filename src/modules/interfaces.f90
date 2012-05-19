@@ -1086,7 +1086,6 @@ module module_interfaces
           &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping)
        use module_base
        use module_types
-       use yaml_output
        implicit none
        integer, intent(in) :: norbe,iproc
        integer, intent(in) :: norbsc,nspin
