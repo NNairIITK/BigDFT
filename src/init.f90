@@ -1962,7 +1962,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunctions
@@ -2164,7 +2164,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb)
-
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -2251,36 +2250,41 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
    ! Emit that new wavefunctions are ready.
-   if (KSwfn%c_obj /= 0) then
+   if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR &
+        & .and. KSwfn%c_obj /= 0) then
       call kswfn_emit_psi(KSwfn, 0, iproc, nproc)
+   end if
+   if ((inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) &
+        & .and. tmb%c_obj /= 0) then
+      call kswfn_emit_psi(tmb, 0, iproc, nproc)
    end if
 
 END SUBROUTINE input_wf
 
-subroutine input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc)
   use module_types
   use yaml_output
   implicit none
-  integer, intent(out) :: inputpsi, input_wf_format
+  integer, intent(out) :: input_wf_format
+  integer, intent(inout) :: inputpsi
   integer, intent(in) :: iproc
-  type(input_variables), intent(in) :: in
+  character(len = *), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
 
   logical :: onefile
 
 
-  inputpsi=in%inputPsiId
   input_wf_format=WF_FORMAT_NONE !default value
   !for the inputPsiId==2 case, check 
   !if the wavefunctions are all present
   !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
+  if (inputpsi == INPUT_PSI_DISK_WVL) then
      ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
+     inquire(file=trim(dir_output)//"wavefunction.etsf",exist=onefile)
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
@@ -2288,13 +2292,13 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
      end if
   end if
   ! Test if the files are there for initialization via reading files
-  if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"minBasis.etsf",exist=onefile)
+     inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(in%dir_output)//"minBasis",lorbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
