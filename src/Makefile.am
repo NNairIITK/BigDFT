@@ -192,9 +192,11 @@ bindings_files = lib/bindings_api.h \
 else
 bindings_files = lib/bindingsf_fake.f90
 endif
+
+EXTRA_DIST += lib/bindings_dbus.xml
 if HAVE_GDBUS
-bindings_files += lib/bindings_dbus.c lib/bindings_dbus.h \
-	lib/bindings_signals_dbus.c
+bindings_files += lib/bindings_signals_dbus.c
+nodist_bindings_files = lib/bindings_dbus.c lib/bindings_dbus.h
 
 lib/bindings_dbus.h: lib/bindings_dbus.c
 lib/bindings_dbus.c: lib/bindings_dbus.xml
@@ -202,7 +204,6 @@ lib/bindings_dbus.c: lib/bindings_dbus.xml
                       --generate-c-code $(srcdir)/lib/bindings_dbus \
                       --c-namespace BigdftDBus \
                       --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
-
 endif
 
 if HAVE_FC_FLUSH
@@ -236,7 +237,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
-AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@
 
 if USE_MPI
 mpi_source =
@@ -414,6 +415,7 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
 libbigdft_a_LIBADD = $(modules_objects) 
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 

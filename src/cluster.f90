@@ -356,35 +356,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%iter = 0
   optLoop%infocode = 0
 
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call wf_new_wrapper(KSwfn%c_obj, KSwfn)
-        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
-        call bigdft_signals_add_wf(in%gmainloop, KSwfn%c_obj)
-        call energs_new_wrapper(energs%c_obj, energs)
-        call bigdft_signals_add_energs(in%gmainloop, energs%c_obj)
-        call localfields_new_wrapper(denspot%c_obj, denspot)
-        call bigdft_signals_add_denspot(in%gmainloop, denspot%c_obj)
-        call optloop_new_wrapper(optLoop%c_obj, optLoop)
-        call bigdft_signals_add_optloop(in%gmainloop, optLoop%c_obj)
-     else
-        KSwfn%c_obj = UNINITIALIZED(KSwfn%c_obj)
-        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
-        optloop%c_obj = UNINITIALIZED(optloop%c_obj)
-     end if
-  else
-     KSwfn%c_obj  = 0.d0
-     tmb%c_obj    = 0.d0
-     tmbder%c_obj = 0.d0
-  end if
+  call system_signaling(iproc, in%signaling, in%gmainloop, &
+       & KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & atoms%ntypes, radii_cf, in%crmult, in%frmult)
 
   !variables substitution for the PSolver part
-
-  n1i=KSwfn%Lzd%Glr%d%n1i
-  n2i=KSwfn%Lzd%Glr%d%n2i
-  n3i=KSwfn%Lzd%Glr%d%n3i
-
   n1=KSwfn%Lzd%Glr%d%n1
   n2=KSwfn%Lzd%Glr%d%n2
   n3=KSwfn%Lzd%Glr%d%n3
@@ -402,13 +378,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
-
-
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,denspot%psoffset,&
-       n1,n2,n3,n1i,n2i,n3i,&
+       n1,n2,n3,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3pi,&
        denspot%V_ext,denspot%pkernel)
   !calculate effective ionic potential, including counter ions if any.
@@ -603,6 +577,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,i_all,'denspot%V_ext',subname)
   nullify(denspot%V_ext)
 
+  !variables substitution for the PSolver part
+  n1i=KSwfn%Lzd%Glr%d%n1i
+  n2i=KSwfn%Lzd%Glr%d%n2i
+  n3i=KSwfn%Lzd%Glr%d%n3i
+
   if (inputpsi /= INPUT_PSI_EMPTY) then
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
@@ -763,7 +742,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,VTwfn%psi,'psivirt',subname)
         !to avoid problems with the bindings
-        VTwfn%c_obj=0.d0
+        VTwfn%c_obj=0
 
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
@@ -1128,6 +1107,7 @@ contains
        call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
        call wf_free_wrapper(KSwfn%c_obj)
+       call wf_free_wrapper(tmb%c_obj)
     end if
 
 !!$    if(inputpsi ==  INPUT_PSI_LINEAR) then
@@ -1255,8 +1235,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
-           if(in%linear == 'OFF') linflag = 0
-           if(in%linear == 'TMO') linflag = 2
+           if(in%linear == INPUT_IG_OFF) linflag = 0
+           if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
@@ -1331,13 +1311,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !return
            end if
 
-           if (opt%c_obj /= 0.) then
+           if (opt%c_obj /= 0) then
               call optloop_emit_iter(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
            end if
 
            opt%iter = opt%iter + 1
         end do wfn_loop
-        if (opt%c_obj /= 0.) then
+        if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
 
@@ -1411,13 +1391,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (opt%infocode ==0) exit subd_loop
 
-        if (opt%c_obj /= 0.) then
+        if (opt%c_obj /= 0) then
            call optloop_emit_iter(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
         end if
         
         opt%itrep = opt%itrep + 1
      end do subd_loop
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_done(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
      end if
 
@@ -1456,13 +1436,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                 yaml_toa(opt%itrp,fmt='(i6)'))
         end if
      end if
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_iter(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
      end if
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
-  if (opt%c_obj /= 0.) then
+  if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
   if (iproc==0) call yaml_close_sequence() !opt%itrp

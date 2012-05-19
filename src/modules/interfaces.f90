@@ -559,7 +559,7 @@ module module_interfaces
          type(input_variables), intent(in) :: in
          type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(in) :: hx_old,hy_old,hz_old
-         type(atoms_data), intent(in) :: atoms
+         type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunction
@@ -2589,7 +2589,7 @@ module module_interfaces
       !Arguments
       integer, intent(in) :: iproc,nproc
       real(gp), intent(in) :: hx, hy, hz
-      type(atoms_data), intent(in) :: at
+      type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(GPU_pointers), intent(in) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
@@ -4462,7 +4462,7 @@ module module_interfaces
        implicit none
        integer,intent(in):: iproc,nproc
        real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(in) :: at
+       type(atoms_data),intent(inout) :: at
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        type(collective_comms),intent(in):: collcom_reference
@@ -5687,7 +5687,7 @@ module module_interfaces
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,nspin
-         character(len = 3), intent(in) :: linType
+         integer, intent(in) :: linType
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
@@ -5704,7 +5704,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
-         character(len=*), intent(in) :: linearmode
+         integer, intent(in) :: linearmode
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        end subroutine create_LzdLIG
 
