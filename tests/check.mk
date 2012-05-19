@@ -6,7 +6,9 @@
 #  make X.in: generate input dir for directory X.
 #  make X.check: generate a report for directory X (if not already existing).
 #  make X.recheck: force the creation of the report in directory X.
-#  make X.clean: clean the given directroy X.
+#  make X.clean: clean the given directory X.
+#  make X.diff: make the difference between the output and the reference (with DIFF envvar)
+#  make X.updateref: update the reference with the output (prompt the overwrite)
 
 if USE_MPI
   mpirun_message=mpirun
@@ -49,12 +51,18 @@ PSPS = psppar.H \
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check)
+DIFFS = $(TESTDIRS:=.diff)
+UPDATES = $(TESTDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
 CLEANS = $(TESTDIRS:=.clean)
 
 in: $(INS)
 
 check: $(CHECKS) report
+
+diff: $(DIFFS)
+
+update-references: $(UPDATES)
 
 clean: $(CLEANS)
 
@@ -195,6 +203,20 @@ run_message:
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
+%.diff: %.run
+	@dir=`basename $@ .diff` ; \
+        chks="$(srcdir)/$$dir/*.ref" ; \
+	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out"; done ; \
+	touch $@
+
+%.updateref: #%.run %.diff
+	@dir=`basename $@ .updateref` ; \
+        chks="$(srcdir)/$$dir/*.ref" ; \
+	for c in $$chks ; do echo "Update reference with " $$dir/$$(basename $$c .ref)".out"; \
+	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c; done ; \
+	touch $@
+
+
 %.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
         refs="$$dir/*.ref" ; \
@@ -257,6 +279,10 @@ head_message:
 	@echo "  make X.recheck:    force the creation of the report in"
 	@echo "                     directory X."
 	@echo "  make X.clean:      clean the given directroy X."
+	@echo "  make X.diff:       make the difference between output"
+	@echo "                     and the reference (with DIFF envvar)"
+	@echo "  make X.updateref   update the reference with the output"
+	@echo "                     (prompt the overwrite)"	
 
 mpirun: head_message
 	@echo ""

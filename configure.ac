@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.4],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.10],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -575,8 +575,20 @@ end]], withlinalg=yes, withlinalg=no)
   if test "$withlinalg" = "yes"; then
     LINALG_LIBS=$ac_linalg
   fi
-  LIBS=$LIBS_OLD
   AC_MSG_RESULT([$withlinalg])
+  dnl test for scalapack presence in the ext-linalg
+  withscalapack=no
+  if test "$withlinalg" = "yes"; then
+   if test x"$withmpi" = x"yes" ; then
+    AC_MSG_CHECKING([for pdsygvx and blacs_get in $ac_linalg])
+    AC_LINK_IFELSE([[program main
+    call pdsygvx
+    call blacs_get
+end]], withscalapack=yes, withscalapack=warn)
+    AC_MSG_RESULT([$withscalapack])
+   fi
+  fi
+  LIBS=$LIBS_OLD
 fi
 
 if test "$withlinalg" = "no" ; then
@@ -612,6 +624,48 @@ if test "$lapack" = "yes" ; then
   fi
 fi
 
+dnl Test for Scalapack
+if test x"$withmpi" = x"yes" ; then
+dnl Test for blacs
+dnl Get the lapack library
+ac_blacs=no
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=no)
+AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
+            ac_blacs_dir=$withval, ac_blacs_dir=)
+if test -n "$ac_blacs_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
+fi
+withblacs=no
+if test	x"$ac_blacs" = x"yes" ; then
+  ac_blacs=blacs
+fi
+if test "$ac_blacs" != "no" ; then
+  AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=no,$LINALG_LIBS)
+  if test "$withblacs" = "yes"; then
+    LINALG_LIBS="-l$ac_blacs $LINALG_LIBS"
+  fi
+fi
+dnl get the scalapack library
+ac_scalapack=no
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=no)
+AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
+            ac_scalapack_dir=$withval, ac_scalapack_dir=)
+if test -n "$ac_scalapack_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
+fi
+withscalapack=no
+if test	x"$ac_scalapack" = x"yes" ; then
+  ac_scalapack=scalapack
+fi
+if test "$scalapack" != "no" ; then
+  AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+  if test "$withscalapack" = "yes"; then
+    LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"
+  fi
+fi
+   
+fi #end $withmpi = yes
+
 fi #end $withlinalg = no
 
 dnl Fallbacks for linear algebra libraries
@@ -622,6 +676,8 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
+
+AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 
 fi # End of the if library compilation
 
@@ -904,7 +960,7 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
@@ -918,6 +974,10 @@ if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_et
   if test x"$ac_build_bindings" = x"warn" ; then
     echo "  C bindings:                disabled by tests"
   fi
+  if test x"$withscalapack" = x"warn" ; then
+    echo "  Scalapack binding:         disabled by tests"
+  fi
+
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
