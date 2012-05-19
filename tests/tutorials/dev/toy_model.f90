@@ -17,11 +17,9 @@ program wvl
 
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
-  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   type(GPU_pointers)                   :: GPU
   
   integer :: i, j, ierr, iproc, nproc, nelec
-  integer :: n3d,n3p,n3pi,i3xcsh,i3s
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
   real(gp), allocatable :: radii_cf(:,:)
@@ -181,13 +179,13 @@ program wvl
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
-  allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3d))
+  allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3d))
   allocate(irrzon(1,2,1))
   allocate(phnons(2,1,1))
 
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
-  call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
+  call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,dpcom%nscatterarr,&
        GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
        rhodsc,dpcom%nscatterarr,rho_p,rhor,.false.)
@@ -197,11 +195,11 @@ program wvl
   ! Example of calculation of the energy of the local potential of the pseudos.
   call createKernel(iproc,nproc,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
-  allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3p))
+  allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-       & n3pi,i3s+i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
+       & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
