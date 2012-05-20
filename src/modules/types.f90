@@ -153,6 +153,11 @@ module module_types
     character(len=1):: locregShape
   end type linearInputParameters
 
+  integer, parameter, public :: INPUT_IG_OFF  = 0
+  integer, parameter, public :: INPUT_IG_LIG  = 1
+  integer, parameter, public :: INPUT_IG_FULL = 2
+  integer, parameter, public :: INPUT_IG_TMO  = 3
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
@@ -219,7 +224,7 @@ module module_types
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
-     character(len=3) :: linear
+     integer :: linear
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
      character(len = 64) :: domain !< Domain to get the IP from hostname.
@@ -263,7 +268,7 @@ module module_types
      real(gp) :: excrhoc=0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
 
-     double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
@@ -832,7 +837,7 @@ end type linear_scaling_control_variables
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
-     double precision :: c_obj = 0.d0                !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -868,7 +873,7 @@ end type linear_scaling_control_variables
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
-     double precision :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -898,7 +903,7 @@ end type linear_scaling_control_variables
      real(gp) :: rpnrm_cv      !< convergence criterion of the mixing loop.
      real(gp) :: gnrm_startmix !< gnrm value to start mixing after.
 
-     double precision :: c_obj = 0.d0 !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0 !< Storage of the C wrapper object.
   end type DFT_optimization_loop
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -1059,7 +1064,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0.d0
+    rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 

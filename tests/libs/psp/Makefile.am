@@ -23,12 +23,12 @@ psp.out: check_psp
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-LDA/*-q* ; do \
 	  ./check_psp $$psp >> lda.out ; \
 	done
-	@lang=C sort -b lda.out >> $@
+	@lang=C sort -k5 -g lda.out >> $@
 	@rm -f lda.out
 	echo "test PBE" >> $@
 	@rm -f pbe.out
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-PBE/*-q* ; do \
 	  ./check_psp $$psp >> pbe.out ; \
 	done
-	@lang=C sort -b pbe.out >> $@
+	@lang=C sort -k5 -g pbe.out >> $@
 	@rm -f pbe.out

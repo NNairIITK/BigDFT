@@ -104,7 +104,7 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
                                                in->strtarget, &in->qmass);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
-  FC_FUNC_(inputs_get_lin, INPUTS_GET_LIN)(in->data, in->linear);
+  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, &in->linear);
   
   return in;
 }

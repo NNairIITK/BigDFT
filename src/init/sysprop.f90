@@ -115,12 +115,14 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   end if
   ! Done orbs
 
-  call input_check_psi_id(inputpsi, input_wf_format, in, orbs, lorbs, iproc)
+  inputpsi = in%inputPsiId
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+  call nullify_local_zone_descriptors(lzd_lin)
+  lzd_lin%nlr = 0
   if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call nullify_local_zone_descriptors(lzd_lin)
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR) then
@@ -163,7 +165,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -2141,3 +2143,43 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
   
+subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & ntypes, radii_cf, crmult, frmult)
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc, ntypes
+  logical, intent(in) :: signaling
+  double precision, intent(in) :: gmainloop
+  type(DFT_wavefunction), intent(inout) :: KSwfn, tmb, tmbder
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(DFT_optimization_loop), intent(inout) :: optloop
+  type(energy_terms), intent(inout) :: energs
+  real(gp), dimension(ntypes,3), intent(in) :: radii_cf
+  real(gp), intent(in) :: crmult, frmult
+
+  if (signaling) then
+     ! Only iproc 0 has the C wrappers.
+     if (iproc == 0) then
+        call wf_new_wrapper(KSwfn%c_obj, KSwfn, 0)
+        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, crmult, frmult)
+        call wf_new_wrapper(tmb%c_obj, tmb, 1)
+        call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
+        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj, tmb%c_obj)
+        call energs_new_wrapper(energs%c_obj, energs)
+        call bigdft_signals_add_energs(gmainloop, energs%c_obj)
+        call localfields_new_wrapper(denspot%c_obj, denspot)
+        call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
+        call optloop_new_wrapper(optLoop%c_obj, optLoop)
+        call bigdft_signals_add_optloop(gmainloop, optLoop%c_obj)
+     else
+        KSwfn%c_obj   = UNINITIALIZED(KSwfn%c_obj)
+        tmb%c_obj     = UNINITIALIZED(tmb%c_obj)
+        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
+        optloop%c_obj = UNINITIALIZED(optloop%c_obj)
+     end if
+  else
+     KSwfn%c_obj  = 0
+     tmb%c_obj    = 0
+     tmbder%c_obj = 0
+  end if
+END SUBROUTINE system_signaling

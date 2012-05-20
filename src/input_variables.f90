@@ -124,7 +124,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
   if(inputs%inputpsiid==100) DistProjApply=.true.
-  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+  if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
@@ -244,6 +244,15 @@ subroutine default_input_variables(inputs)
   call sic_input_variables_default(inputs)
   ! Default for signaling
   inputs%gmainloop = 0.d0
+  ! Default for lin.
+  nullify(inputs%lin%potentialPrefac)
+  nullify(inputs%lin%potentialPrefac_lowaccuracy)
+  nullify(inputs%lin%potentialPrefac_highaccuracy)
+  nullify(inputs%lin%norbsPerType)
+  nullify(inputs%lin%locrad)
+  nullify(inputs%lin%locrad_lowaccuracy)
+  nullify(inputs%lin%locrad_highaccuracy)
+  nullify(inputs%lin%locrad_type)
 END SUBROUTINE default_input_variables
 
 
@@ -630,14 +639,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
-
-  ! Begin by nullifying all the pointers
-  nullify(in%lin%potentialPrefac)
-  nullify(in%lin%locrad)
-  nullify(in%lin%locrad_lowaccuracy)
-  nullify(in%lin%locrad_highaccuracy)
-  nullify(in%lin%norbsPerType)
-  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -1334,7 +1335,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
-  inputs%linear='OFF'
+  inputs%linear=INPUT_IG_OFF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1360,7 +1361,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
-  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
+       & "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
