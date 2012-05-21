@@ -92,6 +92,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    use module_base
    use module_types
    use module_xc
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -108,17 +109,18 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    integer,dimension(orbs%norb),intent(in),optional:: mapping
    !Local variables
    character(len=*), parameter :: subname='sumrho'
-   !n(c) logical :: rsflag
+   logical :: writeout
    integer :: i_stat,i_all
    integer :: nspinn
    integer :: iorb
    integer,dimension(:),allocatable:: localmapping
 
+   writeout=iproc==0 .and. verbose >= 1
+
    call timing(iproc,'Rho_comput    ','ON')
 
-   if (iproc==0 .and. verbose >= 1) then
-      write(*,'(1x,a)',advance='no')&
-         &   'Calculation of charge density...'
+   if (writeout) then
+      call yaml_map('GPU acceleration',(GPUconv .or. OCLconv))
    end if
 
    !components of the charge density
@@ -144,8 +146,12 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
        if(.not.present(mapping)) then
-           if(iproc==0) write(*,'(1x,a)') &
-               'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
+           if(iproc==0) then
+              call yaml_newline()
+              call yaml_warning('Using fake local mapping array. Check whether this is correct!')
+           end if
+           !write(*,'(1x,a)') &
+           !    'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
            allocate(localmapping(orbs%norb), stat=i_stat)
            call memocc(i_stat,localmapping,'localmapping',subname)
            do iorb=1,orbs%norb
@@ -357,26 +363,29 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
            charge=charge+tmred(ispin,1)
         end do
      end if
-     write(*,'(1x,a,f21.12)')&
-          &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     !write(*,'(1x,a,f21.12)')&
+     !     &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+
      !yaml output
-     call yaml_map('Electronic charge',yaml_toa(real(charge,gp)*hxh*hyh*hzh,fmt='(f21.12)'))
+     call yaml_map('Total electronic charge',real(charge,gp)*hxh*hyh*hzh,fmt='(f21.12)')
+     !call yaml_stream_attributes()
      !write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
      if (rhodsc%icomm==2) then
-        write(*,'(1x,a,f21.12)') &
-             'Electronic charge changed by rho compression=                  ',&
-             abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
+!!$        write(*,'(1x,a,f21.12)') &
+!!$             'Electronic charge changed by rho compression=                  ',&
+!!$             abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
         call yaml_map('Electronic charge changed by rho compression',&
-             yaml_toa(abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh),fmt='(f21.12)'))
+             abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh),fmt='(f21.12)')
      endif
      if(nspin == 4 .and. tt > 0._dp) then
-        write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
-             (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
+!!$        write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
+!!$             (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
         call yaml_map('Magnetic density orientation',&
-             yaml_toa((/(tmred(ispin,1)/tmred(1,1),ispin=2,nspin)/),fmt='(f10.4)'))
+             (/(tmred(ispin,1)/tmred(1,1),ispin=2,nspin)/),fmt='(f10.4)')
      end if
-     call yaml_flow_newline()
+     call yaml_newline()
   end if
+!call yaml_close_map()
 
   i_all=-product(shape(tmred))*kind(tmred)
   deallocate(tmred,stat=i_stat)
