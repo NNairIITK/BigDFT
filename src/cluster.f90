@@ -420,7 +420,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  write(*,*) 'denspot%rhod%icomm', denspot%rhod%icomm
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
        wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)

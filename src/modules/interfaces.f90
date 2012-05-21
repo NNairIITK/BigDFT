@@ -975,8 +975,7 @@ module module_interfaces
       END SUBROUTINE plot_wf
 
       subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-            &   hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r,& !ex-optional argument
-                init_value)
+            &   hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
          use module_base
          implicit none
          logical, intent(in) :: rsflag
@@ -986,7 +985,6 @@ module module_interfaces
          real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
          real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
          integer, dimension(:,:,:), pointer :: ibyyzz_r 
-         real(dp),intent(in),optional :: init_value
       END SUBROUTINE partial_density_free
 
       subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
