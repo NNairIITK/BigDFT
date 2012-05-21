@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -132,6 +132,22 @@
  No material acceleration (iproc=0)
  
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             : &ixc  1
+     Name                              : "XC: Teter 93"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           : &gnrm_cv  1.0E-05
+     CG Steps for Preconditioner       :  5
+     DIIS History length               :  10
+     Max. Wfn Iterations               : &itermax  100
+     Max. Subspace Diagonalizations    :  1
+   Density/Potential:
+     Max. Iterations                   :  1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
    Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
@@ -223,36 +239,35 @@
  ion-ion interaction energy  2.65633855517418E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -14.000000099281   0.000E+00
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
- ------------------------------------------------------- Input Wavefunctions Creation
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
+ Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
  Processes from 6 to 7 treat 1 inguess orbitals 
- Calculating AIO wavefunctions: 
- Generation of input wavefunction data for atom      C: 
-   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
- Generation of input wavefunction data for atom      H: 
-   Elec. Configuration: s 1.00 , ... done.
- Writing wavefunctions in wavelet form... done.
- Deviation from normalization of the imported orbitals    1.62E-06
- Calculating charge density... Calculation of charge density... done. Total electronic charge=      13.999999702103
-done.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Atomic Input Orbital Generation: [
+ {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.62E-06, 
+             GPU acceleration:  No, Total electronic charge:  13.999999702103, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  121,  113,  111 ], MPI tasks:  8}, 
  Hamiltonian application for all locregs. This may take some time.
-   locreg 1...  Hamiltonian application...done.
-   locreg 2...  Hamiltonian application...done.
-   locreg 3...  Hamiltonian application...done.
-   locreg 4...  Hamiltonian application...done.
+   locreg 1... done.
+   locreg 2... done.
+   locreg 3... done.
+   locreg 4... done.
    locreg 5... done.
    locreg 6... done.
    locreg 7... done.
-   locreg 8...  Hamiltonian application...done.
+   locreg 8... done.
    locreg 9... done.
    locreg 10... done.
    locreg 11... done.
-   locreg 12...  Hamiltonian application...done.
-   locreg 13...  Hamiltonian application...done.
-   locreg 14...  Hamiltonian application...done.
+   locreg 12... done.
+   locreg 13... done.
+   locreg 14... done.
  the specified memory allows to overlap 468114 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
    Calculating matrix for locreg 1... done.
@@ -304,7 +319,7 @@ max deviation from unity, position:  9.610156E-04  14  14
    Final values for fnrm, trace:   7.50552E-04   3.17060E+00
  ====================================================================================
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -324,46 +339,47 @@ max deviation from unity, position:  9.610156E-04  14  14
    eval(14)= 5.78305E-01
  -------------------------------------------------
    calculating the density kernel...  ------------------------------------------------------------- Input guess generated.
+ }
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  9.9789593E-01  1.3736565E+00     3.0677360334
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  6.0698248E-01  8.9082622E-01     0.9600827874
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  1.4972122E-01  1.9232654E-01     0.6032746396
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  7.8997772E-02  9.2186623E-02     0.5344033606
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  5.8948292E-02  7.4366278E-02     0.5013081656
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  4.7131865E-02  5.8135814E-02     0.4776191679
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  2.8216864E-02  3.6437877E-02     0.4554177645
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  1.8196405E-02  2.1245191E-02     0.4521808825
  WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.8196405E-02  2.1245191E-02   0.4521809
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -386,14 +402,17 @@ max deviation from unity, position:  9.610156E-04  14  14
 done.
    Calculation finished. TOTAL CHARGE =   1.399999967709E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.99E-06   -1.46544819694413491E+01   -1.4654E+01
+   it, Delta DENS, energy, energyDiff   1   2.99E-06   -1.46544819694413562E+01   -1.4654E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -416,14 +435,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969285E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.50E-07   -1.44881877681922333E+01    1.6629E-01
+   it, Delta DENS, energy, energyDiff   2   8.50E-07   -1.44881877681922404E+01    1.6629E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -446,14 +468,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999968967E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.16E-07   -1.44785114218124846E+01    9.6763E-03
+   it, Delta DENS, energy, energyDiff   3   3.16E-07   -1.44785114218124775E+01    9.6763E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -476,14 +501,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969041E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.45E-07   -1.44779664762817859E+01    5.4495E-04
+   it, Delta DENS, energy, energyDiff   4   1.45E-07   -1.44779664762817930E+01    5.4495E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -506,14 +534,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969024E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.11E-08   -1.44779392052062974E+01    2.7271E-05
+   it, Delta DENS, energy, energyDiff   5   7.11E-08   -1.44779392052063045E+01    2.7271E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -536,14 +567,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969028E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   3.54E-08   -1.44779420999353832E+01   -2.8947E-06
+   it, Delta DENS, energy, energyDiff   6   3.54E-08   -1.44779420999353974E+01   -2.8947E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -566,14 +600,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   7   1.77E-08   -1.44779441064060421E+01   -2.0065E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -596,14 +633,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 8 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   8.84E-09   -1.44779448341012866E+01   -7.2770E-07
+   it, Delta DENS, energy, energyDiff   8   8.84E-09   -1.44779448341013079E+01   -7.2770E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -626,14 +666,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 9 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   4.42E-09   -1.44779450628044017E+01   -2.2870E-07
+   it, Delta DENS, energy, energyDiff   9   4.42E-09   -1.44779450628044088E+01   -2.2870E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -656,14 +699,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 10 of the density optimization:
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   10   2.21E-09   -1.44779451307985170E+01   -6.7994E-08
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -686,14 +732,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 11 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   1.11E-09   -1.44779451505673080E+01   -1.9769E-08
+   it, Delta DENS, energy, energyDiff   11   1.11E-09   -1.44779451505673293E+01   -1.9769E-08
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -716,14 +765,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999969027E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 12 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   5.53E-10   -1.44779451562892305E+01   -5.7219E-09
+   it, Delta DENS, energy, energyDiff   12   5.53E-10   -1.44779451562892376E+01   -5.7219E-09
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.5356082491E+00  3.8304884289E+01 -5.8376444645E+00 -7.6367942577E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   1   1.59E-06   -1.44779451562892305E+01   -1.4478E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   1.59E-06   -1.44779451562892376E+01   -1.4478E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -733,47 +785,47 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    5.53E-10   -1.44779451562892305E+01
+     FINAL values: it, Delta DENS, energy   1    5.53E-10   -1.44779451562892376E+01
    > energy difference to last iteration: -1.447795E+01
  ############################################################################################
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  6.7280565E-02  8.2313769E-02     2.0511123371
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  4.0801065E-02  5.1143229E-02     2.0267655269
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  2.0731256E-02  2.7832404E-02     2.0154637420
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  1.6453804E-02  2.2363767E-02     2.0136189077
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  1.5148776E-02  2.0624440E-02     2.0130752892
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  1.4713603E-02  1.9983770E-02     2.0127592937
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  1.4144727E-02  2.0704190E-02     2.0125891151
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  1.3776398E-02  2.0671200E-02     2.0125049797
  WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3776398E-02  2.0671200E-02   2.0125050
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -796,14 +848,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971108E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.55E-07   -1.45205708373097977E+01   -4.2626E-02
+   it, Delta DENS, energy, energyDiff   1   3.55E-07   -1.45205708373097906E+01   -4.2626E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -826,14 +881,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971099E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.80E-07   -1.45195390862355040E+01    1.0318E-03
+   it, Delta DENS, energy, energyDiff   2   1.80E-07   -1.45195390862355111E+01    1.0318E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -856,14 +914,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971102E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.89E-08   -1.45192966710193758E+01    2.4242E-04
+   it, Delta DENS, energy, energyDiff   3   8.89E-08   -1.45192966710193616E+01    2.4242E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -886,14 +947,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.46E-08   -1.45192380672802273E+01    5.8604E-05
+   it, Delta DENS, energy, energyDiff   4   4.46E-08   -1.45192380672802130E+01    5.8604E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -916,14 +980,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.22E-08   -1.45192236960483783E+01    1.4371E-05
+   it, Delta DENS, energy, energyDiff   5   2.22E-08   -1.45192236960483712E+01    1.4371E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -946,14 +1013,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   1.11E-08   -1.45192201441345432E+01    3.5519E-06
+   it, Delta DENS, energy, energyDiff   6   1.11E-08   -1.45192201441345645E+01    3.5519E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -976,14 +1046,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   5.57E-09   -1.45192192623062937E+01    8.8183E-07
+   it, Delta DENS, energy, energyDiff   7   5.57E-09   -1.45192192623063008E+01    8.8183E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1006,14 +1079,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 8 of the density optimization:
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   8   2.79E-09   -1.45192190428305850E+01    2.1948E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1036,14 +1112,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 9 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   1.39E-09   -1.45192189881395706E+01    5.4691E-08
+   it, Delta DENS, energy, energyDiff   9   1.39E-09   -1.45192189881395990E+01    5.4691E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1066,14 +1145,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 10 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   6.97E-10   -1.45192189745098261E+01    1.3630E-08
+   it, Delta DENS, energy, energyDiff   10   6.97E-10   -1.45192189745098545E+01    1.3630E-08
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1096,14 +1178,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 11 of the density optimization:
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   11   3.48E-10   -1.45192189711163238E+01    3.3935E-09
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1126,14 +1211,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999971101E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 12 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   1.74E-10   -1.45192189702744585E+01    8.4187E-10
+   it, Delta DENS, energy, energyDiff   12   1.74E-10   -1.45192189702744656E+01    8.4186E-10
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.6631075215E+00  3.8204200416E+01 -5.7926272381E+00 -7.5773467267E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   2   3.56E-07   -1.45192189702744585E+01   -4.1274E-02
+   itout, Delta DENSOUT, energy, energyDiff   2   3.56E-07   -1.45192189702744656E+01   -4.1274E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -1143,46 +1231,46 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.74E-10   -1.45192189702744585E+01
+     FINAL values: it, Delta DENS, energy   2    1.74E-10   -1.45192189702744656E+01
    > energy difference to last iteration: -4.127381E-02
  ############################################################################################
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.3275766E-01  1.5058127E-01    -2.3220583891
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  5.1410322E-02  6.1884573E-02    -2.4747822528
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  1.9364666E-02  2.2801786E-02    -2.4988040323
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  9.8611582E-03  1.1680240E-02    -2.5018245759
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  7.1716463E-03  8.2276643E-03    -2.5018201875
  DIIS informations: history length=5, consecutive failures=1, total failures=1
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  5.8727440E-03  7.0213168E-03    -2.5018462040
  DIIS informations: history length=5, consecutive failures=0, total failures=1
  ----------------------------------------------------------------------------- iter=7
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  6.2916008E-03  8.5097886E-03    -2.5023065564
  DIIS informations: history length=5, consecutive failures=0, total failures=1
  ----------------------------------------------------------------------------- iter=8
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  6.5572971E-03  8.7491077E-03    -2.5020786087
  DIIS informations: history length=5, consecutive failures=1, total failures=2
  ----------------------------------------------------------------------------- iter=9
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     9  7.5086329E-03  1.1373495E-02    -2.5018614442
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  DIIS failed 3 times in total. Switch to SD with stepsize 1.000E-04
@@ -1190,44 +1278,44 @@ done.
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=10
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    10  6.2916008E-03  8.5097886E-03    -2.5023065564
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
  ---------------------------------------------------------------------------- iter=11
- Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
+ Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
  Reject orbitals, reuse the old ones and decrease step size.
 Preconditioning.
  iter, fnrm, fnrmMax, trace    11  6.6534116E-03  9.3926099E-03    -2.5022226666
  steepest descent informations: mean alpha=3.600E-05, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=12
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    12  6.2916008E-03  8.5097886E-03    -2.5023065564
  steepest descent informations: mean alpha=3.600E-05, consecutive successes=1, DIIS=y
  ---------------------------------------------------------------------------- iter=13
- Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
+ Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
  Reject orbitals, reuse the old ones and decrease step size.
 Preconditioning.
  iter, fnrm, fnrmMax, trace    13  6.6535095E-03  9.3928018E-03    -2.5022226751
  steepest descent informations: mean alpha=1.296E-05, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=14
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    14  6.2916008E-03  8.5097886E-03    -2.5023065564
  steepest descent informations: mean alpha=1.296E-05, consecutive successes=1, DIIS=y
  ---------------------------------------------------------------------------- iter=15
- Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
+ Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
  Reject orbitals, reuse the old ones and decrease step size.
 Preconditioning.
  iter, fnrm, fnrmMax, trace    15  6.6535447E-03  9.3928708E-03    -2.5022226782
  steepest descent informations: mean alpha=4.666E-06, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=16
- Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ Orthonormalization... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace    16  6.2916008E-03  8.5097886E-03    -2.5023065564
  steepest descent informations: mean alpha=4.666E-06, consecutive successes=1, DIIS=y
  ---------------------------------------------------------------------------- iter=17
- Orthonormalization... Hamiltonian application... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
+ Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  3.35E-03%.
  Energy grows in spite of decreased step size, will exit...
 Preconditioning.
  iter, fnrm, fnrmMax, trace    17  6.6535574E-03  9.3928957E-03    -2.5022226793
@@ -1235,7 +1323,7 @@ Preconditioning.
  >>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace:   6.6535574E-03  9.3928957E-03  -2.5022227
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1258,14 +1346,17 @@ Preconditioning.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999975002E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.13E-06   -1.48806324185195891E+01   -3.6141E-01
+   it, Delta DENS, energy, energyDiff   1   1.13E-06   -1.48806324185195962E+01   -3.6141E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1288,14 +1379,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974863E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.33E-07   -1.48662899341726984E+01    1.4342E-02
+   it, Delta DENS, energy, energyDiff   2   5.33E-07   -1.48662899341727055E+01    1.4342E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1318,14 +1412,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974878E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.60E-07   -1.48637890865953821E+01    2.5008E-03
+   it, Delta DENS, energy, energyDiff   3   2.60E-07   -1.48637890865953750E+01    2.5008E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1348,14 +1445,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974875E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.31E-07   -1.48631730609337254E+01    6.1603E-04
+   it, Delta DENS, energy, energyDiff   4   1.31E-07   -1.48631730609337325E+01    6.1603E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1378,14 +1478,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974875E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.54E-08   -1.48630206280927979E+01    1.5243E-04
+   it, Delta DENS, energy, energyDiff   5   6.54E-08   -1.48630206280927837E+01    1.5243E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1408,14 +1511,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   3.27E-08   -1.48629829105283306E+01    3.7718E-05
+   it, Delta DENS, energy, energyDiff   6   3.27E-08   -1.48629829105283164E+01    3.7718E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1438,14 +1544,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.64E-08   -1.48629735584222473E+01    9.3521E-06
+   it, Delta DENS, energy, energyDiff   7   1.64E-08   -1.48629735584222544E+01    9.3521E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1468,14 +1577,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 8 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   8.19E-09   -1.48629712337998257E+01    2.3246E-06
+   it, Delta DENS, energy, energyDiff   8   8.19E-09   -1.48629712337998328E+01    2.3246E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1498,14 +1610,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 9 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   4.09E-09   -1.48629706546181879E+01    5.7918E-07
+   it, Delta DENS, energy, energyDiff   9   4.09E-09   -1.48629706546181737E+01    5.7918E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1528,14 +1643,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 10 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   2.05E-09   -1.48629705099172966E+01    1.4470E-07
+   it, Delta DENS, energy, energyDiff   10   2.05E-09   -1.48629705099173037E+01    1.4470E-07
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1558,14 +1676,17 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 11 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   1.02E-09   -1.48629704736129469E+01    3.6304E-08
+   it, Delta DENS, energy, energyDiff   11   1.02E-09   -1.48629704736129185E+01    3.6304E-08
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done.
+ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -1588,7 +1709,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   1.399999974874E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 12 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1614,11 +1738,16 @@ done.
  ------------------------------------- Building linear combinations... done.
  ---------------------------------------------------------- Gaussian Basis Projection
  Generation of input wavefunction data for atom      C:
-   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
+ done.
  Generation of input wavefunction data for atom      H:
-   Elec. Configuration: s 1.00 , ... done.
+ Electronic configuration: {s: [ 1.00]}
+ done.
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  121,  113,  111 ]
+   MPI tasks                           :  8
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   2.149799E-03 (AU)       (Px,Py,Pz)=    5.0251E-04   9.1445E-04   1.8796E-03
   |P| =   5.464244E-03 (Debye)    (Px,Py,Pz)=    1.2772E-03   2.3243E-03   4.7775E-03
@@ -1628,9 +1757,9 @@ done.
  average noise along y direction:   5.15289427E-04
  average noise along z direction:   3.49698433E-04
  total average noise            :   7.29298512E-04
- clean forces norm (Ha/Bohr): maxval=  5.407610799700E-03  fnrm2=  1.649236700204E-04
- raw forces:                  maxval=  5.975417116720E-03  fnrm2=  1.737306717418E-04
- CPU time/ELAPSED time for root process     0        12.54        12.42
+ clean forces norm (Ha/Bohr): maxval=  5.407610799702E-03  fnrm2=  1.649236700204E-04
+ raw forces:                  maxval=  5.975417116722E-03  fnrm2=  1.737306717419E-04
+ CPU time/ELAPSED time for root process     0        13.04        12.78
  Final values of the Forces for each atom
      1      C -2.62540E-04  3.89376E-04  9.06387E-04
      2      C  1.14102E-03  5.31840E-04 -3.10733E-04
@@ -1641,6 +1770,6 @@ done.
      7      H -3.73940E-03  3.82748E-04  3.88551E-03
      8      H  4.16142E-04  4.64397E-03 -2.18267E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 32448 allocations and 32448 deallocations, remaining memory(B): 0
+ 32080 allocations and 32080 deallocations, remaining memory(B): 0
  memory occupation peak: 67 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

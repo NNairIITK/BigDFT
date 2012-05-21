@@ -125,7 +125,7 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
 {
   BigDFT_LocalFields *localfields;
   double self;
-  gchar SICapproach[2] = "NO", rho_commun[3] = "DBL";
+  gchar SICapproach[4] = "NO  ", rho_commun[3] = "DBL";
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));

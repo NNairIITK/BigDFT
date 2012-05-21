@@ -4,15 +4,23 @@
  |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
  |blas F                     CUBLAS acceleration
  |projrad  1.50E+01          Radius of the projector as a function of the maxrad
- |exctxpar BC                Exact exchange parallelisation scheme
+ |exctxpar OP2P              Exact exchange parallelisation scheme
  |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
  |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
  |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
+ |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
+ |linear OFF                 Linear Input Guess approach
+ |tolsym -1.00E+00           Tolerance for symmetry detection
+ |signaling F                Expose calculation results on Network
+ |signalTimeout 0            Time out on startup for signal connection
+ |domain                     Domain to add to the hostname to find the IP
+ |verbosity 2                verbosity of the output 0=low, 2=high
+ |psp_onfly T                Calculate pseudopotential projectors on the fly
  |... (file:input.dft).....................................DFT Calculation Parameters
- |0.450 0.450 0.450 hx,hy,hz: grid spacing in the three directions                   
+ |0.450 0.450 0.450 hhx,hy,hz: grid spacing in the three directions                  
  |5.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
  |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
  |0 0.0   0.0 0. charge of the system, Electric field (Ex,Ey,Ez)                     
@@ -21,15 +29,10 @@
  |50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
  |7  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
  |0              dispersion correction potential (values 1,2,3), 0=none              
- |0 0            InputPsiId, output_wf, output_grid                                  
+ |0 0            InputPsiId, output_wf, output_denspot                               
  |5.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
  |0 0  0         Davidson subspace dim., # of opt. orbs, # of plotted orbs           
- |2              verbosity of the output 0=low, 2=high                               
  |T              disable the symmetry detection                                      
- |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
- |manual         K-point sampling method                                             
- |1              Number of K-points                                                  
- |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
  |... (file:input.mix.. not present)...............................Mixing Parameters 
  |0              Mixing parameters                                                   
  |1              Maximum number of diagonalisation iterations                        
@@ -48,6 +51,10 @@
  |NONE           SIC method: NONE, PZ, NK                                            
  |0.0            SIC downscaling parameter                                           
  |0.0            Reference occupation fref (NK case only)                            
+ |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
  |----------------------------------------------------------------------------------
  |  Data Writing directory:    not needed
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
@@ -67,7 +74,23 @@
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
  Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ Number of maximal OpenMP threads per MPI process 2
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             : &ixc  1
+     Name                              : "XC: Teter 93"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           : &gnrm_cv  1.0E-04
+     CG Steps for Preconditioner       :  7
+     DIIS History length               :  6
+     Max. Wfn Iterations               : &itermax  50
+     Max. Subspace Diagonalizations    :  10
+   Density/Potential:
+     Max. Iterations                   :  1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
    Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
@@ -99,7 +122,6 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        757 points=     15659
    Fine resolution grid: Number of segments=         21 points=        81
- Wavefunctions memory occupation for root processor (Bytes): 129808
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               1                    0
@@ -126,7 +148,7 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 19 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 61 allocations and 61 deallocations, remaining memory(B): 0
+ 74 allocations and 74 deallocations, remaining memory(B): 0
  memory occupation peak: 1 MB
  for the array  logrid_big in the routine  make_all_ib
-
+ CPU time/ELAPSED time          0.01         0.01

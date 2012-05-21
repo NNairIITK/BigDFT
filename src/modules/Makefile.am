@@ -4,11 +4,11 @@ else
 GPUBLAS_INTERFACE = cublas_fake.f90
 endif
 
-#if USE_BLACS
-#BLACS = 
-#else
+if USE_BLACS
+BLACS = 
+else
 BLACS = blacs_fake.f90
-#endif
+endif
 
 if USE_MPI
 mpi_include =

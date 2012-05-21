@@ -100,6 +100,32 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
   call inquire_pointer5(pt_c, pt_f, size_c)
 end subroutine f90_pointer_5D_init
 
+subroutine open_write_file(unitwf, name, ln, bin)
+  implicit none
+  integer, intent(in) :: unitwf, ln, bin
+  character(len = 1), dimension(ln), intent(in) :: name
+
+  character(len = ln) :: filename
+  integer :: i
+  
+  write(filename, *)
+  do i = 1, ln, 1
+     filename(i:i) = name(i)(1:1)
+  end do
+  if (bin == 1) then
+     open(unit = unitwf, file = trim(filename), status = 'unknown', form = "unformatted")
+  else
+     open(unit = unitwf, file = trim(filename), status = 'unknown')
+  end if
+END SUBROUTINE open_write_file
+
+subroutine close_file(unitwf)
+  implicit none
+  integer, intent(in) :: unitwf
+
+  close(unit = unitwf)
+END SUBROUTINE close_file
+
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use Poisson_Solver, only: ck => createKernel
   implicit none
@@ -181,11 +207,12 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
-subroutine glr_get_dimensions(glr , n, ni)
+subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  integer, dimension(3), intent(out) :: n, ni
+  integer, dimension(3), intent(out) :: n, ni, ns, nsi, nfl, nfu
+  integer, intent(out) :: norb
 
   n(1) = glr%d%n1
   n(2) = glr%d%n2
@@ -193,7 +220,72 @@ subroutine glr_get_dimensions(glr , n, ni)
   ni(1) = glr%d%n1i
   ni(2) = glr%d%n2i
   ni(3) = glr%d%n3i
+
+  nfl(1) = glr%d%nfl1
+  nfl(2) = glr%d%nfl2
+  nfl(3) = glr%d%nfl3
+  nfu(1) = glr%d%nfu1
+  nfu(2) = glr%d%nfu2
+  nfu(3) = glr%d%nfu3
+
+  ns(1) = glr%ns1
+  ns(2) = glr%ns2
+  ns(3) = glr%ns3
+  nsi(1) = glr%nsi1
+  nsi(2) = glr%nsi2
+  nsi(3) = glr%nsi3
+  
+  norb = glr%Localnorb
 end subroutine glr_get_dimensions
+subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+  integer, dimension(3), intent(in) :: n, ni, ns, nsi, nfl, nfu
+
+  glr%d%n1 = n(1)
+  glr%d%n2 = n(2)
+  glr%d%n3 = n(3)
+  glr%d%n1i = ni(1)
+  glr%d%n2i = ni(2)
+  glr%d%n3i = ni(3)
+
+  glr%d%nfl1 = nfl(1)
+  glr%d%nfl2 = nfl(2)
+  glr%d%nfl3 = nfl(3)
+  glr%d%nfu1 = nfu(1)
+  glr%d%nfu2 = nfu(2)
+  glr%d%nfu3 = nfu(3)
+
+  glr%ns1 = ns(1)
+  glr%ns2 = ns(2)
+  glr%ns3 = ns(3)
+  glr%nsi1 = nsi(1)
+  glr%nsi2 = nsi(2)
+  glr%nsi3 = nsi(3)
+end subroutine glr_set_dimensions
+subroutine glr_get_locreg_data(glr, locrad, locregCenter)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: glr
+  double precision, dimension(3), intent(out) :: locregCenter
+  double precision, intent(out) :: locrad
+
+  locrad = glr%locrad
+  locregCenter = glr%locregCenter
+end subroutine glr_get_locreg_data
+subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+  integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
+
+  glr%wfd%nseg_c = nseg_c
+  glr%wfd%nseg_f = nseg_f
+  glr%wfd%nvctr_c = nvctr_c
+  glr%wfd%nvctr_f = nvctr_f
+  call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
+END SUBROUTINE glr_set_wfd_dims
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
    use module_base
@@ -211,6 +303,15 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine glr_set_bounds(lr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: lr
+  
+  call locreg_bounds(lr%d%n1,lr%d%n2,lr%d%n3, &
+       & lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+       & lr%wfd,lr%bounds)
+END SUBROUTINE glr_set_bounds
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
   use module_types
@@ -277,6 +378,22 @@ subroutine lzd_empty(lzd)
 
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
+subroutine lzd_set_nlr(lzd, nlr, geocode)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: lzd
+  integer, intent(in) :: nlr
+  character, intent(in) :: geocode
+
+  integer :: i
+  
+  lzd%nlr = nlr
+  allocate(lzd%Llr(Lzd%nlr))
+  do i = 1, nlr, 1
+     call nullify_locreg_descriptors(lzd%Llr(i))
+     lzd%Llr(i)%geocode = geocode
+  end do
+END SUBROUTINE lzd_set_nlr
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
   use module_types
@@ -415,14 +532,14 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
-subroutine inputs_get_lin(in, linear)
+subroutine inputs_get_perf(in, linear)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 3), intent(out) :: linear
+  integer, intent(out) :: linear
   
   linear = in%linear
-END SUBROUTINE inputs_get_lin
+END SUBROUTINE inputs_get_perf
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none
@@ -431,6 +548,15 @@ subroutine inputs_get_files(in, files)
 
   files = in%files
 END SUBROUTINE inputs_get_files
+subroutine inputs_get_linear(linear, inputPsiId)
+  use module_types
+  implicit none
+  integer, intent(out) :: linear
+  integer, intent(in) :: inputPsiId
+
+  linear = 0
+  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+END SUBROUTINE inputs_get_linear
 
 subroutine orbs_new(orbs)
   use module_types
@@ -555,6 +681,48 @@ subroutine orbs_get_kwgts(orbs, kwgts)
   
   kwgts => orbs%kwgts
 END SUBROUTINE orbs_get_kwgts
+subroutine orbs_get_inwhichlocreg(orbs, locreg)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: locreg
+  
+  locreg => orbs%inwhichlocreg
+END SUBROUTINE orbs_get_inwhichlocreg
+subroutine orbs_get_onwhichmpi(orbs, mpi)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: mpi
+  
+  mpi => orbs%onwhichmpi
+END SUBROUTINE orbs_get_onwhichmpi
+subroutine orbs_get_onwhichatom(orbs, atom)
+  use module_types
+  implicit none
+  type(orbitals_data) :: orbs
+  integer, dimension(:), pointer :: atom
+  
+  atom => orbs%onwhichatom
+END SUBROUTINE orbs_get_onwhichatom
+subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
+  use module_types
+  use module_interfaces
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor
+  character(len = 1), dimension(ln), intent(in) :: name
+
+  character(len = ln) :: filename
+  integer :: i, iorb_out
+  
+  write(filename, *)
+  do i = 1, ln, 1
+     filename(i:i) = name(i)(1:1)
+  end do
+  call open_filename_of_iorb(unitwf, (iformat == WF_FORMAT_BINARY), trim(filename), &
+       & orbs, iorbp, ispinor, iorb_out)
+END SUBROUTINE orbs_open_file
 
 subroutine proj_new(nlpspd)
   use module_types
@@ -590,7 +758,7 @@ END SUBROUTINE proj_get_dimensions
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_local_fields), pointer :: denspotd
   type(denspot_distribution), pointer :: dpbox
   type(rho_descriptors), pointer :: rhod
@@ -748,7 +916,7 @@ END SUBROUTINE gpu_free
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
   type(communications_arrays), pointer :: comm
@@ -835,6 +1003,14 @@ subroutine wf_get_psi(wf, psi)
   end interface
   call inquire_address1(psi, wf%psi)
 end subroutine wf_get_psi
+subroutine wf_get_psi_size(psi, psiSize)
+  use module_types
+  implicit none
+  real(wp), dimension(:), pointer :: psi
+  integer(kind = 8), intent(out) :: psiSize
+
+  psiSize = product(shape(psi))
+end subroutine wf_get_psi_size
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
   implicit none
@@ -858,38 +1034,37 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
 END SUBROUTINE wf_iorbp_to_psi
 
-subroutine orbs_get_iorbp(orbs, iorbp, iproc, ikpt, iorb, ispin, ispinor)
+subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   use module_types
   implicit none
 
-  integer, intent(out) :: iorbp, iproc
+  integer, intent(out) :: iorbp, isorb, iproc
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ikpt, iorb, ispin, ispinor
-
-  integer :: iorbtot
 
   iorbp = (ikpt - 1) * (orbs%nspinor * orbs%norb)
   if (ispin == 1) iorbp = iorbp + (iorb - 1) * orbs%nspinor
   if (ispin == 2) iorbp = iorbp + orbs%norbu * orbs%nspinor + (iorb - 1) * orbs%nspinor
   iorbp = iorbp + ispinor - 1
 
-  iorbtot = 0
+  isorb = 0
   do iproc = 0, size(orbs%norb_par, 1) - 1, 1
-     if (iorbp >= iorbtot .and. iorbp < iorbtot + orbs%norb_par(iproc, 0)) then
-        iorbp = iorbp - iorbtot
+     if (iorbp >= isorb .and. iorbp < isorb + orbs%norb_par(iproc, 0)) then
+        iorbp = iorbp - isorb
         return
      end if
-     iorbtot = iorbtot + orbs%norb_par(iproc, 0)
+     isorb = isorb + orbs%norb_par(iproc, 0)
   end do
 
-  iorbp = -1;
-  iproc = -1;
+  iorbp = -1
+  isorb = -1
+  iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
 subroutine energs_new(self, energs)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(energy_terms), pointer :: energs
 
   allocate(energs)
@@ -929,7 +1104,7 @@ END SUBROUTINE energs_copy_data
 subroutine optloop_new(self, optloop)
   use module_types
   implicit none
-  double precision, intent(in) :: self
+  integer(kind = 8), intent(in) :: self
   type(DFT_optimization_loop), pointer :: optloop
 
   allocate(optloop)

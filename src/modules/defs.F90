@@ -89,7 +89,7 @@ module module_defs
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
   end interface
 
   !initialize to zero an array
@@ -357,6 +357,15 @@ module module_defs
       foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
+
+    function uninitialized_long(one) 
+      implicit none
+      integer(kind = 8), intent(in) :: one
+      integer(kind = 8) :: uninitialized_long
+      integer :: foo
+      foo = kind(one)
+      uninitialized_long=-123456789
+    end function uninitialized_long
 
     function uninitialized_real(one) 
       implicit none

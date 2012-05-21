@@ -424,6 +424,7 @@ END SUBROUTINE parse_cp2k_files
 subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc
@@ -445,8 +446,10 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), dimension(:), allocatable :: tpsi
-
-  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+  
+  !if(iproc == 0 .and. verbose > 1) then
+     !write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+  !end if
 
   allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,tpsi,'tpsi',subname)
@@ -525,7 +528,10 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+  if (iproc ==0  .and. verbose > 1) then
+     call yaml_map('Wavelet conversion succeeded',.true.)
+     !write(*,'(1x,a)')'done.'
+  end if
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
@@ -557,8 +563,11 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   else
      normdev=tt
   end if
-  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
-       'Deviation from normalization of the imported orbitals',normdev
+  if (iproc ==0) then
+     !write(*,'(1x,a,1pe12.2)')&
+     !  'Deviation from normalization of the imported orbitals',normdev
+     call yaml_map('Deviation from normalization',normdev,fmt='(1pe12.2)')
+  end if
 
   i_all=-product(shape(tpsi))*kind(tpsi)
   deallocate(tpsi,stat=i_stat)
@@ -569,6 +578,7 @@ END SUBROUTINE gaussians_to_wavelets
 subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -582,8 +592,8 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: kx,ky,kz
 
-  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
-       'Writing wavefunctions in wavelet form...'
+  !if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+  !     'Writing wavefunctions in wavelet form...'
   
   normdev=0.0_dp
   tt=0.0_dp  
@@ -625,7 +635,12 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
      !print *,'iorb,norm',totnorm
   end do
 
-  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+!  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+  if (iproc ==0  .and. verbose > 1) then
+     call yaml_map('Wavelet conversion succeeded',.true.)
+     !write(*,'(1x,a)')'done.'
+  end if
+
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
@@ -633,8 +648,11 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   else
      normdev=tt
   end if
-  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
-       'Deviation from normalization of the imported orbitals',normdev
+  if (iproc ==0) then
+     !write(*,'(1x,a,1pe12.2)')&
+     !  'Deviation from normalization of the imported orbitals',normdev
+     call yaml_map('Deviation from normalization',normdev,fmt='(1pe12.2)')
+  end if
 
 END SUBROUTINE gaussians_to_wavelets_new
 

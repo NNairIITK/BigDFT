@@ -559,7 +559,7 @@ module module_interfaces
          type(input_variables), intent(in) :: in
          type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(in) :: hx_old,hy_old,hz_old
-         type(atoms_data), intent(in) :: atoms
+         type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunction
@@ -1085,21 +1085,22 @@ module module_interfaces
        integer,dimension(orbse%norb),intent(out):: onWhichAtom
      END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
-      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-            &   nspin,eks,scorb,G,gaucoeff,iorbtolr)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: norbe,iproc
-         integer, intent(in) :: norbsc,nspin
-         type(atoms_data), intent(in) :: at
-         logical, dimension(4,2,at%natsc), intent(in) :: scorb
-         real(gp), dimension(3,at%nat), intent(in), target :: rxyz
-         type(orbitals_data), intent(inout) :: orbse
-         type(gaussian_basis), intent(out) :: G
-         real(gp), intent(out) :: eks
-         integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
-         real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
+     subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
+          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: norbe,iproc
+       integer, intent(in) :: norbsc,nspin
+       type(atoms_data), intent(in) :: at
+       logical, dimension(4,2,at%natsc), intent(in) :: scorb
+       real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+       type(orbitals_data), intent(inout) :: orbse
+       type(gaussian_basis), intent(out) :: G
+       real(gp), intent(out) :: eks
+       integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
+       real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff !fake interface for passing address
+       integer,dimension(orbse%norb), optional, intent(in):: mapping
       END SUBROUTINE AtomicOrbitals
 
       subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
@@ -1585,11 +1586,12 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G  
       END SUBROUTINE gaussian_hermite_basis
 
-      subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
+      subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
         use module_base
         use module_types
         implicit none
         integer, intent(in) :: nproc
+        real(gp), intent(in) :: etol
         type(orbitals_data), intent(in) :: orbs
         real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
       end subroutine write_eigenvalues_data
@@ -2599,7 +2601,7 @@ module module_interfaces
       !Arguments
       integer, intent(in) :: iproc,nproc
       real(gp), intent(in) :: hx, hy, hz
-      type(atoms_data), intent(in) :: at
+      type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(GPU_pointers), intent(inout) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
@@ -2862,24 +2864,24 @@ module module_interfaces
      end subroutine
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
-          psi,hpsi,psit,orthpar,passmat,& !mandatory
+          psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
           orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,natsc,nspin
-       type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs after LIG
-       type(local_zone_descriptors) :: Lzde                                 !> Information about the locregs for LIG
+       integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
+       real(gp), intent(in) :: Tel
+       type(local_zone_descriptors) :: Lzd        !> Information about the locregs after LIG
+       type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), target, intent(inout) :: orbs
-       type(input_variables):: input
-       type(orthon_data):: orthpar
+       type(orthon_data),intent(in):: orthpar 
        real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
        real(wp), dimension(:), pointer :: psi,hpsi,psit
        !optional arguments
        real(gp), optional, intent(in) :: etol
        type(orbitals_data), optional, intent(in) :: orbsv
-       type(orbitals_data), optional, target, intent(in) :: orbse
+       type(orbitals_data), optional, target, intent(inout) :: orbse
        type(communications_arrays), optional, target, intent(in) :: commse
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
        real(wp), dimension(:), pointer, optional :: psivirt
@@ -4478,7 +4480,7 @@ module module_interfaces
        implicit none
        integer,intent(in):: iproc,nproc
        real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(in) :: at
+       type(atoms_data),intent(inout) :: at
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        type(collective_comms),intent(in):: collcom_reference
@@ -5707,7 +5709,7 @@ module module_interfaces
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,nspin
-         character(len = 3), intent(in) :: linType
+         integer, intent(in) :: linType
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
@@ -5724,7 +5726,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
-         character(len=*), intent(in) :: linearmode
+         integer, intent(in) :: linearmode
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        end subroutine create_LzdLIG
 

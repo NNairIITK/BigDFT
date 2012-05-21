@@ -15,7 +15,7 @@ program MINHOP
   use module_types
   use module_interfaces
   use m_ab6_symmetry
-
+  use yaml_output
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
   logical :: newmin,CPUcheck,occured,exist_poslocm
@@ -51,6 +51,8 @@ program MINHOP
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
 
+  !if (iproc ==0) call yaml_set_stream(unit=70,filename='global-logfile.yaml')
+  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 

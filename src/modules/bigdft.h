@@ -20,6 +20,14 @@ typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
 typedef struct BigDFT_Energs_ BigDFT_Energs;
 typedef struct BigDFT_OptLoop_ BigDFT_OptLoop;
 
+typedef enum
+  {
+    BIGDFT_WF_FORMAT_NONE,
+    BIGDFT_WF_FORMAT_PLAIN,
+    BIGDFT_WF_FORMAT_BINARY,
+    BIGDFT_WF_FORMAT_ETSF
+  } BigDFT_WfFileFormats;
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -124,8 +132,8 @@ typedef struct BigDFT_Inputs_
   double strtarget[6];
   f90_pointer_double qmass;
 
-  /* LIN file variables (partial. */
-  gchar linear[3];
+  /* PERF file variables (partial. */
+  guint linear;
 
   /* Private. */
   void *data;
@@ -169,17 +177,22 @@ typedef struct BigDFT_locReg_
   gboolean dispose_has_run;
 #endif
 
-  guint n[3], ni[3];
-
   /* Values that have been used to built this localisation region. */
   double h[3];
   double *radii;
   double crmult, frmult;
-  
+
+  /* Sizes of the boxes (taken from d). */
+  guint n[3], ni[3], ns[3], nsi[3], nfl[3], nfu[3];
+  guint norb;
+
   /* Values of the wfd descriptor. */
   guint nvctr_c, nvctr_f, nseg_c, nseg_f;
   guint *keyglob, *keygloc;
   guint *keyvloc, *keyvglob;
+
+  /* Additionnal values. */
+  double locrad, locregCenter[3];
 
   /* TODO: bindings to values... */
 
@@ -194,16 +207,24 @@ typedef enum
     GRID_FINE
   } BigDFT_Grid;
 
-BigDFT_LocReg* bigdft_locreg_new                 ();
-void           bigdft_locreg_free                (BigDFT_LocReg *glr);
-void           bigdft_locreg_set_radii           (BigDFT_LocReg *glr, const double *radii);
-void           bigdft_locreg_set_size            (BigDFT_LocReg *glr, const double h[3],
-                                                  double crmult, double frmult);
-void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
-gboolean*      bigdft_locreg_get_grid            (const BigDFT_LocReg *glr,
-                                                  BigDFT_Grid gridType);
-double*        bigdft_locreg_convert_to_isf      (const BigDFT_LocReg *glr,
-                                                  const double *psic);
+BigDFT_LocReg* bigdft_locreg_new           ();
+void           bigdft_locreg_free          (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_radii     (BigDFT_LocReg *glr, const double *radii);
+void           bigdft_locreg_set_size      (BigDFT_LocReg *glr, const double h[3],
+                                            double crmult, double frmult);
+void           bigdft_locreg_set_d_dims    (BigDFT_LocReg *lr, guint n[3], guint ni[3],
+                                            guint ns[3], guint nsi[3], guint nfl[3], guint nfu[3]);
+void           bigdft_locreg_set_wfd_dims  (BigDFT_LocReg *lr, guint nseg_c, guint nseg_f,
+                                            guint nvctr_c, guint nvctr_f);
+void           bigdft_locreg_init_d        (BigDFT_LocReg *glr);
+void           bigdft_locreg_init_wfd      (BigDFT_LocReg *glr);
+void           bigdft_locreg_init_bounds   (BigDFT_LocReg *lr);
+gboolean*      bigdft_locreg_get_grid      (const BigDFT_LocReg *glr, BigDFT_Grid gridType);
+double*        bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psic);
+void           bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
+                                                guint unitwf, BigDFT_WfFileFormats format,
+                                                gboolean linear, guint iorb, const guint n[3],
+                                                const double *psic);
 typedef struct _BigDFT_LocRegIter
 {
   const BigDFT_LocReg *glr;
@@ -212,9 +233,9 @@ typedef struct _BigDFT_LocRegIter
   guint i3, i2, i1, i0;
   double x0, x1, y, z;
 } BigDFT_LocRegIter;
-gboolean       bigdft_locreg_iter_new            (const BigDFT_LocReg *glr,
-                                                  BigDFT_LocRegIter *iter, BigDFT_Grid gridType);
-gboolean       bigdft_locreg_iter_next           (BigDFT_LocRegIter *iter);
+gboolean       bigdft_locreg_iter_new      (const BigDFT_LocReg *glr,
+                                            BigDFT_LocRegIter *iter, BigDFT_Grid gridType);
+gboolean       bigdft_locreg_iter_next     (BigDFT_LocRegIter *iter);
 
 /*********************************/
 /* BigDFT_Lzd data structure. */
@@ -239,9 +260,6 @@ struct BigDFT_lzd_
   gboolean dispose_has_run;
 #endif
 
-  /* Values binded from the Fortran object. */
-  double h[3];
-
   /* Bind of Llr array. */
   guint nlr;
   BigDFT_LocReg **Llr;
@@ -253,12 +271,18 @@ BigDFT_Lzd* bigdft_lzd_new();
 BigDFT_Lzd* bigdft_lzd_new_with_fortran (void *fortran_lzd);
 BigDFT_Lzd* bigdft_lzd_new_from_fortran (void *fortran_lzd);
 void        bigdft_lzd_free             (BigDFT_Lzd *lzd);
-void        bigdft_lzd_set_size         (BigDFT_Lzd *lzd, const double h[3],
-                                         double crmult, double frmult);
+gboolean    bigdft_lzd_check            (const BigDFT_Lzd *lzd);
+void        bigdft_lzd_emit_defined     (BigDFT_Lzd *lzd);
+void        bigdft_lzd_init_d           (BigDFT_Lzd *lzd);
+void        bigdft_lzd_set_n_locreg     (BigDFT_Lzd *lzd, guint nlr);
+void        bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint npsin);
 void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                          double crmult, double frmult);
-void        bigdft_lzd_define           (BigDFT_Lzd *lzd, const gchar type[3],
+void        bigdft_lzd_define           (BigDFT_Lzd *lzd, guint type,
                                          BigDFT_Orbs *orbs, guint iproc, guint nproc);
+gboolean    bigdft_lzd_iter_new         (const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
+                                         BigDFT_Grid gridType, guint ilr);
+gboolean    bigdft_lzd_iter_next        (BigDFT_LocRegIter *iter);
 
 
 /*******************************/
@@ -297,6 +321,8 @@ struct BigDFT_orbs_
   double *eval, *occup;
   double *kwgts, *kpts;
 
+  guint *inwhichlocreg, *onwhichmpi, *onwhichatom;
+
   /* Pointers on building objects. */
   const BigDFT_Inputs *in;
 
@@ -310,7 +336,7 @@ BigDFT_Orbs* bigdft_orbs_new (gboolean linear);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
 guint        bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr,
                                 const BigDFT_Inputs *in, guint iproc, guint nproc);
-gboolean     bigdft_orbs_get_linear(BigDFT_Orbs *orbs);
+gboolean     bigdft_orbs_get_linear(const BigDFT_Orbs *orbs);
 
 /*****************************/
 /* BigDFT_Wf data structure. */
@@ -358,10 +384,13 @@ typedef enum
     BIGDFT_PARTIAL_DENSITY
   } BigDFT_Spinor;
 
-BigDFT_Wf* bigdft_wf_new (gboolean linear);
-BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj);
+BigDFT_Wf* bigdft_wf_new (int inputPsiId);
+BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj, gboolean linear);
 void       bigdft_wf_free(BigDFT_Wf *wf);
 guint      bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc);
+void       bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot,
+                                      const BigDFT_Inputs *in, guint norb_cubic,
+                                      guint iproc, guint nproc);
 void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                     BigDFT_Proj *proj, BigDFT_Energs *energs,
                                     guint iproc, guint nproc);
@@ -371,11 +400,16 @@ guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspo
 const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                          guint *psiSize, guint iproc);
+BigDFT_LocReg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                    BigDFT_Spin ispin, guint iproc);
 gboolean   bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                        BigDFT_Spin ispin, BigDFT_Spinor ispinor,
                                        guint iproc, double *psic, guint psiSize);
 double*    bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, BigDFT_Spinor ispinor, guint iproc);
+void       bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
+                                        BigDFT_WfFileFormats format, const double *psic,
+                                        guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize);
 void       bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj,
                                   BigDFT_LocalFields *denspot, BigDFT_Energs *energs,
                                   BigDFT_OptLoop *params, const BigDFT_Inputs *in,
@@ -602,6 +636,10 @@ GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *ene
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
+void bigdft_signals_client_create_thread(GSocket *socket, BigDFT_Energs *energs,
+                                         BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                         BigDFT_OptLoop *optloop, GCancellable *cancellable,
+                                         GDestroyNotify destroy, gpointer data);
 #endif
 
 double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
