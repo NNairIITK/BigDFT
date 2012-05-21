@@ -326,9 +326,9 @@ static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
   /* Default values. */
   atoms->BC = 1;
   atoms->Units = 1;
-  atoms->acell[0] = 5.;
-  atoms->acell[1] = 5.;
-  atoms->acell[2] = 5.;
+  atoms->acell[0] = 0.;
+  atoms->acell[1] = 0.;
+  atoms->acell[2] = 0.;
   atoms->angdeg[0] = 90.;
   atoms->angdeg[1] = 90.;
   atoms->angdeg[2] = 90.;

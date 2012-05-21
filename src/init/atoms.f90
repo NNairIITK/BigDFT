@@ -762,6 +762,16 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
      write(*,*) ' but angdeg(1), angdeg(2) and angdeg(3) = ', angdeg
      stop 
   end if
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'W') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
 
   call posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -769,6 +779,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   call allocate_atoms_nat(atoms, atoms%nat, subname)
 
   call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, atoms%natpol)
+  atoms%natpol = 100
   do iat = 1, atoms%nat, 1
      if (units == 0) then
         rxyz(1,iat)=rxyz(1,iat) / bohr2ang
@@ -776,9 +787,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
         rxyz(3,iat)=rxyz(3,iat) / bohr2ang
      endif
      if (units == 3) then !add treatment for reduced coordinates
-        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
-        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
+        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
      else if (atoms%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
         rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
