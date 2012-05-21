@@ -536,6 +536,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   else
      rhodsc%nrhotot=dpbox%ndims(3)
   end if
+  write(*,*) 'after: rhodsc%icomm',rhodsc%icomm
   
 end subroutine density_descriptors
 

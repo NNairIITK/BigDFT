@@ -207,6 +207,7 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
   
   !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver
+  write(*,*) 'rhodsc%icomm',rhodsc%icomm
   if (nproc > 1) then
      call timing(iproc,'Rho_commun    ','ON')
      !write(*,*) 'rsflag',rsflag
@@ -224,6 +225,7 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
 
         ! splitted single-double precision communication (icomm=2)
      else if (rhodsc%icomm==2) then
+         write(*,*) 'compression scheme...'
          rhotot_dbl=0.0d0
          do ispin=1,nspin
            do irho=1, Lzd%Glr%d%n1i* Lzd%Glr%d%n2i*rhodsc%nrhotot
@@ -393,6 +395,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    use module_base
    use module_types
    use module_interfaces
+   use module_xc
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,nrhotot
@@ -410,6 +413,14 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    real(gp) :: hfac,spinval
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
+   real(dp):: init_value
+   real(dp),dimension(1):: temparr
+
+   ! The value with which rho_p will be initialized in partial_density_free if it is called for the first time
+   call xc_init_rho(1, temparr(1), nproc)
+   init_value=temparr(1)
+
+
 
    call initialize_work_arrays_sumrho(lr,w)
 
@@ -453,9 +464,15 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
             select case(lr%geocode)
             case('F')
 
-               call partial_density_free(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                  &   npsir,nspinn,nrhotot,&
-                  &   hfac,nscatterarr,spinval,psir,rho_p,lr%bounds%ibyyzz_r)
+               if(iorb==1) then
+                  call partial_density_free(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                     &   npsir,nspinn,nrhotot,&
+                     &   hfac,nscatterarr,spinval,psir,rho_p,lr%bounds%ibyyzz_r,init_value)
+               else
+                  call partial_density_free(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                     &   npsir,nspinn,nrhotot,&
+                     &   hfac,nscatterarr,spinval,psir,rho_p,lr%bounds%ibyyzz_r)
+               end if
 
             case('P')
 
@@ -593,7 +610,7 @@ END SUBROUTINE partial_density
 
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
       &   hfac,nscatterarr,spinsgn,psir,rho_p,&
-      &   ibyyzz_r) 
+      &   ibyyzz_r,init_value) 
    use module_base
    use module_types
    implicit none
@@ -604,10 +621,12 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
    real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
    integer, dimension(:,:,:),pointer :: ibyyzz_r 
+   real(dp),intent(in),optional :: init_value
    !local variables
    integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
    real(gp) :: hfac2
    real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
+   logical :: init
    !  integer :: ncount0,ncount1,ncount_rate,ncount_max
    !!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
    !sum different slices by taking into account the overlap
@@ -620,6 +639,8 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !!!   ithread=omp_get_thread_num()
    !!!   nthread=omp_get_num_threads()
    hfac2=2.0_gp*hfac
+
+   init=present(init_value)
 
    !  call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -660,8 +681,12 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
                   !conversion between the different types
                   psisq=real(psir(i1,i2,j3,1),dp)
                   psisq=psisq*psisq
-                  rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
-                  !write(93000+iorb,'(4i8,es20.10)') i1,i2,i3,isjmp,rho_p(i1,i2,i3s,isjmp)
+                  !!rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
+                  if (init) then
+                     rho_p(i1,i2,i3s,isjmp)=init_value+real(hfac,dp)*psisq
+                  else
+                     rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
+                  end if
                end do
             else !similar loop for npsir=4
                do i1=i1s,i1e
@@ -677,10 +702,21 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
                   r3=p1*p4-p2*p3
                   r4=p1*p1+p2*p2-p3*p3-p4*p4
 
-                  rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
-                  rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
-                  rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
-                  rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
+                  !!rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
+                  !!rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
+                  !!rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
+                  !!rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
+                  if (init) then
+                     rho_p(i1,i2,i3s,1)=init_value+real(hfac,dp)*r1
+                     rho_p(i1,i2,i3s,2)=init_value+real(hfac2,dp)*r2
+                     rho_p(i1,i2,i3s,3)=init_value+real(hfac2,dp)*r3
+                     rho_p(i1,i2,i3s,4)=init_value+real(hfac,dp)*r4
+                  else
+                     rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
+                     rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
+                     rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
+                     rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
+                  end if
                end do
             end if
          end do
