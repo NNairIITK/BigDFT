@@ -725,7 +725,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
   integer(kind = 8) :: lst
-  integer :: bc, units, i_stat, iat, i
+  integer :: bc, units, i_stat, iat, i, i_all
   double precision :: acell(3), angdeg(3)
   integer, allocatable :: igspin(:), igchrg(:)
 
@@ -815,6 +815,14 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   end do
 
   call posinp_yaml_free_list(lst)
+
+  i_all=-product(shape(igspin))*kind(igspin)
+  deallocate(igspin,stat=i_stat)
+  call memocc(i_stat,i_all,'igspin',subname)
+
+  i_all=-product(shape(igchrg))*kind(igchrg)
+  deallocate(igchrg,stat=i_stat)
+  call memocc(i_stat,i_all,'igchrg',subname)
 
 END SUBROUTINE read_yaml_positions
 
