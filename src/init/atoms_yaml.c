@@ -24,7 +24,9 @@ typedef struct _PosinpAtoms
   double *rxyz;
   char **atomnames;
   unsigned int *iatype, *ifrztyp;
-  int *igspin;
+  int *igspin, *igchrg;
+
+  /* The forces. */
 } PosinpAtoms;
 static const char *UnitsPositions_keys[] = {"angstroem", "atomic", "bohr", "reduced", NULL};
 static const char *BC_keys[] = {"periodic", "free", "surface", "wire", NULL};
@@ -59,6 +61,8 @@ static void posinp_atoms_free(PosinpAtoms *atoms)
     free(atoms->ifrztyp);
   if (atoms->igspin)
     free(atoms->igspin);
+  if (atoms->igchrg)
+    free(atoms->igchrg);
 
   free(atoms);
 }
@@ -73,9 +77,9 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
   fprintf(stdout, "angdeg is %g %g %g.\n", atoms->angdeg[0], atoms->angdeg[1], atoms->angdeg[2]);
   fprintf(stdout, "Position units are %d (%s).\n", atoms->units, UnitsPositions_keys[atoms->units]);
   for (i = 0; i < atoms->nat; i++)
-    fprintf(stdout, "Atom '%s' at %g %g %g (%d) f:%d s:%d.\n", atoms->atomnames[atoms->iatype[i]],
+    fprintf(stdout, "Atom '%s' at %g %g %g (%d) f:%d s:%d c:%d.\n", atoms->atomnames[atoms->iatype[i]],
             atoms->rxyz[3 * i + 0], atoms->rxyz[3 * i + 1], atoms->rxyz[3 * i + 2], atoms->iatype[i],
-            atoms->ifrztyp[i], atoms->igspin[i]);
+            atoms->ifrztyp[i], atoms->igspin[i], atoms->igchrg[i]);
 }
 #endif
 
@@ -196,7 +200,10 @@ static int _yaml_parser_read_double(yaml_parser_t *parser, double *val)
     {
       if (event.type == YAML_SCALAR_EVENT)
         {
-          *val = strtod((const char*)event.data.scalar.value, &end);
+          if (!strcasecmp((const char*)event.data.scalar.value, ".inf"))
+            *val = strtod((const char*)event.data.scalar.value + 1, &end);
+          else
+            *val = strtod((const char*)event.data.scalar.value, &end);
           if (end == (char*)event.data.scalar.value)
             {
               fprintf(stderr, "Parser error: cannot convert '%s' to a double.\n", end);
@@ -295,6 +302,7 @@ static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
                       event.data.scalar.value);
               for (*id = 0; keys[*id]; *id += 1)
                 fprintf(stderr, "              - '%s'\n", keys[*id]);
+              done = -1;
             }
         }
       else
@@ -494,6 +502,8 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
   memset(atoms->ifrztyp, 0, sizeof(unsigned int) * atom_size);
   atoms->igspin = malloc(sizeof(int) * atom_size);
   memset(atoms->igspin, 0, sizeof(int) * atom_size);
+  atoms->igchrg = malloc(sizeof(int) * atom_size);
+  memset(atoms->igchrg, 0, sizeof(int) * atom_size);
   
   while (!done)
     /* Get the next event. */
@@ -517,6 +527,8 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
                 memset(atoms->ifrztyp - ATOM_INC, 0, sizeof(unsigned int) * ATOM_INC);
                 atoms->igspin = realloc(atoms->igspin, sizeof(int) * atom_size);
                 memset(atoms->igspin - ATOM_INC, 0, sizeof(int) * ATOM_INC);
+                atoms->igchrg = realloc(atoms->igchrg, sizeof(int) * atom_size);
+                memset(atoms->igchrg - ATOM_INC, 0, sizeof(int) * ATOM_INC);
               }
             done = 0;
             break;
@@ -526,9 +538,12 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
           case YAML_SCALAR_EVENT:
             if (!strcmp((const char*)event.data.scalar.value, "IGSpin"))
               done = _yaml_parser_read_int(parser, atoms->igspin + count - 1);
-            if (!strcmp((const char*)event.data.scalar.value, "Frozen"))
+            else if (!strcmp((const char*)event.data.scalar.value, "IGChrg"))
+              done = _yaml_parser_read_int(parser, atoms->igchrg + count - 1);
+            else if (!strcmp((const char*)event.data.scalar.value, "Frozen"))
               done = posinp_yaml_frozen(parser, atoms->ifrztyp + count - 1);
-            done = 0;
+            else
+              done = 0;
             break;
           default:
             done = (event.type == YAML_STREAM_END_EVENT);
@@ -553,6 +568,7 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
   atoms->iatype    = realloc(atoms->iatype,    sizeof(unsigned int) * atoms->nat);
   atoms->ifrztyp   = realloc(atoms->ifrztyp,   sizeof(unsigned int) * atoms->nat);
   atoms->igspin    = realloc(atoms->igspin,    sizeof(int) * atoms->nat);
+  atoms->igchrg    = realloc(atoms->igchrg,    sizeof(int) * atoms->nat);
   for (atoms->ntypes = 0; atoms->atomnames[atoms->ntypes]; atoms->ntypes++);
   atoms->atomnames = realloc(atoms->atomnames, sizeof(char*) * atoms->ntypes);
 
@@ -773,7 +789,7 @@ void FC_FUNC_(posinp_yaml_get_dims, POSINP_YAML_GET_DIMS)(PosinpList **self, uns
 void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, unsigned int *i,
                                                             unsigned int *units, double *rxyz, 
                                                             unsigned int *iatype, unsigned int *ifrztyp,
-                                                            int *igspin)
+                                                            int *igspin, int *igchrg)
 {
   PosinpList *lst;
   unsigned int j;
@@ -788,6 +804,7 @@ void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, u
       memcpy(iatype,  lst->data->iatype,  sizeof(unsigned int) * lst->data->nat);
       memcpy(ifrztyp, lst->data->ifrztyp, sizeof(unsigned int) * lst->data->nat);
       memcpy(igspin,  lst->data->igspin,  sizeof(unsigned int) * lst->data->nat);
+      memcpy(igchrg,  lst->data->igchrg,  sizeof(unsigned int) * lst->data->nat);
       for (j = 0; j < lst->data->nat; j++)
         {
           iatype[j] += 1;
