@@ -5727,13 +5727,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine extract_potential_for_spectra
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optmix,psi,&
             ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
          use module_base
          use module_types
          use m_ab6_mixing
          implicit none
-         logical, intent(in) :: scf
+         logical, intent(in) :: scf,optmix
          integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
          real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
          character(len=3), intent(in) :: unblock_comms
@@ -5741,7 +5741,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(orbitals_data), intent(in) :: orbs
          type(local_zone_descriptors), intent(in) :: Lzd
-         type(ab6_mixing_object), intent(in) :: mix
+         type(ab6_mixing_object), intent(inout) :: mix
          type(DFT_local_fields), intent(inout) :: denspot
          type(SIC_data), intent(in) :: SIC
          character(len=*), intent(in) :: exctxpar
@@ -5843,6 +5843,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
           type(orbitals_data), intent(inout) :: orbs
       end subroutine evaltoocc
 
+!> Mix the electronic density or the potential using DIIS
+     subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
+          & n1,n2,n3,ucvol,rpnrm,nscatterarr)
+       use module_base
+       use defs_basis, only: AB6_NO_ERROR
+       use m_ab6_mixing
+       implicit none
+       integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
+       real(gp), intent(in) :: alphamix, ucvol
+       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+       type(ab6_mixing_object), intent(inout) :: mix
+       real(dp), dimension(npoints), intent(inout) :: rhopot
+       real(gp), intent(out) :: rpnrm
+     end subroutine mix_rhopot
 
    end interface
 

@@ -11,7 +11,7 @@
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-     nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+     nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optmix,psi,&
      ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
   use module_base
   use module_types
@@ -19,7 +19,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   use Poisson_Solver
   use m_ab6_mixing
   implicit none
-  logical, intent(in) :: scf
+  logical, intent(in) :: scf,optmix
   integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
@@ -27,7 +27,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
-  type(ab6_mixing_object), intent(in) :: mix
+  type(ab6_mixing_object), intent(inout) :: mix
   type(DFT_local_fields), intent(inout) :: denspot
   type(SIC_data), intent(in) :: SIC
   character(len=*), intent(in) :: exctxpar
@@ -72,6 +72,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      ! Potential from electronic charge density 
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
           GPU,atoms%sym,denspot%rhod,psi,denspot%rho_psi)
+
+     denspot%rhov_is=ELECTRONIC_DENSITY
 
      !initialize nested approach 
      !this has always to be done for using OMP parallelization in the 
@@ -120,23 +122,25 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   
 
      !here the density can be mixed
-     if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-        if (mix%kind == AB6_MIXING_DENSITY) then
-           call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
-                denspot%rhov,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                hx*hy*hz,rpnrm,denspot%dpcom%nscatterarr)
-           
-           if (iproc == 0 .and. itrp > 1) then
-              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                   &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
-              !yaml output
-              !write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
-           end if
-           ! xc_init_rho should be put in the mixing routines
-           denspot%rhov = abs(denspot%rhov) + 1.0d-20
-        end if
-     end if
+     if(optmix ) then
+       if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+          if (mix%kind == AB6_MIXING_DENSITY) then
+             call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
+                  denspot%rhov,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+                  hx*hy*hz,rpnrm,denspot%dpcom%nscatterarr)
+             
+             if (iproc == 0 .and. itrp > 1) then
+                write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                     &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
+                !yaml output
+                !write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+             end if
+             ! xc_init_rho should be put in the mixing routines
+             denspot%rhov = abs(denspot%rhov) + 1.0d-20
+          end if
+       end if
      denspot%rhov_is=ELECTRONIC_DENSITY
+     end if !optmix
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -592,8 +596,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                      call apply_atproj_iorb_new(iat,iorb,istart_c,&
                           nlpspd%nprojel,&
                           at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
-                          proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
-                          proj_G(iatype),paw)
+                          proj,psi(ispsi),hpsi(ispsi),eproj_sum)
                   end if
 !                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                   ispsi=ispsi+&

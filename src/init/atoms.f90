@@ -137,7 +137,6 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
 
   atoms%nat = nat
 
-  write(*,*)'ndebug',ndebug
   ! Allocate geometry related stuff.
   allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)

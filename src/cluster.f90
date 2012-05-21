@@ -845,7 +845,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               if(in%linear == 'TMO') linflag = 2
 
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,hxh,hyh,hzh,itrp,in%iscf,in%alphamix,mix,in%ixc,&
-                nlpspd,proj,rxyz,linflag,in%exctxpar,in%unblock_comms,hx,hy,hz,Lzd,orbs,in%SIC,confdatarr,GPU,psi,&
+                nlpspd,proj,rxyz,linflag,in%exctxpar,in%unblock_comms,hx,hy,hz,Lzd,orbs,in%SIC,confdatarr,&
+                GPU,.true.,psi,&
                 ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
 
 !!$!----
