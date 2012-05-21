@@ -1144,6 +1144,123 @@ subroutine frozen_itof(ifrztyp,frzchain)
         
 END SUBROUTINE frozen_itof
 
+!>Write yaml atomic file.
+subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  logical, intent(in) :: wrtforces
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,forces
+  !local varaibles
+  integer :: iunit_def,iostat,ierr,iat,ichg,ispol
+  real(gp) :: factor
+  
+  iostat=-1 !no changement of the default stream
+  !associate iunit with a yaml_stream (do not crash if already associated)
+  !first get the default stream
+  call yaml_get_default_stream(iunit_def)
+  if (iunit_def /= iunit) then
+     call yaml_set_stream(unit=iunit,tabbing=0,record_length=100,istat=iostat)
+     if (iostat /=0) then
+        call yaml_set_default_stream(iunit,ierr)
+     end if
+     !if the stream was not already present just set back the default to iunit_def
+  end if
+  !start the writing of the file
+  call yaml_new_document(unit=iunit)
+  !cell information
+  call yaml_open_map('Cell')
+  Cell_Units: select case(trim(atoms%units))
+  case('angstroem','angstroemd0')
+     call yaml_map('Units','angstroem')
+     factor=bohr2ang
+  case('atomic','atomicd0','bohr','bohrd0')
+     call yaml_map('Units','bohr')
+     factor=1.0_gp
+  end select Cell_Units
+  BC :select case(atoms%geocode)
+  case('F')
+     call yaml_map('BC','free')
+  case('S')
+     call yaml_map('BC','surface')
+     call yaml_open_sequence('acell',flow=.true.)
+       call yaml_sequence(yaml_toa(atoms%alat1*factor)) !x
+       call yaml_sequence('.inf')             !y
+       call yaml_sequence(yaml_toa(atoms%alat3*factor)) !z
+     call yaml_close_sequence()
+     !angdeg to be added
+  case('W')
+     call yaml_map('BC','wire')
+     call yaml_open_sequence('acell',flow=.true.)
+       call yaml_sequence('.inf')             !x
+       call yaml_sequence('.inf')             !y
+       call yaml_sequence(yaml_toa(atoms%alat3*factor)) !z
+     call yaml_close_sequence()
+  case('P')
+     call yaml_map('BC','periodic')
+     call yaml_map('acell',(/atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor/))
+     !angdeg to be added
+  end select BC
+  call yaml_close_map() !cell
+
+  call yaml_open_map('Positions')
+  Pos_Units: select case(trim(atoms%units))
+  case('angstroem','angstroemd0')
+     call yaml_map('Units','angstroem')
+  case('atomic','atomicd0','bohr','bohrd0')
+     call yaml_map('Units','bohr')
+  end select Pos_Units
+  call yaml_open_sequence('Values')
+  do iat=1,atoms%nat
+     call yaml_sequence(advance='no')
+     if (extra_info(iat)) call yaml_open_map(flow=.true.)
+     call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),&
+          rxyz(:,iat))
+     if (extra_info(iat)) then
+        call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+        if (ispol /=0) call yaml_map('IGSpin',ispol)
+        if (ichg /=0) call yaml_map('IGChg',ichg)
+        select case(atoms%ifrztyp(iat))
+        case(1)
+           call yaml_map('Frozen',.true.)
+        case(2)
+           call yaml_map('Frozen','fy')
+        case(3)
+           call yaml_map('Frozen','fxz')
+        end select
+        call yaml_close_map()
+     end if
+  end do
+  call yaml_close_sequence() !values
+  call yaml_close_map() !positions
+  if (wrtforces) then
+     call yaml_open_map('Forces')
+     
+     call yaml_close_map() !forces
+  end if
+
+  !restore the default stream
+  if (iostat==0) then
+     call yaml_set_default_stream(iunit_def,ierr)
+  end if
+
+contains
+
+  function extra_info(iat)
+    implicit none
+    integer, intent(in) :: iat
+    logical extra_info
+    extra_info=atoms%natpol(iat) /=0 .or. atoms%ifrztyp(iat)/=0
+  end function extra_info
+
+end subroutine wtyaml
+
+
 !>Calculate the charge and the spin polarisation to be placed on a given atom
 !!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
@@ -1163,6 +1280,8 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
   nspol=natpol-1000*nchrg-nsgn*100
 
 END SUBROUTINE charge_and_spol
+
+
 
 ! Init routine for bindings
 !> Allocate a new atoms_data type, for bindings.

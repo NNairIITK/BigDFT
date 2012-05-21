@@ -1989,9 +1989,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
 END SUBROUTINE read_atomic_file
 
 !> Write an atomic file
+!Yaml output included
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
@@ -1999,7 +2001,9 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
   !local variables
+  integer :: iostat
   character(len = 15) :: arFile
+  real(gp), dimension(:,:), pointer :: forces_yaml
 
   open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
   if (atoms%format == "xyz") then
@@ -2008,6 +2012,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   else if (atoms%format == "ascii") then
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
+  else if (atoms%format == 'yaml') then
+     if (present(forces)) then
+        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+     else
+        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+     end if
   else
      write(*,*) "Error, unknown file format."
      stop
