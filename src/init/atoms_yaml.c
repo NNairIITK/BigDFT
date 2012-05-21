@@ -1,9 +1,13 @@
+#include "config.h"
+
+#ifdef HAVE_YAML
 #include <yaml.h>
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
 
 #ifndef FC_FUNC_
 #define FC_FUNC_(A,B) A ## _
@@ -82,6 +86,7 @@ struct _PosinpList
   PosinpAtoms *data;
 };
 
+#ifdef HAVE_YAML
 static void _yaml_parser_error(const yaml_parser_t *parser)
 {
   switch (parser->error)
@@ -618,9 +623,13 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
 
   return done;
 }
+#endif
+
 PosinpList* posinp_yaml_parse(const char *filename)
 {
-  PosinpList *list, *tmp, *tmp2;
+  PosinpList *list;
+#ifdef HAVE_YAML
+  PosinpList *tmp, *tmp2;
   FILE *input;
   yaml_parser_t parser;
   yaml_event_t event;
@@ -678,6 +687,10 @@ PosinpList* posinp_yaml_parse(const char *filename)
   /* Destroy the Parser object. */
   yaml_parser_delete(&parser);
   fclose(input);
+#else
+  fprintf(stderr, "No YAML support.\n");
+  list = (PosinpList*)0;
+#endif
 
   return list;
 }
@@ -733,6 +746,13 @@ void FC_FUNC_(posinp_yaml_get_cell, POSINP_YAML_GET_CELL)(PosinpList **self, uns
       angdeg[1] = lst->data->angdeg[1];
       angdeg[2] = lst->data->angdeg[2];
     }
+  else
+    {
+      angdeg[0] = 90.;
+      angdeg[1] = 90.;
+      angdeg[2] = 90.;
+    }
+
 }
 void FC_FUNC_(posinp_yaml_get_dims, POSINP_YAML_GET_DIMS)(PosinpList **self, unsigned int *i,
                                                           unsigned int *nat, unsigned int *ntypes)

@@ -535,15 +535,20 @@ if test x"$ac_use_yaml" != x"no" ; then
    LDFLAGS="-L$ac_path_yaml/lib"
    AC_CHECK_LIB([yaml], [yaml_parser_parse],
                 [ac_use_yaml=yes], [ac_use_yaml=warn])
-   if test x"$ac_use_yaml" = x"yes" ; then
-      LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-      LIB_YAML_LIBS="-L$ac_path_yaml/lib -lyaml"
+   if test x"$ac_use_yaml" = x"yes"; then
+      if test x"$ac_path_yaml" != x"/usr" ; then
+         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+      fi
+      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
    fi
    AC_LANG_POP(C)
    LDFLAGS="$LDFLAGS_SVG"
    fi
    if test x"$ac_use_yaml" != x"yes" ; then
       AC_MSG_WARN([libyaml is not available])
+   else
+      AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
    fi
 fi
 AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_yaml" = x"yes")

@@ -774,6 +774,8 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   end if
 
   call posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
+  if (atoms%nat == 0) stop
+
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
   call allocate_atoms_nat(atoms, atoms%nat, subname)
