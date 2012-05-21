@@ -519,6 +519,37 @@ AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
+dnl Yaml input file support
+ac_use_yaml="yes"
+AC_ARG_WITH([yaml],
+            AS_HELP_STRING([--with-yaml], [add support of YAML for input files.]),
+            [ac_use_yaml=$withval], [ac_use_yaml=yes])
+AC_ARG_WITH([yaml-path],
+            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
+            [ac_path_yaml=$withval])
+if test x"$ac_use_yaml" != x"no" ; then
+   if test x"$ac_path_yaml" == x"" ; then
+      ac_path_yaml="/usr"
+   LDFLAGS_SVG="$LDFLAGS"
+   AC_LANG_PUSH(C)
+   LDFLAGS="-L$ac_path_yaml/lib"
+   AC_CHECK_LIB([yaml], [yaml_parser_parse],
+                [ac_use_yaml=yes], [ac_use_yaml=warn])
+   if test x"$ac_use_yaml" = x"yes" ; then
+      LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+      LIB_YAML_LIBS="-L$ac_path_yaml/lib -lyaml"
+   fi
+   AC_LANG_POP(C)
+   LDFLAGS="$LDFLAGS_SVG"
+   fi
+   if test x"$ac_use_yaml" != x"yes" ; then
+      AC_MSG_WARN([libyaml is not available])
+   fi
+fi
+AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_yaml" = x"yes")
+AC_SUBST(LIB_YAML_CFLAGS)
+AC_SUBST(LIB_YAML_LIBS)
+
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -757,7 +788,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -892,6 +923,9 @@ Options:
   With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
+  With libyaml:              $ac_use_yaml
+   | C flags:                $LIB_YAML_CFLAGS
+   | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
    | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
 
@@ -905,13 +939,16 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$ac_use_yaml" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
     echo "  libarchive:                disabled by tests"
+  fi
+  if test x"$ac_use_yaml" = x"warn" ; then
+    echo "  libyaml:                   disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"

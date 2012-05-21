@@ -1921,6 +1921,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
+   ! Test posinp.yaml
+   if (.not. file_exists) then
+      inquire(FILE = file//'.yaml', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+         write(atoms%format, "(A)") "yaml"
+      end if
+   end if
    ! Test the name directly
    if (.not. file_exists) then
       inquire(FILE = file, EXIST = file_exists)
@@ -1931,9 +1939,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
             write(atoms%format, "(A)") "xyz"
          else if (file(l-5:l) == ".ascii") then
             write(atoms%format, "(A)") "ascii"
+         else if (file(l-4:l) == ".yaml") then
+            write(atoms%format, "(A)") "yaml"
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-            write(*,*) " File should be *.ascii or *.xyz."
+            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
             if (present(status)) then
                status = 1
                return
@@ -1941,13 +1951,15 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
                stop
             end if
          end if
-         open(unit=99,file=trim(filename),status='old')
+         if (trim(atoms%format) /= "yaml") then
+            open(unit=99,file=trim(filename),status='old')
+         end if
       end if
    end if
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
@@ -1970,6 +1982,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
       else
          call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
       end if
+   else if (atoms%format == "yaml") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_yaml_positions(trim(filename), atoms,rxyz)
+      else
+         write(*,*) "Atomic input file in YAML not yet supported in archive file."
+         stop
+      end if
    end if
 
    !control atom positions
@@ -1980,8 +2000,8 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    nullify(atoms%sym%irrzon)
    nullify(atoms%sym%phnons)
 
-   ! rm temporary file.
-   if (.not.archive) then
+   ! close open file.
+   if (.not.archive .and. trim(atoms%format) /= "yaml") then
       close(99)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))

@@ -221,6 +221,15 @@ module module_interfaces
          end interface
       END SUBROUTINE read_ascii_positions
 
+      subroutine read_yaml_positions(filename, atoms, rxyz)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        type(atoms_data), intent(inout) :: atoms
+        real(gp), dimension(:,:), pointer :: rxyz
+      END SUBROUTINE read_yaml_positions
+
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base
          use module_types
