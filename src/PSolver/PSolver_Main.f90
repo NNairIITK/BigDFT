@@ -202,13 +202,16 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
-  do i3=1,nxc
-     do i2=1,m3
-        do i1=1,m1
-           i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-           zf(i1,i2,i3)=rhopot(i)
-        end do
-     end do
+
+  do i3 = 1, nxc
+    !$omp parallel do default(shared) private(i2, i1, i)
+    do i2=1,m3
+      do i1=1,m1
+        i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+        zf(i1,i2,i3)=rhopot(i)
+      end do
+    end do
+    !$omp end parallel do
   end do
 
   if(geocode == 'P') then
@@ -258,6 +261,8 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
         ind3p=(j2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            ind2p=(i3-1)*n01+ind3p
@@ -269,11 +274,14 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
            end do
         end do
+        !$omp end parallel do
      end do
   else
      do j2=1,nxc
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
@@ -283,6 +291,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)
            end do
         end do
+        !$omp end parallel do
      end do
   end if
   ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
