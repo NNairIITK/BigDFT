@@ -725,8 +725,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
   integer(kind = 8) :: lst
-  integer :: bc, units, i_stat, iat, i
+  integer :: bc, units, i_stat, iat, i, i_all
   double precision :: acell(3), angdeg(3)
+  integer, allocatable :: igspin(:), igchrg(:)
 
   call posinp_yaml_parse(lst, filename, len(filename))
 
@@ -779,9 +780,12 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
   call allocate_atoms_nat(atoms, atoms%nat, subname)
+  allocate(igspin(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,igspin,'igspin',subname)
+  allocate(igchrg(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,igchrg,'igchrg',subname)
 
-  call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, atoms%natpol)
-  atoms%natpol = 100
+  call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
   do iat = 1, atoms%nat, 1
      if (units == 0) then
         rxyz(1,iat)=rxyz(1,iat) / bohr2ang
@@ -789,9 +793,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
         rxyz(3,iat)=rxyz(3,iat) / bohr2ang
      endif
      if (units == 3) then !add treatment for reduced coordinates
-        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
-        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
-        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
+        if (atoms%alat1 > 0.) rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
+        if (atoms%alat2 > 0.) rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
+        if (atoms%alat3 > 0.) rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
      else if (atoms%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
         rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
@@ -802,6 +806,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
      else if (atoms%geocode == 'W') then
         rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
      end if
+     call charge_and_spol(atoms%natpol(iat), igchrg(iat), igspin(iat))
   end do
 
   call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
@@ -810,6 +815,14 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   end do
 
   call posinp_yaml_free_list(lst)
+
+  i_all=-product(shape(igspin))*kind(igspin)
+  deallocate(igspin,stat=i_stat)
+  call memocc(i_stat,i_all,'igspin',subname)
+
+  i_all=-product(shape(igchrg))*kind(igchrg)
+  deallocate(igchrg,stat=i_stat)
+  call memocc(i_stat,i_all,'igchrg',subname)
 
 END SUBROUTINE read_yaml_positions
 
