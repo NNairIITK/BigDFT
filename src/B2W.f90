@@ -19,14 +19,15 @@ program BigDFT2Wannier
    !etsf
    character(len=*), parameter :: subname='BigDFT2Wannier'
    type(locreg_descriptors) :: Glr
-   type(orbitals_data) :: orbs
-   type(orbitals_data) :: orbsp !<orbsp describes the projectors
-   type(orbitals_data) :: orbsv !<orbsv only the non-occupied orbitals
-   type(orbitals_data) :: orbsb !<orbsv only the non-occupied orbitals
+   type(orbitals_data) :: orbs  !< describes the occupied orbitals
+   type(orbitals_data) :: orbsp !< describes the projectors
+   type(orbitals_data) :: orbsv !< describes only the non-occupied orbitals
+   type(orbitals_data) :: orbsb !< describes the distribution of all orbitals
    type(atoms_data) :: atoms
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
+   integer, parameter :: WF_FORMAT_CUBE = 4
    integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3
@@ -95,10 +96,6 @@ program BigDFT2Wannier
    call system_clock(ncount0,ncount_rate,ncount_max) 
 
    ! Read input.inter file
-   ! It defines the name of the system studied and some important integers :
-   ! the number of occupied and unoccupied bands to compute mmn and mmn matrix, and the total number of unoccupied states to use in the precheck mode.
-   ! pre_check defines if the pre-check calculations have to be done.
-   ! Other logicals define if spherical harmonics and/or their angular and radial parts have to be written.
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
@@ -113,135 +110,121 @@ program BigDFT2Wannier
       stop
    end if
 
-   if (filetype == 'etsf' .or. filetype == 'ETSF' .or. filetype =='bin' .or. filetype =='BIN') then
+   ! assign the input_wf_format
+   iformat = WF_FORMAT_NONE
+   select case (filetype)
+   case ("ETSF","etsf")
+      iformat = WF_FORMAT_ETSF
+   case ("BIN","bin")
+      iformat = WF_FORMAT_BINARY
+   case ("cube","CUBE")
+      iformat = WF_FORMAT_CUBE
+   case default
+      if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+      stop
+   end select
 
-      ! assign the input_wf_format
-      iformat = WF_FORMAT_NONE
-      select case (filetype)
-      case ("ETSF","etsf")
-         iformat = WF_FORMAT_ETSF
-      case ("BIN","bin")
-         iformat = WF_FORMAT_BINARY
-      case default
-         if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
-         stop
-      end select
+   ! Initalise the variables for the calculation
+   call standard_inputfile_names(input,radical,nproc)
+   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
 
+   if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 
-      ! Initalise the variables for the calculation
-      call standard_inputfile_names(input,radical,nproc)
-      call read_input_variables(iproc,'posinp',input, atoms, rxyz)
+   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-      if (iproc == 0) call print_general_parameters(nproc,input,atoms)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
 
-      allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
-      call memocc(i_stat,radii_cf,'radii_cf',subname)
+   ! Determine size alat of overall simulation cell and shift atom positions
+   ! then calculate the size in units of the grid space
+   call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+      &   Glr,shift)
 
-      call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
+   call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
+      &   atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
-      ! Set-up number of states and shifting values.
-      nvirtu = abs(input%norbv)
-      nvirtd = 0
-      if (input%nspin==2) nvirtd=nvirtu
-      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+   ! don't need radii_cf anymore
+   i_all = -product(shape(radii_cf))*kind(radii_cf)
+   deallocate(radii_cf,stat=i_stat)
+   call memocc(i_stat,i_all,'radii_cf',subname)
 
-      !Setup the description of the projectors (they are similar to orbitals)
-      call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp,.false.) 
+   ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
+   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)
+   if(orbs%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
+   if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
 
-      if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
+   ! Read integers in order to allocate tables related to projectors 
+   call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
+   call allocate_initial()
+   call orbitals_descriptors(iproc,nproc,n_proj,n_proj,0,1,1,&
+        1,(/ 0.0_dp,0.0_dp,0.0_dp /),0.0_dp,orbsp,.false.) 
 
-      ! Determine size alat of overall simulation cell and shift atom positions
-      ! then calculate the size in units of the grid space
-      call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-         &   Glr,shift)
+   ! Set-up number of virtual states
+   if(precheck .and. n_virt_tot > 0) then
+     nvirtu = abs(input%norbv)
+     nvirtd = 0
+   else if()
+   end if
+   if (input%nspin==2) nvirtd=nvirtu
+   call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+      &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
-      ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-      call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-         &   atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
+   ! Read Wannier90 .nnkp file.
+   ! The most important informations to be read are : 
+   !  - ctr_proj : the coordinates of the center of the projections
+   !  - l, mr, rvalue and zona = Z/a : the parameters used to build spherical harmonics
+   !  - k_plus_b and G_vec : the parameters used to build the nearest neighbours k-points
+   call read_nnkp(iproc,seedname, calc_only_A, real_latt, recip_latt, n_kpts, n_proj, n_nnkpts, &
+      &   n_excb, kpts, ctr_proj, x_proj, z_proj, l, mr, rvalue, &
+      &   zona, k_plus_b, G_vec, excb)
 
-      ! don't need radii_cf anymore
-      i_all = -product(shape(radii_cf))*kind(radii_cf)
-      deallocate(radii_cf,stat=i_stat)
-      call memocc(i_stat,i_all,'radii_cf',subname)       
-
-      ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
-      call orbitals_communicators(iproc,nproc,Glr,orbs,comms)
-      if(orbs%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
-      !   call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-      !   if(orbsv%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
-
-      ! Read integers in order to allocate tables used to store l, mr, rvalue, zona, ...
-      call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
-
-      ! MODIFICATION for Wannier library
-      ! Instead of reading a nnkp file, we generate the information from wannier
-      !   call wannier_setup(seed_name,mp_grid,num_kpts,real_lattice,recip_lattice, kpt_latt,num_bands_tot,num_atoms, &
-      !        atom_symbols,atoms_cart, gamma_only,spinors,&
-      !        nntot,nnlist,nncell,num_bands,num_wann,proj_site, &   !outputs begin on this line
-      !        proj_l,proj_m,proj_radial,proj_z,proj_x,proj_zona, &
-      !        exclude_bands)
-
-      ! END MODIFICATION
-
-      call allocate_initial()
-
-      ! Read Wannier90 .nnkp file.
-      ! The most important informations to be read are : 
-      !  - ctr_proj : the coordinates of the center of the projections
-      !  - l, mr, rvalue and zona = Z/a : the parameters used to build spherical harmonics
-      !  - k_plus_b and G_vec : the parameters used to build the nearest neighbours k-points
-      call read_nnkp(iproc,seedname, calc_only_A, real_latt, recip_latt, n_kpts, n_proj, n_nnkpts, &
-         &   n_excb, kpts, ctr_proj, x_proj, z_proj, l, mr, rvalue, &
-         &   zona, k_plus_b, G_vec, excb)
-
-      ! Check that z_proj and x_proj are orthonormal and build y_proj
-      do np = 1, n_proj  
-         znorm = sqrt(z_proj(np,1)**2+z_proj(np,2)**2+z_proj(np,3)**2)
-         xnorm = sqrt(x_proj(np,1)**2+x_proj(np,2)**2+x_proj(np,3)**2)
-         ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
-         if(abs(znorm - 1.d0) > eps6 .or. abs(znorm - 1.d0) > eps6 .or. abs(ortho) > eps6) then
-            if(iproc == 0) then
-               write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
-               write(*,'(A,e9.7)') 'z norm: ',znorm
-               write(*,'(A,e9.7)') 'x norm: ',xnorm
-               write(*,'(A,e9.7)') 'x dot z: ',ortho
-               stop
-            end if
+   ! Check that z_proj and x_proj are orthonormal and build y_proj
+   do np = 1, n_proj  
+      znorm = sqrt(z_proj(np,1)**2+z_proj(np,2)**2+z_proj(np,3)**2)
+      xnorm = sqrt(x_proj(np,1)**2+x_proj(np,2)**2+x_proj(np,3)**2)
+      ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
+      if(abs(znorm - 1.d0) > eps6 .or. abs(znorm - 1.d0) > eps6 .or. abs(ortho) > eps6) then
+         if(iproc == 0) then
+            write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
+            write(*,'(A,e9.7)') 'z norm: ',znorm
+            write(*,'(A,e9.7)') 'x norm: ',xnorm
+            write(*,'(A,e9.7)') 'x dot z: ',ortho
+            stop
          end if
-         !Now we need to calculate the y direction
-         y_proj(np,1) = x_proj(np,3)*z_proj(np,2) - x_proj(np,2)*z_proj(np,3)
-         y_proj(np,2) = x_proj(np,1)*z_proj(np,3) - x_proj(np,3)*z_proj(np,1)
-         y_proj(np,3) = x_proj(np,2)*z_proj(np,1) - x_proj(np,1)*z_proj(np,2)
-         !print *,'np,norms,ortho,y',np,znorm,xnorm,ortho,y_proj(np,:) 
-      end do
+      end if
+      !Now we need to calculate the y direction
+      y_proj(np,1) = x_proj(np,3)*z_proj(np,2) - x_proj(np,2)*z_proj(np,3)
+      y_proj(np,2) = x_proj(np,1)*z_proj(np,3) - x_proj(np,3)*z_proj(np,1)
+      y_proj(np,3) = x_proj(np,2)*z_proj(np,1) - x_proj(np,1)*z_proj(np,2)
+      !print *,'np,norms,ortho,y',np,znorm,xnorm,ortho,y_proj(np,:) 
+   end do
 
-      !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
-      call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
+   !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
+   call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
 
-      ! Simplification of the notations
-      nx=Glr%d%n1i
-      ny=Glr%d%n2i
-      nz=Glr%d%n3i
-      n_at=atoms%nat
-      call initialize_work_arrays_sumrho(Glr,w)
+   ! Simplification of the notations
+   nx=Glr%d%n1i
+   ny=Glr%d%n2i
+   nz=Glr%d%n3i
+   n_at=atoms%nat
+   call initialize_work_arrays_sumrho(Glr,w)
 
-      ! Allocations for Amnk calculation
-      ! Define orbsp and commsp, used for the spherical harmonics transposition.
-      call orbitals_communicators(iproc,nproc,Glr,orbsp,commsp)
-      npsidim2=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
-      allocate(ylm(nx,ny,nz),stat=i_stat)
-      call memocc(i_stat,ylm,'ylm',subname)
-      allocate(func_r(nx,ny,nz),stat=i_stat)
-      call memocc(i_stat,func_r,'func_r',subname)
-      allocate(sph_har_etsf(nx*ny*nz),stat=i_stat)
-      call memocc(i_stat,sph_har_etsf,'sph_har_etsf',subname)
-      allocate(amnk_bands_sorted(n_virt),stat=i_stat)
-      call memocc(i_stat,amnk_bands_sorted,'amnk_bands_sorted',subname)
+   ! Allocations for Amnk calculation
+   ! Define orbsp and commsp, used for the spherical harmonics transposition.
+   call orbitals_communicators(iproc,nproc,Glr,orbsp,commsp)
+   npsidim2=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
+   allocate(ylm(nx,ny,nz),stat=i_stat)
+   call memocc(i_stat,ylm,'ylm',subname)
+   allocate(func_r(nx,ny,nz),stat=i_stat)
+   call memocc(i_stat,func_r,'func_r',subname)
+   allocate(sph_har_etsf(nx*ny*nz),stat=i_stat)
+   call memocc(i_stat,sph_har_etsf,'sph_har_etsf',subname)
+   allocate(amnk_bands_sorted(n_virt),stat=i_stat)
+   call memocc(i_stat,amnk_bands_sorted,'amnk_bands_sorted',subname)
 
 
-      call timing(iproc,'Precondition  ','OF')
+   call timing(iproc,'Precondition  ','OF')
 
       if ((pre_check .eqv. .true.) .and. n_virt_tot > 0) then
 
@@ -494,8 +477,8 @@ program BigDFT2Wannier
       call razero(orbs%norb*orbs%nkpts,orbs%eval)
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
-            call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,&
-            rxyz, Glr%wfd,psi_etsf(1,1))
+            call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+            Glr%wfd,psi_etsf(1,1))
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
@@ -534,8 +517,8 @@ program BigDFT2Wannier
       call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
       if(orbsv%norbp > 0) then
          filename=trim(input%dir_output) // 'virtuals'
-            call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,&
-            rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
+            call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+            Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then

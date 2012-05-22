@@ -281,7 +281,7 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
 
-      ! Somce special treatement if we are in the high accuracy part
+      ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
 
@@ -432,6 +432,12 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
+!DEBUG
+!if(iproc==0)then
+!print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+!end if
+!END DEBUG
+
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -901,7 +907,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
-  logical:: redefine_derivatives
+  integer :: ilr
+  logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -923,7 +930,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged) then
+  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged &
+     .and. input%lin%locrad_increase_amount > 0.0_dp) then
       lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
       !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
@@ -938,12 +946,21 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locreg_increased=.true.
   end if
 
-  redefine_derivatives=.false.
+  !redefine_derivatives=.false.
   if(lscv%lowaccur_converged) then
-      if(iproc==0) then
-          write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+      change = .false.
+      do ilr = 1, tmb%lzd%nlr
+         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
+             change = .true.
+             exit
+         end if
+      end do
+      if(change) then
+         if(iproc==0) then
+             write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+         end if
+         lscv%locreg_increased=.true.
       end if
-      lscv%locreg_increased=.true.
   end if
   if(lscv%locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
