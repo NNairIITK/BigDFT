@@ -557,7 +557,7 @@ if test x"$ac_use_libyaml" != x"no" ; then
          AC_MSG_WARN([libyaml is not available.])
       fi
    else
-      ac_build_libyaml="skip"
+      ac_build_libyaml="no"
    fi
    AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
 fi
@@ -998,6 +998,7 @@ Options:
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
   With libyaml:              $ac_use_libyaml
+   | internal built:         $ac_build_libyaml
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib

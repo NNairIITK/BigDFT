@@ -24,7 +24,7 @@ typedef struct _PosinpAtoms
   double *rxyz;
   char **atomnames;
   unsigned int *iatype, *ifrztyp;
-  int *igspin, *igchrg;
+  int *igspin, *igchg;
 
   /* The forces. */
 } PosinpAtoms;
@@ -38,6 +38,19 @@ static PosinpAtoms* posinp_atoms_new()
 
   atoms = malloc(sizeof(PosinpAtoms));
   memset(atoms, 0, sizeof(PosinpAtoms));
+
+  /* Default values. */
+  atoms->BC = 1;
+  atoms->Units = 1;
+  atoms->acell[0] = 0.;
+  atoms->acell[1] = 0.;
+  atoms->acell[2] = 0.;
+  atoms->angdeg[0] = 90.;
+  atoms->angdeg[1] = 90.;
+  atoms->angdeg[2] = 90.;
+
+  /* Default values. */
+  atoms->units = 1;
 
   return atoms;
 }
@@ -61,8 +74,8 @@ static void posinp_atoms_free(PosinpAtoms *atoms)
     free(atoms->ifrztyp);
   if (atoms->igspin)
     free(atoms->igspin);
-  if (atoms->igchrg)
-    free(atoms->igchrg);
+  if (atoms->igchg)
+    free(atoms->igchg);
 
   free(atoms);
 }
@@ -79,7 +92,7 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
   for (i = 0; i < atoms->nat; i++)
     fprintf(stdout, "Atom '%s' at %g %g %g (%d) f:%d s:%d c:%d.\n", atoms->atomnames[atoms->iatype[i]],
             atoms->rxyz[3 * i + 0], atoms->rxyz[3 * i + 1], atoms->rxyz[3 * i + 2], atoms->iatype[i],
-            atoms->ifrztyp[i], atoms->igspin[i], atoms->igchrg[i]);
+            atoms->ifrztyp[i], atoms->igspin[i], atoms->igchg[i]);
 }
 #endif
 
@@ -336,16 +349,6 @@ static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
   yaml_event_t event;
   int done, count;
 
-  /* Default values. */
-  atoms->BC = 1;
-  atoms->Units = 1;
-  atoms->acell[0] = 0.;
-  atoms->acell[1] = 0.;
-  atoms->acell[2] = 0.;
-  atoms->angdeg[0] = 90.;
-  atoms->angdeg[1] = 90.;
-  atoms->angdeg[2] = 90.;
-
   /* Read the event sequence. */
   done = 0;
   count = 0;
@@ -502,8 +505,8 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
   memset(atoms->ifrztyp, 0, sizeof(unsigned int) * atom_size);
   atoms->igspin = malloc(sizeof(int) * atom_size);
   memset(atoms->igspin, 0, sizeof(int) * atom_size);
-  atoms->igchrg = malloc(sizeof(int) * atom_size);
-  memset(atoms->igchrg, 0, sizeof(int) * atom_size);
+  atoms->igchg = malloc(sizeof(int) * atom_size);
+  memset(atoms->igchg, 0, sizeof(int) * atom_size);
   
   while (!done)
     /* Get the next event. */
@@ -527,8 +530,8 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
                 memset(atoms->ifrztyp - ATOM_INC, 0, sizeof(unsigned int) * ATOM_INC);
                 atoms->igspin = realloc(atoms->igspin, sizeof(int) * atom_size);
                 memset(atoms->igspin - ATOM_INC, 0, sizeof(int) * ATOM_INC);
-                atoms->igchrg = realloc(atoms->igchrg, sizeof(int) * atom_size);
-                memset(atoms->igchrg - ATOM_INC, 0, sizeof(int) * ATOM_INC);
+                atoms->igchg = realloc(atoms->igchg, sizeof(int) * atom_size);
+                memset(atoms->igchg - ATOM_INC, 0, sizeof(int) * ATOM_INC);
               }
             done = 0;
             break;
@@ -538,8 +541,8 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
           case YAML_SCALAR_EVENT:
             if (!strcmp((const char*)event.data.scalar.value, "IGSpin"))
               done = _yaml_parser_read_int(parser, atoms->igspin + count - 1);
-            else if (!strcmp((const char*)event.data.scalar.value, "IGChrg"))
-              done = _yaml_parser_read_int(parser, atoms->igchrg + count - 1);
+            else if (!strcmp((const char*)event.data.scalar.value, "IGChg"))
+              done = _yaml_parser_read_int(parser, atoms->igchg + count - 1);
             else if (!strcmp((const char*)event.data.scalar.value, "Frozen"))
               done = posinp_yaml_frozen(parser, atoms->ifrztyp + count - 1);
             else
@@ -568,7 +571,7 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
   atoms->iatype    = realloc(atoms->iatype,    sizeof(unsigned int) * atoms->nat);
   atoms->ifrztyp   = realloc(atoms->ifrztyp,   sizeof(unsigned int) * atoms->nat);
   atoms->igspin    = realloc(atoms->igspin,    sizeof(int) * atoms->nat);
-  atoms->igchrg    = realloc(atoms->igchrg,    sizeof(int) * atoms->nat);
+  atoms->igchg     = realloc(atoms->igchg,     sizeof(int) * atoms->nat);
   for (atoms->ntypes = 0; atoms->atomnames[atoms->ntypes]; atoms->ntypes++);
   atoms->atomnames = realloc(atoms->atomnames, sizeof(char*) * atoms->ntypes);
 
@@ -578,10 +581,6 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
 {
   yaml_event_t event;
   int done, count;
-  unsigned int Units;
-
-  /* Default values. */
-  Units = 1;
 
   /* Read the event sequence. */
   done = 0;
@@ -750,7 +749,7 @@ void FC_FUNC_(posinp_yaml_get_cell, POSINP_YAML_GET_CELL)(PosinpList **self, uns
   for (lst = *self, j = 0; j < *i; j++)
     if (lst)
       lst = lst->next;
-
+  
   if (lst)
     {
       *BC = lst->data->BC;
@@ -789,7 +788,7 @@ void FC_FUNC_(posinp_yaml_get_dims, POSINP_YAML_GET_DIMS)(PosinpList **self, uns
 void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, unsigned int *i,
                                                             unsigned int *units, double *rxyz, 
                                                             unsigned int *iatype, unsigned int *ifrztyp,
-                                                            int *igspin, int *igchrg)
+                                                            int *igspin, int *igchg)
 {
   PosinpList *lst;
   unsigned int j;
@@ -803,15 +802,11 @@ void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, u
       *units = lst->data->units;
       memcpy(iatype,  lst->data->iatype,  sizeof(unsigned int) * lst->data->nat);
       memcpy(ifrztyp, lst->data->ifrztyp, sizeof(unsigned int) * lst->data->nat);
-      memcpy(igspin,  lst->data->igspin,  sizeof(unsigned int) * lst->data->nat);
-      memcpy(igchrg,  lst->data->igchrg,  sizeof(unsigned int) * lst->data->nat);
+      memcpy(igspin,  lst->data->igspin,  sizeof(int) * lst->data->nat);
+      memcpy(igchg,   lst->data->igchg,   sizeof(int) * lst->data->nat);
+      memcpy(rxyz,    lst->data->rxyz,    sizeof(double) * lst->data->nat * 3);
       for (j = 0; j < lst->data->nat; j++)
-        {
-          iatype[j] += 1;
-          rxyz[0 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 0];
-          rxyz[1 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 1];
-          rxyz[2 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 2];
-        }
+	iatype[j] += 1;
     }
 }
 void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **self, unsigned int *i,
