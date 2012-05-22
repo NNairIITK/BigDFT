@@ -24,11 +24,11 @@ program memguess
    character(len=40) :: comment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.
+   logical :: disable_deprecation = .false.,convertpos=.true.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
-   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor
+   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
    real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel
    type(input_variables) :: in
    type(atoms_data) :: atoms
@@ -87,6 +87,11 @@ program memguess
          &   '            in the "gatom-wfn.dat" file '
       write(*,'(1x,a)')&
          &   '           <ng> is the number of gaussians used for the gatom calculation'
+      write(*,'(1x,a)')&
+           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
+      write(*,'(1x,a)')&
+           & 'converts input positions file "from" to file "to" using the given formats'
+
       stop
    else
       read(unit=tatonam,fmt=*) nproc
@@ -189,6 +194,17 @@ program memguess
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
+         else if (trim(tatonam)=='convert-positions') then
+            convertpos=.true.
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            !call getarg(i_arg,fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            !call getarg(i_arg,fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -256,6 +272,25 @@ program memguess
 
       call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
+      stop
+   end if
+   if (convertpos) then
+      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat)
+      if (i_stat /=0) stop 'error on input file parsing' 
+      !find the format of the output file
+      if (index(fileTo,'.xyz') > 0) then
+         irad=index(fileTo,'.xyz')
+         atoms%format='xyz  '
+      else if (index(fileTo,'.ascii') > 0) then
+         irad=index(fileTo,'.ascii')
+         atoms%format='ascii'
+      else if (index(fileTo,'.yaml') > 0) then
+         irad=index(fileTo,'.yaml')
+         atoms%format='yaml '
+      end if
+      
+      call write_atomic_file(fileTo(1:irad-1),0.0_gp,rxyz,atoms,&
+           'converted from '//trim(fileFrom))
       stop
    end if
 

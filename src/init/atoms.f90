@@ -714,6 +714,105 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_ascii_positions
 
+subroutine read_yaml_positions(filename, atoms, rxyz)
+  use module_base
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: filename
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  !local variables
+  character(len=*), parameter :: subname='read_ascii_positions'
+  integer(kind = 8) :: lst
+  integer :: bc, units, i_stat, iat, i
+  double precision :: acell(3), angdeg(3)
+
+  call posinp_yaml_parse(lst, filename, len(filename))
+
+  call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
+  if (bc == 0) then
+     atoms%geocode = 'P'
+  else if (bc == 1) then
+     atoms%geocode = 'F'
+  else if (bc == 2) then
+     atoms%geocode = 'S'
+  else if (bc == 3) then
+     atoms%geocode = 'W'
+  end if
+  if (units == 0) then
+     write(atoms%units, "(A)") "angstroem"
+  else if (units == 1) then
+     write(atoms%units, "(A)") "atomic"
+  else if (units == 2) then
+     write(atoms%units, "(A)") "bohr"
+  end if
+  atoms%alat1 = acell(1)
+  atoms%alat2 = acell(2)
+  atoms%alat3 = acell(3)
+  !Convert the values of the cell sizes in bohr
+  if (atoms%units=='angstroem') then
+     ! if Angstroem convert to Bohr
+     atoms%alat1 = atoms%alat1 / bohr2ang
+     atoms%alat2 = atoms%alat2 / bohr2ang
+     atoms%alat3 = atoms%alat3 / bohr2ang
+  endif
+  if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
+     write(*,*) 'Only orthorombic boxes are possible.'
+     write(*,*) ' but angdeg(1), angdeg(2) and angdeg(3) = ', angdeg
+     stop 
+  end if
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'W') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
+
+  call posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
+  if (atoms%nat == 0) stop
+
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
+  call allocate_atoms_nat(atoms, atoms%nat, subname)
+
+  call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, atoms%natpol)
+  atoms%natpol = 100
+  do iat = 1, atoms%nat, 1
+     if (units == 0) then
+        rxyz(1,iat)=rxyz(1,iat) / bohr2ang
+        rxyz(2,iat)=rxyz(2,iat) / bohr2ang
+        rxyz(3,iat)=rxyz(3,iat) / bohr2ang
+     endif
+     if (units == 3) then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
+        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
+     else if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'W') then
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+  end do
+
+  call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
+  do i = 1, atoms%ntypes, 1
+     call posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
+  end do
+
+  call posinp_yaml_free_list(lst)
+
+END SUBROUTINE read_yaml_positions
+
 !> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
@@ -1156,9 +1255,11 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,forces
-  !local varaibles
+  !local variables
+  logical :: reduced
   integer :: iunit_def,iostat,ierr,iat,ichg,ispol
   real(gp) :: factor
+  real(gp) :: xred(3)
   
   iostat=-1 !no changement of the default stream
   !associate iunit with a yaml_stream (do not crash if already associated)
@@ -1179,7 +1280,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem')
      factor=bohr2ang
-  case('atomic','atomicd0','bohr','bohrd0')
+  case('atomic','atomicd0','bohr','bohrd0','reduced')
      call yaml_map('Units','bohr')
      factor=1.0_gp
   end select Cell_Units
@@ -1214,13 +1315,21 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
      call yaml_map('Units','angstroem')
   case('atomic','atomicd0','bohr','bohrd0')
      call yaml_map('Units','bohr')
+  case('reduced')
+     call yaml_map('Units','reduced')
+     reduced=.true.
   end select Pos_Units
   call yaml_open_sequence('Values')
   do iat=1,atoms%nat
      call yaml_sequence(advance='no')
      if (extra_info(iat)) call yaml_open_map(flow=.true.)
-     call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),&
-          rxyz(:,iat))
+     xred(1:3)=rxyz(1:3,iat)
+     if (reduced) then
+        if (atoms%geocode == 'P' .or. atoms%geocode =='S') xred(1)=rxyz(1,iat)/atoms%alat1
+        if (atoms%geocode == 'P') xred(2)=rxyz(2,iat)/atoms%alat2
+        if (atoms%geocode /='F') xred(3)=rxyz(3,iat)/atoms%alat3
+     end if
+     call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),xred,fmt='(g25.17)')
      if (extra_info(iat)) then
         call charge_and_spol(atoms%natpol(iat),ichg,ispol)
         if (ispol /=0) call yaml_map('IGSpin',ispol)
@@ -1255,7 +1364,7 @@ contains
     implicit none
     integer, intent(in) :: iat
     logical extra_info
-    extra_info=atoms%natpol(iat) /=0 .or. atoms%ifrztyp(iat)/=0
+    extra_info=atoms%natpol(iat) /=100 .or. atoms%ifrztyp(iat)/=0
   end function extra_info
 
 end subroutine wtyaml

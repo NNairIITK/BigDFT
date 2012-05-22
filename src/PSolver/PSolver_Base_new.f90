@@ -44,12 +44,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
+  integer :: maxThread, omp_get_max_threads
+  integer :: maxIter,ith
+!!$     real(8), dimension(:,:,:,:), allocatable, target :: zts
+!!$     real(8), dimension(:,:,:,:), allocatable, target :: zws
+  type :: workspaces
+     real(dp), dimension(:,:,:), pointer :: zt
+     real(dp), dimension(:,:,:), pointer :: zw
+  end type workspaces
+  type(workspaces), dimension(:), allocatable :: w_omp
 
-	integer :: maxThread, omp_get_max_threads
-	real(8), dimension(:,:,:,:), allocatable, target :: zts
-	real(8), dimension(:,:,:,:), allocatable, target :: zws
-
-	integer :: maxIter
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -215,21 +219,33 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !different loop if halfft or not (output part)
 
-	!$ nThread = omp_get_max_threads()
+  !$ nThread = omp_get_max_threads()
 
-	allocate( zws(2, ncache/4, 2+ndebug, 0:nThread-1), stat=i_stat )
-	call memocc(i_stat, zws, 'zws', subname)
-	allocate( zts(2,lzt, n1+ndebug, 0:nThread-1), stat=i_stat )
-	call memocc(i_stat, zts, 'zts', subname)
+  nullify(zw,zt)
+  !allocate workspaces (crash if problems)
+  allocate(w_omp(0:nThread-1))
+  do ith=0,nThread-1
+     allocate(w_omp(ith)%zw(2, ncache/4, 2+ndebug), stat=i_stat )
+     call memocc(i_stat, w_omp(ith)%zw, 'zws', subname)
+     allocate(w_omp(ith)%zt(2,lzt, n1+ndebug), stat=i_stat )
+     call memocc(i_stat, w_omp(ith)%zt, 'zts', subname)
+  end do
+
+!!$	allocate( zws(2, ncache/4, 2+ndebug, 0:nThread-1), stat=i_stat )
+!!$	call memocc(i_stat, zws, 'zws', subname)
+!!$	allocate( zts(2,lzt, n1+ndebug, 0:nThread-1), stat=i_stat )
+!!$	call memocc(i_stat, zts, 'zts', subname)
 
 	maxIter = min(md2 /nproc, n2dim - iproc *( md2 /nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,zw, iThread) &
-  !$omp firstprivate(cosinarr, before3, now3, after3)
+  !$omp private(nfft,inzee,zw,iThread) !&
+!  !$omp firstprivate(before3, now3, after3)
 
 	!$ iThread = omp_get_thread_num()
-	zw => zws(:, :, :, iThread)
+
+
+	zw => w_omp(iThread)%zw
 
   !$omp do
   do j2 = 1, maxIter
@@ -303,8 +319,11 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
 	strten_omp=0
 
-	zt => zts(:, :, :, iThread)
-	zw => zws(:, :, :, iThread)
+	zt => w_omp(iThread)%zt
+	zw => w_omp(iThread)%zw
+
+!!$	zt => zts(:, :, :, iThread)
+!!$	zw => zws(:, :, :, iThread)
 	!call to_zero(4*(ncache/4),zw(1,1,1))
 
   !$omp do
@@ -472,11 +491,11 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 	maxIter = min(md2/nproc, n2dim - iproc *(md2/nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,zw, iThread) &
-  !$omp firstprivate(cosinarr, before3, after3, now3)
+  !$omp private(nfft,inzee,zw, iThread) !&
+!  !$omp firstprivate(before3, after3, now3)
 
 	!$ iThread = omp_get_thread_num()
-	zw => zws(:, :, :, iThread)
+	zw => w_omp(iThread)%zw
 	!call to_zero(4*(ncache/4),zw(1,1,1))
 
   !$omp do
@@ -526,13 +545,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
 !END OF TRANSFORM IN Y DIRECTION
 
-	i_all = -product(shape(zws))*kind(zws)
-	deallocate(zws, stat=i_stat)
-	call memocc(i_stat, i_all, 'zws', subname)
-	
-	i_all = -product(shape(zts))*kind(zts)
-	deallocate(zts, stat=i_stat)
-	call memocc(i_stat, i_all, 'zts', subname)
+  do ith=0,nThread-1
+     i_all = -product(shape(w_omp(ith)%zw))*kind(w_omp(ith)%zw)
+     deallocate(w_omp(ith)%zw, stat=i_stat)
+     call memocc(i_stat, i_all, 'zw', subname)
+
+     i_all = -product(shape(w_omp(ith)%zt))*kind(w_omp(ith)%zt)
+     deallocate(w_omp(ith)%zt, stat=i_stat)
+     call memocc(i_stat, i_all, 'zt', subname)
+  end do
+  deallocate(w_omp) !crash if problems
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)
