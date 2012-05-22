@@ -24,7 +24,7 @@ program memguess
    character(len=40) :: comment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.,convertpos=.true.
+   logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
@@ -287,6 +287,8 @@ program memguess
       else if (index(fileTo,'.yaml') > 0) then
          irad=index(fileTo,'.yaml')
          atoms%format='yaml '
+      else
+         irad = len(trim(fileTo)) + 1
       end if
       
       call write_atomic_file(fileTo(1:irad-1),0.0_gp,rxyz,atoms,&
@@ -1348,7 +1350,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
-   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
