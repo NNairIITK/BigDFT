@@ -15,6 +15,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, ie3max, tag, p2p_tag, ncount
   integer,dimension(:,:),allocatable:: iStartEnd
   character(len=*),parameter:: subname='setCommunicationPotential'
+
+  call timing(iproc,'init_commPot  ','ON')
   
   call nullify_p2pComms(comgp)
   
@@ -208,8 +210,11 @@ comgp%nsend = 0 ; comgp%nrecv = 0
   deallocate(iStartEnd, stat=istat)
   call memocc(istat, iall, 'iStartEnd', subname)
 
-  ! To indicate that to communication has been started
+  ! To indicate that no communication is going on.
   comgp%communication_complete=.true.
+  comgp%messages_posted=.false.
+
+  call timing(iproc,'init_commPot  ','OF')
 
 end subroutine initialize_communication_potential
 

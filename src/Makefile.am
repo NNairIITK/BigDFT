@@ -62,7 +62,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -186,9 +186,23 @@ bindings_files = lib/bindings_api.h \
 	lib/bindings_regions.c \
 	lib/bindings_wavefunctions.c \
 	lib/bindings_localfields.c \
+	lib/bindings_signals.c lib/bindings_signals.h \
+	lib/bindings_signals_inet.c \
 	lib/bindingsf.f90
 else
 bindings_files = lib/bindingsf_fake.f90
+endif
+if HAVE_GDBUS
+bindings_files += lib/bindings_dbus.c lib/bindings_dbus.h \
+	lib/bindings_signals_dbus.c
+
+lib/bindings_dbus.h: lib/bindings_dbus.c
+lib/bindings_dbus.c: lib/bindings_dbus.xml
+	gdbus-codegen --interface-prefix eu.etsf.bigdft.dbus. \
+                      --generate-c-code $(srcdir)/lib/bindings_dbus \
+                      --c-namespace BigdftDBus \
+                      --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
+
 endif
 
 if HAVE_FC_FLUSH
@@ -359,7 +373,6 @@ low_level = \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
@@ -380,6 +393,7 @@ low_level = \
 	linear/init_collective_comms.f90 \
 	linear/init_collective_comms_vectors.f90 \
 	linear/communications_p2p.f90 \
+	linear/optimize_coeffs.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -408,14 +422,14 @@ bigdft_LDADD = @LIBS_DEPENDENCIES@
 splsad_SOURCES = splinedsaddle.f90
 splsad_LDADD = @LIBS_DEPENDENCIES@
 
-rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDADD = @LIBS_DEPENDENCIES@
+#rism_SOURCES = rism.f90 rismlowlevel.f90
+#rism_LDADD = @LIBS_DEPENDENCIES@
 
 #sandbox_SOURCES = sandbox.f90
 #sandbox_LDADD = @LIBS_DEPENDENCIES@
 
-oneatom_SOURCES = oneatom.f90
-oneatom_LDADD = @LIBS_DEPENDENCIES@
+#oneatom_SOURCES = oneatom.f90
+#oneatom_LDADD = @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@

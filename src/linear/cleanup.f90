@@ -839,7 +839,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: istat, iall, iis1, iie1, i1
+  integer:: iis1, iie1, i1
 
 !  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -875,7 +875,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: istat, iall, iis1, iie1, i1
+  integer:: iis1, iie1, i1
 
 
 !  call deallocate_orbitals_data(lzd%orbs, subname)
@@ -1214,7 +1214,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   ! Calling arguments
   type(p2pComms),intent(inout):: p2pcomm
   character(len=*),intent(in):: subname
-  integer :: ierr
+
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
   !!call checkAndDeallocatePointer(p2pcomm%istarr, 'p2pcomm%istarr', subname)
@@ -1231,36 +1231,36 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
 end subroutine deallocate_p2pComms
 
 
-subroutine deallocate_largeBasis(lb, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_largeBasis
-  implicit none
-
-  ! Calling arguments
-  type(largeBasis),intent(inout):: lb
-  character(len=*),intent(in):: subname
-
-  call deallocate_communications_arrays(lb%comms, subname)
-  call deallocate_communications_arrays(lb%gcomms, subname)
-  call deallocate_orbitals_data(lb%orbs, subname)
-  call deallocate_orbitals_data(lb%gorbs, subname)
-  !call deallocate_local_zone_descriptors(lb%lzd, subname)
-  !call deallocate_p2pCommsRepartition(lb%comrp, subname)
-  call deallocate_p2pComms(lb%comrp, subname)
-  !call deallocate_p2pCommsOrthonormality(lb%comon, subname)
-  call deallocate_p2pComms(lb%comon, subname)
-  call deallocate_overlapParameters(lb%op, subname)
-  !call deallocate_p2pCommsGatherPot(lb%comgp, subname)
-  call deallocate_p2pComms(lb%comgp, subname)
-  call deallocate_matrixDescriptors(lb%mad, subname)
-  call deallocate_collectiveComms(lb%collComms, subname)
-  !call deallocate_p2pCommsSumrho(lb%comsr, subname)
-  call deallocate_p2pComms(lb%comsr, subname)
-
-
-end subroutine deallocate_largeBasis
+!!!subroutine deallocate_largeBasis(lb, subname)
+!!!  use module_base
+!!!  use module_types
+!!!  use deallocatePointers
+!!!  use module_interfaces, exceptThisOne => deallocate_largeBasis
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  type(largeBasis),intent(inout):: lb
+!!!  character(len=*),intent(in):: subname
+!!!
+!!!  call deallocate_communications_arrays(lb%comms, subname)
+!!!  call deallocate_communications_arrays(lb%gcomms, subname)
+!!!  call deallocate_orbitals_data(lb%orbs, subname)
+!!!  call deallocate_orbitals_data(lb%gorbs, subname)
+!!!  !call deallocate_local_zone_descriptors(lb%lzd, subname)
+!!!  !call deallocate_p2pCommsRepartition(lb%comrp, subname)
+!!!  call deallocate_p2pComms(lb%comrp, subname)
+!!!  !call deallocate_p2pCommsOrthonormality(lb%comon, subname)
+!!!  call deallocate_p2pComms(lb%comon, subname)
+!!!  call deallocate_overlapParameters(lb%op, subname)
+!!!  !call deallocate_p2pCommsGatherPot(lb%comgp, subname)
+!!!  call deallocate_p2pComms(lb%comgp, subname)
+!!!  call deallocate_matrixDescriptors(lb%mad, subname)
+!!!  call deallocate_collectiveComms(lb%collComms, subname)
+!!!  !call deallocate_p2pCommsSumrho(lb%comsr, subname)
+!!!  call deallocate_p2pComms(lb%comsr, subname)
+!!!
+!!!
+!!!end subroutine deallocate_largeBasis
 
 
 subroutine deallocate_overlapParameters(op, subname)
@@ -1379,9 +1379,6 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   type(matrixDescriptors),intent(inout):: mad
   character(len=*),intent(in):: subname
 
-  ! Local variables
-  integer:: iis1, iis2, iie1, iie2, i1, i2
-
   call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
   call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
   call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
@@ -1437,6 +1434,18 @@ subroutine destroy_wfn_metadata(wfnmd)
   iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
   deallocate(wfnmd%coeff_proj, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+
+  iall=-product(shape(wfnmd%coeffp))*kind(wfnmd%coeffp)
+  deallocate(wfnmd%coeffp, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeffp', subname)
+
+  iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
+  deallocate(wfnmd%alpha_coeff, stat=istat)
+  call memocc(istat, iall, 'wfnmd%alpha_coeff', subname)
+
+  iall=-product(shape(wfnmd%grad_coeff_old))*kind(wfnmd%grad_coeff_old)
+  deallocate(wfnmd%grad_coeff_old, stat=istat)
+  call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
 
 end subroutine destroy_wfn_metadata
 

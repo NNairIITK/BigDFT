@@ -43,27 +43,27 @@ end subroutine nullify_p2pComms
 
 
 
-subroutine nullify_largeBasis(lb)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_largeBasis
-  implicit none
-
-  ! Calling argument
-  type(largeBasis),intent(out):: lb
-  call nullify_communications_arrays(lb%comms)
-  call nullify_communications_arrays(lb%gcomms)
-  call nullify_orbitals_data(lb%orbs)
-  call nullify_orbitals_data(lb%gorbs)
-  !call nullify_p2pCommsRepartition(lb%comrp)
-  call nullify_p2pComms(lb%comrp)
-  !call nullify_p2pCommsOrthonormality(lb%comon)
-  call nullify_p2pComms(lb%comon)
-  call nullify_overlapParameters(lb%op)
-  !call nullify_p2pCommsGatherPot(lb%comgp)
-  call nullify_p2pComms(lb%comgp)
-
-end subroutine nullify_largeBasis
+!!subroutine nullify_largeBasis(lb)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_largeBasis
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(largeBasis),intent(out):: lb
+!!  call nullify_communications_arrays(lb%comms)
+!!  call nullify_communications_arrays(lb%gcomms)
+!!  call nullify_orbitals_data(lb%orbs)
+!!  call nullify_orbitals_data(lb%gorbs)
+!!  !call nullify_p2pCommsRepartition(lb%comrp)
+!!  call nullify_p2pComms(lb%comrp)
+!!  !call nullify_p2pCommsOrthonormality(lb%comon)
+!!  call nullify_p2pComms(lb%comon)
+!!  call nullify_overlapParameters(lb%op)
+!!  !call nullify_p2pCommsGatherPot(lb%comgp)
+!!  call nullify_p2pComms(lb%comgp)
+!!
+!!end subroutine nullify_largeBasis
 
 
 

@@ -432,6 +432,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           if(tt>maxDispl) then
               if(iproc==0) write(*,'(a,i0,2x,es11.2)') 'WARNING: too large displacement for locreg ',ilr,tt
           end if
+          !if(iproc==0) print *,'X',iorb,X(iorb,iorb)/normarr(iorb),Y(iorb,iorb)/normarr(iorb),Z(iorb,iorb)/normarr(iorb)
+          !if(iproc==0) print *,'C',iorb,locregCenters(1,ilr),locregCenters(2,ilr),locregCenters(3,ilr)
       end do
 
       !!h=0.d0
@@ -922,7 +924,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
   t1=mpi_wtime()
   !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, lzd, &
+  call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, &
        op, op, lphi, comon%nsendBuf, comon%sendBuf)
   !!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
   call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)

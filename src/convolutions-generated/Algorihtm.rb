@@ -113,7 +113,7 @@ module ConvolutionGenerator
       ss = ""
       @source.dimension[0..-2].each{ |d|
         if d.val2 then
-          ss += "*(#{d.val2}-#{d.val1}+1})"
+          ss += "*(#{d.val2}-#{d.val1}+1)"
         else
           ss += "*#{d.val1}"
         end
@@ -344,12 +344,15 @@ module ConvolutionGenerator
     def to_str
       s = ""
       if val2 then
-        s += val1.to_str
+        s += val1.to_s
         s += ":"
-        s += val2.to_str
+        s += val2.to_s
       else
-        s += val1.to_str
+        s += val1.to_s
       end
+    end
+    def to_s
+      self.to_str
     end
   end
  
@@ -379,7 +382,7 @@ module ConvolutionGenerator
     def to_str_fortran
       s = ""
       return s if not self.first
-      s += "/( &\n"
+      s += "(/ &\n"
       s += self.first 
       self[1..-1].each { |v|
         s += ", &\n"+v
@@ -389,12 +392,12 @@ module ConvolutionGenerator
     def to_str_c
       s = ""
       return s if not self.first
-      s += "[\n"
+      s += "{\n"
       s += self.first 
       self[1..-1].each { |v|
         s += ",\n"+v
       }
-      s += "]"
+      s += "}"
     end
   end
  
@@ -500,19 +503,6 @@ module ConvolutionGenerator
     if invert then
       function_name += "_inv"
     end
-    dim_in_min = "0"
-    dim_in_max = "n-1"
-    dim_out_min = "0"
-    dim_out_max = "n-1"
-    if free then
-      if invert then
-        dim_in_min = "lowfil"
-        dim_in_max = "n-1+upfil"
-      else
-        dim_out_min = "-upfil"
-        dim_out_max = "n-1-lowfil"
-      end
-    end
 
     n = Variable::new("n",Int,{"direction" => "in"})
     ndat = Variable::new("ndat",Int,{"direction" => "in"})
@@ -523,6 +513,21 @@ module ConvolutionGenerator
       lowfil = Variable::new("lowfil",Int,{"constant" => "-#{filt.length-center}"})
       upfil = Variable::new("upfil",Int,{"constant" => "#{center-1}"})
     end
+
+    dim_in_min = 0
+    dim_in_max = n-1
+    dim_out_min = 0
+    dim_out_max = n-1
+    if free then
+      if invert then
+        dim_in_min = lowfil
+        dim_in_max = n-1+upfil
+      else
+        dim_out_min = - upfil
+        dim_out_max = n-1-lowfil
+      end
+    end
+
     x = Variable::new("x",Real,{"direction"=>"in", "dimension" => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
     y = Variable::new("y",Real,{"direction"=>"out", "dimension" => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     i = Variable::new("i",Int)

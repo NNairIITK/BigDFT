@@ -428,7 +428,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   real(gp) :: rx,ry,rz,cutoff
 
 
-
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
 
@@ -648,7 +647,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      end if
   end do !on ilr
 
-
   ! Communicate the locregs
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
@@ -659,7 +657,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      !!if(iproc==root) write(*,'(a,3i5,2l3)') 'iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)
      !if(iproc==root) write(*,'(a,3i5,l3)') 'iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)
      !!call communicate_locreg_descriptors(iproc, root, llr(ilr), communicate_bounds)
-     call communicate_locreg_descriptors(iproc, root, llr(ilr))
+     if (nproc > 1) then
+        call communicate_locreg_descriptors(iproc, root, llr(ilr))
+     end if
      if (Llr(ilr)%geocode=='F') then
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
@@ -1849,9 +1849,9 @@ allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
 !!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
 !!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
-
 allocate(overlaps_op(maxval(op%noverlaps),orbs%norbp), stat=istat)
 call memocc(istat, overlaps_op, 'overlaps_op', subname)
+if(orbs%norbp>0) call to_zero(maxval(op%noverlaps)*orbs%norbp,overlaps_op(1,1))
 allocate(overlaps_comon(comon%noverlaps(iproc)), stat=istat)
 call memocc(istat, overlaps_comon, 'overlaps_comon', subname)
 
@@ -1961,9 +1961,6 @@ if (nproc > 1) then
 else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
-
-!!do iorb=1,orbs%norb
-!!end do
 
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
@@ -2750,7 +2747,7 @@ logical, intent(out) :: isoverlap
 character(len=*), parameter :: subname='check_overlap_cubic_periodic'
 integer :: azones,bzones,ii,izones,jzones, i_stat, i_all
 logical :: go1, go2, go3
-integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
+integer,dimension(3,8) :: astart,bstart,aend,bend
 
   azones = 1
   bzones = 1
@@ -2761,19 +2758,19 @@ integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
   end do
 
 !allocate astart and aend
-  allocate(astart(3,azones),stat=i_stat)
-  call memocc(i_stat,astart,'astart',subname)
-  allocate(aend(3,azones),stat=i_stat)
-  call memocc(i_stat,aend,'aend',subname)
+!!  allocate(astart(3,azones),stat=i_stat)
+!!  call memocc(i_stat,astart,'astart',subname)
+!!  allocate(aend(3,azones),stat=i_stat)
+!!  call memocc(i_stat,aend,'aend',subname)
 
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
 
 !allocate bstart and bend
-  allocate(bstart(3,bzones),stat=i_stat)
-  call memocc(i_stat,bstart,'bstart',subname)
-  allocate(bend(3,bzones),stat=i_stat)
-  call memocc(i_stat,bend,'bend',subname)
+!!  allocate(bstart(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bstart,'bstart',subname)
+!!  allocate(bend(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2793,18 +2790,18 @@ integer,dimension(:,:),allocatable :: astart,bstart,aend,bend
   end do loop_izones
 
 ! Deallocation block
-  i_all = -product(shape(astart))*kind(astart)
-  deallocate(astart,stat=i_stat)
-  call memocc(i_stat,i_all,'astart',subname)
-  i_all = -product(shape(aend))*kind(aend)
-  deallocate(aend,stat=i_stat)
-  call memocc(i_stat,i_all,'aend',subname)
-  i_all = -product(shape(bstart))*kind(bstart)
-  deallocate(bstart,stat=i_stat)
-  call memocc(i_stat,i_all,'bstart',subname)
-  i_all = -product(shape(bend))*kind(bend)
-  deallocate(bend,stat=i_stat)
-  call memocc(i_stat,i_all,'bend',subname)
+!!  i_all = -product(shape(astart))*kind(astart)
+!!  deallocate(astart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'astart',subname)
+!!  i_all = -product(shape(aend))*kind(aend)
+!!  deallocate(aend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'aend',subname)
+!!  i_all = -product(shape(bstart))*kind(bstart)
+!!  deallocate(bstart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bstart',subname)
+!!  i_all = -product(shape(bend))*kind(bend)
+!!  deallocate(bend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bend',subname)
 
 end subroutine check_overlap_cubic_periodic
 

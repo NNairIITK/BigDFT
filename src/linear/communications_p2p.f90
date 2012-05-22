@@ -11,6 +11,8 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
+
+  if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
   
   nreceives=0
   nsends=0
@@ -26,9 +28,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpidest) then
-                      nreceives=nreceives+1
-                      call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                           comm%requests(nreceives,2), ierr)
+                      if(mpidest/=mpisource) then
+                          nreceives=nreceives+1
+                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                               comm%requests(nreceives,2), ierr)
+                      else
+                          call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
+                      end if
                   end if
               else
                   nsends=nsends+1
@@ -51,9 +57,11 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpisource) then
-                      nsends=nsends+1
-                      call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                      if(mpisource/=mpidest) then
+                          nsends=nsends+1
+                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                            comm%requests(nsends,1), ierr)
+                      end if
                   end if
               end if
           end if
@@ -74,8 +82,10 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   ! Flag indicating whether the communication is complete or not
   if(nproc>1) then
       comm%communication_complete=.false.
+      comm%messages_posted=.true.
   else
       comm%communication_complete=.true.
+      comm%messages_posted=.false.
   end if
 
 
@@ -96,6 +106,8 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   
   
   if(.not.comm%communication_complete) then
+
+      if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
 
       ! Wait for the sends to complete.
       nsend=0
@@ -165,9 +177,12 @@ subroutine init_p2p_tags(nproc)
   initialized=.true.
 
   ! Determine the largest possible tag
-  call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
-  if(.not.success) stop 'could not extract largest possible tag...'
-  
+  if (nproc > 1 ) then
+     call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
+     if(.not.success) stop 'could not extract largest possible tag...'
+  else
+     tag_max=1
+  end if
 end subroutine init_p2p_tags
 
 

@@ -303,14 +303,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
            !these nested loops will be used also for the actual ionic forces, to be recalculated
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
                  y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
                     x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
@@ -330,9 +333,6 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      call H_potential(at%geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
           pot_ion,pkernel,pot_ion,ehart,-2.0_gp*psoffset,.false.)
-
-!!$     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
 
      eion=ehart-eself
 
@@ -372,14 +372,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         if (n3pi >0 ) then
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
                  y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
                     x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
@@ -884,6 +887,29 @@ subroutine ind_positions(periodic,i,n,j,go)
   end if
 
 END SUBROUTINE ind_positions
+
+!>   Determine the index in which the potential must be inserted, following the BC
+!!   Determine also whether the index is inside or outside the box for free BC
+subroutine ind_positions_new(periodic,i,ni,j,go)
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(in) :: i,ni
+  logical, intent(out) :: go
+  integer, intent(out) :: j
+
+  if (periodic) then
+     go=.true.
+     j=modulo(i,ni)
+  else
+     j=i
+     if (i >= -14 .and. i <= ni-15) then
+        go=.true.
+     else
+        go=.false.
+     end if
+  end if
+
+END SUBROUTINE ind_positions_new
 
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)

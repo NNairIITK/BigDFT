@@ -547,7 +547,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
-   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -557,9 +557,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-  !calculate the descriptors for rho and the potentials.
-   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
-        atoms,rxyz,radii_cf,dpcom,rhodsc)
+   !grid spacings and box of the density
+   call dpbox_set_box(dpcom,Lzd)
+   !complete dpbox initialization
+   call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
+        atoms%geocode,in%SIC%approach,dpcom)
+
+  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+
+!!$
+!!$  !calculate the descriptors for rho and the potentials.
+!!$   call denspot_communications(iproc,nproc,Lzd%Glr%d,hxh,hyh,hzh,in,&
+!!$        atoms,rxyz,radii_cf,dpcom,rhodsc)
 
 !!$   !these arrays should be included in the comms descriptor
 !!$   !allocate values of the array for the data scattering in sumrho
@@ -857,14 +867,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%output_denspot == output_denspot_DENSPOT) then
          if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
-
-            call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
-               &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
-               &   in%nspin,hxh,hyh,hzh,atoms,rxyz,dpcom%ngatherarr,rhopot(1,1,1,1))
-            !!$
-            !!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-            !!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
-            !!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+            call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&

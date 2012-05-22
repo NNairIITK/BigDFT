@@ -80,6 +80,9 @@ module module_types
   integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
   integer,parameter:: COMMUNICATION_P2P=1
+  integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
+  integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
+  integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
   
 
   !> Type used for the orthogonalisation parameter
@@ -123,6 +126,7 @@ module module_types
   integer, parameter, public :: INPUTS_TDDFT =  32
   integer, parameter, public :: INPUTS_SIC   =  64
   integer, parameter, public :: INPUTS_FREQ  = 128
+  integer, parameter, public :: INPUTS_LIN   = 256
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
@@ -146,7 +150,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
-    character(len=4):: mixingMethod
+    integer:: scf_mode
     character(len=1):: locregShape
   end type linearInputParameters
 
@@ -217,6 +221,10 @@ module module_types
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
+     logical :: signaling  !< Expose results on DBus or Inet.
+     integer :: signalTimeout !< Timeout for inet connection.
+     character(len = 64) :: domain !< Domain to get the IP from hostname.
+     double precision :: gmainloop !< Internal C pointer on the signaling structure.
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
@@ -253,6 +261,7 @@ module module_types
      real(gp) :: trH    =0.0_gp
      real(gp) :: evsum  =0.0_gp
      real(gp) :: evsic  =0.0_gp 
+     real(gp) :: excrhoc=0.0_gp 
      !real(gp), dimension(:,:), pointer :: fion,f
 
      double precision :: c_obj = 0.d0  !< Storage of the C wrapper object.
@@ -391,6 +400,8 @@ module module_types
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
+     integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
+     real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
   end type denspot_distribution
 
@@ -568,7 +579,7 @@ module module_types
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
-    logical:: communication_complete
+    logical:: communication_complete, messages_posted
   end type p2pComms
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
@@ -631,7 +642,7 @@ module module_types
     integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
     integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
     integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
-    integer:: nptsp_c, ndimpsi_c
+    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f
     integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
@@ -639,27 +650,27 @@ module module_types
   end type collective_comms
 
 
-!> Contains all parameters for the basis with which we calculate the properties
-!! like energy and forces. Since we may also use the derivative of the trace
-!! minimizing orbitals, this basis may be larger than only the trace minimizing
-!! orbitals. In case we don't use the derivatives, these parameters are identical
-!! from those in lin%orbs etc.
-type,public:: largeBasis
-    type(communications_arrays):: comms, gcomms
-    type(orbitals_data):: orbs, gorbs
-    !type(local_zone_descriptors):: lzd
-    !type(p2pCommsRepartition):: comrp
-    type(p2pComms):: comrp
-    !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon
-    type(overlapParameters):: op
-    !type(p2pCommsGatherPot):: comgp
-    type(p2pComms):: comgp
-    type(matrixDescriptors):: mad
-    type(collectiveComms):: collComms
-    !type(p2pCommsSumrho):: comsr
-    type(p2pComms):: comsr
-end type largeBasis
+!!!!> Contains all parameters for the basis with which we calculate the properties
+!!!!! like energy and forces. Since we may also use the derivative of the trace
+!!!!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!!!!! orbitals. In case we don't use the derivatives, these parameters are identical
+!!!!! from those in lin%orbs etc.
+!!!type,public:: largeBasis
+!!!    type(communications_arrays):: comms, gcomms
+!!!    type(orbitals_data):: orbs, gorbs
+!!!    !type(local_zone_descriptors):: lzd
+!!!    !type(p2pCommsRepartition):: comrp
+!!!    type(p2pComms):: comrp
+!!!    !type(p2pCommsOrthonormality):: comon
+!!!    type(p2pComms):: comon
+!!!    type(overlapParameters):: op
+!!!    !type(p2pCommsGatherPot):: comgp
+!!!    type(p2pComms):: comgp
+!!!    type(matrixDescriptors):: mad
+!!!    type(collectiveComms):: collComms
+!!!    !type(p2pCommsSumrho):: comsr
+!!!    type(p2pComms):: comsr
+!!!end type largeBasis
 
 
 type,public:: workarrays_quartic_convolutions
@@ -760,8 +771,12 @@ end type linear_scaling_control_variables
     integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
+    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
   end type wfn_metadata
 
 
@@ -813,13 +828,13 @@ end type linear_scaling_control_variables
      integer :: rhov_is
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpcom !< parallel distribution of density and potential
+     type(denspot_distribution) :: dpbox !< distribution of density and potential box
      character(len=3) :: PSquiet
-     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
+     !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
      real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
-     double precision :: c_obj = 0                !< Storage of the C wrapper object.
+     double precision :: c_obj = 0.d0                !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -832,7 +847,7 @@ end type linear_scaling_control_variables
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
-     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
@@ -840,6 +855,7 @@ end type linear_scaling_control_variables
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
 
      !data properties
+     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
@@ -855,8 +871,38 @@ end type linear_scaling_control_variables
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
-     double precision :: c_obj !< Storage of the C wrapper object.
+     double precision :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
   end type DFT_wavefunction
+
+  !> Flags for optimization loop id
+  integer, parameter, public :: OPTLOOP_HAMILTONIAN   = 0
+  integer, parameter, public :: OPTLOOP_SUBSPACE      = 1
+  integer, parameter, public :: OPTLOOP_WAVEFUNCTIONS = 2
+  integer, parameter, public :: OPTLOOP_N_LOOPS       = 3
+
+  !> Used to control the optimization of wavefunctions
+  type, public :: DFT_optimization_loop
+     integer :: iscf !< Kind of optimization scheme.
+
+     integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
+     integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
+     integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+
+     integer :: itrp    !< actual number of mixing cycle.
+     integer :: itrep   !< actual number of re-diagonalisation runs.
+     integer :: iter    !< actual number of minimization iterations.
+
+     integer :: infocode !< return value after optimization loop.
+
+     real(gp) :: gnrm   !< actual value of cv criterion of the minimization loop.
+     real(gp) :: rpnrm  !< actual value of cv criterion of the mixing loop.
+
+     real(gp) :: gnrm_cv       !< convergence criterion of the minimization loop.
+     real(gp) :: rpnrm_cv      !< convergence criterion of the mixing loop.
+     real(gp) :: gnrm_startmix !< gnrm value to start mixing after.
+
+     double precision :: c_obj = 0.d0 !< Storage of the C wrapper object.
+  end type DFT_optimization_loop
 
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
@@ -1016,7 +1062,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0
+    rst%KSwfn%c_obj = 0.d0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
 
@@ -1374,7 +1420,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
-    integer :: i_all,i_stat
+!    integer :: i_all,i_stat
 
     write(0,*) "TODO, remove me"
     

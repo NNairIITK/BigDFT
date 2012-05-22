@@ -1095,6 +1095,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   else if (geocode == 'W') then
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
+     write(*,*) geocode
      stop 'PS_dim4allocation: geometry code not admitted'
   end if
 

@@ -9,13 +9,13 @@
 
 
 !> Write a field in the ISF basis in the ETSF format
-subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,x)
+subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x)
   !n(c) use module_base
   use module_types
 
   implicit none
   character(len=*), intent(in) :: filename,message
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i
+  integer, intent(in) :: n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i), intent(in) :: x
@@ -26,14 +26,14 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
   stop
 
   !To avoid warnings from the compiler
-  write(*,*) filename,message,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,x(1,1,1),rxyz(1,1)
+  write(*,*) filename,message,n1i,n2i,n3i,hxh,hyh,hzh,x(1,1,1),rxyz(1,1)
 END SUBROUTINE write_etsf_density
 
 
 !> Read a field in the ISF basis in the ETSF format
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
-  !n(c) use module_base
+  use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -41,8 +41,8 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(in) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer, intent(out) :: rho
-  real(gp), dimension(:,:), pointer, intent(out), optional :: rxyz
+  real(dp), dimension(:,:), pointer :: rho
+  real(gp), dimension(:,:), pointer,  optional :: rxyz
   integer, intent(out), optional ::  nat
 
   write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."
@@ -67,7 +67,7 @@ END SUBROUTINE read_etsf
 !> Read wavefunctions using ETSF format
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
-  !n(c) use module_base
+  use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
@@ -109,7 +109,7 @@ end subroutine read_one_wave_etsf
 !> Write wavefunctions in ETSF format
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   use module_types
-  !n(c) use module_base
+  use module_base
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz

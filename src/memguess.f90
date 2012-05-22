@@ -37,6 +37,7 @@ program memguess
    type(local_zone_descriptors) :: Lzd
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
+   type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
@@ -244,10 +245,16 @@ program memguess
          &   nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
       atoms%ntypes = size(atoms%nzatom) - ndebug
       write(*,*) "Write new density file..."
-      !n(?) norbsc_arr was not allocated
-      call plot_density(trim(fileTo), 0, 1, Lzd%Glr%d%n1i / 2 - 1, Lzd%Glr%d%n2i / 2 - 1, &
-         &   Lzd%Glr%d%n3i / 2 - 1, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, Lzd%Glr%d%n3i, nspin, hx, hy, hz, &
-         & atoms, rxyz, norbsc_arr, rhocoeff)
+      dpbox%ndims(1)=Lzd%Glr%d%n1i
+      dpbox%ndims(2)=Lzd%Glr%d%n2i
+      dpbox%ndims(3)=Lzd%Glr%d%n3i
+      dpbox%hgrids(1)=hx
+      dpbox%hgrids(2)=hy
+      dpbox%hgrids(3)=hz
+      allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
+      call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
+
+      call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
       stop
    end if
@@ -426,7 +433,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
@@ -1365,7 +1372,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          read(filename(1:i),*) filename_start
          filename_start = trim(filename_start)//"/minBasis"
 
-         if (iproc == 0) print*,'Initialize linear'
+         print*,'Initialize linear'
          call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
               Lzd,lin_orbs,at,rxyz,orblist)
 
