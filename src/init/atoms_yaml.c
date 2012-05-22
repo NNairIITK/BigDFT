@@ -802,15 +802,11 @@ void FC_FUNC_(posinp_yaml_get_atoms, POSINP_YAML_GET_ATOMS)(PosinpList **self, u
       *units = lst->data->units;
       memcpy(iatype,  lst->data->iatype,  sizeof(unsigned int) * lst->data->nat);
       memcpy(ifrztyp, lst->data->ifrztyp, sizeof(unsigned int) * lst->data->nat);
-      memcpy(igspin,  lst->data->igspin,  sizeof(unsigned int) * lst->data->nat);
-      memcpy(igchg,  lst->data->igchg,  sizeof(unsigned int) * lst->data->nat);
+      memcpy(igspin,  lst->data->igspin,  sizeof(int) * lst->data->nat);
+      memcpy(igchg,   lst->data->igchg,   sizeof(int) * lst->data->nat);
+      memcpy(rxyz,    lst->data->rxyz,    sizeof(double) * lst->data->nat * 3);
       for (j = 0; j < lst->data->nat; j++)
-        {
-          iatype[j] += 1;
-          rxyz[0 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 0];
-          rxyz[1 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 1];
-          rxyz[2 * lst->data->nat + j] = lst->data->rxyz[j * 3 + 2];
-        }
+	iatype[j] += 1;
     }
 }
 void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **self, unsigned int *i,

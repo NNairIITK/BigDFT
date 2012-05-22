@@ -588,7 +588,7 @@ contains
        call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
        streams(strm)%indent=1
     end if
-    call dump(streams(strm),'---')
+    call dump(streams(strm),'---',event=DOCUMENT_START)
     !write(stdout,'(3a)')'---'
     streams(strm)%flow_events=NONE
   end subroutine yaml_new_document
@@ -1556,6 +1556,8 @@ contains
          indent_value=0!1
          if (stream%icursor==1) indent_value=1
       end if
+
+      if (evt==DOCUMENT_START) indent_value=0
 
 !      if (stream%icursor > 1) then
 !         indent_value=0

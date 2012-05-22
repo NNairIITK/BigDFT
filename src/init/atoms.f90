@@ -725,7 +725,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
   integer(kind = 8) :: lst
-  integer :: bc, units, i_stat, iat, i, i_all
+  integer :: bc, units, i_stat, iat, i, i_all, nsgn
   double precision :: acell(3), angdeg(3)
   integer, allocatable :: igspin(:), igchrg(:)
 
@@ -806,7 +806,12 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
      else if (atoms%geocode == 'W') then
         rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
      end if
-     call charge_and_spol(atoms%natpol(iat), igchrg(iat), igspin(iat))
+     if (igchrg(iat) >= 0) then
+        nsgn = 1
+     else
+        nsgn = -1
+     end if
+     atoms%natpol(iat) = 1000 * igchrg(iat) + nsgn * 100 + igspin(iat)
   end do
 
   call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
@@ -1323,6 +1328,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   call yaml_close_map() !cell
 
   call yaml_open_map('Positions')
+  reduced=.false.
   Pos_Units: select case(trim(atoms%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem')
