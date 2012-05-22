@@ -520,6 +520,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psimix
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
@@ -590,8 +591,9 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
         diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0) then
-        if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
+        !if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
         !yaml output
+        call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
 !        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)

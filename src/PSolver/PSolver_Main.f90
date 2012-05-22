@@ -80,6 +80,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
      quiet,stress_tensor) !optional argument
   use module_base
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -121,29 +122,41 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      wrtmsg=.true.
   end if
 ! rewrite
+  if (iproc==0 .and. wrtmsg) call yaml_open_map('Poisson Solver')
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Periodic')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Surface')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Isolated')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Wires')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
+  end if
+
+  if (iproc==0 .and. wrtmsg) then
+     call yaml_map('Dimensions',(/n01,n02,n03/),fmt='(i5)')
+     call yaml_map('MPI tasks',nproc,fmt='(i5)')
+     call yaml_close_map()
+     call yaml_newline()
   end if
 
   !array allocations
@@ -189,13 +202,16 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
-  do i3=1,nxc
-     do i2=1,m3
-        do i1=1,m1
-           i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-           zf(i1,i2,i3)=rhopot(i)
-        end do
-     end do
+
+  do i3 = 1, nxc
+    !$omp parallel do default(shared) private(i2, i1, i)
+    do i2=1,m3
+      do i1=1,m1
+        i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+        zf(i1,i2,i3)=rhopot(i)
+      end do
+    end do
+    !$omp end parallel do
   end do
 
   if(geocode == 'P') then
@@ -245,6 +261,8 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
         ind3p=(j2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            ind2p=(i3-1)*n01+ind3p
@@ -256,11 +274,14 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
            end do
         end do
+        !$omp end parallel do
      end do
   else
      do j2=1,nxc
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
@@ -270,6 +291,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)
            end do
         end do
+        !$omp end parallel do
      end do
   end if
   ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
@@ -333,7 +355,7 @@ end if
   end if
 
   !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 
 END SUBROUTINE H_potential

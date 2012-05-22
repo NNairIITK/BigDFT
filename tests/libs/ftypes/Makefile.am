@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = 
+SUBDIRS =
 
 check_PROGRAMS = check_lib_c check_client_signals
 
@@ -33,8 +33,8 @@ signals.report: $(srcdir)/signals.out.ref signals.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
 
 signals.out: check_client_signals posinp.ascii $(srcdir)/test.dft
+	@ln -sf $(srcdir)/posinp.ascii test.ascii
 	@if ! test x"$(srcdir)" = x"." ; then \
-	  ln -sf $(srcdir)/posinp.ascii test.ascii; \
 	  cp -p $(srcdir)/test.dft .; \
         fi
 	@echo "signaling T" > test.perf
@@ -42,6 +42,6 @@ signals.out: check_client_signals posinp.ascii $(srcdir)/test.dft
 	$(run_parallel) $(top_builddir)/src/bigdft test &
 	sleep 3s; ./check_client_signals > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f test.ascii ; \
 	  rm -f test.dft ; \
         fi
+	@rm -f test.ascii

@@ -894,7 +894,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, intent(inout) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
   real(wp), intent(in) :: eval
   integer, dimension(nseg_c), intent(in) :: keyv_c
