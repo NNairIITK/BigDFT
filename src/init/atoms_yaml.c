@@ -1,3 +1,4 @@
+#define _ISOC99_SOURCE
 #include "config.h"
 
 #ifdef HAVE_YAML
@@ -8,6 +9,7 @@
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "atoms_yaml.h"
 
@@ -16,9 +18,19 @@
 #endif
 
 #ifdef HAVE_YAML
-static const char *UnitsPositions_keys[] = {"angstroem", "atomic", "bohr", "reduced", NULL};
-static const char *BC_keys[] = {"periodic", "free", "surface", "wire", NULL};
-static const char *Units_keys[] = {"angstroem", "atomic", "bohr", NULL};
+static const char *UnitsPositions_keys[] = {"bohr", "angstroem", "reduced", "atomic", NULL};
+static const char *BC_keys[] = {"free", "wire", "surface", "periodic", NULL};
+static const char *Units_keys[] = {"bohr", "angstroem", "atomic", NULL};
+static const char *funits_keys[] = {"Ha/Bohr", "eV/Ang", NULL};
+static const char *eunits_keys[] = {"Ha", "eV", NULL};
+static const char *frozen_keys[] = {"No", "Yes", "fy", "fxz",
+                                    "N",  "Y",   "",   "",
+                                    "false", "true", "", "",
+                                    "off", "on", "", "", NULL};
+static const char *bool_keys[] = {"No", "Yes",
+                                  "N",  "Y",
+                                  "false", "true",
+                                  "off", "on", NULL};
 
 static PosinpAtoms* posinp_atoms_new()
 {
@@ -28,17 +40,22 @@ static PosinpAtoms* posinp_atoms_new()
   memset(atoms, 0, sizeof(PosinpAtoms));
 
   /* Default values. */
-  atoms->BC = 1;
-  atoms->Units = 1;
-  atoms->acell[0] = 0.;
-  atoms->acell[1] = 0.;
-  atoms->acell[2] = 0.;
+  atoms->BC = POSINP_BC_FREE;
+  atoms->Units = POSINP_CELL_UNITS_BOHR;
   atoms->angdeg[0] = 90.;
   atoms->angdeg[1] = 90.;
   atoms->angdeg[2] = 90.;
 
   /* Default values. */
-  atoms->units = 1;
+  atoms->units = POSINP_COORD_UNITS_BOHR;
+
+  /* Default values. */
+  atoms->funits = POSINP_FORCE_UNITS_HARTREE_PER_BOHR;
+
+  /* Default values. */
+  atoms->energy = NAN;
+  atoms->eunits = POSINP_ENERG_UNITS_HARTREE;
+  atoms->gnrm_wfn = NAN;
 
   return atoms;
 }
@@ -49,6 +66,8 @@ static void posinp_atoms_free(PosinpAtoms *atoms)
   unsigned int i;
 
   /* Freeing. */
+  if (atoms->comment)
+    free(atoms->comment);
   if (atoms->rxyz)
     free(atoms->rxyz);
   if (atoms->atomnames)
@@ -66,6 +85,8 @@ static void posinp_atoms_free(PosinpAtoms *atoms)
     free(atoms->igspin);
   if (atoms->igchg)
     free(atoms->igchg);
+  if (atoms->fxyz)
+    free(atoms->fxyz);
 
   free(atoms);
 }
@@ -74,6 +95,11 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
 {
   unsigned int i;
 
+  fprintf(stdout, "'%s'.\n", atoms->comment);
+  if (!isnan(atoms->gnrm_wfn))
+    fprintf(stdout, "Converged %d (%g).\n", atoms->converged, atoms->gnrm_wfn);
+  if (!isnan(atoms->energy))
+    fprintf(stdout, "Energy is %g %s (%d).\n", atoms->energy, eunits_keys[atoms->eunits], atoms->eunits);
   fprintf(stdout, "BC is %d (%s).\n", atoms->BC, BC_keys[atoms->BC]);
   fprintf(stdout, "Units are %d (%s).\n", atoms->Units, Units_keys[atoms->Units]);
   fprintf(stdout, "acell is %g %g %g.\n", atoms->acell[0], atoms->acell[1], atoms->acell[2]);
@@ -83,73 +109,130 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
     fprintf(stdout, "Atom '%s' at %g %g %g (%d) f:%d s:%d c:%d.\n", atoms->atomnames[atoms->iatype[i]],
             atoms->rxyz[3 * i + 0], atoms->rxyz[3 * i + 1], atoms->rxyz[3 * i + 2], atoms->iatype[i],
             atoms->ifrztyp[i], atoms->igspin[i], atoms->igchg[i]);
+  if (atoms->fxyz)
+    {
+      fprintf(stdout, "Forces units are %d (%s).\n", atoms->funits, funits_keys[atoms->funits]);
+      fprintf(stdout, "fnrm is %g, maxval is %g.\n", atoms->fnrm, atoms->maxval);
+      for (i = 0; i < atoms->nat; i++)
+        fprintf(stdout, "Force on '%s' is %g %g %g.\n", atoms->atomnames[atoms->iatype[i]],
+                atoms->fxyz[3 * i + 0], atoms->fxyz[3 * i + 1], atoms->fxyz[3 * i + 2]);
+    }
 }
 #endif
 
 #ifdef HAVE_YAML
-static void _yaml_parser_error(const yaml_parser_t *parser)
+
+#define set_error(...)                          \
+  if (message && !*message)                     \
+    {                                           \
+      ln = snprintf(NULL, 0, __VA_ARGS__);      \
+      *message = malloc(sizeof(char) * ln);     \
+      sprintf(*message, __VA_ARGS__);           \
+    }                                           \
+  else                                          \
+    fprintf(stderr, __VA_ARGS__)
+
+static void _yaml_parser_error(const yaml_parser_t *parser, char **message)
 {
+  size_t ln;
+
   switch (parser->error)
     {
     case YAML_MEMORY_ERROR:
-      fprintf(stderr, "Memory error: Not enough memory for parsing\n");
+      set_error("Memory error: Not enough memory for parsing\n");
       return;
     case YAML_READER_ERROR:
       if (parser->problem_value != -1)
         {
-          fprintf(stderr, "Reader error: %s: #%X at %ld\n", parser->problem,
-                  parser->problem_value, parser->problem_offset);
+          set_error("Reader error: %s: #%X at %ld\n", parser->problem,
+                    parser->problem_value, parser->problem_offset);
         }
       else
         {
-          fprintf(stderr, "Reader error: %s at %ld\n", parser->problem,
-                  parser->problem_offset);
+          set_error("Reader error: %s at %ld\n", parser->problem,
+                    parser->problem_offset);
         }
       return;
     case YAML_SCANNER_ERROR:
       if (parser->context)
         {
-          fprintf(stderr, "Scanner error: %s at line %ld, column %ld\n"
-                  "%s at line %ld, column %ld\n", parser->context,
-                  parser->context_mark.line+1, parser->context_mark.column+1,
-                  parser->problem, parser->problem_mark.line+1,
-                  parser->problem_mark.column+1);
+          set_error("Scanner error: %s at line %ld, column %ld\n"
+                    "%s at line %ld, column %ld\n", parser->context,
+                    parser->context_mark.line+1, parser->context_mark.column+1,
+                    parser->problem, parser->problem_mark.line+1,
+                    parser->problem_mark.column+1);
         }
       else
         {
-          fprintf(stderr, "Scanner error: %s at line %ld, column %ld\n",
-                  parser->problem, parser->problem_mark.line+1,
-                  parser->problem_mark.column+1);
+          set_error("Scanner error: %s at line %ld, column %ld\n",
+                    parser->problem, parser->problem_mark.line+1,
+                    parser->problem_mark.column+1);
         }
       return;
     case YAML_PARSER_ERROR:
       if (parser->context)
         {
-          fprintf(stderr, "Parser error: %s at line %ld, column %ld\n"
-                  "%s at line %ld, column %ld\n", parser->context,
-                  parser->context_mark.line+1, parser->context_mark.column+1,
-                  parser->problem, parser->problem_mark.line+1,
-                  parser->problem_mark.column+1);
+          set_error("Parser error: %s at line %ld, column %ld\n"
+                    "%s at line %ld, column %ld\n", parser->context,
+                    parser->context_mark.line+1, parser->context_mark.column+1,
+                    parser->problem, parser->problem_mark.line+1,
+                    parser->problem_mark.column+1);
         }
       else
         {
-          fprintf(stderr, "Parser error: %s at line %ld, column %ld\n",
-                  parser->problem, parser->problem_mark.line+1,
-                  parser->problem_mark.column+1);
+          set_error("Parser error: %s at line %ld, column %ld\n",
+                    parser->problem, parser->problem_mark.line+1,
+                    parser->problem_mark.column+1);
         }
       return;
     default:
       /* Couldn't happen. */
-      fprintf(stderr, "Internal error\n");
+      set_error("Internal error\n");
       return;
     }
 }
 
-static int _yaml_parser_read_int(yaml_parser_t *parser, int *val)
+static int _yaml_parser_copy_str(yaml_parser_t *parser, char **val, char **message)
+{
+  yaml_event_t event;
+  int done;
+  size_t ln;
+
+  /* Read the value. */
+  done = 0;
+  if (yaml_parser_parse(parser, &event))
+    {
+      if (event.type == YAML_SCALAR_EVENT)
+        {
+          ln = strlen((const char*)event.data.scalar.value);
+          *val = malloc(sizeof(char) * (ln + 1));
+          memcpy(*val, event.data.scalar.value, sizeof(char) * ln);
+          done = 0;
+        }
+      else
+        {
+          set_error("Parser error: value awaited.\n");
+          done = (event.type == YAML_STREAM_END_EVENT)?1:-1;
+        }
+
+      /* The application is responsible for destroying the event object. */
+      yaml_event_delete(&event);
+    }
+  else
+    {
+      /* Error treatment. */
+      _yaml_parser_error(parser, message);
+      done = -1;
+    }
+
+  return done;
+}
+static int _yaml_parser_read_int(yaml_parser_t *parser, int *val, char **message)
 {
   yaml_event_t event;
   int done;
   char *end;
+  size_t ln;
 
   /* Read the value. */
   done = 0;
@@ -160,7 +243,7 @@ static int _yaml_parser_read_int(yaml_parser_t *parser, int *val)
           *val = (int)strtol((const char*)event.data.scalar.value, &end, 10);
           if (end == (char*)event.data.scalar.value)
             {
-              fprintf(stderr, "Parser error: cannot convert '%s' to an int.\n", end);
+              set_error("Parser error: cannot convert '%s' to an int.\n", end);
               done = -1;
             }
           else
@@ -168,7 +251,7 @@ static int _yaml_parser_read_int(yaml_parser_t *parser, int *val)
         }
       else
         {
-          fprintf(stderr, "Parser error: value awaited after key '%s'.\n", "BC");
+          set_error("Parser error: value awaited.\n");
           done = (event.type == YAML_STREAM_END_EVENT)?1:-1;
         }
 
@@ -178,17 +261,18 @@ static int _yaml_parser_read_int(yaml_parser_t *parser, int *val)
   else
     {
       /* Error treatment. */
-      _yaml_parser_error(parser);
+      _yaml_parser_error(parser, message);
       done = -1;
     }
 
   return done;
 }
-static int _yaml_parser_read_double(yaml_parser_t *parser, double *val)
+static int _yaml_parser_read_double(yaml_parser_t *parser, double *val, char **message)
 {
   yaml_event_t event;
   int done;
   char *end;
+  size_t ln;
 
   /* Read the value. */
   done = 0;
@@ -196,13 +280,15 @@ static int _yaml_parser_read_double(yaml_parser_t *parser, double *val)
     {
       if (event.type == YAML_SCALAR_EVENT)
         {
-          if (!strcasecmp((const char*)event.data.scalar.value, ".inf"))
+          if (!event.data.scalar.value[0])
+            *val = strtod("NaN", &end);
+          else if (!strcasecmp((const char*)event.data.scalar.value, ".inf"))
             *val = strtod((const char*)event.data.scalar.value + 1, &end);
           else
             *val = strtod((const char*)event.data.scalar.value, &end);
           if (end == (char*)event.data.scalar.value)
             {
-              fprintf(stderr, "Parser error: cannot convert '%s' to a double.\n", end);
+              set_error("Parser error: cannot convert '%s' to a double.\n", end);
               done = -1;
             }
           else
@@ -210,7 +296,7 @@ static int _yaml_parser_read_double(yaml_parser_t *parser, double *val)
         }
       else
         {
-          fprintf(stderr, "Parser error: value awaited after key '%s'.\n", "BC");
+          set_error("Parser error: value awaited.\n");
           done = (event.type == YAML_STREAM_END_EVENT)?1:-1;
         }
 
@@ -220,18 +306,19 @@ static int _yaml_parser_read_double(yaml_parser_t *parser, double *val)
   else
     {
       /* Error treatment. */
-      _yaml_parser_error(parser);
+      _yaml_parser_error(parser, message);
       done = -1;
     }
 
   return done;
 }
 static int _yaml_parser_read_double_array(yaml_parser_t *parser, const char *key,
-                                          double *vals, unsigned int n)
+                                          double *vals, unsigned int n, char **message)
 {
   yaml_event_t event;
   int done;
   unsigned int i;
+  size_t ln;
 
   /* Read the value. */
   done = 0;
@@ -240,26 +327,26 @@ static int _yaml_parser_read_double_array(yaml_parser_t *parser, const char *key
       if (event.type == YAML_SEQUENCE_START_EVENT)
         {
           for (i = 0; i < n && done == 0; i++)
-            done = _yaml_parser_read_double(parser, vals + i);
+            done = _yaml_parser_read_double(parser, vals + i, message);
           yaml_event_delete(&event);
           if (yaml_parser_parse(parser, &event))
             {
               if (event.type != YAML_SEQUENCE_END_EVENT)
                 {
-                  fprintf(stderr, "Parser error: end sequence missing for key '%s' after %d values.\n", key, n);
+                  set_error("Parser error: end sequence missing for key '%s' after %d values.\n", key, n);
                   done = -1;
                 }
             }
           else
             {
               /* Error treatment. */
-              _yaml_parser_error(parser);
+              _yaml_parser_error(parser, message);
               done = -1;
             }
         }
       else
         {
-          fprintf(stderr, "Parser error: sequence awaited after key '%s'.\n", key);
+          set_error("Parser error: sequence awaited after key '%s'.\n", key);
           done = -1;
         }
 
@@ -269,17 +356,19 @@ static int _yaml_parser_read_double_array(yaml_parser_t *parser, const char *key
   else
     {
       /* Error treatment. */
-      _yaml_parser_error(parser);
+      _yaml_parser_error(parser, message);
       done = -1;
     }
 
   return done;
 }
 static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
-                                     const char *keys[], unsigned int *id)
+                                     const char *keys[], unsigned int *id,
+                                     unsigned int modulo, char **message)
 {
   yaml_event_t event;
   int done;
+  size_t ln;
 
   /* Read the value. */
   done = 0;
@@ -291,19 +380,21 @@ static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
             if (!strcasecmp((const char*)event.data.scalar.value, keys[*id]))
               break;
           if (keys[*id])
-            done = 0;
+            {
+              done = 0;
+              *id = *id % modulo;
+            }
           else
             {
-              fprintf(stderr, "Parser error: cannot find key value '%s' in:\n",
-                      event.data.scalar.value);
-              for (*id = 0; keys[*id]; *id += 1)
-                fprintf(stderr, "              - '%s'\n", keys[*id]);
+              *id = 0;
+              set_error("Parser error: cannot find key value '%s'.\n",
+                        event.data.scalar.value);
               done = -1;
             }
         }
       else
         {
-          fprintf(stderr, "Parser error: value awaited after key '%s'.\n", key);
+          set_error("Parser error: value awaited after key '%s'.\n", key);
           done = -1;
         }
 
@@ -313,7 +404,73 @@ static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
   else
     {
       /* Error treatment. */
-      _yaml_parser_error(parser);
+      _yaml_parser_error(parser, message);
+      done = -1;
+    }
+
+  return done;
+}
+static int _yaml_parser_read_value(yaml_parser_t *parser, double *val, unsigned int *id,
+                                   const char *keys[], unsigned int modulo, char **message)
+{
+  yaml_event_t event;
+  int done;
+  char *end;
+  size_t ln;
+
+  /* Read the value. */
+  done = 0;
+  if (yaml_parser_parse(parser, &event))
+    {
+      if (event.type == YAML_SCALAR_EVENT)
+        {
+          if (!event.data.scalar.value[0])
+            *val = strtod("NaN", &end);
+          else if (!strcasecmp((const char*)event.data.scalar.value, ".inf"))
+            *val = strtod((const char*)event.data.scalar.value + 1, &end);
+          else
+            *val = strtod((const char*)event.data.scalar.value, &end);
+          if (end == (char*)event.data.scalar.value)
+            {
+              set_error("Parser error: cannot convert '%s' to a double.\n", end);
+              done = -1;
+            }
+          else if (end)
+            {
+              while (*end == ' ')
+                end += 1;
+              /* Read now the unit. */
+              for (*id = 0; keys[*id]; *id += 1)
+                if (!strcasecmp(end, keys[*id]))
+                  break;
+              if (keys[*id])
+                {
+                  *id = *id % modulo;
+                  done = 0;
+                }
+              else
+                {
+                  *id = 0;
+                  set_error("Parser error: cannot find unit '%s'.\n", end);
+                  done = -1;
+                }
+            }
+          else
+            done = 0;
+        }
+      else
+        {
+          set_error("Parser error: value awaited.\n");
+          done = (event.type == YAML_STREAM_END_EVENT)?1:-1;
+        }
+
+      /* The application is responsible for destroying the event object. */
+      yaml_event_delete(&event);
+    }
+  else
+    {
+      /* Error treatment. */
+      _yaml_parser_error(parser, message);
       done = -1;
     }
 
@@ -327,7 +484,7 @@ static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
 
 
 
-static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
+static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
 {
   yaml_event_t event;
   int done, count;
@@ -353,13 +510,14 @@ static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
             break;
           case YAML_SCALAR_EVENT:
             if (!strcmp((const char*)event.data.scalar.value, "BC"))
-              done = _yaml_parser_read_keyword(parser, "BC", BC_keys, &atoms->BC);
+              done = _yaml_parser_read_keyword(parser, "BC", BC_keys, &atoms->BC, POSINP_N_BC, message);
             else if (!strcmp((const char*)event.data.scalar.value, "Units"))
-              done = _yaml_parser_read_keyword(parser, "Units", Units_keys, &atoms->Units);
+              done = _yaml_parser_read_keyword(parser, "Units", Units_keys,
+                                               &atoms->Units, POSINP_CELL_N_UNITS, message);
             else if (!strcmp((const char*)event.data.scalar.value, "acell"))
-              done = _yaml_parser_read_double_array(parser, "acell", atoms->acell, 3);
+              done = _yaml_parser_read_double_array(parser, "acell", atoms->acell, 3, message);
             else if (!strcmp((const char*)event.data.scalar.value, "angdeg"))
-              done = _yaml_parser_read_double_array(parser, "angdeg", atoms->angdeg, 3);
+              done = _yaml_parser_read_double_array(parser, "angdeg", atoms->angdeg, 3, message);
             else
               done = 0;
             break;
@@ -378,7 +536,7 @@ static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
     else
       {
         /* Error treatment. */
-        _yaml_parser_error(parser);
+        _yaml_parser_error(parser, message);
         done = -1;
       }
 
@@ -387,51 +545,8 @@ static int posinp_yaml_cell(yaml_parser_t *parser, PosinpAtoms *atoms)
 
   return done;
 }
-static int posinp_yaml_frozen(yaml_parser_t *parser, unsigned int *ifrztyp)
-{
-  yaml_event_t event;
-  int done;
-
-  /* Read the value. */
-  done = 0;
-  if (yaml_parser_parse(parser, &event))
-    {
-      if (event.type == YAML_SCALAR_EVENT)
-        {
-          if (!strcasecmp((const char*)event.data.scalar.value, "No"))
-            *ifrztyp = 0;
-          else if (!strcasecmp((const char*)event.data.scalar.value, "Yes") ||
-                   !strcasecmp((const char*)event.data.scalar.value, "f"))
-            *ifrztyp = 1;
-          else if (!strcasecmp((const char*)event.data.scalar.value, "fy"))
-            *ifrztyp = 2;
-          else if (!strcasecmp((const char*)event.data.scalar.value, "fxz"))
-            *ifrztyp = 3;
-          else 
-            {
-              fprintf(stderr, "Parser error: frozen keyword '%s' unknown.\n", event.data.scalar.value);
-              done = -1;
-            }
-        }
-      else
-        {
-          fprintf(stderr, "Parser error: atom name awaited.\n");
-          done = -1;
-        }
-
-      /* The application is responsible for destroying the event object. */
-      yaml_event_delete(&event);
-    }
-  else
-    {
-      /* Error treatment. */
-      _yaml_parser_error(parser);
-      done = -1;
-    }
-
-  return done;
-}
-static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3], char **names, unsigned int *iat)
+static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3],
+                             char **names, unsigned int *iat, char **message)
 {
   yaml_event_t event;
   unsigned int ln;
@@ -455,11 +570,11 @@ static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3], char **nam
               names[*iat][ln] = '\0';
             }
           /* Then the coordinates. */
-          done = _yaml_parser_read_double_array(parser, names[*iat], coords, 3);
+          done = _yaml_parser_read_double_array(parser, names[*iat], coords, 3, message);
         }
       else
         {
-          fprintf(stderr, "Parser error: atom name awaited.\n");
+          set_error("Parser error: atom name awaited.\n");
           done = -1;
         }
 
@@ -469,13 +584,13 @@ static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3], char **nam
   else
     {
       /* Error treatment. */
-      _yaml_parser_error(parser);
+      _yaml_parser_error(parser, message);
       done = -1;
     }
 
   return done;
 }
-static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
+static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
 {
   yaml_event_t event;
   int done;
@@ -506,7 +621,7 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
           case YAML_MAPPING_START_EVENT:
             /* Each mapping is one atom. */
             done = posinp_yaml_coord(parser, atoms->rxyz + 3 * count,
-                                     atoms->atomnames, atoms->iatype + count);
+                                     atoms->atomnames, atoms->iatype + count, message);
             count += 1;
             if (count >= atom_size)
               {
@@ -522,18 +637,18 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
                 atoms->igchg = realloc(atoms->igchg, sizeof(int) * atom_size);
                 memset(atoms->igchg - ATOM_INC, 0, sizeof(int) * ATOM_INC);
               }
-            done = 0;
             break;
           case YAML_SEQUENCE_END_EVENT:
             done = 2;
             break;
           case YAML_SCALAR_EVENT:
             if (!strcmp((const char*)event.data.scalar.value, "IGSpin"))
-              done = _yaml_parser_read_int(parser, atoms->igspin + count - 1);
+              done = _yaml_parser_read_int(parser, atoms->igspin + count - 1, message);
             else if (!strcmp((const char*)event.data.scalar.value, "IGChg"))
-              done = _yaml_parser_read_int(parser, atoms->igchg + count - 1);
+              done = _yaml_parser_read_int(parser, atoms->igchg + count - 1, message);
             else if (!strcmp((const char*)event.data.scalar.value, "Frozen"))
-              done = posinp_yaml_frozen(parser, atoms->ifrztyp + count - 1);
+              done = _yaml_parser_read_keyword(parser, "Frozen", frozen_keys,
+                                               atoms->ifrztyp + count - 1, POSINP_N_FROZEN, message);
             else
               done = 0;
             break;
@@ -548,7 +663,7 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
     else
       {
         /* Error treatment. */
-        _yaml_parser_error(parser);
+        _yaml_parser_error(parser, message);
         done = -1;
       }
   
@@ -566,7 +681,7 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms)
 
   return done;
 }
-static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
+static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
 {
   yaml_event_t event;
   int done, count;
@@ -583,7 +698,7 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
           case YAML_SEQUENCE_START_EVENT:
             if (count == 0)
               {
-                done = posinp_yaml_coords(parser, atoms);
+                done = posinp_yaml_coords(parser, atoms, message);
                 break;
               }
           case YAML_MAPPING_START_EVENT:
@@ -597,9 +712,10 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
             break;
           case YAML_SCALAR_EVENT:
             if (!strcmp((const char*)event.data.scalar.value, "Units"))
-              done = _yaml_parser_read_keyword(parser, "Units", UnitsPositions_keys, &atoms->units);
+              done = _yaml_parser_read_keyword(parser, "Units", UnitsPositions_keys,
+                                               &atoms->units, POSINP_COORD_N_UNITS, message);
             else if (!strcmp((const char*)event.data.scalar.value, "Values"))
-              done = posinp_yaml_coords(parser, atoms);
+              done = posinp_yaml_coords(parser, atoms, message);
             else
               done = 0;
             break;
@@ -618,7 +734,227 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
     else
       {
         /* Error treatment. */
-        _yaml_parser_error(parser);
+        _yaml_parser_error(parser, message);
+        done = -1;
+      }
+
+  if (done == 2)
+    done = 0;
+
+  return done;
+}
+static int posinp_yaml_force(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
+{
+  yaml_event_t event, event2;
+  int done;
+  unsigned int count;
+  size_t ln;
+
+  if (atoms->nat < 1)
+    {
+      set_error("Parser error: forces are defined before atoms.\n");
+      done = -1;
+    }
+
+  /* Read the event sequence. */
+  done = 0;
+  count = 0;
+
+  atoms->fxyz = malloc(sizeof(double) * atoms->nat * 3);
+  memset(atoms->fxyz, 0, sizeof(double) * atoms->nat * 3);
+  
+  while (!done)
+    /* Get the next event. */
+    if (yaml_parser_parse(parser, &event))
+      {
+        switch(event.type)
+          {
+          case YAML_MAPPING_START_EVENT:
+            /* Each mapping is one atom. */
+            if (count >= atoms->nat)
+              {
+                set_error("Parser error: there are more forces than actual atoms.\n");
+                done = -1;
+                break;
+              }
+            if (yaml_parser_parse(parser, &event2))
+              {
+                if (event2.type == YAML_SCALAR_EVENT)
+                  {
+                    /* Here parse the name... */
+                    if (!strcmp(atoms->atomnames[atoms->iatype[count]],
+                                (const char*)event2.data.scalar.value))
+                      /* Then the coordinates. */
+                      done = _yaml_parser_read_double_array(parser,
+                                                            atoms->atomnames[atoms->iatype[count]],
+                                                            atoms->fxyz + 3 * count, 3, message);
+                    else
+                      {
+                        set_error("Parser error: force %d is applied on atom '%s' while atom"
+                                  " %d is named '%s'.\n", count, (const char*)event2.data.scalar.value,
+                                  count, atoms->atomnames[atoms->iatype[count]]);
+                        done = -1;
+                      }
+                  }
+                else
+                  {
+                    set_error("Parser error: atom name awaited.\n");
+                    done = -1;
+                  }
+              }
+            else
+              {
+                /* Error treatment. */
+                _yaml_parser_error(parser, message);
+                done = -1;
+              }
+            yaml_event_delete(&event2);
+            count += 1;
+            break;
+          case YAML_SEQUENCE_END_EVENT:
+            done = 2;
+            break;
+          case YAML_SCALAR_EVENT:
+            done = 0;
+            break;
+          default:
+            done = (event.type == YAML_STREAM_END_EVENT);
+            break;
+          }
+
+        /* The application is responsible for destroying the event object. */
+        yaml_event_delete(&event);
+      }
+    else
+      {
+        /* Error treatment. */
+        _yaml_parser_error(parser, message);
+        done = -1;
+      }
+  
+  if (done == 2)
+    done = 0;
+
+  return done;
+}
+static int posinp_yaml_forces(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
+{
+  yaml_event_t event;
+  int done, count;
+
+  /* Read the event sequence. */
+  done = 0;
+  count = 0;
+  while (!done)
+    /* Get the next event. */
+    if (yaml_parser_parse(parser, &event))
+      {
+        switch(event.type)
+          {
+          case YAML_SEQUENCE_START_EVENT:
+            if (count == 0)
+              {
+                done = posinp_yaml_force(parser, atoms, message);
+                break;
+              }
+          case YAML_MAPPING_START_EVENT:
+            count += 1;
+            done = 0;
+            break;
+          case YAML_SEQUENCE_END_EVENT:
+          case YAML_MAPPING_END_EVENT:
+            count -= 1;
+            done = 0;
+            break;
+          case YAML_SCALAR_EVENT:
+            if (!strcmp((const char*)event.data.scalar.value, "Units"))
+              done = _yaml_parser_read_keyword(parser, "Units", funits_keys,
+                                               &atoms->funits, POSINP_FORCE_N_UNITS, message);
+            else if (!strcmp((const char*)event.data.scalar.value, "Values"))
+              done = posinp_yaml_force(parser, atoms, message);
+            else if (!strcmp((const char*)event.data.scalar.value, "Fnrm"))
+              done = _yaml_parser_read_double(parser, &atoms->fnrm, message);
+            else if (!strcmp((const char*)event.data.scalar.value, "MaxVal"))
+              done = _yaml_parser_read_double(parser, &atoms->maxval, message);
+            else
+              done = 0;
+            break;
+          default:
+            done = (event.type == YAML_STREAM_END_EVENT);
+            break;
+          }
+
+        /* Are we finished? */
+        if (count == 0)
+          done = 2;
+
+        /* The application is responsible for destroying the event object. */
+        yaml_event_delete(&event);
+      }
+    else
+      {
+        /* Error treatment. */
+        _yaml_parser_error(parser, message);
+        done = -1;
+      }
+
+  if (done == 2)
+    done = 0;
+
+  return done;
+}
+static int posinp_yaml_properties(yaml_parser_t *parser, PosinpAtoms *atoms, char **message)
+{
+  yaml_event_t event;
+  int done, count;
+
+  /* Read the event sequence. */
+  done = 0;
+  count = 0;
+  while (!done)
+    /* Get the next event. */
+    if (yaml_parser_parse(parser, &event))
+      {
+        switch(event.type)
+          {
+          case YAML_SEQUENCE_START_EVENT:
+          case YAML_MAPPING_START_EVENT:
+            count += 1;
+            done = 0;
+            break;
+          case YAML_SEQUENCE_END_EVENT:
+          case YAML_MAPPING_END_EVENT:
+            count -= 1;
+            done = 0;
+            break;
+          case YAML_SCALAR_EVENT:
+            if (!strcmp((const char*)event.data.scalar.value, "Converged"))
+              done = _yaml_parser_read_keyword(parser, "Converged", bool_keys,
+                                               &atoms->converged, 2, message);
+            else if (!strcmp((const char*)event.data.scalar.value, "Gnrm_wfn"))
+              done = _yaml_parser_read_double(parser, &atoms->gnrm_wfn, message);
+            else if (!strcmp((const char*)event.data.scalar.value, "Energy"))
+              done = _yaml_parser_read_value(parser, &atoms->energy, &atoms->eunits,
+                                             eunits_keys, POSINP_ENERG_N_UNITS, message);
+            else
+              done = 0;
+            break;
+          default:
+            done = (event.type == YAML_STREAM_END_EVENT);
+            break;
+          }
+
+        /* Are we finished? */
+        if (count == 0)
+          done = 2;
+
+        /* The application is responsible for destroying the event object. */
+        yaml_event_delete(&event);
+      }
+    else
+      {
+        /* Error treatment. */
+        _yaml_parser_error(parser, message);
         done = -1;
       }
 
@@ -629,7 +965,7 @@ static int posinp_yaml_position(yaml_parser_t *parser, PosinpAtoms *atoms)
 }
 #endif
 
-PosinpList* posinp_yaml_parse(const char *filename)
+PosinpList* posinp_yaml_parse(const char *filename, char **message)
 {
   PosinpList *list;
 #ifdef HAVE_YAML
@@ -671,10 +1007,19 @@ PosinpList* posinp_yaml_parse(const char *filename)
           }
         else if (event.type == YAML_SCALAR_EVENT &&
                  !strcmp((const char*)event.data.scalar.value, "Cell"))
-          done = posinp_yaml_cell(&parser, tmp->data);
+          done = posinp_yaml_cell(&parser, tmp->data, message);
         else if (event.type == YAML_SCALAR_EVENT &&
                  !strcmp((const char*)event.data.scalar.value, "Positions"))
-          done = posinp_yaml_position(&parser, tmp->data);
+          done = posinp_yaml_position(&parser, tmp->data, message);
+        else if (event.type == YAML_SCALAR_EVENT &&
+                 !strcmp((const char*)event.data.scalar.value, "Forces"))
+          done = posinp_yaml_forces(&parser, tmp->data, message);
+        else if (event.type == YAML_SCALAR_EVENT &&
+                 !strcmp((const char*)event.data.scalar.value, "Properties"))
+          done = posinp_yaml_properties(&parser, tmp->data, message);
+        else if (event.type == YAML_SCALAR_EVENT &&
+                 !strcmp((const char*)event.data.scalar.value, "Comment"))
+          done = _yaml_parser_copy_str(&parser, &tmp->data->comment, message);
         else
           done = (event.type == YAML_STREAM_END_EVENT);
 
@@ -684,7 +1029,7 @@ PosinpList* posinp_yaml_parse(const char *filename)
     else
       {
         /* Error treatment. */
-        _yaml_parser_error(&parser);
+        _yaml_parser_error(&parser, message);
         done = -1;
       }
 
@@ -692,7 +1037,7 @@ PosinpList* posinp_yaml_parse(const char *filename)
   yaml_parser_delete(&parser);
   fclose(input);
 #else
-  fprintf(stderr, "No YAML support, cannot read file '%s'.\n", filename);
+  set_error("No YAML support, cannot read file '%s'.\n", filename);
   list = (PosinpList*)0;
 #endif
 
@@ -707,7 +1052,7 @@ void FC_FUNC_(posinp_yaml_parse, POSINP_YAML_PARSE)(PosinpList **self,
   memcpy(name, filename, sizeof(char) * *ln);
   name[*ln] = '\0';
 
-  *self = posinp_yaml_parse(name);
+  *self = posinp_yaml_parse(name, NULL);
 
   free(name);
 }
@@ -815,13 +1160,71 @@ void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **s
       memcpy(name, lst->data->atomnames[*ityp], sizeof(char) * ((ln > 20)?20:ln));
     }
 }
+void FC_FUNC_(posinp_yaml_get_forces, POSINP_YAML_GET_FORCES)(PosinpList **self, unsigned int *i,
+                                                              unsigned int *units, double *fnrm,
+                                                              double *maxval, double *fxyz)
+{
+  PosinpList *lst;
+  unsigned int j;
+
+  for (lst = *self, j = 0; j < *i; j++)
+    if (lst)
+      lst = lst->next;
+
+  if (lst)
+    {
+      memcpy(fxyz, lst->data->fxyz, sizeof(double) * lst->data->nat * 3);
+      *units  = lst->data->funits;
+      *fnrm   = lst->data->fnrm;
+      *maxval = lst->data->maxval;
+    }
+}
+void FC_FUNC_(posinp_yaml_get_properties, POSINP_YAML_GET_PROPERTIES)
+     (PosinpList **self, unsigned int *i, unsigned int *eunits, double *energy,
+      double *gnrm, int *converged)
+{
+  PosinpList *lst;
+  unsigned int j;
+
+  for (lst = *self, j = 0; j < *i; j++)
+    if (lst)
+      lst = lst->next;
+
+  if (lst)
+    {
+      *eunits    = lst->data->eunits;
+      *energy    = lst->data->energy;
+      *converged = lst->data->converged;
+      *gnrm      = lst->data->gnrm_wfn;
+    }
+}
+void FC_FUNC_(posinp_yaml_get_comment, POSINP_YAML_GET_COMMENT)
+     (PosinpList **self, unsigned int *i, char *comment, unsigned int *len)
+{
+  PosinpList *lst;
+  unsigned int j, ln;
+
+  for (lst = *self, j = 0; j < *i; j++)
+    if (lst)
+      lst = lst->next;
+
+  if (lst)
+    {
+      memset(comment, ' ', sizeof(char) * *len);
+      if (lst->data->comment)
+        {
+          ln = strlen(lst->data->comment);
+          memcpy(comment, lst->data->comment, sizeof(char) * ((ln <= (*len))?ln:*len));
+        }
+    }
+}
 
 #ifdef TEST_ME
 int main(int argc, const char **argv)
 {
   PosinpList *lst, *tmp;
 
-  lst = posinp_yaml_parse(argv[1]);
+  lst = posinp_yaml_parse(argv[1], NULL);
   for (tmp = lst; tmp; tmp = tmp->next)
     {
       fprintf(stdout, "---\n");
