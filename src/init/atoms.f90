@@ -709,6 +709,10 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
      atoms%alat3 = 0.0_gp
   end if
 
+  if (reduced) then
+     write(atoms%units, "(A)") "reduced"
+  end if
+
   !now that ntypes is determined copy the values
   call allocate_atoms_ntypes(atoms, ntyp, subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
@@ -784,13 +788,16 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   call memocc(i_stat,igchrg,'igchrg',subname)
 
   call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
+  if (units == 2) then
+     write(atoms%units, "(A)") "reduced"
+  end if
   do iat = 1, atoms%nat, 1
-     if (units == 0) then
+     if (units == 1) then
         rxyz(1,iat)=rxyz(1,iat) / bohr2ang
         rxyz(2,iat)=rxyz(2,iat) / bohr2ang
         rxyz(3,iat)=rxyz(3,iat) / bohr2ang
      endif
-     if (units == 3) then !add treatment for reduced coordinates
+     if (units == 2) then !add treatment for reduced coordinates
         if (atoms%alat1 > 0.) rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
         if (atoms%alat2 > 0.) rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
         if (atoms%alat3 > 0.) rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
