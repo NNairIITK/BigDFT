@@ -732,20 +732,18 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   call posinp_yaml_parse(lst, filename, len(filename))
 
   call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
-  if (bc == 0) then
+  if (bc == 3) then
      atoms%geocode = 'P'
-  else if (bc == 1) then
+  else if (bc == 0) then
      atoms%geocode = 'F'
   else if (bc == 2) then
      atoms%geocode = 'S'
-  else if (bc == 3) then
+  else if (bc == 1) then
      atoms%geocode = 'W'
   end if
-  if (units == 0) then
+  if (units == 1) then
      write(atoms%units, "(A)") "angstroem"
-  else if (units == 1) then
-     write(atoms%units, "(A)") "atomic"
-  else if (units == 2) then
+  else if (units == 0) then
      write(atoms%units, "(A)") "bohr"
   end if
   atoms%alat1 = acell(1)
