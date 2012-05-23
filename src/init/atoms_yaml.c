@@ -5,29 +5,17 @@
 #endif
 
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "atoms_yaml.h"
 
 #ifndef FC_FUNC_
 #define FC_FUNC_(A,B) A ## _
 #endif
 
-typedef struct _PosinpAtoms
-{
-  /* The cell. */
-  unsigned int BC, Units;
-  double acell[3], angdeg[3];
-
-  /* The positions. */
-  unsigned int nat, ntypes, units;
-  double *rxyz;
-  char **atomnames;
-  unsigned int *iatype, *ifrztyp;
-  int *igspin, *igchg;
-
-  /* The forces. */
-} PosinpAtoms;
+#ifdef HAVE_YAML
 static const char *UnitsPositions_keys[] = {"angstroem", "atomic", "bohr", "reduced", NULL};
 static const char *BC_keys[] = {"periodic", "free", "surface", "wire", NULL};
 static const char *Units_keys[] = {"angstroem", "atomic", "bohr", NULL};
@@ -54,6 +42,8 @@ static PosinpAtoms* posinp_atoms_new()
 
   return atoms;
 }
+#endif
+
 static void posinp_atoms_free(PosinpAtoms *atoms)
 {
   unsigned int i;
@@ -95,13 +85,6 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
             atoms->ifrztyp[i], atoms->igspin[i], atoms->igchg[i]);
 }
 #endif
-
-typedef struct _PosinpList PosinpList;
-struct _PosinpList
-{
-  PosinpList *next;
-  PosinpAtoms *data;
-};
 
 #ifdef HAVE_YAML
 static void _yaml_parser_error(const yaml_parser_t *parser)
@@ -451,6 +434,7 @@ static int posinp_yaml_frozen(yaml_parser_t *parser, unsigned int *ifrztyp)
 static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3], char **names, unsigned int *iat)
 {
   yaml_event_t event;
+  unsigned int ln;
   int done;
 
   /* Read the value. */
@@ -464,7 +448,12 @@ static int posinp_yaml_coord(yaml_parser_t *parser, double coords[3], char **nam
           for (*iat = 0; names[*iat] && strcmp((const char*)names[*iat],
                                                (const char*)event.data.scalar.value); *iat += 1);
           if (!names[*iat])
-            names[*iat] = strdup((const char*)event.data.scalar.value);
+            {
+              ln = strlen((const char*)event.data.scalar.value);
+              names[*iat] = malloc(sizeof(char*) * (ln + 1));
+              memcpy(names[*iat], (const char*)event.data.scalar.value, sizeof(char*) * ln);
+              names[*iat][ln] = '\0';
+            }
           /* Then the coordinates. */
           done = _yaml_parser_read_double_array(parser, names[*iat], coords, 3);
         }
@@ -703,7 +692,7 @@ PosinpList* posinp_yaml_parse(const char *filename)
   yaml_parser_delete(&parser);
   fclose(input);
 #else
-  fprintf(stderr, "No YAML support.\n");
+  fprintf(stderr, "No YAML support, cannot read file '%s'.\n", filename);
   list = (PosinpList*)0;
 #endif
 
@@ -722,7 +711,7 @@ void FC_FUNC_(posinp_yaml_parse, POSINP_YAML_PARSE)(PosinpList **self,
 
   free(name);
 }
-static void posinp_yaml_free_list(PosinpList *lst)
+void posinp_yaml_free_list(PosinpList *lst)
 {
   PosinpList *tmp;
 
