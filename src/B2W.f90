@@ -42,7 +42,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
-   logical :: perx, pery,perz
+   logical :: perx, pery,perz, residentity
    !cube
    integer :: nx, ny, nz, nb, nb1, nb2, nk, inn
    integer, allocatable, dimension(:) :: Z
@@ -97,7 +97,8 @@ program BigDFT2Wannier
 
    ! Read input.inter file
    call timing(iproc,'Precondition  ','ON')
-   call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+   call read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_check, n_virt_tot,&
+         n_virt, w_unk, w_sph, w_ang, w_rad)
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
@@ -164,7 +165,9 @@ program BigDFT2Wannier
    if(precheck .and. n_virt_tot > 0) then
      nvirtu = abs(input%norbv)
      nvirtd = 0
-   else if()
+   else if(residentity)
+     nvirtu = n_proj
+     nvirtd = 0
    end if
    if (input%nspin==2) nvirtd=nvirtu
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
@@ -202,6 +205,7 @@ program BigDFT2Wannier
 
    !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
    call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
+   call orbitals_communicators(iproc,nproc,Glr,orbsp,commsp)
 
    ! Simplification of the notations
    nx=Glr%d%n1i
@@ -211,8 +215,6 @@ program BigDFT2Wannier
    call initialize_work_arrays_sumrho(Glr,w)
 
    ! Allocations for Amnk calculation
-   ! Define orbsp and commsp, used for the spherical harmonics transposition.
-   call orbitals_communicators(iproc,nproc,Glr,orbsp,commsp)
    npsidim2=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
    allocate(ylm(nx,ny,nz),stat=i_stat)
    call memocc(i_stat,ylm,'ylm',subname)
@@ -236,9 +238,9 @@ program BigDFT2Wannier
 
          call timing(iproc,'CrtProjectors ','ON')
 
-         !      if(orbsv%norbp > 0) then
          ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
-         allocate(psi_etsfv(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,max(orbsv%norbp*orbsv%nspinor,1)),stat=i_stat)
+         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
+         allocate(psi_etsfv(npsidim),stat=i_stat)
          call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
          if(associated(orbsv%eval)) nullify(orbsv%eval)
          allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
@@ -252,32 +254,14 @@ program BigDFT2Wannier
          nullify(orbsv%eval)
          call memocc(i_stat,i_all,'orbsv%eval',subname)
 
-         ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
-         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
-         allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
-         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-
-         call razero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsfv(1,1),work=pwork,outadd=psi_etsf2(1))
+            call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsfv(1,1),work=pwork)
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
-         else
-            ! just copy the wavefunctions 
-            k=0
-            do j=1,orbsv%norbp*orbsv%nspinor
-               do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-                  k=k+1
-                  psi_etsf2(k) = psi_etsfv(i,j)
-               end do
-            end do
          end if
-         i_all=-product(shape(psi_etsfv))*kind(psi_etsfv)
-         deallocate(psi_etsfv,stat=i_stat)
-         call memocc(i_stat,i_all,'psi_etsfv',subname)
 
          ! - b1, b2 and b3 are the norm of the lattice parameters.
          b1=atoms%alat1
@@ -360,7 +344,7 @@ program BigDFT2Wannier
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
          call razero(orbsp%norb*orbsv%norb,amnk)
          nvctrp=commsv%nvctr_par(iproc,1)
-         call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
+         call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsfv(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
          ! Construction of the whole Amnk_guess matrix.
@@ -392,9 +376,9 @@ program BigDFT2Wannier
          end do
 
          ! End of the pre-check mode
-         i_all = -product(shape(psi_etsf2))*kind(psi_etsf2)
-         deallocate(psi_etsf2,stat=i_stat)
-         call memocc(i_stat,i_all,'psi_etsf2',subname)
+         i_all = -product(shape(psi_etsfv))*kind(psi_etsfv)
+         deallocate(psi_etsfv,stat=i_stat)
+         call memocc(i_stat,i_all,'psi_etsfv',subname)
          i_all = -product(shape(amnk))*kind(amnk)
          deallocate(amnk,stat=i_stat)
          call memocc(i_stat,i_all,'amnk',subname)
@@ -429,13 +413,15 @@ program BigDFT2Wannier
       allocate(virt_list(n_virt),stat=i_stat)
       call memocc(i_stat,virt_list,'virt_list',subname)
 
-
+      if(residentity) n_virt = n_proj
       if (n_virt .ne. 0) then
-         if (pre_check .eqv. .true.) then 
+         if (pre_check) then 
             do i=1,n_virt
                virt_list(i)=amnk_bands_sorted(i)!+n_occ
             end do
-         else if (pre_check .eqv. .false.) then
+         else if(residentity) then
+            virt_list = 0
+         else
             call read_inter_list(iproc, n_virt, virt_list)
          end if
       end if
@@ -515,14 +501,16 @@ program BigDFT2Wannier
       allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
       call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
-      if(orbsv%norbp > 0) then
+      if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
             Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
-      if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then
-        call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+      if(residenity)then
+         orbsv%eval = 99.0_dp  !What to put for the energy?
+      else if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then
+         call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
       end if
       ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
       if(iproc==0) then
@@ -624,20 +612,72 @@ program BigDFT2Wannier
 
       end if
 
-      ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
-      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-      allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
-      call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-      call razero(npsidim,psi_etsf2)
-      if(nproc > 1) then
+      if(.not. residentity)then
+         ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
+         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
+         allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
+         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
+         call razero(npsidim,psi_etsf2)
+         if(nproc > 1) then
+            allocate(pwork(npsidim),stat=i_stat)
+            call memocc(i_stat,pwork,'pwork',subname)
+            call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+            i_all = -product(shape(pwork))*kind(pwork)
+            deallocate(pwork,stat=i_stat)
+            call memocc(i_stat,i_all,'pwork',subname)
+         else
+            call dcopy(orbsb%norbp*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+         end if
+      else
+         ! Tranposition of the distribution of the BigDFT occupied wavefunctions : orbitals -> components.
+         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norbp*orbs%nspinor,sum(comms%ncntt(0:nproc-1)))
+         allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
+         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
+         call razero(npsidim,psi_etsf2)
+         if(nproc > 1) then
+            allocate(pwork(npsidim),stat=i_stat)
+            call memocc(i_stat,pwork,'pwork',subname)
+            call transpose_v(iproc,nproc,orbs,Glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+            i_all = -product(shape(pwork))*kind(pwork)
+            deallocate(pwork,stat=i_stat)
+            call memocc(i_stat,i_all,'pwork',subname)
+         else
+            call dcopy(orbs%norbp*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+         end if
+
+         ! Scalar product of amnk=<sph_daub|occ> in parallel.
+         nvctrp=commsb%nvctr_par(iproc,1)
+         call gemm('T','N',orbs%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
+            &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbs%norb)
+
+         ! Construction of the occupied Amnk submatrix.
+         if(nproc > 0) then
+            call mpiallred(amnk(1,1),orbs%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+         end if
+
+         ! Now build the new states corresponding to: sph_daub - sum{amnk occ} and place them at the virtual states
+         ! We are working in transpose space
+         pshft = 0
+         shft =commsb%nvctr_par(iproc,1)*orbs%norb
+         do npp=1, orbsp%norbp
+            np=npp+orbsp%isorb 
+            call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,psi_etsf2(1+shft),1)
+            do nb = 1,orbs%norb*orbs%nspinor    !Should be on all occupied bands
+               do j=1,nvctrp
+                  psi_etsf2(j+shft) = psi_etsf2(j+shft) - amnk(nb,np)*psi_etsf2(j,nb) 
+               end do
+            end do
+            pshft = pshft +  nvctrp
+            shft = shft + nvctrp
+         end do
+
+         ! Now untranspose to make the psi
          allocate(pwork(npsidim),stat=i_stat)
          call memocc(i_stat,pwork,'pwork',subname)
-         call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+         call untranspose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf2,pwork,outadd=psi_etsf)
          i_all = -product(shape(pwork))*kind(pwork)
          deallocate(pwork,stat=i_stat)
          call memocc(i_stat,i_all,'pwork',subname)
-      else
-         call dcopy(orbsb%norbp*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
       end if
 
       ! Scalar product of amnk=<sph_daub|psi> in parallel.
@@ -1546,7 +1586,8 @@ END PROGRAM BigDFT2Wannier
 ! Start subroutines
 !###########################################################################################################
 !>
-subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+subroutine read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_check,&
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1556,7 +1597,7 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    integer, intent(in) :: iproc
    character, intent(out) :: seedname*16, filetype*4
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
-   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity
 
    ! Local variables
    character :: char1*1, char2*1, char3*1, char4*1
@@ -1596,8 +1637,14 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    if(iproc==0)write(*,*) 'file type : ', filetype
 
    ! Third line
-   read(11,*) n_occ
+   read(11,*) char1, n_occ
    if(iproc==0)write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
+   if(char1=='T') then
+     residentity = .true.
+     if(iproc==0) write(*,*) 'Will use resolution of the identity to construct virtual states'
+   else
+     residentity = .false.
+   end if
 
    ! Fourth line
    read(11,*) char1, n_virt_tot, n_virt

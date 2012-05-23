@@ -36,7 +36,7 @@ program BigDFT2Wannier
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
-   real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:,:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
+   real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:),pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
@@ -255,7 +255,8 @@ program BigDFT2Wannier
 
          !      if(orbsv%norbp > 0) then
          ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
-         allocate(psi_etsfv(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,max(orbsv%norbp*orbsv%nspinor,1)),stat=i_stat)
+         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
+         allocate(psi_etsfv(npsidim),stat=i_stat)
          call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
          if(associated(orbsv%eval)) nullify(orbsv%eval)
          allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
@@ -269,32 +270,14 @@ program BigDFT2Wannier
          nullify(orbsv%eval)
          call memocc(i_stat,i_all,'orbsv%eval',subname)
 
-         ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
-         npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
-         allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
-         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-
-         call razero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsfv(1,1),work=pwork,outadd=psi_etsf2(1))
+            call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsfv(1),work=pwork)
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
-         else
-            ! just copy the wavefunctions 
-            k=0
-            do j=1,orbsv%norbp*orbsv%nspinor
-               do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-                  k=k+1
-                  psi_etsf2(k) = psi_etsfv(i,j)
-               end do
-            end do
          end if
-         i_all=-product(shape(psi_etsfv))*kind(psi_etsfv)
-         deallocate(psi_etsfv,stat=i_stat)
-         call memocc(i_stat,i_all,'psi_etsfv',subname)
 
          ! - b1, b2 and b3 are the norm of the lattice parameters.
          b1=atoms%alat1
@@ -377,7 +360,7 @@ program BigDFT2Wannier
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
          call razero(orbsp%norb*orbsv%norb,amnk)
          nvctrp=commsv%nvctr_par(iproc,1)
-         call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
+         call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsfv(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
          ! Construction of the whole Amnk_guess matrix.
@@ -409,9 +392,9 @@ program BigDFT2Wannier
          end do
 
          ! End of the pre-check mode
-         i_all = -product(shape(psi_etsf2))*kind(psi_etsf2)
-         deallocate(psi_etsf2,stat=i_stat)
-         call memocc(i_stat,i_all,'psi_etsf2',subname)
+         i_all = -product(shape(psi_etsfv))*kind(psi_etsfv)
+         deallocate(psi_etsfv,stat=i_stat)
+         call memocc(i_stat,i_all,'psi_etsfv',subname)
          i_all = -product(shape(amnk))*kind(amnk)
          deallocate(amnk,stat=i_stat)
          call memocc(i_stat,i_all,'amnk',subname)
