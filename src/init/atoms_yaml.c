@@ -1160,6 +1160,19 @@ void FC_FUNC_(posinp_yaml_get_atomname, POSINP_YAML_GET_ATOMNAME)(PosinpList **s
       memcpy(name, lst->data->atomnames[*ityp], sizeof(char) * ((ln > 20)?20:ln));
     }
 }
+void FC_FUNC_(posinp_yaml_has_forces, POSINP_YAML_HAS_FORCES)(PosinpList **self, unsigned int *i,
+                                                              unsigned int *has_forces)
+{
+  PosinpList *lst;
+  unsigned int j;
+
+  for (lst = *self, j = 0; j < *i; j++)
+    if (lst)
+      lst = lst->next;
+
+  if (lst)
+    *has_forces = (lst->data->fxyz != (double*)0);
+}
 void FC_FUNC_(posinp_yaml_get_forces, POSINP_YAML_GET_FORCES)(PosinpList **self, unsigned int *i,
                                                               unsigned int *units, double *fnrm,
                                                               double *maxval, double *fxyz)
@@ -1173,7 +1186,8 @@ void FC_FUNC_(posinp_yaml_get_forces, POSINP_YAML_GET_FORCES)(PosinpList **self,
 
   if (lst)
     {
-      memcpy(fxyz, lst->data->fxyz, sizeof(double) * lst->data->nat * 3);
+      if (lst->data->fxyz)
+        memcpy(fxyz, lst->data->fxyz, sizeof(double) * lst->data->nat * 3);
       *units  = lst->data->funits;
       *fnrm   = lst->data->fnrm;
       *maxval = lst->data->maxval;
