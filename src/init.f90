@@ -2253,11 +2253,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
    ! Emit that new wavefunctions are ready.
    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR &
         & .and. KSwfn%c_obj /= 0) then
-      call kswfn_emit_psi(KSwfn, 0, iproc, nproc)
+      call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
    end if
    if ((inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) &
         & .and. tmb%c_obj /= 0) then
-      call kswfn_emit_psi(tmb, 0, iproc, nproc)
+      call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
 
 END SUBROUTINE input_wf

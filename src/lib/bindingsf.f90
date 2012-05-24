@@ -172,6 +172,20 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
+subroutine glr_copy(glr, d, wfd, from)
+  use module_types
+  implicit none
+  type(locreg_descriptors), pointer :: glr
+  type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
+  type(locreg_descriptors), intent(in) :: from
+
+  allocate(glr)
+  call nullify_locreg_descriptors(glr)
+  d => glr%d
+  wfd => glr%wfd
+  call copy_locreg_descriptors(from, glr, "glr_copy")
+end subroutine glr_copy
 subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
@@ -345,6 +359,7 @@ subroutine lzd_init(lzd, glr)
   type(locreg_descriptors), pointer :: glr
 
   call nullify_local_zone_descriptors(lzd)
+  lzd%nlr = 0
   glr => lzd%glr
 end subroutine lzd_init
 subroutine lzd_get_data(lzd, glr)
@@ -387,6 +402,13 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
 
   integer :: i
   
+  if (lzd%nlr > 0) then
+     do i = 1, lzd%nlr, 1
+        call deallocate_locreg_descriptors(lzd%Llr(i), "lzd_set_nlr")
+     end do
+     deallocate(lzd%llr)
+  end if
+
   lzd%nlr = nlr
   allocate(lzd%Llr(Lzd%nlr))
   do i = 1, nlr, 1
@@ -989,19 +1011,21 @@ subroutine wf_free(wf)
   call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
   deallocate(wf)
 end subroutine wf_free
-subroutine wf_get_psi(wf, psi)
+subroutine wf_get_psi(wf, psi, hpsi)
   use module_types
   implicit none
   type(DFT_wavefunction), intent(in) :: wf
-  double precision, intent(out) :: psi
+  integer(kind = 8), intent(out) :: psi
+  integer(kind = 8), intent(out) :: hpsi
 
   interface
      subroutine inquire_address1(add, pt_f)
        double precision, dimension(:), pointer :: pt_f
-       double precision, intent(out) :: add
+       integer(kind = 8), intent(out) :: add
      end subroutine inquire_address1
   end interface
   call inquire_address1(psi, wf%psi)
+  call inquire_address1(hpsi, wf%hpsi)
 end subroutine wf_get_psi
 subroutine wf_get_psi_size(psi, psiSize)
   use module_types

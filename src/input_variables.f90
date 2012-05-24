@@ -1854,7 +1854,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
+subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -1866,17 +1866,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
    integer, intent(out), optional :: status
+   real(gp), intent(out), optional :: energy
+   real(gp), dimension(:,:), pointer, optional :: fxyz
+   character(len = 1024), intent(out), optional :: comment
    !Local variables
-   !n(c) character(len=*), parameter :: subname='read_atomic_file'
-   integer :: l, extract
+   character(len=*), parameter :: subname='read_atomic_file'
+   integer :: l, extract, i_all, i_stat
    logical :: file_exists, archive
    character(len = 128) :: filename
    character(len = 15) :: arFile
    character(len = 6) :: ext
+   real(gp) :: energy_
+   real(gp), dimension(:,:), pointer :: fxyz_
+   character(len = 1024) :: comment_
 
    file_exists = .false.
    archive = .false.
    if (present(status)) status = 0
+   nullify(fxyz_)
 
    ! Extract from archive
    if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
@@ -1971,21 +1978,21 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    if (atoms%format == "xyz") then
       !read atomic positions
       if (.not.archive) then
-         call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "ascii") then
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "yaml") then
       !read atomic positions
       if (.not.archive) then
-         call read_yaml_positions(trim(filename), atoms,rxyz)
+         call read_yaml_positions(trim(filename),atoms,rxyz,comment_,energy_,fxyz_)
       else
          write(*,*) "Atomic input file in YAML not yet supported in archive file."
          stop
@@ -2006,6 +2013,21 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
    end if
+   
+   ! We transfer optionals.
+   if (present(energy)) then
+      energy = energy_
+   end if
+   if (present(comment)) then
+      write(comment, "(A)") comment_
+   end if
+   if (present(fxyz)) then
+      fxyz => fxyz_
+   else if (associated(fxyz_)) then
+      i_all=-product(shape(fxyz_))*kind(fxyz_)
+      deallocate(fxyz_,stat=i_stat)
+      call memocc(i_stat,i_all,'fxyz_',subname)
+   end if
 END SUBROUTINE read_atomic_file
 
 !> Write an atomic file
@@ -2021,9 +2043,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
   !local variables
-  integer :: iostat
   character(len = 15) :: arFile
-  real(gp), dimension(:,:), pointer :: forces_yaml
 
   open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
   if (atoms%format == "xyz") then
