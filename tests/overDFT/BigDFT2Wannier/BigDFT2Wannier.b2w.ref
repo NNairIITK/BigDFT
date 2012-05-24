@@ -26,7 +26,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -113,10 +113,11 @@
      n_kpts=   1;    n_proj=   2;  n_nnkpts=   3;    n_excb=   0
  !==================================!
  !   Reading .nnkp integers  done   !
-- READING WAVES TIME   5  0.000E+00  0.000E+00
  !==================================!
 
 
+- READING WAVES TIME   4  0.000E+00  0.000E+00
+- READING WAVES TIME   5  0.000E+00  0.000E+00
  !==================================!
  !       Reading .nnkp file :       !
 - READING WAVES TIME   3  0.000E+00  0.000E+00
@@ -132,22 +133,21 @@
  !==================================!
 
 
-- READING WAVES TIME   4  4.000E-03  0.000E+00
 - READING WAVES TIME   2  0.000E+00  0.000E+00
  wavefunctions need NO reformatting
-- READING WAVES TIME   1  1.200E-02  9.000E-03
-- READING WAVES TIME   0  8.001E-03  1.000E-02
+- READING WAVES TIME   1  8.000E-03  2.100E-02
+- READING WAVES TIME   0  8.000E-03  9.000E-03
  !==================================!
  ! Calculating amnk=<virt|sph_har>  !
  !       in pre-check mode :        !
  !==================================!
 Virtual band    amnk_guess(nb)=
-   1               0.410756
-   2               0.225069
+   1               0.451392
+   2               0.224696
 
 These are the virtual bands to use to construct the actual Amn and Mmn matrices :
 Band    sqrt(amnk_guess)=
-   1       0.410756
+   1       0.451392
  !==================================!
  ! Calculating amnk=<virt|sph_har>  !
  !     in pre-check mode done       !
@@ -161,13 +161,13 @@ Band    sqrt(amnk_guess)=
 
  wavefunctions need NO reformatting
 - READING WAVES TIME   0  8.001E-03  1.000E-02
-- READING WAVES TIME   1  1.200E-02  9.000E-03
+- READING WAVES TIME   1  1.200E-02  1.800E-02
  !==================================!
  !  Calculating amnk=<psi|sph_har>  !
  !==================================!
 Band      sqrt(amnk_tot)=
-   1       1.010165
-   2       0.410756
+   1       0.897686
+   2       0.451392
  !==================================!
  !  Calculating amnk=<psi|sph_har>  !
  !               done               !
@@ -210,9 +210,9 @@ Band    sqrt(mmnk_tot)=
 
 
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  8.001E-03  1.000E-02
+- READING WAVES TIME   0  4.000E-03  1.000E-02
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  1.200E-02  9.000E-03
+- READING WAVES TIME   0  8.001E-03  1.000E-02
  !==================================!
  !      Writing a UNKnk.s file      !
  !==================================!
@@ -221,8 +221,8 @@ Band    sqrt(mmnk_tot)=
  !==================================!
 
 
- CPU time/ELAPSED time for root process     0         2.97         2.97
+ CPU time/ELAPSED time for root process     0         7.03         3.46
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 231 allocations and 231 deallocations, remaining memory(B): 0
+ 233 allocations and 233 deallocations, remaining memory(B): 0
  memory occupation peak: 44 MB
  for the array  psifscf in the routine readmywaves

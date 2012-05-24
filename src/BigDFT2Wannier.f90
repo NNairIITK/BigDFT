@@ -328,6 +328,18 @@ program BigDFT2Wannier
          end do
 
          call deallocate_projectors()
+
+         call timing(iproc,'CrtProjectors ','OF')
+
+         ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
+         allocate(pwork(npsidim2),stat=i_stat)
+         call memocc(i_stat,pwork,'pwork',subname)
+         call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub(1),work=pwork)
+         i_all = -product(shape(pwork))*kind(pwork)
+         deallocate(pwork,stat=i_stat)
+         call memocc(i_stat,i_all,'pwork',subname)
+         call timing(iproc,'ApplyProj     ','ON')
+
          ! calculate the inverse overlap of the projector to build proper amnk_tot
          allocate(overlap_proj(orbsp%norb,orbsp%norb))
          nvctrp=commsp%nvctr_par(iproc,1)
@@ -336,7 +348,7 @@ program BigDFT2Wannier
          if(nproc > 1) then                                                                                                                                                              
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
          end if
-         print *,'overlap_proj',overlap_proj
+         !print *,'overlap_proj',overlap_proj
          allocate(ipiv(orbsp%norb),stat=i_stat)
          call memocc(i_stat,ipiv,'ipiv',subname)
          call dgetrf( orbsp%norb, orbsp%norb, overlap_proj, orbsp%norb, ipiv, info )
@@ -356,17 +368,7 @@ program BigDFT2Wannier
          i_all = -product(shape(ipiv))*kind(ipiv)
          deallocate(ipiv,stat=i_stat)
          call memocc(i_stat,i_all,'ipiv',subname)
-
-         call timing(iproc,'CrtProjectors ','OF')
-
-         ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
-         allocate(pwork(npsidim2),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
-         call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub(1),work=pwork)
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         call timing(iproc,'ApplyProj     ','ON')
+         !print *,'inverse overlap_proj',overlap_proj
 
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
          call razero(orbsp%norb*orbsv%norb,amnk)
