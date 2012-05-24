@@ -1011,19 +1011,21 @@ subroutine wf_free(wf)
   call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
   deallocate(wf)
 end subroutine wf_free
-subroutine wf_get_psi(wf, psi)
+subroutine wf_get_psi(wf, psi, hpsi)
   use module_types
   implicit none
   type(DFT_wavefunction), intent(in) :: wf
-  double precision, intent(out) :: psi
+  integer(kind = 8), intent(out) :: psi
+  integer(kind = 8), intent(out) :: hpsi
 
   interface
      subroutine inquire_address1(add, pt_f)
        double precision, dimension(:), pointer :: pt_f
-       double precision, intent(out) :: add
+       integer(kind = 8), intent(out) :: add
      end subroutine inquire_address1
   end interface
   call inquire_address1(psi, wf%psi)
+  call inquire_address1(hpsi, wf%hpsi)
 end subroutine wf_get_psi
 subroutine wf_get_psi_size(psi, psiSize)
   use module_types

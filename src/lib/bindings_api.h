@@ -162,7 +162,7 @@ void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, const double *psic
 void FC_FUNC_(wf_new, WF_NEW)(double *self, void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(wf_free, WF_FREE)(void *wf);
 void FC_FUNC_(wf_empty, WF_EMPTY)(void *wf);
-void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi);
+void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi, void *hpsi);
 void FC_FUNC_(wf_get_data, WF_GET_DATA)(void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,
