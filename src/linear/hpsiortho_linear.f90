@@ -463,7 +463,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
   ! Emit that new wavefunctions are ready.
   if (tmb%c_obj /= 0) then
-     call kswfn_emit_psi(tmb, it, iproc, nproc)
+     call kswfn_emit_psi(tmb, it, 0, iproc, nproc)
   end if
 
 end subroutine hpsitopsi_linear

@@ -70,6 +70,16 @@ static gboolean _socket_receive(GSocket *socket, gchar *dest, guint destSize,
 
   return TRUE;
 }
+static void _error_report(GError *error)
+{
+  if (error)
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+    }
+  else
+    g_error("Error is missing, contact dev.");
+}
 
 static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
                       GSocket **socket_, BigDFT_OptLoopIds kind)
@@ -91,8 +101,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
                        sizeof(BigDFT_Signals), NULL, &error);
   if (size != sizeof(BigDFT_Signals))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
   
@@ -110,8 +119,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("%s", error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
       switch (answer.id)
@@ -124,19 +132,13 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
           size = g_socket_send(socket, (const gchar*)energs,
                                sizeof(BigDFT_Energs), NULL, &error);
           if (size != sizeof(BigDFT_Energs))
-            {
-              g_warning("%s", error->message);
-              g_error_free(error);
-            }
+            _error_report(error);
           break;
         case BIGDFT_SIGNAL_ANSWER_GET_OPTLOOP:
           size = g_socket_send(socket, (const gchar*)optloop,
                                sizeof(BigDFT_OptLoop), NULL, &error);
           if (size != sizeof(BigDFT_OptLoop))
-            {
-              g_warning("%s", error->message);
-              g_error_free(error);
-            }
+            _error_report(error);
           break;
         case BIGDFT_SIGNAL_ANSWER_SYNC_OPTLOOP:
           size = 0;
@@ -152,8 +154,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
                 }
               if (psize <= 0)
                 {
-                  g_warning("%s", error->message);
-                  g_error_free(error);
+                  _error_report(error);
                   return;
                 }
               size += psize;
@@ -238,8 +239,7 @@ static void onOptLoopSyncInet(BigDFT_OptLoop *optloop, gpointer data)
   /* g_print("Client: send %ld / %ld.\n", size, sizeof(BigDFT_SignalReply)); */
   if (size != sizeof(BigDFT_SignalReply))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
 
@@ -247,8 +247,7 @@ static void onOptLoopSyncInet(BigDFT_OptLoop *optloop, gpointer data)
                        sizeof(BigDFT_OptLoop), NULL, &error);
   if (size != sizeof(BigDFT_OptLoop))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
 }
@@ -297,8 +296,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
                        sizeof(BigDFT_Signals), NULL, &error);
   if (size != sizeof(BigDFT_Signals))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
   
@@ -316,8 +314,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("(%ld / %ld) %s", size, sizeof(BigDFT_SignalReply), error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
       if (answer.id == BIGDFT_SIGNAL_ANSWER_DONE)
@@ -331,8 +328,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
                            sizeof(guint) * 2, NULL, &error);
       if (error)
         {
-          g_warning("%s", error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
   
@@ -360,8 +356,7 @@ static void _onDensPotReady(BigDFT_LocalFields *localfields, guint iter,
                                 i * PACKET_SIZE, NULL, &error);
           if (error)
             {
-              g_warning("%s", error->message);
-              g_error_free(error);
+              _error_report(error);
               break;
             }
         }
@@ -465,8 +460,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
                        sizeof(BigDFT_Signals), NULL, &error);
   if (size != sizeof(BigDFT_Signals))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
   
@@ -484,8 +478,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("%s", error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
       if (answer.id == BIGDFT_SIGNAL_ANSWER_DONE)
@@ -495,10 +488,7 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
       size = g_socket_send(socket, (const gchar*)energs,
                            sizeof(BigDFT_Energs), NULL, &error);
       if (size != sizeof(BigDFT_Energs))
-        {
-          g_warning("%s", error->message);
-          g_error_free(error);
-        }
+        _error_report(error);
     }
   while (1);
 }
@@ -555,8 +545,7 @@ void onLzdDefinedInet(BigDFT_Lzd *lzd, gpointer *data)
                        sizeof(BigDFT_Signals), NULL, &error);
   if (size != sizeof(BigDFT_Signals))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
   
@@ -614,8 +603,7 @@ void onLzdDefinedInet(BigDFT_Lzd *lzd, gpointer *data)
     }
   while (1);
  error:
-  g_warning("%s", error->message);
-  g_error_free(error);
+  _error_report(error);
 }
 static gboolean client_handle_lzd(GSocket *socket, BigDFT_Lzd *lzd, guint nlr_new,
                                   GAsyncQueue *message, GCancellable *cancellable, GError **error)
@@ -679,12 +667,12 @@ static gboolean client_handle_lzd(GSocket *socket, BigDFT_Lzd *lzd, guint nlr_ne
   return TRUE;
 }
 
-void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
+static void onPsiHpsiReadyInet(GSocket **socket_, BigDFT_Wf *wf, guint iter, BigDFT_PsiId ipsi)
 {
-  GSocket *socket = (GSocket*)(*data);
+  GSocket *socket = *socket_;
   GError *error;
   gssize size;
-  BigDFT_Signals signal = {BIGDFT_SIGNAL_PSI_READY, iter, 0};
+  BigDFT_Signals signal = {BIGDFT_SIGNAL_PSI_READY, iter, ipsi};
   BigDFT_SignalReply answer;
   double *psic;
   guint i, psiSize, nvects, sizeData[2];
@@ -702,8 +690,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
                        sizeof(BigDFT_Signals), NULL, &error);
   if (size != sizeof(BigDFT_Signals))
     {
-      g_warning("%s", error->message);
-      g_error_free(error);
+      _error_report(error);
       return;
     }
   
@@ -716,13 +703,12 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
         {
           /* Connection has been closed on the other side. */
           g_object_unref(socket);
-          *data = (gpointer)0;
+          *socket_ = (GSocket*)0;
           return;
         }
       if (size != sizeof(BigDFT_SignalReply))
         {
-          g_warning("%s", error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
       if (answer.id == BIGDFT_SIGNAL_ANSWER_DONE)
@@ -730,18 +716,18 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
 
       /* We gather the data to send. */
       copy = FALSE;
-      psic = (double*)bigdft_wf_get_psi_compress(wf, answer.ikpt, answer.iorb,
-                                                 answer.kind, BIGDFT_PARTIAL_DENSITY,
-                                                 &psiSize, 0);
+      psic = (double*)bigdft_wf_get_compress(wf, signal.kind, answer.ikpt, answer.iorb,
+                                             answer.kind, BIGDFT_PARTIAL_DENSITY,
+                                             &psiSize, 0);
       if (psiSize == 0)
         g_warning("Required psi is not available");
       if (!psic)
         {
           /* Data are on processus iproc, so we copy them. */
           psic = g_malloc(sizeof(double) * psiSize);
-          if (!bigdft_wf_copy_psi_compress(wf, answer.ikpt, answer.iorb,
-                                           answer.kind, BIGDFT_PARTIAL_DENSITY, 0,
-                                           psic, psiSize))
+          if (!bigdft_wf_copy_compress(wf, signal.kind, answer.ikpt, answer.iorb,
+                                       answer.kind, BIGDFT_PARTIAL_DENSITY, 0,
+                                       psic, psiSize))
             {
               g_free(psic);
               g_warning("Required psi cannot be copied");
@@ -756,8 +742,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
                            sizeof(guint) * 2, NULL, &error);
       if (error)
         {
-          g_warning("%s", error->message);
-          g_error_free(error);
+          _error_report(error);
           return;
         }
   
@@ -773,8 +758,7 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
                                     i * PACKET_SIZE, NULL, &error);
               if (error)
                 {
-                  g_warning("%s", error->message);
-                  g_error_free(error);
+                  _error_report(error);
                   break;
                 }
             }
@@ -784,8 +768,16 @@ void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data)
     }
   while (1);
 }
+void onHPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer data)
+{
+  onPsiHpsiReadyInet((GSocket**)data, wf, iter, BIGDFT_HPSI);
+}
+void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer data)
+{
+  onPsiHpsiReadyInet((GSocket**)data, wf, iter, BIGDFT_PSI);
+}
 
-static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter,
+static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter, BigDFT_PsiId ipsi,
                                  guint ikpt, guint iorb, BigDFT_Spin ispin, GQuark quark,
                                  GAsyncQueue *message, GCancellable *cancellable, GError **error)
 {
@@ -846,12 +838,13 @@ static gboolean client_handle_wf(GSocket *socket, BigDFT_Wf *wf, guint iter,
       g_async_queue_push(message, GINT_TO_POINTER(iter + 1));
       g_async_queue_push(message, psic);
       g_async_queue_push(message, GINT_TO_POINTER(quark));
+      g_async_queue_push(message, GINT_TO_POINTER(ipsi + 1));
       g_async_queue_push(message, &answer);
       g_async_queue_push(message, GINT_TO_POINTER(BIGDFT_SIGNAL_ANSWER_DONE));
       while (g_async_queue_length(message) > 0);
     }
   else
-    bigdft_wf_emit_one_wave(wf, iter, psic, quark,
+    bigdft_wf_emit_one_wave(wf, iter, psic, quark, ipsi,
                             answer.ikpt, answer.iorb, answer.kind);
   g_array_unref(psic);
 
@@ -871,10 +864,7 @@ gboolean onClientConnection(GSocket *socket, GIOCondition condition,
       /* g_print("Server: client requesting connection.\n"); */
       bmain->recv = g_socket_accept(socket, NULL, &error);
       if (!bmain->recv)
-        {
-          g_warning("Server: %s", error->message);
-          g_error_free(error);
-        }
+        _error_report(error);
       g_socket_set_blocking(bmain->recv, TRUE);
       /* g_print("Server: client connected.\n"); */
     }
@@ -1007,7 +997,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
                                                g_signal_lookup("one-wave-ready",
                                                                BIGDFT_WF_TYPE),
                                                quark, FALSE))
-                ret = client_handle_wf(socket, wf, signal.iter,
+                ret = client_handle_wf(socket, wf, signal.iter, signal.kind,
                                        ikpt, iorb, BIGDFT_SPIN_UP, quark,
                                        message, cancellable, error);
               if (*error)
@@ -1143,10 +1133,12 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
       /* g_printerr("Handling data retrieval from %p.\n", (gpointer)g_thread_self()); */
   
       g_signal_handler_unblock(G_OBJECT(bmain->optloop), bmain->optloop_sync);
-      if (!bigdft_signals_client_handle(socket, bmain->energs, bmain->wf, bmain->denspot,
-                                        bmain->optloop, bmain->message, NULL, &error))
+      bigdft_signals_client_handle(socket, bmain->energs, bmain->wf, bmain->denspot,
+                                   bmain->optloop, bmain->message, NULL, &error);
+      g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
+
+      if (error)
         {
-          g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
           if (error->code != G_IO_ERROR_CLOSED)
             g_warning("Client: %s", error->message);
           else
@@ -1158,7 +1150,6 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
           g_error_free(error);
           return (error->code != G_IO_ERROR_CLOSED);
         }
-      g_signal_handler_block(G_OBJECT(bmain->optloop), bmain->optloop_sync);
 
       /* g_printerr("Done data retrieval from %p.\n", (gpointer)g_thread_self()); */
     }
@@ -1183,6 +1174,7 @@ static gboolean onMainClientTransfer(gpointer user_data)
   BigDFT_LocalFields *denspot;
   BigDFT_OptLoop *optloop;
   BigDFT_Lzd *lzd;
+  BigDFT_PsiId ipsi;
 
   data = g_async_queue_try_pop(ct->message);
   if (!data)
@@ -1201,8 +1193,9 @@ static gboolean onMainClientTransfer(gpointer user_data)
       iter = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
       psic = (GArray*)g_async_queue_pop(ct->message);
       quark = GPOINTER_TO_INT(g_async_queue_pop(ct->message));
+      ipsi = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
       answer = (BigDFT_SignalReply*)g_async_queue_pop(ct->message);
-      bigdft_wf_emit_one_wave(wf, iter, psic, quark,
+      bigdft_wf_emit_one_wave(wf, iter, psic, quark, ipsi,
                               answer->ikpt, answer->iorb, answer->kind);
       break;
     case BIGDFT_SIGNAL_LZD_DEFINED:

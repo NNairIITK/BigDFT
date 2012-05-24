@@ -274,13 +274,16 @@ static void onEKSReady(BigDFT_Energs *energs, guint iter, gpointer data)
   g_print("Get eKS = %gHt at iter %d.\n", energs->eKS, iter);
 }
 
-static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic,
+static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic, BigDFT_PsiId ipsi,
                        guint ikpt, guint iorb, guint ispin, gpointer data)
 {
   double *psir, *psii;
   guint i, n;
   double minDens, maxDens, norm;
   BigDFT_LocReg *lr;
+
+  if (ipsi != BIGDFT_PSI)
+    return;
 
   g_print("Get one wave (%d,%d,%d) at iter %d.\n", ikpt, iorb, ispin, iter);
   lr = bigdft_wf_get_locreg(wf, ikpt, iorb, ispin, 0);

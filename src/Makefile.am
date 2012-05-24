@@ -400,7 +400,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
-	init/atoms_yaml.c \
+	init/atoms_yaml.c init/atoms_yaml.h \
 	$(CUDA_SOURCES)
 
 #	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
