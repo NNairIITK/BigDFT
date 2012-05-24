@@ -213,8 +213,15 @@
             x=real(i1,kind=8)*hgrid-0.5d0*length
             call functions(x,length,zero,fx,fx2,5)
             r2=x**2+y**2+z**2
-            rhoF(i1,i2,i3)=exp(-r2/a2)
-            rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            !rhoF(i1,i2,i3)=exp(-r2/a2)
+            !! CHECK WITH KRONECKER DELTA !!
+            if(i1 == n1/2 .and. i2 == n2/2 .and. i3 == n3/2) then
+               rhoF(i1,i2,i3) = 1.d0
+            else
+               rhoF(i1,i2,i3) = 0.d0
+            end if
+            !rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            rhoS(i1,i2,i3) = rhoF(i1,i2,i3)
             if (r2==0.d0) then
                potF(i1,i2,i3)= 2.d0/(sqrt(pi)*a_gauss)/factor
             else

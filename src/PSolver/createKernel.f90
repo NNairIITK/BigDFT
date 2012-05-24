@@ -44,7 +44,7 @@
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
-     quiet) !optional arguments
+     mu0_screening,alpha,beta,gamma,quiet) !optional arguments
   use module_base, only: ndebug
   implicit none
  ! include 'mpif.h'
@@ -52,6 +52,10 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
+  real(kind=8), intent(in), optional :: mu0_screening
+  !!add-on for triclinic lattices!!
+  real(kind=8), intent(in), optional :: alpha,beta,gamma
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   character(len=3), intent(in), optional :: quiet
   !local variables
   character(len=*), parameter :: subname='createKernel'
@@ -75,6 +79,13 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      wrtmsg=.true.
   end if
 
+  !if (.not. present(alpha)) alpha = 2.0_dp*datan(1.0_dp)
+  !if (.not. present(beta)) alpha = 2.0_dp*datan(1.0_dp)
+  !if (.not. present(gamma)) alpha = 2.0_dp*datan(1.0_dp)
+  
+
+
+
   if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'
 
@@ -88,7 +99,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
 
-     call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel,iproc,nproc)
+     call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel,iproc,nproc,mu0_screening,alpha,beta,gamma)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -105,7 +116,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      call memocc(i_stat,kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
-     call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc)
+     call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc,mu0_screening,alpha,beta,gamma)
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -123,7 +134,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      call memocc(i_stat,kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
-     call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+     call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel,mu0_screening)
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -139,11 +150,30 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
 
-     call Wires_Kernel(iproc,nproc,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel)
+     call Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel,mu0_screening)
 
      nlimd=n2
      nlimk=n3/2+1
+    
+  ! Helmholtz
+  ! else if (geocode == 'H') then
 
+  !    if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
+  !         'Calculating the Helmholtz Equation kernel...'
+
+  !    !Build the Kernel
+  !    call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+
+  !    allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
+  !    call memocc(i_stat,kernel,'kernel',subname)
+
+  !    !the kernel must be built and scattered to all the processes
+  !    call Helmholtz_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+
+  !    !last plane calculated for the density and the kernel
+  !    nlimd=n2/2
+  !    nlimk=n3/2+1
+          
   else
      
      !if (iproc==0) 
