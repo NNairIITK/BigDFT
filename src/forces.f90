@@ -286,6 +286,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
@@ -364,6 +365,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
 
   if (atoms%geocode == 'P') then
      ucvol=atoms%alat1*atoms%alat2*atoms%alat3 !orthorombic cell
+     if (iproc==0) call yaml_open_map('Stress Tensor')
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
@@ -377,7 +379,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),strtens(1,i),atoms%sym%symObj)
+        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0 .and. i==1),strtens(1,i),atoms%sym%symObj)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -387,6 +389,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      !final result
      pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
+     if (iproc==0) call yaml_close_map()
   end if
 
 !!$  if (iproc == 0) then
@@ -542,29 +545,6 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 end subroutine rhocore_forces
-
-subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
-  use module_base
-  implicit none
-  logical, intent(in) :: fullinfo
-  real(gp), intent(in) :: volume,pressure
-  character(len=*), intent(in) :: message
-  real(gp), dimension(6), intent(in) :: strten
-  !local variables
-  
-  write(*,'(1x,a)')'Stress Tensor, '//trim(message)//' contribution (Ha/Bohr^3):'
-  write(*,'(1x,t10,10x,a,t30,10x,a,t50,10x,a)')'x','y','z'
-  write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(6),strten(5)
-  write(*,'(1x,a,t30,1pe20.12,t50,1pe20.12)')'y',strten(2),strten(4)
-  write(*,'(1x,a,t50,1pe20.12)')'z',strten(3)
-
-  if (fullinfo) then
-     write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
-          ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
-  end if
-  
-
-end subroutine write_strten_info
 
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
@@ -3748,6 +3728,7 @@ subroutine symm_stress(dump,tens,symobj)
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
+  use yaml_output
   implicit none
   !Arguments
   logical, intent(in) :: dump
@@ -3765,8 +3746,8 @@ subroutine symm_stress(dump,tens,symobj)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (dump)&
-       write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+  if (dump) call yaml_map('Number of Symmetries',nsym,fmt='(i0)')
+  !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))

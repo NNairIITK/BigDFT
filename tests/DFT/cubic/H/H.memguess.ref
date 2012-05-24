@@ -12,7 +12,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -151,4 +151,4 @@
  74 allocations and 74 deallocations, remaining memory(B): 0
  memory occupation peak: 1 MB
  for the array  logrid_big in the routine  make_all_ib
- CPU time/ELAPSED time          0.01         0.01
+ CPU time/ELAPSED time          0.00         0.00

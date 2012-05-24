@@ -1086,3 +1086,37 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    call yaml_close_map()
 
 END SUBROUTINE print_eleconf
+
+subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
+  use module_base
+  use yaml_output
+  implicit none
+  logical, intent(in) :: fullinfo
+  real(gp), intent(in) :: volume,pressure
+  character(len=*), intent(in) :: message
+  real(gp), dimension(6), intent(in) :: strten
+  !local variables
+  
+  call yaml_open_sequence(trim(message)//' stress tensor matrix (Ha/Bohr^3)')
+  call yaml_sequence(yaml_toa((/strten(1),strten(6),strten(5)/),fmt='(1pg20.12)'))
+  call yaml_sequence(yaml_toa((/strten(6),strten(2),strten(4)/),fmt='(1pg20.12)'))
+  call yaml_sequence(yaml_toa((/strten(5),strten(4),strten(3)/),fmt='(1pg20.12)'))
+  call yaml_close_sequence()
+  !write(*,'(1x,a)')'Stress Tensor, '//trim(message)//' contribution (Ha/Bohr^3):'
+  !write(*,'(1x,t10,10x,a,t30,10x,a,t50,10x,a)')'x','y','z'
+  !write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(6),strten(5)
+  !write(*,'(1x,a,t30,1pe20.12,t50,1pe20.12)')'y',strten(2),strten(4)
+  !write(*,'(1x,a,t50,1pe20.12)')'z',strten(3)
+
+  if (fullinfo) then
+     call yaml_open_map('Pressure')
+     call yaml_map('Ha/Bohr^3',pressure,fmt='(1pg22.14)')
+     call yaml_map('GPa',pressure*GPaoAU,fmt='(1pg14.6)')
+     call yaml_map('PV (Ha)',pressure*volume,fmt='(1pg22.14)')
+     call yaml_close_map()
+     !write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
+     !     ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
+  end if
+  
+
+end subroutine write_strten_info

@@ -895,8 +895,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
               ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,norbgrp,hamovr(1,1,ikpt),&
               orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
-         if (iproc == 0 .and. verbose > 1) call yaml_map('Diagonalized',.true.)
-
         !assign the value for the orbital
         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
         if (orbs%norbd >0) then
@@ -912,6 +910,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
       end do
      
       if (iproc == 0 .and. verbose > 1) then
+         call yaml_map('Diagonalized',.true.)
          call yaml_close_map()
          call yaml_newline()
       end if

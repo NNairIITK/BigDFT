@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -106,7 +106,7 @@
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
  Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ MPI process does not use OpenMP
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 2
@@ -207,45 +207,45 @@
  Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c       13824       27000
- because nvctr_f_old /= nvctr_f         856        1656
- because cell size has changed          23          29          23          29          23          29
-- READING WAVES TIME   0  1.296E+01  3.402E+00
+ because nvctr_c_old /= nvctr_c 13824 27000
+ because nvctr_f_old /= nvctr_f 856 1656
+ because cell size has changed 23 29 23 29 23 29
+- READING WAVES TIME   0  8.120E+00  8.138E+00
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp0001
@@ -257,19 +257,19 @@
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.56859153140E+01, Epot: -3.36216482043E+01, Enl:  2.91331202192E+00, 
               EH:  2.08411928832E+01,  EXC: -7.09393204314E+00, EvXC: -9.20966965032E+00}, 
- iter:  1, EKS: -3.12868280112925916E+01, gnrm:  7.85E-01, 
+ iter:  1, EKS: -3.12868280112926556E+01, gnrm:  7.85E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Total electronic charge:  11.999999104719, 
  Poisson Solver: {BC: Periodic, Dimensions:  [  60,  60,  60 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.12982421936926016E+01, gnrm:  7.85E-01,  #FINAL
+ iter:  2, EKS: -3.12982421936929214E+01, gnrm:  7.85E-01,  #FINAL
  Energies: {Ekin:  2.50562385790E+01, Epot: -3.35043647116E+01, Enl:  2.43812408773E+00, 
               EH:  1.98137872985E+01,  EXC: -6.92488410022E+00, EvXC: -8.98938311690E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
+  WARNING: Wavefunctions not converged after cycle 1
         #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -308,17 +308,20 @@
  average noise along z direction:   4.41957974E-01
  total average noise            :   6.44054236E-01
  clean forces norm (Ha/Bohr): maxval=  1.702149845871E+00  fnrm2=  4.097553828673E+00
- Stress Tensor, Total contribution (Ha/Bohr^3):
-                   x                   y                   z
- x         7.362468394401E-04 -2.813968731787E-06 -3.454055119455E-06
- y                             5.813916355770E-04 -3.107742759842E-06
- z                                                -3.521320508076E-03
- Pressure: -7.34560677686328E-04 ( -2.161152E+01 GPa), P V: -4.51712198433016E-01
- CPU time/ELAPSED time for root process     0        34.00       127.17
+ Stress Tensor:
+   Total stress tensor matrix (Ha/Bohr^3):
+   -  [  7.362468394400E-04, -2.813968732240E-06, -3.454055119459E-06 ]
+   -  [ -2.813968732240E-06,  5.813916355771E-04, -3.107742759830E-06 ]
+   -  [ -3.454055119459E-06, -3.107742759830E-06, -3.521320508069E-03 ]
+   Pressure:
+     Ha/Bohr^3                         : -7.34560677683799E-04
+     GPa                               : -21.6115
+     PV (Ha)                           : -0.45171219843146
+ CPU time/ELAPSED time for root process     0       163.16       162.71
  Final values of the Forces for each atom
      1      O  2.50645E-01  2.15682E-01 -1.04446E+00
      2      O  2.51357E-01  2.16698E-01  1.66948E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 891 allocations and 891 deallocations, remaining memory(B): 0
+ 805 allocations and 805 deallocations, remaining memory(B): 0
  memory occupation peak: 76 MB
  for the array  f_i in the routine vxcpostprocessing
