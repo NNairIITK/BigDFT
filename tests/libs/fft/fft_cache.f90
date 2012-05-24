@@ -124,7 +124,7 @@ contains
       implicit none
       !Arguments
       integer, intent(in) :: ndat,n3,nddat,nd3
-      real*8 :: zin(2,ndat,n3),z(2,nddat,nd3)
+      real(kind=8) :: zin(2,ndat,n3),z(2,nddat,nd3)
       !Local variables
       integer :: id,i3
       do i3=1,n3

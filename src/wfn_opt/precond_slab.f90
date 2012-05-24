@@ -417,7 +417,8 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
 
   real(gp) :: ct
   real(gp),allocatable,dimension(:,:) :: ab
-  real(wp) :: b(0:n2,2)
+  !real(wp) :: b(0:n2,2)
+  real(wp),allocatable,dimension(:,:) :: b
   !     .. Scalar Arguments ..
   INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
   integer :: i1,i2,i3,i,j
@@ -425,6 +426,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
   real(gp) :: fil(lowfil:lupfil)
+  integer :: ncount3,ncount_rate,ncount_max,ncount0,ncount1,ncount2
 
   scale=-.5_gp/hgrid**2
 
@@ -456,15 +458,19 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   kd=lupfil
   ldab=kd+1!
   ldb=n2+1
-  allocate(ab(ldab,n))
 
   ! hit the fourier transform of x with the kernel
+
+  !$omp parallel default(none) & 
+  !$omp private (b,ab,i3,i1,j,i,ct,info) &
+  !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
+  allocate(ab(ldab,n),b(0:n2,2))
+  !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
      do i1=0,(n1+1)/2
         !      ct=kern_k1(i1)+kern_k3(i3)+c
         ct=(kern_k1(i1)+kern_k3(i3)+c)*(n1+1)*(n3+1)
-
         ! ab has to be reinitialized each time
         ! since it is overwritten in the course of  dgbsv
         do j=1,n
@@ -473,23 +479,21 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
            enddo
            ab(kd+1,j)=fil(0)+ct
         enddo
-
         do i2=0,n2
            b(i2,1)=zx(1,i1,i2,i3)
            b(i2,2)=zx(2,i1,i2,i3)
         enddo
-
         !      call DGBSV( N, KL, KU, NRHS, ab , LDAB, IPIV, b, LDB, INFO )
         call DPBSV( 'U', N, KD, NRHS, AB, LDAB, B, LDB, INFO )
         if (info.ne.0) stop 'error in matrix inversion'
-
         do i2=0,n2
            zx(1,i1,i2,i3)=b(i2,1)
            zx(2,i1,i2,i3)=b(i2,2)
         enddo
-
      enddo
   enddo
+  !$omp end do
+  deallocate(ab,b)
+  !$omp end parallel
 
-  deallocate(ab)
 END SUBROUTINE segment_invert

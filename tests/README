@@ -1,8 +1,8 @@
 The command 'make check' performs the series of tests:
-CUDA/:          tests CUDA implmentation (GPU)
+CUDA/:          tests CUDA implementation (GPU)
 DFT/:           tests basic features of DFT calculations
 fft/:           low level test functionality.
-H2-freq/:       computes the vibration properties of the water molecule using finite differences.
+H2-freq/:       computes the vibration properties of the H2  molecule using finite differences.
 MINHOP/:        tests global research using minima hopping
 NEB/:           runs NEB calculations.
 OpenCL/:        tests OpenCL code (GPU)
@@ -15,15 +15,16 @@ Executables (src directory):
 bigdft:      run DFT ground state calculations with or without geometry relaxations.
 memguess:    read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
              It can also ouput the grid with the option 'y'.
-NEB:         run a NEB path search (requires to provide also NEB_driver.sh and NEB_include.sh).
+NEB:         run a NEB path search (the user must provide the files: NEB_driver.sh and NEB_include.sh).
 frequencies: run a finite difference calculation to find vibration for a molecule.
-MDanalysis:  browse the posout files generated during a molecular dynamic to compute several quantities, 
+MDanalysis:  browse the posout files generated during a molecular dynamic calculation to compute several quantities, 
              like the radial distribution g(r).
 bart:        EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
 abscalc:     EXPERIMENTAL, compute XANES spectrum.
+splsad:      EXPERIMENTAL, use spline saddle search method
 
 
-Read the manual for more information or go to the web siet http://inac.cea.fr/L_Sim/BigDFT
+Read the manual for more information or go to the web site http://inac.cea.fr/L_Sim/BigDFT
 
 
 Test in parallel

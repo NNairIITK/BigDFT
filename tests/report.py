@@ -58,7 +58,7 @@ for file in files:
     if discrepancy:
         #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
-        if diff <= max_discrepancy:
+        if diff < max_discrepancy:
             #Three cases: 
             if discrepancy[0][1] == "failed-memory":
                 #The test is OK but the memory remaining is not 0

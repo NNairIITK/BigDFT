@@ -219,6 +219,30 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   end do
   close(unit=79)
 
+!!$  !here we can add some plot of a single gaussian
+!!$  hgrid=0.01_gp
+!!$  length=10.0_gp
+!!$  center=0.5_gp*length-0.5_gp*hgrid
+!!$  nsteps=nint(length/hgrid)+1
+!!$  expo=hgrid*1
+!!$  print *,'expo=',expo
+!!$  charge=0.0_gp
+!!$  multipoles=0
+!!$  do i=1,nsteps 
+!!$     x=real(hgrid*i-center,gp)
+!!$     fx=exp(-0.5_gp/(expo**2)*x**2)
+!!$     write(17,*)x,fx
+!!$     charge=charge+fx
+!!$     do j=1,16
+!!$        multipoles(j)=multipoles(j)+fx*x**j
+!!$     end do
+!!$  end do
+!!$  print *,'charge=',charge*hgrid,gauint0(0.5_gp/(expo**2),0)
+!!$  do j=1,16
+!!$     print *,'multipole(',j,')=',multipoles(j)*hgrid,gauint0(0.5_gp/(expo**2),j)
+!!$  end do
+!!$stop
+
 END SUBROUTINE plot_gatom_basis
 
 

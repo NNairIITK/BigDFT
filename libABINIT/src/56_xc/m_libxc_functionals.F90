@@ -107,8 +107,9 @@ contains
 
     integer :: i, ii
     character(len=500) :: message
+#if defined HAVE_LIBXC
     type(xc_f90_pointer_t) :: str
-
+#endif
 ! *************************************************************************
 
 #if defined HAVE_LIBXC
@@ -189,7 +190,9 @@ contains
     implicit none
 
     integer :: i
-!   character(len=500) :: message
+#ifndef HAVE_LIBXC
+   character(len=500) :: message
+#endif
 
 #if defined HAVE_LIBXC
     do i = 1, 2
@@ -319,13 +322,15 @@ contains
     logical :: libxc_functionals_ismgga
 
 ! *************************************************************************
-
+#if defined HAVE_LIBXC
     if (any(funcs%family == XC_FAMILY_MGGA)) then
       libxc_functionals_ismgga = .true.
     else
       libxc_functionals_ismgga = .false.
     end if
-
+#else
+    libxc_functionals_ismgga = .false.
+#endif
   end function libxc_functionals_ismgga
 !!*** 
 
@@ -482,8 +487,8 @@ contains
 
     end do
 
-  end subroutine libxc_functionals_getvxc
 #endif
+  end subroutine libxc_functionals_getvxc
 
 end module 
 !!***

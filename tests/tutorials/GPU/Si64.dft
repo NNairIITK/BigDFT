@@ -1,4 +1,4 @@
-0.55 0.55 0.55  hx,hy,hz: grid spacing in the three directions
+0.55 0.55 0.55   hx,hy,hz: grid spacing in the three directions
 56.0 58.0        crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom
 1                ixc: exchange-correlation parameter (LDA=1,PBE=11)
 0 0.0            ncharge: charge of the system, Electric field
@@ -10,5 +10,4 @@
 0 0 0            InputPsiId, output_wf, output_grid
 0.0  30          rbuf, ncongt: length of the tail (AU),# tail CG iterations
 0 0 0            davidson treatment, no. of virtual orbitals, no of plotted orbitals
-2                verbosity
 F                disable the symmetry detection

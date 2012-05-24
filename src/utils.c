@@ -19,7 +19,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_TIME_H
 #include <time.h>
+#endif
+
+#ifndef HAVE_STRNDUP
+char* strndup(const char *src, size_t len);
+#endif
+
+#ifndef HAVE_CLOCK_GETTIME
+#define CLOCK_REALTIME 0
+static int clock_gettime(int clk_id, struct timespec *tp)
+{
+  struct timeval now;
+  int rv;
+
+  tp->tv_sec = 0;
+  tp->tv_nsec = 0;
+
+  rv = gettimeofday(&now, NULL);
+  if (rv != 0)
+    return rv;
+        
+  tp->tv_sec = now.tv_sec;
+  tp->tv_nsec = now.tv_usec * 1000;
+
+  return 0;
+}
+#endif
 
 void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   struct timespec time;
@@ -60,7 +87,11 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
     }
 
   /* Try to create it. */
+#ifdef _WIN32
+  if (mkdir(path) != 0)
+#else
   if (mkdir(path, 0755) != 0)
+#endif
     {
       free(path);
       *status = 2;

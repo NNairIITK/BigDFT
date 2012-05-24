@@ -65,6 +65,7 @@ int main(){
   cl_uint size_out = (MAX_N1+N1_URANGE)*(MAX_N2+N2_URANGE)*2;
   cl_uint size_in  = (MAX_N1+N1_URANGE)*(MAX_N3+N3_URANGE)*16*2;
   cl_ulong t0,t1;
+  cl_uint device_number;
 
 
 
@@ -72,7 +73,7 @@ int main(){
 //  out = (double*) malloc(size*sizeof(double));
 
 
-  ocl_create_gpu_context_(&context);
+  ocl_create_gpu_context_(&context,&device_number);
   ocl_build_programs_(&context);
   ocl_create_command_queue_(&queue,&context);
   init_event_list_();

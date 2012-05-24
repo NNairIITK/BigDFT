@@ -434,7 +434,7 @@ END SUBROUTINE convolut_kinetic_per_c_k
 !!   where k=(k1,k2,k3); r=(x,y,z)
 !!
 !! 
-subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
+subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -442,11 +442,11 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(inout) :: y
-  real(wp),intent(out)::ener
+  real(wp), dimension(6), intent(out):: kstrten
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
-  real(wp) :: tt1,tt2,c
+  real(wp) :: tt1,tt2,cx,cy,cz,kstrt1,kstrt2,kstrt3
   real(wp), dimension(3) :: scale,scale1
   real(wp), dimension(2,lowfil:lupfil,3) :: fil  
 
@@ -454,7 +454,9 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   scale1(1)=real(k1/hgrid(1),wp)
   scale1(2)=real(k2/hgrid(2),wp)
   scale1(3)=real(k3/hgrid(3),wp)
-  c=.5_wp*(k1*k1+k2*k2+k3*k3)
+  cx=0.5_wp*k1*k1
+  cy=0.5_wp*k2*k2
+  cz=0.5_wp*k3*k3
 
   ! second derivative filters for Daubechies 16
   fil(1,0,:)=   -3.5536922899131901941296809374e0_wp*scale(:)
@@ -498,17 +500,25 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
+  !sequence for kinetic stress tensors
+  ! 11 22 33 12 13 23
+  kstrten(1:6)=0.0_wp
 
-  ener=0._wp
-!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
+  !ener=0._wp
+!$omp parallel default (private) shared(x,y,kstrten,fil,cx,cy,cz,n1,n2,n3)
+  kstrt1=0.0_wp
+  kstrt2=0.0_wp
+  kstrt3=0.0_wp
 
-!$omp do reduction(+:ener)
+!$omp do 
   do i3=0,n3
-     ! (1/2) d^2/dx^2
+     ! (1/2) |d/dx+ik_x)|^2
      do i2=0,n2
         do i1=0,n1
-           tt1=x(1,i1,i2,i3)*c
-           tt2=x(2,i1,i2,i3)*c
+!           tt1=x(1,i1,i2,i3)*c
+!           tt2=x(2,i1,i2,i3)*c
+           tt1=x(1,i1,i2,i3)*cx
+           tt2=x(2,i1,i2,i3)*cx
            do l=lowfil,lupfil
               j=modulo(i1+l,n1+1)
               tt1=tt1+x(1,j,i2,i3)*fil(1,l,1)-x(2,j,i2,i3)*fil(2,l,1)
@@ -518,15 +528,18 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           !ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrt1=kstrt1+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
-     
+
      ! + (1/2) d^2/dy^2
      do i1=0,n1
         do i2=0,n2
-           tt1=0._wp
-           tt2=0._wp
+!           tt1=0._wp
+!           tt2=0._wp
+           tt1=x(1,i1,i2,i3)*cy
+           tt2=x(2,i1,i2,i3)*cy
            do l=lowfil,lupfil
               j=modulo(i2+l,n2+1)
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
@@ -535,20 +548,20 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrt2=kstrt2+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
   enddo
 !$omp enddo
-!$omp do reduction(+:ener)
 
+!$omp do 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
-           tt1=0._wp
-           tt2=0._wp
+           tt1=x(1,i1,i2,i3)*cz
+           tt2=x(2,i1,i2,i3)*cz
            do l=lowfil,lupfil
               j=modulo(i3+l,n3+1)
               tt1=tt1+x(1,i1,i2,j)*fil(1,l,3)-x(2,i1,i2,j)*fil(2,l,3)
@@ -556,12 +569,19 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+
+           kstrt3=kstrt3+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
-!  ener=ener*.5_wp
+
+!$omp critical
+  kstrten(1)=kstrten(1)+kstrt1
+  kstrten(2)=kstrten(2)+kstrt2
+  kstrten(3)=kstrten(3)+kstrt3
+!$omp end critical
+
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_per_T_k
 

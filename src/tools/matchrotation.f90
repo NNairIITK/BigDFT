@@ -73,7 +73,7 @@ program matchrotation
          endif
          fnrm=sqrt(f(1)**2+f(2)**2+f(3)**2+f(4)**2+f(5)**2+f(6)**2)
          !write(*,'(1a,1i5,1es24.15,9es10.2)') 'ROTATION ',i,dis_sq,dis_sq-dis_sq_old,fnrm,alpha,&
-            &   !    eval(1),eval(2),eval(3),eval(4),eval(5),eval(6)
+         !    eval(1),eval(2),eval(3),eval(4),eval(5),eval(6)
          !write(23,'(i7,i4,6es15.5)') icycle,i,x(1:6)
          tt1=max(abs(eval(1)),abs(eval(2)))*1.d-2
          if(i==10) alpha=max((2.d0**(-2 ))*eval(6),tt1)
@@ -267,7 +267,7 @@ subroutine readpositionatoms(nat,filename,cell,rat,an)
    open(unit=9,file=filename,status='old')
    read(9,*) nat_tmp,units
    !if(trim(units)/='angstroem' .or. trim(units)/='angstroemd0') &
-      &   !    write(*,*) 'WARNING: length units unknown or different from angstroem'
+      !    write(*,*) 'WARNING: length units unknown or different from angstroem'
    read(9,*) 
    cell(1:3)=20.d0
    !read(9,*) cell(1),cell(2),cell(3)

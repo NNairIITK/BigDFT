@@ -2,7 +2,6 @@
 TESTDIRS = \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
-	   ElectField \
 	   NH3 \
 	   H2O-slab \
            H2-freq \
@@ -10,7 +9,8 @@ TESTDIRS = \
 	   SPLSAD \
 	   XabsCheb \
 	   XabsLanc \
-	   Xabsb2B
+	   Xabsb2B \
+           BigDFT2Wannier
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -34,15 +34,18 @@ Xabsb2B.psp: Xabs/psppar.Fe
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 
-ElecField.psp: HGH-K/psppar.H HGH-K/psppar.O
 # Additional dependencies
-H2-freq2.freq.out: H2-freq.freq.out
-Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
+H2-freq2.freq.out: H2-freq.freq.out frequencies.res
+Xabsb2B.xabs.out: InputGenPot.xabs.out
+
+# Additional freq in.
+H2-freq.post-in: $(abs_top_builddir)/src/frequencies
+	rm -f frequencies.res
 
 # Additional NEB in.
 NEB.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
-	if ! test -l NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
+	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
 NEB.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
 
@@ -51,28 +54,28 @@ H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
 	chmod a+w velocities.xyz
 
-#additional reference for geopt.mon test
+# Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
 	cp -f global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
 
 # Additional run rules.
-Xabsdel_inputGenPot.xabs.post-out:
+InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
-	cp inputGenPot.xyz b2B_xanes.xyz
+	cp InputGenPot.xyz b2B_xanes.xyz
+
 
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref | *.b2w.ref ) mode="--mode=bigdft";; \
           *.NEB.ref) mode="--mode=neb";; \
           *) mode="";; \
         esac ; \
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          ElecField.out*)   prec="1.e-9" ;; \
           H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \

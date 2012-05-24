@@ -382,8 +382,8 @@ subroutine min_converge_fire(success)
       if (modulo(miter,5) == 0 ) then
          call write_step ( 'M', miter, 0.0d0, total_energy )
          if (iproc == 0) write(*,*) "fnrm",fnrm,"fmax",fmax
+         pos = pospred
          if ( SAVE_CONF_INT ) call save_intermediate( 'M' )
-
       endif
 
       if( fnrm < norm_criterium .or. fmax < fmax_criterium) then

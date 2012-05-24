@@ -10,5 +10,4 @@
 0 0 0                INPUTPSIID, OUTPUT_WF, OUPUT_DENSITY
 0.0 30               RBUF,  NCONGT 
 0 0 0                NVIRT, NPLOT
-0                    VERBOSITY 
 T                    DISABLE_SYM

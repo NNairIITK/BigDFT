@@ -94,12 +94,12 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
               case('S')
                  call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                      lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               case('P')
                  call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%keygloc,lr%wfd%keyvloc, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               end select
 
@@ -118,6 +118,121 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   enddo
 
 END SUBROUTINE preconditionall
+
+
+! Generalized for the Linearscaling code
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(orbitals_data), intent(in) :: orbs
+  real(dp), intent(out) :: gnrm,gnrm_zero
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  !local variables
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
+  real(gp) :: kx,ky,kz
+
+  ! Preconditions all orbitals belonging to iproc
+  !and calculate the norm of the residue
+  ! norm of gradient
+  gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
+
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+  ist = 0
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
+  do iorb=1,orbs%norbp
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
+     end if
+     !print *,'iorb,eval,evalmax',iorb+orbs%isorb,orbs%eval(iorb+orbs%isorb),eval_zero
+     !indo=(iorb-1)*nspinor+1
+     !loop over the spinorial components
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
+
+     !real k-point different from Gamma still not implemented
+     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+        ncplx=2
+     else
+        ncplx=1
+     end if
+
+     do inds=1,orbs%nspinor,ncplx
+
+        !the nrm2 function can be replaced here by ddot
+        scpr=nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
+
+       if (scpr /= 0.0_wp) then
+          call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
+           !cases with no CG iterations, diagonal preconditioning
+           !for Free BC it is incorporated in the standard procedure
+           if (ncong == 0 .and. Lzd%Llr(ilr)%geocode /= 'F') then
+              select case(Lzd%Llr(ilr)%geocode)
+              case('F')
+              case('S')
+                 call prec_fft_slab(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,&
+                      Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                      cprecr,hx,hy,hz,hpsi(1+ist))
+              case('P')
+                 call prec_fft(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                      Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                      Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                      cprecr,hx,hy,hz,hpsi(1+ist))
+              end select
+
+           else !normal preconditioner
+              if(.false.)then
+!                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+!                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
+!                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
+              else
+                 call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+                      hx,hy,hz,kx,ky,kz,hpsi(1+ist))
+              end if
+           end if
+
+       end if
+       ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
+!     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
+!     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
+     end do
+  enddo
+
+END SUBROUTINE preconditionall2
 
 
 ! > This function has been created also for the GPU-ported routines
@@ -335,7 +450,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
            call prec_diag(lr%d%n1,lr%d%n2,lr%d%n3,hx,lr%wfd%nseg_c,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv,&
+                lr%wfd%keygloc,lr%wfd%keyvloc,&
                 x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),cprecr,scal,a2,b2)
 
         else
@@ -381,7 +496,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            
            call prec_fft_fast(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%keygloc,lr%wfd%keyvloc, &
                 cprecr,hx,hy,hz,x(1,idx),&
                 w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
                 nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
@@ -399,14 +514,14 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
 
            !if GPU is swithced on and there is no call to GPU preconditioner
-           !do not do the FFT preconditioning
+           !do not do the FFT preconditioning (not valid anymore)
            if (.not. GPUconv .or. .true.) then
               !	compute the input guess x via a Fourier transform in a cubic box.
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
                    lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%keygloc,lr%wfd%keyvloc, &
                    cprecr,hx,hy,hz,x(1,idx),&
                    w%psifscf(1),w%psifscf(lr%d%n1+2),&
                    w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
@@ -442,7 +557,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
         !	compute the input guess x via a Fourier transform in a cubic box.
         !	Arrays psifscf and ww serve as work arrays for the Fourier
         call prec_fft_slab_fast(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
              cprecr,hx,hy,hz,x(1,idx),&
              w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
              w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
@@ -771,23 +886,51 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   !local variables
-  integer :: idx,nf
+  logical :: sseprecond=.false.
+  integer :: idx,nf,isegf,ipsif
+
+  isegf=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+  ipsif=lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f)
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
-        call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
-             lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
-             scal,cprecr,hx,&
-             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-             x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3)
+
+        if (sseprecond) then
+           call uncompress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                x(1,idx),x(ipsif,idx),&
+                w%xpsig_c,w%xpsig_f)
+!commented out, not working correctly        
+!!$           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+!!$                cprecr,hx,&
+!!$                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+!!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+!!$                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
+           
+           call compress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%ypsig_c,w%ypsig_f,&
+                y(1,idx),y(ipsif,idx))
+
+        else
+
+           call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyvloc,&
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+                lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+                scal,cprecr,hx,&
+                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+                x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+                y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
+                w%x_f1,w%x_f2,w%x_f3)
+        end if
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
@@ -796,7 +939,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         do idx=1,ncplx
            call apply_hp_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%keygloc,lr%wfd%keyvloc, &
                 cprecr,hx,hy,hz,x(1,idx),y(1,idx),&
                 w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%ypsig_c,&
                 lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3,nf,&
@@ -806,13 +949,13 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         if (ncplx == 1) then
            call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
                 cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
                 w%af,w%bf,w%cf,w%ef,scal) 
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
                 !cprecr,hx,hy,hz,0.0_gp,0.0_gp,0.0_gp,x,y,w%psifscf,w%ww,scal) 
                 cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
@@ -821,13 +964,13 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      if (ncplx == 1) then
         call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
              cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
              w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
              cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
 
      end if
@@ -928,6 +1071,9 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   hpsip=0.0_wp
 
   ! coarse part
+  !$omp parallel default(shared)&
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i,i0)
+  !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -942,6 +1088,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
         hpsip(i,i2,i3)=hpsi_c(i-i0+jj)
      enddo
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   fac_h=real(1.0_gp/((hgrid*real(n2_nt,gp))**2),wp)
 
@@ -966,6 +1114,9 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   call syn_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3)
 
   !       diagonally precondition the fine wavelets
+  !$omp parallel default(shared)&
+  !$omp private(i)
+  !$omp do !!!!schedule(static,1)
   do i=1,nvctr_f
      hpsi_f(1,i)=hpsi_f(1,i)*scal(1)
      hpsi_f(2,i)=hpsi_f(2,i)*scal(1)
@@ -977,8 +1128,13 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
      hpsi_f(7,i)=hpsi_f(7,i)*scal(3)
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   ! coarse part
+  !$omp parallel default(shared)&
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -993,6 +1149,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
         hpsi_c(i-i0+jj)=hpsip(i,i2,i3)
      enddo
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   i_all=-product(shape(hpsip))*kind(hpsip)
   deallocate(hpsip,stat=i_stat)
@@ -1035,6 +1193,9 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 
         f0=1.d0/(h0+eps)
 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i3,i3p,i2,i2p,i1,i1p)
+     !$omp do !!!!schedule(static,1)
         do i3=0,n3
            i3p=i3+n3pp
            do i2=0,n2
@@ -1057,9 +1218,14 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
               enddo
            enddo
         enddo
+     !$omp enddo
+     !$omp end parallel
 
      else
 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i3,i3p,i2,i2p,i1,i1p)
+     !$omp do !!!!schedule(static,1)
         do i3=0,n3
            i3p=i3+n3pp
            do i2=0,n2
@@ -1080,6 +1246,8 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
               enddo
            enddo
         enddo
+     !$omp enddo
+     !$omp end parallel
 
      endif
 
@@ -1119,7 +1287,7 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
   integer :: i,icong,i_stat,i_all
-  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
+  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta,aa1,aa2
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
@@ -1217,18 +1385,27 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
   IF (INGUESS_ON) THEN 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,tt)
+     !$omp do !!!!schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         tt=wpsi(i)-rpsi(i)  ! rpsi instead of hpsi: alexey
         rpsi(i)=tt
         ppsi(i)=tt
      enddo
-
+     !$omp enddo
+     !$omp end parallel
   ELSE
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,tt)
+     !$omp do !!!!schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         tt=wpsi(i)-hpsi(i)  ! normal
         rpsi(i)=tt
         ppsi(i)=tt
      enddo
+     !$omp enddo
+     !$omp end parallel
   ENDIF
 
   loop_precond: do icong=2,ncong
@@ -1242,37 +1419,74 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
+ 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
+     !$omp do !!!! schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
-        alpha1=alpha1+rpsi(i)*rpsi(i)
-        alpha2=alpha2+rpsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*rpsi(i)
+        aa2=aa2+rpsi(i)*wpsi(i)
      enddo
-     !write(*,*)icong,alpha1
+     !$omp enddo
+
+     !$omp critical
+     alpha1=alpha1+aa1
+     alpha2=alpha2+aa2
+     !$omp end critical
+
+     !$omp end parallel
+     !write(*,*)icong,alpha1,alpha2
 
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
 
      !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
 
+     !$omp parallel default(shared)&
+     !$omp private(i)
+     !$omp do !!!!schedule (static,1)
      do i=1,nvctr_c+7*nvctr_f
         hpsi(i)=hpsi(i)-alpha*ppsi(i)
         rpsi(i)=rpsi(i)-alpha*wpsi(i)
      end do
+     !$omp enddo
+     !$omp end parallel
 
      if (icong >= ncong) exit loop_precond
 
      beta1=0.0_wp 
      beta2=0.0_wp
 
+     !$omp parallel default(shared)&
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
+     !$omp do !!!! schedule (static,1)
      do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*wpsi(i)
+        aa2=aa2+ppsi(i)*wpsi(i)
      enddo
+     !$omp enddo
+
+     !$omp critical
+     beta1=beta1+aa1
+     beta2=beta2+aa2
+     !$omp end critical
+
+     !$omp end parallel
 
      beta=beta1/beta2        
 
+     !omp parallel default(shared)&
+     !omp private(i)
+     !omp do schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         ppsi(i)=rpsi(i)-beta*ppsi(i)
      end do
+     !omp enddo
+     !omp end parallel
 
   end do loop_precond
 

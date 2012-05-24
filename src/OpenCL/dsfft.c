@@ -190,7 +190,7 @@ void FC_FUNC_(fft3d_r_c2r_d_generic,FFT1D_R_C2R_D_GENERIC)(bigdft_command_queue 
     if( periodic[1] )
       fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
     else {
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_f_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
       n2 /= 2;
     }
     ndat = n2 * n3;
@@ -198,7 +198,7 @@ void FC_FUNC_(fft3d_r_c2r_d_generic,FFT1D_R_C2R_D_GENERIC)(bigdft_command_queue 
     if( periodic[0] )
       fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_c2r_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
     else {
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_c2r_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_c2r_f_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
       n1 /= 2;
     }
 }

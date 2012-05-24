@@ -299,7 +299,7 @@ MODULE bader_mod
                   !IF (bdr%volnum(n1,n2,n3) == bdr%bnum+1) CYCLE
 
                   !IF ((.NOT. is_vol_edge(bdr,chgval,p)) .AND. &
-                     &   !(bdr%volnum(p(1),p(2),p(3))==i)) THEN
+                  !(bdr%volnum(p(1),p(2),p(3))==i)) THEN
 
                   IF (bdr%volnum(p(1),p(2),p(3)) == i) THEN
                      chgval%weight(p(1),p(2),p(3))%w(i) = 1
@@ -309,7 +309,7 @@ MODULE bader_mod
                   IF (is_vol_edge(bdr, chgval, p) .AND. &
                      &   ((bdr%volnum(p(1),p(2),p(3)) == i) .OR. is_vol_neighbor(bdr, chgval, p, i))) THEN
                   !IF (is_vol_edge(bdr, chgval, p) .AND. &
-                     &   !  &  (bdr%volnum(p(1),p(2),p(3)) == i)) THEN
+                  !  &  (bdr%volnum(p(1),p(2),p(3)) == i)) THEN
 
                   !IF (is_vol_edge(bdr, chgval, p)) THEN
                   chgval%weight(p(1),p(2),p(3))%w(i)= 0
@@ -348,7 +348,7 @@ MODULE bader_mod
                   IF (is_vol_edge(bdr, chgval, p) .AND. &
                      &   ((bdr%volnum(p(1),p(2),p(3)) == i) .OR. is_vol_neighbor(bdr, chgval, p, i))) THEN 
                   !IF (is_vol_edge(bdr, chgval, p) .AND. &
-                     &   !  &  (bdr%volnum(p(1),p(2),p(3)) == i)) THEN
+                     !  &  (bdr%volnum(p(1),p(2),p(3)) == i)) THEN
 
                   ! IF (is_vol_edge(bdr, chgval, p)) THEN
 

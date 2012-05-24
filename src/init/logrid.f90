@@ -43,6 +43,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   !    for real space:
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
+
   allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_big,'logrid_big',subname)
 
@@ -355,8 +356,8 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   !control variable
   nvctr_check=0
   do iseg=1,wfd%nseg_c
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((n1+1)*(n2+1))
      ii=ii-i3*(n1+1)*(n2+1)
@@ -371,17 +372,24 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   !check
   if (nvctr_check /= wfd%nvctr_c) then
      write(*,'(1x,a,2(i6))')&
-          'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c
+          'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c,wfd%nseg_c
      stop
   end if
+  !!do i3=0,n3
+  !!  do i2=0,n2
+  !!    do i1=0,n1
+  !!      write(700,'(a,3i9,l)') 'i1, i2, i3, logrid_c(i1,i2,i3)', i1, i2, i3, logrid_c(i1,i2,i3)
+  !!    end do
+  !!  end do
+  !!end do
 
   !fine part
   logrid_f(:,:,:)=.false.
   !control variable
   nvctr_check=0
   do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((n1+1)*(n2+1))
      ii=ii-i3*(n1+1)*(n2+1)

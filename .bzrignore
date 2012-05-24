@@ -28,6 +28,7 @@ src/frequencies
 src/oneatom
 src/rism
 src/splsad
+src/lib/bindings_dbus.*
 src/tools/analyze_georelax
 src/tools/fermi
 src/tools/matchrotation
@@ -123,3 +124,8 @@ src/init/pspconf.f90
 doc/*.pdf
 MYTHINGS
 doc/tests.xml
+NK.dft
+NK.occup
+NK.out.ref
+NK.sic
+NK.xyz

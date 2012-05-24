@@ -44,6 +44,8 @@ module module_defs
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
+  logical :: mpi_thread_funneled_is_supported=.false. !< control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
+
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -65,16 +67,17 @@ module module_defs
 
 
   !> Physical constants.
-  real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
-  real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
-  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(gp), parameter :: Ha_eV=27.21138386_gp                           ! 1 Hartree, in eV
-  real(gp), parameter :: Ha_K=315774.65_gp                              ! 1Hartree, in Kelvin
-  real(gp), parameter :: Ha_THz=6579.683920722_gp                       ! 1 Hartree, in THz
-  real(gp), parameter :: Ha_J=4.35974394d-18                            ! 1 Hartree, in J
-  real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
-  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
-  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp                     !> 1 AU in angstroem
+  real(gp), parameter :: ha2ev = 27.21138386_gp                         !> 1 Ha in eV
+  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      !> 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: Ha_eV=27.21138386_gp                           !> 1 Hartree, in eV
+  real(gp), parameter :: Ha_K=315774.65_gp                              !> 1Hartree, in Kelvin
+  real(gp), parameter :: Ha_THz=6579.683920722_gp                       !> 1 Hartree, in THz
+  real(gp), parameter :: Ha_J=4.35974394d-18                            !> 1 Hartree, in J
+  real(gp), parameter :: e_Cb=1.602176487d-19                           !> minus the electron charge, in Coulomb
+  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !> Boltzmann constant in Ha/K
+  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: GPaoAU=29421.010901602753                       !> 1Ha/Bohr^3 in GPa
 
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
@@ -86,7 +89,7 @@ module module_defs
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
   end interface
 
   !initialize to zero an array
@@ -151,7 +154,7 @@ module module_defs
      module procedure scal_simple,scal_double
   end interface
   interface vcopy
-     module procedure copy_simple,copy_double,copy_double_to_simple,&
+     module procedure copy_integer,copy_simple,copy_double,copy_double_to_simple,&
           copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
@@ -176,7 +179,42 @@ module module_defs
      module procedure c_axpy_simple,c_axpy_double
   end interface
 
+  interface
+     subroutine bigdft_utils_flush(unit)
+       integer, intent(in) :: unit
+     end subroutine bigdft_utils_flush
+  end interface
+
   contains
+
+    subroutine bigdft_mpi_init(ierr)
+      implicit none
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI_INIT_THREAD
+      integer :: provided
+      call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+      if (provided /= 1 .or. ierr/=0) then
+         !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
+	 !call MPI_INIT(ierr)
+      else
+          mpi_thread_funneled_is_supported=.true.
+      endif
+#else
+      call MPI_INIT(ierr)      
+#endif
+    end subroutine bigdft_mpi_init
+
+!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
+!!$    subroutine bigdft_open_nesting
+!!$      implicit none
+!!$      !$   call OMP_SET_NESTED(.true.) 
+!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
+!!$      !$ if (unblock_comms_den) then
+!!$      !$   call OMP_SET_NUM_THREADS(2)
+!!$      !$ else
+!!$      !$   call OMP_SET_NUM_THREADS(1)
+!!$      !$ end if
+!!$    end subroutine bigdft_open_nesting
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -200,7 +238,7 @@ module module_defs
 
       !not appropriate for integers, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_INTEGER,mpi_op,mpi_comm,ierr)
       
@@ -232,7 +270,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_REAL,mpi_op,mpi_comm,ierr)
       
@@ -264,7 +302,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call dcopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
       
@@ -297,7 +335,7 @@ module module_defs
 
       !not appropriate for logical, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_LOGICAL,mpi_op,mpi_comm,ierr)
       
@@ -319,6 +357,15 @@ module module_defs
       foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
+
+    function uninitialized_long(one) 
+      implicit none
+      integer(kind = 8), intent(in) :: one
+      integer(kind = 8) :: uninitialized_long
+      integer :: foo
+      foo = kind(one)
+      uninitialized_long=-123456789
+    end function uninitialized_long
 
     function uninitialized_real(one) 
       implicit none
@@ -645,6 +692,15 @@ module module_defs
       !call to BLAS routine
       call DCOPY(n,dx,incx,dy,incy)
     end subroutine copy_complex_real_double
+
+    subroutine copy_integer(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      integer, intent(in) :: dx
+      integer, intent(out) :: dy
+      !custom blas routine
+      call icopy(n,dx,incx,dy,incy)
+    end subroutine copy_integer
 
     subroutine copy_simple(n,dx,incx,dy,incy)
       implicit none

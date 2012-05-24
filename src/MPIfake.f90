@@ -63,6 +63,23 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
 
+subroutine mpi_test(request,flag,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: flag
+  integer, intent(out) :: MPI_Status
+  flag = 1
+  MPI_Status = 1
+end subroutine mpi_test
+
+subroutine mpi_wait(request,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: MPI_Status
+  MPI_Status = 1
+end subroutine mpi_wait
+
+
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version
 subroutine  MPI_FINALIZE(ierr)
@@ -92,8 +109,8 @@ END SUBROUTINE MPI_ALLREDUCE
 
 
 ! These routines in serial version should not be called.
-! A stop is added
-
+! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+! is implemented whenever possible
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
@@ -189,3 +206,26 @@ subroutine mpi_comm_free ()
   implicit none
   stop 'MPIFAKE: mpi_comm_free'
 END SUBROUTINE  MPI_COMM_FREE
+
+subroutine mpi_waitany ()
+  implicit none
+  return !stop 'MPIFAKE: mpi_waitany'
+END SUBROUTINE  MPI_WAITANY
+
+subroutine mpi_irsend()
+  implicit none
+  stop 'MPIFAKE: mpi_irsend'
+END SUBROUTINE  MPI_IRSEND
+
+subroutine mpi_rsend()
+  implicit none
+  stop 'MPIFAKE: mpi_rsend'
+END SUBROUTINE  MPI_RSEND
+
+
+real(kind=8) function mpi_wtime()
+  implicit none
+  integer(kind=8) :: itns
+  call nanosec(itns)
+  mpi_wtime=real(itns,kind=8)*1.d-9
+end function mpi_wtime

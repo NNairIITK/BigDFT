@@ -805,7 +805,7 @@ module lanczos_base
          !!$    do n=1,Nu-1
          !!$       expn(:)=expn(:)*alphas(:)
          !!$       fact = 1.0/(Nu+1)*( (Nu-n +1.0)*cos(pi* n /(Nu+1))+ &
-            &   !!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+               !!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
          !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
          !!$    enddo
 
@@ -974,7 +974,7 @@ module lanczos_base
       real(gp) tol
       real(wp) alphacollect(nkpts)
 
-      print *, "LB_nproc= ", LB_nproc
+      if(LB_iproc == 0) print *, "LB_nproc= ", LB_nproc
 
       if(LB_nproc/=1) then
          dspl(0)=0
@@ -992,7 +992,7 @@ module lanczos_base
       Sprecedente= 6
 
       call EP_initialize_start()
-      print *, " EP_initialize_start    OK "
+      if (LB_iproc == 0) write(*,*) " EP_initialize_start    OK "
       call EP_copy(attuale,0)
       call EP_copy(precedente,0)
       if(dopaw) then
@@ -1000,8 +1000,8 @@ module lanczos_base
 
          if(   S_do_cg ) then
             !!$          call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-               &   !!$               EP_ApplySinv ,  EP_copy,  &
-               &   !!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
+               !!$               EP_ApplySinv ,  EP_copy,  &
+               !!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
             STOP " S_do_cg temporarily disactivate beacause chebychev is potentially multik " 
 
 
@@ -1048,8 +1048,8 @@ module lanczos_base
                call EP_copy(Stmp1,tmp1)
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     &   !!$                     EP_ApplyS ,  EP_copy,  &
-                     &   !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
+!!$                     EP_ApplyS ,  EP_copy,  &
+!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
                   STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik" 
 
                else
@@ -1064,8 +1064,8 @@ module lanczos_base
 
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     &   !!$                     EP_ApplyS ,  EP_copy,  &
-                     &   !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
+                     !!$                     EP_ApplyS ,  EP_copy,  &
+                     !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
                   STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik " 
                else
                   call EP_ApplySinv(tmp1, Stmp1 )             
@@ -1100,18 +1100,11 @@ module lanczos_base
 
          if(LB_nproc/=1) then
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+1) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr )
-            if(LB_iproc==0) then
-               print *, "  new cheb coeffs (nkpts=", nkpts, ")"
-               write( *,"(10(d20.10,1x))")  alphacollect
-            endif
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD , ierr)
-            if(LB_iproc==0) then
-               print *, "  and  "
-               write( *,"(10(d20.10,1x))")  alphacollect
-            endif
-         else
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
+         end if
+         if(LB_iproc == 0) then
             write (*,"(A)",advance="no")   "new cheb coeffs "
             write( *,"(1x,10(d20.10,1x))")   LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
          endif

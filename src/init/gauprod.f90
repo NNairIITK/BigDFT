@@ -9,16 +9,16 @@
 
 
 !>  Restart from gaussian functions
-subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
+subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(gaussian_basis), intent(inout) :: G
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
@@ -32,7 +32,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,coeffs,psi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -361,6 +361,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         firstperityx( ityx)=iat
         !positions for the nlcc arrays
         call nlcc_start_position(ityp,at,ngv,ngc,islcc)
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
 
 
         if( present(gaenes)) then
@@ -446,6 +449,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   icoeff=1
   do iat=1,at%nat
      if( present(gaenes))  last_aux=ishell
+     !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
@@ -471,6 +475,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
                     Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
                         iorbtolr       (icoeff)=iat
@@ -559,7 +564,6 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   else
      noncoll=1
   end if
-
 
   natpaw=0
   do iat=1, at%nat
@@ -1174,7 +1178,7 @@ END FUNCTION kinovrlp
 
 
 !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-!!
+!!   Uses gauint0 if d==0
 !!
 function govrlp(a1,a2,d,l1,l2)
   use module_base
@@ -1184,7 +1188,13 @@ function govrlp(a1,a2,d,l1,l2)
   real(gp) :: govrlp
   !local variables
   integer :: p
-  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint
+  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint,gauint0
+
+  !quick check
+  if (d==0.0_gp) then
+     govrlp=gauint0(a1+a2,l1+l2)
+     return
+  end if
 
   !build the prefactor
   prefac=a1+a2
@@ -1231,7 +1241,7 @@ END FUNCTION govrlp
 
 
 !>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-!!   this works ALSO when c/=0.d0
+!!   this works ONLY when c/=0.d0
 !!
 !!
 function gauint(a,c,l)
@@ -1244,6 +1254,12 @@ function gauint(a,c,l)
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
   real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
+
+  !quick check
+  !if (c==0.0_gp) then
+  !   stop 'gauint0 should be called'
+  !end if
+
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -1252,6 +1268,12 @@ function gauint(a,c,l)
   !the first term of the sum is one
   !but we have to multiply for the prefactor
   stot=c**l
+
+  !if (c==0.0_gp .and. l==0) then
+  !   do p=0,20
+  !      print *,'stot,p',stot,a,p,gauint0(a,p)
+  !   end do
+  !end if
 
   !calculate the sum
   do p=1,l/4
@@ -1296,7 +1318,7 @@ END FUNCTION gauint
 
 
 !>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
-!!   this works only when l is even (if not equal to zero)
+!!   this works for all l
 !!
 !!
 function gauint0(a,l)
@@ -1315,6 +1337,10 @@ function gauint0(a,l)
   prefac=gammaonehalf*prefac**(l+1)
 
   p=l/2
+  if (2*p < l) then
+     gauint0=0.0_gp
+     return
+  end if
   tt=xfac(1,p,-0.5d0)
   !final result
   gauint0=prefac*tt
@@ -1643,9 +1669,9 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
      call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
-          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-          psi(1),psi(wfd%nvctr_c+1),coeffs(m))
+          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),&
+          wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
+          psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
 
      !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do

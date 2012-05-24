@@ -29,8 +29,14 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 
 lib_LIBRARIES = libabinit.a
 
+if USE_LIBXC
+LIBXC_DEFS = -DHAVE_LIBXC
+else
+LIBXC_DEFS =
+endif
+
 # Don't use the HAVE_CONFIG_H
-DEFS = -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC
+DEFS = -DHAVE_MPI -DHAVE_MPI1 $(LIBXC_DEFS)
 # Force HAVE_MPI and HAVE_MPI1.
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
 
@@ -148,6 +154,7 @@ libabinit_a_SOURCES = \
 	56_xc/xcwign.F90 \
 	56_xc/xcxalp.F90 \
 	67_common/ewald.F90 \
+        67_common/ewald2.F90 \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \

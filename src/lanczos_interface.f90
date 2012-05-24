@@ -17,11 +17,14 @@ module lanczos_interface
    private
 
    !calculate the allocation dimensions
-   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, get_EP_dim, set_EP_shift,&
-      &   EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
-      &   EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica,  &
-      &   EP_free,   EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
-      &   EP_multbyfact, EP_precondition, EP_Moltiplica4spectra, EP_ApplySinv, EP_ApplyS, &
+   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob,&
+        get_EP_dim,set_EP_shift,&
+      &   EP_mat_mult,EP_make_dummy_vectors, EP_normalizza,EP_copy,EP_scalare,&
+      EP_copia_per_prova,&
+      &   EP_set_all_random,EP_GramSchmidt,EP_add_from_vect_with_fact,&
+      EP_Moltiplica, &
+      &   EP_free,  EP_norma2_initialized_state ,EP_store_occupied_orbitals,EP_occprojections,&
+      &   EP_multbyfact,EP_precondition,EP_Moltiplica4spectra,EP_ApplySinv,EP_ApplyS,&
       &   EP_scalare_multik
 
 
@@ -76,11 +79,13 @@ module lanczos_interface
    return
 END FUNCTION get_EP_dim
 
+
 subroutine set_EP_shift(shift)
    real(8) shift
    EP_shift=shift
    return
 END SUBROUTINE set_EP_shift
+
 
 subroutine EP_inizializza(ha_actual)
    implicit none
@@ -94,20 +99,20 @@ subroutine EP_inizializza(ha_actual)
    !! for the transposed representation
    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp )) *ha%orbs%nspinor
 
-   !!   EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
+   !!   EP_dim_tot=(ha%Lzd%Glr%wfd%nvctr_c+7*ha%Lzd%Glr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
    !! for the direct representation
 
-   EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%norbp
+   EP_dim_tot=(ha%Lzd%Glr%wfd%nvctr_c+7*ha%Lzd%Glr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%norbp
 
    EP_dim_tot_touse=max(EP_dim_tot,1)
 
 
-   !!$    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nkptsp /= &
+   !!$    if( (ha%Lzd%Glr%wfd%nvctr_c+7*ha%Lzd%Glr%wfd%nvctr_f)*ha%orbs%nkptsp /= &
    !!$         sum(ha%comms%nvctr_par(:,1))  ) then
    !!$       stop "array size inconsistency" 
    !!$    endif
 
-   if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) * ha%orbs%nkptsp  /= &
+   if( (ha%Lzd%Glr%wfd%nvctr_c+7*ha%Lzd%Glr%wfd%nvctr_f) * ha%orbs%nkptsp  /= &
       &   sum(ha%comms%nvctr_par(:, ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp   ))  ) then
    stop "array size inconsistency" 
 endif
@@ -162,32 +167,24 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  subroutine EP_free(iproc)
+     implicit none
+     integer, intent(in) :: iproc
 
-
-  subroutine EP_free()
-
-     print * , "DEALLOCATING"
+     if (iproc == 0)  write(*,*) "DEALLOCATING"
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)
      call memocc(i_stat,i_all,'Qvect',subname)
 
-
-
      i_all=-product(shape(dumQvect))*kind(dumQvect)
      deallocate(dumQvect,stat=i_stat)
      call memocc(i_stat,i_all,'dumQvect',subname)
 
-
-
-
      i_all=-product(shape(Qvect_tmp))*kind(Qvect_tmp)
      deallocate(Qvect_tmp,stat=i_stat)
      call memocc(i_stat,i_all,'Qvect_tmp',subname)
-
-
-
 
      i_all=-product(shape(wrk))*kind(wrk)
      deallocate(wrk,stat=i_stat)
@@ -201,19 +198,15 @@ nullify(Qvect,dumQvect)
      deallocate(wrk2,stat=i_stat)
      call memocc(i_stat,i_all,'wrk2',subname)
 
-
-
      if(EP_doorthoocc) then
         i_all=-product(shape(EP_occprojections))*kind(EP_occprojections)
         deallocate(EP_occprojections,stat=i_stat)
         call memocc(i_stat,i_all,'EP_occprojections',subname)
      endif
 
-
      i_all=-product(shape(EP_norma2_initialized_state))*kind(EP_norma2_initialized_state)
      deallocate(EP_norma2_initialized_state,stat=i_stat)
      call memocc(i_stat,i_all,'EP_norma2_initialized_state',subname)
-
 
   END SUBROUTINE EP_free
 
@@ -493,7 +486,7 @@ nullify(Qvect,dumQvect)
      integer :: i
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
            &   psi(1),work=wrk,outadd=Qvect(1,0))  
      else
         do i=1, EP_dim_tot
@@ -509,18 +502,18 @@ nullify(Qvect,dumQvect)
      integer :: i
 
      if ( ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  ) then
-        print *, "USING PTILDES TO BUILD INITIAL WAVE"
+        if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
         call razero(EP_dim_tot  ,  Qvect_tmp  )
         call applyPAWprojectors(ha%orbs,ha%at,&
-           &   ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
+           &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
            &   .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
            &   ha%Gabs_coeffs               ) 
         !!end if
      else
         STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
-        !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
-        !!$            ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
+        !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%Lzd%Glr%geocode,ha%orbs,ha%Lzd%Glr%d,&
+        !!$            ha%hx,ha%hy,ha%hz,ha%Lzd%Glr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
      endif
 
      !!$
@@ -530,7 +523,7 @@ nullify(Qvect,dumQvect)
      !!$          if(  associated( ha%PAWD) ) then
      !!$             call razero(EP_dim_tot  ,  wrk  )
      !!$             call applyPAWprojectors(ha%orbs,ha%at,&
-     !!$                  ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
+     !!$                  ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
      !!$                  .false.)      
      !!$             do i=1, EP_dim_tot
      !!$                Qvect_tmp(i) = Qvect_tmp(i) +wrk(i)
@@ -539,7 +532,7 @@ nullify(Qvect,dumQvect)
      !!$       endif
      !!$       
      !!$       write(orbname,'(A)')'in_orb_'
-     !!$       call plot_wf_cube(orbname,ha%at,  ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz,Qvect_tmp ,"initial orbital" ) ! solo spinore 1!!$    endif
+     !!$       call plot_wf_cube(orbname,ha%at,  ha%Lzd%Glr,ha%hx,ha%hy,ha%hz,ha%rxyz,Qvect_tmp ,"initial orbital" ) ! solo spinore 1!!$    endif
 
      if (.not. associated(Qvect)) then
         write(*,*)'ERROR: initialization vector not allocated!'
@@ -547,7 +540,7 @@ nullify(Qvect,dumQvect)
      end if
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
            &   Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
      else
         do i=1, EP_dim_tot
@@ -868,7 +861,7 @@ nullify(Qvect,dumQvect)
      dopcproj=.true.
 
 
-     call allocate_work_arrays('P',.true.,1,ha%lr%d,w)
+     call allocate_work_arrays('P',.true.,1,ha%Lzd%Glr%d,w)
 
      !!$
      !!$    hh(1)=.5_wp/ha%hx**2
@@ -885,15 +878,15 @@ nullify(Qvect,dumQvect)
      !!$    scal(7)=1._wp/((b2*hh(1)+b2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  2 2 2
      !!$    
 
-     call dimensions_fft(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
+     call dimensions_fft(ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3,&
         &   nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
 
      if( ha%nproc > 1) then
         if(i>=0) then
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
         else
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
         endif
      else
@@ -932,7 +925,7 @@ nullify(Qvect,dumQvect)
         call razero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
-           &   ha%lr,ha%PPD,wrk,wrk1 )
+           &   ha%Lzd%Glr,ha%PPD,wrk,wrk1 )
 
 
         call razero(EP_dim_tot  ,  wrk2  )
@@ -943,7 +936,7 @@ nullify(Qvect,dumQvect)
         ha%PPD%iproj_to_factor =1.0_gp/(ha%PPD%iproj_to_factor**2 + gamma*gamma)
 
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
-           &   ha%lr,ha%PPD,wrk,wrk2 )
+           &   ha%Lzd%Glr,ha%PPD,wrk,wrk2 )
         !!$
         !!$
 
@@ -952,9 +945,9 @@ nullify(Qvect,dumQvect)
      endif
 
 
-     call prec_fft_fast_spectra(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
-        &   ha%lr%wfd%nseg_c,ha%lr%wfd%nvctr_c,ha%lr%wfd%nseg_f,ha%lr%wfd%nvctr_f,&
-        &   ha%lr%wfd%keyg,ha%lr%wfd%keyv, &
+     call prec_fft_fast_spectra(ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3,&
+        &   ha%Lzd%Glr%wfd%nseg_c,ha%Lzd%Glr%wfd%nvctr_c,ha%Lzd%Glr%wfd%nseg_f,ha%Lzd%Glr%wfd%nvctr_f,&
+        &   ha%Lzd%Glr%wfd%keygloc,ha%Lzd%Glr%wfd%keyvloc, &
         &   ene, gamma,ha%hx,ha%hy,ha%hz,wrk(1:),&
         &   w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
         &   nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
@@ -966,7 +959,7 @@ nullify(Qvect,dumQvect)
         call razero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
-           &   ha%lr,ha%PPD,wrk,wrk1)
+           &   ha%Lzd%Glr,ha%PPD,wrk,wrk1)
 
 
         call axpy(EP_dim_tot, -1.0_gp  ,  wrk1(1)   , 1,  wrk(1) , 1)
@@ -980,7 +973,7 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
@@ -989,7 +982,7 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
@@ -1015,13 +1008,14 @@ nullify(Qvect,dumQvect)
      real(gp) :: ene, gamma
      !Local variables
      integer :: k
+     type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
 
      if( ha%nproc > 1) then
         if(i>=0) then
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
         else
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
         endif
      else
@@ -1037,42 +1031,20 @@ nullify(Qvect,dumQvect)
         endif
      endif
 
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+     call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
-
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
-        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
+          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU)
 
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
      !Qvect_tmp   =  wrk
 
-
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
-
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
-        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
+          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
@@ -1085,7 +1057,7 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
@@ -1107,7 +1079,7 @@ nullify(Qvect,dumQvect)
 
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
@@ -1139,13 +1111,14 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: p,i
      !Local variables
      integer :: k
+     type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
 
      if( ha%nproc > 1) then
         if(i>=0) then
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
         else
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
         endif
      else
@@ -1162,25 +1135,14 @@ nullify(Qvect,dumQvect)
 
      if(ha%iproc==0 .and. .false. ) then
         !here the projector should be applied
-        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
+        call lowpass_projector(ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3,ha%Lzd%Glr%wfd%nvctr_c, Qvect_tmp )
      endif
 
-     !!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-     !!$         ha%rxyz,&
-     !!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-     !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-     !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+     call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
-
-     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
-
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
-        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
-
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
+          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 
@@ -1188,11 +1150,11 @@ nullify(Qvect,dumQvect)
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
-              &   ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
+              &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
 
            !!$          call razero(EP_dim_tot  ,  wrk1  )
            !!$          call applyPAWprojectors(ha%orbs,ha%at,&
-           !!$               ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
+           !!$               ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
            !!$          do k=1, EP_dim_tot
            !!$             wrk(k)  =   wrk(k)+  wrk1(k)
            !!$          enddo
@@ -1205,8 +1167,8 @@ nullify(Qvect,dumQvect)
      if(ha%iproc==0 .and. .false.) then
         !here the projector should be applied
         print *,  "here the projector should be applied   ha%iproc   ",  ha%iproc 
-        print *, ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3
-        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c,wrk)
+        print *, ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3
+        call lowpass_projector(ha%Lzd%Glr%d%n1,ha%Lzd%Glr%d%n2,ha%Lzd%Glr%d%n3,ha%Lzd%Glr%wfd%nvctr_c,wrk)
         print *, " projector OK ha%iproc ",  ha%iproc  
      endif
 
@@ -1219,7 +1181,7 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
@@ -1228,7 +1190,7 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
@@ -1249,10 +1211,10 @@ nullify(Qvect,dumQvect)
 
      if( ha%nproc > 1) then
         if(i>=0) then
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
         else
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
         endif
      else
@@ -1270,7 +1232,7 @@ nullify(Qvect,dumQvect)
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
-              &   ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_Sm1_matrices, &
+              &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_Sm1_matrices, &
               &   .false.)      
         endif
      endif
@@ -1283,7 +1245,7 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
@@ -1292,7 +1254,7 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
@@ -1316,10 +1278,10 @@ nullify(Qvect,dumQvect)
 
      if( ha%nproc > 1) then
         if(i>=0) then
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
         else
-           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
         endif
      else
@@ -1337,7 +1299,7 @@ nullify(Qvect,dumQvect)
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
-              &   ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
+              &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
               &   .false. )      
         endif
      endif
@@ -1348,7 +1310,7 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
@@ -1357,7 +1319,7 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
               &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
@@ -1476,8 +1438,8 @@ nullify(Qvect,dumQvect)
                     &   rx,ry,rz,hx,hy,hz,&
                     &   0,grid%n1,0,grid%n2,0,grid%n3,&
                     &   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
-                 wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
-                    &   wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
+                 wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,wfd%nseg_f,wfd%nvctr_f,&
+                    &   wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1),&
                     &   tpsi(1),tpsi(wfd%nvctr_c+1))
               end if
               !sum the result inside the orbital wavefunction
@@ -1720,8 +1682,9 @@ subroutine applyPAWprojectors(orbs,at,&
       imatrix=1
 
       !!$ check that the coarse wavelets cover the whole box
-      if(Glr%wfd%nvctr_c .ne. ( (Glr%d%n1+1) *(Glr%d%n2+1) * (Glr%d%n3+1)  ) ) then
-         print *, " WARNING : coarse wavelets dont cover the whole box "
+      if(Glr%wfd%nvctr_c .ne. &
+           ((Glr%d%n1+1)*(Glr%d%n2+1)*(Glr%d%n3+1))) then
+         print *," WARNING : coarse wavelets dont cover the whole box "
       endif
 
       if(dosuperposition) then 
@@ -1761,23 +1724,26 @@ subroutine applyPAWprojectors(orbs,at,&
                   do ispinor=1,orbs%nspinor,ncplx_global
                      eproj_spinor=0.0_gp
                      if (ispinor >= 2) istart_c=istart_c_i
-                     mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-                     mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-                     mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-                     mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
-                     jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
+                     call plr_segs_and_vctrs(PAWD%paw_nlpspd%plr(iat),&
+                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                     jseg_c=1
+!!$                     mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+!!$                     mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+!!$                     mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$                     mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+!!$                     jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
                      mdone=0
                      iproj=iproj_old
                      if(mproj>0) then
                         if(  PAWD%DistProjApply) then
                            jorb=1
-                           do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)/= iat) 
+                           do while(jorb<=PAWD%G%ncoeff .and. PAWD%iorbtolr(jorb)/= iat) 
                               jorb=jorb+1
                            end do
                            if(jorb<PAWD%G%ncoeff) then
-                              call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,&
-                                 &   kx,ky,kz, &
-                                 &   jorb, istart_c,  at%geocode, at, iatat ) 
+                              call fillPawProjOnTheFly(PAWD,Glr,iat,hx,hy,hz,&
+                                 &   kx,ky,kz,&
+                                 &   jorb,istart_c,at%geocode,at,iatat ) 
                            endif
                         end if
                      endif
@@ -1803,13 +1769,18 @@ subroutine applyPAWprojectors(orbs,at,&
 
                               if( .not. dosuperposition .and. lsign>0 ) then
                                  call wpdot_wrap(ncplx,  &
-                                    &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                    &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                                    &   psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),  &
-                                    &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                    &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                                    &   PAWD%paw_proj(istart_c),&
-                                    &   dotbuffer( ibuffer ) )
+                                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,&
+                                      Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                      Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
+                                      psi(ispsi+&
+                                      (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)),&
+                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                                      PAWD%paw_nlpspd%keyv_p(jseg_c),&
+!!$                                      PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                      PAWD%paw_proj(istart_c),&
+                                      dotbuffer( ibuffer ) )
                               end if
                               ibuffer=ibuffer + (ncplx-1)
 
@@ -1897,13 +1868,15 @@ subroutine applyPAWprojectors(orbs,at,&
                               ibuffer=ibuffer+1
 
                               call waxpy_wrap(ncplx,dotbufferbis( ibuffer ) ,&
-                                 &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                                 &   PAWD%paw_proj(istart_c),&
-                                 &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                 &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                                 &   hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  )&
-                                 &   )
+                                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                   PAWD%paw_proj(istart_c),&
+                                   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                   Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
+                                   hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
+                                   )
 
 
                               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -2006,13 +1979,16 @@ subroutine applyPCprojectors(orbs,at,&
 
                if (ispinor >= 2) istart_c=istart_c_i
 
-               mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-               mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+               call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+                    mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+               jseg_c=1
 
-               mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
-               mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
-               jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
-
+!!$               mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$               mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$
+!!$               mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$               mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
+!!$               jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
 
                mdone=0
                iproj=iproj_old
@@ -2024,9 +2000,8 @@ subroutine applyPCprojectors(orbs,at,&
                         jorb=jorb+1
                      end do
                      if(jorb<PPD%G%ncoeff) then
-
-                        call fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz, jorb,PPD%ecut_pc ,  istart_c ) 
-
+                        call fillPcProjOnTheFly(PPD,Glr,iat,at,hx,hy,hz,&
+                             jorb,PPD%ecut_pc,istart_c) 
                      endif
                   end if
                endif
@@ -2044,26 +2019,32 @@ subroutine applyPCprojectors(orbs,at,&
 
 
                   call applyprojector(ncplx,l,i, psppar_aux(0,0), 2 ,&
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                     &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                     &   PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                     &   PPD%pc_proj(istart_c),&
-                     &   psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
-                     &   hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
-                     &   eproj_spinor)
+                       Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c,&
+                       Glr%wfd%nseg_f,&
+                       Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
+                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                       PPD%pc_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                       PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+!!$                       PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+                       PPD%pc_proj(istart_c),&
+                       psi(ispsi+ (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
+                       hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
+                       eproj_spinor)
 
 
                   if(iorb==1) then         
                      if( present(dotest) ) then
                         eproj_spinor=0.0_gp
-                        call wpdot_wrap(ncplx,  &
-                           &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
-                           &   PPD%pc_nlpspd%keyg_p(1,jseg_c),PPD%pc_proj(istart_c),& 
-                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
-                           &   PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                           &   PPD%pc_proj(istart_c),&
-                           &   eproj_spinor)
+!!$                        call wpdot_wrap(ncplx,  &
+!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
+!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+!!$                             PPD%pc_proj(istart_c),& 
+!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
+!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+!!$                             PPD%pc_proj(istart_c),&
+!!$                             eproj_spinor)
                         print *, " IL PROIETTORE HA MODULO QUADRO  " ,eproj_spinor 
                         if(dotest) then
                            !! ---------------  use this to plot projectors
@@ -2071,16 +2052,20 @@ subroutine applyPCprojectors(orbs,at,&
                            Plr%d%n1=Glr%d%n1
                            Plr%d%n2=Glr%d%n2
                            Plr%d%n3=Glr%d%n3
-                           Plr%geocode = at%geocode                    
-                           Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
-                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
-                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
+                           Plr%geocode=at%geocode
+                           
+                           call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+                                Plr%wfd%nseg_c,Plr%wfd%nseg_f,&
+                                Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)                  
+!!$                           Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
                            call allocate_wfd(Plr%wfd,subname)
-                           Plr%wfd%keyv(:)  = PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
-                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$                           Plr%wfd%keyv(:)=PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
                            Plr%bounds = Glr%bounds
                            Plr%d          = Glr%d                    
                            !! call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PPD%pc_proj(istart_c) ,"1234567890" ) 
@@ -2099,20 +2084,20 @@ subroutine applyPCprojectors(orbs,at,&
             if( present(dotest) ) then
                if(dotest) then
                   eproj_spinor=0.0_gp
-                  call wpdot_wrap(ncplx,  &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
-                     &   eproj_spinor)
+!!$                  call wpdot_wrap(ncplx,  &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
+!!$                     &   eproj_spinor)
                   print *, "hpsi  HA MODULO QUADRO  " ,eproj_spinor 
                   eproj_spinor=0.0_gp
-                  call wpdot_wrap(ncplx,  &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
-                     &   eproj_spinor)
+!!$                  call wpdot_wrap(ncplx,  &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
+!!$                     &   eproj_spinor)
                   print *, "psi  HA MODULO QUADRO  " ,eproj_spinor         
                   !! CECCARE IPROJ = mproj tot, istart_c=nelproj 
                   write(orbname,'(A,i4.4)')'pcorb_',iorb

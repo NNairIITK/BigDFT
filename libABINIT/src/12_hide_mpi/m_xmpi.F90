@@ -38,7 +38,6 @@ MODULE m_xmpi
  implicit none
 
  private
-!!***
 
 #if defined HAVE_MPI1
  include 'mpif.h'
@@ -1832,7 +1831,6 @@ end subroutine xmpio_check_frmarkers
 !!***
 
 #endif
-!!***
 
 !------------------------------------------------------------------------------------
 
@@ -2001,7 +1999,6 @@ end subroutine xmpio_write_frmarkers
 !!***
 
 #endif
-!!***
 
 !------------------------------------------------------------------------------------
 
@@ -2293,5 +2290,3 @@ end subroutine xmpio_create_coldistr_from_fherm_packed
 !------------------------------------------------------------------------------------
 
 END MODULE m_xmpi
-!!***
-!!***

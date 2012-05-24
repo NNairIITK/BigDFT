@@ -1,48 +1,41 @@
-EXTRA_DIST = autogen.sh \
-	config/m4
+EXTRA_DIST = autogen.sh config/m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 
-DISTCLEANFILES = config.inc
+DISTCLEANFILES = config.inc bigdft.pc
 
-if BUILD_LIBABINIT
-libABINIT_dir = libABINIT/src
-else
-libABINIT_dir = 
-endif
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = bigdft.pc
+
+SUBDIRS =
 
 if BUILD_LIBXC
-libXC_dir = libxc-1.1.0
-else
-libXC_dir = 
+SUBDIRS += libxc-1.1.0
+endif
+
+if BUILD_LIBABINIT
+SUBDIRS += libABINIT/src
 endif
 
 if BUILD_LIBSGPU
-libSGPU_dir = S_GPU
-else
-libSGPU_dir = 
+SUBDIRS += S_GPU
 endif
 
+if BUILD_LIBYAML
+SUBDIRS += yaml-0.1.4
+endif
+
+SUBDIRS += src \
+	   doc \
+	   utils
+
 if BUILD_BINARIES_PSEUDO
-pseudo_dir = pseudo
-else
-pseudo_dir =
+SUBDIRS += pseudo
 endif
 
 if BUILD_BINARIES
-tests_dir = tests
-else
-tests_dir = 
+SUBDIRS += tests
 endif
-
-SUBDIRS = $(libXC_dir) \
-	$(libSGPU_dir) \
-	$(libABINIT_dir) \
-	$(pseudo_dir) \
-	src \
-	doc \
-	utils \
-	$(tests_dir)
 
 check:
 	@python $(top_srcdir)/tests/report.py

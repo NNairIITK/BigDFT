@@ -80,8 +80,9 @@
 !!    Wire boundary condition is missing
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
-     quiet) !optional argument
+     quiet,stress_tensor) !optional argument
   use module_base
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -94,6 +95,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   character(len=3), intent(in), optional :: quiet
+  real(dp), dimension(6), intent(out), optional :: stress_tensor
   !local variables
   character(len=*), parameter :: subname='H_potential'
   logical :: wrtmsg
@@ -102,6 +104,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
   integer :: nxc,istden,istglo
   real(dp) :: scal,ehartreeLOC,pot
+  real(dp), dimension(6) :: strten
   real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
 
@@ -120,27 +123,32 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   else
      wrtmsg=.true.
   end if
-
+! rewrite
+  if (iproc==0 .and. wrtmsg) call yaml_open_map('Poisson Solver')
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Periodic')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Surface')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Isolated')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+          call yaml_map('BC','Wires')
+     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+     !     'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'H') then
      if (iproc==0 .and. wrtmsg) &
@@ -149,6 +157,13 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
+  end if
+
+  if (iproc==0 .and. wrtmsg) then
+     call yaml_map('Dimensions',(/n01,n02,n03/),fmt='(i5)')
+     call yaml_map('MPI tasks',nproc,fmt='(i5)')
+     call yaml_close_map()
+     call yaml_newline()
   end if
 
   !array allocations
@@ -197,18 +212,21 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
-  do i3=1,nxc
-     do i2=1,m3
-        do i1=1,m1
-           i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-           zf(i1,i2,i3)=rhopot(i)
-        end do
-     end do
+
+  do i3 = 1, nxc
+    !$omp parallel do default(shared) private(i2, i1, i)
+    do i2=1,m3
+      do i1=1,m1
+        i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+        zf(i1,i2,i3)=rhopot(i)
+      end do
+    end do
+    !$omp end parallel do
   end do
 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.0_dp/real(n1*n2*n3,dp)
+     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
@@ -226,8 +244,13 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   call timing(iproc,'PSolv_comput  ','OF')
   call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,&
        zf(1,1,1),&
-       scal,hx,hy,hz,offset)
+       scal,hx,hy,hz,offset,strten)
   call timing(iproc,'PSolv_comput  ','ON')
+
+  !check for the presence of the stress tensor
+  if (present(stress_tensor)) then
+     call vcopy(6,strten(1),1,stress_tensor(1),1)
+  end if
 
   
   !the value of the shift depends on the distributed i/o or not
@@ -248,6 +271,8 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
         ind3p=(j2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            ind2p=(i3-1)*n01+ind3p
@@ -259,11 +284,14 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
            end do
         end do
+        !$omp end parallel do
      end do
   else
      do j2=1,nxc
         i2=j2+i3xcsh 
         ind3=(i2-1)*n01*n02
+        !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
+        !$omp reduction(+:ehartreeLOC)
         do i3=1,m3
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
@@ -273,6 +301,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
               rhopot(ind)=real(pot,wp)
            end do
         end do
+        !$omp end parallel do
      end do
   end if
   ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
@@ -291,6 +320,11 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
 
      eh=ehartreeLOC
      call mpiallred(eh,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !reduce also the value of the stress tensor
+
+if (present(stress_tensor)) then
+call mpiallred(stress_tensor(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+end if
 
      call timing(iproc,'PSolv_commun  ','OF')
 
@@ -331,7 +365,8 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   end if
 
   !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
 
 END SUBROUTINE H_potential
 
@@ -444,6 +479,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
+  real(dp), dimension(6) :: strten
   real(wp), dimension(:,:,:,:), allocatable :: zfionxc
   real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
@@ -640,7 +676,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
   !here the case ncplx/= 1 should be added
   call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
-       scal,hx,hy,hz,offset)
+       scal,hx,hy,hz,offset,strten)
   
   call timing(iproc,'PSolv_comput  ','ON')
   
@@ -1103,6 +1139,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   else if (geocode == 'W') then
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
+     write(*,*) geocode
      stop 'PS_dim4allocation: geometry code not admitted'
   end if
 
@@ -1274,6 +1311,12 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=m1
  l2=m2
  l3=m3 
+
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
+
  call fourier_dim(l1,n1)
  if (n1 /= m1) then
     print *,'the FFT in the x direction is not allowed'
@@ -1373,6 +1416,11 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=m1
  l2=m2
  l3=m3 !beware of the half dimension
+
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
 
  call fourier_dim(l1,n1)
  if (n1 /= m1) then
@@ -1572,6 +1620,10 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=2*m1
  l2=2*m2
  l3=m3 !beware of the half dimension
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
  do
     call fourier_dim(l1,n1)
     if (modulo(n1,2) == 0) then

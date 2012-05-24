@@ -13,8 +13,8 @@ module overlap_point_to_point
    use module_base
    implicit none
 
-   private !< By default variables are internal to the module
-
+   !By default variables are internal to the module
+   private
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
 
    type OP2P_descriptors
@@ -400,6 +400,7 @@ module overlap_point_to_point
       !real communication
       isnow=1
       isnow_results=1
+      irnow_results=1
       ncommsstep_results=0
       do istep=0,OP2P%nsteps_max
          !print *,'istep,iproc',istep,iproc,nsteps_max

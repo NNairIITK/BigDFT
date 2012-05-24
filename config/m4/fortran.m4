@@ -650,7 +650,7 @@ end program test],
 
 AC_DEFUN([AX_FC_MOD],
 [
-  AC_MSG_CHECKING([for module output in Fortran.])
+  AC_MSG_CHECKING([for module output in Fortran])
 
   AC_LANG_PUSH(Fortran)
   AC_REQUIRE([AC_PROG_FC])
@@ -689,8 +689,137 @@ end module modtest
       rm -f MODTEST.mod
     fi
     if test $ax_fc_mod_name = "unknown" ; then
-       AC_MSG_ERROR(Unknown module naming scheme for Fortran compiler.)
+       AC_MSG_WARN(Unknown module naming scheme for Fortran compiler.)
+       ax_fc_mod_capitalize="no"
+       ax_fc_mod_ext=""
     fi  
   fi
   AC_MSG_RESULT([$ax_fc_mod_name.$ax_fc_mod_ext])
+])
+
+# Define a macro to test the C binding of a Fortran pointer.
+#
+# Copyright (c) 2012-2012 BigDFT Group (Damien Caliste)
+# All rights reserved.
+#
+# This file is part of the BigDFT software package. For license information,
+# please see the COPYING file in the top-level directory of the BigDFT source
+# distribution.
+AC_DEFUN([AX_FC_POINTER],
+[
+  f90_pointer_test()
+  {
+  cat >pttest.f90 <<EOF
+subroutine pt_test(shift, size)
+  implicit none
+  integer, intent(out) :: shift, size
+
+  type pt_type
+     double precision, dimension($[2]), pointer :: pt
+  end type pt_type
+  type(pt_type) :: pt(2)
+  interface
+     subroutine inqPt(pt1, pt2, start1, shift, size)
+       double precision, dimension($[2]), pointer :: pt1, pt2
+       double precision, intent(in) :: start1
+       integer, intent(out) :: shift, size
+     end subroutine inqPt
+  end interface
+
+  allocate(pt(1)%pt($[3]))
+  call inqPt(pt(1)%pt, pt(2)%pt, pt(1)%pt($[4]), shift, size)
+  deallocate(pt(1)%pt)
+end subroutine pt_test
+EOF
+  }
+
+  test_dim()
+  {
+  AC_MSG_CHECKING([for $[1] pointer structure in Fortran])
+
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+
+  f90_pointer_test "$[1]" "$[2]" "$[3]" "$[4]"
+
+  ac_try='$FC $FCFLAGS -c pttest.f90 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ac_try=""
+  else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat intsizetest.f90 >&AC_FD_CC
+    AC_MSG_FAILURE(Fortran compiler cannot compile subroutine.)
+  fi
+
+  AC_LANG_PUSH(C)
+  AC_REQUIRE([AC_PROG_CC])
+  
+  LIBS_SVG="$LIBS"
+  LIBS="pttest.o $LIBS $FCLIBS"
+  AC_FC_FUNC([pt_test])
+  AC_FC_FUNC([inqPt])
+  AC_RUN_IFELSE([
+#include <stdio.h>
+
+int main(int argc, const char **argv)
+{
+  unsigned size, shift;
+
+  $pt_test(&shift, &size);
+  if (shift > size)
+    return 1;
+  fprintf(stdout, "%d %d\n", shift, size);
+  return 0;
+}
+
+void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
+{
+  unsigned int i;
+
+  for (i = 0; i < 20 && pt1[[i]] != (void*)start1; i++);
+  *shift = (int)i;
+  *size = (int)(((long)pt2 - (long)pt1) / sizeof(void*));
+}
+], [ax_fc_run=`./conftest$EXEEXT`],
+ [AC_MSG_WARN([C compiler cannot link Fortran and C or cannot find the pointer shift value.])
+  ax_fc_run="0 0"],
+ [AC_MSG_WARN([Cross compiling, cannot test pointer length, using Gfortran values.])
+  ax_fc_run="0 $[5]"])
+  LIBS="$LIBS_SVG"
+  rm -f pttest.o
+
+  AC_LANG_POP(C)
+
+  AC_LANG_POP(Fortran)
+  }
+
+  test_dim "1D" ":" "2" "1" "6"
+  F90_1D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
+  AC_SUBST(F90_1D_POINTER_SHIFT)
+  F90_1D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
+  AC_SUBST(F90_1D_POINTER_SIZE)
+
+  test_dim "2D" ":,:" "2,1" "1,1" "9"
+  F90_2D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
+  AC_SUBST(F90_2D_POINTER_SHIFT)
+  F90_2D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
+  AC_SUBST(F90_2D_POINTER_SIZE)
+
+  test_dim "3D" ":,:,:" "2,1,1" "1,1,1" "12"
+  F90_3D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
+  AC_SUBST(F90_3D_POINTER_SHIFT)
+  F90_3D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
+  AC_SUBST(F90_3D_POINTER_SIZE)
+
+  test_dim "4D" ":,:,:,:" "2,1,1,1" "1,1,1,1" "15"
+  F90_4D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
+  AC_SUBST(F90_4D_POINTER_SHIFT)
+  F90_4D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
+  AC_SUBST(F90_4D_POINTER_SIZE)
+
+  test_dim "5D" ":,:,:,:,:" "2,1,1,1,1" "1,1,1,1,1" "18"
+  F90_5D_POINTER_SHIFT=`echo $ax_fc_run | cut -d' ' -f1`
+  AC_SUBST(F90_5D_POINTER_SHIFT)
+  F90_5D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
+  AC_SUBST(F90_5D_POINTER_SIZE)
 ])

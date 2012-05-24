@@ -119,13 +119,13 @@ module bigdft_forces
 
    !> ART bigdft_init
    !! Routine to initialize all BigDFT stuff
-   subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
+   subroutine bigdft_init( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
 
       implicit none
 
       !Arguments
       integer,      intent(in) :: nat
-      integer,      intent(in)  :: me_
+      integer,      intent(in)  :: me_, nproc_
       real(kind=8), intent(in)  :: my_gnrm
       logical,      intent(in)  :: passivate
       integer,      intent(in)  :: total_nb_atoms
@@ -138,6 +138,7 @@ module bigdft_forces
       !_______________________
 
       me = me_
+      nproc = nproc_
 
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
@@ -151,11 +152,11 @@ module bigdft_forces
          call initialize_atomic_file(me_,at,rxyz)
       endif
       !standard names
-      call standard_inputfile_names(in,'input')
+      call standard_inputfile_names(in,'input',nproc)
       ! Read inputs.
       call read_input_parameters(me_, in, at, rxyz)
 
-      call init_atomic_values(me_, at, in%ixc)
+      call init_atomic_values((me_ == 0), at, in%ixc)
 
       ! Transfer "at" data to ART variables.
       gnrm_l = in%gnrm_cv
@@ -187,6 +188,7 @@ module bigdft_forces
       !Local variables
       integer  :: infocode, i, ierror 
       real(gp) :: fnoise
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
       !_______________________
 
@@ -213,7 +215,7 @@ module bigdft_forces
 
          in%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
          evalf_number = evalf_number + 1
 
          in%inputPsiId = 1
@@ -238,7 +240,7 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
          evalf_number = evalf_number + 1
 
       end if
@@ -291,6 +293,7 @@ module bigdft_forces
 
       !Local variables
       integer :: i, ierror, ncount_bigdft
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
       if ( .not. initialised ) then
@@ -320,7 +323,7 @@ module bigdft_forces
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
+      call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
       evalf_number = evalf_number + ncount_bigdft 
       if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
 
@@ -630,6 +633,7 @@ module bigdft_forces
       real(kind=8) :: energy
       real(gp)     :: fnoise
       real(gp)     ::  fmax, fnrm
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
       !_______________________
 
@@ -648,7 +652,7 @@ module bigdft_forces
       allocate(fcart(3, at%nat))
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+      call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
       evalf_number = evalf_number + 1
       in%inputPsiId = 1
 
@@ -662,14 +666,14 @@ module bigdft_forces
          end if
 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
+         call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
          evalf_number = evalf_number + ncount_bigdft 
          if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
 
          ! and we clean again here
          in%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
          evalf_number = evalf_number + 1
          in%inputPsiId = 1
 

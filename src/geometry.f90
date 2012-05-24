@@ -42,7 +42,7 @@ END SUBROUTINE geopt_set_verbosity
 
 
 !>   Geometry optimization
-subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
+subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
@@ -55,6 +55,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   real(gp), intent(inout) :: epot
   integer, intent(inout) :: ncount_bigdft
   real(gp), dimension(3*at%nat), intent(inout) :: pos
+  real(gp), dimension(6), intent(inout) :: strten
   real(gp), dimension(3*at%nat), intent(inout) :: fxyz
   !local variables
   logical :: fail
@@ -75,6 +76,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
+
+  strten=0 !not used for the moment
 
   epot=0.d0
   ncount_bigdft=0
@@ -417,6 +420,7 @@ END SUBROUTINE transforce_forfluct
 
 !>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
+!!  WARNING: strten not minimized here
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -433,6 +437,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='rundiis'
+  real(gp), dimension(6) :: strten
   real(gp), dimension(:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
@@ -555,7 +560,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      in%inputPsiId=1
      etotprev=epot
 
-     call call_bigdft(nproc,iproc,at,x,in,epot,f,fnoise,rst,infocode)
+     call call_bigdft(nproc,iproc,at,x,in,epot,f,strten,fnoise,rst,infocode)
 
 !!$     if (iproc == 0) then
 !!$        call transforce(at,f,sumx,sumy,sumz)
@@ -570,9 +575,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
+     call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
+
      if (iproc==0) then 
-     write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2))')  & 
-          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct
+        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,es11.3,3(1pe10.2),2x,i3)')  & 
+          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,check
 
 !        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
@@ -580,8 +587,6 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,x,at,trim(comment),forces=f)
      endif
-
-     call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
      if(check.gt.5)then
         if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
@@ -641,6 +646,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   integer :: infocode,iat
   character(len=4) :: fn4
   character(len=40) :: comment
+  real(gp), dimension(6) :: strten
 
   !n(c) character(len=*), parameter :: subname='fire'
 
@@ -682,7 +688,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      enddo
 
      in%inputPsiId=1
-     call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
+     call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,strten,fnoise,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
    !  call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)

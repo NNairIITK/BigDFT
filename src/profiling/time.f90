@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=33,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=74,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -34,6 +34,7 @@ module timeData
        'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
        'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
        'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
+       'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
        'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
        'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
        'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
@@ -55,10 +56,50 @@ module timeData
        'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
        'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
        'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
-       'Davidson      ','Finalization  ' ,'Complete SCF  ' /),(/3,ncat/))
+       'Davidson      ','Finalization  ' ,'Complete SCF  ' ,  &
+       'check_IG      ','Initialization' ,'Linear Scaling' ,  &
+       'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
+       'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
+       'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
+       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
+       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
+       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
+       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
+       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
+       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
+       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
+       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
+       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
+       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
+       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
+       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
+       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
+       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
+       'optimize_SD   ','Other         ' ,'Other         ' ,  &
+       'mix_linear    ','Other         ' ,'Other         ' ,  &
+       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
+       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'wf_signals    ','Communications' ,'Socket transf.' ,  &
+       'energs_signals','Communications' ,'Socket transf.' ,  &
+       'rhov_signals  ','Communications' ,'Socket transf.' ,  &
+       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
+       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
+       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
+       'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
+       'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
+       'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
+       'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
-  integer :: ncounters, ncaton,nproc,nextra
+  integer :: ncounters, ncaton,nproc = 0,nextra
   real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
@@ -76,11 +117,13 @@ module timeData
       !local variables
       integer :: i,ierr,j,icls,icat,jproc,iextra
 
-      real(kind=8) :: total_pc,pc,totaltime
+      real(kind=8) :: total_pc,pc
       integer, dimension(ncat) :: isort
       real(kind=8), dimension(ncls,0:nproc) :: timecls
       real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
 
+      ! Not initialised case.
+      if (nproc == 0) return
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
@@ -91,10 +134,7 @@ module timeData
          end do
       endif
       if (iproc == 0) then
-         !for the totaltime take the max
-         do jproc=0,nproc-1
-            totaltime=max(totaltime,timeall(ncat+1,jproc))
-         end do
+        
 
          !regroup the data for each category in any processor
          do icls=1,ncls
@@ -179,12 +219,15 @@ subroutine timing(iproc,category,action)
   !Local variables
   logical :: catfound
   integer :: i,ierr,ii
-  integer :: nthreads
+  integer :: nthreads,jproc,namelen
   integer(kind=8) :: itns
   !cputime routine gives a real
   !real :: total,total0,time,time0
   real(kind=8) :: pc,t1
   real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  character(len=MPI_MAX_PROCESSOR_NAME), dimension(0:nproc-1) :: nodename
+
 !$ integer :: omp_get_max_threads
 
   !first of all, read the time
@@ -212,10 +255,10 @@ subroutine timing(iproc,category,action)
         nextra=nproc
         if (.not. debugmode) nextra=2
         write(strextra,'(i5)')nextra
-        formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
      else
         nextra=0
-        formatstring='1x,f4.1,a,1x,1pe9.2,a'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a'
      end if
 
      ncounters=0
@@ -255,12 +298,26 @@ subroutine timing(iproc,category,action)
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
                 timecnt,ncounters,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+           if (debugmode) then
+              !initalise nodenames
+              do jproc=0,nproc-1
+                 nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+              end do
+              
+              call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+              
+              !gather the result between all the process
+              call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+                   nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+                   MPI_COMM_WORLD,ierr)
+           end if
+
         else
            do i=1,ncounters
               timecnt(i,0)=pctimes(i)
            end do
         endif
-
+          
         if (iproc == 0) then
            open(unit=60,file=trim(filename_time),status='unknown',position='append')
            write(60,'(a,t14,a)')'SUMMARY:','   #     % ,  Time (s)'
@@ -274,7 +331,7 @@ subroutine timing(iproc,category,action)
               write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(pcnames(i))//':','[',&
                    pc,',',timecnt(i,nproc),']'
            end do
-           write(60,'(2x,a,t19,a,1x,f4.0,a,1x,1pe9.2,a)') 'Total:','[',&
+           write(60,'(2x,a,t19,a,1x,f5.1,a,1x,1pe9.2,a)') 'Total:','[',&
                 100.d0,',',sum(timecnt(1:ncounters,nproc)),']'
            !write the number of processors and the number of OpenMP threads
            nthreads = 0
@@ -282,6 +339,12 @@ subroutine timing(iproc,category,action)
            write(60,'(2x,a)')'CPU Parallelism:'
            write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
            write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
+           if (debugmode) then
+              write(60,'(t10,a)')'Hostnames:'
+              do jproc=0,nproc-1
+                 write(60,'(t10,a)')'  - '//trim(nodename(jproc))
+              end do
+           end if
            close(unit=60)
         end if
      end if

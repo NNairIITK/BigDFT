@@ -96,7 +96,7 @@ di = mad( *tmp2++, (double2)( 0.00054213233180001068935 ,-0.00338241595100500259
 */
 static void generate_ana1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"//periodic boundary condition of the filter\n\
-__kernel void ana1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
+__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void ana1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -145,7 +145,7 @@ out[(jg*(2*n)+ig+n)]=di;\n\
 static void generate_anashrink1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"//non periodic boundary condition version of the filter\n\
 //output data is shrinked in regard of the input data\n\
-__kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
+__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void anashrink1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -190,7 +190,7 @@ out[(jg*(2*n)+ig+n)]=di;\n\
 
 static void generate_ana1d_blockKernel(std::stringstream &program){
   program<<"#define ELEM_PER_THREAD 2\n\
-__kernel void ana1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double * restrict out, __local double * restrict tmp){\n\
+__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<"/ELEM_PER_THREAD, 1))) void ana1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double * restrict out, __local double * restrict tmp){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
 const size_t i2 = get_local_id(0);\n\
@@ -393,7 +393,7 @@ se = mad(*tmp1b++, -0.00054213233180001068935, se);\n\
 ";
 }
 static void generate_syn1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
-  program<<"__kernel void syn1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void syn1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -444,7 +444,7 @@ out[jg*(2*n)+ig*2+1]=so;\n\
 }
 
 static void generate_syngrow1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
-  program<<"__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void syngrow1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\

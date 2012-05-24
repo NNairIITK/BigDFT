@@ -78,6 +78,22 @@ subroutine tenminustwenty(n,x,nproc)
   end do
 END SUBROUTINE tenminustwenty
 
+!>   Set to 10^-10 an array x(n) for exchange-correlation function of ABINIT.
+!!   We use 10^-10 here since the array will be squared later and we then arrive at
+!!   the desired 10^-20.
+subroutine tenminusten(n,x,nproc)
+  implicit none
+! Arguments
+  integer :: n,nproc
+  real(kind=8) :: x(n)
+! Local variables
+  integer :: i
+  do i=1,n
+     x(i)=1.d-10/real(nproc,kind=8)
+  end do
+END SUBROUTINE tenminusten
+
+
 subroutine dasxpdy(n,da,dx,incx,dy,incy)
   implicit none
   integer, intent(in) :: n,incx,incy
@@ -113,6 +129,26 @@ subroutine dscopy(n,dx,incx,dy,incy)
   end do
 
 end subroutine dscopy
+
+subroutine icopy(n,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  integer, dimension(*), intent(in) :: dx
+  integer, dimension(*), intent(out) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=dx(ix)
+  end do
+
+end subroutine icopy
+
+
 !>   To be used in the following function.
 module randomData
   implicit none

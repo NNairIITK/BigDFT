@@ -82,17 +82,30 @@ void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(infos->NAME), infos->NAME, NULL);
 }
 
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context,cl_uint *device_number) {
     cl_int ciErrNum = CL_SUCCESS;
-    cl_platform_id platform_id;
-    clGetPlatformIDs(1, &platform_id, NULL);
-    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0 };
+    cl_platform_id *platform_ids;
+    cl_uint num_platforms;
+    clGetPlatformIDs(0, NULL, &num_platforms);
+    //printf("num_platforms: %d\n",num_platforms);
+    platform_ids = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
+    clGetPlatformIDs(num_platforms, platform_ids, NULL);
+    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_ids[0], 0 };
     *context = clCreateContextFromType( properties , CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p\n",*context);
 #endif
     oclErrorCheck(ciErrNum,"Failed to create GPU context!");
+    //getting the number of devices available in the context (devices which are of DEVICE_TYPE_GPU of platform platform_ids[0])
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
+    size_t nContextDescriptorSize;
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+    *device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#else
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(*device_number), device_number, NULL);
+#endif
+    //printf("num_devices: %d\n",*device_number);
 }
 
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(cl_context * context) {

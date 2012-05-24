@@ -1111,11 +1111,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
  real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range
  real(dp) :: factor, factor2 !mu0_screening = 1.0_dp !n(c) ,dx
- real(dp) :: a1, a2, a3
+ real(dp) :: a1,a2,a3,wg,k1,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
  integer :: i_gauss, n_range, n_cell, itest
  integer :: i1, i2, i3, i_stat, i_all
- integer :: i03
+ integer :: i03, iMin, iMax
  
 
  !Number of integration points : 2*itype_scf*n_points
@@ -1177,12 +1177,22 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     factor = 1._dp/a_range
     !factor2 = factor*factor
     factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
-    do i_gauss=1,n_gauss
-       p_gauss(i_gauss) = factor2*p_gauss(i_gauss)
+ !do i_gauss=1,n_gauss
+ !   p_gauss(i_gauss) = factor2*p_gauss(i_gauss)
+ !end do
+ !do i_gauss=1,n_gauss
+ !   w_gauss(i_gauss) = factor*w_gauss(i_gauss)
+ !end do
+
+  do i3=1,n3k/nproc 
+    !$omp parallel do default(shared) private(i2, i1)
+    do i2=1,n2k
+      do i1=1,n1k
+        karray(i1,i2,i3) = 0.0_dp
+      end do
     end do
-    do i_gauss=1,n_gauss
-       w_gauss(i_gauss) = factor*w_gauss(i_gauss)
-    end do
+    !$omp end parallel do
+  end do
 
  else
 
@@ -1208,20 +1218,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  
  end if
 
- allocate(fwork(0:n_range+ndebug),stat=i_stat)
- call memocc(i_stat,fwork,'fwork',subname)
 
- allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
- fftwork(1,1)=0.0d0
- call memocc(i_stat,fftwork,'fftwork',subname)
-
- do i3=1,n3k/nproc
-    do i2=1,n2k
-       do i1=1,n1k
-          karray(i1,i2,i3) = 0.0_dp
-       end do
-    end do
- end do
+  allocate(fwork(0:n_range+ndebug), stat=i_stat)
+  call memocc(i_stat, fwork, 'fwork', subname)
+  allocate(fftwork(2, max(nfft1,nfft2,nfft3)*2+ndebug), stat=i_stat)
+  call memocc(i_stat, fftwork, 'fftwork', subname)
 
 !!$ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
@@ -1232,9 +1233,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kernel_scf,'kernel_scf',subname)
 
- do i_gauss=n_gauss,1,-1
+  iMin = iproc * (nker3/nproc) + 1
+  iMax = min((iproc+1)*(nker3/nproc),nfft3/2+1)
+
+  do i_gauss=n_gauss,1,-1
     !Gaussian
-    pgauss = p_gauss(i_gauss)
+    pgauss = p_gauss(i_gauss) * factor2
     
 !!$    if (i_gauss == 71 .or. .true.) then
 !!$       print *,'pgauss,wgauss',pgauss,w_gauss(i_gauss)
@@ -1278,17 +1282,34 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
          fwork,fftwork,kernel_scf)
 
     !Add to the kernel (only the local part)
-    do i3=1,nker3/nproc  
-       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
-          i03=iproc*(nker3/nproc)+i3
-          do i2=1,n2k
-             do i1=1,n1k
-                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
-                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
-             end do
+    wg=w_gauss(i_gauss) * factor
+    do i03 = iMin, iMax
+       i3=i03-iproc*(nker3/nproc)
+       k3=kernel_scf(i03,3) * wg
+
+       !$omp parallel do default(shared) private(i2, k2, i1)
+       do i2=1,n2k
+          k2=kernel_scf(i2,2)*k3
+          do i1=1,n1k
+             karray(i1,i2,i3) = karray(i1,i2,i3) + kernel_scf(i1,1) * k2
           end do
-       end if
+       end do
+       !$omp end parallel do
     end do
+
+!!$    do i3=1,nker3/nproc  
+!!$       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
+!!$          i03=iproc*(nker3/nproc)+i3
+!!$          do i2=1,n2k
+!!$             do i1=1,n1k
+!!$                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
+!!$                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
+!!$             end do
+!!$          end do
+!!$       end if
+!!$    end do
+
+    !!!!ALAM: here the print statement can be added print *,'igauss',i_gauss
 !!$
  end do
 !!$stop
@@ -1421,8 +1442,11 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
            fftwork(1,n/2+1+j)=fwork(j)
            fftwork(1,n/2+1-j)=fwork(j)
         end do
-   
-
+        !old version of the loop, after Cray compiler bug.
+        !do j=0,min(n_range,n/2)
+        !   fftwork(1,n/2+1+j)=fwork(j)
+        !   fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+        !end do
         !calculate the fft 
         call fft_1d_ctoc(1,1,n,fftwork,inzee)
         !copy the real part on the kfft array
@@ -1449,8 +1473,8 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
      
         ! fftwork=0.0_dp
         ! do j=0,min(n_range,n/2)
-        !    fftwork(1,n/2+1+j)=fwork(j)
-        !    fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+           !fftwork(1,n/2+1+j)=fwork(j)
+           !fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
         ! end do
 
         !calculate the fft 

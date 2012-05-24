@@ -45,6 +45,7 @@ program test_forces
    parameter (dx=1.d-2 , npath=5)
    real(gp) :: simpson(1:npath)
    character(len=60) :: radical
+   real(gp), dimension(6) :: strten
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -119,7 +120,7 @@ program test_forces
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs,radical)
+      call standard_inputfile_names(inputs,radical,nproc)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       !     if (iproc == 0) then
       !       call print_general_parameters(nproc,inputs,atoms)
@@ -163,7 +164,7 @@ program test_forces
             call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
          end if
 
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
          if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode

@@ -20,7 +20,7 @@ static void generate_header(std::stringstream &program){
 
 static void generate_reductionKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
-  program<<"__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+  program<<"__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local volatile double *tmp ) {\n\
   //get our position in the local buffer\n\
   size_t i = get_local_id(0);\n\
   //get our position in the input data\n\
@@ -59,7 +59,7 @@ static void generate_reductionKernel(std::stringstream &program,struct bigdft_de
 
 static void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
-  program<<"__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+  program<<"__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local volatile double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*"<<max_wgs*2<<"+i;\n\
   double tt;\n\
@@ -97,7 +97,7 @@ static void generate_reduction_dotKernel(std::stringstream &program,struct bigdf
 
 static void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
-  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local double *tmp ) {\n\
+  program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local volatile double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*"<<max_wgs*2<<"+i;\n\
   if(g<n)\n\

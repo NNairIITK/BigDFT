@@ -52,6 +52,34 @@ static void generate_radix_macro(std::stringstream &program, unsigned int radix_
 }\n";
 }
 
+/*
+static void print_index(unsigned int jl, unsigned int N, unsigned int radix_size, unsigned int A) {
+  unsigned int b,r,a;
+  b = jl / ( radix_size * A );
+  r = jl % ( radix_size * A );
+  a = r  %  A;
+  std::cout<<"{"<< A*b+a;
+  std::cout<<","<< N/radix_size + A*b+a;
+  for(unsigned int i=2; i<radix_size;i++){
+     std::cout<<","<< N*i/radix_size + A*b+a;
+  }
+  std::cout<<"} ";
+}
+
+static void print_indexes( cl_uint fft_size, std::list<unsigned int> &radixes) {
+  unsigned int A=1,B=fft_size;
+  std::list<unsigned int>::iterator it;
+  for( it = radixes.begin(); it != radixes.end(); it++){
+     B/=*it;
+     for(unsigned int i=0; i<fft_size; i++){
+       print_index(i,fft_size,*it,A);
+     }
+     std::cout<<std::endl;
+     A*=*it;
+  }
+  std::cout<<std::endl;
+}*/
+
 static void generate_buffer_size(std::stringstream &program, cl_uint fft_size, struct bigdft_device_infos * infos){
   size_t block_size_i, block_size_j, elem_per_thread;
   fft_compute_sizes(infos, fft_size, &block_size_i, &block_size_j, &elem_per_thread);
@@ -151,7 +179,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_devic
     generate_radix_macro(program,*it);
 
   generate_buffer_size(program,fft_size,infos);
-
+//  print_indexes(fft_size,radixes);
   generate_kernel(program,fft_size,radixes,false,false,false,false,false,infos);
   generate_kernel(program,fft_size,radixes,false,false,true,false,false,infos);
   generate_kernel(program,fft_size,radixes,true,false,false,false,false,infos);

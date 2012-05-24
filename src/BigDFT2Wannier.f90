@@ -27,8 +27,8 @@ program BigDFT2Wannier
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
-   integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
-   integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3
+   integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
+   integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3
    real :: tcpu0,tcpu1,tel
    real(kind=8) :: znorm,xnorm,ortho
@@ -41,7 +41,6 @@ program BigDFT2Wannier
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
-   character(len=5) :: wfformat_read
    logical :: perx, pery,perz
    !cube
    integer :: nx, ny, nz, nb, nb1, nb2, nk, inn
@@ -84,7 +83,13 @@ program BigDFT2Wannier
       write(radical, "(A)") "input"
    end if
 
-   call timing(iproc,'b2w_time.prc','IN')
+   if (input%verbosity > 2) then
+      nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
+   else
+      nproctiming=nproc
+   end if
+
+   call timing(nproctiming,'b2w_time.prc','IN')
 
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max) 
@@ -111,12 +116,12 @@ program BigDFT2Wannier
    if (filetype == 'etsf' .or. filetype == 'ETSF' .or. filetype =='bin' .or. filetype =='BIN') then
 
       ! assign the input_wf_format
-      write(wfformat_read, "(A)") "" 
+      iformat = WF_FORMAT_NONE
       select case (filetype)
       case ("ETSF","etsf")
-         write(wfformat_read, "(A)") ".etsf"
+         iformat = WF_FORMAT_ETSF
       case ("BIN","bin")
-         write(wfformat_read, "(A)") ".bin"
+         iformat = WF_FORMAT_BINARY
       case default
          if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
          stop
@@ -124,7 +129,7 @@ program BigDFT2Wannier
 
 
       ! Initalise the variables for the calculation
-      call standard_inputfile_names(input,radical)
+      call standard_inputfile_names(input,radical,nproc)
       call read_input_variables(iproc,'posinp',input, atoms, rxyz)
 
       if (iproc == 0) call print_general_parameters(nproc,input,atoms)
@@ -139,11 +144,11 @@ program BigDFT2Wannier
       nvirtd = 0
       if (input%nspin==2) nvirtd=nvirtu
       call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+         &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
       !Setup the description of the projectors (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-         &   orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp) 
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp,.false.) 
 
       if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
 
@@ -281,8 +286,8 @@ program BigDFT2Wannier
          allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
          call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
 
-         filename= trim(input%dir_output) // 'virtuals'// trim(wfformat_read)
-         call readmywaves(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+         filename= trim(input%dir_output) // 'virtuals'
+         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsfv)
          i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
          deallocate(orbsv%eval,stat=i_stat)
@@ -327,6 +332,7 @@ program BigDFT2Wannier
          call memocc(i_stat,amnk_guess,'amnk_guess',subname)
          allocate(sph_daub(npsidim2), stat=i_stat)
          call memocc(i_stat,sph_daub,'sph_daub',subname)
+         call to_zero(npsidim2,sph_daub(1))
 
          ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals to use to compute the actual Amnk matrix :
          if (iproc==0) then
@@ -496,7 +502,7 @@ program BigDFT2Wannier
 
       !Setup the description of the new subspace (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-         &   orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb)
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,.false.)
 
       ! Initialise the arrays n_bands_par, isband_par
       call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)
@@ -516,7 +522,7 @@ program BigDFT2Wannier
       call timing(iproc,'CrtProjectors ','ON')
 
       npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-      allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsb%norbp*orbsb%nspinor),stat=i_stat)
+      allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,max(orbsb%norbp*orbsb%nspinor,1)),stat=i_stat)
       call memocc(i_stat,psi_etsf,'psi_etsf',subname)
 
       ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
@@ -532,46 +538,70 @@ program BigDFT2Wannier
       allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
       call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
       orbs%iokpt=1
-      if(orbs%norbp > 0) then
-         if(associated(orbs%eval)) nullify(orbs%eval)
-         allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-         call memocc(i_stat,orbs%eval,'orbs%eval',subname)
-         filename=trim(input%dir_output) // 'wavefunction'// trim(wfformat_read)
-         call readmywaves(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+
+   if(associated(orbs%eval)) nullify(orbs%eval)
+   allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
+   call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+   call razero(orbs%norb*orbs%nkpts,orbs%eval)
+   if(orbs%norbp > 0) then
+         filename=trim(input%dir_output) // 'wavefunction'
+         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsf(1,1))
-         i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-         deallocate(orbs%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'orbs%eval',subname)
+   end if
+   ! For bin files, the eigenvalues are distributed, so reduce them
+   if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+   end if
+   ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
+   if(iproc==0) then     
+     open(15, file=trim(seedname)//'.eig', status='unknown')
+     do nb = 1, orbs%norb            !TO DO: ADD KPTS
+        write(15,'(I4,2x,I4,2x,E17.9)') nb, 1, orbs%eval(nb)
+     end do
+   end if
+   i_all = -product(shape(orbs%eval))*kind(orbs%eval)
+   deallocate(orbs%eval,stat=i_stat)
+   call memocc(i_stat,i_all,'orbs%eval',subname)
 
-      end if
-
-      ! For the non-occupied orbitals, need to change norbp,isorb
-      orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
-      if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
-      if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
-      orbsv%isorb = 0
-      if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
-      if(associated(orbsv%iokpt)) then
-         i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-         deallocate(orbsv%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%iokpt',subname)
-      end if
-      allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-      call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
-      orbsv%iokpt=1
+   ! For the non-occupied orbitals, need to change norbp,isorb
+   orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
+   if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
+   if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
+   orbsv%isorb = 0
+   if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
+   if(associated(orbsv%iokpt)) then
+      i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
+      deallocate(orbsv%iokpt,stat=i_stat)
+      call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+   end if
+   allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
+   call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+   orbsv%iokpt=1
 
       ! read unoccupied wavefunctions
-      if(orbsv%norbp > 0) then
-         filename=trim(input%dir_output) // 'virtuals'// trim(wfformat_read)
-         if(associated(orbsv%eval)) nullify(orbsv%eval)
-         allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-         call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-         call readmywaves(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+   if(associated(orbsv%eval)) nullify(orbsv%eval)
+   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
+   call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+   call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
+   if(orbsv%norbp > 0) then
+      filename=trim(input%dir_output) // 'virtuals'
+         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
-         i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-         deallocate(orbsv%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%eval',subname)
-      end if
+   end if
+   ! For bin files, the eigenvalues are distributed, so reduce them
+   if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then
+     call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+   end if
+   ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
+   if(iproc==0) then
+     do nb = 1, orbsv%norb            !TO DO: ADD KPTS
+        write(15,'(I4,2x,I4,2x,E17.9)') nb+n_occ, 1, orbsv%eval(nb)
+     end do
+     close(15)
+   end if
+   i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
+   deallocate(orbsv%eval,stat=i_stat)
+   call memocc(i_stat,i_all,'orbsv%eval',subname)
 
       i_all = -product(shape(rxyz_old))*kind(rxyz_old)
       deallocate(rxyz_old,stat=i_stat)
@@ -584,6 +614,7 @@ program BigDFT2Wannier
       ! - Allocations
       allocate(amnk(orbsb%norb,orbsp%norb),stat=i_stat)
       call memocc(i_stat,amnk,'amnk',subname)
+      call to_zero(orbsb%norb*orbsp%norb,amnk(1,1))
       allocate(amnk_tot(orbsb%norb),stat=i_stat)
       call memocc(i_stat,amnk_tot,'amnk_tot',subname)
 
@@ -595,6 +626,7 @@ program BigDFT2Wannier
          call timing(iproc,'CrtProjectors ','ON')
          allocate(sph_daub(npsidim2), stat=i_stat)
          call memocc(i_stat,sph_daub,'sph_daub',subname)
+         if(npsidim2 > 0) call to_zero(npsidim2,sph_daub(1))
          !calculate buffer shifts
          perx=(Glr%geocode /= 'F')
          pery=(Glr%geocode == 'P')
@@ -697,7 +729,9 @@ program BigDFT2Wannier
          &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsb%norb)
 
       ! Construction of the whole Amnk matrix.
-      call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+      if(nproc > 0) then
+         call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+      end if
 
       if (iproc==0) then
          ! Check normalisation (the amnk_tot value must tend to 1).
@@ -795,8 +829,10 @@ program BigDFT2Wannier
          ! 2- multiply psi by the cos(.) and sin(.) factor at each point of the real space to get real and imaginary parts,
          ! 3- convert back to the Daubechies representation for real and imaginary parts.
          pshft = 0
-         call razero(nx*ny*nz,psir_re)
-         call razero(nx*ny*nz,psir_im)
+         call to_zero(nx*ny*nz,psir_re(1))
+         call to_zero(nx*ny*nz,psir_im(1))
+         call to_zero(npsidim,psi_daub_re(1))
+         call to_zero(npsidim,psi_daub_im(1))
          do nb1=1,orbsb%norbp
             call daub_to_isf(Glr,w,psi_etsf(1,nb1),psir)
             do k=1,nz
@@ -813,19 +849,22 @@ program BigDFT2Wannier
             end do
             call isf_to_daub(Glr,w,psir_re(1),psi_daub_re(1+pshft))
             call isf_to_daub(Glr,w,psir_im(1),psi_daub_im(1+pshft))
-            pshft = pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsb%ncntt(iproc)/orbsb%norbp)
+            !pshft = pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsb%ncntt(iproc)/orbsb%norbp)
+            pshft = pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
          end do
 
          ! Tranposition of distribution : orbitals -> components
-         call timing(iproc,'Input_comput  ','OF')
-         allocate(pwork(npsidim),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
-         call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_re,work=pwork)
-         call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_im,work=pwork)
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         call timing(iproc,'Input_comput  ','ON')
+         if(nproc>0 .or. orbsb%nspinor /=1) then
+            call timing(iproc,'Input_comput  ','OF')
+            allocate(pwork(npsidim),stat=i_stat)
+            call memocc(i_stat,pwork,'pwork',subname)
+            call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_re,work=pwork)
+            call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_im,work=pwork)
+            i_all = -product(shape(pwork))*kind(pwork)
+            deallocate(pwork,stat=i_stat)
+            call memocc(i_stat,i_all,'pwork',subname)
+            call timing(iproc,'Input_comput  ','ON')
+         end if
 
          ! Scalar product to compute the overlap matrix
          nvctrp=commsb%nvctr_par(iproc,1)
@@ -905,7 +944,7 @@ program BigDFT2Wannier
          s=1 ! s is the spin, set by default to 1
          if (w_unk .eqv. .true. ) then 
             if (iproc==0) call write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms, &
-               &   rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,wfformat_read)
+               &   rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
          end if
       end do
 
@@ -945,7 +984,7 @@ program BigDFT2Wannier
       call deallocate_comms(commsp,subname) 
       call deallocate_orbs(orbsb,subname)
       call deallocate_comms(commsb,subname) 
-      call deallocate_atoms_scf(atoms,subname)
+      !call deallocate_atoms_scf(atoms,subname)
       call deallocate_atoms(atoms,subname)
 
       call free_input_variables(input)
@@ -1467,7 +1506,6 @@ end if
 else
    if (iproc==0) write(*,*) 'Cubic code not parallelized'
 end if
-
 call timing(iproc,'             ','RE')
 
 call cpu_time(tcpu1)
@@ -1681,20 +1719,25 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    integer, dimension(n_virt), intent(out) :: virt_list
 
    ! Local variables
-   integer :: i,j
+   integer :: i,j,ierr
 
-
-   OPEN(11, FILE='input.inter', STATUS='OLD')
+   open(11, file='input.inter', status='old')
 
    !   write(*,*) '!==================================!'
    !   write(*,*) '!  Reading virtual orbitals list : !'
    !   write(*,*) '!==================================!'
 
    do i=1,6
-      read(11,*) ! Skip first lines
+      read(11,*,iostat=ierr) ! Skip first lines                                                                                                                                                               
    end do
-   read(11,*) (virt_list(j), j=1,n_virt)
-   CLOSE(11)
+   read(11,*,iostat=ierr) (virt_list(j), j=1,n_virt)
+
+   if(ierr < 0) then  !reached the end of file and no virt_list, so generate the trivial one
+      do j= 1, n_virt
+         virt_list(j) = j
+      end do
+   end if
+   close(11)
 
    if (iproc==0) then
       write(*,*) '!==================================!'
@@ -3142,23 +3185,23 @@ subroutine write_unk(n_bands, nx, ny, nz, nk, s, psi)
 END SUBROUTINE write_unk
 
 !>
-subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,wfformat_read)
+subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
    use Poisson_Solver
+   implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr
    type(orbitals_data), intent(inout) :: orbs,orbsv,orbsb 
    type(atoms_data), intent(in) :: atoms
    type(input_variables), intent(in) :: input
-   integer, intent(in) :: n_occ,n_virt,nx,ny,nz,nk,s
+   integer, intent(in) :: n_occ,n_virt,nx,ny,nz,nk,s,iformat
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
    integer, dimension (n_virt), intent(in) :: virt_list
-   character(len=5),intent(in) :: wfformat_read
    ! Local variables
    logical :: perx,pery,perz
    integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
-   integer :: nb, i, j, k, n_bands, i_stat
+   integer :: nb, i, j, k, n_bands, i_stat, ind, i_all
    character :: s_c*1, nk_c*3, seedname*10,filename*60
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir
@@ -3204,8 +3247,8 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
       if(associated(orbs%eval)) nullify(orbs%eval)
       allocate(orbs%eval(n_occ*orbs%nkpts), stat=i_stat)
       call memocc(i_stat,orbs%eval,'orbs%eval',subname)
-      filename=trim(input%dir_output) // 'wavefunction'// trim(wfformat_read)
-      call readmywaves(0,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+      filename=trim(input%dir_output) // 'wavefunction'
+      call readmywaves(0,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1))
       i_all = -product(shape(orbs%eval))*kind(orbs%eval)
       deallocate(orbs%eval,stat=i_stat)
@@ -3214,7 +3257,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    ! Read virtual orbitals chosen in pre-check mode 
    if(n_virt > 0) then
-      filename=trim(input%dir_output) // 'virtuals'// trim(wfformat_read)
+      filename=trim(input%dir_output) // 'virtuals'
       if(associated(orbsv%eval)) then
          i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
          deallocate(orbsv%eval,stat=i_stat)
@@ -3222,7 +3265,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
       end if
       allocate(orbsv%eval(n_virt*orbsv%nkpts), stat=i_stat)
       call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-      call readmywaves(0,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+      call readmywaves(0,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1+n_occ),virt_list)
       i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
       deallocate(orbsv%eval,stat=i_stat)

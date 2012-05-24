@@ -354,14 +354,8 @@ contains
        enddo
        factor=atoms%alat1 * bohr2ang
 
-       deallocate(atoms%ifrztyp)
-       deallocate(atoms%iatype)
-       deallocate(atoms%natpol)
-       deallocate(atoms%atomnames)
-       deallocate(atoms%amu)
        deallocate(rxyz)
-       if (atoms%symObj >= 0) call symmetry_free(atoms%symObj)
-
+       call deallocate_atoms(atoms, "box_features")
 
     end if
 

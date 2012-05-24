@@ -22,7 +22,7 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-         <a href="H2A-GPU.html">&lt;&nbsp;Second Group</a>
+         <a href="H2C-BART.html">&lt;&nbsp;Third Group</a>
         <a style="float:right;" href="H3B-charge_analysis.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
@@ -313,7 +313,7 @@ these orbitals.</p>
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
 
   call createKernel(iproc,nproc,atoms%geocode,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i, &
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,quiet="yes")
+       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
 
   allocate(nscatterarr(0:nproc-1,4))
   allocate(ngatherarr(0:nproc-1,2))

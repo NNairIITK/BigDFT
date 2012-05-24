@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #--------------------------------------------------------------------------------
-# Copyright (C) 2008-2009 BigDFT group (TD)
+# Copyright (C) 2008-2012 BigDFT group (TD)
 # This file is distributed under the terms of the
 # GNU General Public License, see ~abinit/COPYING
 # or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 01/04/2011
+# Date: 07/02/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -1737,6 +1737,10 @@ class Module(Code):
             self.module = None
         #List of used modules
         self.use_modules = set()
+        #There is a contains statement
+        self.contains = True
+        #True if already analyzed
+        self.analyzed_variables = False
         #Gestion of the cache
         #1 - Time stamp
         if self.parent:
@@ -1778,22 +1782,23 @@ class Module(Code):
         self.Declaration = Declaration(parent=self,comments=final_comments)
         line = self.Declaration.analyze(line,iter_code,self.Implicit.dict,project)
         #Now we have contains or end module
-        self.analyze_contains(line,iter_code,project)
+        self.contains = self.analyze_contains(line,iter_code,project)
         self.message.write("}")
     #
     def analyze_contains(self,line,iter_code,project):
         "Analyze a contains statement or end module"
+        n_struct = 0
         if line:
             if self.re_contains.match(line):
                 Code(parent=self).add_code(line)
             elif self.re_sub_end.match(line):
                 #Detect the end of a subroutine or module: We have finished
                 Code(parent=self).add_code(line)
-                return
+                return False
             else:
                 self.message.fatal("\n%s\n--> No detected 'contains' or 'end' statements!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
-                                   + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
+                        + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
         #Start the analyze of the 'contains' section
         struct = None
         for line in iter_code:
@@ -1805,13 +1810,14 @@ class Module(Code):
                 #Detect the end of a subroutine or module (before re_sub_start ortherwise trouble)
                 #We have finished
                 Code(parent=self).add_code(line)
-                return
+                return (n_struct != 0)
             elif self.re_sub_start.match(line):
                 line_lower = line.lower()
                 if "subroutine" in line_lower or "recursive" in line_lower:
                     struct = Routine(parent=self,implicit=self.Implicit.dict)
                 else:
                     struct = Function(parent=self,implicit=self.Implicit.dict)
+                n_struct += 1
                 #Analyze the code
                 struct.analyze(line,iter_code,project)
                 #Add the modules used in the module to the used modules by the routine
@@ -1828,6 +1834,11 @@ class Module(Code):
     #
     def analyze_variables(self,project):
         "Analyze the variables of the routine"
+        if self.analyzed_variables:
+            #Already done
+            return
+        else:
+            self.analyzed_variables = True
         self.Declaration.analyze_variables(self.Implicit.dict,project)
         #If it is inside a module i.e. the parent is a module, then
         if isinstance(self.parent,Module):
@@ -1837,13 +1848,22 @@ class Module(Code):
             self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars)
             #Add also the private variables
             self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars_private)
+        #Add the variables of the modules as its own variables
+        for module in self.use_modules:
+            a = project.modules.get(module)
+            if a:
+                a.analyze_variables(project)
+                self.Declaration.dict_vars.update(a.Declaration.dict_vars)
+            else:
+                self.message.warning("[%s/%s:%s] The module '%s' is missing!" \
+                    % (self.dir,self.file,self.name,a))
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
         dependencies = set()
         dirs = set()
-        for mod in self.use_modules:
-            a = project.modules.get(mod)
+        for module in self.use_modules:
+            a = project.modules.get(module)
             if a:
                 if a.dir == self.dir:
                     #Only dependencies of modules with the same directories
@@ -2293,11 +2313,16 @@ class Header_Routine(Code):
         "Analyze the header"
         Code.analyze(self)
         self.add_code(line)
-        while self.re_continuation.search(line):
+        #Remove comments at the end of the line only for analysis
+        code_an = self.re_comment.sub('',line)
+        while self.re_continuation.search(line) or self.re_comment_match.match(line):
             line = iter_code.next()
             self.add_code(line)
+            #Remove comments
+            line = self.re_comment.sub('',line)
+            code_an += line
         #Analyze the header
-        search = self.re_startblock.match(self.code).groupdict()
+        search = self.re_startblock.match(code_an).groupdict()
         self.parent.type = search['type']
         self.parent.name = search['name']
         args = search['arguments']
@@ -2307,8 +2332,6 @@ class Header_Routine(Code):
             if args == '()':
                 args = None
         if args:
-            #Remove comments
-            args = self.re_comment.sub('',args)
             self.arguments = self.re_inarg.sub('',args)
             self.arguments = self.arguments.split(',')
         else:
@@ -2403,11 +2426,11 @@ class Use(Code):
         else:
             #Be sure to have 2 \n
             self.code += (2-self.code[-2:].count("\n"))*"\n"
-
+        #
         # MG Add CPP variable with the name of the procedure.
         #self.code += "\n #undef ABI_FUNC \n #def ABI_FUNC " + str(self.parent.name) 
         #print self.code + "\n #undef ABI_FUNC \n #define ABI_FUNC " + str(self.parent.name) 
-
+        #
         #Remove multiple \n
         self.code = self.re_multi_n.sub('\n\n',self.code)
     #
@@ -2599,6 +2622,10 @@ class Declaration(Code):
         self.dict_vars = None
         #Include directives
         self.includes = list()
+        #True if all variables are private by default
+        self.private = False
+        #True if all variables are public by default
+        self.public = True
     #
     #Add functions in the declaration
     def add_functions(self,functions):
@@ -2710,7 +2737,7 @@ class Declaration(Code):
                 #Definition of a type?
                 if self.re_def_type.match(line):
                     #Create a type
-                    ftype = Fortran_Type(parent=self.parent)
+                    ftype = Fortran_Type(parent=self.parent,private=self.private,public=self.public)
                     #Analyze the type (and go to "end type")
                     ftype.analyze(line,iter_code,dict_implicit,project)
                     #Add the type and the name in the dictionary of variables
@@ -2751,8 +2778,13 @@ class Declaration(Code):
                 liste = line.strip().split()
                 decl = liste[0]
                 decl_lower = decl.lower()
-                if len(liste) == 1 and (decl_lower == "private" or decl_lower == "public"):
-                    #It is 'private' or 'public'
+                if decl_lower == "private":
+                    #All variables are private (do not work if comment after private)
+                    self.private = True
+                    continue
+                elif decl_lower == "public":
+                    #All variables are public
+                    self.public = False
                     continue
                 elif decl_lower == "double":
                     #Add 'precision' or 'complex'
@@ -2785,13 +2817,21 @@ class Declaration(Code):
                     self.message.fatal("\n%s\n--> Strange declaration!\n" % line\
                         + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
             #Declaration -- lists of variables
-            decl = decl.lower().strip()
+            decl0 = decl.lower().strip()
             liste = liste.strip()
             for (name,var) in split_variables(liste):
+                if "character" in decl0 and '*' in name:
+                    #The name is not correct
+                    (var,l) = name.split('*')
+                    (name,l) = name.split('*')
+                    decl = decl0.replace("character","character(len="+l+")")
+                else:
+                    decl = decl0
                 if self.dict_vars.has_key(name):
                     self.dict_vars[name].update(decl,truename=var)
                 else:
-                    self.dict_vars[name] = Variable(name,parent=self,decl=decl,truename=var)
+                    self.dict_vars[name] = Variable(name,parent=self,decl=decl,truename=var,\
+                                                    public=self.public,private=self.private)
         #Check if all variables have a type
         if not dict_implicit:
             #Implicit none
@@ -2903,7 +2943,7 @@ class Declaration(Code):
                         for unfound_module in unfound_modules:
                             texte += " %s" % unfound_module
                         message("%s\n   " % texte \
-                                + " The modules '%s' are not found and" % module \
+                                + " This modules are not found and"  \
                                 + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
@@ -3110,7 +3150,8 @@ class Variable:
     #Detect digits only (1.2d0 or 1.3e-4 etc.)
     re_digits = re.compile("^\d+[.]?\d*[de]?[+-]?[\d]*$")
     #
-    def __init__(self,name,parent=None,message=None,decl="",type="",truename="",is_argument=False):
+    def __init__(self,name,parent=None,message=None,decl="",type="",truename="",\
+             public=False,private=False,is_argument=False):
         "Initialization: decl=declaration (lower case), truename = exact name of the variable"
         self.name = name
         self.lower = name.lower()
@@ -3124,8 +3165,8 @@ class Variable:
         self.optional = False
         self.parameter = False
         self.pointer = False
-        self.private = False
-        self.public = False
+        self.private = private
+        self.public = public
         self.save = False
         self.target = False
         self.value = None
@@ -3180,8 +3221,10 @@ class Variable:
                 self.pointer = True
             elif head == "private":
                 self.private = True
+                self.public = False
             elif head == "public":
                 self.public = True
+                self.private = False
             elif head == "save":
                 self.save = True
             elif head == "target":
@@ -3266,7 +3309,7 @@ class Variable:
             message += 3*" " + "intent(%s)\n" % self.intent
         if self.public:
             message += 3*" " + "is public\n"
-        elif self.private:
+        if self.private:
             message += 3*" " + "is private\n"
         if self.allocatable:
             message += 3*" " + "is allocatable\n"
@@ -3348,7 +3391,7 @@ class Fortran_Type(Declaration):
     re_type_declaration = re.compile('^[ \t]*' \
         + '(character|complex|dimension|double|integer|logical|parameter|private|public|real|type)', re.IGNORECASE)
     #
-    def __init__(self,parent,name=None):
+    def __init__(self,parent,name=None,public=False,private=False):
         "Special initialisation: we do not add as child to the parent"
         self.name = name
         if name:
@@ -3375,9 +3418,9 @@ class Fortran_Type(Declaration):
         self.type = "type"
         self.dict_vars = dict()
         #Private
-        self.private = False
+        self.private = private
         #Public
-        self.public = False
+        self.public = public
         self.from_implicit = False
         self.is_argument = False
     #
@@ -3442,6 +3485,13 @@ class Fortran_Type(Declaration):
         message += self.code
         self.message.write(message,verbose=-10)
     #
+    def get_dependencies(self):
+        "Give a list of variables on which depends the variable in dimension, kind or type"
+        self.dependencies = set()
+        for child in self.children:
+            self.dependencies.update(child.get_dependencies())
+        return self.dependencies
+    #
     def has_type(self):
         return True
     #
@@ -3449,6 +3499,15 @@ class Fortran_Type(Declaration):
         "Determine the order"
         order = 100
         return order
+    #
+    def update(self,decl,truename=None):
+        "Add information as public or private"
+        if "private" in decl:
+            self.private = True
+            self.public = False
+        elif "public" in decl:
+            self.public = True
+            self.private = False
 
 
 #Class to handle the fortran interfaces inside declarations (interface itself is not a child but
@@ -3814,7 +3873,9 @@ bigdft_include = { "mpif.h": mpif_file,
 
 
 #Exclude files (*/*.f90)
-bigdft_exclude = [ "PSolver/base.f90", "ABINIT-moldyn/others.F90" ]
+bigdft_exclude = [ "unused", "tools", "PSolver/base.f90", \
+                   "others.F90",\
+                   "lib/lbfgs.f90", "wavelib/i-o-etsf.f90" ]
 
 
 #Files to generate generic routines
@@ -3895,7 +3956,8 @@ if __name__ == "__main__":
     NEW = args[1]
     #Create the project and read all files
     bigdft = Project(OLD,name="BigDFT",\
-                     pat_dir=["src","src/*"],pat_file=["*.F90","*.f90", "*.inc"],\
+                     pat_dir=["src","src/*","libABINIT","libABINIT/src","libABINIT/src/*"],\
+                     pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
                      File_Class=bigdft_File_Class)
