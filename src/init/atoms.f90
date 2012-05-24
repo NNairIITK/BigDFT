@@ -1455,7 +1455,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   call yaml_close_sequence() !values
   call yaml_close_map() !positions
   call yaml_open_map('Properties')
-  call yaml_map("Energy", trim(yaml_toa(energy)) // " Ha")
+  call yaml_map("Energy (Ha)", energy)
   call yaml_close_map() !properties
   if (wrtforces) then
      call yaml_open_map('Forces')

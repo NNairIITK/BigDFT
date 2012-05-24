@@ -362,6 +362,57 @@ static int _yaml_parser_read_double_array(yaml_parser_t *parser, const char *key
 
   return done;
 }
+static int _find_keyword(const char *keys[], const char *value, unsigned int *id,
+                         unsigned int modulo, char **message)
+{
+  int done;
+  size_t ln;
+
+  for (*id = 0; keys[*id]; *id += 1)
+    if (!strcasecmp(value, keys[*id]))
+      break;
+  if (keys[*id])
+    {
+      *id = *id % modulo;
+      done = 0;
+    }
+  else
+    {
+      *id = 0;
+      set_error("Parser error: cannot find key value '%s'.\n", value);
+      done = -1;
+    }
+  return done;
+}
+static int _find_units(const char *keys[], const char *value, unsigned int *id,
+                       unsigned int modulo, char **message)
+{
+  int done;
+  size_t ln;
+  char *start, *end, *unit;
+
+  *id = 0;
+  start = strchr(value, '(');
+  if (!start)
+    /* No unit specified, no error. */
+    return 0;
+  end = strchr(start, ')');
+  if (!start)
+    {
+      /* Parentethis not closed, error. */
+      set_error("Parser error: unit not properly written in '%s'.\n", value);
+      return -1;
+    }
+  ln = end - start - 1;
+  unit = malloc(sizeof(char) * (ln + 1));
+  memcpy(unit, start + 1, ln);
+  unit[ln] = '\0';
+
+  done = _find_keyword(keys, unit, id, modulo, message);
+
+  free(unit);
+  return done;
+}
 static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
                                      const char *keys[], unsigned int *id,
                                      unsigned int modulo, char **message)
@@ -375,93 +426,11 @@ static int _yaml_parser_read_keyword(yaml_parser_t *parser, const char *key,
   if (yaml_parser_parse(parser, &event))
     {
       if (event.type == YAML_SCALAR_EVENT)
-        {
-          for (*id = 0; keys[*id]; *id += 1)
-            if (!strcasecmp((const char*)event.data.scalar.value, keys[*id]))
-              break;
-          if (keys[*id])
-            {
-              done = 0;
-              *id = *id % modulo;
-            }
-          else
-            {
-              *id = 0;
-              set_error("Parser error: cannot find key value '%s'.\n",
-                        event.data.scalar.value);
-              done = -1;
-            }
-        }
+        done = _find_keyword(keys, (const char*)event.data.scalar.value, id, modulo, message);
       else
         {
           set_error("Parser error: value awaited after key '%s'.\n", key);
           done = -1;
-        }
-
-      /* The application is responsible for destroying the event object. */
-      yaml_event_delete(&event);
-    }
-  else
-    {
-      /* Error treatment. */
-      _yaml_parser_error(parser, message);
-      done = -1;
-    }
-
-  return done;
-}
-static int _yaml_parser_read_value(yaml_parser_t *parser, double *val, unsigned int *id,
-                                   const char *keys[], unsigned int modulo, char **message)
-{
-  yaml_event_t event;
-  int done;
-  char *end;
-  size_t ln;
-
-  /* Read the value. */
-  done = 0;
-  if (yaml_parser_parse(parser, &event))
-    {
-      if (event.type == YAML_SCALAR_EVENT)
-        {
-          if (!event.data.scalar.value[0])
-            *val = strtod("NaN", &end);
-          else if (!strcasecmp((const char*)event.data.scalar.value, ".inf"))
-            *val = strtod((const char*)event.data.scalar.value + 1, &end);
-          else
-            *val = strtod((const char*)event.data.scalar.value, &end);
-          if (end == (char*)event.data.scalar.value)
-            {
-              set_error("Parser error: cannot convert '%s' to a double.\n", end);
-              done = -1;
-            }
-          else if (end)
-            {
-              while (*end == ' ')
-                end += 1;
-              /* Read now the unit. */
-              for (*id = 0; keys[*id]; *id += 1)
-                if (!strcasecmp(end, keys[*id]))
-                  break;
-              if (keys[*id])
-                {
-                  *id = *id % modulo;
-                  done = 0;
-                }
-              else
-                {
-                  *id = 0;
-                  set_error("Parser error: cannot find unit '%s'.\n", end);
-                  done = -1;
-                }
-            }
-          else
-            done = 0;
-        }
-      else
-        {
-          set_error("Parser error: value awaited.\n");
-          done = (event.type == YAML_STREAM_END_EVENT)?1:-1;
         }
 
       /* The application is responsible for destroying the event object. */
@@ -933,9 +902,12 @@ static int posinp_yaml_properties(yaml_parser_t *parser, PosinpAtoms *atoms, cha
                                                &atoms->converged, 2, message);
             else if (!strcmp((const char*)event.data.scalar.value, "Gnrm_wfn"))
               done = _yaml_parser_read_double(parser, &atoms->gnrm_wfn, message);
-            else if (!strcmp((const char*)event.data.scalar.value, "Energy"))
-              done = _yaml_parser_read_value(parser, &atoms->energy, &atoms->eunits,
-                                             eunits_keys, POSINP_ENERG_N_UNITS, message);
+            else if (!strncmp((const char*)event.data.scalar.value, "Energy", 6))
+              {
+                done = _find_units(eunits_keys, (const char*)event.data.scalar.value,
+                                   &atoms->eunits, POSINP_ENERG_N_UNITS, message);
+                done = (!done)?_yaml_parser_read_double(parser, &atoms->energy, message):done;
+              }
             else
               done = 0;
             break;
