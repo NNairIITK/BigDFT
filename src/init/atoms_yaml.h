@@ -44,6 +44,7 @@ typedef enum
   {
     POSINP_ENERG_UNITS_HARTREE,
     POSINP_ENERG_UNITS_EV,
+    POSINP_ENERG_UNITS_RYDBERG,
     POSINP_ENERG_N_UNITS
   } PosinpEnergUnits;
 typedef enum
