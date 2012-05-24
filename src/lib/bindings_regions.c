@@ -13,6 +13,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static gboolean _print_error(const gchar *message)
+{
+  fprintf(stderr, "Error on %s.\n", message);
+  return FALSE;
+}
 
 static void bigdft_locreg_dispose(GObject *atoms);
 static void bigdft_locreg_finalize(GObject *atoms);
@@ -268,28 +273,28 @@ gboolean bigdft_locreg_check(const BigDFT_LocReg *glr)
   /* Check the consistency of everything with Fortran values. */
   FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, n, ni, ns, nsi, nfl, nfu, &norb);
   if (n[0] != glr->n[0] || n[1] != glr->n[1] || n[2] != glr->n[2])
-    return FALSE;
+    return _print_error("n");
   if (ni[0] != glr->ni[0] || ni[1] != glr->ni[1] || ni[2] != glr->ni[2])
-    return FALSE;
+    return _print_error("ni");
   if (ns[0] != glr->ns[0] || ns[1] != glr->ns[1] || ns[2] != glr->ns[2])
-    return FALSE;
+    return _print_error("ns");
   if (nsi[0] != glr->nsi[0] || nsi[1] != glr->nsi[1] || nsi[2] != glr->nsi[2])
-    return FALSE;
+    return _print_error("nsi");
   if (nfl[0] != glr->nfl[0] || nfl[1] != glr->nfl[1] || nfl[2] != glr->nfl[2])
-    return FALSE;
+    return _print_error("nfl");
   if (nfu[0] != glr->nfu[0] || nfu[1] != glr->nfu[1] || nfu[2] != glr->nfu[2])
-    return FALSE;
+    return _print_error("nfu");
 
   ref.wfd = glr->wfd;
   _locreg_copy_wfd(&ref);
   if (ref.nvctr_c != glr->nvctr_c || ref.nvctr_f != glr->nvctr_f)
-    return FALSE;
+    return _print_error("nvctr");
   if (ref.nseg_c != glr->nseg_c || ref.nseg_f != glr->nseg_f)
-    return FALSE;
+    return _print_error("nseg");
   if (ref.keygloc != glr->keygloc || ref.keyvloc != glr->keyvloc)
-    return FALSE;
+    return _print_error("keyloc");
   if (ref.keyglob != glr->keyglob || ref.keyvglob != glr->keyvglob)
-    return FALSE;
+    return _print_error("keyglob");
 
   return TRUE;
 }
@@ -408,23 +413,36 @@ static void bigdft_lzd_dispose(GObject *obj)
   G_OBJECT_CLASS(bigdft_lzd_parent_class)->dispose(obj);
 #endif
 }
-static void _free_llr(BigDFT_Lzd *lzd)
+static void _free_llr(BigDFT_Lzd *lzd, gboolean separate)
 {
   guint i;
 
   if (lzd->Llr)
     {
+      /* We create a Fortran copy of the nderlying structure for
+         each locreg and dec ref the C wrapper. Caller is responsible
+         to destroy original Fortran underlying structure. */
       for (i = 0; i < lzd->nlr; i++)
         {
-          /* Free only the Glr atoms data. */
+          if (separate)
+            {
+              FC_FUNC_(glr_copy, GLR_COPY)(&lzd->Llr[i]->data, &lzd->Llr[i]->d,
+                                           &lzd->Llr[i]->wfd, lzd->Llr[i]->data);
+              _locreg_copy_wfd(lzd->Llr[i]);
+            }
+          else
+            {
+              lzd->Llr[i]->data = (gpointer)0;
+            }
+          /* Currently the underlying Atom structure is not copied. */
           F90_2D_POINTER_INIT(&lzd->Llr[i]->parent.rxyz);
-          /* We free only the C wrapper. */
-          lzd->Llr[i]->data = (gpointer)0;
           lzd->Llr[i]->parent.data = (gpointer)0;
+          /* Finally, we unref the locreg. */
           bigdft_locreg_free(lzd->Llr[i]);
         }
       g_free(lzd->Llr);
     }
+  lzd->nlr = 0;
 }
 static void bigdft_lzd_finalize(GObject *obj)
 {
@@ -433,7 +451,7 @@ static void bigdft_lzd_finalize(GObject *obj)
   if (lzd->data)
     FC_FUNC_(lzd_free, LZD_FREE)(&lzd->data);
 
-  _free_llr(lzd);
+  _free_llr(lzd, FALSE);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_lzd_parent_class)->finalize(obj);
@@ -621,7 +639,7 @@ void bigdft_lzd_emit_defined(BigDFT_Lzd *lzd)
 }
 void bigdft_lzd_set_n_locreg(BigDFT_Lzd *lzd, guint nlr)
 {
-  _free_llr(lzd);
+  _free_llr(lzd, TRUE);
 
   lzd->nlr = nlr;
   FC_FUNC_(lzd_set_nlr, LZD_SET_NLR)(lzd->data, &nlr, &lzd->parent.parent.geocode, 1);
@@ -637,7 +655,7 @@ gboolean bigdft_lzd_check(const BigDFT_Lzd *lzd)
   /* nlr. */
   FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &nlr);
   if (nlr != lzd->nlr)
-    return FALSE;
+    return _print_error("nlr");
 
   for (ilr = 0; ilr < lzd->nlr; ilr++)
     if (!bigdft_locreg_check(lzd->Llr[ilr]))

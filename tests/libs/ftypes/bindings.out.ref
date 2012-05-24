@@ -64,6 +64,7 @@ Test BigDFT_Lzd set nlr.
 Test BigDFT_Locreg set dims 0.
 Test BigDFT_Locreg set dims 1.
 Test BigDFT_Locreg set dims 2.
+ -> check gives 1
  Lzd has 3 local regions.
  region 0 has (   0/   0) coarse/fine segments.
  region 0 has (   0/   0) coarse/fine elements.
@@ -71,6 +72,10 @@ Test BigDFT_Locreg set dims 2.
  region 1 has (  30/  10) coarse/fine elements.
  region 2 has (   6/   2) coarse/fine segments.
  region 2 has (  60/  20) coarse/fine elements.
+Test BigDFT_Lzd reallocation.
+ -> check gives 1
+Test BigDFT_Locreg separation.
+ -> check gives 1
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -113,10 +118,10 @@ Test BigDFT_Proj structure creation.
 Test BigDFT_LocalFields creation.
  Meta data are 0.203845 0.240000 0.122307  -  -1980  -  0.000000
  Calculation of ionic potential started.
- Calculation of ionic potential finished.
  Calculation of input guess started.
+ Calculation of ionic potential finished.
 Callback for "density-ready" signal at iter 0.
- Density calculated by C is 7.9999998876429546.
+ Density calculated by C is 7.9999998876429634.
 Callback for 'eks-ready' signal at iter 0 -> -5.06042Ht.
 Callback for 'psi-ready' signal at iter 0.
  Band 4 has 388056 bytes.
@@ -124,7 +129,7 @@ Callback for 'psi-ready' signal at iter 0.
  Calculation of input guess finished.
  Calculation of optimization started.
 Callback for "density-ready" signal at iter 1.
- Density calculated by C is 7.9999999287810430.
+ Density calculated by C is 7.9999999287809818.
 Callback for 'eks-ready' signal at iter 1 -> -5.82852Ht.
 Callback for 'psi-ready' signal at iter 1.
  Band 4 has 388056 bytes.
@@ -141,17 +146,17 @@ Callback for 'psi-ready' signal at iter 1.
  Poisson Solver: {BC: Surface, Dimensions:  [  84,  83,  140 ], MPI tasks:  1}, 
  Energies: {Ekin:  5.12320610561E+00, Epot: -7.87803615753E+00, Enl:  8.77781302890E-01, 
               EH:  3.95688611796E+00,  EXC: -2.67724050403E+00, EvXC: -3.45075509233E+00}, 
- EKS: -5.06042027868990285E+00, 
+ EKS: -5.06042027868987887E+00, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #----------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
  {e: -4.921885801069E-01, f:  2.0000}, 
  {e: -2.788343972883E-01, f:  2.0000}, 
- {e: -2.785413870250E-01, f:  2.0000}, 
+ {e: -2.785413870249E-01, f:  2.0000}, 
  {e: -2.767182553695E-01, f:  2.0000}, 
- {e:  2.582749579639E-01, f:  0.0000}, 
- {e:  2.591589259562E-01, f:  0.0000}, 
- {e:  2.647634369118E-01, f:  0.0000}, 
+ {e:  2.582749579637E-01, f:  0.0000}, 
+ {e:  2.591589259560E-01, f:  0.0000}, 
+ {e:  2.647634369116E-01, f:  0.0000}, 
  {e:  2.836851908585E-01, f:  0.0000}], 
  IG wavefunctions defined:  Yes}
  4th wavefunction written
@@ -165,11 +170,11 @@ Callback for 'psi-ready' signal at iter 1.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81138946764E+00, Epot: -7.40829489432E+00, Enl:  8.48198326891E-01, 
               EH:  3.82131729536E+00,  EXC: -2.54650503191E+00, EvXC: -3.28801038999E+00}, 
- iter:  1, EKS: -5.82851903707796470E+00, gnrm:  4.93E-01, 
+ iter:  1, EKS: -5.82851903707760588E+00, gnrm:  4.93E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
 Callback for 'iter-done-wavefunctions' signal at iter 1 -> -5.82852Ht (0.492963).
 Callback for "density-ready" signal at iter 2.
- Density calculated by C is 7.9999999404922066.
+ Density calculated by C is 7.9999999404922422.
 Callback for 'eks-ready' signal at iter 2 -> -5.85172Ht.
 Callback for 'iter-done-wavefunctions' signal at iter 2 -> -5.85172Ht (0.492963).
 Callback for 'psi-ready' signal at iter 2.
@@ -179,18 +184,18 @@ Callback for 'psi-ready' signal at iter 2.
  GPU acceleration:  No, Total electronic charge:  7.999999940492, 
  Poisson Solver: {BC: Surface, Dimensions:  [  84,  83,  140 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -5.85172433575978701E+00, gnrm:  4.93E-01,  #FINAL
- Energies: {Ekin:  4.08670780878E+00, Epot: -7.38242238476E+00, Enl:  8.29145191908E-01, 
+ iter:  2, EKS: -5.85172433575925943E+00, gnrm:  4.93E-01,  #FINAL
+ Energies: {Ekin:  4.08670780878E+00, Epot: -7.38242238476E+00, Enl:  8.29145191909E-01, 
               EH:  4.15495871305E+00,  EXC: -2.64385887105E+00, EvXC: -3.41366263241E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
         #----------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Orbitals: [
- {e: -4.553169448129E-01, f:  2.0000}, 
- {e: -2.638071025758E-01, f:  2.0000}, 
- {e: -2.596730195056E-01, f:  2.0000}, 
- {e: -2.544876251428E-01, f:  2.0000}]
+ {e: -4.553169448127E-01, f:  2.0000}, 
+ {e: -2.638071025757E-01, f:  2.0000}, 
+ {e: -2.596730195054E-01, f:  2.0000}, 
+ {e: -2.544876251426E-01, f:  2.0000}]
  Calculation of optimization finished.
  Total energy after relaxation is -5.85172Ht.
 Test BigDFT_LocalFields free.
