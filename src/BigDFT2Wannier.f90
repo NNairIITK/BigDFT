@@ -42,7 +42,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
-   logical :: perx, pery,perz, residentity
+   logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
    real(kind=8) :: xx, yy, zz
@@ -93,7 +93,7 @@ program BigDFT2Wannier
 
    ! Read input.inter file
    call timing(iproc,'Precondition  ','ON')
-   call read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_check, n_virt_tot,&
+   call read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check, n_virt_tot,&
          n_virt, w_unk, w_sph, w_ang, w_rad)
 
    if(n_virt_tot < n_virt) then
@@ -171,7 +171,7 @@ program BigDFT2Wannier
      nvirtu = n_proj
      nvirtd = 0
    else
-     nvirtu = 0
+     nvirtu = n_virt
      nvirtd = 0
    end if
    if (input%nspin==2) nvirtd=nvirtu
@@ -750,7 +750,15 @@ program BigDFT2Wannier
          else
             call dcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
          end if
-        ! Should write the symmetrized projectors to file
+         ! Should write the symmetrized projectors to file
+         if(write_resid .and. orbsv%norbp > 0)then
+            allocate(orbsv%eval(orbsv%norb))
+            orbsv%eval = 99.0_dp
+            call writemywaves(iproc,trim(input%dir_output) // "virtuals",iformat,orbsv,Glr%d%n1,Glr%d%n2,&
+              Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp))
+            deallocate(orbsv%eval)
+         end if
+         
       end if
 
       ! Scalar product of amnk=<sph_daub|psi> in parallel.
@@ -1145,7 +1153,7 @@ subroutine final_deallocations()
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier
 
-subroutine read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_check,&
+subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check,&
            n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
    ! This routine reads the first lines of a .inter file
@@ -1156,7 +1164,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_c
    integer, intent(in) :: iproc
    character, intent(out) :: seedname*16, filetype*4
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
-   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity
+   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
 
    ! Local variables
    character :: char1*1, char2*1, char3*1, char4*1
@@ -1196,7 +1204,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_c
    if(iproc==0)write(*,*) 'file type : ', filetype
 
    ! Third line
-   read(11,*) char1, n_occ
+   read(11,*) char1, char2, n_occ
    if(iproc==0)write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
    if(char1=='T') then
      residentity = .true.
@@ -1204,17 +1212,25 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, n_occ, pre_c
    else
      residentity = .false.
    end if
+   if(residentity .and. char2=='T')then
+     write_resid = .true.
+     if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
+   else
+     write_resid = .false.
+   end if
 
    ! Fourth line
    read(11,*) char1, n_virt_tot, n_virt
-   if (char1=='T') then
+   if (char1=='T' .and. .not. residentity) then
       pre_check=.true.
       if(iproc==0)write(*,*) 'Pre-check before calculating Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A38,I4)') 'Total number of unnocupied orbitals :', n_virt_tot
-   else
+   else if(.not. residentity)then
       pre_check=.false.
       if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A39,I4)') 'Number of chosen unnocupied orbitals :', n_virt
+   else
+      if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
    end if
 
    ! Fifth line
@@ -2054,7 +2070,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
    integer :: i
    character :: seedname*20, pre_check_mode*1, filetype*4
    integer :: n_occ, n_virt_tot, ng(3)
-   character :: char1*1
+   character :: char1*1,char2*1
 
    ! Read data to keep
    OPEN(11, FILE='input.inter', STATUS='OLD')
@@ -2063,7 +2079,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
    !   write(*,*) '!==================================!'
    read(11,*) seedname
    read(11,*) filetype
-   read(11,*) char1, n_occ
+   read(11,*) char1, char2, n_occ
    read(11,*) pre_check_mode, n_virt_tot
    read(11,*) char1
    read(11,*) ng(1), ng(2), ng(3)
@@ -2076,7 +2092,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
    OPEN(11, FILE='input.inter', STATUS='OLD')
    write(11,'(1a,1x,1a)') seedname, '# Name of the .win file'
    write(11,'(1a,17x,1a)') filetype, '# Format : cube or etsf'
-   write(11,'(1a,3x,I4,17x,1a)') 'F',n_occ, '# No. of occupied orbitals'
+   write(11,'(1a,3x,I4,17x,1a)') 'F','F',n_occ, '# No. of occupied orbitals'
    write(11,'(a1,2(1x,I4),10x,1a)') pre_check_mode, n_virt_tot, n_virt, '# Pre-check, n_virt_tot ' // &
       &   ', n_virt'
    !   if (pre_check_mode == 'T') then
