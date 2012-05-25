@@ -48,7 +48,10 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   if (iproc ==0) call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+   if (iproc ==0) then
+      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+      call yaml_new_document()
+   end if
 
    !initialize memory counting and timings
    !call memocc(0,iproc,'count','start')
