@@ -939,10 +939,11 @@ program WaCo
               i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
               deallocate(orbsw%iokpt,stat=i_stat)
               call memocc(i_stat,i_all,'orbsw%iokpt',subname)
-              allocate(orbsw%iokpt(orbs%norb),stat=i_stat)
+              allocate(orbsw%iokpt(nwannCon),stat=i_stat)
               call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
               orbsw%iokpt=1
               if(hamilana .and. linear) then
+                 print *,'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
                  call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
