@@ -58,6 +58,7 @@ ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 SIC.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
 	mv wavefunctions.gau data-PZ/
+
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -76,5 +77,10 @@ SIC.post-in:
           *)                    prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+
+%.yaml: %.ref
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py $*".out" $< | tee $@
 
 include $(srcdir)/../../check.mk
