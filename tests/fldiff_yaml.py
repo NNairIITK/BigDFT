@@ -3,11 +3,11 @@
 #----------------------------------------------------------------------------
 
 import sys, yaml
+import os
 
-fin = open(sys.argv[1], "r")
+fin = open(os.path.dirname(sys.argv[1]) + "/data/time.yaml", "r")
 
-pin = yaml.parse(fin)
-for e in pin:
-  print e
+for data in yaml.load_all(fin):
+  print data
 
 fin.close()
