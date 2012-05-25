@@ -803,9 +803,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   double precision :: acell(3), angdeg(3), gnrm, fnrm, maxval
   integer, allocatable :: igspin(:), igchrg(:)
 
-  call posinp_yaml_parse(lst, filename, len(filename))
+  call f90_posinp_yaml_parse(lst, filename, len(filename))
 
-  call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
+  call f90_posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
   if (bc == 3) then
      atoms%geocode = 'P'
   else if (bc == 0) then
@@ -846,7 +846,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
      atoms%alat3 = 0.0_gp
   end if
 
-  call posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
+  call f90_posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
   if (atoms%nat == 0) stop
 
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -857,7 +857,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   allocate(igchrg(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,igchrg,'igchrg',subname)
 
-  call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
+  call f90_posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
   if (units == 2) then
      write(atoms%units, "(A)") "reduced"
   end if
@@ -891,19 +891,19 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
 
   call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
   do i = 1, atoms%ntypes, 1
-     call posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
+     call f90_posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
   end do
 
-  call posinp_yaml_get_comment(lst, 0, comment, 1024)
-  call posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
-  call posinp_yaml_has_forces(lst, 0, conv)
+  call f90_posinp_yaml_get_comment(lst, 0, comment, 1024)
+  call f90_posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
+  call f90_posinp_yaml_has_forces(lst, 0, conv)
   if (conv /= 0) then
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
-     call posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
+     call f90_posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
   end if
 
-  call posinp_yaml_free_list(lst)
+  call f90_posinp_yaml_free_list(lst)
 
   i_all=-product(shape(igspin))*kind(igspin)
   deallocate(igspin,stat=i_stat)

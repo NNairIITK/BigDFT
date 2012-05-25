@@ -2092,7 +2092,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
    OPEN(11, FILE='input.inter', STATUS='OLD')
    write(11,'(1a,1x,1a)') seedname, '# Name of the .win file'
    write(11,'(1a,17x,1a)') filetype, '# Format : cube or etsf'
-   write(11,'(1a,3x,I4,17x,1a)') 'F','F',n_occ, '# No. of occupied orbitals'
+   write(11,'(1a,3x,1a,3x,I4,17x,1a)') 'F','F',n_occ, '# No. of occupied orbitals'
    write(11,'(a1,2(1x,I4),10x,1a)') pre_check_mode, n_virt_tot, n_virt, '# Pre-check, n_virt_tot ' // &
       &   ', n_virt'
    !   if (pre_check_mode == 'T') then
