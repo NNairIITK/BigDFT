@@ -1143,6 +1143,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   integer :: ierr,ikpt,iorb,i_all,i_stat,k
   real(gp) :: rzeroorbs,tt
   real(wp), dimension(:,:,:), pointer :: mom_vec
+  real(gp),dimension(2):: reducearr
 
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
@@ -1259,10 +1260,17 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      end if
   end if
 
+  call timing(iproc,'Precondition  ','OF')
+
   !sum over all the partial residues
   if (nproc > 1) then
-     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     reducearr(1)=gnrm
+     reducearr(2)=gnrm_zero
+     !!call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !!call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(reducearr(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     gnrm=reducearr(1)
+     gnrm_zero=reducearr(2)
   endif
 
   !count the number of orbitals which have zero occupation number
@@ -1290,7 +1298,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !write(*,'(1x,a)')&
      !     &   'done.'
   end if
-  call timing(iproc,'Precondition  ','OF')
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)

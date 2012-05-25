@@ -102,7 +102,7 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   type(p2pComms),intent(inout):: comm
   
   ! Local variables
-  integer:: ierr, ind, i, nsend, nrecv
+  integer:: ierr
   
   
   if(.not.comm%communication_complete) then
@@ -110,30 +110,14 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
       if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
 
       ! Wait for the sends to complete.
-      nsend=0
       if(comm%nsend>0) then
-          wait_sends: do
-             call mpi_waitany(comm%nsend-nsend, comm%requests(1,1), ind, mpi_status_ignore, ierr)
-             nsend=nsend+1
-             do i=ind,comm%nsend-nsend
-                comm%requests(i,1)=comm%requests(i+1,1)
-             end do
-             if(nsend==comm%nsend) exit wait_sends
-          end do wait_sends
+          call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
       end if
  
  
       ! Wait for the receives to complete.
-      nrecv=0
       if(comm%nrecv>0) then
-          wait_recvs: do
-             call mpi_waitany(comm%nrecv-nrecv, comm%requests(1,2), ind, mpi_status_ignore, ierr)
-             nrecv=nrecv+1
-             do i=ind,comm%nrecv-nrecv
-                comm%requests(i,2)=comm%requests(i+1,2)
-             end do
-             if(nrecv==comm%nrecv) exit wait_recvs
-          end do wait_recvs
+          call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
       end if
 
   end if
