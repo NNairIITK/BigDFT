@@ -38,7 +38,7 @@ program BigDFT2Wannier
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
-   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:)
+   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:),pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
@@ -169,6 +169,9 @@ program BigDFT2Wannier
      nvirtd = 0
    else if(residentity) then
      nvirtu = n_proj
+     nvirtd = 0
+   else
+     nvirtu = 0
      nvirtd = 0
    end if
    if (input%nspin==2) nvirtd=nvirtu
@@ -431,7 +434,7 @@ program BigDFT2Wannier
          end if
 
          ! Rewrite the input.inter file to add the chosen unoccupied states.
-         if (iproc==0) call write_inter(n_virt, amnk_bands_sorted)
+         if (iproc==0) call write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
 
          call timing(iproc,'ApplyProj     ','OF')
 
@@ -525,6 +528,7 @@ program BigDFT2Wannier
       allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
       call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
       orbsv%iokpt=1
+      !orbsv%spinsgn= 1.0
 
          ! read unoccupied wavefunctions
       if(associated(orbsv%eval)) nullify(orbsv%eval)
@@ -2033,7 +2037,7 @@ END SUBROUTINE write_functions
 
 
 !>
-subroutine write_inter(n_virt, amnk_bands_sorted)
+subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
 
    ! This routine writes a new input.inter file from an older one.
    ! It reads the previous input.inter file, and it adds the virt_list at the end of the file.
@@ -2042,7 +2046,7 @@ subroutine write_inter(n_virt, amnk_bands_sorted)
    implicit none
 
    ! I/O variables
-   integer, intent(in) :: n_virt
+   integer, intent(in) :: n_virt, nx, ny, nz
    integer, dimension(n_virt), intent(inout) :: amnk_bands_sorted
 
    ! Local variables
@@ -2083,7 +2087,7 @@ subroutine write_inter(n_virt, amnk_bands_sorted)
    !   end if
    write(11,'(1a,4x,1a)') char1, 'F    F    F     # Write_UNKp.s, write_spherical_harmonics, ' // &
       &   'write_angular_parts, write_radial_parts'
-   write(11,'(3(I4,1x),6x,a)') (ng(i), i=1,3), '# Number of points for each axis in the cubic ' // &
+   write(11,'(3(I4,1x),6x,a)') nx, ny, nz, '# Number of points for each axis in the cubic ' // &
       &   'BigDFT representation (information needed by Wannier90)'
    do i=1,n_virt
       write(11,'(I4, 1x)',advance='no') amnk_bands_sorted(i)
