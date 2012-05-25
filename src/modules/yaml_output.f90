@@ -300,8 +300,6 @@ contains
     yaml_time_toa=yaml_adjust(yaml_time_toa)
 
   end function yaml_time_toa
-    
-
 
   function yaml_adjust(str)
     implicit none
@@ -316,6 +314,7 @@ contains
     else
        call shiftstr(yaml_adjust,0)
     end if
+    
 
   end function yaml_adjust
 
@@ -402,7 +401,7 @@ module yaml_output
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream
+  public :: yaml_get_default_stream,yaml_date_and_time_toa
   
 contains
 
@@ -878,7 +877,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,istream,unt,icut
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -900,12 +899,14 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
-    !put the value
-!       if (present(fmt)) then
-!          call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-!       else
-          call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt)
-!       end if
+
+    !check the size of the message and cut the message in different pieces
+    icut=len_trim(mapvalue)
+    do while( icut > streams(strm)%max_record_length - msg_lgt)
+       icut=index(' ',mapvalue,back=.true.)
+    end do
+
+    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt)
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map
 

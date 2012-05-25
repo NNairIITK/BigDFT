@@ -624,7 +624,7 @@ void bigdft_lzd_set_n_locreg(BigDFT_Lzd *lzd, guint nlr)
   _free_llr(lzd);
 
   lzd->nlr = nlr;
-  FC_FUNC_(lzd_set_nlr, LZD_SET_NLR)(lzd->data, &nlr, &lzd->parent.parent.geocode);
+  FC_FUNC_(lzd_set_nlr, LZD_SET_NLR)(lzd->data, &nlr, &lzd->parent.parent.geocode, 1);
   _allocate_llr(lzd);
 }
 

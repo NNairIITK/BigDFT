@@ -310,13 +310,16 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
 END SUBROUTINE atoms_set_displacement
 
 !> Read atomic positions
-subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
+subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  real(gp), intent(out) :: energy
+  real(gp), dimension(:,:), pointer :: fxyz
+  character(len = 1024), intent(out) :: comment
   !Routine as argument
   interface
      subroutine getline(line,ifile,eof)
@@ -344,10 +347,21 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
      write(*,*) "Error: unexpected end of file."
      stop
   end if
-  read(line,*, iostat = ierrsfx) iat,atoms%units
+  read(line,*, iostat = ierrsfx) iat,atoms%units,energy,comment
   if (ierrsfx /= 0) then
-     read(line,*, iostat = ierrsfx) iat
-     write(atoms%units, "(A)") "bohr"
+     read(line,*, iostat = ierrsfx) iat,atoms%units,energy
+     write(comment, "(A)") ""
+     if (ierrsfx /= 0) then
+        read(line,*, iostat = ierrsfx) iat,atoms%units
+        energy = UNINITIALIZED(energy)
+        if (ierrsfx /= 0) then
+           read(line,*, iostat = ierrsfx) iat
+           write(atoms%units, "(A)") "bohr"
+        end if
+     end if
+  else
+     i = index(line, trim(comment))
+     write(comment, "(A)") line(i:)
   end if
 
   allocate(rxyz(3,iat+ndebug),stat=i_stat)
@@ -506,6 +520,21 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
         rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
      endif
   enddo
+  ! Try forces
+  call getLine(line, ifile, eof)
+  if ((.not. eof) .and. (adjustl(trim(line)) == "forces")) then
+     allocate(fxyz(3,iat+ndebug),stat=i_stat)
+     call memocc(i_stat,fxyz,'fxyz',subname)
+     do iat=1,atoms%nat
+        !xyz input file, allow extra information
+        call getLine(line, ifile, eof)
+        if (eof) then
+           write(*,*) "Error: unexpected end of file."
+           stop
+        end if
+        read(line,*,iostat=ierrsfx) symbol,fxyz(:,iat)
+     end do
+  end if
 
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   call allocate_atoms_ntypes(atoms, ntyp, subname)
@@ -513,13 +542,16 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
 END SUBROUTINE read_xyz_positions
 
 !> Read atomic positions of ascii files.
-subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
+subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getline)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  real(gp), intent(out) :: energy
+  real(gp), dimension(:,:), pointer :: fxyz
+  character(len = 1024), intent(out) :: comment
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
@@ -533,8 +565,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl, reduced, eof
-  integer :: iat,ntyp,ityp,i,i_stat,j,nlines
+  logical :: lpsdbl, reduced, eof, forces
+  integer :: iat,ntyp,ityp,i,i_stat,j,nlines,istart,istop,count
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
@@ -565,7 +597,13 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
 
   ! Try to determine the number atoms and the keywords.
   write(atoms%units, "(A)") "bohr"
+  if (lines(1)(1:1) == "#" .or. lines(1)(1:1) == "!") then
+     write(comment, "(A)") adjustl(lines(1)(1:))
+  else
+     write(comment, "(A)") lines(1)
+  end if
   reduced = .false.
+  forces = .false.
   atoms%geocode = 'P'
   iat     = 0
   do i = 4, nlines, 1
@@ -582,6 +620,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
         if (index(line, 'periodic') > 0) atoms%geocode = 'P'
         if (index(line, 'surface') > 0)  atoms%geocode = 'S'
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
+     else if (line(1:9) == "#metaData" .or. line(1:9) == "!metaData") then
+        if (index(line, 'totalEnergy') > 0) read(line(index(line, 'totalEnergy') + 12:), *) energy
+        if (index(line, 'forces') > 0) forces = .true.
      end if
   end do
 
@@ -709,43 +750,74 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
      atoms%alat3 = 0.0_gp
   end if
 
+  if (reduced) then
+     write(atoms%units, "(A)") "reduced"
+  end if
+
+  if (forces) then
+     allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,fxyz,'fxyz',subname)
+
+     count = 0
+     forces = .false.
+     do i = 4, nlines, 1
+        write(line, "(a150)") adjustl(lines(i))
+        if ((line(1:9) == "#metaData" .or. line(1:9) == "!metaData") .and. index(line, 'forces') > 0) then
+           forces = .true.
+        end if
+        if (forces) then
+           istart = index(line, "[") + 1
+           if (istart == 1) istart = index(line, "#") + 1
+           do
+              istop = index(line(istart:), ";") + istart - 2
+              if (istop == istart - 2) exit
+              read(line(istart:istop), *) fxyz(modulo(count, 3) + 1, count / 3 + 1)
+              count = count + 1
+              istart = istop + 2
+           end do
+           if (count > atoms%nat * 3) exit
+        end if
+     end do
+  end if
+
   !now that ntypes is determined copy the values
   call allocate_atoms_ntypes(atoms, ntyp, subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_ascii_positions
 
-subroutine read_yaml_positions(filename, atoms, rxyz)
+subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   use module_base
   use module_types
   implicit none
   character(len = *), intent(in) :: filename
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  real(gp), intent(out) :: energy
+  real(gp), dimension(:,:), pointer :: fxyz
+  character(len = 1024), intent(out) :: comment
 
   !local variables
-  character(len=*), parameter :: subname='read_ascii_positions'
+  character(len=*), parameter :: subname='read_yaml_positions'
   integer(kind = 8) :: lst
-  integer :: bc, units, i_stat, iat, i, i_all, nsgn
-  double precision :: acell(3), angdeg(3)
+  integer :: bc, units, i_stat, iat, i, i_all, nsgn, eunits, conv
+  double precision :: acell(3), angdeg(3), gnrm, fnrm, maxval
   integer, allocatable :: igspin(:), igchrg(:)
 
   call posinp_yaml_parse(lst, filename, len(filename))
 
   call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
-  if (bc == 0) then
+  if (bc == 3) then
      atoms%geocode = 'P'
-  else if (bc == 1) then
+  else if (bc == 0) then
      atoms%geocode = 'F'
   else if (bc == 2) then
      atoms%geocode = 'S'
-  else if (bc == 3) then
+  else if (bc == 1) then
      atoms%geocode = 'W'
   end if
-  if (units == 0) then
+  if (units == 1) then
      write(atoms%units, "(A)") "angstroem"
-  else if (units == 1) then
-     write(atoms%units, "(A)") "atomic"
-  else if (units == 2) then
+  else if (units == 0) then
      write(atoms%units, "(A)") "bohr"
   end if
   atoms%alat1 = acell(1)
@@ -786,13 +858,16 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   call memocc(i_stat,igchrg,'igchrg',subname)
 
   call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
+  if (units == 2) then
+     write(atoms%units, "(A)") "reduced"
+  end if
   do iat = 1, atoms%nat, 1
-     if (units == 0) then
+     if (units == 1) then
         rxyz(1,iat)=rxyz(1,iat) / bohr2ang
         rxyz(2,iat)=rxyz(2,iat) / bohr2ang
         rxyz(3,iat)=rxyz(3,iat) / bohr2ang
      endif
-     if (units == 3) then !add treatment for reduced coordinates
+     if (units == 2) then !add treatment for reduced coordinates
         if (atoms%alat1 > 0.) rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
         if (atoms%alat2 > 0.) rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp) * atoms%alat2
         if (atoms%alat3 > 0.) rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp) * atoms%alat3
@@ -819,6 +894,15 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
      call posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
   end do
 
+  call posinp_yaml_get_comment(lst, 0, comment, 1024)
+  call posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
+  call posinp_yaml_has_forces(lst, 0, conv)
+  if (conv /= 0) then
+     allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,fxyz,'fxyz',subname)
+     call posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
+  end if
+
   call posinp_yaml_free_list(lst)
 
   i_all=-product(shape(igspin))*kind(igspin)
@@ -828,7 +912,6 @@ subroutine read_yaml_positions(filename, atoms, rxyz)
   i_all=-product(shape(igchrg))*kind(igchrg)
   deallocate(igchrg,stat=i_stat)
   call memocc(i_stat,i_all,'igchrg',subname)
-
 END SUBROUTINE read_yaml_positions
 
 !> Find extra information
@@ -1162,8 +1245,8 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
   if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
-  if (energy /= 0.d0) then
-     write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
+  if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
+     write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
   end if
 
   do iat=1,atoms%nat
@@ -1292,8 +1375,13 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   end if
   !start the writing of the file
   call yaml_new_document(unit=iunit)
+  ! Possible comment.
+  if (len(trim(comment)) > 0) then
+     call yaml_map("Comment", trim(comment(1:min(85, len(trim(comment))))))
+  end if
   !cell information
   call yaml_open_map('Cell')
+  factor=1.0_gp
   Cell_Units: select case(trim(atoms%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem')
@@ -1366,9 +1454,19 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   end do
   call yaml_close_sequence() !values
   call yaml_close_map() !positions
+  call yaml_open_map('Properties')
+  call yaml_map('Timestamp',yaml_date_and_time_toa())
+  call yaml_map("Energy (Ha)", energy)
+  call yaml_close_map() !properties
   if (wrtforces) then
      call yaml_open_map('Forces')
-     
+     call yaml_map('Units','Ha/Bohr')
+     call yaml_open_sequence('Values')
+     do iat=1,atoms%nat
+        call yaml_sequence(advance='no')
+        call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),forces(:,iat),fmt='(g25.17)')
+     end do
+     call yaml_close_sequence() !values
      call yaml_close_map() !forces
   end if
 

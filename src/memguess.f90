@@ -22,6 +22,7 @@ program memguess
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
    character(len=40) :: comment
+   character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
@@ -29,7 +30,7 @@ program memguess
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel
+   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel,energy
    type(input_variables) :: in
    type(atoms_data) :: atoms
    type(orbitals_data) :: orbs,orbstst
@@ -41,7 +42,7 @@ program memguess
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(gp), dimension(:,:), pointer :: rxyz
+   real(gp), dimension(:,:), pointer :: rxyz, fxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
@@ -275,7 +276,7 @@ program memguess
       stop
    end if
    if (convertpos) then
-      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat)
+      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
@@ -287,10 +288,21 @@ program memguess
       else if (index(fileTo,'.yaml') > 0) then
          irad=index(fileTo,'.yaml')
          atoms%format='yaml '
+      else
+         irad = len(trim(fileTo)) + 1
       end if
       
-      call write_atomic_file(fileTo(1:irad-1),0.0_gp,rxyz,atoms,&
-           'converted from '//trim(fileFrom))
+      if (associated(fxyz)) then
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+
+         i_all=-product(shape(fxyz))*kind(fxyz)
+         deallocate(fxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'fxyz',subname)
+      else
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+      end if
       stop
    end if
 
@@ -1349,7 +1361,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
-   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
