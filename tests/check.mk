@@ -21,6 +21,11 @@ else
 oclrun_message =
 endif
 
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
+
 AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 PSPS = psppar.H \
@@ -66,7 +71,7 @@ update-references: $(UPDATES)
 
 clean: $(CLEANS)
 
-distclean : $(CLEANS)
+distclean: $(CLEANS)
 	rm -rf Makefile
 
 failed-check: $(FAILEDCHECKS) report
