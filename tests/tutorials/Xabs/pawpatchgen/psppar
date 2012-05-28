@@ -10,3 +10,15 @@ r 20 2.0  2.09     4.19
                          0.00254425    -0.00756218                                        kp11 kp12
                                         0.01789537                                             kp22
 
+-----suggested header for initial guess of psppar for fitting-----
+r 20 2.0  2.09     4.19    the first line contains some input data
+ 15.0     5.00            znuc and zion as needed
+(2, 3 or 10)     -20      supported formats, iXC as given
+ --you can download pseudopotentials from--
+ http://www.abinit.org/downloads/psp-links
+-----suggested header for initial guess of psppar for fitting-----
+r 20 2.0  2.09     4.19    the first line contains some input data
+ 15.0     5.00            znuc and zion as needed
+(2, 3 or 10)     -20      supported formats, iXC as given
+ --you can download pseudopotentials from--
+ http://www.abinit.org/downloads/psp-links
