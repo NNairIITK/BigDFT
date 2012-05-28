@@ -147,8 +147,12 @@
  The overall memory requirement needed for this calculation is thus: 35 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 19 MB
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 74 allocations and 74 deallocations, remaining memory(B): 0
- memory occupation peak: 1 MB
- for the array  logrid_big in the routine  make_all_ib
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 74
+   Tot. No. of Deallocations: 74
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 1
+      for the array: logrid_big
+      in the routine:  make_all_ib
  CPU time/ELAPSED time          0.00         0.00

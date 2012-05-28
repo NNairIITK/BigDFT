@@ -20,8 +20,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
   real(gp), intent(in) :: scal,hx,hy,hz,offset
-  real(dp), dimension(nd1,nd2,nd3/nproc), intent(in), target :: pot
-  real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout), target :: zf
+  real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
+  real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
   real(dp), dimension(6), intent(out) :: strten !< non-symmetric components of Ha stress tensor
   !Local variables
   character(len=*), parameter :: subname='G_Poisson_Solver'
@@ -31,12 +31,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig,nthread,ithread,omp_get_thread_num
   real(kind=8) :: twopion
   !work arrays for transpositions
-  real(kind=8), dimension(:,:,:), pointer :: zt
+  real(kind=8), dimension(:,:,:), allocatable :: zt
   !work arrays for MPI
   real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
-  real(kind=8), dimension(:,:,:), pointer :: zw
+  real(kind=8), dimension(:,:,:), allocatable :: zw
   !FFT work arrays
   real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3, &
        ftrig1,ftrig2,ftrig3,cosinarr
@@ -44,18 +44,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
-  integer :: maxThread, omp_get_max_threads
-  integer :: maxIter,ith
-!!$     real(8), dimension(:,:,:,:), allocatable, target :: zts
-!!$     real(8), dimension(:,:,:,:), allocatable, target :: zws
-  type :: workspaces
-     real(dp), dimension(:,:,:), pointer :: zt
-     real(dp), dimension(:,:,:), pointer :: zw
-  end type workspaces
-  type(workspaces), dimension(:), allocatable :: w_omp
 
-
-  !call system_clock(ncount0,ncount_rate,ncount_max)
+  integer :: maxIter
 
   !initialize stress tensor no matter of the BC
   call to_zero(6,strten(1))
@@ -167,10 +157,6 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
 
-	!for non OMP
-	nThread = 1
-	iThread = 0
-
   !$omp parallel sections default(shared)
   !$omp section
     call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
@@ -219,35 +205,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !different loop if halfft or not (output part)
 
-  !$ nThread = omp_get_max_threads()
-
-  nullify(zw,zt)
-  !allocate workspaces (crash if problems)
-  allocate(w_omp(0:nThread-1))
-  do ith=0,nThread-1
-     allocate(w_omp(ith)%zw(2, ncache/4, 2+ndebug), stat=i_stat )
-     call memocc(i_stat, w_omp(ith)%zw, 'zws', subname)
-     allocate(w_omp(ith)%zt(2,lzt, n1+ndebug), stat=i_stat )
-     call memocc(i_stat, w_omp(ith)%zt, 'zts', subname)
-  end do
-
-!!$	allocate( zws(2, ncache/4, 2+ndebug, 0:nThread-1), stat=i_stat )
-!!$	call memocc(i_stat, zws, 'zws', subname)
-!!$	allocate( zts(2,lzt, n1+ndebug, 0:nThread-1), stat=i_stat )
-!!$	call memocc(i_stat, zts, 'zts', subname)
-
-	maxIter = min(md2 /nproc, n2dim - iproc *( md2 /nproc))
+  maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,zw,iThread) !&
-!  !$omp firstprivate(before3, now3, after3)
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  !$omp firstprivate(before3, now3, after3, lot, maxIter)
+  
+  allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
+  allocate( zt(2,lzt, n1+ndebug), stat=i_stat )
 
-	!$ iThread = omp_get_thread_num()
-
-
-	zw => w_omp(iThread)%zw
-
-  !$omp do
+  !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
      !if (iproc*(md2/nproc)+j2 <= n2dim) then
@@ -269,12 +236,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ntrig,btrig3,after3(i),now3(i),before3(i),1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
+                zw(1,1,3-inzee),ntrig,btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
+          
            !output: I1,i3,J2,(Jp2)
-
            !exchanging components
            !input: I1,i3,J2,(Jp2)
            if (halffty) then
@@ -289,44 +256,34 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
      !end if
   end do
   !$omp end do
-  !$omp end parallel
+  ! DO NOT USE NOWAIT, removes the implicit barrier
 
-  !Interprocessor data transposition
-  !input: I1,J2,j3,jp3,(Jp2)
-  if (nproc > 1) then
-     call timing(iproc,'PSolv_comput  ','OF')
-     call timing(iproc,'PSolv_commun  ','ON')
+  !$omp master
+    !Interprocessor data transposition
+    !input: I1,J2,j3,jp3,(Jp2)
+    if (nproc > 1) then
+       call timing(iproc,'PSolv_comput  ','OF')
+       call timing(iproc,'PSolv_commun  ','ON')
 
-     !communication scheduling
-     call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision, &
-          zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
+       !communication scheduling
+       call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision, &
+            zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision,MPI_COMM_WORLD,ierr)
 
-     call timing(iproc,'PSolv_commun  ','OF')
-     call timing(iproc,'PSolv_comput  ','ON')
-  endif
-  !output: I1,J2,j3,Jp2,(jp3)
+       call timing(iproc,'PSolv_commun  ','OF')
+       call timing(iproc,'PSolv_comput  ','ON')
+    endif
+    !output: I1,J2,j3,Jp2,(jp3)
+  !$omp end master
+  !$omp barrier
 
   !now each process perform complete convolution of its planes
+  maxIter = min(nd3 /nproc, n3/2+1 - iproc*(nd3/nproc))
+  
+  strten_omp=0
 
-	maxIter = min(nd3 /nproc, n3/2+1 - iproc*(nd3/nproc))
-
-  !$omp parallel default(shared)&
-  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,inzee,zt,zw,lot,i3,strten_omp, iThread)
-
-	!$ iThread = omp_get_thread_num()
-
-	strten_omp=0
-
-	zt => w_omp(iThread)%zt
-	zw => w_omp(iThread)%zw
-
-!!$	zt => zts(:, :, :, iThread)
-!!$	zw => zws(:, :, :, iThread)
-	!call to_zero(4*(ncache/4),zw(1,1,1))
-
-  !$omp do
+  !$omp do schedule(static)
   do j3 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
      !if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
@@ -421,7 +378,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            end do
            !reverse ordering
            !input: i1,I2,j3,(jp3)
-           call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw(1,1,inzee),zt(1,1,j))
+           call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt, &
+             zw(1,1,inzee),zt(1,1,j))
            !output: I2,i1,j3,(jp3)
         end do
         !transform along x axis
@@ -462,43 +420,38 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
     !do i = 1, 6
     !  strten(j) = strten(j) + strten_omp(j)
     !enddo
-    strten = strten + strten_omp !could perhaps be done with a reduction
+    strten = strten + strten_omp
   !$omp end critical
-  !$omp end parallel
+  ! DO NOT USE NOWAIT, removes the implicit barrier
 
+  !$omp master
 !TRANSFORM BACK IN Y
-  !Interprocessor data transposition
-  !input: I1,J2,j3,Jp2,(jp3)
-  if (nproc > 1) then
-     call timing(iproc,'PSolv_comput  ','OF')
-     call timing(iproc,'PSolv_commun  ','ON')
+    !Interprocessor data transposition
+    !input: I1,J2,j3,Jp2,(jp3)
+    if (nproc.gt.1) then
+       call timing(iproc,'PSolv_comput  ','OF')
 
-     !communication scheduling
-     call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision, &
-          zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
+       call timing(iproc,'PSolv_commun  ','ON')
+       !communication scheduling
+       call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision, &
+            zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision,MPI_COMM_WORLD,ierr)
+       call timing(iproc,'PSolv_commun  ','OF')
 
-     call timing(iproc,'PSolv_commun  ','OF')
-     call timing(iproc,'PSolv_comput  ','ON')
-  endif
-  !output: I1,J2,j3,jp3,(Jp2)
+       call timing(iproc,'PSolv_comput  ','ON')
+    endif
+    !output: I1,J2,j3,jp3,(Jp2)
+  !$omp end master
+  !$omp barrier
 
   !transform along z axis
   !input: I1,J2,i3,(Jp2)
   lot=ncache/(4*n3dim)
 
-	maxIter = min(md2/nproc, n2dim - iproc *(md2/nproc))
+  maxIter = min(md2/nproc, n2dim - iproc *(md2/nproc))
 
-  !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,zw, iThread) !&
-!  !$omp firstprivate(before3, after3, now3)
-
-	!$ iThread = omp_get_thread_num()
-	zw => w_omp(iThread)%zw
-	!call to_zero(4*(ncache/4),zw(1,1,1))
-
-  !$omp do
+  !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
      !if (iproc*(md2/nproc)+j2 <= n2dim) then
@@ -508,7 +461,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !reverse ordering
            !input: I1,J2,i3,(Jp2)
            if (halffty) then
-              call unscramble_pack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,zmpi2,zw(1,1,1),cosinarr)
+              call unscramble_pack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,zmpi2, &
+                zw(1,1,1),cosinarr)
            else
               call unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw(1,1,1))
            end if
@@ -518,8 +472,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
+                zw(1,1,3-inzee),ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
            !output: I1,I3,J2,(Jp2)
@@ -541,20 +495,13 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
      !endif
   end do
   !$omp end do
+  
+  deallocate(zw, stat=i_stat)
+  deallocate(zt, stat=i_stat)
+  
   !$omp end parallel
 
 !END OF TRANSFORM IN Y DIRECTION
-
-  do ith=0,nThread-1
-     i_all = -product(shape(w_omp(ith)%zw))*kind(w_omp(ith)%zw)
-     deallocate(w_omp(ith)%zw, stat=i_stat)
-     call memocc(i_stat, i_all, 'zw', subname)
-
-     i_all = -product(shape(w_omp(ith)%zt))*kind(w_omp(ith)%zt)
-     deallocate(w_omp(ith)%zt, stat=i_stat)
-     call memocc(i_stat, i_all, 'zt', subname)
-  end do
-  deallocate(w_omp) !crash if problems
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)
@@ -626,6 +573,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver
+
 
 !> General routine, takes into account the free boundary conditions
 subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&

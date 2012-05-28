@@ -214,14 +214,23 @@
                     (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
                close(unit=mallocFile)
             end if
-            write(*,'(1x,a)')&
-                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
-            write(*,'(1x,2(i0,a,1x),i0)')&
-                 memalloc,' allocations and',memdealloc,' deallocations, remaining memory(B):',&
-                 memtot%memory
-            write(*,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
-            write(*,'(4(1x,a))') 'for the array ',trim(memtot%array),&
-                 'in the routine',trim(memtot%routine)
+	    !write it in Yaml Format without yaml module
+            write(*,'(1x,a)')'Memory Consumption Report:'
+            write(*,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
+            write(*,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
+            write(*,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
+            write(*,'(1x,a)')   '  Memory occupation: '
+            write(*,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
+            write(*,'(1x,a)')   '     for the array: '//trim(memtot%array)       
+            write(*,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
+!!$            write(*,'(1x,a)')&
+!!$                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
+!!$            write(*,'(1x,2(i0,a,1x),i0)')&
+!!$                 memalloc,' allocations and',memdealloc,' deallocations, remaining memory(B):',&
+!!$                 memtot%memory
+!!$            write(*,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
+!!$            write(*,'(4(1x,a))') 'for the array ',trim(memtot%array),&
+!!$                 'in the routine',trim(memtot%routine)
             !here we can add a routine which open the malloc.prc file in case of some 
             !memory allocation problem, and which eliminates it for a successful run
             if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then

@@ -10,17 +10,30 @@ module yaml_strings
 contains
 
   !> Add a buffer to a string and increase its length
-  subroutine buffer_string(string,string_lgt,buffer,string_pos,back)
+  subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
     integer, intent(in) :: string_lgt
     integer, intent(inout) :: string_pos
     character(len=*), intent(in) :: buffer
     character(len=string_lgt), intent(inout) :: string
     logical, optional, intent(in) :: back
+    integer, optional, intent(out) :: istat
     !local variables
     integer :: lgt_add
 
+    if (present(istat)) istat=0 !no errors
+
     lgt_add=len(buffer)
+    !do not copy strings which are too long
+    if (lgt_add+string_pos > string_lgt) then
+       if (present(istat)) then
+          istat=-1
+          return
+       else
+          stop 'ERROR (buffer string): string too long'
+       end if
+    end if
+       
     if (lgt_add==0) return
     if (present(back)) then
        if (back) then
@@ -677,7 +690,7 @@ contains
     end if
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
 
@@ -877,7 +890,8 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt,icut
+    logical :: cut,redo_line
+    integer :: msg_lgt,strm,istream,unt,icut,istr,ierr,msg_lgt_ck
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -885,29 +899,62 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-
     adv='def' !default value
     if (present(advance)) adv=advance
 
     msg_lgt=0
+
     !put the message
     call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
     !put the semicolon
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
+       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
 
-    !check the size of the message and cut the message in different pieces
-    icut=len_trim(mapvalue)
-    do while( icut > streams(strm)%max_record_length - msg_lgt)
-       icut=index(' ',mapvalue,back=.true.)
-    end do
+    !while putting the message verify that the string is not too long
+    msg_lgt_ck=msg_lgt
+    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    if (ierr ==0) then
+       call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
+    end if
+    redo_line=ierr/=0
+    !print *,'ierr',ierr
+    if (redo_line) then
+       if (streams(strm)%flowrite/=0) then
+          call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
+       else
+          if (present(label)) then
+             call yaml_open_map(mapname,label=label,unit=unt)
+          else
+             call yaml_open_map(mapname,unit=unt)
+          end if
+       end if
+!       if (streams(strm)%flowrite/=0) call yaml_newline(unit=unt)
+       icut=len_trim(mapvalue)
+       istr=1
+       cut=.true.
+       msg_lgt=0
+       cut_line: do while(cut)
+       !verify where the message can be cut
+          cut=.false.
+          cut_message :do while(icut > streams(strm)%max_record_length - max(streams(strm)%icursor,streams(strm)%indent))
+             icut=index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
+             cut=.true.
+          end do cut_message
+          call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
+          if (streams(strm)%flowrite/=0 .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
+          call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
+          istr=icut
+          icut=len_trim(mapvalue)-istr+1
+          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+          msg_lgt=0
+       end do cut_line
+       if (streams(strm)%flowrite==0) call yaml_close_map(unit=unt)
+    end if
 
-    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt)
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
@@ -937,7 +984,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -976,7 +1023,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1015,7 +1062,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1054,7 +1101,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1093,7 +1140,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1132,7 +1179,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1185,13 +1232,14 @@ contains
 
   end subroutine get_stream
 
-  subroutine dump(stream,message,advance,event)
+  subroutine dump(stream,message,advance,event,istat)
     use yaml_strings
     implicit none
     type(yaml_stream), intent(inout) :: stream
     character(len=*), intent(in) :: message
     character(len=*), intent(in), optional :: advance
     integer, intent(in), optional :: event
+    integer, intent(out), optional :: istat
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: lgt,evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt,iscpos
@@ -1199,6 +1247,8 @@ contains
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=stream%max_record_length) :: towrite
+
+    if(present(istat)) istat=0 !no errors
 
     !some consistency check
     if (stream%icomma /= 0 .and. stream%flowrite ==0) then
@@ -1432,7 +1482,16 @@ contains
     !print *,'adv',trim(adv),towrite_lgt,icursor,change_line,msg_lgt
     !here we should check whether the size of the string exceeds the maximum length
     if (towrite_lgt > 0) then
-       write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+       if (towrite_lgt > stream%max_record_length) then
+          if (present(istat)) then
+             istat=-1
+             return
+          else
+             stop 'ERROR (dum) writing exceeds record size'
+          end if
+       else
+          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+       end if
     end if
 
     !if advancing i/o cursor is again one

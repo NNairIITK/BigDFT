@@ -32,12 +32,12 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
   end if
 end subroutine kswfn_free_scf_data
 
-subroutine kswfn_emit_psi(Wfn, iter, iproc, nproc)
+subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
   use module_base
   use module_types
   implicit none
   type(DFT_wavefunction), intent(in) :: Wfn
-  integer, intent(in) :: iter, iproc, nproc
+  integer, intent(in) :: iter, iproc, nproc, psi_or_hpsi
 
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_WAIT = -2
@@ -49,7 +49,11 @@ subroutine kswfn_emit_psi(Wfn, iter, iproc, nproc)
      ! Only iproc 0 emit the signal. This call is blocking.
      ! All other procs are blocked by the bcast to wait for
      ! possible transfer to proc 0.
-     call wf_emit_psi(Wfn%c_obj, iter)
+     if (psi_or_hpsi == 0) then
+        call wf_emit_psi(Wfn%c_obj, iter)
+     else
+        call wf_emit_hpsi(Wfn%c_obj, iter)
+     end if
      if (nproc > 1) then
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
@@ -67,8 +71,13 @@ subroutine kswfn_emit_psi(Wfn, iter, iproc, nproc)
         if (message > 0 .and. iproc == message) then
            ! Will have to send to iproc 0 some of psi.
            call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, MPI_COMM_WORLD, status, ierr)
-           call MPI_SEND(Wfn%psi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
-                & 0, 123, MPI_COMM_WORLD, ierr)
+           if (psi_or_hpsi == 0) then
+              call MPI_SEND(Wfn%psi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
+                   & 0, 123, MPI_COMM_WORLD, ierr)
+           else
+              call MPI_SEND(Wfn%hpsi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
+                   & 0, 123, MPI_COMM_WORLD, ierr)
+           end if
         end if
      end do
   end if

@@ -621,7 +621,12 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
         if (index(line, 'surface') > 0)  atoms%geocode = 'S'
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
      else if (line(1:9) == "#metaData" .or. line(1:9) == "!metaData") then
-        if (index(line, 'totalEnergy') > 0) read(line(index(line, 'totalEnergy') + 12:), *) energy
+        if (index(line, 'totalEnergy') > 0) then
+           read(line(index(line, 'totalEnergy') + 12:), *, iostat = i_stat) energy
+           if (i_stat /= 0) then
+              energy = UNINITIALIZED(energy)
+           end if
+        end if
         if (index(line, 'forces') > 0) forces = .true.
      end if
   end do
@@ -1147,7 +1152,11 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
+  if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
+     write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,trim(comment)
+  else
+     write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),trim(comment)
+  end if
 
   if (atoms%geocode == 'P') then
      write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
@@ -1456,7 +1465,9 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   call yaml_close_map() !positions
   call yaml_open_map('Properties')
   call yaml_map('Timestamp',yaml_date_and_time_toa())
-  call yaml_map("Energy (Ha)", energy)
+  if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
+     call yaml_map("Energy (Ha)", energy)
+  end if
   call yaml_close_map() !properties
   if (wrtforces) then
      call yaml_open_map('Forces')

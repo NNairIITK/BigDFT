@@ -26,7 +26,7 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- 
+
  |... (file:default.perf).........................................Performance Options
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
@@ -111,26 +111,26 @@
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  6.900E-01  1.793E-01
+- READING WAVES TIME   0  3.000E-01  1.990E-01
  Proc           0  allocates psi to      115430
  Proc           0  treats orbital           1
  Proc           0  treats orbital           2
  Proc           0  treats orbital           3
  Proc           0  treats orbital           4
  Proc           0  treats orbital           5
- Proc           0  orbital           1  is of norm    1.00000000000057     
- Proc           0  orbital           2  is of norm   0.999999999999984     
- Proc           0  orbital           3  is of norm    1.00000000000006     
- Proc           0  orbital           4  is of norm    1.00000000000006     
- Proc           0  orbital           5  is of norm   0.999999999999969     
+ Proc           0  orbital           1  is of norm    1.0000000000005718     
+ Proc           0  orbital           2  is of norm   0.99999999999994871     
+ Proc           0  orbital           3  is of norm    1.0000000000001861     
+ Proc           0  orbital           4  is of norm    1.0000000000000144     
+ Proc           0  orbital           5  is of norm   0.99999999999996902     
  Proc           0  treats       115430 components of all orbitals.
  The overlap matrix is:
-(     1.0000000       -0.69513839E-13    0.12297802E-12   -0.95972709E-13   -0.24127922E-12)
-(   -0.69513839E-13     1.0000000       -0.53897858E-14    0.31176450E-13    0.11546319E-13)
-(    0.12297802E-12   -0.53897858E-14     1.0000000       -0.70301404E-13   -0.31013386E-13)
-(   -0.95972709E-13    0.31176450E-13   -0.70301404E-13     1.0000000        0.81419246E-14)
-(   -0.24127922E-12    0.11546319E-13   -0.31013386E-13    0.81419246E-14     1.0000000    )
- System has   9.99999880900116      electrons.
+(     1.0000000       -0.70486873E-13   -0.20635881E-13    0.34222390E-14   -0.24217019E-12)
+(   -0.70486873E-13     1.0000000       -0.14119610E-13    0.56753381E-13   -0.10500896E-13)
+(   -0.20635881E-13   -0.14119610E-13     1.0000000        0.53138082E-13   -0.54980924E-14)
+(    0.34222390E-14    0.56753381E-13    0.53138082E-13     1.0000000       -0.62804504E-14)
+(   -0.24217019E-12   -0.10500896E-13   -0.54980924E-14   -0.62804504E-14     1.0000000    )
+ System has   9.9999988090012781      electrons.
  GPU acceleration                      :  No
  Total electronic charge               :  9.999998809002
  ----------------------------------------------------------- Ionic Potential Creation
@@ -139,4 +139,4 @@
    BC                                  : Isolated
    Dimensions                          :  [  91,  91,  101 ]
    MPI tasks                           :  1
- System pseudo energy is -0.404200517888936      Ht.
+ System pseudo energy is -0.40420051788894001      Ht.

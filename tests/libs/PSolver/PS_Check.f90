@@ -95,6 +95,21 @@ program PS_Check
    !order of the scaling functions chosen
    itype_scf=16
 
+   if (iproc==0) then
+      select case(geocode)
+      case('F')
+         call yaml_map('Boundary Conditions','Isolated')
+      case('S')
+         call yaml_map('Boundary Conditions','Surface')
+      case('W')
+         call yaml_map('Boundary Conditions','Wire')
+      case('P')
+         call yaml_map('Boundary Conditions','Periodic')
+      end select
+      if (ixc /=0) call yaml_map('Exchange and Correlation approximation tested',ixc)
+      call yaml_open_map('Multiprocessor run',label='MPIrun')
+   end if
+
    !calculate the kernel in parallel for each processor
    call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 
@@ -120,8 +135,11 @@ program PS_Check
       else
          call xc_init(ixc, XC_ABINIT, ispden)
       end if
+      if (iproc == 0) then
+         call yaml_map('Number of Spins',ispden)
+      end if
 
-      if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
+      !if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
       !write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
       !then assign the value of the analytic density and the potential
       !allocate the rhopot also for complex routines
@@ -137,15 +155,14 @@ program PS_Check
       rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
       call H_potential(geocode,'G',iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,xc_pot,ehartree,offset,.false.) !optional argument
-      !!$     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      !!$          rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
 
       if (iproc == 0) then
-         call yaml_open_map('Energies')
+         call yaml_open_map('Energies',flow=.true.)
          call yaml_map('Hartree',ehartree,fmt='(1pe20.12)')
-         if (eexcu /= 0.0_gp) call yaml_map('Exc[rho]',eexcu,fmt='(1pe20.12)')
-         if (vexcu /= 0.0_gp) call yaml_map('EVxc[rho] ',vexcu,fmt='(1pe20.12)')
+         if (eexcu /= 0.0_gp) call yaml_map('Exc',eexcu,fmt='(1pe20.12)')
+         if (vexcu /= 0.0_gp) call yaml_map('EVxc ',vexcu,fmt='(1pe20.12)')
          call yaml_close_map()
+         call yaml_open_map('Comparison with a reference run')
       end if
       !write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
       !stop
@@ -189,24 +206,35 @@ program PS_Check
 !         density,potential,pot_ion,xc_pot,pkernel)
 !      end if
 
+      if (iproc==0) call yaml_close_map() !comparison
       if (ixc == 0) exit
 
       call xc_end()
    end do
 
+   if (iproc==0) call yaml_close_map() !MPI
    if (ixc == 0) then
+      if (iproc==0) call yaml_open_map('Complex run')
       !compare the calculations in complex
       call compare_cplx_calculations(iproc,nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,&
       density,potential,pkernel)
 
       call compare_cplx_calculations(iproc,nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,&
       density,potential,pkernel)
+      if (iproc==0)call yaml_close_map()
    end if
 
    call timing(iproc,'Parallel','PR')
 
-   if (iproc == 0) then
-     do ispden = 1, 2
+   if (nproc == 1 ) call yaml_map('Monoprocess run','*MPIrun')
+
+   !do not do the sequential calculation if it has been already done
+   if (iproc == 0 .and. nproc > 1 ) then
+     call yaml_open_map('Monoprocess run')
+    allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
+    call memocc(i_stat,rhopot,'rhopot',subname)
+
+     do ispden = 1, 2 !do only nspden=2 (nspden=1 reference already overwritten)
        if (ixc < 0) then
          call xc_init(ixc, XC_MIXED, ispden)
        else
@@ -216,9 +244,17 @@ program PS_Check
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
        call memocc(i_stat,i_all,'pkernel',subname)
+     
+       call yaml_map('Number of Spins',ispden)
+
+       call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+            density,potential,rhopot,pot_ion,offset)
+      !calculate the Poisson potential in parallel
+      !with the global data distribution (also for xc potential)
 
        call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
-  
+       call yaml_open_map('Comparison with a reference run')
+
        call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernel)
@@ -227,9 +263,15 @@ program PS_Check
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernel)
 
+       call yaml_close_map() !comparison
        if (ixc == 0) exit
        call xc_end()    
      enddo
+     i_all=-product(shape(rhopot))*kind(rhopot)
+     deallocate(rhopot,stat=i_stat)
+     call memocc(i_stat,i_all,'rhopot',subname)
+
+     call yaml_close_map()
    endif
 
    call timing(iproc,'Serial','PR')
@@ -263,6 +305,7 @@ program PS_Check
         call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
       call yaml_close_map()
    end if
+   !call yaml_stream_attributes()
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
    !finalize memory counting
@@ -299,7 +342,12 @@ program PS_Check
       write(message,'(1x,a,1x,a)') geocode,distcode
 
       if (iproc==0) then
-         call yaml_open_map('Run'//trim(message))
+         select case(distcode)
+         case('D')
+            call yaml_open_map('Distributed data')
+         case('G')
+            call yaml_open_map('Global data')
+         end select
       end if
 
 
@@ -336,10 +384,8 @@ program PS_Check
       !perform the calculation in complex, with distributed and gathered distribution
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='YES')
-      !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
-      !!$         rhopot,pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
 
-      call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot,'CPLXREAL'//trim(message))
+      call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot,'CPLXREAL')
 
       isp=2
       do i3=1,n3d
@@ -354,14 +400,12 @@ program PS_Check
       !perform the calculation in complex, with distributed and gathered distribution
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot(1,1,1,2),pkernel,rhopot,ehartree,offset,.false.,quiet='YES')
-      !!$       call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
-      !!$            rhopot(1,1,1,2),pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
 
-      call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot(1,1,1,2),'CPLXIMAG'//trim(message))
+      call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot(1,1,1,2),'CPLXIMAG')
 
 
       if (iproc==0) then
-         call yaml_open_map('Nonzero Energy differences')
+         call yaml_open_map('Energy differences')
          call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
          call yaml_close_map()
          call yaml_close_map() !run
@@ -431,7 +475,12 @@ program PS_Check
       if (iproc == 0) write(message,'(1x,a,1x,i0,1x,a,1x,i0)') geocode,ixc,distcode,nspden
 
       if (iproc==0) then
-         call yaml_open_map('Run'//trim(message))
+         select case(distcode)
+         case('D')
+            call yaml_open_map('Distributed data')
+         case('G')
+            call yaml_open_map('Global data')
+         end select
       end if
 
 
@@ -490,7 +539,7 @@ program PS_Check
       rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
       !compare the values of the analytic results (no dependence on spin)
       call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
-      'ANACOMPLET '//message)
+      'ANACOMPLET ')!//message)
 
       !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
       !!$         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
@@ -502,12 +551,12 @@ program PS_Check
       !compare also the xc_potential
       if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc:),&
       test_xc(1),&
-      'XCCOMPLETE '//message)
+      'XCCOMPLETE ')!//message)
       if (iproc==0) then
-            call yaml_open_map('Non zero Energy differences')
+            call yaml_open_map('Energy differences')
             call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
-            if (excref-eexcu /= 0.0_gp) call yaml_map('Exc[rho]',excref-eexcu,fmt="(1pe20.12)")
-            if (vxcref-vexcu /= 0.0_gp) call yaml_map('EVxc[rho]',vxcref-vexcu,fmt="(1pe20.12)")
+            call yaml_map('Exc',excref-eexcu,fmt="(1pe20.12)")
+            call yaml_map('EVxc',vxcref-vexcu,fmt="(1pe20.12)")
             call yaml_close_map()
          end if
 !!$         write(unit=*,fmt="(1x,a,3(1pe20.12))") &
@@ -548,7 +597,7 @@ program PS_Check
       call axpy(n01*n02*n3p*nspden,1.0_dp,test_xc(1),1,rhopot(1,1,1,1),1)
       !then compare again, but the complete result
       call compare(iproc,-1,n01,n02,nspden*n3p,1,test(istpot),&
-      rhopot(1,1,1,1),'COMPLETE   '//message)
+      rhopot(1,1,1,1),'COMPLETE   ')!)//message)
 
       !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
       !!$         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
@@ -556,10 +605,10 @@ program PS_Check
       !!$    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
       !!$         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
       if (iproc==0) then
-         call yaml_open_map('Non zero Energy differences')
+         call yaml_open_map('Energy differences')
          call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
-         if (excref-eexcu /= 0.0_gp) call yaml_map('Exc[rho]',excref-eexcu,fmt="(1pe20.12)")
-         if (vxcref-vexcu /= 0.0_gp) call yaml_map('EVxc[rho]',vxcref-vexcu,fmt="(1pe20.12)")
+         call yaml_map('Exc',excref-eexcu,fmt="(1pe20.12)")
+         call yaml_map('EVxc',vxcref-vexcu,fmt="(1pe20.12)")
          call yaml_close_map()
          call yaml_close_map() !Run
       end if
@@ -622,10 +671,11 @@ program PS_Check
       end if
 
       if (iproc == 0) then
-         call yaml_open_map('Result comparison')
-         call yaml_map('Run description',trim(description))
+         call yaml_open_map(trim(description),flow=.false.)
+         !call yaml_open_map('Result comparison')
+         !call yaml_map('Run description',trim(description))
          call yaml_map('Difference in Inf. Norm',diff_par,fmt='(1pe20.12)')
-         if (diff_par > 1.e-10) call yaml_map('WARNING','Calculation possibly wrong, check if the diff is meaningful')
+         if (diff_par > 1.e-10) call yaml_warning('Calculation possibly wrong, check if the diff is meaningful')
          if (nproc == -1) then
             call yaml_map('Max. diff coordinates',(/i1_max,i2_max,i3_max/),fmt='(i0)')
             call yaml_map('Result',density(i1_max,i2_max,i3_max),fmt='(1pe20.12)')

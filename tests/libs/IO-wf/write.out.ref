@@ -105,8 +105,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
- MPI process does not use OpenMP
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -155,46 +155,51 @@
  wavelet localization is OFF
  ------------------------------------------------------------ Poisson Kernel Creation
  Poisson solver for periodic BC, no kernel calculation...done.
- Memory occ. per proc. (Bytes):  Density=884736  Kernel=125000
+ Memory occ. per proc. (Bytes):  Density=442368  Kernel=65000
                                  Full Grid Arrays=884736
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  1 work at 100%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        576 points=     13824
    Fine resolution grid: Number of segments=        250 points=       856
  Total Number of Electrons       12
  Spin-polarized calculation
+ Processes from 0 to 1 treat 12 orbitals 
  Total Number of Orbitals        12
  occup(1:12)= 1.0000
  Total Number of Orbitals        12
  occup(1:12)= 1.0000
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      24     |------|------------||        39632  |------|-----------------|
+ |    0 |      12     |------|------------||        19816  |------|-----------------|
  |      |             |   1  |    1-   12 ||               |   1  |       1-   19816|
+ |    1 |      12     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   12 ||               |   2  |       1-   19816|
- Wavefunctions memory occupation for root MPI process:     7 MB   263 KB     0 B
+ Wavefunctions memory occupation for root MPI process:     3 MB   643 KB   512 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               2                    1
                                             ------  On-the-fly projectors application
  Total number of projectors =                    2
- Total number of components =                13360
+ Total number of components =                 6680
  Percent of zero components =                    0
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    2 Number of orbitals=    12 Sim. Box Dimensions=    23   23   23
- Estimation performed for 1 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     0 MB   920 KB
-              Poisson Solver Density (D):     1 MB   704 KB
+               Poisson Solver Kernel (K):     0 MB   469 KB
+              Poisson Solver Density (D):     0 MB   864 KB
      Single Wavefunction for one orbital:     0 MB   310 KB
-    All Wavefunctions for each processor:    14 MB   526 KB
-       Wavefunctions + DIIS per proc (W):    14 MB   526 KB
-     Nonlocal Pseudopotential Arrays (P):     0 MB   105 KB
+    All Wavefunctions for each processor:    10 MB   907 KB
+       Wavefunctions + DIIS per proc (W):    10 MB   907 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB    53 KB
     Arrays of full uncompressed grid (U):     1 MB   704 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~2*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~4*U+~ 3*D+K+P 
-         9MB         |        23MB          |       29MB     |            27MB
- The overall memory requirement needed for this calculation is thus: 29 MB
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~5*U+~ 3*D+K+P 
+         8MB         |        18MB          |       21MB     |            22MB
+ The overall memory requirement needed for this calculation is thus: 22 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 8 MB
  ion-ion interaction energy -7.53895186697576E+00
@@ -203,22 +208,24 @@
  Poisson Solver:
    BC                                  : Periodic
    Dimensions                          :  [  48,  48,  48 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
  Total No. of Atomic Input Orbitals:  16, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 1:  16}, 
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 1.00,  1.00], p: [ 1.00,  1.00,  1.00,  1/3,  1/3,  1/3]}}], 
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      32     |------|------------||        39632  |------|-----------------|
+ |    0 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   1  |    1-   16 ||               |   1  |       1-   19816|
+ |    1 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.20E-03, 
              GPU acceleration:  No, Total electronic charge:  11.999999344210, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
  Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343756E+00, 
               EH:  2.02044854640E+01,  EXC: -6.88908378753E+00, EvXC: -8.95086618468E+00}, 
- EKS: -3.20647550202282190E+01, 
+ EKS: -3.20647550202283469E+01, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Total magnetization:  5.333333, Orbitals: [
@@ -247,23 +254,23 @@
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Total electronic charge:  11.999999267066, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.58842246387E+01, Epot: -3.40009627344E+01, Enl:  2.63593900719E+00, 
               EH:  2.02930930728E+01,  EXC: -7.03180785282E+00, EvXC: -9.12864729385E+00}, 
- iter:  1, EKS: -3.12160045872817946E+01, gnrm:  2.80E-01, 
+ iter:  1, EKS: -3.12160045872817093E+01, gnrm:  2.80E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Total electronic charge:  11.999999453999, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.13343723620764649E+01, gnrm:  2.80E-01,  #FINAL
+ iter:  2, EKS: -3.13343723620770618E+01, gnrm:  2.80E-01,  #FINAL
  Energies: {Ekin:  2.58311951051E+01, Epot: -3.36861624128E+01, Enl:  2.79018687907E+00, 
-              EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320164E+00, 
+              EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle 1
+  WARNING: Wavefunctions not converged after cycle           1
         #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -288,60 +295,61 @@
  Write wavefunctions to file: data-binary/wavefunction.*
  1th wavefunction written
  1th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
  2th wavefunction written
  2th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
  3th wavefunction written
  3th wavefunction written
  4th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 5th wavefunction written
  4th wavefunction written
  5th wavefunction written
  5th wavefunction written
  6th wavefunction written
+ 5th wavefunction written
  6th wavefunction written
  7th wavefunction written
+ 6th wavefunction written
  7th wavefunction written
  8th wavefunction written
- 8th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 1th wavefunction written
- 1th wavefunction written
- 2th wavefunction written
- 2th wavefunction written
- 3th wavefunction written
- 3th wavefunction written
- 4th wavefunction written
- 4th wavefunction written
- 5th wavefunction written
- 5th wavefunction written
- 6th wavefunction written
  6th wavefunction written
  7th wavefunction written
+ 8th wavefunction written
  7th wavefunction written
  8th wavefunction written
+ 1th wavefunction written
  8th wavefunction written
  1th wavefunction written
  1th wavefunction written
  2th wavefunction written
  2th wavefunction written
+ 1th wavefunction written
  3th wavefunction written
+ 2th wavefunction written
+ 3th wavefunction written
+ 2th wavefunction written
+ 4th wavefunction written
  3th wavefunction written
  4th wavefunction written
- 4th wavefunction written
-- WRITE WAVES TIME   0  3.200E-01  4.173E-01
+- WRITE WAVES TIME   0  2.600E-01  2.100E-01
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
+ 3th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+- WRITE WAVES TIME   1  2.900E-01  2.270E-01
  Total electronic charge               :  11.999999453999
  Poisson Solver:
    BC                                  : Periodic
    Dimensions                          :  [  48,  48,  48 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   9.387111E+01 (AU)       (Px,Py,Pz)=   -6.1630E+01  -6.0512E+01  -3.6769E+01
   |P| =   2.385965E+02 (Debye)    (Px,Py,Pz)=   -1.5665E+02  -1.5381E+02  -9.3457E+01
@@ -351,22 +359,26 @@
  average noise along y direction:  -1.19218169E-04
  average noise along z direction:   4.76577028E-03
  total average noise            :   4.77555870E-03
- clean forces norm (Ha/Bohr): maxval=  4.846821384229E-01  fnrm2=  4.633456084400E-01
+ clean forces norm (Ha/Bohr): maxval=  4.846821384229E-01  fnrm2=  4.633456084404E-01
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.739406561775E-04, -4.863593143012E-07, -3.324444374908E-09 ]
-   -  [ -4.863593143012E-07, -2.109450790446E-04, -1.555582879356E-09 ]
-   -  [ -3.324444374908E-09, -1.555582879356E-09, -3.457292927748E-03 ]
+   -  [ -4.739406561784E-04, -4.863593146638E-07, -3.324444372111E-09 ]
+   -  [ -4.863593146638E-07, -2.109450790453E-04, -1.555582882390E-09 ]
+   -  [ -3.324444372111E-09, -1.555582882390E-09, -3.457292927749E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -1.38072622099002E-03
+     Ha/Bohr^3                         : -1.38072622099101E-03
      GPa                               : -40.6224
-     PV (Ha)                           : -0.84906651780214
- CPU time/ELAPSED time for root process     0        99.36        98.97
+     PV (Ha)                           : -0.84906651780275
+ CPU time/ELAPSED time for root process     0        18.70        35.23
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 869 allocations and 869 deallocations, remaining memory(B): 0
- memory occupation peak: 66 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 630
+   Tot. No. of Deallocations: 630
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 59
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

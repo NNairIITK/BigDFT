@@ -105,8 +105,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
- MPI process does not use OpenMP
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 2
@@ -155,46 +155,51 @@
  wavelet localization is OFF
  ------------------------------------------------------------ Poisson Kernel Creation
  Poisson solver for periodic BC, no kernel calculation...done.
- Memory occ. per proc. (Bytes):  Density=1728000  Kernel=238328
+ Memory occ. per proc. (Bytes):  Density=864000  Kernel=123008
                                  Full Grid Arrays=1728000
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  1 work at 100%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        900 points=     27000
    Fine resolution grid: Number of segments=        391 points=      1656
  Total Number of Electrons       12
  Spin-polarized calculation
+ Processes from 0 to 1 treat 12 orbitals 
  Total Number of Orbitals        12
  occup(1:12)= 1.0000
  Total Number of Orbitals        12
  occup(1:12)= 1.0000
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      24     |------|------------||        77184  |------|-----------------|
+ |    0 |      12     |------|------------||        38592  |------|-----------------|
  |      |             |   1  |    1-   12 ||               |   1  |       1-   38592|
+ |    1 |      12     |------|------------||        38592  |------|-----------------|
  |      |             |   2  |    1-   12 ||               |   2  |       1-   38592|
- Wavefunctions memory occupation for root MPI process:    14 MB   136 KB     0 B
+ Wavefunctions memory occupation for root MPI process:     7 MB    68 KB     0 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               2                    1
                                             ------  On-the-fly projectors application
  Total number of projectors =                    2
- Total number of components =                25934
+ Total number of components =                12967
  Percent of zero components =                    0
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    2 Number of orbitals=    12 Sim. Box Dimensions=    29   29   29
- Estimation performed for 1 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     1 MB   750 KB
-              Poisson Solver Density (D):     3 MB   303 KB
+               Poisson Solver Kernel (K):     0 MB   902 KB
+              Poisson Solver Density (D):     1 MB   664 KB
      Single Wavefunction for one orbital:     0 MB   603 KB
-    All Wavefunctions for each processor:    28 MB   272 KB
-       Wavefunctions + DIIS per proc (W):    28 MB   272 KB
-     Nonlocal Pseudopotential Arrays (P):     0 MB   203 KB
+    All Wavefunctions for each processor:    21 MB   204 KB
+       Wavefunctions + DIIS per proc (W):    21 MB   204 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB   102 KB
     Arrays of full uncompressed grid (U):     3 MB   303 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~2*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~4*U+~ 3*D+K+P 
-        19MB         |        45MB          |       56MB     |            53MB
- The overall memory requirement needed for this calculation is thus: 56 MB
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~5*U+~ 3*D+K+P 
+        16MB         |        35MB          |       41MB     |            43MB
+ The overall memory requirement needed for this calculation is thus: 43 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 16 MB
  ion-ion interaction energy -7.53895186697576E+00
@@ -203,73 +208,54 @@
  Poisson Solver:
    BC                                  : Periodic
    Dimensions                          :  [  60,  60,  60 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
+ because nvctr_c_old /= nvctr_c       13824       27000
+ because nvctr_f_old /= nvctr_f         856        1656
+ because cell size has changed          23          29          23          29          23          29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
+ because nvctr_c_old /= nvctr_c       13824       27000
+ because nvctr_f_old /= nvctr_f         856        1656
+ because cell size has changed          23          29          23          29          23          29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
+ because nvctr_c_old /= nvctr_c       13824       27000
+ because nvctr_f_old /= nvctr_f         856        1656
+ because cell size has changed          23          29          23          29          23          29
  wavefunctions need reformatting
  because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
- wavefunctions need reformatting
- because hgrid_old /= hgrid  0.3543236484  0.3543236484  0.3543236484  0.2834589187  0.2834589187  0.2834589187
- because nvctr_c_old /= nvctr_c 13824 27000
- because nvctr_f_old /= nvctr_f 856 1656
- because cell size has changed 23 29 23 29 23 29
-- READING WAVES TIME   0  8.120E+00  8.138E+00
+ because nvctr_c_old /= nvctr_c       13824       27000
+ because nvctr_f_old /= nvctr_f         856        1656
+ because cell size has changed          23          29          23          29          23          29
+- READING WAVES TIME   1  4.420E+00  2.316E+00
+- READING WAVES TIME   0  4.520E+00  2.367E+00
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp0001
    - Subspace Optimization:&itrep0001
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  11.999998596769, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  60,  60,  60 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Total electronic charge:  11.999998596768, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  60,  60,  60 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.56859153140E+01, Epot: -3.36216482043E+01, Enl:  2.91331202192E+00, 
               EH:  2.08411928832E+01,  EXC: -7.09393204314E+00, EvXC: -9.20966965032E+00}, 
- iter:  1, EKS: -3.12868280112926556E+01, gnrm:  7.85E-01, 
+ iter:  1, EKS: -3.12868280112921013E+01, gnrm:  7.85E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Total electronic charge:  11.999999104719, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  60,  60,  60 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  60,  60,  60 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.12982421936929214E+01, gnrm:  7.85E-01,  #FINAL
+ iter:  2, EKS: -3.12982421936924453E+01, gnrm:  7.85E-01,  #FINAL
  Energies: {Ekin:  2.50562385790E+01, Epot: -3.35043647116E+01, Enl:  2.43812408773E+00, 
               EH:  1.98137872985E+01,  EXC: -6.92488410022E+00, EvXC: -8.98938311690E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle 1
+  WARNING: Wavefunctions not converged after cycle           1
         #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -297,7 +283,7 @@
  Poisson Solver:
    BC                                  : Periodic
    Dimensions                          :  [  60,  60,  60 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   9.628243E+01 (AU)       (Px,Py,Pz)=   -6.2862E+01  -6.1904E+01  -3.8555E+01
   |P| =   2.447255E+02 (Debye)    (Px,Py,Pz)=   -1.5978E+02  -1.5734E+02  -9.7998E+01
@@ -307,21 +293,25 @@
  average noise along y direction:   3.05738968E-01
  average noise along z direction:   4.41957974E-01
  total average noise            :   6.44054236E-01
- clean forces norm (Ha/Bohr): maxval=  1.702149845871E+00  fnrm2=  4.097553828673E+00
+ clean forces norm (Ha/Bohr): maxval=  1.702149845871E+00  fnrm2=  4.097553828674E+00
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  7.362468394400E-04, -2.813968732240E-06, -3.454055119459E-06 ]
-   -  [ -2.813968732240E-06,  5.813916355771E-04, -3.107742759830E-06 ]
-   -  [ -3.454055119459E-06, -3.107742759830E-06, -3.521320508069E-03 ]
+   -  [  7.362468394390E-04, -2.813968732611E-06, -3.454055119455E-06 ]
+   -  [ -2.813968732611E-06,  5.813916355757E-04, -3.107742759830E-06 ]
+   -  [ -3.454055119455E-06, -3.107742759830E-06, -3.521320508077E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -7.34560677683799E-04
+     Ha/Bohr^3                         : -7.34560677687456E-04
      GPa                               : -21.6115
-     PV (Ha)                           : -0.45171219843146
- CPU time/ELAPSED time for root process     0       163.16       162.71
+     PV (Ha)                           : -0.45171219843371
+ CPU time/ELAPSED time for root process     0        28.73        54.17
  Final values of the Forces for each atom
      1      O  2.50645E-01  2.15682E-01 -1.04446E+00
      2      O  2.51357E-01  2.16698E-01  1.66948E+00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 805 allocations and 805 deallocations, remaining memory(B): 0
- memory occupation peak: 76 MB
- for the array  f_i in the routine vxcpostprocessing
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 518
+   Tot. No. of Deallocations: 518
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 51
+      for the array: f_i
+      in the routine: vxcpostprocessing

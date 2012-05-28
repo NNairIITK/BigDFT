@@ -242,7 +242,7 @@
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.49353169202E+00, Epot: -7.23008918261E+00, Enl:  9.17024465733E-01, 
               EH:  1.10792966041E+01,  EXC: -2.41397975460E+00, EvXC: -3.14987029367E+00}, 
- iter:  1, EKS: -6.15125722740757208E+00, gnrm:  1.31E-01, 
+ iter:  1, EKS: -6.15125722740757563E+00, gnrm:  1.31E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Total electronic charge:  7.999999909944, 
@@ -328,9 +328,9 @@
  Deviation from normalization          :  5.14E-01
  Orthogonality to occupied psi... done. first  done.
        1-sqnorm   Rayleigh quotient
-   1  3.330669E-16  5.90870E-01
-   2  2.220446E-16  3.42772E-01
-   3  0.000000E+00  5.23481E-01
+   1  1.110223E-16  5.90870E-01
+   2  4.440892E-16  3.42772E-01
+   3  1.110223E-16  5.23481E-01
    4  1.110223E-16  3.83732E-01
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 1
  |gradient|=gnrm and exit criterion   1.32322E+00  1.00000E-02
@@ -426,7 +426,7 @@
  Orthogonality of preconditioned gradients to occupied psi... done.
  done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. Eigenvalues, gnrm
-     1  1.93108779713592E-03 7.94E-03
+     1  1.93108779713597E-03 7.94E-03
      2  2.0744E-03 1.03E-02
      3  2.1686E-03 2.81E-02
      4  8.9339E-03 4.98E-02
@@ -439,7 +439,7 @@
  Diagonalization... done. Update v with eigenvectors... done. Eigenvalues, gnrm
      1  1.92498980914015E-03 5.66E-03
      2  2.0050E-03 1.95E-02
-     3  2.16393743897766E-03 5.65E-03
+     3  2.16393743897772E-03 5.65E-03
      4  8.6943E-03 3.66E-02
  Orthogonality to occupied psi... done. done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 11
@@ -448,9 +448,9 @@
  Orthogonality of preconditioned gradients to occupied psi... done.
  done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. Eigenvalues, gnrm
-     1  1.92160705809196E-03 4.34E-03
+     1  1.92160705809199E-03 4.34E-03
      2  1.9658E-03 1.54E-02
-     3  2.16169683692050E-03 4.29E-03
+     3  2.16169683692056E-03 4.29E-03
      4  8.5612E-03 2.72E-02
  Orthogonality to occupied psi... done. done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 12
@@ -459,9 +459,9 @@
  Orthogonality of preconditioned gradients to occupied psi... done.
  done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. Eigenvalues, gnrm
-     1  1.91973462355288E-03 3.12E-03
+     1  1.91973462355287E-03 3.12E-03
      2  1.9441E-03 1.08E-02
-     3  2.16058084532547E-03 2.71E-03
+     3  2.16058084532540E-03 2.71E-03
      4  8.4861E-03 2.03E-02
  Orthogonality to occupied psi... done. done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 13
@@ -474,18 +474,22 @@
  e_occupied(   3)= -3.12482154000178E-01
  e_occupied(   4)= -3.12477614041788E-01
  HOMO LUMO gap   = 3.14397348665341E-01 (  8.5552 eV)
- e_virtual(   1)=  1.91973462355288E-03
- e_virtual(   2)=  1.94406261244542E-03
- e_virtual(   3)=  2.16058084532547E-03
- e_virtual(   4)=  8.48605143818120E-03
- CPU time/ELAPSED time for root process     0        17.86        30.66
+ e_virtual(   1)=  1.91973462355287E-03
+ e_virtual(   2)=  1.94406261244549E-03
+ e_virtual(   3)=  2.16058084532540E-03
+ e_virtual(   4)=  8.48605143818149E-03
+ CPU time/ELAPSED time for root process     0        18.29        31.58
  Final values of the Forces for each atom
      1     Si  6.04012E-06  6.04012E-06  6.04012E-06
      2      H -1.94048E-04 -1.94048E-04 -1.94048E-04
      3      H  2.10829E-04  2.10829E-04 -2.33649E-04
      4      H -2.33649E-04  2.10829E-04  2.10829E-04
      5      H  2.10829E-04 -2.33649E-04  2.10829E-04
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2665 allocations and 2665 deallocations, remaining memory(B): 0
- memory occupation peak: 70 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 2629
+   Tot. No. of Deallocations: 2629
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 70
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -99,7 +99,7 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
+ Number of MPI processes 2
  Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
@@ -155,16 +155,23 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
+ Memory occ. per proc. (Bytes):  Density=4808160  Kernel=4943840
                                  Full Grid Arrays=8242408
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        968 points=     22880
    Fine resolution grid: Number of segments=         52 points=       280
  Total Number of Electrons       16
  Spin-polarized calculation
+ Processes from 0 to 1 treat 8 orbitals 
  Total Number of Orbitals        16
  occup(1:16)= 1.0000
- Wavefunctions memory occupation for root MPI process:     3 MB    33 KB     0 B
+ Wavefunctions memory occupation for root MPI process:     1 MB   528 KB   512 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
@@ -174,20 +181,20 @@
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    1 Number of orbitals=    16 Sim. Box Dimensions=    35   35   35
- Estimation performed for 1 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     9 MB   353 KB
-              Poisson Solver Density (D):    18 MB   173 KB
+               Poisson Solver Kernel (K):     4 MB   732 KB
+              Poisson Solver Density (D):     9 MB   175 KB
      Single Wavefunction for one orbital:     0 MB   195 KB
-    All Wavefunctions for each processor:     6 MB    66 KB
-       Wavefunctions + DIIS per proc (W):    12 MB   132 KB
+    All Wavefunctions for each processor:     4 MB   562 KB
+       Wavefunctions + DIIS per proc (W):     7 MB   595 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB   506 KB
     Arrays of full uncompressed grid (U):    15 MB   739 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~1*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~1*U+~ 3*D+K+P 
-       102MB         |        96MB          |      167MB     |            96MB
- The overall memory requirement needed for this calculation is thus: 167 MB
+       ~19*K         |   W+~2*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~2*U+~ 3*D+K+P 
+        89MB         |        75MB          |      122MB     |            76MB
+ The overall memory requirement needed for this calculation is thus: 122 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 58 MB
  ion-ion interaction energy  0.00000000000000E+00
@@ -196,140 +203,86 @@
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
  Total No. of Atomic Input Orbitals:  20, No. of Semicore Orbitals:  8, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 1:  10}, 
  Atomic Input Orbital Generation: [
  {Atom Type: Fe, Electronic configuration: {[s]: [ 1.00,  1.00], [p]: [ 1.00,  1.00,  1.00,  1.00,  1.00,  1.00], d: [ 1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  0.00,  0.00,  0.00,  0.00], s: [ 1.00,  1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.20E-03, 
-             GPU acceleration:  No, Total electronic charge:  15.999967536144, 
- Poisson Solver: {BC: Isolated, Dimensions:  [  101,  101,  101 ], MPI tasks:  1}, 
- Exact exchange calculation:   1 %
+             GPU acceleration:  No, Total electronic charge:  15.999967536147, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  101,  101,  101 ], MPI tasks:  2}, 
  Exact exchange calculation:   2 %
- Exact exchange calculation:   3 %
  Exact exchange calculation:   4 %
  Exact exchange calculation:   5 %
- Exact exchange calculation:   5 %
- Exact exchange calculation:   6 %
  Exact exchange calculation:   7 %
- Exact exchange calculation:   8 %
  Exact exchange calculation:   9 %
- Exact exchange calculation:  10 %
  Exact exchange calculation:  11 %
- Exact exchange calculation:  12 %
  Exact exchange calculation:  13 %
- Exact exchange calculation:  14 %
- Exact exchange calculation:  15 %
  Exact exchange calculation:  15 %
  Exact exchange calculation:  16 %
- Exact exchange calculation:  17 %
  Exact exchange calculation:  18 %
- Exact exchange calculation:  19 %
  Exact exchange calculation:  20 %
- Exact exchange calculation:  21 %
  Exact exchange calculation:  22 %
- Exact exchange calculation:  23 %
  Exact exchange calculation:  24 %
  Exact exchange calculation:  25 %
- Exact exchange calculation:  25 %
- Exact exchange calculation:  26 %
  Exact exchange calculation:  27 %
- Exact exchange calculation:  28 %
  Exact exchange calculation:  29 %
- Exact exchange calculation:  30 %
  Exact exchange calculation:  31 %
- Exact exchange calculation:  32 %
  Exact exchange calculation:  33 %
- Exact exchange calculation:  34 %
- Exact exchange calculation:  35 %
  Exact exchange calculation:  35 %
  Exact exchange calculation:  36 %
- Exact exchange calculation:  37 %
  Exact exchange calculation:  38 %
- Exact exchange calculation:  39 %
  Exact exchange calculation:  40 %
- Exact exchange calculation:  41 %
  Exact exchange calculation:  42 %
- Exact exchange calculation:  43 %
  Exact exchange calculation:  44 %
  Exact exchange calculation:  45 %
- Exact exchange calculation:  45 %
- Exact exchange calculation:  46 %
  Exact exchange calculation:  47 %
- Exact exchange calculation:  48 %
  Exact exchange calculation:  49 %
- Exact exchange calculation:  50 %
  Exact exchange calculation:  51 %
- Exact exchange calculation:  52 %
  Exact exchange calculation:  53 %
- Exact exchange calculation:  54 %
- Exact exchange calculation:  55 %
  Exact exchange calculation:  55 %
  Exact exchange calculation:  56 %
- Exact exchange calculation:  57 %
  Exact exchange calculation:  58 %
- Exact exchange calculation:  59 %
  Exact exchange calculation:  60 %
- Exact exchange calculation:  61 %
  Exact exchange calculation:  62 %
- Exact exchange calculation:  63 %
  Exact exchange calculation:  64 %
  Exact exchange calculation:  65 %
- Exact exchange calculation:  65 %
- Exact exchange calculation:  66 %
  Exact exchange calculation:  67 %
- Exact exchange calculation:  68 %
  Exact exchange calculation:  69 %
- Exact exchange calculation:  70 %
  Exact exchange calculation:  71 %
- Exact exchange calculation:  72 %
  Exact exchange calculation:  73 %
- Exact exchange calculation:  74 %
- Exact exchange calculation:  75 %
  Exact exchange calculation:  75 %
  Exact exchange calculation:  76 %
- Exact exchange calculation:  77 %
  Exact exchange calculation:  78 %
- Exact exchange calculation:  79 %
  Exact exchange calculation:  80 %
- Exact exchange calculation:  81 %
  Exact exchange calculation:  82 %
- Exact exchange calculation:  83 %
  Exact exchange calculation:  84 %
  Exact exchange calculation:  85 %
- Exact exchange calculation:  85 %
- Exact exchange calculation:  86 %
  Exact exchange calculation:  87 %
- Exact exchange calculation:  88 %
  Exact exchange calculation:  89 %
- Exact exchange calculation:  90 %
  Exact exchange calculation:  91 %
- Exact exchange calculation:  92 %
  Exact exchange calculation:  93 %
- Exact exchange calculation:  94 %
- Exact exchange calculation:  95 %
  Exact exchange calculation:  95 %
  Exact exchange calculation:  96 %
- Exact exchange calculation:  97 %
  Exact exchange calculation:  98 %
- Exact exchange calculation:  99 %
  Exact exchange calculation: 100 %
- Exact Exchange Energy: -3.08074093272E+00
+ Exact Exchange Energy: -3.08074093273E+00
  Expected kinetic energy:  67.1769441307, 
  Energies: {Ekin:  6.72368749486E+01, Epot: -6.99863510523E+01, Enl: -2.15327773296E+01, 
               EH:  1.05228491322E+02,  EXC: -9.97170173143E+00, EvXC: -1.29776453512E+01, 
-          EexctX: -3.08074093272E+00}, 
- EKS: -1.23424060202972072E+02, 
+          EexctX: -3.08074093273E+00}, 
+ EKS: -1.23424060202998746E+02, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Total magnetization:  4.000000, Orbitals: [
  {e: -3.779353677782E+00, f:  1.0000, s:  1},  {e: -3.565874425726E+00, f:  1.0000, s: -1}, 
  {e: -2.519185500319E+00, f:  1.0000, s:  1},  {e: -2.243977970710E+00, f:  1.0000, s: -1}, 
- {e: -2.442819888186E+00, f:  1.0000, s:  1},  {e: -2.235415550912E+00, f:  1.0000, s: -1},  #<-deg
+ {e: -2.442819888186E+00, f:  1.0000, s:  1},  {e: -2.235415550912E+00, f:  1.0000, s: -1}, 
  {e: -2.442801132715E+00, f:  1.0000, s:  1},  {e: -2.235396310243E+00, f:  1.0000, s: -1}, 
- {e: -4.461735848330E-01, f:  1.0000, s:  1},  {e: -2.908050017102E-01, f:  1.0000, s: -1},  #<-deg
+ {e: -4.461735848330E-01, f:  1.0000, s:  1},  {e: -2.908050017102E-01, f:  1.0000, s: -1}, 
  {e: -4.461518322675E-01, f:  1.0000, s:  1},  {e: -1.908027885898E-01, f:  1.0000, s: -1}, 
- {e: -4.395753230162E-01, f:  1.0000, s:  1},  {e: -8.896595116110E-02, f:  0.0000, s: -1}, 
+ {e: -4.395753230161E-01, f:  1.0000, s:  1},  {e: -8.896595116109E-02, f:  0.0000, s: -1}, 
  {e: -4.022176816344E-01, f:  1.0000, s:  1},  {e: -8.894408142875E-02, f:  0.0000, s: -1}, 
  {e: -3.760194301723E-01, f:  1.0000, s:  1},  {e: -8.604093770581E-02, f:  0.0000, s: -1}, 
  {e: -2.256834410429E-01, f:  1.0000, s:  1},  {e: -3.219575428146E-02, f:  0.0000, s: -1}], 
@@ -340,87 +293,51 @@
    - Subspace Optimization:&itrep0001
        Wavefunctions Iterations:
        -  &FINAL  { #-------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  15.999967536133, 
- Poisson Solver: {BC: Isolated, Dimensions:  [  101,  101,  101 ], MPI tasks:  1}, 
- Exact exchange calculation:   1 %
+ GPU acceleration:  No, Total electronic charge:  15.999967536136, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  101,  101,  101 ], MPI tasks:  2}, 
  Exact exchange calculation:   3 %
- Exact exchange calculation:   4 %
  Exact exchange calculation:   5 %
- Exact exchange calculation:   7 %
  Exact exchange calculation:   8 %
- Exact exchange calculation:   9 %
- Exact exchange calculation:  11 %
- Exact exchange calculation:  12 %
+ Exact exchange calculation:  10 %
  Exact exchange calculation:  13 %
- Exact exchange calculation:  14 %
- Exact exchange calculation:  16 %
- Exact exchange calculation:  17 %
+ Exact exchange calculation:  15 %
  Exact exchange calculation:  18 %
  Exact exchange calculation:  20 %
- Exact exchange calculation:  21 %
- Exact exchange calculation:  22 %
- Exact exchange calculation:  24 %
+ Exact exchange calculation:  23 %
  Exact exchange calculation:  25 %
- Exact exchange calculation:  26 %
  Exact exchange calculation:  28 %
- Exact exchange calculation:  29 %
  Exact exchange calculation:  30 %
- Exact exchange calculation:  32 %
  Exact exchange calculation:  33 %
- Exact exchange calculation:  34 %
- Exact exchange calculation:  36 %
- Exact exchange calculation:  37 %
+ Exact exchange calculation:  35 %
  Exact exchange calculation:  38 %
- Exact exchange calculation:  39 %
- Exact exchange calculation:  41 %
- Exact exchange calculation:  42 %
+ Exact exchange calculation:  40 %
  Exact exchange calculation:  43 %
  Exact exchange calculation:  45 %
- Exact exchange calculation:  46 %
- Exact exchange calculation:  47 %
- Exact exchange calculation:  49 %
+ Exact exchange calculation:  48 %
  Exact exchange calculation:  50 %
- Exact exchange calculation:  51 %
  Exact exchange calculation:  53 %
- Exact exchange calculation:  54 %
  Exact exchange calculation:  55 %
  Exact exchange calculation:  57 %
- Exact exchange calculation:  58 %
- Exact exchange calculation:  59 %
- Exact exchange calculation:  61 %
- Exact exchange calculation:  62 %
+ Exact exchange calculation:  60 %
  Exact exchange calculation:  63 %
- Exact exchange calculation:  64 %
- Exact exchange calculation:  66 %
- Exact exchange calculation:  67 %
+ Exact exchange calculation:  65 %
  Exact exchange calculation:  68 %
  Exact exchange calculation:  70 %
- Exact exchange calculation:  71 %
- Exact exchange calculation:  72 %
- Exact exchange calculation:  74 %
+ Exact exchange calculation:  73 %
  Exact exchange calculation:  75 %
- Exact exchange calculation:  76 %
  Exact exchange calculation:  78 %
- Exact exchange calculation:  79 %
  Exact exchange calculation:  80 %
- Exact exchange calculation:  82 %
  Exact exchange calculation:  83 %
- Exact exchange calculation:  84 %
- Exact exchange calculation:  86 %
- Exact exchange calculation:  87 %
+ Exact exchange calculation:  85 %
  Exact exchange calculation:  88 %
- Exact exchange calculation:  89 %
- Exact exchange calculation:  91 %
- Exact exchange calculation:  92 %
+ Exact exchange calculation:  90 %
  Exact exchange calculation:  93 %
  Exact exchange calculation:  95 %
- Exact exchange calculation:  96 %
- Exact exchange calculation:  97 %
- Exact exchange calculation:  99 %
+ Exact exchange calculation:  98 %
  Exact exchange calculation: 100 %
  Exact Exchange Energy: -3.08074060411E+00
  Hamiltonian Applied:  Yes, 
- iter:  1, EKS: -1.23424060530760428E+02, gnrm:  1.00E+10,  #FINAL
+ iter:  1, EKS: -1.23424060530794165E+02, gnrm:  1.00E+10,  #FINAL
  Energies: {Ekin:  6.72368890710E+01, Epot: -6.99863474949E+01, Enl: -2.15327794803E+01, 
               EH:  1.05228506059E+02,  EXC: -9.97170094469E+00, EvXC: -1.29776437727E+01, 
           EexctX: -3.08074060411E+00}, 
@@ -442,11 +359,11 @@
  {e: -2.255974932710E-01, f:  1.0000, s:  1}]
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
- Total electronic charge               :  15.999967536133
+ Total electronic charge               :  15.999967536136
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   8.184012E+01 (AU)       (Px,Py,Pz)=   -4.7250E+01  -4.7250E+01  -4.7250E+01
   |P| =   2.080168E+02 (Debye)    (Px,Py,Pz)=   -1.2010E+02  -1.2010E+02  -1.2010E+02
@@ -457,12 +374,16 @@
  average noise along z direction:  -5.64841705E-04
  total average noise            :   3.14573145E-03
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
- raw forces:                  maxval=  3.145731448375E-03  fnrm2=  9.895626345293E-06
- CPU time/ELAPSED time for root process     0        75.92       147.44
+ raw forces:                  maxval=  3.145731448434E-03  fnrm2=  9.895626345666E-06
+ CPU time/ELAPSED time for root process     0        70.95       134.85
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 6732 allocations and 6732 deallocations, remaining memory(B): 0
- memory occupation peak: 2015 MB
- for the array  zt in the routine G_Poisson_Solver
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 3003
+   Tot. No. of Deallocations: 3003
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 665
+      for the array: cosinarr
+      in the routine: G_Poisson_Solver

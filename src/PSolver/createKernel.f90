@@ -45,6 +45,7 @@
 !!    declaration.
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use module_base, only: ndebug
+  use yaml_output
   implicit none
  ! include 'mpif.h'
   character(len=1), intent(in) :: geocode

@@ -1760,6 +1760,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call memocc(i_stat,i_all,'locrad',subname)
 
   !spin adaptation for the IG in the spinorial case
+  nullify(rho_p)
   orbse%nspin=nspin
   call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,dpcom%nscatterarr,&
        GPU,symObj,rhod,psi,rho_p)

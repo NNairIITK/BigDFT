@@ -26,8 +26,11 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
+ |signaling F                Expose calculation results on Network
+ |signalTimeout 0            Time out on startup for signal connection
+ |domain                     Domain to add to the hostname to find the IP
  |verbosity 2                verbosity of the output 0=low, 2=high
  |psp_onfly T                Calculate pseudopotential projectors on the fly
  |... (file:input.dft).....................................DFT Calculation Parameters
@@ -81,8 +84,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 6
- MPI process does not use OpenMP
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       H          1      10            1.46342  0.20000  0.00000         X              
  ------------------------------------ Pseudopotential coefficients (Upper Triangular)
@@ -90,7 +93,7 @@
         H   0.20000  -4.18024   0.72507
  Total Number of Electrons        2
  Processes from 0 to 0 treat 1 orbitals 
- Processes from 1 to 5 treat 0 orbitals 
+ Processes from 1 to 1 treat 0 orbitals 
  Total Number of Orbitals         1
  occup(1)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -115,7 +118,6 @@
 
  !==================================!
  !       Reading .nnkp file :       !
-- READING WAVES TIME   3  0.000E+00  1.000E-03
  !==================================!
  Both A and M matrices must be calculated
  3 lines read, corresponding to real lattice coordinates
@@ -128,12 +130,9 @@
  !==================================!
 
 
-- READING WAVES TIME   2  0.000E+00  0.000E+00
-- READING WAVES TIME   4  0.000E+00  0.000E+00
-- READING WAVES TIME   5  0.000E+00  0.000E+00
  wavefunctions need NO reformatting
-- READING WAVES TIME   1  8.000E-03  9.000E-03
-- READING WAVES TIME   0  8.001E-03  1.100E-02
+- READING WAVES TIME   1  2.000E-02  1.300E-02
+- READING WAVES TIME   0  2.000E-02  1.300E-02
  !==================================!
  ! Calculating amnk=<virt|sph_har>  !
  !       in pre-check mode :        !
@@ -160,8 +159,8 @@ Band    sqrt(amnk_guess)=
  !  Calculating amnk=<psi|sph_har>  !
  !==================================!
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  8.001E-03  1.000E-02
-- READING WAVES TIME   1  1.200E-02  9.000E-03
+- READING WAVES TIME   0  1.000E-02  1.300E-02
+- READING WAVES TIME   1  4.000E-02  1.400E-02
 Band      sqrt(amnk_tot)=
    1       1.011769
    2       0.401985
@@ -207,9 +206,9 @@ Band    sqrt(mmnk_tot)=
 
 
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  8.000E-03  9.000E-03
+- READING WAVES TIME   0  2.000E-02  1.400E-02
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  1.200E-02  1.000E-02
+- READING WAVES TIME   0  3.000E-02  1.300E-02
  !==================================!
  !      Writing a UNKnk.s file      !
  !==================================!
@@ -218,8 +217,12 @@ Band    sqrt(mmnk_tot)=
  !==================================!
 
 
- CPU time/ELAPSED time for root process     0         2.90         2.89
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 219 allocations and 219 deallocations, remaining memory(B): 0
- memory occupation peak: 38 MB
- for the array  psifscf in the routine readmywaves
+ CPU time/ELAPSED time for root process     0         4.02         5.14
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 231
+   Tot. No. of Deallocations: 231
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 38
+      for the array: psifscf
+      in the routine: readmywaves

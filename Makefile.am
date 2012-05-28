@@ -1,4 +1,4 @@
-EXTRA_DIST = autogen.sh config/m4
+EXTRA_DIST = autogen.sh config/m4 PyYAML-3.10.tar.gz
 
 ACLOCAL_AMFLAGS = -I config/m4
 

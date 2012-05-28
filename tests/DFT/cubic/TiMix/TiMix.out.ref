@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -104,7 +104,7 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
+ Number of MPI processes 2
  Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
@@ -168,18 +168,25 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=18350080  Kernel=18771048
+ Memory occ. per proc. (Bytes):  Density=9175040  Kernel=9458280
                                  Full Grid Arrays=17935448
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  1 work at 100%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1885 points=     64871
    Fine resolution grid: Number of segments=         69 points=       474
  Total Number of Electrons       13
  WARNING: odd number of electrons, no closed shell system
+ Processes from 0 to 0 treat 6 orbitals 
+ Processes from 1 to 1 treat 5 orbitals 
  Total Number of Orbitals        11
  occup(1:6)= 2.0000
  occup(7)= 1.0000
  occup(8:11)= 0.0000
- Wavefunctions memory occupation for root MPI process:     5 MB   739 KB  1016 B
+ Wavefunctions memory occupation for root MPI process:     3 MB   124 KB   368 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Ti               1                   13
@@ -190,52 +197,53 @@
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    2 Number of orbitals=    11 Sim. Box Dimensions=    54   48   48
- Estimation performed for 1 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):    17 MB   924 KB
-              Poisson Solver Density (D):    17 MB   512 KB
+               Poisson Solver Kernel (K):     9 MB    21 KB
+              Poisson Solver Density (D):     8 MB   768 KB
      Single Wavefunction for one orbital:     0 MB   533 KB
-    All Wavefunctions for each processor:    11 MB   456 KB
-       Wavefunctions + DIIS per proc (W):    11 MB   456 KB
+    All Wavefunctions for each processor:     9 MB   374 KB
+       Wavefunctions + DIIS per proc (W):     9 MB   374 KB
      Nonlocal Pseudopotential Arrays (P):     2 MB   339 KB
     Arrays of full uncompressed grid (U):    17 MB   108 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~2*U+~18*D+K+P   |   ~8*D+K+W+P   |   W+~2*U+~18*D+K+P 
-       196MB         |       374MB          |      171MB     |           375MB
- The overall memory requirement needed for this calculation is thus: 375 MB
+       ~19*K         |   W+~3*U+~18*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~18*D+K+P 
+       171MB         |       222MB          |      125MB     |           223MB
+ The overall memory requirement needed for this calculation is thus: 223 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 70 MB
  ion-ion interaction energy  2.54955460188745E+00
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -12.999999999997   0.000E+00
+ total ionic charge, leaked charge           -13.000000000000   0.000E+00
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  139,  127,  127 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
  Total No. of Atomic Input Orbitals:  11, No. of Semicore Orbitals:  4, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 0:  6, MPI tasks  1- 1:  5}, 
  Atomic Input Orbital Generation: [
  {Atom Type: Ti, Electronic configuration: {[s]: [ 2.00], [p]: [ 2.00,  2.00,  2.00], d: [ 0.33,  0.33,  0.33,  0.50,  0.50], s: [ 2.00]}},  {
  Atom Type: Na, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.12E-03, 
-             GPU acceleration:  No, Total electronic charge:  12.999995445724, 
- Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  1}, 
+             GPU acceleration:  No, Total electronic charge:  12.999995445728, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  2}, 
  Expected kinetic energy:  25.0822283779, 
  Energies: {Ekin:  2.50984902080E+01, Epot: -3.60162246614E+01, Enl: -3.29662977669E+00, 
               EH:  4.86467482285E+01,  EXC: -7.21408278897E+00, EvXC: -9.36171835460E+00}, 
- EKS: -5.81639222911150142E+01, 
+ EKS: -5.81639222911383627E+01, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
  Fermi level, Fermi distribution cut off at:  -1.71611008470907E-01  0.0E+00  0.0E+00
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
  {e: -2.367430545946E+00, f:  2.0000}, 
  {e: -1.438022021232E+00, f:  2.0000}, 
- {e: -1.433699574028E+00, f:  2.0000},  #<-deg
- {e: -1.433374294848E+00, f:  2.0000},  #<-deg
+ {e: -1.433699574028E+00, f:  2.0000}, 
+ {e: -1.433374294848E+00, f:  2.0000}, 
  {e: -1.976653983543E-01, f:  2.0000}, 
- {e: -1.720652344265E-01, f:  1.4794},  #<-deg
- {e: -1.721111580851E-01, f:  1.5206},  #<-deg
+ {e: -1.720652344265E-01, f:  1.4794}, 
+ {e: -1.721111580851E-01, f:  1.5206}, 
  {e: -1.669799167552E-01, f:  0.0000}, 
  {e: -1.645233053747E-01, f:  0.0000}, 
  {e: -1.627768671822E-01, f:  0.0000}, 
@@ -247,29 +255,29 @@
    - Subspace Optimization:&itrep0001
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  12.999995629986, 
- Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Total electronic charge:  12.999995629991, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -9.32404196529076756E+00, gnrm:  1.61E-01, gnrm_0:  2.13E-01, 
+ iter:  1, tr(H): -9.32404196529109619E+00, gnrm:  1.61E-01, gnrm_0:  2.13E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -9.79412672884795832E+00, gnrm:  1.30E-01, gnrm_0:  1.93E-01, 
+ iter:  2, tr(H): -9.79412672884826918E+00, gnrm:  1.30E-01, gnrm_0:  1.93E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -9.94941132079590140E+00, gnrm:  1.38E-01, gnrm_0:  2.21E-01, 
+ iter:  3, tr(H): -9.94941132079618740E+00, gnrm:  1.38E-01, gnrm_0:  2.21E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, EKS: -5.82744897868546730E+01, gnrm:  1.38E-01, gnrm_0:  2.21E-01,  #final
+ iter:  4, EKS: -5.82744897868782203E+01, gnrm:  1.38E-01, gnrm_0:  2.21E-01,  #final
  Energies: {Ekin:  2.22420905165E+01, Epot: -2.98364634019E+01, Enl: -2.72911540527E+00, 
               EH:  5.28240194677E+01,  EXC: -7.79337970177E+00, EvXC: -1.01168430713E+01, 
             Eion:  2.54955460189E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:   4.02670707308402E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:   4.02670707308309E-02  0.0E+00  0.0E+00
     #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
  {e: -1.972901329473E+00, f:  2.0000}, 
@@ -278,33 +286,33 @@
  {e: -1.022055933686E+00, f:  2.0000}, 
  {e: -9.659615402964E-02, f:  2.0000}, 
  {e: -1.204579154944E-02, f:  2.0000}, 
- {e:  4.057393609533E-02, f:  0.6643}, 
+ {e:  4.057393609532E-02, f:  0.6643}, 
  {e:  4.094781092050E-02, f:  0.3357}, 
- {e:  4.954603339157E-02, f:  0.0000}, 
- {e:  5.030026627753E-02, f:  0.0000}, 
- {e:  8.265776410171E-02, f:  0.0000}]
-   Fermi Energy                        :  4.02670707308402E-02
+ {e:  4.954603339156E-02, f:  0.0000}, 
+ {e:  5.030026627752E-02, f:  0.0000}, 
+ {e:  8.265776410170E-02, f:  0.0000}]
+   Fermi Energy                        :  4.02670707308309E-02
  - Hamiltonian Optimization: &itrp0002
    - Subspace Optimization:&itrep0001
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  12.999997740757, 
+ GPU acceleration:  No, Total electronic charge:  12.999997740762, 
  DENSITY iteration,Delta : (Norm 2/Volume)     2    2.70E-06
- Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  139,  127,  127 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -1.08653200869754318E+01, gnrm:  2.06E-01, gnrm_0:  1.20E-01, 
+ iter:  1, tr(H): -1.08653200869757054E+01, gnrm:  2.06E-01, gnrm_0:  1.20E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -1.08048422462831333E+01, gnrm:  2.49E-01, gnrm_0:  1.20E-01, 
+ iter:  2, tr(H): -1.08048422462833820E+01, gnrm:  2.49E-01, gnrm_0:  1.20E-01, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -1.10272745381345096E+01, gnrm:  6.27E-02, gnrm_0:  2.57E-02, 
+ iter:  3, tr(H): -1.10272745381347761E+01, gnrm:  6.27E-02, gnrm_0:  2.57E-02, 
  SDalpha:  1.050E+00, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, EKS: -5.84425867464061071E+01, gnrm:  6.27E-02, gnrm_0:  2.57E-02,  #FINAL
+ iter:  4, EKS: -5.84425867464276223E+01, gnrm:  6.27E-02, gnrm_0:  2.57E-02,  #FINAL
  Energies: {Ekin:  1.85619185217E+01, Epot: -2.82611773396E+01, Enl: -1.49025914810E+00, 
               EH:  5.20995356602E+01,  EXC: -7.70747967439E+00, EvXC: -1.00043919522E+01, 
             Eion:  2.54955460189E+00}, 
@@ -318,20 +326,20 @@
  {e: -1.142911084457E+00, f:  2.0000}, 
  {e: -1.086911977076E+00, f:  2.0000}, 
  {e: -1.251496474054E-01, f:  2.0000}, 
- {e: -5.504832174587E-02, f:  2.0000}, 
- {e: -2.847668233391E-03, f:  0.6643}, 
- {e: -2.570245728866E-03, f:  0.3357}, 
- {e:  1.391342127841E-02, f:  0.0000}, 
- {e:  1.503566289206E-02, f:  0.0000}, 
- {e:  4.089221538590E-02, f:  0.0000}]
-   Fermi Energy                        :  4.02670707308402E-02
+ {e: -5.504832174588E-02, f:  2.0000}, 
+ {e: -2.847668233412E-03, f:  0.6643}, 
+ {e: -2.570245728872E-03, f:  0.3357}, 
+ {e:  1.391342127840E-02, f:  0.0000}, 
+ {e:  1.503566289205E-02, f:  0.0000}, 
+ {e:  4.089221538589E-02, f:  0.0000}]
+   Fermi Energy                        :  4.02670707308309E-02
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
- Total electronic charge               :  12.999997573270
+ Total electronic charge               :  12.999997573275
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  139,  127,  127 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   6.405940E+00 (AU)       (Px,Py,Pz)=   -6.4058E+00  -3.3996E-02  -3.4136E-02
   |P| =   1.628227E+01 (Debye)    (Px,Py,Pz)=   -1.6282E+01  -8.6409E-02  -8.6764E-02
@@ -342,13 +350,17 @@
  average noise along z direction:   3.08589620E-03
  total average noise            :   2.47578920E-02
  clean forces norm (Ha/Bohr): maxval=  1.072907057498E-01  fnrm2=  2.302259108056E-02
- raw forces:                  maxval=  1.245261046937E-01  fnrm2=  2.365247508011E-02
- CPU time/ELAPSED time for root process     0        22.73        41.69
+ raw forces:                  maxval=  1.245261046937E-01  fnrm2=  2.365247508010E-02
+ CPU time/ELAPSED time for root process     0        23.69        45.03
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
-     1     Ti -1.07291E-01  8.67362E-19  1.30104E-18
-     2     Na  1.07291E-01  4.33681E-19  8.67362E-19
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 4311 allocations and 4311 deallocations, remaining memory(B): 0
- memory occupation peak: 546 MB
- for the array  f_i in the routine vxcpostprocessing
+     1     Ti -1.07291E-01  8.67362E-19  8.67362E-19
+     2     Na  1.07291E-01  8.67362E-19  8.67362E-19
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 3201
+   Tot. No. of Deallocations: 3201
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 304
+      for the array: f_i
+      in the routine: vxcpostprocessing

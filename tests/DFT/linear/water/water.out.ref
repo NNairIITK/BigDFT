@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -127,8 +127,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
@@ -179,22 +179,29 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
+ Memory occ. per proc. (Bytes):  Density=4808160  Kernel=4943840
                                  Full Grid Arrays=8572072
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        984 points=     23322
    Fine resolution grid: Number of segments=         41 points=       151
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 0 treat 6 orbitals. |
+    | Processes from 0 to 1 treat 3 orbitals. |
  -----------------------------------------------
  >>>> Partition of the basis functions including the derivatives among the processes.
-    | Processes from 0 to 0 treat 24 orbitals. |
+    | Processes from 0 to 1 treat 12 orbitals. |
  ------------------------------------------------------------------------------------
- Wavefunctions memory occupation for root MPI process:     0 MB   761 KB   864 B
+ Wavefunctions memory occupation for root MPI process:     0 MB   380 KB   960 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
@@ -205,20 +212,20 @@
  Percent of zero components =                   36
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    3 Number of orbitals=     4 Sim. Box Dimensions=    36   36   35
- Estimation performed for 1 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     9 MB   353 KB
-              Poisson Solver Density (D):     9 MB    87 KB
+               Poisson Solver Kernel (K):     4 MB   732 KB
+              Poisson Solver Density (D):     4 MB   600 KB
      Single Wavefunction for one orbital:     0 MB   191 KB
-    All Wavefunctions for each processor:     1 MB   500 KB
-       Wavefunctions + DIIS per proc (W):    16 MB   377 KB
+    All Wavefunctions for each processor:     1 MB   119 KB
+       Wavefunctions + DIIS per proc (W):     8 MB   570 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB    25 KB
     Arrays of full uncompressed grid (U):     8 MB   180 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~2*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~2*U+~ 3*D+K+P 
-       102MB         |        65MB          |       98MB     |            65MB
- The overall memory requirement needed for this calculation is thus: 102 MB
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
+        89MB         |        47MB          |       68MB     |            48MB
+ The overall memory requirement needed for this calculation is thus: 89 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 30 MB
  WARNING: do not call check_communications in the linear scaling version!
@@ -228,16 +235,16 @@
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Generating 6 Atomic Input Orbitals
+ Processes from 0 to 1 treat 3 inguess orbitals 
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  7.60E-05 Calculating charge density..., 
-             GPU acceleration:  No, Total electronic charge:  7.999995268545, 
-done.
- Poisson Solver: {BC: Isolated, Dimensions:  [  103,  103,  101 ], MPI tasks:  1}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  7.60E-05, 
+             GPU acceleration:  No, Total electronic charge:  7.999995268547, 
+ Poisson Solver: {BC: Isolated, Dimensions:  [  103,  103,  101 ], MPI tasks:  2}, 
  Hamiltonian application for all locregs. This may take some time.
    locreg 1... done.
    locreg 2... done.
@@ -245,7 +252,7 @@ done.
    locreg 4... done.
    locreg 5... done.
    locreg 6... done.
- the specified memory allows to overlap 364088 iterations with communication
+ the specified memory allows to overlap 728177 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
    Calculating matrix for locreg 1... done.
    Calculating matrix for locreg 2... done.
@@ -255,7 +262,7 @@ done.
    Calculating matrix for locreg 6... done.
  communicating matrices... done.
  ------------------------------- Minimizing trace in the basis of the atomic orbitals
-The minimization is performed using 1 processes.
+The minimization is performed using 2 processes.
  ============================== optimizing coefficients ==============================
  ----------------------------------------------------------------------------- iter=1
 max deviation from unity, position:  1.247477E+00  3  4
@@ -331,37 +338,37 @@ max deviation from unity, position:  1.458678E-01  1  1
  fnrm, trace, mean alpha   1.30E-01  -8.2847012048868E-01  5.01E-01
  ---------------------------------------------------------------------------- iter=25
 max deviation from unity, position:  1.765843E-01  1  1
- fnrm, trace, mean alpha   1.42E-01  -8.1729827743747E-01  5.47E-01
+ fnrm, trace, mean alpha   1.42E-01  -8.1729827743748E-01  5.47E-01
  ---------------------------------------------------------------------------- iter=26
 max deviation from unity, position:  2.141011E-01  1  1
- fnrm, trace, mean alpha   1.57E-01  -8.0282431784987E-01  5.53E-01
+ fnrm, trace, mean alpha   1.57E-01  -8.0282431784988E-01  5.53E-01
  ---------------------------------------------------------------------------- iter=27
 max deviation from unity, position:  2.591288E-01  1  1
- fnrm, trace, mean alpha   1.70E-01  -7.8890650386495E-01  6.07E-01
+ fnrm, trace, mean alpha   1.70E-01  -7.8890650386496E-01  6.07E-01
  ---------------------------------------------------------------------------- iter=28
 max deviation from unity, position:  3.209956E-01  1  1
- fnrm, trace, mean alpha   1.85E-01  -7.7202670313774E-01  6.68E-01
+ fnrm, trace, mean alpha   1.85E-01  -7.7202670313775E-01  6.68E-01
  ---------------------------------------------------------------------------- iter=29
 max deviation from unity, position:  3.908094E-01  1  1
- fnrm, trace, mean alpha   2.01E-01  -7.5271921178940E-01  7.35E-01
+ fnrm, trace, mean alpha   2.01E-01  -7.5271921178941E-01  7.35E-01
  ---------------------------------------------------------------------------- iter=30
 max deviation from unity, position:  4.653059E-01  1  1
- fnrm, trace, mean alpha   2.17E-01  -7.3188512363206E-01  8.08E-01
+ fnrm, trace, mean alpha   2.17E-01  -7.3188512363207E-01  8.08E-01
  ---------------------------------------------------------------------------- iter=31
 max deviation from unity, position:  5.413093E-01  1  1
  fnrm, trace, mean alpha   2.31E-01  -7.1059436963115E-01  8.89E-01
  ---------------------------------------------------------------------------- iter=32
 max deviation from unity, position:  6.168512E-01  1  1
- fnrm, trace, mean alpha   2.44E-01  -6.8977033369002E-01  9.78E-01
+ fnrm, trace, mean alpha   2.44E-01  -6.8977033369003E-01  9.78E-01
  ---------------------------------------------------------------------------- iter=33
 max deviation from unity, position:  6.932971E-01  1  1
- fnrm, trace, mean alpha   2.56E-01  -6.6992394416618E-01  1.08E+00
+ fnrm, trace, mean alpha   2.56E-01  -6.6992394416619E-01  1.08E+00
  ---------------------------------------------------------------------------- iter=34
 max deviation from unity, position:  7.745836E-01  1  1
- fnrm, trace, mean alpha   2.67E-01  -6.5101298568408E-01  7.03E-01
+ fnrm, trace, mean alpha   2.67E-01  -6.5101298568409E-01  7.03E-01
  ---------------------------------------------------------------------------- iter=35
 max deviation from unity, position:  8.673739E-01  1  1
- fnrm, trace, mean alpha   2.78E-01  -6.3247004529267E-01  5.34E-01
+ fnrm, trace, mean alpha   2.78E-01  -6.3247004529268E-01  5.34E-01
  ---------------------------------------------------------------------------- iter=36
 max deviation from unity, position:  9.803583E-01  1  1
  fnrm, trace, mean alpha   2.88E-01  -6.1460714590334E-01  4.67E-01
@@ -373,7 +380,7 @@ max deviation from unity, position:  1.248902E+00  1  1
  fnrm, trace, mean alpha   3.04E-01  -5.8498748388658E-01  4.69E-01
  ---------------------------------------------------------------------------- iter=39
 max deviation from unity, position:  1.411266E+00  1  1
- fnrm, trace, mean alpha   3.09E-01  -5.7438005353943E-01  5.01E-01
+ fnrm, trace, mean alpha   3.09E-01  -5.7438005353944E-01  5.01E-01
  ---------------------------------------------------------------------------- iter=40
 max deviation from unity, position:  1.597663E+00  1  1
  fnrm, trace, mean alpha   3.13E-01  -5.6671013198607E-01  5.44E-01
@@ -455,7 +462,7 @@ max deviation from unity, position:  1.597663E+00  1  1
  iter, fnrm, fnrmMax, trace    14  2.3163339E-01  4.3153508E-01    -1.1619387014
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  Recover the orbitals from iteration 12 which are the best so far.
- steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
+ steepest descent informations: mean alpha=5.000E-05, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ---------------------------------------------------------------------------- iter=15
  Orthonormalization... Orthoconstraint... Preconditioning.
@@ -477,17 +484,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999994047446E+00
+   Calculation finished. TOTAL CHARGE =   7.999994047451E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.13E-06   -1.85596471035291302E+01   -1.8560E+01
+   it, Delta DENS, energy, energyDiff   1   4.13E-06   -1.85596471035349921E+01   -1.8560E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -503,17 +510,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999994766594E+00
+   Calculation finished. TOTAL CHARGE =   7.999994766601E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.65E-06   -1.69660691453726642E+01    1.5936E+00
+   it, Delta DENS, energy, energyDiff   2   1.65E-06   -1.69660691453778263E+01    1.5936E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -529,17 +536,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999994745902E+00
+   Calculation finished. TOTAL CHARGE =   7.999994745908E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.87E-07   -1.69864320657836423E+01   -2.0363E-02
+   it, Delta DENS, energy, energyDiff   3   7.87E-07   -1.69864320657884136E+01   -2.0363E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -555,20 +562,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999994749956E+00
+   Calculation finished. TOTAL CHARGE =   7.999994749962E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.96E-07   -1.69665775087902375E+01    1.9855E-02
+   it, Delta DENS, energy, energyDiff   4   3.96E-07   -1.69665775087955453E+01    1.9855E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5887328607E+00  2.2630473412E+01 -4.3930756999E+00 -5.7612344997E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   1   2.82E-06   -1.69665775087902375E+01   -1.6967E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   2.82E-06   -1.69665775087955453E+01   -1.6967E+01
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -647,17 +654,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995790491E+00
+   Calculation finished. TOTAL CHARGE =   7.999995790496E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.86E-06   -1.66033114342013590E+01    3.6327E-01
+   it, Delta DENS, energy, energyDiff   1   1.86E-06   -1.66033114342074981E+01    3.6327E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -673,17 +680,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995611013E+00
+   Calculation finished. TOTAL CHARGE =   7.999995611019E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.36E-07   -1.70425691746288805E+01   -4.3926E-01
+   it, Delta DENS, energy, energyDiff   2   8.36E-07   -1.70425691746341847E+01   -4.3926E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -699,17 +706,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995618854E+00
+   Calculation finished. TOTAL CHARGE =   7.999995618861E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.12E-07   -1.70454317779194575E+01   -2.8626E-03
+   it, Delta DENS, energy, energyDiff   3   4.12E-07   -1.70454317779249997E+01   -2.8626E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -725,25 +732,25 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995617931E+00
+   Calculation finished. TOTAL CHARGE =   7.999995617937E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.06E-07   -1.70577677337472373E+01   -1.2336E-02
+   it, Delta DENS, energy, energyDiff   4   2.06E-07   -1.70577677337527618E+01   -1.2336E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.2378391698E+00  2.2027622192E+01 -4.2538683827E+00 -5.5770920468E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   2   1.57E-06   -1.70577677337472373E+01   -9.1190E-02
+   itout, Delta DENSOUT, energy, energyDiff   2   1.57E-06   -1.70577677337527618E+01   -9.1190E-02
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     1  6.2216315E-02  8.0913625E-02    -0.6415470053
+ iter, fnrm, fnrmMax, trace     1  6.2216314E-02  8.0913625E-02    -0.6415470053
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning.
@@ -809,17 +816,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995136556E+00
+   Calculation finished. TOTAL CHARGE =   7.999995136566E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 13 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.41E-07   -1.72798275120910603E+01   -2.2206E-01
+   it, Delta DENS, energy, energyDiff   1   8.41E-07   -1.72798275120944744E+01   -2.2206E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -835,17 +842,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995233430E+00
+   Calculation finished. TOTAL CHARGE =   7.999995233440E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 13 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.70E-07   -1.70536276049779438E+01    2.2620E-01
+   it, Delta DENS, energy, energyDiff   2   3.70E-07   -1.70536276049831059E+01    2.2620E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -861,17 +868,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995227403E+00
+   Calculation finished. TOTAL CHARGE =   7.999995227412E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 13 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.80E-07   -1.70554650827782410E+01   -1.8375E-03
+   it, Delta DENS, energy, energyDiff   3   1.80E-07   -1.70554650827835559E+01   -1.8375E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -887,20 +894,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995228031E+00
+   Calculation finished. TOTAL CHARGE =   7.999995228040E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 13 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   9.02E-08   -1.70485028342317122E+01    6.9622E-03
+   it, Delta DENS, energy, energyDiff   4   9.02E-08   -1.70485028342366931E+01    6.9622E-03
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.9673344253E+00  2.2308964583E+01 -4.3161796918E+00 -5.6595059017E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   3   6.90E-07   -1.70485028342317122E+01    9.2649E-03
+   itout, Delta DENSOUT, energy, energyDiff   3   6.90E-07   -1.70485028342366931E+01    9.2649E-03
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -951,17 +958,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995426030E+00
+   Calculation finished. TOTAL CHARGE =   7.999995426041E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 8 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.48E-07   -1.69650049020504454E+01    8.3498E-02
+   it, Delta DENS, energy, energyDiff   1   3.48E-07   -1.69650049020553979E+01    8.3498E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -977,17 +984,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995389818E+00
+   Calculation finished. TOTAL CHARGE =   7.999995389829E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 8 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.55E-07   -1.70528671812006181E+01   -8.7862E-02
+   it, Delta DENS, energy, energyDiff   2   1.55E-07   -1.70528671812049097E+01   -8.7862E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1003,17 +1010,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995391862E+00
+   Calculation finished. TOTAL CHARGE =   7.999995391873E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 8 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.62E-08   -1.70531476803067150E+01   -2.8050E-04
+   it, Delta DENS, energy, energyDiff   3   7.62E-08   -1.70531476803113264E+01   -2.8050E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1029,20 +1036,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995391690E+00
+   Calculation finished. TOTAL CHARGE =   7.999995391702E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 8 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.81E-08   -1.70559123990884629E+01   -2.7647E-03
+   it, Delta DENS, energy, energyDiff   4   3.81E-08   -1.70559123990923602E+01   -2.7647E-03
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0824467398E+00  2.2192847110E+01 -4.2901070977E+00 -5.6250185842E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   4   2.91E-07   -1.70559123990884629E+01   -7.4096E-03
+   itout, Delta DENSOUT, energy, energyDiff   4   2.91E-07   -1.70559123990923602E+01   -7.4096E-03
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1067,9 +1074,9 @@ max deviation from unity, position:  1.597663E+00  1  1
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     6  6.6790800E-04  9.3591201E-04    -0.5476372119
+ iter, fnrm, fnrmMax, trace     6  6.6790800E-04  9.3591200E-04    -0.5476372119
  converged in 6 iterations.
- Final values for fnrm, fnrmMax, trace:   6.6790800E-04  9.3591201E-04  -0.5476372
+ Final values for fnrm, fnrmMax, trace:   6.6790800E-04  9.3591200E-04  -0.5476372
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1085,17 +1092,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995309004E+00
+   Calculation finished. TOTAL CHARGE =   7.999995309013E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 6 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.46E-07   -1.70931899941953738E+01   -3.7278E-02
+   it, Delta DENS, energy, energyDiff   1   1.46E-07   -1.70931899941992214E+01   -3.7278E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1111,17 +1118,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995324774E+00
+   Calculation finished. TOTAL CHARGE =   7.999995324783E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 6 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.42E-08   -1.70550387032429995E+01    3.8151E-02
+   it, Delta DENS, energy, energyDiff   2   6.42E-08   -1.70550387032476820E+01    3.8151E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1137,17 +1144,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995323812E+00
+   Calculation finished. TOTAL CHARGE =   7.999995323821E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 6 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.14E-08   -1.70549416308895374E+01    9.7072E-05
+   it, Delta DENS, energy, energyDiff   3   3.14E-08   -1.70549416308937580E+01    9.7072E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1163,20 +1170,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995323887E+00
+   Calculation finished. TOTAL CHARGE =   7.999995323896E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 6 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.57E-08   -1.70536845888081778E+01    1.2570E-03
+   it, Delta DENS, energy, energyDiff   4   1.57E-08   -1.70536845888147113E+01    1.2570E-03
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0338203577E+00  2.2242824210E+01 -4.3011983522E+00 -5.6396883665E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   5   1.20E-07   -1.70536845888081778E+01    2.2278E-03
+   itout, Delta DENSOUT, energy, energyDiff   5   1.20E-07   -1.70536845888147113E+01    2.2278E-03
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1189,7 +1196,7 @@ max deviation from unity, position:  1.597663E+00  1  1
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     3  1.8060958E-03  2.3513985E-03    -0.5164072383
+ iter, fnrm, fnrmMax, trace     3  1.8060957E-03  2.3513985E-03    -0.5164072383
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Orthoconstraint... Preconditioning.
@@ -1215,17 +1222,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995355431E+00
+   Calculation finished. TOTAL CHARGE =   7.999995355442E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 5 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.97E-08   -1.70383620446665915E+01    1.5323E-02
+   it, Delta DENS, energy, energyDiff   1   5.97E-08   -1.70383620446730291E+01    1.5323E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1241,17 +1248,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995349038E+00
+   Calculation finished. TOTAL CHARGE =   7.999995349050E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 5 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.62E-08   -1.70540275381719404E+01   -1.5665E-02
+   it, Delta DENS, energy, energyDiff   2   2.62E-08   -1.70540275381817530E+01   -1.5665E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1267,17 +1274,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995349427E+00
+   Calculation finished. TOTAL CHARGE =   7.999995349439E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 5 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.29E-08   -1.70541424875767653E+01   -1.1495E-04
+   it, Delta DENS, energy, energyDiff   3   1.29E-08   -1.70541424875862475E+01   -1.1495E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1293,20 +1300,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995349400E+00
+   Calculation finished. TOTAL CHARGE =   7.999995349412E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 5 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.43E-09   -1.70546797774386931E+01   -5.3729E-04
+   it, Delta DENS, energy, energyDiff   4   6.43E-09   -1.70546797774482251E+01   -5.3729E-04
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0542805681E+00  2.2221859803E+01 -4.2965507450E+00 -5.6335413742E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   6   4.93E-08   -1.70546797774386931E+01   -9.9519E-04
+   itout, Delta DENSOUT, energy, energyDiff   6   4.93E-08   -1.70546797774482251E+01   -9.9519E-04
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1337,17 +1344,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995342433E+00
+   Calculation finished. TOTAL CHARGE =   7.999995342445E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 3 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.96E-08   -1.70600581838837861E+01   -5.3784E-03
+   it, Delta DENS, energy, energyDiff   1   1.96E-08   -1.70600581838957375E+01   -5.3784E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1363,17 +1370,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344582E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344594E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 3 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.36E-09   -1.70547261578613067E+01    5.3320E-03
+   it, Delta DENS, energy, energyDiff   2   8.36E-09   -1.70547261578690943E+01    5.3320E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1389,17 +1396,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344449E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344460E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 3 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.11E-09   -1.70546610010517945E+01    6.5157E-05
+   it, Delta DENS, energy, energyDiff   3   4.11E-09   -1.70546610010599267E+01    6.5157E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1415,20 +1422,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344457E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344469E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 3 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.06E-09   -1.70544662912909963E+01    1.9471E-04
+   it, Delta DENS, energy, energyDiff   4   2.06E-09   -1.70544662912992173E+01    1.9471E-04
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0473234836E+00  2.2229116768E+01 -4.2981424866E+00 -5.6356464824E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   7   1.59E-08   -1.70544662912909963E+01    2.1349E-04
+   itout, Delta DENSOUT, energy, energyDiff   7   1.59E-08   -1.70544662912992173E+01    2.1349E-04
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1451,17 +1458,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344468E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.03E-09   -1.70543791901063635E+01    8.7101E-05
+   it, Delta DENS, energy, energyDiff   1   1.03E-09   -1.70543791901142896E+01    8.7101E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1477,17 +1484,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344468E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.14E-10   -1.70543350538876375E+01    4.4136E-05
+   it, Delta DENS, energy, energyDiff   2   5.14E-10   -1.70543350538957803E+01    4.4136E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1503,17 +1510,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344468E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.57E-10   -1.70543130527341162E+01    2.2001E-05
+   it, Delta DENS, energy, energyDiff   3   2.57E-10   -1.70543130527420850E+01    2.2001E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1529,20 +1536,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.29E-10   -1.70543020636522797E+01    1.0989E-05
+   it, Delta DENS, energy, energyDiff   4   1.29E-10   -1.70543020636598328E+01    1.0989E-05
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0469943180E+00  2.2229301098E+01 -4.2982025260E+00 -5.6357259142E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   8   9.64E-10   -1.70543020636522797E+01    1.6423E-04
+   itout, Delta DENSOUT, energy, energyDiff   8   9.64E-10   -1.70543020636598328E+01    1.6423E-04
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1565,17 +1572,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.44E-11   -1.70542965763919057E+01    5.4873E-06
+   it, Delta DENS, energy, energyDiff   1   6.44E-11   -1.70542965763999526E+01    5.4873E-06
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1591,17 +1598,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344468E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.22E-11   -1.70542938363419445E+01    2.7400E-06
+   it, Delta DENS, energy, energyDiff   2   3.22E-11   -1.70542938363497782E+01    2.7401E-06
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1617,17 +1624,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344455E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.61E-11   -1.70542924681125854E+01    1.3682E-06
+   it, Delta DENS, energy, energyDiff   3   1.61E-11   -1.70542924681206536E+01    1.3682E-06
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1643,20 +1650,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   8.07E-12   -1.70542917848908857E+01    6.8322E-07
+   it, Delta DENS, energy, energyDiff   4   8.07E-12   -1.70542917848988367E+01    6.8322E-07
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0469737872E+00  2.2229312557E+01 -4.2982062642E+00 -5.6357308598E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   9   6.04E-11   -1.70542917848908857E+01    1.0279E-05
+   itout, Delta DENSOUT, energy, energyDiff   9   6.04E-11   -1.70542917848988367E+01    1.0279E-05
  Reduce the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1679,17 +1686,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.04E-12   -1.70542914437218371E+01    3.4117E-07
+   it, Delta DENS, energy, energyDiff   1   4.04E-12   -1.70542914437297704E+01    3.4117E-07
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1705,17 +1712,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.02E-12   -1.70542912733552008E+01    1.7037E-07
+   it, Delta DENS, energy, energyDiff   2   2.02E-12   -1.70542912733631695E+01    1.7037E-07
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1731,17 +1738,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.01E-12   -1.70542911882793256E+01    8.5076E-08
+   it, Delta DENS, energy, energyDiff   3   1.01E-12   -1.70542911882870634E+01    8.5076E-08
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1757,20 +1764,20 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995344456E+00
+   Calculation finished. TOTAL CHARGE =   7.999995344467E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - basis functions converged in 1 iterations.
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   5.06E-13   -1.70542911457934991E+01    4.2486E-08
+   it, Delta DENS, energy, energyDiff   4   5.06E-13   -1.70542911458014466E+01    4.2486E-08
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.0469725106E+00  2.2229313270E+01 -4.2982064970E+00 -5.6357311678E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   10   3.79E-12   -1.70542911457934991E+01    6.3910E-07
+   itout, Delta DENSOUT, energy, energyDiff   10   3.79E-12   -1.70542911458014466E+01    6.3910E-07
  Reduce the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
@@ -1832,7 +1839,7 @@ max deviation from unity, position:  1.597663E+00  1  1
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=15
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace    15  4.1336167E-04  7.5548549E-04    -1.5935793363
+ iter, fnrm, fnrmMax, trace    15  4.1336167E-04  7.5548549E-04    -1.5935793362
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=16
  Orthonormalization... Orthoconstraint... Preconditioning.
@@ -1868,13 +1875,13 @@ max deviation from unity, position:  1.597663E+00  1  1
  DIIS informations: history length=8, consecutive failures=0, total failures=1
  ---------------------------------------------------------------------------- iter=24
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace    24  1.5255510E-04  2.3634867E-04    -1.5935800951
+ iter, fnrm, fnrmMax, trace    24  1.5255509E-04  2.3634867E-04    -1.5935800951
  DIIS informations: history length=8, consecutive failures=1, total failures=2
  ---------------------------------------------------------------------------- iter=25
  Orthonormalization... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace    25  1.6541952E-04  3.0111750E-04    -1.5935800877
+ iter, fnrm, fnrmMax, trace    25  1.6541951E-04  3.0111750E-04    -1.5935800877
  WARNING: not converged within 25 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.6541952E-04  3.0111750E-04  -1.5935801
+ Final values for fnrm, fnrmMax, trace:   1.6541951E-04  3.0111750E-04  -1.5935801
  ============================= Basis functions created. =============================
  calculating derivative basis functions...done.
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -1897,17 +1904,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999996213377E+00
+   Calculation finished. TOTAL CHARGE =   7.999996213412E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.29E-06   -1.60909329062276676E+01    9.6336E-01
+   it, Delta DENS, energy, energyDiff   1   2.29E-06   -1.60909329062172830E+01    9.6336E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1929,17 +1936,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995628489E+00
+   Calculation finished. TOTAL CHARGE =   7.999995628507E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.01E-06   -1.70071862175723787E+01   -9.1625E-01
+   it, Delta DENS, energy, energyDiff   2   1.01E-06   -1.70071862175746880E+01   -9.1625E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1961,17 +1968,17 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995642229E+00
+   Calculation finished. TOTAL CHARGE =   7.999995642254E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.64E-07   -1.70515755149392803E+01   -4.4389E-02
+   it, Delta DENS, energy, energyDiff   3   4.64E-07   -1.70515755149416179E+01   -4.4389E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1993,23 +2000,23 @@ max deviation from unity, position:  1.597663E+00  1  1
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995629881E+00
+   Calculation finished. TOTAL CHARGE =   7.999995629904E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.30E-07   -1.70973374032471064E+01   -4.5762E-02
+   it, Delta DENS, energy, energyDiff   4   2.30E-07   -1.70973374032503891E+01   -4.5762E-02
  ############################################################################################
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.4589904865E+00  2.0767657851E+01 -4.0072816750E+00 -5.2521226449E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itout, Delta DENSOUT, energy, energyDiff   11   1.69E-06   -1.70973374032471064E+01   -4.3046E-02
+   itout, Delta DENSOUT, energy, energyDiff   11   1.69E-06   -1.70973374032503891E+01   -4.3046E-02
  Calculating charge density...
    calculating the density kernel... done.
-   Calculation finished. TOTAL CHARGE =   7.999995629881E+00
+   Calculation finished. TOTAL CHARGE =   7.999995629904E+00
  ------------------------------------- Building linear combinations... done.
  ---------------------------------------------------------- Gaussian Basis Projection
  Generation of input wavefunction data for atom      O:
@@ -2022,24 +2029,28 @@ max deviation from unity, position:  1.597663E+00  1  1
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  103,  103,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  ------------------------------------------------------------- Electric Dipole Moment
   |P| =   8.502921E-01 (AU)       (Px,Py,Pz)=   -6.2852E-01   3.9583E-01   4.1386E-01
   |P| =   2.161227E+00 (Debye)    (Px,Py,Pz)=   -1.5975E+00   1.0061E+00   1.0519E+00
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:  -1.10682446E-03
+ average noise along x direction:  -1.10682445E-03
  average noise along y direction:  -2.52957033E-03
  average noise along z direction:  -1.68721591E-03
  total average noise            :   3.23581272E-03
- clean forces norm (Ha/Bohr): maxval=  2.241302081689E-02  fnrm2=  1.193905188992E-03
- raw forces:                  maxval=  2.081507496635E-02  fnrm2=  1.209039437659E-03
- CPU time/ELAPSED time for root process     0       233.24       832.27
+ clean forces norm (Ha/Bohr): maxval=  2.241302081728E-02  fnrm2=  1.193905189114E-03
+ raw forces:                  maxval=  2.081507496720E-02  fnrm2=  1.209039437775E-03
+ CPU time/ELAPSED time for root process     0       163.43       295.53
  Final values of the Forces for each atom
      1      O  1.15988E-02 -1.11338E-02 -1.12420E-02
      2      H -1.64193E-02 -4.71275E-03 -3.85740E-03
      3      H  4.82052E-03  1.58466E-02  1.50994E-02
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 208573 allocations and 208573 deallocations, remaining memory(B): 0
- memory occupation peak: 679 MB
- for the array  psir in the routine local_hamiltonian
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 116603
+   Tot. No. of Deallocations: 116603
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 364
+      for the array: zmpi1
+      in the routine: G_Poisson_Solver

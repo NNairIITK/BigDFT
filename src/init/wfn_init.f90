@@ -871,29 +871,33 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   ! There are two possibilities to generate the input guess
   differentInputGuess: if(.not. orthpar%directDiag) then
-      if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
+     if (iproc == 0 .and. verbose > 1) then
+        call yaml_close_map()
+        call yaml_newline()
+     end if
+     if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
-      if(present(orbsv)) then
-          write(*,'(a)') 'ERROR: Virtual orbitals cannot be handled with the iterative input guess at the moment.'
-          write(*,'(a)') "Change the value of input%directDiag in 'input.perf' to 'T'."
-          stop
-       end if
-       call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
-            psi, psit, orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
-       
+     if(present(orbsv)) then
+        write(*,'(a)') 'ERROR: Virtual orbitals cannot be handled with the iterative input guess at the moment.'
+        write(*,'(a)') "Change the value of input%directDiag in 'input.perf' to 'F'."
+        stop
+     end if
+     call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
+          psi, psit, orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
+
   else
-
+     
      !,if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
+     
+     call timing(iproc, 'Input_comput', 'ON')
 
-      call timing(iproc, 'Input_comput', 'ON')
-
-      !it is important that the k-points repartition of the inputguess orbitals
-      !coincides with the one of the SCF orbitals
-      do ikptp=1,orbsu%nkptsp
-         ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
-         call solve_eigensystem(norbi_max,&
-              ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,norbgrp,hamovr(1,1,ikpt),&
-              orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
+     !it is important that the k-points repartition of the inputguess orbitals
+     !coincides with the one of the SCF orbitals
+     do ikptp=1,orbsu%nkptsp
+        ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
+        call solve_eigensystem(norbi_max,&
+             ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,norbgrp,hamovr(1,1,ikpt),&
+             orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
         !assign the value for the orbital
         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
@@ -907,99 +911,99 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         !do iorb=1,orbs%norbd
         !   orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu)=orbsu%eval((ikpt-1)*orbsu%norb+iorb+orbsu%norbu)
         !end do
-      end do
-     
-      if (iproc == 0 .and. verbose > 1) then
-         call yaml_map('Diagonalized',.true.)
-         call yaml_close_map()
-         call yaml_newline()
-      end if
+     end do
+
+     if (iproc == 0 .and. verbose > 1) then
+        call yaml_map('Diagonalized',.true.)
+        call yaml_close_map()
+        call yaml_newline()
+     end if
 
      !broadcast values for k-points 
      call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
           & orbsu%eval(1), orbsu%ikptproc)
 
-      !here the value of the IG occupation numbers can be calculated
+     !here the value of the IG occupation numbers can be calculated
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
 
-         !add a small displacement in the eigenvalues
-         do iorb=1,orbsu%norb*orbsu%nkpts
-            tt=builtin_rand(idum)
-            orbsu%eval(iorb)=orbsu%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
-         end do
+        !add a small displacement in the eigenvalues
+        do iorb=1,orbsu%norb*orbsu%nkpts
+           tt=builtin_rand(idum)
+           orbsu%eval(iorb)=orbsu%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
+        end do
 
-         !correct the occupation numbers wrt fermi level
-         call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
-      else if (minimal) then
-         !clean the array of the IG occupation
-         call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
-         !put the actual values on it
-         call dcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
-      end if
+        !correct the occupation numbers wrt fermi level
+        call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
+     else if (minimal) then
+        !clean the array of the IG occupation
+        call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
+        !put the actual values on it
+        call dcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
+     end if
 
      if (iproc ==0) then 
-         nullify(mom_vec_fake)
-         call write_eigenvalues_data(nproc,tolerance,orbsu,mom_vec_fake)
-         !call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
+        nullify(mom_vec_fake)
+        call write_eigenvalues_data(nproc,tolerance,orbsu,mom_vec_fake)
+        !call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
 
-    !!$  !not necessary anymore since psivirt is gaussian
-      !allocate the pointer for virtual orbitals
-  if(present(orbsv) .and. present(psivirt)) then
-     if (orbsv%norb > 0) then
-        allocate(psivirt(max(orbsv%npsidim_comp,orbsv%npsidim_orbs)+ndebug),stat=i_stat)
-        call memocc(i_stat,psivirt,'psivirt',subname)
+!!$  !not necessary anymore since psivirt is gaussian
+     !allocate the pointer for virtual orbitals
+     if(present(orbsv) .and. present(psivirt)) then
+        if (orbsv%norb > 0) then
+           allocate(psivirt(max(orbsv%npsidim_comp,orbsv%npsidim_orbs)+ndebug),stat=i_stat)
+           call memocc(i_stat,psivirt,'psivirt',subname)
+        end if
+     else if(present(psivirt)) then
+        if (orbsv%norb == 0) then
+           allocate(psivirt(1+ndebug),stat=i_stat)
+           call memocc(i_stat,psivirt,'psivirt',subname)
+        end if
      end if
-  else if(present(psivirt)) then
-     if (orbsv%norb == 0) then
-        allocate(psivirt(1+ndebug),stat=i_stat)
-        call memocc(i_stat,psivirt,'psivirt',subname)
+
+     !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
+     nvctr=Lzde%Glr%wfd%nvctr_c+7*Lzde%Glr%wfd%nvctr_f
+
+     ispsi=1
+     ispsie=1
+     ispsiv=1
+     ispm=1
+     !number of complex components
+     ncplx=1
+     if (nspinor > 1) ncplx=2
+     do ikptp=1,orbsu%nkptsp
+        ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
+
+        nvctrp=commu%nvctr_par(iproc,ikpt)
+        if (nvctrp == 0) cycle
+
+        if (.not. present(orbsv)) then
+           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+                natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+                psi(ispsie:),psit(ispsi:),passmat(ispm))
+        else
+           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+                natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+                psi(ispsie:),psit(ispsi:),passmat(ispm),&
+                (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
+        end if
+        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+        ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
+        ispm=ispm+ncplx*(orbsu%norbu*orbs%norbu+orbsu%norbd*orbs%norbd)
+        if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
+     end do
+     if (iproc == 0 .and. verbose > 1) call yaml_map('IG wavefunctions defined',.true.)
+     !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+     !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+
+     if(present(psivirt)) then
+        if (orbsv%norb == 0) then
+           i_all=-product(shape(psivirt))*kind(psivirt)
+           deallocate(psivirt,stat=i_stat)
+           call memocc(i_stat,i_all,'psivirt',subname)
+        end if
      end if
-  end if
-    
-  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-      nvctr=Lzde%Glr%wfd%nvctr_c+7*Lzde%Glr%wfd%nvctr_f
-
-      ispsi=1
-      ispsie=1
-      ispsiv=1
-      ispm=1
-      !number of complex components
-      ncplx=1
-      if (nspinor > 1) ncplx=2
-      do ikptp=1,orbsu%nkptsp
-         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
-
-         nvctrp=commu%nvctr_par(iproc,ikpt)
-         if (nvctrp == 0) cycle
-    
-         if (.not. present(orbsv)) then
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:),passmat(ispm))
-         else
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:),passmat(ispm),&
-                 (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
-         end if
-         ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-         ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
-         ispm=ispm+ncplx*(orbsu%norbu*orbs%norbu+orbsu%norbd*orbs%norbd)
-         if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
-      end do
-      if (iproc == 0 .and. verbose > 1) call yaml_map('IG wavefunctions defined',.true.)
-      !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
-    
-  if(present(psivirt)) then
-     if (orbsv%norb == 0) then
-         i_all=-product(shape(psivirt))*kind(psivirt)
-         deallocate(psivirt,stat=i_stat)
-         call memocc(i_stat,i_all,'psivirt',subname)
-      end if
-  end if
-      call timing(iproc, 'Input_comput', 'OF')
+     call timing(iproc, 'Input_comput', 'OF')
 
   end if differentInputGuess
 

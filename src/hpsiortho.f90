@@ -308,6 +308,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
        energs,wfn%SIC,GPU,correcth,pkernel=denspot%pkernelseq)
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  ! Emit that hpsi are ready.
+  if (wfn%c_obj /= 0) then
+     call kswfn_emit_psi(wfn, itwfn, 1, iproc, nproc)
+  end if
 
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_work,subname)
@@ -1278,14 +1282,23 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (wfn%orbs%nspinor == 4) then
      !only the root process has the correct array
      if(iproc==0 .and. verbose > 0) then
-        write(*,'(1x,a)')&
-             &   'Magnetic polarization per orbital'
-        write(*,'(1x,a)')&
-             &   '  iorb    m_x       m_y       m_z'
+        call yaml_open_sequence('Magnetic polarization per orbital')
+        call yaml_newline()
+        !write(*,'(1x,a)')&
+        !     &   'Magnetic polarization per orbital'
+!!$        write(*,'(1x,a)')&
+!!$             &   '  iorb    m_x       m_y       m_z'
         do iorb=1,wfn%orbs%norb
-           write(*,'(1x,i5,3f10.5)') &
-                &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+           call yaml_sequence(advance='no')
+           call yaml_open_map(flow=.true.)
+           call yaml_map('iorb',iorb,fmt='(i5)')
+           call yaml_map('M',(/(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)/),fmt='(3f10.5)')
+           call yaml_close_map()
+           if (iorb < wfn%orbs%norb)call yaml_newline()
+           !write(*,'(1x,i5,3f10.5)') &
+           !     &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
         end do
+        call yaml_close_sequence()
      end if
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
@@ -1364,7 +1377,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
-      call kswfn_emit_psi(wfn, iter, iproc, nproc)
+      call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1562,7 +1575,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
-      call kswfn_emit_psi(wfn, iter, iproc, nproc)
+      call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
    end if
 
    if(.not.  keeppsit) then
