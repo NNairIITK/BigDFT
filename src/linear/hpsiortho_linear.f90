@@ -24,9 +24,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
-  real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
+  real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero, occupied, fnrmoccup
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:,:),allocatable:: lagmat
+  real(8),dimension(:),allocatable:: tracearr, fnrm_arr
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
@@ -59,6 +60,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Calculate trace (or band structure energy, resp.)
+  allocate(tracearr(tmbopt%orbs%norb), stat=istat)
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
@@ -66,11 +68,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               tt = kernel(korb,jorb)*lagmat(korb,jorb)
               trH = trH + tt
           end do
+          tracearr(jorb)=lagmat(jorb,jorb)
       end do
   else
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
           trH = trH + lagmat(jorb,jorb)
+          tracearr(jorb)=lagmat(jorb,jorb)
       end do
       !!!trH=0.d0
       !!!istat=1
@@ -123,6 +127,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
   istart=1
+  allocate(fnrm_arr(tmbopt%orbs%norb), stat=istat)
+  fnrm_arr=0.d0
   do iorb=1,tmbopt%orbs%norbp
       if(.not.variable_locregs .or. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           iiorb=tmbopt%orbs%isorb+iorb
@@ -130,6 +136,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+          fnrm_arr(iiorb)=fnrmArr(iorb,1)
       else
           ! Here the angle between the current and the old gradient cannot be determined since
           ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
@@ -138,6 +145,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
           fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+          fnrm_arr(iiorb)=fnrmArr(iorb,1)
       end if
       istart=istart+ncount
   end do
@@ -147,13 +155,32 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call dcopy(tmbopt%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
   end if
 
+
+      call mpiallred(fnrm_arr(1), tmbopt%orbs%norb, mpi_sum, mpi_comm_world, ierr)
+      call insertionsort(tmbopt%orbs%norb, tracearr, fnrm_arr)
+      occupied=tracearr(tmbopt%orbs%norb-19)
+      if(iproc==0) then
+          do jorb=1,tmbopt%orbs%norb
+              !!write(300,'(4es14.4)') tracearr(jorb), fnrm_arr(jorb), lagmat(jorb,jorb), fnrmArr(jorb,1)
+              write(300,'(2es14.4)') tracearr(jorb), fnrm_arr(jorb)
+          end do
+          write(300,*) '-----------------------------'
+      end if
+      deallocate(tracearr, stat=istat)
+      deallocate(fnrm_arr, stat=istat)
+
   ! Determine the gradient norm and its maximal component. In addition, adapt the
   ! step size for the steepest descent minimization (depending on the angle 
   ! between the current gradient and the one from the previous iteration).
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+  fnrmoccup=0.d0
+  fnrm=0.d0
   do iorb=1,tmbopt%orbs%norbp
+      iiorb=tmbopt%orbs%isorb+iorb
+      if(lagmat(iiorb,iiorb)<=occupied) fnrmoccup=fnrmoccup+fnrmArr(iorb,1)
+      write(400,*) lagmat(iiorb,iiorb), sqrt(fnrmArr(iorb,1))
       fnrm=fnrm+fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
@@ -168,15 +195,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           end if
       end if
   end do
+  call mpiallred(fnrmoccup, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
   fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
+  fnrmoccup=sqrt(fnrmoccup/dble(tmbopt%orbs%norb-19))
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmbopt%orbs%npsidim_orbs, lhphiopt, 1, lhphioldopt, 1)
   if(variable_locregs .and. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
       call dcopy(max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
   trHold=trH
+
+  if(iproc==0) write(*,*) 'fnrmoccup',fnrmoccup
 
   ! Precondition the gradient.
   if(iproc==0) then
@@ -507,3 +538,32 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   end if
 
 end subroutine hpsitopsi_linear
+
+
+
+subroutine insertionsort(n, arr1, arr2)
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: n
+  real(8),dimension(n),intent(inout):: arr1, arr2
+
+  ! Local variables
+  integer:: i, j
+  real(8):: a, b
+
+  DO i = 2,n
+     j = i - 1
+     a = arr1(i)
+     b = arr2(i)
+     DO WHILE (j>=1 .AND. arr1(j)>a)
+        arr1(j+1) = arr1(j)
+        arr2(j+1) = arr2(j)
+        j = j - 1
+        if(j==0) exit
+     END DO
+     arr1(j+1) = a
+     arr2(j+1) = b
+  END DO
+
+end subroutine insertionsort
