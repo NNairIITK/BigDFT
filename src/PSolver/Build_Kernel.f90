@@ -1325,9 +1325,10 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  i_all=-product(shape(fftwork))*kind(fftwork)
  deallocate(fftwork,stat=i_stat)
  call memocc(i_stat,i_all,'fftwork',subname)
-
+ i_all=-product(shape(p_gauss))*kind(p_gauss)
  deallocate(p_gauss, stat=i_stat)
  call memocc(i_stat,i_all,'p_gauss',subname)
+ i_all=-product(shape(w_gauss))*kind(w_gauss)
  deallocate(w_gauss, stat=i_stat)
  call memocc(i_stat,i_all,'w_gauss',subname)
 !!$ i_all=-product(shape(x_scf))*kind(x_scf)
