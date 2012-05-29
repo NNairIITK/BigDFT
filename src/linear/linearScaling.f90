@@ -290,7 +290,8 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
       if(lscv%withder .and. lscv%lowaccur_converged .and. .not.coeffs_copied) then
-          tmbder%wfnmd%coeff=0.d0
+          !!tmbder%wfnmd%coeff=0.d0
+          call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
           do iorb=1,orbs%norb
               jjorb=0
               do jorb=1,tmbder%orbs%norb,4

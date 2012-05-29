@@ -34,8 +34,10 @@ call memocc(istat, rhs, 'rhs', subname)
 allocate(ipiv(ldiis%isx+1), stat=istat)
 call memocc(istat, ipiv, 'ipiv', subname)
 
-mat=0.d0
-rhs=0.d0
+!!mat=0.d0
+!!rhs=0.d0
+call to_zero((ldiis%isx+1)**2, mat(1,1))
+call to_zero(ldiis%isx+1, rhs(1))
 
 ! Copy phi and hphi to history.
 ist=1

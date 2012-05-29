@@ -186,7 +186,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      lphiovrlp=0.d0
+      !!lphiovrlp=0.d0
+      call to_zero(op%ndim_lphiovrlp, lphiovrlp(1))
       call allocateCommuncationBuffersOrtho(comon, subname)
       ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
@@ -1037,7 +1038,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
 
   call timing(iproc,'lovrlp_comp   ','ON')
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
@@ -1139,7 +1141,8 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
   character(len=*),parameter:: subname='calculateOverlapMatrix3'
 
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
@@ -1376,7 +1379,8 @@ correctionIf: if(correction_orthoconstraint==0) then
      !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
      !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
      t1=mpi_wtime()
-     ovrlp_minus_one_lagmat=0.d0
+     !!ovrlp_minus_one_lagmat=0.d0
+     call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
      !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
      !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
      !!do iorb=1,orbs%norb
@@ -1414,7 +1418,8 @@ correctionIf: if(correction_orthoconstraint==0) then
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
        t1=mpi_wtime()
     end if
-    ovrlp_minus_one_lagmat_trans=0.d0
+    !!ovrlp_minus_one_lagmat_trans=0.d0
+    call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
     !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
     !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     !call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &

@@ -392,6 +392,8 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   
   mat=0.d0
   rhs=0.d0
+  call to_zero((ldiis%isx+1)**2, mat(1,1))
+  call to_zero(ldiis%isx+1, rhs(1))
   
   ! Copy coeff and grad to history.
   ist=1

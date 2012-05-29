@@ -291,7 +291,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
   ! Calculate the norm of all basis functions
-  normarr=0.d0
+  !!normarr=0.d0
+  call to_zero(orbs%norb, normarr(1))
   ist=1
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -938,7 +939,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
   ! Recalculate the norm of all basis functions
-  normarr=0.d0
+  !!normarr=0.d0
+  call to_zero(orbs%norb, normarr(1))
   ist=1
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb

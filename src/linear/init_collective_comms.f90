@@ -1431,7 +1431,8 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   integer:: i, ii, jj, i1, i2, i3
 
 
-  weight_c=0.d0
+  !!weight_c=0.d0
+  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
       !!write(650+iproc,*) i, ii
@@ -1476,7 +1477,8 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
 
 
   ! fine part
-  weight_f=0.d0
+  !!weight_f=0.d0
+  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
       jj=ii-1
@@ -2317,7 +2319,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(8),dimension(:),allocatable:: ovrlp_compr
   character(len=*),parameter:: subname='calculate_overlap_transposed'
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   i0=0
   do ipt=1,collcom%nptsp_c 
@@ -2385,8 +2388,10 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   integer:: i0, ipt, ii, j, iiorb, jjorb, i
 
   if(reset) then
-      psit_c=0.d0
-      psit_f=0.d0
+      !!psit_c=0.d0
+      !!psit_f=0.d0
+      call to_zero(collcom%ndimind_c, psit_c(1))
+      call to_zero(7*collcom%ndimind_f, psit_f(1))
   end if
 
   i0=0
