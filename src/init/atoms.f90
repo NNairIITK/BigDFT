@@ -1155,7 +1155,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
      write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,trim(comment)
   else
-     write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),trim(comment)
+     write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),trim(comment)
   end if
 
   if (atoms%geocode == 'P') then
