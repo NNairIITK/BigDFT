@@ -147,13 +147,13 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
 
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
     (&iproc, &nproc, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
-     SICapproach, localfields->dpbox);
+     SICapproach, localfields->dpbox, 1, 4);
   FC_FUNC_(density_descriptors, DENSITY_DESCRIPTORS)(&iproc, &nproc, &in->nspin,
                                                      &in->crmult, &in->frmult,
                                                      lzd->parent.parent.data,
                                                      localfields->dpbox, rho_commun,
                                                      lzd->parent.parent.rxyz.data,
-                                                     lzd->parent.radii, localfields->rhod);
+                                                     lzd->parent.radii, localfields->rhod, 3);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, lzd->parent.data,
                                           &in->nspin, lzd->parent.parent.data,
 					  lzd->parent.parent.rxyz.data,
@@ -225,7 +225,7 @@ void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
     (&iproc, &nproc, &verb, &lzd->parent.parent.geocode, lzd->parent.d,
-     in->data, localfields->data);
+     in->data, localfields->data, 1);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
 }

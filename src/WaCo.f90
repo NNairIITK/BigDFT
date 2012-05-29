@@ -56,7 +56,7 @@ program WaCo
    integer :: i, j, k, i_all
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
-   logical :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
    integer, allocatable, dimension (:) :: virt_list
    integer :: nbandCon
    integer, dimension(:),allocatable :: bandlist
@@ -68,12 +68,13 @@ program WaCo
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
    interface
-      subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+      subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+                 n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
         implicit none
         integer, intent(in) :: iproc
         character, intent(out) :: seedname*16, filetype*4
         integer, intent(out) :: n_occ, n_virt, n_virt_tot
-        logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check
+        logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
       end subroutine read_inter_header
       subroutine read_inter_list(iproc,n_virt, virt_list)
         implicit none
@@ -164,7 +165,8 @@ program WaCo
    ! Read Other files
    !#################################################################
    !input.inter
-   call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+   call read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+        n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
    allocate(virt_list(n_virt),stat=i_stat)
    call memocc(i_stat,virt_list,'virt_list',subname)
    if (n_virt .ne. 0) then
@@ -937,12 +939,12 @@ program WaCo
               i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
               deallocate(orbsw%iokpt,stat=i_stat)
               call memocc(i_stat,i_all,'orbsw%iokpt',subname)
-              allocate(orbsw%iokpt(orbs%norb),stat=i_stat)
+              allocate(orbsw%iokpt(nwannCon),stat=i_stat)
               call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
               orbsw%iokpt=1
-              call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
-              !open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
               if(hamilana .and. linear) then
+                 print *,'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
+                 call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
                  allocate(lwann(ldim),stat=i_stat)
@@ -980,6 +982,8 @@ program WaCo
                   deallocate(lwann,stat=i_stat)
                   call memocc(i_stat,i_all,'lwann',subname)
               else if(hamilana) then
+                ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
+                 call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
                    atoms%nat,rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
@@ -1350,7 +1354,8 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
 END SUBROUTINE read_inter_list
 
 
-subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1360,7 +1365,7 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    integer, intent(in) :: iproc
    character, intent(out) :: seedname*16, filetype*4
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
-   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check, residentity, write_resid
 
    ! Local variables
    character :: char1*1, char2*1, char3*1, char4*1
@@ -1400,19 +1405,33 @@ subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_
    if(iproc==0)write(*,*) 'file type : ', filetype
 
    ! Third line
-   read(11,*) n_occ
+   read(11,*) char1, char2, n_occ
    if(iproc==0)write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
+   if(char1=='T') then
+     residentity = .true.
+     if(iproc==0) write(*,*) 'Will use resolution of the identity to construct virtual states'
+   else
+     residentity = .false.
+   end if
+   if(residentity .and. char2=='T')then
+     write_resid = .true.
+     if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
+   else
+     write_resid = .false.
+   end if
 
    ! Fourth line
    read(11,*) char1, n_virt_tot, n_virt
-   if (char1=='T') then
+   if (char1=='T' .and. .not. residentity) then
       pre_check=.true.
       if(iproc==0)write(*,*) 'Pre-check before calculating Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A38,I4)') 'Total number of unnocupied orbitals :', n_virt_tot
-   else
+   else if(.not. residentity)then
       pre_check=.false.
       if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A39,I4)') 'Number of chosen unnocupied orbitals :', n_virt
+   else
+      if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
    end if
 
    ! Fifth line

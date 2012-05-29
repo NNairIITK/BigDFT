@@ -364,7 +364,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM  = -1010
   integer, parameter :: NEWLINE        = -1011
   integer, parameter :: COMMA_TO_BE_PUT= 10
-
+  integer, parameter :: STREAM_ALREADY_PRESENT=-1
   integer, parameter :: tot_max_record_length=95,tot_max_flow_events=500,tab=5,tot_streams=10
   integer :: active_streams=0,default_stream=1
 
@@ -401,23 +401,48 @@ module yaml_output
 
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
-  public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa
+  public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
+  public :: yaml_get_default_stream
   
 contains
 
+  !> Set the default stream of the module. Return a STREAM_ALREADY_PRESENT errcode if 
+  !! the stream has not be initialized
+  subroutine yaml_set_default_stream(unit,ierr)
+    implicit none
+    integer, intent(in) :: unit
+    integer, intent(out) :: ierr
+    !local variables
+    integer :: istream
+    
+    !check if the stream is present
+    call get_stream(unit,istream,istat=ierr)
+    if (ierr==0) then
+       default_stream=istream
+    end if   
+
+  end subroutine yaml_set_default_stream
+
+  subroutine yaml_get_default_stream(unit)
+    implicit none
+    integer, intent(out) :: unit
+
+    unit=stream_units(default_stream)
+
+  end subroutine yaml_get_default_stream
+
 
   !set all the output from now on to the file indicated by stdout
-  subroutine yaml_set_stream(unit,filename,iostat,tabbing,record_length)
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
     implicit none
     integer, optional, intent(in) :: unit,tabbing,record_length
     character(len=*), optional, intent(in) :: filename
-    integer, optional, intent(out) :: iostat
+    integer, optional, intent(out) :: istat
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    integer, parameter :: STREAM_ALREADY_PRESENT=-1
     integer :: istream,unt,ierr
 
-    if (present(iostat)) iostat=NO_ERRORS !so far
+    if (present(istat)) istat=NO_ERRORS !so far
 
     if (present(unit)) then
        unt=unit
@@ -428,8 +453,8 @@ contains
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
-          if (present(iostat)) then
-             iostat=STREAM_ALREADY_PRESENT
+          if (present(istat)) then
+             istat=STREAM_ALREADY_PRESENT
              return
           else
              stop 'yaml_set_stream:unit already present'
@@ -446,8 +471,8 @@ contains
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
        open(unit=unt,file=trim(filename),status='unknown',position='append',iostat=ierr)
-       if (present(iostat)) then
-          iostat=ierr
+       if (present(istat)) then
+          istat=ierr
        else
           if (ierr /=0) then
              stop 'error in file opening'
@@ -563,7 +588,7 @@ contains
        call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
        streams(strm)%indent=1
     end if
-    call dump(streams(strm),'---')
+    call dump(streams(strm),'---',event=DOCUMENT_START)
     !write(stdout,'(3a)')'---'
     streams(strm)%flow_events=NONE
   end subroutine yaml_new_document
@@ -1120,13 +1145,16 @@ contains
 
 
 
-  subroutine get_stream(unt,strm)
+  subroutine get_stream(unt,strm,istat)
     implicit none
     integer, intent(in) :: unt
     integer, intent(out) :: strm
+    integer, optional, intent(out) :: istat
     !local variables
     logical :: stream_found
     integer :: istream,prev_def
+
+    if (present(istat)) istat=0
 
     if (unt==0) then
        strm=default_stream
@@ -1141,12 +1169,16 @@ contains
           end if
        end do
        if (.not. stream_found) then
-          !otherwise initialize it, no pretty printing
-          prev_def=default_stream
-          call yaml_set_stream(unit=unt,tabbing=0)
-          strm=default_stream
-          !but do not change default stream
-          default_stream=prev_def
+          if (present(istat)) then
+             istat=STREAM_ALREADY_PRESENT
+          else
+             !otherwise initialize it, no pretty printing
+             prev_def=default_stream
+             call yaml_set_stream(unit=unt,tabbing=0)
+             strm=default_stream
+             !but do not change default stream
+             default_stream=prev_def
+          end if
        end if
     end if
 
@@ -1524,6 +1556,8 @@ contains
          indent_value=0!1
          if (stream%icursor==1) indent_value=1
       end if
+
+      if (evt==DOCUMENT_START) indent_value=0
 
 !      if (stream%icursor > 1) then
 !         indent_value=0

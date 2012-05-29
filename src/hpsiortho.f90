@@ -308,6 +308,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
        energs,wfn%SIC,GPU,correcth,pkernel=denspot%pkernelseq)
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  ! Emit that hpsi are ready.
+  if (wfn%c_obj /= 0) then
+     call kswfn_emit_psi(wfn, itwfn, 1, iproc, nproc)
+  end if
 
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_work,subname)
@@ -1393,7 +1397,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
-      call kswfn_emit_psi(wfn, iter, iproc, nproc)
+      call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
    end if
 
    call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
@@ -1591,7 +1595,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
-      call kswfn_emit_psi(wfn, iter, iproc, nproc)
+      call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
    end if
 
    if(.not.  keeppsit) then

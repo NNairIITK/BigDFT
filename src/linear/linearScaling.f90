@@ -319,7 +319,7 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
            input, tmb, tmbder, denspot, ldiis, lscv)
       !!if(iproc==0) write(*,*) 'MIDDLE 2: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
-      ! Somce special treatement if we are in the high accuracy part
+      ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
 
@@ -503,6 +503,12 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
+!DEBUG
+!if(iproc==0)then
+!print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+!end if
+!END DEBUG
+
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -977,7 +983,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
-  logical:: redefine_derivatives
+  integer :: ilr
+  logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -1015,12 +1022,21 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locreg_increased=.true.
   end if
 
-  redefine_derivatives=.false.
+  !redefine_derivatives=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
-      if(iproc==0) then
-          write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+      change = .false.
+      do ilr = 1, tmb%lzd%nlr
+         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
+             change = .true.
+             exit
+         end if
+      end do
+      if(change) then
+         if(iproc==0) then
+             write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+         end if
+         lscv%locreg_increased=.true.
       end if
-      lscv%locreg_increased=.true.
       lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(lscv%locreg_increased) then

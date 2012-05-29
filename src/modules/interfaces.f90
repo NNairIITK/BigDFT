@@ -166,7 +166,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE read_input_parameters
 
-      subroutine read_atomic_file(file,iproc,at,rxyz,status)
+      subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
          use module_types
          implicit none
@@ -175,6 +175,9 @@ module module_interfaces
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
          integer, intent(out), optional :: status
+         real(gp), intent(out), optional :: energy
+         real(gp), dimension(:,:), pointer, optional :: fxyz
+         character(len = 1024), intent(out), optional :: comment
       END SUBROUTINE read_atomic_file
 
       !> @author
@@ -189,13 +192,16 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
+      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getLine)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
+         real(gp), intent(out) :: energy_
+         real(gp), dimension(:,:), pointer :: fxyz_
+         character(len = 1024), intent(out) :: comment_
          interface
             subroutine getline(line,ifile,eof)
                integer, intent(in) :: ifile
@@ -205,13 +211,16 @@ module module_interfaces
          end interface
       END SUBROUTINE read_xyz_positions
 
-      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
+      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getline)
          ! use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
+         real(gp), intent(out) :: energy_
+         real(gp), dimension(:,:), pointer :: fxyz_
+         character(len = 1024), intent(out) :: comment_
          interface
             subroutine getline(line,ifile,eof)
                integer, intent(in) :: ifile
@@ -220,6 +229,18 @@ module module_interfaces
             END SUBROUTINE getline
          end interface
       END SUBROUTINE read_ascii_positions
+
+      subroutine read_yaml_positions(filename, atoms,rxyz,comment_,energy_,fxyz_)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        type(atoms_data), intent(inout) :: atoms
+        real(gp), dimension(:,:), pointer :: rxyz
+        real(gp), intent(out) :: energy_
+        real(gp), dimension(:,:), pointer :: fxyz_
+        character(len = 1024), intent(out) :: comment_
+      END SUBROUTINE read_yaml_positions
 
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base

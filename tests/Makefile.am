@@ -18,6 +18,25 @@ else
 mpirun_message =
 endif
 
+if BUILD_LIBYAML
+pyyaml_build = pyyaml_build
+pyyaml_clean = pyyaml_clean
+else
+pyyaml_build =
+pyyaml_clean =
+endif
+
+pyyaml_build:
+	cd $(top_builddir)/PyYAML-3.10 ; \
+	rm -rf build ; \
+	python setup.py build ; \
+	cd -
+
+pyyaml_clean:
+	cd $(top_builddir)/PyYAML-3.10 ; \
+	python setup.py clean ; \
+	cd -
+
 head_message: all-recursive
 	@echo "======================================================="
 	@echo "Type 'make check' in the directory tests      "
@@ -41,7 +60,9 @@ EXTRA_DIST = \
 
 CLEANFILES =
 
-all: head_message foot_message
+all: $(pyyaml_build) head_message foot_message
+
+clean: $(pyyaml_clean) clean-recursive
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
