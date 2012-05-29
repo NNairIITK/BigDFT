@@ -1468,7 +1468,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 
 
 
-  vpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), vpsi(1))
   ist_c=1
   ist_f=1
   do iorb=1,orbs%norbp
@@ -1695,7 +1695,8 @@ real(8):: tt
 
       ! Build new lphi
       if(reset) then
-          lphi=0.d0
+          !!lphi=0.d0
+          call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1))
       end if
 
       indout=1
@@ -1871,9 +1872,9 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 
   ishift=(/0,0,0/)
 
-  xpsi=0.d0
-  ypsi=0.d0
-  zpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), xpsi(1))
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), ypsi(1))
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), zpsi(1))
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -2281,7 +2282,7 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 
   !xpsi=0.d0
   !ypsi=0.d0
-  vpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), vpsi(1))
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -2688,7 +2689,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   ! Local variables
   integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
   
-  philarge=0.d0
+  call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -2730,7 +2731,7 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
   
   ! Transform back to small locreg
-  phismall=0.d0
+  call to_zero(orbssmall%npsidim_orbs, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbssmall%norbp

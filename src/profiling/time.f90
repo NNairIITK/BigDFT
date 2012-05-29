@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=75,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=76,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -97,6 +97,7 @@ module timeData
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
        'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
+       'put_to_zero   ','Initialization' ,'razero        ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
