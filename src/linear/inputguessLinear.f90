@@ -429,7 +429,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! lchi are the atomic orbitals with the smaller cutoff.
   allocate(lchi2(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp)),stat=istat)
   call memocc(istat,lchi2,'lchi2',subname)
-  lchi2=0.d0
+  !!lchi2=0.d0
+  call to_zero(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp), lchi2(1))
 
   ! Grid spacing on fine grid.
   hxh=.5_gp*hx
@@ -441,7 +442,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   tmbgauss%lzd%hgrids(2)=hy
   tmbgauss%lzd%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
-  lchi2=0.d0
+  !!lchi2=0.d0
   call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
        psigau(1,1,min(tmbgauss%orbs%isorb+1,tmbgauss%orbs%norb)),lchi2)
 
@@ -458,7 +459,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   allocate(lchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
-  lchi=0.d0
+  !!lchi=0.d0
+  call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp), lchi(1))
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
   ! of lchi.
@@ -634,7 +636,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   allocate(lhchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp),ndim_lhchi),stat=istat)
   call memocc(istat, lhchi, 'lhchi', subname)
-  lhchi=0.d0
+  !!lhchi=0.d0
+  call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)*ndim_lhchi, lhchi(1,1))
 
 
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
@@ -643,8 +646,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
 
   !!tmbig%comgp%communication_complete=.false.
-  call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-       denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
+  !!call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
+  !!     denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
 
   tmbig%lzd%hgrids(1)=hx
   tmbig%lzd%hgrids(2)=hy
@@ -683,13 +686,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
              call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
              if(owa/=owa_old) then
-                 call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                      energs,input%SIC,GPUe,.false.,&
-                      pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
                       proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
+                 call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
+                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                      energs,input%SIC,GPUe,.false.,&
+                      pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
                  ii_old=ii
              else
                  call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)
@@ -709,10 +712,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate the parameters needed for the communication of the potential.
   call deallocate_p2pComms(tmbig%comgp, subname)
 
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
-   if(ii/=ndim_lhchi) then
+  if(associated(denspot%pot_work)) then
+      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work, stat=istat)
+      call memocc(istat, iall, 'denspot%pot_work', subname)
+  end if
+  if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if
@@ -1307,7 +1312,8 @@ call memocc(istat, matmin%indexInLocreg, 'matmin%indexInLocreg', subname)
 ! Allocate the matrix
 allocate(hamextract(matmin%norbmax,matmin%norbmax,matmin%nlrp), stat=istat)
 call memocc(istat, hamextract, 'hamextract', subname)
-hamextract=0.d0
+!!hamextract=0.d0
+call to_zero(matmin%norbmax*matmin%norbmax*matmin%nlrp, hamextract(1,1,1))
 
 ! Exctract the data from the large Hamiltonian.
 jlrold=-1
@@ -1385,7 +1391,8 @@ real(8),dimension(norbtot),intent(out):: vglobal
 ! Local variables
 integer:: ilocal, iglobal
 
-vglobal=0.d0
+!!vglobal=0.d0
+call to_zero(norbtot, vglobal(1))
 do ilocal=1,mlr%norbinlr
   iglobal=mlr%indexInGlobal(ilocal)
   vglobal(iglobal)=vlocal(ilocal)
@@ -2309,7 +2316,8 @@ real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
 integer:: ilrold, ist, iorb, iiorb, ilr, jorb, klr, korb, i, ind, ijorb
 
 
-vecOvrlp=0.d0
+!!vecOvrlp=0.d0
+call to_zero(norbmax*noverlaps, vecOvrlp(1,1))
 ilrold=0
 ist=0
 ijorb=0
@@ -2364,7 +2372,8 @@ real(8):: ddot
 
 
 
-ovrlp=0.d0
+!!ovrlp=0.d0
+call to_zero(norb**2, ovrlp(1,1))
 
 ijorb=0
 ilrold=0
@@ -2422,7 +2431,8 @@ call memocc(istat, vecTemp, 'vecTemp',subname)
 
 if(norbp>0) call dcopy(norbmax*norbp, vec(1,1), 1, vecTemp(1,1), 1)
 
-vec=0.d0
+!!vec=0.d0
+if(norbp>0) call to_zero(norbmax*norbp, vec(1,1))
 
 ijorb=0
 ilrold=0
@@ -2485,9 +2495,11 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, c
   call memocc(istat, phit_c, 'phit_c', subname)
   allocate(phit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, phit_f, 'phit_f', subname)
-  
-  phit_c=0.d0
-  phit_f=0.d0
+
+  !!phit_c=0.d0
+  !!phit_f=0.d0
+  call to_zero(sum(collcom%nrecvcounts_c), phit_c(1))
+  call to_zero(7*sum(collcom%nrecvcounts_f), phit_f(1))
   
   i0=0
   j0=0
@@ -2648,7 +2660,8 @@ type(collective_comms):: collcom_vectors
   !call initRandomSeed(0, 1)
 
 
-  coeffPad=0.d0
+  !!coeffPad=0.d0
+  call to_zero(max(tmbig%orbs%norb*tmb%orbs%norbp,1), coeffPad(1))
   ii=0
   do jproc=0,nproc-1
       do iorb=1,tmb%orbs%norb_par(jproc,0)

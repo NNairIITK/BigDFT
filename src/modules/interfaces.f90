@@ -693,7 +693,7 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc)
+            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
          use module_base
          use module_types
          use module_xc
@@ -707,14 +707,17 @@ module module_interfaces
          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
          type(confpot_data), dimension(orbs%norbp) :: confdatarr
-         !real(wp), dimension(:), pointer :: pot
-         real(wp), dimension(*) :: pot
+         real(wp), dimension(:), pointer :: pot
+         !real(wp), dimension(*) :: pot
          type(energy_terms), intent(inout) :: energs
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
          type(GPU_pointers), intent(inout) :: GPU
          real(dp), dimension(:), pointer, optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
          real(wp), dimension(:), pointer, optional :: psirocc
+         type(denspot_distribution),intent(in),optional :: dpbox
+         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+         type(p2pComms),intent(inout), optional:: comgp
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
@@ -1701,23 +1704,28 @@ module module_interfaces
         !v, that is psivirt, is transposed on input and direct on output
       end subroutine constrained_davidson
 
-      subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
-           ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
+      subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
+           ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
+           dpbox,potential,comgp)
         use module_base
         use module_types
         use module_xc
         implicit none
-        integer, intent(in) :: iproc,ipotmethod,ixc
+        integer, intent(in) :: iproc,nproc,ipotmethod,ixc
         real(gp), intent(in) :: hx,hy,hz,alphaSIC
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
-        real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+        real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
         real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        type(denspot_distribution),intent(in),optional :: dpbox
+        !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+        real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+        type(p2pComms),intent(inout), optional:: comgp
       END SUBROUTINE local_hamiltonian
 
       subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
@@ -1730,7 +1738,8 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          real(dp), dimension(*), intent(in) :: pkernel
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-         real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
+         !real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
+         real(wp), intent(inout) :: poti
          real(gp), intent(out) :: eSIC_DC
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,2*orbs%nspin), intent(in), optional :: potandrho 
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
@@ -5034,7 +5043,8 @@ module module_interfaces
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-       real(wp), dimension(lzd%ndimpotisf) :: Lpot
+       !real(wp), dimension(lzd%ndimpotisf) :: Lpot
+       real(wp), dimension(:),pointer :: Lpot
        type(energy_terms), intent(inout) :: energs
        real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
@@ -5638,7 +5648,8 @@ module module_interfaces
          implicit none
          integer, intent(in) :: npot,nspinor
          type(locreg_descriptors), intent(in) :: lr !< localization region of the wavefunction
-         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
+         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
+         real(wp), intent(in) :: pot
          real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
          real(gp), intent(out) :: epot
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
@@ -6901,6 +6912,17 @@ module module_interfaces
           real(8),dimension(ld_coeff,norb),intent(in):: coeff
           real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
         end subroutine calculate_density_kernel
+
+        subroutine calculate_norm_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(collective_comms),intent(in):: collcom
+          real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
+          real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
+        end subroutine calculate_norm_transposed
 
    end interface
 

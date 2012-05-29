@@ -23,7 +23,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
   real(8),dimension(:),allocatable:: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt, dnrm2
+  real(8):: maxError
   real(8),dimension(:,:),allocatable:: ovrlp
 
 
@@ -59,6 +59,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
       end if
+
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
 
@@ -70,6 +71,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
           call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
           call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
+          call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
           call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
           can_use_transposed=.true.
           iall=-product(shape(psittemp_c))*kind(psittemp_c)
@@ -85,20 +87,24 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !!deallocate(psit_f, stat=istat)
           !!call memocc(istat, iall, 'psit_f', subname)
 
-          ! Normalize... could this be done in the tranposed layout?
-          ist=1
-          do iorb=1,orbs%norbp
-             iiorb=orbs%isorb+iorb
-             ilr=orbs%inwhichlocreg(iiorb)
-             ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          !!! Normalize... could this be done in the tranposed layout?
+          !!ist=1
+          !!do iorb=1,orbs%norbp
+          !!   iiorb=orbs%isorb+iorb
+          !!   ilr=orbs%inwhichlocreg(iiorb)
+          !!   ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
-             ! Normalize
-             tt=dnrm2(ncount, lphi(ist), 1)
-             call dscal(ncount, 1/tt, lphi(ist), 1)
+          !!   ! Normalize
+          !!   tt=dnrm2(ncount, lphi(ist), 1)
+          !!   call dscal(ncount, 1/tt, lphi(ist), 1)
 
-             ist=ist+ncount
-          end do
-          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          !!   ist=ist+ncount
+          !!end do
+          !!call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+
+          !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+
+
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           call globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
 
@@ -180,7 +186,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      lphiovrlp=0.d0
+      !!lphiovrlp=0.d0
+      call to_zero(op%ndim_lphiovrlp, lphiovrlp(1))
       call allocateCommuncationBuffersOrtho(comon, subname)
       ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
       call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
@@ -1031,7 +1038,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
 
   call timing(iproc,'lovrlp_comp   ','ON')
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
@@ -1133,7 +1141,8 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
   character(len=*),parameter:: subname='calculateOverlapMatrix3'
 
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
@@ -1370,7 +1379,8 @@ correctionIf: if(correction_orthoconstraint==0) then
      !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
      !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
      t1=mpi_wtime()
-     ovrlp_minus_one_lagmat=0.d0
+     !!ovrlp_minus_one_lagmat=0.d0
+     call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
      !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
      !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
      !!do iorb=1,orbs%norb
@@ -1408,7 +1418,8 @@ correctionIf: if(correction_orthoconstraint==0) then
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
        t1=mpi_wtime()
     end if
-    ovrlp_minus_one_lagmat_trans=0.d0
+    !!ovrlp_minus_one_lagmat_trans=0.d0
+    call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
     !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
     !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     !call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &

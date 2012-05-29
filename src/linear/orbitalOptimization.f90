@@ -34,8 +34,10 @@ call memocc(istat, rhs, 'rhs', subname)
 allocate(ipiv(ldiis%isx+1), stat=istat)
 call memocc(istat, ipiv, 'ipiv', subname)
 
-mat=0.d0
-rhs=0.d0
+!!mat=0.d0
+!!rhs=0.d0
+call to_zero((ldiis%isx+1)**2, mat(1,1))
+call to_zero(ldiis%isx+1, rhs(1))
 
 ! Copy phi and hphi to history.
 ist=1
@@ -67,6 +69,7 @@ do iorb=1,orbs%norbp
        do i=1,ldiis%isx-1
           do j=1,i
              ldiis%mat(j,i,iorb)=ldiis%mat(j+1,i+1,iorb)
+             !!write(3100+iproc,*) ldiis%mat(j,i,iorb)
           end do
        end do
     end if
@@ -98,6 +101,8 @@ do iorb=1,orbs%norbp
                                mi, ncount, ist2, size(ldiis%hphiHist)
        end if
        ldiis%mat(j-i+1,min(ldiis%isx,ldiis%is),iorb)=ddot(ncount, hphi(ist1), 1, ldiis%hphiHist(ist2), 1)
+       !!write(3000+iproc,*) ldiis%mat(j-i+1,min(ldiis%isx,ldiis%is),iorb)
+       !!write(3200+iproc,'(4i8,2es20.12)') mi, ldiis%is, ist1, ist2, hphi(ist1), ldiis%hphiHist(ist2)
        ist2=ist2+ncount
     end do
 end do
@@ -112,6 +117,8 @@ do iorb=1,orbs%norbp
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
             mat(i,j)=ldiis%mat(i,j,iorb)
+            !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
+            !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
         end do
     end do
     mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
@@ -163,6 +170,7 @@ do iorb=1,orbs%norbp
         ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
         jst=jst+ncount*ldiis%isx
     end do
+    !!write(2000+iproc,'(a,i8,100es9.2)') 'iproc, rhs',iproc, rhs(1:(ldiis%is-isthist+1))
     do j=isthist,ldiis%is
         jj=jj+1
         mj=mod(j-1,ldiis%isx)+1
@@ -240,6 +248,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+ldiis%phiHist=555.d0
+ldiis%hphiHist=555.d0
 
 
 end subroutine initializeDIIS

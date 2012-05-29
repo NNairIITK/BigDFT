@@ -84,12 +84,11 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-  ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
-  ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
-  ! gathered as well since the locregs changed.
-
-  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
-  call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  !!!! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
+  !!!! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
+  !!!! gathered as well since the locregs changed.
+  !!!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  !!!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -101,10 +100,22 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   lzd%doHamAppl=.true.
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
-  call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
-       energs,SIC,GPU,&
-       pkernel=denspot%pkernelseq)
+  !!call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
+  !!     proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+  !!     energs,SIC,GPU,&
+  !!     pkernel=denspot%pkernelseq)
+  if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
+  call NonLocalHamiltonianApplication(iproc,at,tmbmix%orbs,rxyz,&
+       proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
+  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
+  call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+       lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)
+  call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+
   deallocate(confdatarrtmp)
 !DEBUG
 !if (iproc==0) then
@@ -448,16 +459,17 @@ type(energy_terms) :: energs
           stop
       end if
   end if
-  ldiis%icountSDSatur=0
-  ldiis%icountSwitch=0
-  ldiis%icountDIISFailureTot=0
-  ldiis%icountDIISFailureCons=0
-  ldiis%is=0
-  ldiis%switchSD=.false.
-  ldiis%trmin=1.d100
-  ldiis%trold=1.d100
+  !!ldiis%icountSDSatur=0
+  !!ldiis%icountSwitch=0
+  !!ldiis%icountDIISFailureTot=0
+  !!ldiis%icountDIISFailureCons=0
+  !!ldiis%is=0
+  !!ldiis%switchSD=.false.
+  !!ldiis%trmin=1.d100
+  !!ldiis%trold=1.d100
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
+  !!write(*,*) 'ldiis%is',ldiis%is
 
   !print *,'TEST2'
   !print *,iproc,(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE),&
@@ -470,7 +482,7 @@ type(energy_terms) :: energs
 
       ! Build the required potential
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+      !!call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
 
 
@@ -625,21 +637,34 @@ type(energy_terms) :: energs
       call memocc(istat, tmb%lzd%doHamAppl, 'tmb%lzd%doHamAppl', subname)
       tmb%lzd%doHamAppl=.true.
 
+      !!if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
+      !!    ! The messages for this point to point communication have been posted in the subroutine linearScaling.
+      !!    !!call gatherPotential(iproc, nproc, tmb%comgp)
+
+      !!    ! Build the required potential
+      !!    !!tmb%comgp%communication_complete=.false.
+      !!   call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      !!   call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+      !!end if
+
+      !!call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
+      !!     proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+      !!     energs,SIC,GPU,&
+      !!     pkernel=denspot%pkernelseq)
+      if (tmb%orbs%npsidim_orbs > 0) call to_zero(tmb%orbs%npsidim_orbs,lhphi(1))
+      call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,rxyz,&
+           proj,tmb%lzd,nlpspd,tmb%psi,lhphi,energs%eproj)
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
-          ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-          !!call gatherPotential(iproc, nproc, tmb%comgp)
-
-          ! Build the required potential
-          !!tmb%comgp%communication_complete=.false.
-         call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-         call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+          !!call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
       end if
-
-      call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
-           energs,SIC,GPU,&
-           pkernel=denspot%pkernelseq)
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
+           tmb%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+           energs,SIC,GPU,.false.,&
+           pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp)
+      call SynchronizeHamiltonianApplication(nproc,tmb%orbs,tmb%lzd,GPU,lhphi,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
       iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
       deallocate(tmb%lzd%doHamAppl,stat=istat)
@@ -687,17 +712,17 @@ type(energy_terms) :: energs
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
       if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-                  ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              infoBasisFunctions=-1
-          else if(fnrm<tmb%wfnmd%bs%conv_crit) then
+          if(fnrm<tmb%wfnmd%bs%conv_crit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
+          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+                  ' iterations! Exiting loop due to limitations of iterations.'
+              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              infoBasisFunctions=-1
           else if(emergency_exit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
@@ -777,7 +802,6 @@ type(energy_terms) :: energs
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
-
 
 
 contains
@@ -1444,7 +1468,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 
 
 
-  vpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), vpsi(1))
   ist_c=1
   ist_f=1
   do iorb=1,orbs%norbp
@@ -1671,7 +1695,8 @@ real(8):: tt
 
       ! Build new lphi
       if(reset) then
-          lphi=0.d0
+          !!lphi=0.d0
+          call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1))
       end if
 
       indout=1
@@ -1847,9 +1872,9 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 
   ishift=(/0,0,0/)
 
-  xpsi=0.d0
-  ypsi=0.d0
-  zpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), xpsi(1))
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), ypsi(1))
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), zpsi(1))
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -2257,7 +2282,7 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 
   !xpsi=0.d0
   !ypsi=0.d0
-  vpsi=0.d0
+  call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), vpsi(1))
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -2664,7 +2689,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   ! Local variables
   integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
   
-  philarge=0.d0
+  call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -2706,7 +2731,7 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
   
   ! Transform back to small locreg
-  phismall=0.d0
+  call to_zero(orbssmall%npsidim_orbs, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbssmall%norbp

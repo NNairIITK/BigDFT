@@ -908,6 +908,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    type(GPU_pointers) :: GPU
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
+   real(wp), dimension(:), pointer:: pottmp
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
@@ -1108,7 +1109,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
+      call memocc(i_stat,pottmp,'pottmp',subname)
+      call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      i_all=-product(shape(pottmp))*kind(pottmp)
+      deallocate(pottmp,stat=i_stat)
+      call memocc(i_stat,i_all,'pottmp',subname)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9

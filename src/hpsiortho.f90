@@ -347,7 +347,8 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(lzd%ndimpotisf) :: pot
+  !real(wp), dimension(lzd%ndimpotisf) :: pot
+  real(wp), dimension(:),pointer :: pot
   type(energy_terms), intent(inout) :: energs
   !real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,evsic
   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
@@ -392,7 +393,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc)
+     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
    use module_base
    use module_types
    use module_xc
@@ -408,14 +409,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   !real(wp), dimension(:), pointer :: pot
-   real(wp), dimension(*) :: pot
+   real(wp), dimension(:), pointer :: pot
+   !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
    real(wp), dimension(:), pointer, optional :: psirocc
+   type(denspot_distribution),intent(in),optional :: dpbox
+   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   type(p2pComms),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
@@ -550,9 +555,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
       if (.not. onlypot) then
-         call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-              SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
+         if(present(dpbox) .and. present(potential) .and. present(comgp)) then
+            call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                 SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,&
+                 dpbox,potential,comgp)
+         else
+            call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                 SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
+         end if
 !!$      i_all=-product(shape(fake_pot))*kind(fake_pot)
 !!$      deallocate(fake_pot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'fake_pot',subname)
@@ -907,6 +919,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
        call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
+   call timing(iproc,'Pot_commun    ','OF') 
 
    !########################################################################
    ! Determine the dimension of the potential array and orbs%ispot
@@ -919,6 +932,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 !!$   end if
 !!$   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
 !!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
+   call timing(iproc,'Pot_after_comm','ON')
 
    if(Lzd%nlr > 1) then
       allocate(ilrtable(orbs%norbp),stat=i_stat)
@@ -1004,37 +1019,39 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
-      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,pot,'pot',subname)
+       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
+         allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+         call memocc(i_stat,pot,'pot',subname)
 
-      ist=1
-      do iorb=1,nilr
-         ilr = ilrtable(iorb)
-         !determine the dimension of the potential array (copied from full_local_potential)
-         if (xc_exctXfac() /= 0.0_gp) then
-            stop 'exctX not yet implemented!'
-         else
-            size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
-         end if
+         ist=1
+         do iorb=1,nilr
+            ilr = ilrtable(iorb)
+            !determine the dimension of the potential array (copied from full_local_potential)
+            if (xc_exctXfac() /= 0.0_gp) then
+               stop 'exctX not yet implemented!'
+            else
+               size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+            end if
 
-         ! Extract the part of the potential which is needed for the current localization region.
-         i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-         i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-         if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
-            write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
-            stop
-         end if
+            ! Extract the part of the potential which is needed for the current localization region.
+            i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+            i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
+               write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
+               stop
+            end if
 !!write(*,*) 'i3s,i3e',i3s,i3e
 !!write(*,'(a,2i8)') 'lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i',lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
 !!write(*,*) 'lzd%glr%d%n1i',lzd%glr%d%n1i
-         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-              comgp%recvBuf, pot(ist), i3s, i3e)
+            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
+                 comgp%recvBuf, pot(ist), i3s, i3e)
 !!do i_stat=1,size_lpot
 !!    write(200+iproc,*) i_stat, pot(ist+i_stat-1)
 !!end do
 
-         ist = ist + size_lpot
-      end do
+            ist = ist + size_lpot
+         end do
+      end if
    end if
 
    i_all=-product(shape(ilrtable))*kind(ilrtable)
@@ -1058,7 +1075,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       end if
    end if
 
-   call timing(iproc,'Pot_commun    ','OF') 
+   call timing(iproc,'Pot_after_comm','OF')
 
 END SUBROUTINE full_local_potential
 
@@ -1130,6 +1147,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   integer :: ierr,ikpt,iorb,i_all,i_stat,k
   real(gp) :: rzeroorbs,tt
   real(wp), dimension(:,:,:), pointer :: mom_vec
+  real(gp),dimension(2):: reducearr
 
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
@@ -1246,10 +1264,17 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      end if
   end if
 
+  call timing(iproc,'Precondition  ','OF')
+
   !sum over all the partial residues
   if (nproc > 1) then
-     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     reducearr(1)=gnrm
+     reducearr(2)=gnrm_zero
+     !!call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !!call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(reducearr(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     gnrm=reducearr(1)
+     gnrm_zero=reducearr(2)
   endif
 
   !count the number of orbitals which have zero occupation number
@@ -1277,7 +1302,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !write(*,'(1x,a)')&
      !     &   'done.'
   end if
-  call timing(iproc,'Precondition  ','OF')
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)

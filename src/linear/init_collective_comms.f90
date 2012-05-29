@@ -1431,7 +1431,8 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   integer:: i, ii, jj, i1, i2, i3
 
 
-  weight_c=0.d0
+  !!weight_c=0.d0
+  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
       !!write(650+iproc,*) i, ii
@@ -1476,7 +1477,8 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
 
 
   ! fine part
-  weight_f=0.d0
+  !!weight_f=0.d0
+  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
       jj=ii-1
@@ -2317,7 +2319,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(8),dimension(:),allocatable:: ovrlp_compr
   character(len=*),parameter:: subname='calculate_overlap_transposed'
 
-  ovrlp=0.d0
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
 
   i0=0
   do ipt=1,collcom%nptsp_c 
@@ -2385,8 +2388,10 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   integer:: i0, ipt, ii, j, iiorb, jjorb, i
 
   if(reset) then
-      psit_c=0.d0
-      psit_f=0.d0
+      !!psit_c=0.d0
+      !!psit_f=0.d0
+      call to_zero(collcom%ndimind_c, psit_c(1))
+      call to_zero(7*collcom%ndimind_f, psit_f(1))
   end if
 
   i0=0
@@ -2494,3 +2499,95 @@ subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
   end do
 
 end subroutine compress_matrix_for_allreduce
+
+
+
+subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(collective_comms),intent(in):: collcom
+  real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
+  real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
+  
+  ! Local variables
+  integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
+  real(8),dimension(:),allocatable:: norm
+  character(len=*),parameter:: subname='normslize_transposed'
+
+  allocate(norm(orbs%norb), stat=istat)
+  call memocc(istat, norm, 'norm', subname)
+  call to_zero(orbs%norb, norm(1))
+
+  i0=0
+  do ipt=1,collcom%nptsp_c 
+      ii=collcom%norb_per_gridpoint_c(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_c(i0+i)
+          norm(iiorb)=norm(iiorb)+psit_c(i0+i)**2
+      end do
+      i0=i0+ii
+  end do
+
+  i0=0
+  do ipt=1,collcom%nptsp_f 
+      ii=collcom%norb_per_gridpoint_f(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_f(i0+i)
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-6)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-5)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-4)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-3)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-2)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-1)**2
+          norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-0)**2
+      end do
+      i0=i0+ii
+  end do
+
+  if(nproc>1) then
+      call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  end if
+  
+
+  do iorb=1,orbs%norb
+      norm(iorb)=1.d0/sqrt(norm(iorb))
+  end do
+
+
+  i0=0
+  do ipt=1,collcom%nptsp_c 
+      ii=collcom%norb_per_gridpoint_c(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_c(i0+i)
+          psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
+      end do
+      i0=i0+ii
+  end do
+
+  i0=0
+  do ipt=1,collcom%nptsp_f 
+      ii=collcom%norb_per_gridpoint_f(ipt) 
+      do i=1,ii
+          iiorb=collcom%indexrecvorbital_f(i0+i)
+          psit_f(7*(i0+i)-6)=psit_f(7*(i0+i)-6)*norm(iiorb)
+          psit_f(7*(i0+i)-5)=psit_f(7*(i0+i)-5)*norm(iiorb)
+          psit_f(7*(i0+i)-4)=psit_f(7*(i0+i)-4)*norm(iiorb)
+          psit_f(7*(i0+i)-3)=psit_f(7*(i0+i)-3)*norm(iiorb)
+          psit_f(7*(i0+i)-2)=psit_f(7*(i0+i)-2)*norm(iiorb)
+          psit_f(7*(i0+i)-1)=psit_f(7*(i0+i)-1)*norm(iiorb)
+          psit_f(7*(i0+i)-0)=psit_f(7*(i0+i)-0)*norm(iiorb)
+      end do
+      i0=i0+ii
+  end do
+
+
+  iall=-product(shape(norm))*kind(norm)
+  deallocate(norm, stat=istat)
+  call memocc(istat, iall, 'norm', subname)
+
+end subroutine normalize_transposed
