@@ -41,7 +41,10 @@ character(len=*),parameter:: subname='get_coeff'
 !For debug
 integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 character(len=1) :: num
-real(8),dimension(:),allocatable :: Gphi, Ghphi, work
+real(8),dimension(:),allocatable :: Gphi, Ghphi, work, locrad_tmp
+type(DFT_wavefunction):: tmblarge
+real(8),dimension(:,:),allocatable:: locregCenter
+real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
 
   ! Allocate the local arrays.  
@@ -109,11 +112,56 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
        proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
   call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
   !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
-  call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
-       lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
-       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)
-  call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      do iorb=1,tmb%orbs%norb
+          ilr=tmb%orbs%inwhichlocreg(iorb)
+          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      end do
+      do ilr=1,tmb%lzd%nlr
+          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      end do
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call allocate_auxiliary_basis_function(tmblarge%orbs%npsidim_orbs, subname, tmblarge%psi, &
+           lhphilarge, lhphilargeold, lphilargeold)
+      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+
+
+      ! Go to large localization region and do the orthonormalization there.
+      tmblarge%psi=0.d0
+      lhphilarge=0.d0
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+
+      call allocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+
+  allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
+  call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
+  tmblarge%lzd%doHamAppl=.true.
+
+  call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
+
+
+  !!call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+  !!     lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+  !!     energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)
+  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+       tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+  !!call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+  !!     energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
 
 
   deallocate(confdatarrtmp)
@@ -144,6 +192,10 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   deallocate(lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lzd%doHamAppl', subname)
 
+  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
+  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
+
 
 
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
@@ -158,20 +210,28 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+
+      allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+      call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+      allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+      call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+
       !!allocate(psit_c(tmbmix%collcom%ndimind_c))
       !!call memocc(istat, psit_c, 'psit_c', subname)
       !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       !!call memocc(istat, psit_f, 'psit_f', subname)
-      allocate(hpsit_c(tmbmix%collcom%ndimind_c))
+      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmbmix%collcom%ndimind_f))
+      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      !!call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
-      call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
-           lhphi, hpsit_c, hpsit_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, &
-           tmbmix%psit_c, hpsit_c, tmbmix%psit_f, hpsit_f, matrixElements)
-      !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%psi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
+      !!call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, psit_c, psit_f, tmblarge%psi, lzd)
       !!iall=-product(shape(psit_c))*kind(psit_c)
       !!deallocate(psit_c, stat=istat)
       !!call memocc(istat, iall, 'psit_c', subname)
@@ -184,14 +244,26 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       iall=-product(shape(hpsit_f))*kind(hpsit_f)
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
-  else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
-      call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
-           lhphi, tmbmix%mad, matrixElements)
-      call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+
+     iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+     deallocate(tmblarge%psit_c, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_c', subname)
+     iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+     deallocate(tmblarge%psit_f, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_f', subname)
+
+
+  else if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call allocateCommuncationBuffersOrtho(tmblarge%comon, subname)
+      call getMatrixElements2(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%psi, &
+           lhphilarge, tmblarge%mad, matrixElements)
+      call deallocateCommuncationBuffersOrtho(tmblarge%comon, subname)
   else
       stop 'wrong communication_strategy_overlap'
   end if
+
+  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  call destroy_new_locregs(iproc, nproc, tmblarge)
 
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)

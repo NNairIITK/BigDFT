@@ -475,6 +475,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       ind1=ind1+tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
       ind2=ind2+tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
   end do
+
+  call dcopy(size(lchi), lchi, 1, lphi, 1)
+
   if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
            ': ind1/=tmbgauss%orbs%npsidim+1',ind1,tmbgauss%orbs%npsidim_orbs+1
@@ -757,9 +760,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, iall, 'lhchi',subname)
 
 
-  ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
+  !!! Build the orbitals phi as linear combinations of the atomic orbitals.
+  !!call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+  !!         tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
