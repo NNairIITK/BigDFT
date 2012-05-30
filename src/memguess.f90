@@ -1368,6 +1368,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
+   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
@@ -1402,18 +1403,12 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       if (code == "I") ispinor = 2
 
 
+
       i = index(filename, "/",back=.true.)+1
       read(filename(i:i+3),*) in_name ! lr408
 
       if (in_name == 'min') then
          ! Create orbs data structure.
-         !call read_orbital_variables(0,1,(iproc == 0),in,atoms,lin_orbs,nelec)
-         !allocate communications arrays (allocate it before Projectors because of the definition
-         !of iskpts and nkptsp)
-
-         !lin_orbs%isorb = 0
-
-         !call orbitals_communicators(0,1,Lzd%Glr,lin_orbs,comms) 
          call nullify_orbitals_data(lin_orbs)
          call copy_orbitals_data(orbs, lin_orbs, subname)
 
@@ -1432,6 +1427,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          read(filename(1:i),*) filename_start
          filename_start = trim(filename_start)//"/minBasis"
 
+         print*,'Initialize linear'
          call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
               Lzd,lin_orbs,at,rxyz,orblist)
 
@@ -1455,8 +1451,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
               lpsi(1),eval_fake,psifscf)
 
          call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
-
-
 
          call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
