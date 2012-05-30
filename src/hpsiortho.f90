@@ -330,7 +330,7 @@ end subroutine psitohpsi
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,&
-     pkernel,orbsocc,psirocc)
+     pkernel,orbsocc,psirocc,hamcomp)
   use module_base
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
@@ -356,6 +356,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
+integer, optional, intent(in) :: hamcomp ! lr408 hc
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
@@ -364,6 +365,34 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   !do i=1,lzd%ndimpotisf
   !    write(210,*) pot(i)
   !end do
+
+if (present(hamcomp)) then ! lr408 hc
+
+  if (hamcomp==3) then
+
+     call NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
+          proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
+
+  else
+ if (.not. present(pkernel)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         energs,SIC,GPU,.false.,hamcomp=hamcomp)
+ else if (present(pkernel) .and. .not. present(orbsocc)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+          energs,SIC,GPU,.false.,pkernel=pkernel,hamcomp=hamcomp)
+ else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
+    call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         energs,SIC,GPU,.false.,pkernel,orbsocc,psirocc,hamcomp=hamcomp)
+ else
+    stop 'HamiltonianApplication, argument error'
+ end if
+  end if
+
+
+else
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,&
@@ -383,9 +412,11 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
 
   call NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,energs%eproj)
-
+end if ! lr408 hc
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+
 
 END SUBROUTINE FullHamiltonianApplication
 
@@ -393,7 +424,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+     energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hamcomp)
    use module_base
    use module_types
    use module_xc
@@ -408,6 +439,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    type(SIC_data), intent(in) :: SIC
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+   integer, optional, intent(in) :: hamcomp ! lr408 hc
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
    real(wp), dimension(:), pointer :: pot
    !real(wp), dimension(*) :: pot
@@ -427,7 +459,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    integer :: i_stat,n3p,ispot,ipotmethod
    real(gp) :: evsic_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
-   
+   integer :: ierr   
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
    if (iproc==0 .and. verbose > 1) then
@@ -554,6 +586,22 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
 
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
+if (present(hamcomp)) then ! lr408 hc
+   if (hamcomp == 1) then !kinetic
+         call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+              SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,1)
+   else if (hamcomp == 2) then !potential
+         !call local_hamiltonian(iproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+         !     ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+         !     SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,2)
+
+         call psi_to_vlocpsi(iproc,orbs,Lzd,&
+              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+              SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
+   end if
+else
+
       if (.not. onlypot) then
          if(present(dpbox) .and. present(potential) .and. present(comgp)) then
             call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
@@ -576,6 +624,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
               SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
       end if
 
+end if !lr408 hc
       !sum the external and the BS double counting terms
       energs%evsic=energs%evsic-SIC%alpha*evsic_tmp
    end if
