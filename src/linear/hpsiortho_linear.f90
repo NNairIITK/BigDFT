@@ -192,8 +192,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
            tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
            tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-           2.0d-2, it, iorb, eval_zero)
-!           tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
+!           1.0d-3, it, iorb, eval_zero) ! 2.0d-2 for test4, 1.0d-3 for test 5
+           tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
       ind2=ind2+ncnt
   end do
 
@@ -501,5 +501,10 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
+
+  ! Emit that new wavefunctions are ready.
+  if (tmb%c_obj /= 0) then
+     call kswfn_emit_psi(tmb, it, iproc, nproc)
+  end if
 
 end subroutine hpsitopsi_linear

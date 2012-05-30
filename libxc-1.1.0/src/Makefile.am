@@ -49,7 +49,8 @@ libxc_la_FUNC_SINGLE_SOURCES = $(libxc_la_FUNC_SOURCES:.c=_s.c)
 libxc_la_SOURCES = $(libxc_la_FUNC_SOURCES)
 
 if COMPILE_FORTRAN
-  libxc_la_SOURCES += xc_f.c libxc_funcs.f90 libxc.f90
+  libxc_la_SOURCES += xc_f.c libxc_funcs.f90
+  nodist_libxc_la_SOURCES = libxc.f90
 endif
 if COMPILE_SINGLE
   nodist_libxc_la_SOURCES = $(libxc_la_FUNC_SINGLE_SOURCES)

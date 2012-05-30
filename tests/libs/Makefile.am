@@ -1,5 +1,4 @@
 SUBDIRS = fft \
-	xc \
 	PSolver \
 	OP2P \
 	psp \
@@ -17,7 +16,7 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-if BUILD_BINDINGS
+if HAVE_GLIB
 SUBDIRS += ftypes
 endif
 

@@ -504,16 +504,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Create the potential. First calculate the charge density.
-  if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
-
-
   call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
        hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
        GPUe,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
        denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
-
-  if(iproc==0) write(*,'(a)') 'done.'
 
   !restore wavefunction dimension
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)

@@ -124,7 +124,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
   if(inputs%inputpsiid==100) DistProjApply=.true.
-  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+  if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
@@ -244,6 +244,15 @@ subroutine default_input_variables(inputs)
   call sic_input_variables_default(inputs)
   ! Default for signaling
   inputs%gmainloop = 0.d0
+  ! Default for lin.
+  nullify(inputs%lin%potentialPrefac)
+  nullify(inputs%lin%potentialPrefac_lowaccuracy)
+  nullify(inputs%lin%potentialPrefac_highaccuracy)
+  nullify(inputs%lin%norbsPerType)
+  nullify(inputs%lin%locrad)
+  nullify(inputs%lin%locrad_lowaccuracy)
+  nullify(inputs%lin%locrad_highaccuracy)
+  nullify(inputs%lin%locrad_type)
 END SUBROUTINE default_input_variables
 
 
@@ -630,14 +639,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
-
-  ! Begin by nullifying all the pointers
-  nullify(in%lin%potentialPrefac)
-  nullify(in%lin%locrad)
-  nullify(in%lin%locrad_lowaccuracy)
-  nullify(in%lin%locrad_highaccuracy)
-  nullify(in%lin%norbsPerType)
-  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -1336,7 +1337,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
-  inputs%linear='OFF'
+  inputs%linear=INPUT_IG_OFF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1362,7 +1363,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
-  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
+       & "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
@@ -1921,6 +1923,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
+   ! Test posinp.yaml
+   if (.not. file_exists) then
+      inquire(FILE = file//'.yaml', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+         write(atoms%format, "(A)") "yaml"
+      end if
+   end if
    ! Test the name directly
    if (.not. file_exists) then
       inquire(FILE = file, EXIST = file_exists)
@@ -1931,9 +1941,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
             write(atoms%format, "(A)") "xyz"
          else if (file(l-5:l) == ".ascii") then
             write(atoms%format, "(A)") "ascii"
+         else if (file(l-4:l) == ".yaml") then
+            write(atoms%format, "(A)") "yaml"
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-            write(*,*) " File should be *.ascii or *.xyz."
+            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
             if (present(status)) then
                status = 1
                return
@@ -1941,13 +1953,15 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
                stop
             end if
          end if
-         open(unit=99,file=trim(filename),status='old')
+         if (trim(atoms%format) /= "yaml") then
+            open(unit=99,file=trim(filename),status='old')
+         end if
       end if
    end if
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
@@ -1970,6 +1984,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
       else
          call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
       end if
+   else if (atoms%format == "yaml") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_yaml_positions(trim(filename), atoms,rxyz)
+      else
+         write(*,*) "Atomic input file in YAML not yet supported in archive file."
+         stop
+      end if
    end if
 
    !control atom positions
@@ -1980,8 +2002,8 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    nullify(atoms%sym%irrzon)
    nullify(atoms%sym%phnons)
 
-   ! rm temporary file.
-   if (.not.archive) then
+   ! close open file.
+   if (.not.archive .and. trim(atoms%format) /= "yaml") then
       close(99)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
@@ -1989,9 +2011,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
 END SUBROUTINE read_atomic_file
 
 !> Write an atomic file
+!Yaml output included
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
@@ -1999,7 +2023,9 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
   !local variables
+  integer :: iostat
   character(len = 15) :: arFile
+  real(gp), dimension(:,:), pointer :: forces_yaml
 
   open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
   if (atoms%format == "xyz") then
@@ -2008,6 +2034,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   else if (atoms%format == "ascii") then
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
+  else if (atoms%format == 'yaml') then
+     if (present(forces)) then
+        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+     else
+        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+     end if
   else
      write(*,*) "Error, unknown file format."
      stop

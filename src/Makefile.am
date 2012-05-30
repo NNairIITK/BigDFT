@@ -1,8 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-all: all-recursive
-	chmod ug+x bigdft-tool
-
 # Main targets.
 # ------------
 bin_PROGRAMS    = $(binaries_sources)
@@ -192,17 +189,18 @@ bindings_files = lib/bindings_api.h \
 else
 bindings_files = lib/bindingsf_fake.f90
 endif
-if HAVE_GDBUS
-bindings_files += lib/bindings_dbus.c lib/bindings_dbus.h \
-	lib/bindings_signals_dbus.c
 
-lib/bindings_dbus.h: lib/bindings_dbus.c
-lib/bindings_dbus.c: lib/bindings_dbus.xml
+EXTRA_DIST += lib/bindings_dbus.xml
+if HAVE_GDBUS
+bindings_files += lib/bindings_signals_dbus.c
+nodist_bindings_files = bindings_dbus.c bindings_dbus.h
+
+bindings_dbus.h: bindings_dbus.c
+bindings_dbus.c: lib/bindings_dbus.xml
 	gdbus-codegen --interface-prefix eu.etsf.bigdft.dbus. \
-                      --generate-c-code $(srcdir)/lib/bindings_dbus \
+                      --generate-c-code bindings_dbus \
                       --c-namespace BigdftDBus \
                       --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
-
 endif
 
 if HAVE_FC_FLUSH
@@ -236,7 +234,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
-AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@ @LIB_YAML_CFLAGS@
 
 if USE_MPI
 mpi_source =
@@ -401,6 +399,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
+	init/atoms_yaml.c \
 	$(CUDA_SOURCES)
 
 #	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
@@ -413,6 +412,7 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
 libbigdft_a_LIBADD = $(modules_objects) 
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
@@ -459,13 +459,16 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
 
-CLEANFILES = *.@MODULE_EXT@
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
 SUFFIXES = .cu
 .cu.o:
 	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+
+all: $(nodist_bindings_files) all-recursive
+	chmod ug+x bigdft-tool
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

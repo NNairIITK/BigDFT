@@ -632,16 +632,18 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
   real(8),dimension(ld_coeff,norb),intent(in):: coeff
   real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
-real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
+  real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
 
   ! Local variables
   integer:: ierr
-integer :: i, j, lwork, k
-real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
+  integer :: i, j, lwork, k
+  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
   real(8),dimension(:),allocatable:: eval,eval1,beta
   real(8),dimension(:),allocatable:: work
   real(8),dimension(norb,norb) :: kernelij
   real(8),dimension(ld_coeff,norb):: ocoeff
+  real(dp) :: av_idem, av_k_sym_diff
+  integer :: num_counted
 
   if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
   !call timing(iproc,'sumrho_TMB    ','ON')
@@ -653,6 +655,7 @@ real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
   end if
   call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
 
+  ! calculate kernelij and print
   if (present(ovrlp)) then
      call gemm('t', 'n', norb_tmb, norb, norb_tmb, 1.d0, ovrlp(1,1), ld_coeff, &
           coeff(1,1), ld_coeff, 0.d0, ocoeff(1,1), norb_tmb)
@@ -673,6 +676,8 @@ real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
 
   ! calculate eigenvalues
 if (present(ovrlp)) then
+
+if (.false.) then
   allocate(rhoprime(norb_tmb,norb_tmb))
 
   allocate(vl(1:norb_tmb,1:norb_tmb))
@@ -715,62 +720,75 @@ if (present(ovrlp)) then
 
   deallocate(work)
   deallocate(eval)
+end if
 
-
+  ! Check symmetry and idempotency of kernel
   allocate(ks(1:norb_tmb,1:norb_tmb))
   allocate(ksk(1:norb_tmb,1:norb_tmb))
   allocate(ksksk(1:norb_tmb,1:norb_tmb))
 
+  av_k_sym_diff = 0.0_dp
+  num_counted = 0
   do i=1,norb_tmb
-  do j=i,norb_tmb
-    kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-    kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+  do j=i+1,norb_tmb
+     av_k_sym_diff = av_k_sym_diff + abs(kernel(j,i)-kernel(i,j))
+     kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+     kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+     num_counted = num_counted + 1
+     if (abs(kernel(j,i)-kernel(i,j)) > 1.0d-3) then !lr408 debug
+        if (iproc == 0) write(47,*) 'K not symmetric',i,j,kernel(j,i),kernel(i,j),&
+             kernel(j,i)-kernel(i,j)
+     end if
   end do
   end do
+  if (iproc == 0) write (48,*) 'av_k_sym_diff',av_k_sym_diff / num_counted
 
   ! purification
-  do k=1,0
-  !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-  !     ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
-  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
+  do k=1,1
+     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+          ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
+     !call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
 
-  call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-       kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
+     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+          kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
 
-  call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-       ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
+     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+     !     ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
 
-  kernel = 3.0_dp * ksk - 2.0_dp * ksksk
+     !kernel = 3.0_dp * ksk - 2.0_dp * ksksk
 
-  do i=1,norb_tmb
-  do j=i,norb_tmb
-    kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-    kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+     !do i=1,norb_tmb
+     !do j=i,norb_tmb
+     !  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+     !  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+     !end do
+     !end do
+
+     !DEBUG test idempotency of density matrix
+     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+     !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
+     av_idem = 0.0_dp
+     open(31)
+     do i = 1, norb_tmb
+       do j = 1, norb_tmb
+         av_idem = av_idem + abs(ksk(i,j) - kernel(i,j))
+         if(abs(ksk(i,j) - kernel(i,j))>1.0d-3) then
+           write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j),ksk(i,j) - kernel(i,j)
+         end if
+       end do
+     end do
+     close(31)
+     if (iproc == 0) write(49,*) 'av_idem',av_idem / (norb_tmb **2)
   end do
-  end do
 
-  end do
-
-  !DEBUG test idempotency of density matrix
-  !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-  !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
-  do i = 1, norb_tmb
-   do j = 1, norb_tmb
-      if(abs(ksk(i,j) - kernel(i,j))>1.0d-5) then
-        write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j)
-      end if
-   end do
-  end do
-
+if (.false.) then
   allocate(eval(1:norb_tmb))
   allocate(work(1:1))
-
 
   deallocate(beta)
   deallocate(eval1)
   deallocate(vr)
   deallocate(vl)
-
 
 !  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
 
@@ -818,10 +836,11 @@ if (present(ovrlp)) then
 !  deallocate(vl)
 
   deallocate(rhoprime)
+end if
 
-!  deallocate(ksksk)
-!  deallocate(ksk)
-!  deallocate(ks)
+  deallocate(ksksk)
+  deallocate(ksk)
+  deallocate(ks)
   !END DEBUG
 
   !write(*,*) 'DEBUG KERNEL'
@@ -835,24 +854,19 @@ if (present(ovrlp)) then
   !    end do
   !end do
 
-
 end if
 
-
-if (iproc==0) then ! lr408
-   open(27,file='kernel.dat',status='replace')
-   do i=1,norb_tmb
-   do j=1,norb_tmb
-      write(27,*) i,j,kernel(i,j)
-   end do
-   write(27,*) ''
-   end do
-   write(27,*) ''
-   close(27)
-end if
-
-
-
+!if (iproc==0) then ! lr408
+!   open(27,file='kernel.dat',status='replace')
+!   do i=1,norb_tmb
+!   do j=1,norb_tmb
+!      write(27,*) i,j,kernel(i,j)
+!   end do
+!   write(27,*) ''
+!   end do
+!   write(27,*) ''
+!   close(27)
+!end if
 
   !call timing(iproc,'sumrho_TMB    ','OF')
 

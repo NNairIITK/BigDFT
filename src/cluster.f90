@@ -356,35 +356,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%iter = 0
   optLoop%infocode = 0
 
-  if (in%signaling) then
-     ! Only iproc 0 has the C wrappers.
-     if (iproc == 0) then
-        call wf_new_wrapper(KSwfn%c_obj, KSwfn)
-        call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, in%crmult, in%frmult)
-        call bigdft_signals_add_wf(in%gmainloop, KSwfn%c_obj)
-        call energs_new_wrapper(energs%c_obj, energs)
-        call bigdft_signals_add_energs(in%gmainloop, energs%c_obj)
-        call localfields_new_wrapper(denspot%c_obj, denspot)
-        call bigdft_signals_add_denspot(in%gmainloop, denspot%c_obj)
-        call optloop_new_wrapper(optLoop%c_obj, optLoop)
-        call bigdft_signals_add_optloop(in%gmainloop, optLoop%c_obj)
-     else
-        KSwfn%c_obj = UNINITIALIZED(KSwfn%c_obj)
-        denspot%c_obj = UNINITIALIZED(denspot%c_obj)
-        optloop%c_obj = UNINITIALIZED(optloop%c_obj)
-     end if
-  else
-     KSwfn%c_obj  = 0.d0
-     tmb%c_obj    = 0.d0
-     tmbder%c_obj = 0.d0
-  end if
+  call system_signaling(iproc, in%signaling, in%gmainloop, &
+       & KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & atoms%ntypes, radii_cf, in%crmult, in%frmult)
 
   !variables substitution for the PSolver part
-
-  n1i=KSwfn%Lzd%Glr%d%n1i
-  n2i=KSwfn%Lzd%Glr%d%n2i
-  n3i=KSwfn%Lzd%Glr%d%n3i
-
   n1=KSwfn%Lzd%Glr%d%n1
   n2=KSwfn%Lzd%Glr%d%n2
   n3=KSwfn%Lzd%Glr%d%n3
@@ -402,13 +378,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
-
-
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,denspot%psoffset,&
-       n1,n2,n3,n1i,n2i,n3i,&
+       n1,n2,n3,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3pi,&
        denspot%V_ext,denspot%pkernel)
   !calculate effective ionic potential, including counter ions if any.
@@ -607,6 +581,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,i_all,'denspot%V_ext',subname)
   nullify(denspot%V_ext)
 
+  !variables substitution for the PSolver part
+  n1i=KSwfn%Lzd%Glr%d%n1i
+  n2i=KSwfn%Lzd%Glr%d%n2i
+  n3i=KSwfn%Lzd%Glr%d%n3i
+
   if (inputpsi /= INPUT_PSI_EMPTY) then
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
@@ -767,7 +746,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,VTwfn%psi,'psivirt',subname)
         !to avoid problems with the bindings
-        VTwfn%c_obj=0.d0
+        VTwfn%c_obj=0
 
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
@@ -1132,6 +1111,7 @@ contains
        call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
        call wf_free_wrapper(KSwfn%c_obj)
+       call wf_free_wrapper(tmb%c_obj)
     end if
 
 !!$    if(inputpsi ==  INPUT_PSI_LINEAR) then
@@ -1170,7 +1150,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
 
@@ -1195,52 +1175,51 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   opt%infocode=0
   !yaml output
   if (iproc==0) then
-     call yaml_indent_map('Ground State Optimization')
+     call yaml_open_sequence('Ground State Optimization')
   end if
   opt%itrp=1
   rhopot_loop: do
      if (opt%itrp > opt%itrpmax) exit
      !yaml output 
      if (iproc==0) then
-        call yaml_sequence_element(advance='no')
-        call yaml_map("Hamiltonian Optimization",label='itrp'//adjustl(yaml_toa(opt%itrp,fmt='(i4.4)')))
+        call yaml_sequence(advance='no')
+        call yaml_open_sequence("Hamiltonian Optimization",label=&
+             'itrp'//adjustl(yaml_toa(opt%itrp,fmt='(i4.4)')))
+
      end if
      !set the opt%infocode to the value it would have in the case of no convergence
      opt%infocode=1
      opt%itrep=1
      subd_loop: do
-        if (opt%itrep > opt%nrepmax) exit
+        if (opt%itrep > opt%nrepmax) exit subd_loop
         !yaml output 
         if (iproc==0) then
-           call yaml_sequence_element(advance='no')
-           call yaml_map("Subspace Optimization",label='itrep'//adjustl(yaml_toa(opt%itrep,fmt='(i4.4)')))
+           call yaml_sequence(advance='no')
+           call yaml_open_map("Subspace Optimization",label=&
+                'itrep'//adjustl(yaml_toa(opt%itrep,fmt='(i4.4)')))
         end if
 
         !yaml output
         if (iproc==0) then
-           call yaml_indent_map("Wavefunctions Iterations")
+           call yaml_open_sequence("Wavefunctions Iterations")
         end if
         opt%iter=1
         wfn_loop: do
-           if (opt%iter > opt%itermax) exit
+           if (opt%iter > opt%itermax) exit wfn_loop
 
            !control whether the minimisation iterations should end after the hamiltionian application
            endloop= opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax
 
-           if (iproc == 0 .and. verbose > 0) then 
-              write( *,'(1x,a,i0)') &
-                   &   repeat('-',76 - int(log(real(opt%iter))/log(10.))) // ' iter= ', opt%iter
-              !test for yaml output
-
-              if (endloop) then
-                 call yaml_sequence_element(label='last',advance='no')
-                 !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',opt%iter
+           if (iproc == 0) then 
+              !yaml output
+              if (endloop) then 
+                 call yaml_sequence(label='FINAL',advance='no')
               else
-                 call yaml_sequence_element(advance='no')
-                 !write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',opt%iter
+                 call yaml_sequence(advance='no')
               end if
-              call yaml_flow_map()
-              call yaml_flow_newline()
+              call yaml_open_map(flow=.true.)
+              if (verbose > 0) &
+                   call yaml_comment('iter:'//yaml_toa(opt%iter,fmt='(i6)'),hfill='-')
            endif
 
            !control how many times the DIIS has switched into SD
@@ -1260,8 +1239,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
-           if(in%linear == 'OFF') linflag = 0
-           if(in%linear == 'TMO') linflag = 2
+           if(in%linear == INPUT_IG_OFF) linflag = 0
+           if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
@@ -1288,62 +1267,75 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
                    &   (KSwfn%orbs%norbu == KSwfn%orbs%norbd .and. opt%gnrm > 10.d0)) then
-                 if (iproc == 0) then
-                    write( *,'(1x,a)')&
-                         &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
-                 end if
+                 !if (iproc == 0) then
+                    !call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
+                    !write( *,'(1x,a)')&
+                    !     &   'ERROR: the norm of the residue is too large also with input wavefunctions.'
+                 !end if
                  opt%infocode=3
               end if
            else if (inputpsi == INPUT_PSI_MEMORY_WVL) then
               if (opt%gnrm > 1.d0) then
-                 if (iproc == 0) then
-                    write( *,'(1x,a)')&
-                         &   'The norm of the residue is too large, need to recalculate input wavefunctions'
-                 end if
+                 !if (iproc == 0) then
+                    !call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
+                    !write( *,'(1x,a)')&
+                    !     &   'The norm of the residue is too large, need to recalculate input wavefunctions'
+                 !end if
                  opt%infocode=2
               end if
            end if
            !flush all writings on standart output
            if (iproc==0) then
               !yaml output
-              call yaml_close_flow_map()
-              call yaml_close_sequence_element()
+              call yaml_close_map()
               call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
               if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-              call kswfn_free_scf_data(KSwfn, (nproc > 1))
-              if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-                 call ab6_mixing_deallocate(denspot%mix)
-                 deallocate(denspot%mix)
-              end if
+              !call kswfn_free_scf_data(KSwfn, (nproc > 1))
+              !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+              !   call ab6_mixing_deallocate(denspot%mix)
+              !   deallocate(denspot%mix)
+              !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
-              return
+              if (iproc==0) then
+                 call yaml_close_map()
+                 call yaml_close_sequence() !wfn iterations
+                 call yaml_close_map()
+                 call yaml_close_sequence() !itrep
+                 if (opt%infocode==2) then
+                    call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
+                 else if (opt%infocode ==3) then
+                    call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
+                 end if
+              end if
+
+              exit rhopot_loop
+              !return
            end if
 
-           if (opt%c_obj /= 0.) then
+           if (opt%c_obj /= 0) then
               call optloop_emit_iter(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
            end if
 
            opt%iter = opt%iter + 1
         end do wfn_loop
-        if (opt%c_obj /= 0.) then
+        if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
 
         if (iproc == 0) then 
-           if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',opt%iter,' minimization iterations required'
-           write( *,'(1x,a)') &
-                &   '--------------------------------------------------- End of Wavefunction Optimisation'
+           !if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',opt%iter,' minimization iterations required'
+           !write( *,'(1x,a)') &
+           !     &   '--------------------------------------------------- End of Wavefunction Optimisation'
            if ((opt%itrpmax >1 .and. endlooprp) .or. opt%itrpmax == 1) then
               write(final_out, "(A5)") "FINAL"
            else
               write(final_out, "(A5)") "final"
            end if
            call write_energies(opt%iter,0,energs,opt%gnrm,gnrm_zero,final_out)
-           call yaml_close_flow_map()
-           call yaml_close_sequence_element()
+           call yaml_close_map()
 
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
@@ -1362,59 +1354,76 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (opt%iter == opt%itermax .and. iproc == 0 .and. opt%infocode/=0) &
              &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
-        if (iproc==0) call yaml_close_indent_map() !wfn iterations
-
+        if (iproc==0) then
+           call yaml_close_sequence() !wfn iterations
+        end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
         !exit if the opt%infocode is correct
-        if (opt%infocode == 0) then
-           if (iproc==0)call yaml_close_sequence_element() !itrep
-           !              yaml_indent=yaml_indent-3 !end list element
-           exit subd_loop
-        else
+        if (opt%infocode /= 0) then
            if(iproc==0) then
               write(*,*)&
                    &   ' WARNING: Wavefunctions not converged after cycle',opt%itrep
               if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
            end if
            opt%gnrm=1.d10
+
+           if (opt%itrpmax == 1 .and. in%norbsempty > 0) then
+              !recalculate orbitals occupation numbers
+              call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+              
+              !opt%gnrm =1.d10
+              KSwfn%diis%energy_min=1.d10
+              KSwfn%diis%alpha=2.d0
+           end if
         end if
 
-        if (opt%itrpmax == 1 .and. in%norbsempty > 0) then
-           !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
-
-           opt%gnrm =1.d10
-           KSwfn%diis%energy_min=1.d10
-           KSwfn%diis%alpha=2.d0
+        if (opt%itrpmax ==1) then 
+           call eigensystem_info(iproc,nproc,opt%gnrm,&
+             KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
+             KSwfn%orbs,KSwfn%psi)
+           if (opt%infocode /=0) then
+              opt%gnrm =1.d10
+           end if
         end if
 
         if (iproc==0) then
+           call yaml_close_map()
            !yaml output
-           call yaml_close_sequence_element() !itrep
            !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',opt%itrep
-           !              yaml_indent=yaml_indent-3 !end list element
         end if
-        if (opt%c_obj /= 0.) then
+
+        if (opt%infocode ==0) exit subd_loop
+
+        if (opt%c_obj /= 0) then
            call optloop_emit_iter(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
         end if
         
         opt%itrep = opt%itrep + 1
      end do subd_loop
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_done(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
      end if
 
+     if (iproc==0) then
+        call yaml_close_sequence() !itrep
+     end if
+
+
      if (opt%itrpmax > 1) then
+
+        !recalculate orbitals occupation numbers if the loop continues
+        if (.not.endlooprp) call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
+        call eigensystem_info(iproc,nproc,opt%gnrm,&
+             KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
+             KSwfn%orbs,KSwfn%psi)
+
         !stop the partial timing counter if necessary
-        if (endlooprp .and. opt%itrpmax >1) then
+        if (endlooprp) then
            call timing(iproc,'WFN_OPT','PR')
-           call yaml_close_sequence_element() !opt%itrp
            exit rhopot_loop
         end if
-
-        !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
@@ -1423,24 +1432,24 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      if (iproc == 0) then
         !yaml output
-        call yaml_close_sequence_element() !opt%itrp
-        !           yaml_indent=yaml_indent-2 !end list element
-        !reassume the key elements in the opt%itrp element
-        !      if (opt%itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
-        !      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End opt%itrp:',opt%itrp
+        !summarize the key elements in the opt%itrp element
+        if (opt%itrp >1) then
+           call yaml_map('RhoPot Delta','*rpnrm')
+           call yaml_map('Energies','*FINAL',advance='no')
+           call yaml_comment('End RhoPot Iterations, itrp:'//&
+                yaml_toa(opt%itrp,fmt='(i6)'))
+        end if
      end if
-     if (opt%c_obj /= 0.) then
+     if (opt%c_obj /= 0) then
         call optloop_emit_iter(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
      end if
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
-  if (opt%c_obj /= 0.) then
+  if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
-
-  !yaml output
-  if (iproc==0) call yaml_close_indent_map() !Ground State Optimization
+  if (iproc==0) call yaml_close_sequence() !opt%itrp
 
   !!do i_all=1,size(rhopot)
   !!    write(10000+iproc,*) rhopot(i_all)
@@ -1452,12 +1461,22 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   !!    write(12000+iproc,*) psi(i_all)
   !!end do
 
+  !this warning can be deplaced in write_energies
   if (inputpsi /= INPUT_PSI_EMPTY) then
      energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
-     if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
-          &   'Difference:evsum,energybs',energs%evsum,energs%ebs
+     !write this warning only if the system is closed shell
+     call check_closed_shell(KSwfn%orbs,lcs)  
+     if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0 .and. lcs) then
+        call yaml_newline()
+        call yaml_open_map('Energy inconsistencies')
+        call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
+        call yaml_map('Sum of Eigenvalues',energs%evsum,fmt='(1pe22.14)')
+        if (energs%evsum /= 0.0_gp) call yaml_map('Relative inconsistency',(energs%ebs-energs%evsum)/energs%evsum,fmt='(1pe9.2)')
+        call yaml_close_map()
+        !write( *,'(1x,a,2(1x,1pe20.13))')&
+        !  &   'Difference:evsum,energybs',energs%evsum,energs%ebs
+     end if
   end if
-
   ! Clean KSwfn parts only needed in the SCF loop.
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
 

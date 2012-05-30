@@ -151,6 +151,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='orthoconstraintNonorthogonal'
 integer :: i, j
+real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
   allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
@@ -195,16 +196,26 @@ integer :: i, j
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
  end if
 
-  if (iproc==0) then
-    open(30,file='ovrlp.dat',status='replace')
-    do i=1,orbs%norb
-      do j=1,orbs%norb
-         write(30,*) i,j,ovrlp2(i,j)
-      end do
-      write(30,*) ''
-    end do
-    close(30)
-  end if
+  !if (iproc==0) then ! debugging moved to getlocbasis
+  !  open(30,file='ovrlp.dat',status='replace')
+  !  diff_frm_ortho = 0.0_dp
+  !  diff_frm_sym = 0.0_dp
+  !  do i=1,orbs%norb
+  !    do j=1,orbs%norb
+  !       if (i==j) then
+  !         diff_frm_ortho = diff_frm_ortho + abs(1.0_dp - ovrlp2(i,j))
+  !       else
+  !         diff_frm_ortho = diff_frm_ortho + abs(ovrlp2(i,j))
+  !       end if
+  !       diff_frm_sym = diff_frm_sym + abs(ovrlp2(i,j) - ovrlp2(j,i))
+  !       if (iproc == 0) write(30,*) i,j,ovrlp2(i,j)
+  !    end do
+  !    write(30,*) ''
+  !  end do
+  !  close(30)
+  !  if (iproc == 0) write(51,*) 'diff from ortho',diff_frm_ortho / (orbs%norb **2),&
+  !       diff_frm_sym / (orbs%norb **2)
+  !end if
 
 
 
@@ -1578,7 +1589,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(8),dimension(:),allocatable:: eval, work
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
   real(8),dimension(:,:,:),allocatable:: tempArr
-
+  real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+  real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
   if(methTransformOrder==0) then
@@ -1601,7 +1613,18 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           lwork=1000*norb
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
-          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+          !call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+          ! lr408 - see if LAPACK is stil to blame for convergence issues
+          allocate(vl(1:norb,1:norb))
+          allocate(vr(1:norb,1:norb))
+          allocate(eval1(1:norb))
+          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+               norb, WORK, LWORK, info )
+          ovrlp=vl
+          deallocate(eval1)
+          deallocate(vr)
+          deallocate(vl)
+          !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
               write(*,'(a,i0)') 'ERROR in dsyev, info=', info
               stop
