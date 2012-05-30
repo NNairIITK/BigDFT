@@ -399,11 +399,12 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
-subroutine verify_file_presence(filerad,orbs,iformat)
+subroutine verify_file_presence(filerad,orbs,iformat,nproc)
   use module_base
   use module_types
   use module_interfaces
   implicit none
+  integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
   type(orbitals_data), intent(in) :: orbs
   integer, intent(out) :: iformat
@@ -426,7 +427,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -434,23 +435,21 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   end if
 
   !Otherwise  test binary files.
-  if (.not. allfiles) then           
-     allfiles = .true.
-     loop_binary: do iorb=1,orbs%norbp
-        do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
+  allfiles = .true.
+  loop_binary: do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
 
-           inquire(file=filename,exist=onefile)
-           allfiles=allfiles .and. onefile
-           if (.not. allfiles) then
-              exit loop_binary
-           end if
+        inquire(file=filename,exist=onefile)
+        allfiles=allfiles .and. onefile
+        if (.not. allfiles) then
+           exit loop_binary
+        end if
 
-        end do
-     end do loop_binary
-     !reduce the result among the other processors
-     call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
-  end if
+     end do
+  end do loop_binary
+  !reduce the result among the other processors
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
