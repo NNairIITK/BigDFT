@@ -474,7 +474,7 @@ void FC_FUNC_(wf_emit_lzd, WF_EMIT_LZD)(BigDFT_Wf **wf)
 }
 #ifdef HAVE_GLIB
 void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
-                             GQuark quark, BigDFT_PsiId ipsi, guint ikpt, guint iorb, guint ispin)
+                             GQuark quark, BigDFT_PsiId ipsi, guint ikpt, guint iorb, BigDFT_Spin ispin)
 {
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[ONE_WAVE_READY_SIGNAL],
                 quark, iter, psic, ipsi, ikpt, iorb, ispin, NULL);

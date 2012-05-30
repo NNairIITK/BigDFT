@@ -932,7 +932,7 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
   BigDFT_SignalReply answer;
   gssize size;
   gboolean ret, retAnswer;
-  guint ikpt, iorb;
+  guint ikpt, iorb, iorb_eff;
   GQuark quark;
   gchar *details;
 
@@ -988,17 +988,27 @@ static gboolean bigdft_signals_client_handle(GSocket *socket, BigDFT_Energs *ene
       /* We test event pending for all possible wavefunctions. */
       for (ikpt = 1; ikpt <= BIGDFT_ORBS(wf)->nkpts; ikpt++)
         {
-          for (iorb = 1; iorb <= BIGDFT_ORBS(wf)->norbu; iorb++)
+          for (iorb = 1; iorb <= BIGDFT_ORBS(wf)->norb; iorb++)
             {
-              details = g_strdup_printf("%d-%d-up", ikpt, iorb);
+              if (iorb <= BIGDFT_ORBS(wf)->norbu)
+                {
+                  iorb_eff = iorb;
+                  details = g_strdup_printf("%d-%d-up", ikpt, iorb_eff);
+                }
+              else
+                {
+                  iorb_eff = iorb - BIGDFT_ORBS(wf)->norbu;
+                  details = g_strdup_printf("%d-%d-down", ikpt, iorb_eff);
+                }
               quark = g_quark_from_string(details);
               g_free(details);
               if (g_signal_has_handler_pending(wf,
                                                g_signal_lookup("one-wave-ready",
                                                                BIGDFT_WF_TYPE),
                                                quark, FALSE))
-                ret = client_handle_wf(socket, wf, signal.iter, signal.kind,
-                                       ikpt, iorb, BIGDFT_SPIN_UP, quark,
+                ret = client_handle_wf(socket, wf, signal.iter, signal.kind, ikpt, iorb_eff,
+                                       (iorb <= BIGDFT_ORBS(wf)->norbu)?BIGDFT_SPIN_UP:
+                                       BIGDFT_SPIN_DOWN, quark,
                                        message, cancellable, error);
               if (*error)
                 {
