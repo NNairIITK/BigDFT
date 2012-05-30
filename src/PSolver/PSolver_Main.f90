@@ -31,7 +31,9 @@
 !!          - 'W' Wires BC.
 !!                The density is supposed to be periodic in z direction, 
 !!                which has to be compatible with the FFT.
-!!
+!!          - 'H' Helmholtz Equation Solver
+!!                ... 
+!!                ...
 !!  @param datacode Indicates the distribution of the data of the input/output array:
 !!          - 'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential.
@@ -148,6 +150,11 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
      !     'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'H') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+          'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -166,6 +173,9 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   call to_zero(md1*md3*md2/nproc,zf(1,1,1))
   !zf=0.0_dp
   !call razero(md1*md3*md2/nproc,zf)
+
+  
+
 
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
@@ -221,13 +231,13 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
-  else if (geocode == 'F') then
+  else if (geocode == 'F' .or. geocode == 'H') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,dp)
   else if (geocode == 'W') then
      !only one power of hgrid 
-     !factor of -4*pi for the definition of the Poisson equation
-     scal=hx*hy*hz/real(n1*n2*n3,dp)
+     !factor of -1/(2pi) already included in the kernel definition
+     scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
   !eventually one may avoid zf array
@@ -444,7 +454,7 @@ END SUBROUTINE H_potential
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
-     quiet) !optional argument
+     alpha,beta,gamma,quiet) !optional argument
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -458,6 +468,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   character(len=3), intent(in), optional :: quiet
+  !triclinic lattice
+  real(dp), intent(in), optional :: alpha,beta,gamma
   !local variables
   character(len=*), parameter :: subname='PSolver'
   logical :: wrtmsg
@@ -473,6 +485,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rhopot_G
   real(gp), dimension(:), allocatable :: energies_mpi
+  real(dp) :: detg
 
   call timing(iproc,'Exchangecorr  ','ON')
 
@@ -490,6 +503,10 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      wrtmsg=.true.
   end if
 
+ 
+  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+
+  
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
@@ -511,6 +528,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'H') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -574,7 +596,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      nlim=n2
   else if (geocode == 'S') then
      nlim=n2
-  else if (geocode == 'F') then
+  else if (geocode == 'F' .or. geocode == 'H') then
      nlim=n2/2
   end if
 
@@ -642,15 +664,15 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
      !call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
      !     scal) !,hx,hy,hz,ehartreeLOC)
-  else if (geocode == 'F') then
+  else if (geocode == 'F' .or. geocode == 'H') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,dp)
      !call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
      !     scal)!,hgrid)!,ehartreeLOC)
   else if (geocode == 'W') then
      !only one power of hgrid 
-     !factor of -4*pi for the definition of the Poisson equation
-     scal=hx*hy*hz/real(n1*n2*n3,dp)
+     !factor of -1/(2pi) already included in the kernel definition
+     scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
   call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
@@ -1112,7 +1134,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'F') then
+  else if (geocode == 'F' .or. geocode == 'H') then
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'W') then
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
@@ -1522,6 +1544,7 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     end if
     l3=l3+1
  end do
+
  n3=2*n3
 
  !dimensions that contain the unpadded real space,

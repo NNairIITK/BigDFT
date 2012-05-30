@@ -53,11 +53,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 !strten=0.d0
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F' .and. geocode /='W')
+  !perx=(geocode /= 'F' .and. geocode /= 'W' .and. geocode /= 'H')
+  perx=(geocode == 'P' .or. geocode == 'S')
   pery=(geocode == 'P')
-  perz=(geocode /= 'F')
+  perz=(geocode /= 'F' .and. geocode /= 'H')
 
-  cplx= (ncplx ==2)
+  cplx= (ncplx == 2)
 
   !also for complex input this should be eliminated
   halffty=.not. pery .and. .not. cplx
@@ -285,143 +286,144 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !$omp do schedule(static)
   do j3 = 1, maxIter
-     !this condition ensures that we manage only the interesting part for the FFT
+       !this condition ensures that we manage only the interesting part for the FFT
      !if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
-      Jp2stb=1
-      J2stb=1
-      Jp2stf=1
-      J2stf=1
-        ! transform along x axis
-        lot=ncache/(4*n1)
-        if (lot < 1) then  
-           write(6,*)&
-                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
-                'least one 1-d FFT of this size even though this will' //&
-                'reduce the performance for shorter transform lengths'
-           stop
-        endif
-        do j=1,n2dim,lot
+          Jp2stb=1
+          J2stb=1
+          Jp2stf=1
+          J2stf=1
+          ! transform along x axis
+          lot=ncache/(4*n1)
+          if (lot < 1) then  
+             write(6,*)&
+                  'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                  'least one 1-d FFT of this size even though this will' //&
+                  'reduce the performance for shorter transform lengths'
+             stop
+          endif
+          do j=1,n2dim,lot
            nfft=min(j+(lot-1), n2dim) -j +1
-           !reverse index ordering, leaving the planes to be transformed at the end
-           !input: I1,J2,j3,Jp2,(jp3)
-           if (nproc > 1) then
-              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-                   n1,n1dim,md2,nd3,nproc,zmpi1,zw(1,1,1))
-           else
-              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-                   n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
-           endif
-           !output: J2,Jp2,I1,j3,(jp3)
-           !performing FFT
-           !input: I2,I1,j3,(jp3)
-           inzee=1
-           do i=1,ic1-1
-              !!test
-              !do jj=1,lot
-              !   do kk=1,n1
-              !      print *,'j,k,zw(:,i,inzee)',lot,n1,n1dim,jj,kk,jj+lot*(kk-1),zw(1:2,jj+lot*(kk-1),inzee)
-              !   end do
-              !end do
-              !end test
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,btrig1,after1(i),now1(i),before1(i),1)
-              inzee=3-inzee
-           enddo
-           !storing the last step into zt array
-           i=ic1
-           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1),&
-                ntrig,btrig1,after1(i),now1(i),before1(i),1)           
-           !output: I2,i1,j3,(jp3)
-        end do
+             !reverse index ordering, leaving the planes to be transformed at the end
+             !input: I1,J2,j3,Jp2,(jp3)
+             if (nproc > 1) then
+                call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+                     n1,n1dim,md2,nd3,nproc,zmpi1,zw(1,1,1))
+             else
+                call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+                     n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
+             endif
+             !output: J2,Jp2,I1,j3,(jp3)
+             !performing FFT
+             !input: I2,I1,j3,(jp3)
+             inzee=1
+             do i=1,ic1-1
+                !!test
+                !do jj=1,lot
+                !   do kk=1,n1
+                !      print *,'j,k,zw(:,i,inzee)',lot,n1,n1dim,jj,kk,jj+lot*(kk-1),zw(1:2,jj+lot*(kk-1),inzee)
+                !   end do
+                !end do
+                !end test
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,btrig1,after1(i),now1(i),before1(i),1)
+                inzee=3-inzee
+             enddo
+             !storing the last step into zt array
+             i=ic1
+             call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1),&
+                  ntrig,btrig1,after1(i),now1(i),before1(i),1)           
+             !output: I2,i1,j3,(jp3)
+          end do
 
-        !transform along y axis
-        lot=ncache/(4*n2)
-        if (lot < 1) then  
-           write(6,*)&
-                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
-                'least one 1-d FFT of this size even though this will' //&
-                'reduce the performance for shorter transform lengths'
-           stop
-        endif
+          !transform along y axis
+          lot=ncache/(4*n2)
+          if (lot < 1) then  
+             write(6,*)&
+                  'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                  'least one 1-d FFT of this size even though this will' //&
+                  'reduce the performance for shorter transform lengths'
+             stop
+          endif
 
-        do j=1,n1,lot
+          do j=1,n1,lot
            nfft=min(j+(lot-1),n1)-j+1
-           !reverse ordering 
-           !input: I2,i1,j3,(jp3)
-           call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
-           !output: i1,I2,j3,(jp3)
-           !performing FFT
-           !input: i1,I2,j3,(jp3)
-           inzee=1
-           do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,btrig2,after2(i),now2(i),before2(i),1)
-              inzee=3-inzee
-           enddo
-           !output: i1,i2,j3,(jp3)
-           !Multiply with kernel in fourier space
-           i3=iproc*(nd3/nproc)+j3
-           if (geocode == 'P') then
+             !reverse ordering 
+             !input: I2,i1,j3,(jp3)
+             call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+             !output: i1,I2,j3,(jp3)
+             !performing FFT
+             !input: i1,I2,j3,(jp3)
+             inzee=1
+             do i=1,ic2
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,btrig2,after2(i),now2(i),before2(i),1)
+                inzee=3-inzee
+             enddo
+             !output: i1,i2,j3,(jp3)
+             !Multiply with kernel in fourier space
+             i3=iproc*(nd3/nproc)+j3
+             if (geocode == 'P') then
               call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
                    i3,hx,hy,hz,offset,scal,strten_omp)
-           else
-              call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
-           end if
+             else
+                !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
+                call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
+             end if
 
 !TRANSFORM BACK IN REAL SPACE
-           !transform along y axis
-           !input: i1,i2,j3,(jp3)
-           do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
-              inzee=3-inzee
-           end do
-           !reverse ordering
-           !input: i1,I2,j3,(jp3)
+             !transform along y axis
+             !input: i1,i2,j3,(jp3)
+             do i=1,ic2
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
+                inzee=3-inzee
+             end do
+             !reverse ordering
+             !input: i1,I2,j3,(jp3)
            call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt, &
              zw(1,1,inzee),zt(1,1,j))
-           !output: I2,i1,j3,(jp3)
-        end do
-        !transform along x axis
-        !input: I2,i1,j3,(jp3)
-        lot=ncache/(4*n1)
-        do j=1,n2dim,lot
+             !output: I2,i1,j3,(jp3)
+          end do
+          !transform along x axis
+          !input: I2,i1,j3,(jp3)
+          lot=ncache/(4*n1)
+          do j=1,n2dim,lot
            nfft=min(j+(lot-1),n2dim)-j+1
 
-           !performing FFT
-           i=1
-           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
-                ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
-           inzee=1
-           do i=2,ic1
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
-              inzee=3-inzee
-           enddo
-           !output: I2,I1,j3,(jp3)
-           !reverse ordering
-           !input: J2,Jp2,I1,j3,(jp3)
-           if (nproc == 1) then
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
-           else
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
-           endif
-           ! output: I1,J2,j3,Jp2,(jp3)
-        end do
+             !performing FFT
+             i=1
+             call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
+                  ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
+             inzee=1
+             do i=2,ic1
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
+                inzee=3-inzee
+             enddo
+             !output: I2,I1,j3,(jp3)
+             !reverse ordering
+             !input: J2,Jp2,I1,j3,(jp3)
+             if (nproc == 1) then
+                call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                     n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
+             else
+                call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                     n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
+             endif
+             ! output: I1,J2,j3,Jp2,(jp3)
+          end do
      !endif
 
 !END OF TRANSFORM FOR X AND Z
 
-  end do
+    end do
   !$omp end do
-  !$omp critical
+    !$omp critical
     !do i = 1, 6
     !  strten(j) = strten(j) + strten_omp(j)
     !enddo
     strten = strten + strten_omp
-  !$omp end critical
+    !$omp end critical
   ! DO NOT USE NOWAIT, removes the implicit barrier
 
   !$omp master
@@ -580,13 +582,14 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
      n1,n1dim,md2,nd3,nproc,zmpi1,zw)
   use module_base
   implicit none
-!Arguments
+  !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
   integer, intent(inout) :: Jp2stb,J2stb
   real(dp),intent(inout) ::  zmpi1(2,n1dim,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
-!Local variables
+  !Local variables
   integer :: mfft,Jp2,J2,I1,ish, imfft
 
+  
   !shift
   ish=n1-n1dim
   mfft=0
@@ -689,7 +692,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   do i3=1,n3
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
-      zf(i1,i3)= pot1 
+        zf(i1,i3)= pot1 
      end do
   end do
 
@@ -881,6 +884,8 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
   real(gp) :: rhog2,g2
   real(dp), dimension(3) :: pxyz
 
+  !acerioni --- triclinic cell ::: can the problem be here?!
+  !write (*,*) 'P_multkernel) nfft = ', nfft
   !Body
   !running recip space coordinates
   pxyz(3)=real(j3-1,dp)/(real(n3,dp)*hy)
@@ -970,11 +975,18 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
 
               j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
               j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+        !acerioni
+        write(14,*) i1,j1,i2,j2
+        !acerioni
               zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
               zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
            end do
         end do
      end if
+           !acerioni
+           !write(*,*) 'P_multkernel) nd2 =', nd2
+           !write(19,*) i1,i2,zw(1,i1,i2),zw(2,i1,i2),1/pot(j1,j2)
+           !write(19,*) i1,i2,1/pot(i1,i2)
   else
      !generic case
      do i2=1,n2
@@ -1012,6 +1024,12 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
            j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
            zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
            zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+
+
+           !acerioni /// attempt to use PBCs to mimick monoclinic cell
+           !zw(1,i1,i2)=zw(1,i1,i2)*pot(i1,i2)
+           !zw(2,i1,i2)=zw(2,i1,i2)*pot(i1,i2)
+           !acerioni
         end do
      end do
   end if
@@ -1054,11 +1072,13 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      !isign=(j1/(n1/2+2))
      !j1=(1-2*isign)*j1+isign*(n1+2) !n1/2+1-abs(n1/2+2-jS-i1)
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
+     !!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
      zw(1,j,1)=zw(1,j,1)*pot(j1,1)
      zw(2,j,1)=zw(2,j,1)*pot(j1,1)
   end do
 
+
+  
   !generic case
   do i2=2,n2/2
      do j=1,nfft
@@ -1070,6 +1090,8 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
         zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
         zw(1,j,j2)=zw(1,j,j2)*pot(j1,i2)
         zw(2,j,j2)=zw(2,j,j2)*pot(j1,i2)
+      !  write(*,*) 'Re[zw(i2=', i2, ')] = ', zw(1,j,i2)
+      !  write(*,*) 'Im[zw(i2=', i2, ')] = ', zw(2,j,i2)
      end do
   end do
   

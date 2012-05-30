@@ -18,19 +18,35 @@
 !!   @param itype_scf          Order of the scaling function
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
-subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
+subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
   use module_base
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer :: i1,i2,i3,j3,i_all,i_stat
-  real(dp) :: p1,p2,mu3,ker
+  real(dp) :: p1,p2,p3,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+  !metric for triclinic lattices
+  real(dp), dimension(3,3) :: gu,gd
+  real(dp) :: detg
+  !! ABINIT stuff /// to be fixed
+  !scalars
+  integer :: iout
+  real(kind=8) :: ucvol
+  !arrays
+  real(kind=8) :: rprimd(3,3)
+  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ig1,ig2,ig3,ii,ing,ig
+  real(kind=8) :: gmet(3,3),gprimd(3,3),rmet(3,3)
+  real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
+  real(kind=8) :: gqg2p3,gqgm12,gqgm13,gqgm23,gs,gs2,gs3
+  real(kind=8),allocatable :: gq(:,:)
+  !! end of ABINIT stuff
 
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
@@ -39,6 +55,96 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
           itype_scf,n1,n2,n3
      stop
   end if
+
+  ngfft(1)=nker1
+  ngfft(2)=nker2
+  ngfft(3)=nker3
+  
+  !In order to speed the routine, precompute the components of g+q
+  !Also check if the booked space was large enough...
+  allocate(gq(3,max(n1,n2,n3)))
+  do ii=1,3
+     id(ii)=ngfft(ii)/2+2
+     do ing=1,ngfft(ii)
+        ig=ing-(ing/id(ii))*ngfft(ii)-1
+        gq(ii,ing)=ig!+qphon(ii)
+     end do
+  end do
+ 
+  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+
+  iout=1 !turn the switch on
+
+  rprimd(1,1) = h1*n1
+  rprimd(2,1) = 0.0d0
+  rprimd(3,1) = 0.0d0
+
+  rprimd(1,2) = h2*n3*dcos(alpha)
+  rprimd(2,2) = h2*n3*dsin(alpha)
+  rprimd(3,2) = 0.0d0
+
+  rprimd(1,3) = n2*h3*dcos(beta)
+  rprimd(2,3) = n2*h3*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha)
+  rprimd(3,3) = n2*h3*sqrt(detg)/dsin(alpha)
+
+  write(*,*) '\n'
+  write(*,*) 'ABINIT metric computation ----------------------------------------------------' 
+  call metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
+  write(*,*) '------------------------------------------------------------------------------'
+
+  write(*,*) 'nker1, nker2, nker3 = ', nker1,nker2,nker3
+   
+  !triclinic cell
+  !covariant metric
+  ! gd(1,1) = 1.0_dp
+  ! gd(1,2) = dcos(alpha)
+  ! gd(1,3) = dcos(beta)
+  ! gd(2,2) = 1.0_dp
+  ! gd(2,3) = dcos(gamma)
+  ! gd(3,3) = 1.0_dp
+  
+  ! gd(2,1) = gd(1,2)
+  ! gd(3,1) = gd(1,3)
+  ! gd(3,2) = gd(2,3)
+  
+  
+  !
+  !contravariant metric
+  ! gu(1,1) = (dsin(gamma)**2)/detg
+  ! gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
+  ! gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
+  ! gu(2,2) = (dsin(beta)**2)/detg
+  ! gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
+  ! gu(3,3) = (dsin(alpha)**2)/detg
+  ! !
+  ! gu(2,1) = gu(1,2)
+  ! gu(3,1) = gu(1,3)
+  ! gu(3,2) = gu(2,3)
+
+ 
+  write(*,*) 'Reciprocal space metric'
+  write(*,*) '-----------------------'
+
+  write(*,*) 'gmet(1,1) = ', gmet(1,1)
+  write(*,*) 'gmet(1,2) = ', gmet(1,2)
+  write(*,*) 'gmet(1,3) = ', gmet(1,3)
+  write(*,*) 'gmet(2,1) = ', gmet(2,1)
+  write(*,*) 'gmet(2,2) = ', gmet(2,2)
+  write(*,*) 'gmet(2,3) = ', gmet(2,3)
+  write(*,*) 'gmet(3,1) = ', gmet(3,1)
+  write(*,*) 'gmet(3,2) = ', gmet(3,2)
+  write(*,*) 'gmet(3,3) = ', gmet(3,3)
+  
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+  !acerioni
+  id1=int(n1/2)+2
+  id2=int(n2/2)+2
+  id3=int(n3/2)+2
+  !acerioni
+
   !calculate the FFT of the ISF for the three dimensions
   allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
   call memocc(i_stat,fourISFx,'fourISFx',subname)
@@ -55,22 +161,78 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 !!  fourISFy=0._dp
 !!  fourISFz=0._dp
 
+  !write(*,*) 'screening = ', mu0_screening
+
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
      j3=iproc*(nker3/nproc)+i3
      if (j3 <= n3/2+1) then
+        p3=real(j3-1,dp)/real(n3,dp)
         mu3=real(j3-1,dp)/real(n3,dp)
         mu3=(mu3/h2)**2 !beware of the exchanged dimension
+
+        !acerioni
+        ig3=i3-int(i3/id3)*n3-1
+        gs3=gq(3,i3)*gq(3,i3)*gmet(3,3)
+        gqgm23=gq(3,i3)*gmet(2,3)*2
+        gqgm13=gq(3,i3)*gmet(1,3)*2
+        !acerioni
         do i2=1,nker2
            p2=real(i2-1,dp)/real(n2,dp)
+           !acerioni
+           ig2=i2-int(i2/id2)*n2-1
+           gs2=gs3+ gq(2,i2)*(gq(2,i2)*gmet(2,2)+gqgm23)
+           gqgm12=gq(2,i2)*gmet(1,2)*2
+           gqg2p3=gqgm13+gqgm12
+           !acerioni
            do i1=1,nker1
               p1=real(i1-1,dp)/real(n1,dp)
-              ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
+              !beware of the exchanged dimension
+              !ker = pi*((p1/h1)**2+(p2/h3)**2+mu3)+mu0_screening**2/16.0_dp/datan(1.0_dp)
+              
+              !triclinic cell
+              !acerioni
+              ig1=i1-int(i1/id1)*n1-1
+              gs=gs2 + gq(1,i1)*(gq(1,i1)*gmet(1,1)+gqg2p3)
+              gs = gs * 4.0d0*datan(1.0d0)
+              !gs=gs/16.0d0*datan(1.0d0)
+              !write(16,*) i1,i2,i3,gs
+
+
+                b11=gprimd(1,1)*real(ig1,kind=8)
+                b21=gprimd(2,1)*real(ig1,kind=8)
+                b31=gprimd(3,1)*real(ig1,kind=8)
+                b12=gprimd(1,2)*real(ig2,kind=8)
+                b22=gprimd(2,2)*real(ig2,kind=8)
+                b32=gprimd(3,2)*real(ig2,kind=8)
+                b13=gprimd(1,3)*real(ig3,kind=8)
+                b23=gprimd(2,3)*real(ig3,kind=8)
+                b33=gprimd(3,3)*real(ig3,kind=8)
+
+                !g2cart(ifft)=( &
+                !     &     (b11+b12+b13)**2&
+                !     &     +(b21+b22+b23)**2&
+                !     &     +(b31+b32+b33)**2&
+                !     &     )
+
+                ker = mu0_screening**2/16.0_dp/datan(1.0_dp)
+                ker = ker + pi*((b11+b12+b13)**2 &
+                    &     +(b21+b22+b23)**2 &
+                    &     +(b31+b32+b33)**2 &
+                    &     )
+
+                ker = ker + pi*(gd(1,1)*(p1/h1)**2+gd(3,3)*(p2/h3)**2+gd(2,2)*(p3/h2)**2)
+                !ker = ker + 2.0_dp*pi*(gd(1,3)*(p1/h1)*(p2/h3)+gd(2,3)*(p2/h3)*(p3/h2)+gd(1,2)*(p1/h1)*(p3/h2))
+             
+              if (i3 == nker3/2) write(16,*) i1,i2,gs,ker
+ 
+              
               if (ker/=0._dp) then
                  karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
               else
                  karray(i1,i2,i3)=0._dp
               end if
+              !write(1717,*) i1,i2,i3,karray(i1,i2,i3)
            end do
         end do
      else
@@ -81,6 +243,14 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
         end do
      end if
   end do
+
+  ! do i3=1,nker3
+  !    do i2=1,nker2
+  !       do i1=1,nker1
+  !          write(1717,*) i1,i2,i3,1/karray(i1,i2,i3)
+  !       end do
+  !    end do
+  ! end do
 
   i_all=-product(shape(fourISFx))*kind(fourISFx)
   deallocate(fourISFx,stat=i_stat)
@@ -182,7 +352,7 @@ END SUBROUTINE fourtrans
 !!   @param itype_scf          Order of the scaling function
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
-subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
+subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
   
   use module_base
 
@@ -193,6 +363,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   
   !Local variables 
   character(len=*), parameter :: subname='Surfaces_Kernel'
@@ -215,6 +386,10 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
   integer :: i,i1,i2,i3,i_stat,i_all
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
+
+  !metric for monoclinic lattices
+  real(dp), dimension(3,3) :: gu
+  real(dp) :: detg
 
   !coefficients for the polynomial interpolation
   real(dp), dimension(9,8) :: cpol
@@ -283,6 +458,9 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   cpol(8,8)=cpol(2,8)
   cpol(9,8)=cpol(1,8)
 
+  !write(*,*) ' '
+  !write(*,*) 'mu0_screening = ', mu0_screening
+
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
   !Allocations
@@ -339,6 +517,36 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !constants
   pi=4._dp*datan(1._dp)
 
+  !monoclinic cell
+  detg = dsin(alpha)**2
+  !
+  !contravariant metric
+  gu(1,1) = 1.0_dp/detg
+  gu(1,2) = -dcos(alpha)/detg
+  gu(1,3) = 0.0_dp
+  gu(2,2) = 1.0_dp/detg
+  gu(2,3) = 0.0_dp
+  gu(3,3) = 1.0_dp
+  !
+  gu(2,1) = gu(1,2)
+  gu(3,1) = gu(1,3)
+  gu(3,2) = gu(2,3)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  !
+  !contravariant metric
+  gu(1,1) = (dsin(gamma)**2)/detg
+  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
+  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
+  gu(2,2) = (dsin(beta)**2)/detg
+  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
+  gu(3,3) = (dsin(alpha)**2)/detg
+  !
+  gu(2,1) = gu(1,2)
+  gu(3,1) = gu(1,3)
+  gu(3,2) = gu(2,3)
+
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)
 
@@ -374,28 +582,67 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
      !initialization of the interesting part of the cache array
      halfft_cache(:,:,:)=0._dp
-
+     
      if (istart == 1) then
         !i2=1
         shift=1
 
-        call calculates_green_opt_muzero(n_range,n_scf,ipolyord,x_scf,y_scf,&
-             cpol(1,ipolyord),dx,kernel_scf)
+        if (mu0_screening == 0.0_dp) then
+           call calculates_green_opt_muzero(n_range,n_scf,ipolyord,x_scf,y_scf,&
+                cpol(1,ipolyord),dx,kernel_scf)
 
-        !copy of the first zero value
-        halfft_cache(1,1,1)=0._dp
+           !copy of the first zero value
+           halfft_cache(1,1,1)=0._dp
 
-        do i3=1,m3
+           do i3=1,m3
 
-           value=0.5_dp*h3*kernel_scf(i3)
-           !index in where to copy the value of the kernel
-           call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
-           !index in where to copy the symmetric value
-           call indices(jreim,num_of_mus,n3/2+2-i3,1,jnd1)
-           halfft_cache(ireim,ind1,1) = value
-           halfft_cache(jreim,jnd1,1) = value
+              value=0.5_dp*h3*kernel_scf(i3)
+              !index in where to copy the value of the kernel
+              call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
+              !index in where to copy the symmetric value
+              call indices(jreim,num_of_mus,n3/2+2-i3,1,jnd1)
+              halfft_cache(ireim,ind1,1) = value
+              halfft_cache(jreim,jnd1,1) = value
 
-        end do
+           end do
+
+        else 
+           mu1=abs(mu0_screening)*h3
+           call calculates_green_opt(n_range,n_scf,itype_scf,ipolyord,x_scf,y_scf,&
+                cpol(1,ipolyord),mu1,dx,kernel_scf)
+
+           !copy of the first zero value
+           halfft_cache(1,1,1)=0._dp
+
+           do i3=1,m3
+
+              value=-0.5_dp*h3/mu1*kernel_scf(i3)
+              !index in where to copy the value of the kernel
+              call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
+              !index in where to copy the symmetric value
+              call indices(jreim,num_of_mus,n3/2+2-i3,1,jnd1)
+              halfft_cache(ireim,ind1,1) = value
+              halfft_cache(jreim,jnd1,1) = value
+
+           end do
+
+
+        end if
+
+        ! !copy of the first zero value
+        ! halfft_cache(1,1,1)=0._dp
+
+        ! do i3=1,m3
+
+        !    value=0.5_dp*h3*kernel_scf(i3)
+        !    !index in where to copy the value of the kernel
+        !    call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
+        !    !index in where to copy the symmetric value
+        !    call indices(jreim,num_of_mus,n3/2+2-i3,1,jnd1)
+        !    halfft_cache(ireim,ind1,1) = value
+        !    halfft_cache(jreim,jnd1,1) = value
+
+        ! end do
 
      end if
 
@@ -413,7 +660,15 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
         ponx=real(i1-1,dp)/real(n1,dp)
         pony=real(i2-1,dp)/real(n2,dp)
         
-        mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
+        
+        !acerioni --- adding the mu0_screening
+        !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
+        !old:
+        !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)
+        !new:
+        mu1 = 2._dp*pi*sqrt(gu(1,1)*(ponx/h1)**2+gu(2,2)*(pony/h2)**2+2.0_dp*gu(1,2)*(ponx/h1)*(pony/h2))
+        mu1 = h3*sqrt(mu1**2+mu0_screening**2)
+        !acerioni
 
         call calculates_green_opt(n_range,n_scf,itype_scf,ipolyord,x_scf,y_scf,&
              cpol(1,ipolyord),mu1,dx,kernel_scf)
@@ -834,31 +1089,34 @@ END SUBROUTINE indices
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
-     hx,hy,hz,itype_scf,iproc,nproc,karray)
+     hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening)
  use module_base
  implicit none
  !Arguments
- integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,itype_scf,iproc,nproc
+ integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
  real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
+ real(dp), intent(in) :: mu0_screening
  !Local variables
  character(len=*), parameter :: subname='Free_Kernel'
  !Do not touch !!!!
- integer, parameter :: n_gauss = 89
+ integer :: n_gauss
  !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
  integer, parameter :: n_points = 2**6
  !Better p_gauss for calculation
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
- real(dp), dimension(n_gauss) :: p_gauss,w_gauss
- real(dp), dimension(:), allocatable :: fwork
+ !real(dp), dimension(1:90) :: p_gauss = 0.0_dp, w_gauss = 0.0_dp
+ !real(dp), dimension(n_gauss_Yukawa) :: p_gauss_Yukawa, w_gauss_Yukawa
+ real(dp), dimension(:), allocatable :: fwork, p_gauss, w_gauss
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
- real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
- real(dp) :: factor,factor2 !n(c) ,dx
+ real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range
+ real(dp) :: factor, factor2 !mu0_screening = 1.0_dp !n(c) ,dx
  real(dp) :: a1,a2,a3,wg,k1,k2,k3
- integer :: n_scf,nker2,nker3 !n(c) nker1
- integer :: i_gauss,n_range,n_cell
- integer :: i1,i2,i3,i_stat,i_all
+ integer :: n_scf, nker2, nker3 !n(c) nker1
+ integer :: i_gauss, n_range, n_cell, itest
+ integer :: i1, i2, i3, i_stat, i_all
  integer :: i03, iMin, iMax
+ 
 
  !Number of integration points : 2*itype_scf*n_points
  n_scf=2*itype_scf*n_points
@@ -897,20 +1155,28 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  n_cell = max(n01,n02,n03)
  n_range = max(n_cell,n_range)
 
- !Lengthes of the box (use box dimension)
+ !Lengths of the box (use box dimension)
  a1 = hx * real(n01,dp)
  a2 = hy * real(n02,dp)
  a3 = hz * real(n03,dp)
 
- !Initialization of the gaussian (Beylkin)
- call gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
- !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
- !(biggest length in the cube)
- !We divide the p_gauss by a_range**2 and a_gauss by a_range
- a_range = sqrt(a1*a1+a2*a2+a3*a3)
- factor = 1._dp/a_range
- !factor2 = factor*factor
- factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
+ if (mu0_screening == 0.0_dp) then
+   
+    n_gauss = 89
+    allocate(p_gauss(1:n_gauss), stat = i_stat)
+    call memocc(i_stat,p_gauss,'p_gauss',subname)
+    allocate(w_gauss(1:n_gauss), stat = i_stat)
+    call memocc(i_stat,w_gauss,'w_gauss',subname)
+
+    !Initialization of the gaussian (Beylkin)
+    call gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
+    !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
+    !(biggest length in the cube)
+    !We divide the p_gauss by a_range**2 and a_gauss by a_range
+    a_range = sqrt(a1*a1+a2*a2+a3*a3)
+    factor = 1._dp/a_range
+    !factor2 = factor*factor
+    factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
  !do i_gauss=1,n_gauss
  !   p_gauss(i_gauss) = factor2*p_gauss(i_gauss)
  !end do
@@ -927,6 +1193,31 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     end do
     !$omp end parallel do
   end do
+
+ else
+
+    n_gauss = 90
+    allocate(p_gauss(1:n_gauss), stat = i_stat)
+    call memocc(i_stat,p_gauss,'p_gauss',subname)
+    allocate(w_gauss(1:n_gauss), stat = i_stat)
+    call memocc(i_stat,w_gauss,'w_gauss',subname)
+    
+    !Initialization of the gaussian (Mirone)
+    call Yukawa_gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
+    !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
+    !(biggest length in the cube)
+    !We divide the p_gauss by a_range**2 and a_gauss by a_range
+    do i_gauss=1,n_gauss
+       p_gauss(i_gauss) = mu0_screening**2*p_gauss(i_gauss)
+    end do
+    do i_gauss=1,n_gauss
+       ! we do not put the 1/(4\pi) factor here because
+       ! it is already accounted for in 'scal'
+       w_gauss(i_gauss) = mu0_screening*w_gauss(i_gauss)
+    end do
+ 
+ end if
+
 
   allocate(fwork(0:n_range+ndebug), stat=i_stat)
   call memocc(i_stat, fwork, 'fwork', subname)
@@ -984,6 +1275,9 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$       !stop
 !!$    end if
 !!$    !STOP
+
+!    fwork = 0.0_dp
+    
     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
          fwork,fftwork,kernel_scf)
 
@@ -1031,7 +1325,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  i_all=-product(shape(fftwork))*kind(fftwork)
  deallocate(fftwork,stat=i_stat)
  call memocc(i_stat,i_all,'fftwork',subname)
-
+ i_all=-product(shape(p_gauss))*kind(p_gauss)
+ deallocate(p_gauss, stat=i_stat)
+ call memocc(i_stat,i_all,'p_gauss',subname)
+ i_all=-product(shape(w_gauss))*kind(w_gauss)
+ deallocate(w_gauss, stat=i_stat)
+ call memocc(i_stat,i_all,'w_gauss',subname)
 !!$ i_all=-product(shape(x_scf))*kind(x_scf)
 !!$ deallocate(x_scf,stat=i_stat)
 !!$ call memocc(i_stat,i_all,'x_scf',subname)
@@ -1056,6 +1355,16 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   real(dp) :: h
   integer, dimension(3) :: ndims,ndimsk
   real(dp), dimension(3) :: hgrids
+  !!acerioni
+  real(dp), dimension(:), allocatable :: x_scf, y_scf, gaussian
+  real(dp), dimension(-n_range:n_range) :: fwork_tmp
+  integer :: n_points, i_stat, n_scf, nrange
+  real(dp) :: dx
+  real(dp), dimension(-n_range:n_range) :: work
+  !real(dp), dimension(-n_range:n_range) :: kernel_scf
+  !real(dp), dimension(:), allocatable :: fwork2
+  logical :: an_int
+  !!acerioni
 
   ndims(1)=n1
   ndims(2)=n2
@@ -1070,17 +1379,67 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   hgrids(2)=hz
   hgrids(3)=hy
 
-  if (hx == hy .and. hy == hz) then
+  an_int = .false.
 
-     !copy the values inside the fft work array
-     call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
+  if (.not. an_int) then
+     !!acerioni: setup for gauss_conv_scf
+     n_points = 16
+     fwork_tmp = 0.0_dp
+
+     !Number of integration points : 2*itype_scf*n_points
+     n_scf=2*itype_scf*n_points
+
+     !Other allocations
+     allocate(x_scf(0:n_scf),stat=i_stat)
+     allocate(y_scf(0:n_scf),stat=i_stat)
+     !allocate(gaussian(0:n_scf),stat=i_stat)
+
+     !Build the scaling function
+     call scaling_function(itype_scf,n_scf,nrange,x_scf,y_scf)
+
+     !Step grid for the integration
+     dx = real(nrange,dp)/real(n_scf,dp)
+  else
+  end if
+
+  !write(*,*) 'n_range = ', n_range
+  
+  !Allocations
+  !allocate(work(-n_range:n_range), stat=i_stat)
+  !allocate(fwork2(-n_range:n_range), stat=i_stat)
+  !!acerioni
+
+  
+  if (hx == hy .and. hy == hz) then
+     
+     if(an_int) then 
+        call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
+     else 
+        call gauss_conv_scf(itype_scf, pgauss, hx, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
+        fwork(0:n_range) = fwork_tmp(0:n_range)
+     end if
+
+     open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
+     do j= 0,n_range
+        write (52,*) j,fwork(j)
+      end do
+     close(52)
 
      do idir=1,3
         n=ndims(idir)
         nk=ndimsk(idir)
         !copy the values on the real part of the fftwork array
+        
+        ! fftwork=0.0_dp
+        ! do j=0,min(n_range,n/2)
+        !    fftwork(1,n/2+1+j)=fwork(j)
+        !    fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+        ! end do
+
         fftwork=0.0_dp
         do j=0,min(n_range,n/2)-1
+           !fftwork(1,n/2+1+j)=kernel_scf(j)
+           !fftwork(1,n/2+1-j)=kernel_scf(j)
            fftwork(1,n/2+1+j)=fwork(j)
            fftwork(1,n/2+1-j)=fwork(j)
         end do
@@ -1100,16 +1459,25 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         h=hgrids(idir)
         n=ndims(idir)
         nk=ndimsk(idir)
-        !copy the values inside the fft work array
-        call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
+        if(an_int) then
+           call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
+        else 
+           call gauss_conv_scf(itype_scf, pgauss, h, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
+           fwork(0:n_range) = fwork_tmp(0:n_range)
+        end if
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
         do j=0,min(n_range,n/2)-1
            fftwork(1,n/2+1+j)=fwork(j)
            fftwork(1,n/2+1-j)=fwork(j)
+        end do
+     
+        ! fftwork=0.0_dp
+        ! do j=0,min(n_range,n/2)
            !fftwork(1,n/2+1+j)=fwork(j)
            !fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
-        end do
+        ! end do
+
         !calculate the fft 
         call fft_1d_ctoc(1,1,n,fftwork,inzee)
         !copy the real part on the kfft array
@@ -1117,6 +1485,15 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         !write(17+idir-1,'(1pe24.17)')kffts(:,idir)
      end do
   end if
+  
+  if(.not. an_int) then
+     deallocate(x_scf, stat = i_stat)
+     deallocate(y_scf, stat = i_stat)
+  else
+  end if
+  !deallocate(work, stat = i_stat)
+  !deallocate(fwork2, stat = i_stat)
+
 END SUBROUTINE gauconv_ffts
 
 
@@ -1128,80 +1505,131 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
   integer, intent(in) :: ntot,m
   real(dp), intent(in) :: alpha
   real(dp), dimension(0:ntot), intent(inout) :: fwork
+  !integer, optional, intent(in) :: argument_nf
   !local variables
-  integer, parameter :: nf=64
+  integer :: nf
   real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: flag,flag1,flag2
   integer :: j,q,jz
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
   !fourier transform, from mathematica
-  real(dp), dimension(0:nf) :: fISF = (/&
-       1._dp,&
-       0.99999999999999999284235222189_dp,&
-       0.99999999999956013105290196791_dp,&
-       0.99999999974047362436549957134_dp,&
-       0.999999977723831277163111033987_dp,&
-       0.999999348120402080917750802356_dp,&
-       0.99999049783895018128985387648_dp,&
-       0.99991555832357702478243846513_dp,&
-       0.999483965311871663439701778468_dp,&
-       0.997656434461567612067080906608_dp,&
-       0.99166060711872037183053190362_dp,&
-       0.975852499662821752376101449171_dp,&
-       0.941478752030026285801304437187_dp,&
-       0.878678036869166599071794039064_dp,&
-       0.780993377358505853552754551915_dp,&
-       0.65045481899429616671929018797_dp,&
-       0.499741982655935831719850889234_dp,&
-       0.349006378709142477173505869256_dp,&
-       0.218427566876086979858296964531_dp,&
-       0.120744342131771503808889607743_dp,&
-       0.0580243447291221387538310922609_dp,&
-       0.0237939962805936437124240819547_dp,&
-       0.00813738655512823360783743450662_dp,&
-       0.00225348982730563717615393684127_dp,&
-       0.000485814732465831887324674087566_dp,&
-       0.0000771922718944619737021087074916_dp,&
-       8.34911217930991992166687474335e-6_dp,&
-       5.4386155057958302499753464285e-7_dp,&
-       1.73971967107293590801788194389e-8_dp,&
-       1.8666847551067074314481563463e-10_dp,&
-       2.8611022063937216744058802299e-13_dp,&
-       4.12604249873737563657665492649e-18_dp,&
-       0._dp,&
-       3.02775647387618521868673172298e-18_dp,&
-       1.53514570268556433704096392259e-13_dp,&
-       7.27079116834250613985176986757e-11_dp,&
-       4.86563325394873292266790060414e-9_dp,&
-       1.0762051057772619178393861559e-7_dp,&
-       1.1473008487467664271213583755e-6_dp,&
-       7.20032699735536213944939155489e-6_dp,&
-       0.0000299412827430274803875806741358_dp,&
-       0.00008893448268856997565968618255_dp,&
-       0.000198412101719649392215603405001_dp,&
-       0.000344251643242443482702827827289_dp,&
-       0.000476137217995145280942423549555_dp,&
-       0.000534463964629735808538669640174_dp,&
-       0.000493380569658768192772778551283_dp,&
-       0.000378335841074046383032625565151_dp,&
-       0.000242907366232915943662337043783_dp,&
-       0.000131442744929435769666863922254_dp,&
-       0.0000602917442687924479053419936816_dp,&
-       0.0000235549783294245003536257246338_dp,&
-       7.86058640769338837604478652921e-6_dp,&
-       2.23813489015410093932264202671e-6_dp,&
-       5.39326427012172337715252302537e-7_dp,&
-       1.07974438850159507475448146609e-7_dp,&
-       1.73882195410933428198534789337e-8_dp,&
-       2.14124508643951633300134563969e-9_dp,&
-       1.86666701805198449182670610067e-10_dp,&
-       1.02097507219447295331839243873e-11_dp,&
-       2.86110214266058470148547621716e-13_dp,&
-       2.81016133980507633418466387683e-15_dp,&
-       4.12604249873556074813981250712e-18_dp,&
-       5.97401377952175312560963543305e-23_dp,&
-       0._dp&
-     /)
+  real(dp), dimension(:), pointer :: fISF
+
+  include 'lazy_ISF_8_2048.inc'
+  include 'lazy_ISF_14_2048.inc'
+  include 'lazy_ISF_16_2048.inc'
+  include 'lazy_ISF_20_2048.inc'
+  include 'lazy_ISF_24_2048.inc'
+  include 'lazy_ISF_30_2048.inc'
+  include 'lazy_ISF_40_2048.inc'
+  include 'lazy_ISF_50_2048.inc'
+  include 'lazy_ISF_60_2048.inc'
+  include 'lazy_ISF_100_2048.inc'
+
+  ! real(dp), dimension(0:nf) :: fISF = (/&
+  !      1._dp,&
+  !      0.99999999999999999284235222189_dp,&
+  !      0.99999999999956013105290196791_dp,&
+  !      0.99999999974047362436549957134_dp,&
+  !      0.999999977723831277163111033987_dp,&
+  !      0.999999348120402080917750802356_dp,&
+  !      0.99999049783895018128985387648_dp,&
+  !      0.99991555832357702478243846513_dp,&
+  !      0.999483965311871663439701778468_dp,&
+  !      0.997656434461567612067080906608_dp,&
+  !      0.99166060711872037183053190362_dp,&
+  !      0.975852499662821752376101449171_dp,&
+  !      0.941478752030026285801304437187_dp,&
+  !      0.878678036869166599071794039064_dp,&
+  !      0.780993377358505853552754551915_dp,&
+  !      0.65045481899429616671929018797_dp,&
+  !      0.499741982655935831719850889234_dp,&
+  !      0.349006378709142477173505869256_dp,&
+  !      0.218427566876086979858296964531_dp,&
+  !      0.120744342131771503808889607743_dp,&
+  !      0.0580243447291221387538310922609_dp,&
+  !      0.0237939962805936437124240819547_dp,&
+  !      0.00813738655512823360783743450662_dp,&
+  !      0.00225348982730563717615393684127_dp,&
+  !      0.000485814732465831887324674087566_dp,&
+  !      0.0000771922718944619737021087074916_dp,&
+  !      8.34911217930991992166687474335e-6_dp,&
+  !      5.4386155057958302499753464285e-7_dp,&
+  !      1.73971967107293590801788194389e-8_dp,&
+  !      1.8666847551067074314481563463e-10_dp,&
+  !      2.8611022063937216744058802299e-13_dp,&
+  !      4.12604249873737563657665492649e-18_dp,&
+  !      0._dp,&
+  !      3.02775647387618521868673172298e-18_dp,&
+  !      1.53514570268556433704096392259e-13_dp,&
+  !      7.27079116834250613985176986757e-11_dp,&
+  !      4.86563325394873292266790060414e-9_dp,&
+  !      1.0762051057772619178393861559e-7_dp,&
+  !      1.1473008487467664271213583755e-6_dp,&
+  !      7.20032699735536213944939155489e-6_dp,&
+  !      0.0000299412827430274803875806741358_dp,&
+  !      0.00008893448268856997565968618255_dp,&
+  !      0.000198412101719649392215603405001_dp,&
+  !      0.000344251643242443482702827827289_dp,&
+  !      0.000476137217995145280942423549555_dp,&
+  !      0.000534463964629735808538669640174_dp,&
+  !      0.000493380569658768192772778551283_dp,&
+  !      0.000378335841074046383032625565151_dp,&
+  !      0.000242907366232915943662337043783_dp,&
+  !      0.000131442744929435769666863922254_dp,&
+  !      0.0000602917442687924479053419936816_dp,&
+  !      0.0000235549783294245003536257246338_dp,&
+  !      7.86058640769338837604478652921e-6_dp,&
+  !      2.23813489015410093932264202671e-6_dp,&
+  !      5.39326427012172337715252302537e-7_dp,&
+  !      1.07974438850159507475448146609e-7_dp,&
+  !      1.73882195410933428198534789337e-8_dp,&
+  !      2.14124508643951633300134563969e-9_dp,&
+  !      1.86666701805198449182670610067e-10_dp,&
+  !      1.02097507219447295331839243873e-11_dp,&
+  !      2.86110214266058470148547621716e-13_dp,&
+  !      2.81016133980507633418466387683e-15_dp,&
+  !      4.12604249873556074813981250712e-18_dp,&
+  !      5.97401377952175312560963543305e-23_dp,&
+  !      0._dp&
+  !    /)
+
+
+  !Only itype=8,14,16,20,24,30,40,50,60,100
+  select case(m)
+  case(8)
+     fISF => fISF8   
+  case(14)
+     fISF => fISF14
+  case(16)
+     fISF => fISF16
+  case(20)
+     fISF => fISF20    
+  case(24)
+     fISF => fISF24
+  case(30)
+     fISF => fISF30
+  case(40)
+     fISF => fISF40
+  case(50)
+     fISF => fISF50
+  case(60)
+     fISF => fISF60
+  case(100)
+     fISF => fISF100
+  case default
+     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+     stop
+  end select
+
+
+  ! if(present(argument_nf)) then 
+  !    nf=argument_nf
+  ! else
+  !    nf = 64 ! "default value"
+  ! endif
+
+  nf = 256
 
   flag=.false.
   factor=pi/real(2*m,dp)/alpha
@@ -1907,7 +2335,6 @@ subroutine gequad(p,w,urange,drange,acc)
 !
 END SUBROUTINE gequad
 
-
 subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
   use module_base
   implicit none
@@ -1950,7 +2377,7 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
 END SUBROUTINE copyreal
 
 !> @file
-!!  Temporary Wires BC kernel, mimic Periodic BC. To be modified
+!!  Wires BC kernel
 !! @author
 !!    Copyright (C) 2006-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
@@ -1969,79 +2396,646 @@ END SUBROUTINE copyreal
 !!   @param h1,h2,h3           Mesh steps in the three dimensions
 !!   @param itype_scf          Order of the scaling function
 !!   @param karray             output array
-subroutine Wires_Kernel(iproc,nproc,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray)
+subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,mu0_screening)
   use module_base
   implicit none
   !Arguments
-  integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  integer, intent(in) :: n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: mu0_screening
   !Local variables 
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
-  integer :: i1,i2,i3,j3,i_all,i_stat
-  real(dp) :: p1,p2,mu3,ker
-  real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+  integer, parameter :: n_gauss = 144
+  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k, i_gauss
+  real(dp) :: mu, factor, factor2, a_range, a1, a2, a3, t0, t1
+  !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+  real(dp), dimension(:), allocatable :: fwork
+  real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
+  real(dp), dimension(:), pointer :: alpha, w
 
-  !first control that the domain is not shorter than the scaling function
-  !add also a temporary flag for the allowed ISF types for the kernel
-  if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
-     print *,'ERROR: dimension of the box are too small for the ISF basis chosen',&
-          itype_scf,n1,n2,n3
-     stop
+  !load alpha(:) and w(:) coefficients from an .inc file
+  include 'gaussfit_wires.inc'
+
+  !write(*,*) "Entering the Wires_Kernel subroutine..."
+  call cpu_time(t0)
+
+  w2 = -w2 !because we actually need -K0(mu*r)
+
+  n_range = 2*itype_scf
+
+  n_cell = max(n01,n02)
+  n_range = max(n_cell,n_range)
+
+  allocate(kernel_scf(max(nker1,nker2,nker3),3+ndebug),stat=i_stat)
+  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
+  allocate(fwork(0:n_range+ndebug),stat=i_stat)
+  call memocc(i_stat,fwork,'fwork',subname)
+  allocate(fftwork(2,max(n1,n2,n3)*2+ndebug),stat=i_stat)
+  call memocc(i_stat,fftwork,'fftwork',subname)
+
+  ! initialization
+  karray = 0.0_dp
+
+  ! case i2 = 1 (namely mu = 0)
+
+  if (mu0_screening == 0.0_dp) then
+     !loads the coefficients alpha(:) and w(:) of the Gaussian fit for log(x):
+     alpha => p1
+     w => w1
+
+     ! we introduce kind of an 'effective' mu:
+     mu = 1.0_dp/sqrt((h1*(n01+2*itype_scf))**2+(h2*(n02+2*itype_scf))**2)
+     !mu = 1.0_dp/sqrt((h1*(n_range))**2+(h2*(n_range))**2)
+     !mu = 2.0_dp*1.0_dp/(2.0d0*h1*(n01/2))
+     !mu = 2.0d0/max(h1*n01,h2*n02)
+
+     ! because of the scaling properties of the log function we have to add the following:
+     karray(1,1,1) = karray(1,1,1) - (n1*n3)*log(mu)
+  else
+     alpha => p2
+     w => w2
+     mu = mu0_screening
   end if
-  !calculate the FFT of the ISF for the three dimensions
-  allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFx,'fourISFx',subname)
-  allocate(fourISFy(0:nker2-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFy,'fourISFy',subname)
-  allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFz,'fourISFz',subname)
 
-  call fourtrans_isf(n1/2,fourISFx)
-  call fourtrans_isf(n2/2,fourISFy)
-  call fourtrans_isf(n3/2,fourISFz)
 
-!!  fourISFx=0._dp
-!!  fourISFy=0._dp
-!!  fourISFz=0._dp
-
-  !calculate directly the reciprocal space components of the kernel function
-  do i3=1,nker3/nproc
-     j3=iproc*(nker3/nproc)+i3
-     if (j3 <= n3/2+1) then
-        mu3=real(j3-1,dp)/real(n3,dp)
-        mu3=(mu3/h2)**2 !beware of the exchanged dimension
-        do i2=1,nker2
-           p2=real(i2-1,dp)/real(n2,dp)
-           do i1=1,nker1
-              p1=real(i1-1,dp)/real(n1,dp)
-              ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
-              if (ker/=0._dp) then
-                 karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
-              else
-                 karray(i1,i2,i3)=0._dp
-              end if
-           end do
+  do k = 1, n_gauss
+     fwork = 0.0_dp
+     call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
+     do i3 = 1, nker3
+        do i1 = 1, nker1
+           karray(i1,1,i3) = karray(i1,1,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
         end do
+     end do
+  end do
+  
+
+  ! case i2 != 1 (namely mu != 0)
+  ! loads the coefficients alpha(:) and w(:) of the Gaussian fit for -BesselK0
+  alpha => p2
+  w => w2
+  
+  do i2 = 2, nker2
+     if (i2 <= n2/2+1) then
+        mu = 2.0_dp*pi/real(n2,dp)*real(i2-1,dp)/h3
      else
-        do i2=1,nker2
-           do i1=1,nker1
-              karray(i1,i2,i3)=0._dp
+        mu = 2.0_dp*pi/real(n2,dp)*real(-i2+n2+1,dp)/h3
+     end if
+
+     mu = sqrt(mu**2 + mu0_screening**2)
+
+     do k = 1, n_gauss
+        fwork = 0.0_dp
+        call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
+        do i3 = 1, nker3
+           do i1 = 1, nker1
+             karray(i1,i2,i3) = karray(i1,i2,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
            end do
         end do
-     end if
+     end do
   end do
 
-  i_all=-product(shape(fourISFx))*kind(fourISFx)
-  deallocate(fourISFx,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFx',subname)
-  i_all=-product(shape(fourISFy))*kind(fourISFy)
-  deallocate(fourISFy,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFy',subname)
-  i_all=-product(shape(fourISFz))*kind(fourISFz)
-  deallocate(fourISFz,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFz',subname)
+
+ 
+  call cpu_time(t1)
+  !write(*,*) "Exiting the Wires_Kernel subroutine..."
+  !write(*,*) "Elapsed time = ", t1-t0
+
+
+  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
+  deallocate(kernel_scf,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel_scf',subname)
+  i_all=-product(shape(fwork))*kind(fwork)
+  deallocate(fwork,stat=i_stat)
+  call memocc(i_stat,i_all,'fwork',subname)
+  i_all=-product(shape(fftwork))*kind(fftwork)
+  deallocate(fftwork,stat=i_stat)
+  call memocc(i_stat,i_all,'fftwork',subname)
+
 
 END SUBROUTINE Wires_Kernel
 
+
+
+! !! acerioni
+
+! !>    Build the kernel of a gaussian function
+! !!    for interpolating scaling functions.
+! !!    Do the parallel HalFFT of the symmetrized function and stores into
+! !!    memory only 1/8 of the grid divided by the number of processes nproc
+! !!
+! !! SYNOPSIS
+! !!    Build the kernel (karray) of a gaussian function
+! !!    for interpolating scaling functions
+! !!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
+! !!
+! !!   @param n01,n02,n03        Mesh dimensions of the density
+! !!   @param nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
+! !!   @param n1k,n2k,n3k        Dimensions of the kernel FFT
+! !!   @param hgrid              Mesh step
+! !!   @param itype_scf          Order of the scaling function (8,14,16)
+! !! MODIFICATION
+! !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
+! subroutine Helmholtz_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
+!      hx,hy,hz,itype_scf,iproc,nproc,karray)
+!  use module_base
+!  implicit none
+!  !Arguments
+!  integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,itype_scf,iproc,nproc
+!  real(dp), intent(in) :: hx,hy,hz
+!  real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
+!  !Local variables
+!  character(len=*), parameter :: subname='Helmholtz_Kernel'
+!  !Do not touch !!!!
+!  integer, parameter :: n_gauss = 90
+!  !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
+!  integer, parameter :: n_points = 2**6
+!  !Better p_gauss for calculation
+!  !(the support of the exponential should be inside [-n_range/2,n_range/2])
+!  real(dp), dimension(1:n_gauss) :: p_gauss,w_gauss
+!  real(dp), dimension(:), allocatable :: fwork
+!  real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
+!  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,mu0_screening
+!  real(dp) :: factor,factor2 !n(c) ,dx
+!  real(dp) :: a1,a2,a3
+!  integer :: n_scf,nker2,nker3 !n(c) nker1
+!  integer :: i_gauss,n_range,n_cell,itest
+!  integer :: i1,i2,i3,i_stat,i_all
+!  integer :: i03
+
+!  !Number of integration points : 2*itype_scf*n_points
+!  n_scf=2*itype_scf*n_points
+!  !Set karray
+
+!  !here we must set the dimensions for the fft part, starting from the nfft
+!  !remember that actually nfft2 is associated to n03 and viceversa
+ 
+!  !Auxiliary dimensions only for building the FFT part
+!  !n(c) nker1=nfft1
+!  nker2=nfft2
+!  nker3=nfft3/2+1
+
+!  !adjusting the last two dimensions to be multiples of nproc
+!  do
+!     if(modulo(nker2,nproc) == 0) exit
+!     nker2=nker2+1
+!  end do
+!  do
+!     if(modulo(nker3,nproc) == 0) exit
+!     nker3=nker3+1
+!  end do
+
+! !!$ !Allocations
+! !!$ allocate(x_scf(0:n_scf+ndebug),stat=i_stat)
+! !!$ call memocc(i_stat,x_scf,'x_scf',subname)
+! !!$ allocate(y_scf(0:n_scf+ndebug),stat=i_stat)
+! !!$ call memocc(i_stat,y_scf,'y_scf',subname)
+! !!$
+! !!$ !Build the scaling function
+! !!$ call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
+!  n_range=2*itype_scf
+!  !Step grid for the integration
+!  !n(c) dx = real(n_range,dp)/real(n_scf,dp)
+!  !Extend the range (no more calculations because fill in by 0._dp)
+!  n_cell = max(n01,n02,n03)
+!  n_range = max(n_cell,n_range)
+
+!  !Lengths of the box (use box dimension)
+!  a1 = hx * real(n01,dp)
+!  a2 = hy * real(n02,dp)
+!  a3 = hz * real(n03,dp)
+
+!  !Initialization of the gaussian (Beylkin)
+
+!  !! to be updated... ************************************ !!
+!  call Yukawa_gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
+!  !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
+!  !(biggest length in the cube)
+!  !We divide the p_gauss by a_range**2 and a_gauss by a_range
+!  mu0_screening = 1.e0_dp
+!  !a_range = sqrt(a1*a1+a2*a2+a3*a3)
+!  !factor 
+!  !factor2 = factor*factor
+!  !factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
+!  do i_gauss=1,n_gauss
+!     p_gauss(i_gauss) = mu0_screening**2*p_gauss(i_gauss)
+!  end do
+!  do i_gauss=1,n_gauss
+!     ! we do not put the 1/(4\pi) factor here because
+!     ! it is already accounted for in 'scal'
+!     w_gauss(i_gauss) = mu0_screening*w_gauss(i_gauss)
+!  end do
+!  !! ***************************************************** !!
+
+
+
+!  allocate(fwork(0:n_range+ndebug),stat=i_stat)
+!  call memocc(i_stat,fwork,'fwork',subname)
+
+!  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
+!  fftwork(1,1)=0.0d0
+!  call memocc(i_stat,fftwork,'fftwork',subname)
+
+!  do i3=1,n3k/nproc
+!     do i2=1,n2k
+!        do i1=1,n1k
+!           karray(i1,i2,i3) = 0.0_dp
+!        end do
+!     end do
+!  end do
+
+! !!$ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
+! !!$ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
+
+
+!  allocate(kernel_scf(max(n1k,n2k,n3k),3+ndebug),stat=i_stat)
+!  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
+! !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
+! !!$ call memocc(i_stat,kernel_scf,'kernel_scf',subname)
+
+!  do i_gauss=n_gauss,1,-1
+!     !Gaussian
+!     pgauss = p_gauss(i_gauss)
+    
+! !!$    if (i_gauss == 71 .or. .true.) then
+! !!$       print *,'pgauss,wgauss',pgauss,w_gauss(i_gauss)
+! !!$       !take the timings
+! !!$       call cpu_time(t0)
+! !!$       do itimes=1,ntimes
+! !!$          !this routine can be substituted by the wofz calculation
+! !!$          call gauss_conv_scf(itype_scf,pgauss,hx,dx,n_range,n_scf,x_scf,y_scf,&
+! !!$               kernel_scf,kern_1_scf)
+! !!$       end do
+! !!$       call cpu_time(t1)
+! !!$       told=real(t1-t0,dp)/real(ntimes,dp)
+! !!$
+! !!$       !take the timings
+! !!$       call cpu_time(t0)
+! !!$       do itimes=1,ntimes
+! !!$          call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
+! !!$       end do
+! !!$       call cpu_time(t1)
+! !!$       tnew=real(t1-t0,dp)/real(ntimes,dp)
+! !!$
+! !!$       !calculate maxdiff
+! !!$       maxdiff=0.0_dp
+! !!$       do i=0,n_range
+! !!$          !write(17,*)i,kernel_scf(i,1),kern_1_scf(i)
+! !!$          maxdiff=max(maxdiff,abs(kernel_scf(i,1)-(fwork(i))))
+! !!$       end do
+! !!$
+! !!$       do i=0,n_range
+! !!$          write(18,'(i4,3(1pe25.17))')i,kernel_scf(i,1),fwork(i)
+! !!$       end do
+! !!$       
+! !!$       write(*,'(1x,a,i3,2(1pe12.5),1pe24.17)')'time,i_gauss',i_gauss,told,tnew,maxdiff
+! !!$       !stop
+! !!$    end if
+! !!$    !STOP
+
+! !    fwork = 0.0_dp
+    
+!     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
+!          fwork,fftwork,kernel_scf)
+
+!     !Add to the kernel (only the local part)
+!     do i3=1,nker3/nproc  
+!        if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
+!           i03=iproc*(nker3/nproc)+i3
+!           do i2=1,n2k
+!              do i1=1,n1k
+!                 karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
+!                      kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
+!              end do
+!           end do
+!        end if
+!     end do
+! !!$
+!  end do
+! !!$stop
+! !!$
+
+! !!$ !De-allocations
+!  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
+!  deallocate(kernel_scf,stat=i_stat)
+!  call memocc(i_stat,i_all,'kernel_scf',subname)
+!  i_all=-product(shape(fwork))*kind(fwork)
+!  deallocate(fwork,stat=i_stat)
+!  call memocc(i_stat,i_all,'fwork',subname)
+!  i_all=-product(shape(fftwork))*kind(fftwork)
+!  deallocate(fftwork,stat=i_stat)
+!  call memocc(i_stat,i_all,'fftwork',subname)
+
+! !!$ i_all=-product(shape(x_scf))*kind(x_scf)
+! !!$ deallocate(x_scf,stat=i_stat)
+! !!$ call memocc(i_stat,i_all,'x_scf',subname)
+! !!$ i_all=-product(shape(y_scf))*kind(y_scf)
+! !!$ deallocate(y_scf,stat=i_stat)
+! !!$ call memocc(i_stat,i_all,'y_scf',subname)
+
+! END SUBROUTINE Helmholtz_Kernel
+
+!> The conversion from d0 to dp type should be finished
+subroutine Yukawa_gequad(p,w,urange,drange,acc)
+ 
+  use module_base
+  implicit none
+
+!Arguments
+  real(dp), intent(out) :: urange,drange,acc
+  real(dp), dimension(1:90), intent(out) :: p, w
+!
+! range [10^(-9), 15] and accuracy ~?;
+!
+  
+  include 'gaussfit_Yukawa.inc' 
+
+  p = p1
+  w = w1
+
+  urange = 15._dp
+  drange = 1.d-09
+  acc = 1.d-06 !relative error
+!
+END SUBROUTINE Yukawa_gequad
+
+
+
+
+
+
+!{\src2tex{textfont=tt}}
+!!****f* ABINIT/metric
+!! NAME metric
+!! metric
+!!
+!! FUNCTION
+!! Compute first dimensional primitive translation vectors in reciprocal space
+!!  gprimd from rprimd, and eventually writes out.
+!! Then, computes metrics for real and recip space
+!!  rmet and gmet using length
+!!  dimensional primitive translation vectors
+!!  in columns of rprimd(3,3) and gprimd(3,3).
+!!  gprimd is the inverse transpose of rprimd.
+!!  i.e. $ rmet_{i,j}= \sum_k ( rprimd_{k,i}*rprimd_{k,j} )  $
+!!       $ gmet_{i,j}= \sum_k ( gprimd_{k,i}*gprimd_{k,j} )  $
+!! Also computes unit cell volume ucvol in $\textrm{bohr}^3$
+!!
+!! COPYRIGHT
+!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! INPUTS
+!!  rprimd(3,3)=dimensional primitive translations for real space (bohr)
+!!  iout=unit number of output file.  If iout<0, do not write output.
+!!
+!! OUTPUT
+!!  gmet(3,3)=reciprocal space metric ($\textrm{bohr}^{-2}$).
+!!  gprimd(3,3)=dimensional primitive translations for reciprocal space ($\textrm{bohr}^{-1}$)
+!!  rmet(3,3)=real space metric ($\textrm{bohr}^{2}$).
+!!  ucvol=unit cell volume ($\textrm{bohr}^{3}$).
+!!
+!! SIDE EFFECTS
+!!
+!! NOTES
+!!
+!! PARENTS
+!!      afterscfloop,brdmin,chkinp,conducti_nc,conducti_paw,delocint,dyfnl3
+!!      eltfrhar3,eltfrkin3,eltfrnl3,eltfrxc3,energy,forces,forstrnps,getkgrid
+!!      gw_tools,hirsh,ingeo,initaim,inkpts,invacuum,invars2m,ladielmt,lavnl
+!!      linear_optics_paw,localorb_S,loper3,m_bz_mesh,m_coulombian,m_crystal
+!!      m_gwannier,m_screening,m_wannier2abinit,make_epsm1_driver,mlwfovlp_qp
+!!      moddiel,moldyn,mrgscr,newrho,newsp,newvtr,newvtr3,nres2vres,optic
+!!      overlap_wf,partial_dos_fractions,pawgrnl,prcref,prcref_PMA,prctfvw1
+!!      prctfvw2,prctfw3,rdddb9,rdm,rhohxc,scfcv,scfcv3,screening,setup1
+!!      setup_screening,setup_sigma,sigma,stress,suscep,testkgrid,tetrahedron
+!!      wannier,wffile,wfread,xfpack
+!!
+!! CHILDREN
+!!      leave_new,matr3inv,wrtout
+!!
+!! SOURCE
+
+subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
+
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: iout
+ real(kind=8),intent(out) :: ucvol
+!arrays
+ real(kind=8),intent(in) :: rprimd(3,3)
+ real(kind=8),intent(out) :: gmet(3,3),gprimd(3,3),rmet(3,3)
+
+!Local variables-------------------------------
+!scalars
+ integer :: ii,nu
+ character(len=500) :: message
+!arrays
+ real(kind=8) :: angle(3)
+ character(len=1), parameter :: ch10 = char(10)
+ real(kind=8), parameter :: tol10=0.0000000001d0
+ real(kind=8), parameter :: pi=3.141592653589793238462643383279502884197d0
+ real(kind=8), parameter :: two_pi=2.0d0*pi
+
+! *************************************************************************
+
+!DEBUG
+!write(6,*)' metric : enter '
+!ENDDEBUG
+
+!Compute unit cell volume
+ ucvol=rprimd(1,1)*(rprimd(2,2)*rprimd(3,3)-rprimd(3,2)*rprimd(2,3))+&
+& rprimd(2,1)*(rprimd(3,2)*rprimd(1,3)-rprimd(1,2)*rprimd(3,3))+&
+& rprimd(3,1)*(rprimd(1,2)*rprimd(2,3)-rprimd(2,2)*rprimd(1,3))
+
+!Check that the input primitive translations are not
+!linearly dependent (and none is zero); i.e. ucvol~=0
+!Also ask that the mixed product is positive.
+ if (abs(ucvol)<1.0d-12) then
+  write(*, '(8a)' ) ch10,&
+&  ' metric : ERROR -',ch10,&
+&  '  Input rprim and acell gives vanishing unit cell volume.',ch10,&
+&  '  This indicates linear dependency between primitive lattice vectors',&
+&  ch10,'  Action : correct either rprim or acell in input file.'
+ end if
+ if (ucvol<0.0d0)then
+  write(*,&
+&  '(5a,3(a,3es16.6,a),7a)' ) ch10,&
+&  ' metric : ERROR -',ch10,&
+&  '  Current rprimd gives negative (R1xR2).R3 . ',ch10,&
+&  '  Rprimd =',rprimd(:,1),ch10,&
+&  '          ',rprimd(:,2),ch10,&
+&  '          ',rprimd(:,3),ch10,&
+&  '  Action : if the cell size and shape are fixed (optcell==0),',ch10,&
+&  '   exchange two of the input rprim vectors;',ch10,&
+&  '   if you are optimizing the cell size and shape (optcell/=0),',ch10,&
+&  '   maybe the move was too large, and you might try to decrease strprecon.'
+ end if
+
+!Generates gprimd
+ call matr3inv(rprimd,gprimd)
+
+!Write out rprimd, gprimd and ucvol
+ if (iout>=0) then
+  write(*, '(a,a)' )' Real(R)+Recip(G) ',&
+&  'spac primitive vectors, cartesian coordinates (Bohr,Bohr^-1):'
+  do nu=1,3
+   write(*, '(1x,a,i1,a,3f11.7,2x,a,i1,a,3f11.7)' ) &
+&   'R(',nu,')=',rprimd(:,nu)+tol10,&
+&   'G(',nu,')=',gprimd(:,nu)+tol10
+  end do
+  write(*, '(a,1p,e15.7,a)' ) &
+&  ' Unit cell volume ucvol=',ucvol+tol10,' bohr^3'
+ end if
+
+!Compute real space metrics
+ do ii=1,3
+  rmet(ii,:)=rprimd(1,ii)*rprimd(1,:)+&
+&  rprimd(2,ii)*rprimd(2,:)+&
+&  rprimd(3,ii)*rprimd(3,:)
+ end do
+
+!Compute reciprocal space metrics
+ do ii=1,3
+  gmet(ii,:)=gprimd(1,ii)*gprimd(1,:)+&
+&  gprimd(2,ii)*gprimd(2,:)+&
+&  gprimd(3,ii)*gprimd(3,:)
+ end do
+
+!Write out the angles
+ if (iout>=0) then
+  angle(1)=acos(rmet(2,3)/sqrt(rmet(2,2)*rmet(3,3)))/two_pi*360.0d0
+  angle(2)=acos(rmet(1,3)/sqrt(rmet(1,1)*rmet(3,3)))/two_pi*360.0d0
+  angle(3)=acos(rmet(1,2)/sqrt(rmet(1,1)*rmet(2,2)))/two_pi*360.0d0
+  write(*, '(a,3es16.8,a)' )&
+&  ' Angles (23,13,12)=',angle(1:3),' degrees'
+
+ end if
+
+end subroutine metric
+!!***
+
+  subroutine test_g2cart(n1,n2,n3,gprimd,g2cart)
+    implicit none
+    integer, intent(in) :: n1,n2,n3
+    real(kind=8), dimension(3,3), intent(in) :: gprimd
+    real(kind=8), dimension(n1*n2*n3), intent(out) :: g2cart
+    !local variables
+    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ifunc,ig1,ig2,ig3,ii1
+    real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
+    
+
+    id1=int(n1/2)+2
+    id2=int(n2/2)+2
+    id3=int(n3/2)+2
+    ifft=0
+    count=0
+    do i3=1,n3
+       ifft=(i3-1)*n1*n2
+       ig3=i3-int(i3/id3)*n3-1
+       do i2=1,n2
+          ig2=i2-int(i2/id2)*n2-1
+          ii1=1
+          do i1=ii1,n1
+             ig1=i1-int(i1/id1)*n1-1
+             ifft=ifft+1
+
+             b11=gprimd(1,1)*real(ig1,kind=8)
+             b21=gprimd(2,1)*real(ig1,kind=8)
+             b31=gprimd(3,1)*real(ig1,kind=8)
+             b12=gprimd(1,2)*real(ig2,kind=8)
+             b22=gprimd(2,2)*real(ig2,kind=8)
+             b32=gprimd(3,2)*real(ig2,kind=8)
+             b13=gprimd(1,3)*real(ig3,kind=8)
+             b23=gprimd(2,3)*real(ig3,kind=8)
+             b33=gprimd(3,3)*real(ig3,kind=8)
+
+             g2cart(ifft)=( &
+                  &     (b11+b12+b13)**2&
+                  &     +(b21+b22+b23)**2&
+                  &     +(b31+b32+b33)**2&
+                  &     )
+!!$     do ifunc=1,nfunc
+!!$!     compute the laplacien in fourrier space
+!!$!     that is * (i x 2pi x G)**2
+!!$      laplacerdfuncg(1,ifft,ifunc) = -rdfuncg(1,ifft,ifunc)*g2cart(ifft)*two_pi*two_pi
+!!$      laplacerdfuncg(2,ifft,ifunc) = -rdfuncg(2,ifft,ifunc)*g2cart(ifft)*two_pi*two_pi
+!!$     end do
+          end do
+       end do
+    end do
+  end subroutine test_g2cart
+
+
+!{\src2tex{textfont=tt}}
+!!****f* ABINIT/matr3inv
+!! NAME
+!! matr3inv
+!!
+!! FUNCTION
+!! Invert and transpose general 3x3 matrix of real*8 elements.
+!!
+!! COPYRIGHT
+!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! INPUTS
+!! aa = 3x3 matrix to be inverted
+!!
+!! OUTPUT
+!! ait = inverse of aa input matrix
+!!
+!! SIDE EFFECTS
+!!
+!! NOTES
+!! Returned array is TRANSPOSE of inverse, as needed to get g from r.
+!!
+!! PARENTS
+!!      berryphase,chkdilatmx,conducti_nc,electrooptic,elphon,ewald2,ewald9
+!!      get_fsurf_1band,getkgrid,getspinrot,hybrid9,inwffil,metric,mkvxc3
+!!      mkvxcstr3,mrgscr,newsp,optic,outwant,planeint,prtxf,rdddb9,recip,reduce
+!!      relaxpol,rsiaf9,shellin,smpbz,strsym,symbrav,symdyma,symph3,symrelrot
+!!      tddft,testkgrid,tetrahedron,thm9,uderiv,volumeint,xfpack,xredxcart
+!!
+!! CHILDREN
+!!
+!! SOURCE
+subroutine matr3inv(aa,ait)
+
+ implicit none
+
+!Arguments ------------------------------------
+!arrays
+ real(kind=8),intent(in) :: aa(3,3)
+ real(kind=8),intent(out) :: ait(3,3)
+
+!Local variables-------------------------------
+!scalars
+ real(kind=8) :: dd,t1,t2,t3
+
+! *************************************************************************
+
+ t1 = aa(2,2) * aa(3,3) - aa(3,2) * aa(2,3)
+ t2 = aa(3,2) * aa(1,3) - aa(1,2) * aa(3,3)
+ t3 = aa(1,2) * aa(2,3) - aa(2,2) * aa(1,3)
+ dd  = 1.d0/ (aa(1,1) * t1 + aa(2,1) * t2 + aa(3,1) * t3)
+ ait(1,1) = t1 * dd
+ ait(2,1) = t2 * dd
+ ait(3,1) = t3 * dd
+ ait(1,2) = (aa(3,1)*aa(2,3)-aa(2,1)*aa(3,3)) * dd
+ ait(2,2) = (aa(1,1)*aa(3,3)-aa(3,1)*aa(1,3)) * dd
+ ait(3,2) = (aa(2,1)*aa(1,3)-aa(1,1)*aa(2,3)) * dd
+ ait(1,3) = (aa(2,1)*aa(3,2)-aa(3,1)*aa(2,2)) * dd
+ ait(2,3) = (aa(3,1)*aa(1,2)-aa(1,1)*aa(3,2)) * dd
+ ait(3,3) = (aa(1,1)*aa(2,2)-aa(2,1)*aa(1,2)) * dd
+
+end subroutine matr3inv
+!!***
