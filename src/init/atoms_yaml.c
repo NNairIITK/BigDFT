@@ -120,8 +120,6 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
 }
 #endif
 
-#ifdef HAVE_YAML
-
 #define set_error(...)                          \
   if (message && !*message)                     \
     {                                           \
@@ -131,6 +129,8 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
     }                                           \
   else                                          \
     fprintf(stderr, __VA_ARGS__)
+
+#ifdef HAVE_YAML
 
 static void _yaml_parser_error(const yaml_parser_t *parser, char **message)
 {
@@ -1009,6 +1009,8 @@ PosinpList* posinp_yaml_parse(const char *filename, char **message)
   yaml_parser_delete(&parser);
   fclose(input);
 #else
+  size_t ln;
+
   set_error("No YAML support, cannot read file '%s'.\n", filename);
   list = (PosinpList*)0;
 #endif
