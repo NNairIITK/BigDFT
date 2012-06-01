@@ -62,11 +62,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Calculate trace (or band structure energy, resp.)
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      write(*,*) 'kernel(1,1) 1',kernel(1,1)
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
           do korb=1,tmbopt%orbs%norb
-              if(iproc==0) write(610,'(2i8,2es17.10)') korb,jorb,kernel(korb,jorb),lagmat(korb,jorb)
               tt = kernel(korb,jorb)*lagmat(korb,jorb)
               trH = trH + tt
           end do

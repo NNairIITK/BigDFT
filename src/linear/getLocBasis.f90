@@ -489,11 +489,11 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
 
-  do jorb=1,tmbmix%orbs%norb
-     do korb = 1,orbs%norb
-        write(800,*) tmbmix%wfnmd%coeff(jorb,korb),tmb%wfnmd%coeff(jorb,korb)
-     end do
-  end do
+  !!do jorb=1,tmbmix%orbs%norb
+  !!   do korb = 1,orbs%norb
+  !!      write(800,*) tmbmix%wfnmd%coeff(jorb,korb),tmb%wfnmd%coeff(jorb,korb)
+  !!   end do
+  !!end do
 
   call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel, ovrlp)
@@ -509,7 +509,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       !!end do
       do korb=1,tmbmix%orbs%norb
           if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-              write(600,'(2i8,2es19.10)') korb,jorb,density_kernel(korb,jorb),matrixElements(korb,jorb,1)
           tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           ebs = ebs + tt
       end do

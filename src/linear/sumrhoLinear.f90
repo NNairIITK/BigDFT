@@ -649,8 +649,8 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   !call timing(iproc,'sumrho_TMB    ','ON')
   if(norbp>0) then
       call to_zero(norb_tmb**2, kernel(1,1))
-      if(iproc==0)print *,' norb_tmb,ld_coeff',norb_tmb,ld_coeff
-      if(iproc==0)write(700,*)coeff
+      !!if(iproc==0)print *,' norb_tmb,ld_coeff',norb_tmb,ld_coeff
+      !!if(iproc==0)write(700,*)coeff
       call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
            coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
   else
@@ -658,206 +658,206 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   end if
   call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
 
-  ! calculate kernelij and print
-  if (present(ovrlp)) then
-     call gemm('t', 'n', norb_tmb, norb, norb_tmb, 1.d0, ovrlp(1,1), ld_coeff, &
-          coeff(1,1), ld_coeff, 0.d0, ocoeff(1,1), norb_tmb)
-  else
-     call dcopy(ld_coeff*norb,coeff(1,1),1,ocoeff(1,1),1)
-  end if
-
-  call gemm('t', 'n', norb, norb, norb_tmb, 1.d0, coeff(1,1), ld_coeff, &
-       ocoeff(1,1), ld_coeff, 0.d0, kernelij(1,1), norb)
-
-  open(33,file='kernelij.dat',status='replace')
-  do i=1,norb
-  do j=1,norb
-    write(33,*) i,j,kernelij(i,j)
-  end do
-  end do
-  close(33)
-
-  ! calculate eigenvalues
-if (present(ovrlp)) then
-
-if (.false.) then
-  allocate(rhoprime(norb_tmb,norb_tmb))
-
-  allocate(vl(1:norb_tmb,1:norb_tmb))
-  allocate(vr(1:norb_tmb,1:norb_tmb))
-  allocate(eval1(1:norb_tmb))
-  allocate(beta(1:norb_tmb))
-
-  allocate(eval(1:norb_tmb))
-  allocate(work(1:1))
-  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
-
-  lwork = -1
-  !call dsygv(1, 'v', 'l',norb_tmb,&
-  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-  !call dggev('n', 'n',norb_tmb,&
-  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-  !      vl,1,vr,1,work, lwork, ierr)
-      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-                  norb_tmb, WORK, LWORK, ierr )
-
-  lwork = work(1)
-  deallocate(work)
-  allocate(work(1:lwork))
-
-  !call dsygv(1, 'v', 'l',norb_tmb,&
-  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-  !call dggev('n', 'n',norb_tmb,&
-  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-  !      vl,1,vr,1,work, lwork, ierr)
-      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-                  norb_tmb, WORK, LWORK, ierr )
-
-  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
-  write(32,*) 'Before',eval
-  write(32,*) 'eval1',eval1
-  !write(32,*) 'beta',beta
-  write(32,*) sum(eval)  
-  write(32,*) ''
-  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
-
-  deallocate(work)
-  deallocate(eval)
-end if
-
-  ! Check symmetry and idempotency of kernel
-  allocate(ks(1:norb_tmb,1:norb_tmb))
-  allocate(ksk(1:norb_tmb,1:norb_tmb))
-  allocate(ksksk(1:norb_tmb,1:norb_tmb))
-
-  av_k_sym_diff = 0.0_dp
-  num_counted = 0
-  do i=1,norb_tmb
-  do j=i+1,norb_tmb
-     av_k_sym_diff = av_k_sym_diff + abs(kernel(j,i)-kernel(i,j))
-     kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-     kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-     num_counted = num_counted + 1
-     if (abs(kernel(j,i)-kernel(i,j)) > 1.0d-3) then !lr408 debug
-        if (iproc == 0) write(47,*) 'K not symmetric',i,j,kernel(j,i),kernel(i,j),&
-             kernel(j,i)-kernel(i,j)
-     end if
-  end do
-  end do
-  if (iproc == 0) write (48,*) 'av_k_sym_diff',av_k_sym_diff / num_counted
-
-  ! purification
-  do k=1,1
-     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-          ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
-     !call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
-
-     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-          kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
-
-     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-     !     ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
-
-     !kernel = 3.0_dp * ksk - 2.0_dp * ksksk
-
-     !do i=1,norb_tmb
-     !do j=i,norb_tmb
-     !  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-     !  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-     !end do
-     !end do
-
-     !DEBUG test idempotency of density matrix
-     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-     !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
-     av_idem = 0.0_dp
-     open(31)
-     do i = 1, norb_tmb
-       do j = 1, norb_tmb
-         av_idem = av_idem + abs(ksk(i,j) - kernel(i,j))
-         if(abs(ksk(i,j) - kernel(i,j))>1.0d-3) then
-           write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j),ksk(i,j) - kernel(i,j)
-         end if
-       end do
-     end do
-     close(31)
-     if (iproc == 0) write(49,*) 'av_idem',av_idem / (norb_tmb **2)
-  end do
-
-if (.false.) then
-  allocate(eval(1:norb_tmb))
-  allocate(work(1:1))
-
-  deallocate(beta)
-  deallocate(eval1)
-  deallocate(vr)
-  deallocate(vl)
-
-!  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
-
-!  lwork = -1
-
-!  allocate(vl(1:norb_tmb,1:norb_tmb))
-!  allocate(vr(1:norb_tmb,1:norb_tmb))
-!  allocate(eval1(1:norb_tmb))
-!  allocate(beta(1:norb_tmb))
-
-!  !call dsygv(1, 'v', 'l',norb_tmb,&
-!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!  !call dggev('n', 'n',norb_tmb,&
-!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!   !     vl,1,vr,1,work, lwork, ierr)
-!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!                  norb_tmb, WORK, LWORK, ierr )
-
-!  lwork = work(1)
-!  deallocate(work)
-!  allocate(work(1:lwork))
-
-!  !call dsygv(1, 'v', 'l',norb_tmb,&
-!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!  !call dggev('n', 'n',norb_tmb,&
-!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!  !      vl,1,vr,1,work, lwork, ierr)
-!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!                  norb_tmb, WORK, LWORK, ierr )
-
-!  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
-!  write(32,*) 'After',eval
-!  write(32,*) 'eval1',eval1
-!  !write(32,*) 'beta',beta
-!  write(32,*) sum(eval)  
-!  write(32,*) ''
-!  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
-
-!  deallocate(work)
-!  deallocate(eval)
-
-!  deallocate(beta)
-!  deallocate(eval1)
-!  deallocate(vr)
-!  deallocate(vl)
-
-  deallocate(rhoprime)
-end if
-
-  deallocate(ksksk)
-  deallocate(ksk)
-  deallocate(ks)
-  !END DEBUG
-
-  !write(*,*) 'DEBUG KERNEL'
-  !do i=1,norb_tmb
-  !    do j=1,norb_tmb
-  !        if(j==i) then
-  !            kernel(j,i)=1.d0
-  !        else
-  !            kernel(j,i)=0.d0
-  !        end if
-  !    end do
-  !end do
-
-end if
+!!$  ! calculate kernelij and print
+!!$  if (present(ovrlp)) then
+!!$     call gemm('t', 'n', norb_tmb, norb, norb_tmb, 1.d0, ovrlp(1,1), ld_coeff, &
+!!$          coeff(1,1), ld_coeff, 0.d0, ocoeff(1,1), norb_tmb)
+!!$  else
+!!$     call dcopy(ld_coeff*norb,coeff(1,1),1,ocoeff(1,1),1)
+!!$  end if
+!!$
+!!$  call gemm('t', 'n', norb, norb, norb_tmb, 1.d0, coeff(1,1), ld_coeff, &
+!!$       ocoeff(1,1), ld_coeff, 0.d0, kernelij(1,1), norb)
+!!$
+!!$  !!open(33,file='kernelij.dat',status='replace')
+!!$  !!do i=1,norb
+!!$  !!do j=1,norb
+!!$  !!  write(33,*) i,j,kernelij(i,j)
+!!$  !!end do
+!!$  !!end do
+!!$  !!close(33)
+!!$
+!!$  ! calculate eigenvalues
+!!$if (present(ovrlp)) then
+!!$
+!!$if (.false.) then
+!!$  allocate(rhoprime(norb_tmb,norb_tmb))
+!!$
+!!$  allocate(vl(1:norb_tmb,1:norb_tmb))
+!!$  allocate(vr(1:norb_tmb,1:norb_tmb))
+!!$  allocate(eval1(1:norb_tmb))
+!!$  allocate(beta(1:norb_tmb))
+!!$
+!!$  allocate(eval(1:norb_tmb))
+!!$  allocate(work(1:1))
+!!$  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
+!!$
+!!$  lwork = -1
+!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$  !call dggev('n', 'n',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$  !      vl,1,vr,1,work, lwork, ierr)
+!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$  lwork = work(1)
+!!$  deallocate(work)
+!!$  allocate(work(1:lwork))
+!!$
+!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$  !call dggev('n', 'n',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$  !      vl,1,vr,1,work, lwork, ierr)
+!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
+!!$  write(32,*) 'Before',eval
+!!$  write(32,*) 'eval1',eval1
+!!$  !write(32,*) 'beta',beta
+!!$  write(32,*) sum(eval)  
+!!$  write(32,*) ''
+!!$  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
+!!$
+!!$  deallocate(work)
+!!$  deallocate(eval)
+!!$end if
+!!$
+!!$  !!!! Check symmetry and idempotency of kernel
+!!$  !!!allocate(ks(1:norb_tmb,1:norb_tmb))
+!!$  !!!allocate(ksk(1:norb_tmb,1:norb_tmb))
+!!$  !!!allocate(ksksk(1:norb_tmb,1:norb_tmb))
+!!$
+!!$  !!av_k_sym_diff = 0.0_dp
+!!$  !!num_counted = 0
+!!$  !!do i=1,norb_tmb
+!!$  !!do j=i+1,norb_tmb
+!!$  !!   av_k_sym_diff = av_k_sym_diff + abs(kernel(j,i)-kernel(i,j))
+!!$  !!   kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   num_counted = num_counted + 1
+!!$  !!   if (abs(kernel(j,i)-kernel(i,j)) > 1.0d-3) then !lr408 debug
+!!$  !!      if (iproc == 0) write(47,*) 'K not symmetric',i,j,kernel(j,i),kernel(i,j),&
+!!$  !!           kernel(j,i)-kernel(i,j)
+!!$  !!   end if
+!!$  !!end do
+!!$  !!end do
+!!$  !!!!if (iproc == 0) write (48,*) 'av_k_sym_diff',av_k_sym_diff / num_counted
+!!$
+!!$  ! purification
+!!$  !!do k=1,1
+!!$  !!   call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+!!$  !!        ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
+!!$  !!   !call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
+!!$
+!!$  !!   call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+!!$  !!        kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
+!!$
+!!$  !!   !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+!!$  !!   !     ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
+!!$
+!!$  !!   !kernel = 3.0_dp * ksk - 2.0_dp * ksksk
+!!$
+!!$  !!   !do i=1,norb_tmb
+!!$  !!   !do j=i,norb_tmb
+!!$  !!   !  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   !  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   !end do
+!!$  !!   !end do
+!!$
+!!$  !!   !DEBUG test idempotency of density matrix
+!!$  !!   !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+!!$  !!   !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
+!!$  !!   !!av_idem = 0.0_dp
+!!$  !!   !!open(31)
+!!$  !!   !!do i = 1, norb_tmb
+!!$  !!   !!  do j = 1, norb_tmb
+!!$  !!   !!    av_idem = av_idem + abs(ksk(i,j) - kernel(i,j))
+!!$  !!   !!    if(abs(ksk(i,j) - kernel(i,j))>1.0d-3) then
+!!$  !!   !!      write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j),ksk(i,j) - kernel(i,j)
+!!$  !!   !!    end if
+!!$  !!   !!  end do
+!!$  !!   !!end do
+!!$  !!   !!close(31)
+!!$  !!   if (iproc == 0) write(49,*) 'av_idem',av_idem / (norb_tmb **2)
+!!$  !!end do
+!!$
+!!$if (.false.) then
+!!$  allocate(eval(1:norb_tmb))
+!!$  allocate(work(1:1))
+!!$
+!!$  deallocate(beta)
+!!$  deallocate(eval1)
+!!$  deallocate(vr)
+!!$  deallocate(vl)
+!!$
+!!$!  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
+!!$
+!!$!  lwork = -1
+!!$
+!!$!  allocate(vl(1:norb_tmb,1:norb_tmb))
+!!$!  allocate(vr(1:norb_tmb,1:norb_tmb))
+!!$!  allocate(eval1(1:norb_tmb))
+!!$!  allocate(beta(1:norb_tmb))
+!!$
+!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$!  !call dggev('n', 'n',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$!   !     vl,1,vr,1,work, lwork, ierr)
+!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$!                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$!  lwork = work(1)
+!!$!  deallocate(work)
+!!$!  allocate(work(1:lwork))
+!!$
+!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$!  !call dggev('n', 'n',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$!  !      vl,1,vr,1,work, lwork, ierr)
+!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$!                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$!  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
+!!$!  write(32,*) 'After',eval
+!!$!  write(32,*) 'eval1',eval1
+!!$!  !write(32,*) 'beta',beta
+!!$!  write(32,*) sum(eval)  
+!!$!  write(32,*) ''
+!!$!  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
+!!$
+!!$!  deallocate(work)
+!!$!  deallocate(eval)
+!!$
+!!$!  deallocate(beta)
+!!$!  deallocate(eval1)
+!!$!  deallocate(vr)
+!!$!  deallocate(vl)
+!!$
+!!$  deallocate(rhoprime)
+!!$end if
+!!$
+!!$  !!!deallocate(ksksk)
+!!$  !!!deallocate(ksk)
+!!$  !!!deallocate(ks)
+!!$  !END DEBUG
+!!$
+!!$  !write(*,*) 'DEBUG KERNEL'
+!!$  !do i=1,norb_tmb
+!!$  !    do j=1,norb_tmb
+!!$  !        if(j==i) then
+!!$  !            kernel(j,i)=1.d0
+!!$  !        else
+!!$  !            kernel(j,i)=0.d0
+!!$  !        end if
+!!$  !    end do
+!!$  !end do
+!!$
+!!$end if
 
 !if (iproc==0) then ! lr408
 !   open(27,file='kernel.dat',status='replace')
