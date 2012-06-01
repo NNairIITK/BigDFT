@@ -265,9 +265,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do jorb=1,tmbmix%orbs%norb
-      do korb=1,tmbmix%orbs%norb
-          if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+      !do korb=1,tmbmix%orbs%norb
+      do korb=1,jorb
           tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          if(korb/=jorb) tt=2.d0*tt
+          !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+          !!tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           ebs = ebs + tt
       end do
   end do
@@ -586,8 +589,10 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
 
   !call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      allocate(locregCenter(3,tmbopt%lzd%nlr), stat=istat)
-      allocate(locrad_tmp(tmbopt%lzd%nlr), stat=istat)
+      !!allocate(locregCenter(3,tmbopt%lzd%nlr), stat=istat)
+      !!call memocc(istat, locregCenter, 'locregCenter', subname)
+      !!allocate(locrad_tmp(tmbopt%lzd%nlr), stat=istat)
+      !!call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
       do iorb=1,tmbopt%orbs%norb
           ilr=tmbopt%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmbopt%lzd%llr(ilr)%locregCenter

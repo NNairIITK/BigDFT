@@ -74,17 +74,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       do jorb=1,tmbopt%orbs%norb
           trH = trH + lagmat(jorb,jorb)
       end do
-      !!!trH=0.d0
-      !!!istat=1
-      !!!do jorb=1,tmbopt%orbs%norbp
-      !!!    tt1=ddot(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
-      !!!    !write(*,*) 'tt1',tt1
-      !!!    call daxpy(tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f, -tt1, tmbopt%psi(istat), 1, lhphiopt(istat), 1)
-      !!!    !lhphiopt=1.d-10
-      !!!    trH = trH + tt1
-      !!!    istat=istat+tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_c+7*tmbopt%lzd%llr(jorb+tmbopt%orbs%isorb)%wfd%nvctr_f
-      !!!end do
-      !!!call mpiallred(trH, 1, mpi_sum, mpi_comm_world, istat)
   end if
 
 
