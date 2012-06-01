@@ -233,6 +233,7 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
   !!     orbs, lagmat, ovrlp2, mad, &
   !!     ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
+
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 
       do iorb=1,orbs%norb

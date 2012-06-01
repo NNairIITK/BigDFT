@@ -821,6 +821,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      tmblarge%can_use_transposed=.false.
 
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)

@@ -721,6 +721,7 @@ endif
       end if
       tmbopt%confdatarr => tmb%confdatarr
 
+
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &

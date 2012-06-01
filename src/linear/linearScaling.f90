@@ -361,6 +361,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      tmblarge%can_use_transposed=.false.
 
 
 
