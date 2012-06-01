@@ -77,22 +77,23 @@ typedef struct BigDFT_Atoms_
 
 
 BigDFT_Atoms* bigdft_atoms_new();
-BigDFT_Atoms* bigdft_atoms_new_from_file    (const gchar *filename);
-void          bigdft_atoms_free             (BigDFT_Atoms *atoms);
-void          bigdft_atoms_set_n_atoms      (BigDFT_Atoms *atoms, guint nat);
-void          bigdft_atoms_set_n_types      (BigDFT_Atoms *atoms, guint ntypes);
+BigDFT_Atoms* bigdft_atoms_new_from_file     (const gchar *filename);
+void          bigdft_atoms_free              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_set_n_atoms       (BigDFT_Atoms *atoms, guint nat);
+void          bigdft_atoms_set_n_types       (BigDFT_Atoms *atoms, guint ntypes);
 gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
-void          bigdft_atoms_set_psp          (BigDFT_Atoms *atoms, int ixc,
-                                             guint nspin, const gchar *occup);
-void          bigdft_atoms_set_symmetries   (BigDFT_Atoms *atoms, gboolean active,
-                                             double tol, double elecfield[3]);
-void          bigdft_atoms_set_displacement (BigDFT_Atoms *atoms, double randdis);
-void          bigdft_atoms_sync             (BigDFT_Atoms *atoms);
-void          bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms);
-double*       bigdft_atoms_get_radii        (const BigDFT_Atoms *atoms, double crmult,
-                                             double frmult, double projrad);
-void          bigdft_atoms_write            (const BigDFT_Atoms *atoms,
-                                             const gchar *filename);
+void          bigdft_atoms_set_psp           (BigDFT_Atoms *atoms, int ixc,
+                                              guint nspin, const gchar *occup);
+void          bigdft_atoms_set_symmetries    (BigDFT_Atoms *atoms, gboolean active,
+                                              double tol, double elecfield[3]);
+void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdis);
+void          bigdft_atoms_sync              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
+double*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,
+                                              double frmult, double projrad);
+void          bigdft_atoms_write             (const BigDFT_Atoms *atoms,
+                                              const gchar *filename);
+gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */

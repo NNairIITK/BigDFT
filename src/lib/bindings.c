@@ -110,7 +110,8 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 }
 void bigdft_inputs_free(BigDFT_Inputs *in)
 {
-  FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
+  if (in->data)
+    FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
   bigdft_inputs_dispose(in);
 }
 void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
