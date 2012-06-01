@@ -648,6 +648,9 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
   !call timing(iproc,'sumrho_TMB    ','ON')
   if(norbp>0) then
+      call to_zero(norb_tmb**2, kernel(1,1))
+      if(iproc==0)print *,' norb_tmb,ld_coeff',norb_tmb,ld_coeff
+      if(iproc==0)write(700,*)coeff
       call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
            coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
   else
