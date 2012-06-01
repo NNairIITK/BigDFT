@@ -692,6 +692,8 @@ endif
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
+      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           !!tmbopt => tmb
@@ -712,8 +714,6 @@ endif
       end if
       tmbopt%confdatarr => tmb%confdatarr
 
-      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
@@ -721,9 +721,20 @@ endif
   
  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
+      !!!!! to avoid that it points to something which was nullified... to be corrected
+      !!!!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!!!    tmbopt => tmb
+      !!!!    lhphiopt => lhphi
+      !!!!    lphioldopt => lphiold
+      !!!!    lhphioldopt => lhphiold
+      !!!!end if
+
   call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
   call destroy_new_locregs(iproc, nproc, tmblarge)
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+
+
+
   
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
