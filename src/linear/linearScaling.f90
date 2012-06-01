@@ -615,6 +615,17 @@ end if
       call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
       call destroy_new_locregs(iproc, nproc, tmblarge)
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      if(associated(tmblarge%psit_c)) then
+          iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+          deallocate(tmblarge%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_c', subname)
+      end if
+      if(associated(tmblarge%psit_f)) then
+          iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+          deallocate(tmblarge%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_f', subname)
+      end if
+    
 
       iall=-product(shape(locregCenter))*kind(locregCenter)
       deallocate(locregCenter, stat=istat)

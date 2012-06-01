@@ -31,15 +31,21 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
   if(nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
-  can_use_transposed=.false.
+  !can_use_transposed=.false.
 
   do it=1,nItOrtho
 
       if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
+          if(.not.associated(psit_c)) then
+              allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, psit_c, 'psit_c', subname)
+          end if
+          write(*,*) '1: associated(psit_f)',associated(psit_f)
+          if(.not.associated(psit_f)) then
+              allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, psit_f, 'psit_f', subname)
+          end if
+          write(*,*) '2: associated(psit_f)',associated(psit_f)
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
           call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
@@ -170,11 +176,19 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
       !!write(*,*) 'can_use_transposed',can_use_transposed
       if(.not. can_use_transposed) then
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-          !!write(*,*) 'transposing...'
+          !!allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+          !!call memocc(istat, psit_c, 'psit_c', subname)
+          !!allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+          !!call memocc(istat, psit_f, 'psit_f', subname)
+          !!!!write(*,*) 'transposing...'
+          if(.not.associated(psit_c)) then
+              allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, psit_c, 'psit_c', subname)
+          end if
+          if(.not.associated(psit_f)) then
+              allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, psit_f, 'psit_f', subname)
+          end if
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
       end if
       allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)

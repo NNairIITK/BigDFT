@@ -114,6 +114,15 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   integer :: ndim
 
+  ! Nullify all pointers
+  nullify(wfn%psi)
+  nullify(wfn%hpsi)
+  nullify(wfn%psit)
+  nullify(wfn%psit_c)
+  nullify(wfn%psit_f)
+  nullify(wfn%spsi)
+  nullify(wfn%gaucoeffs)
+
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
        & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
   wfn%wfnmd%bs%use_derivative_basis=.false.
@@ -137,6 +146,8 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+
+
 END SUBROUTINE kswfn_init_comm
 
 subroutine kswfn_emit_lzd(Wfn, iproc, nproc)

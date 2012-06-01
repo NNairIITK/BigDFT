@@ -488,6 +488,18 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
+      if(associated(tmblarge%psit_c)) then
+          iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+          deallocate(tmblarge%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_c', subname)
+      end if
+      if(associated(tmblarge%psit_f)) then
+          iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+          deallocate(tmblarge%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_f', subname)
+      end if
+      tmbopt%can_use_transposed=.false.
+
   !!end if
        !!write(*,*) 'after first ortho: tmbopt%can_use_transposed',tmbopt%can_use_transposed
 
