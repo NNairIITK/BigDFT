@@ -268,7 +268,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
-  real(gp) :: hxh,hyh,hzh,eks,fnrm
+  real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb, x0
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
@@ -288,6 +288,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
   type(GPU_pointers) :: GPUe
+  character(len=2) :: symbol
+  real(kind=8) :: rcov,rprb,ehomo,amu                                          
+  real(kind=8) :: neleconf(nmax,0:lmax)                                        
+  integer :: nsccode,mxpl,mxchg
+
 
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
@@ -410,6 +415,23 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   nvirt=0
   call deallocate_orbitals_data(tmbgauss%orbs,subname)
 
+  do ityp=1,at%ntypes
+     call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+     if(4.d0*rprb>input%lin%locrad_type(ityp)) then
+         if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
+                      ' is too small; minimal value is ',4.d0*rprb
+     end if
+     if(input%lin%potentialPrefac_lowaccuracy(ityp)>0.d0) then
+         x0=(70.d0/input%lin%potentialPrefac_lowaccuracy(ityp))**.25d0
+         if(iproc==0) write(*,'(a,a,2es11.2,es12.3)') 'type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)', &
+                      trim(symbol),4.d0*rprb, x0, input%lin%locrad_type(ityp)
+         V3prb=input%lin%potentialPrefac_lowaccuracy(ityp)*(4.d0*rprb)**4
+         if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
+     end if
+  end do
+
+
+
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
@@ -475,6 +497,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       ind1=ind1+tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
       ind2=ind2+tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
   end do
+
+  call dcopy(size(lchi), lchi, 1, lphi, 1)
+
   if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
            ': ind1/=tmbgauss%orbs%npsidim+1',ind1,tmbgauss%orbs%npsidim_orbs+1
@@ -757,9 +782,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, iall, 'lhchi',subname)
 
 
-  ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-           tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
+  !!! Build the orbitals phi as linear combinations of the atomic orbitals.
+  !!call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+  !!         tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)

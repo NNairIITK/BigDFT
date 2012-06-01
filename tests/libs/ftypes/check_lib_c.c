@@ -173,6 +173,7 @@ int main(int argc, char **argv)
 #define FRMULT 8.
   BigDFT_Inputs *in;
   BigDFT_Wf *wf;
+  BigDFT_LocReg *lr;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Data *data;
@@ -255,8 +256,21 @@ int main(int argc, char **argv)
       bigdft_locreg_set_d_dims(wf->lzd->Llr[i], n, n + 3, n + 6, n + 9, n + 12, n + 15);
       bigdft_locreg_set_wfd_dims(wf->lzd->Llr[i], 3 * i, i, 10 * 3 * i, 10 * i);
     }
+  fprintf(stdout, " -> check gives %d\n", bigdft_lzd_check(wf->lzd));
   output_llr(wf->lzd);
+  /* Keep a reference on the second locreg. */
+  lr = wf->lzd->Llr[1];
+  g_object_ref(lr);
+  /* Modify lzd to suppress the second and third locreg. */
+  fprintf(stdout, "Test BigDFT_Lzd reallocation.\n");
+  bigdft_lzd_set_n_locreg(wf->lzd, 1);
+  bigdft_locreg_set_d_dims(wf->lzd->Llr[0], n, n + 3, n + 6, n + 9, n + 12, n + 15);
+  bigdft_locreg_set_wfd_dims(wf->lzd->Llr[0], 3 * i, i, 10 * 3 * i, 10 * i);
+  fprintf(stdout, " -> check gives %d\n", bigdft_lzd_check(wf->lzd));
+  fprintf(stdout, "Test BigDFT_Locreg separation.\n");
+  fprintf(stdout, " -> check gives %d\n", bigdft_locreg_check(lr));
   bigdft_wf_free(wf);
+  g_object_unref(lr);
 
   if (argc > 2)
     {

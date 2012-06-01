@@ -166,7 +166,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE read_input_parameters
 
-      subroutine read_atomic_file(file,iproc,at,rxyz,status)
+      subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
          use module_types
          implicit none
@@ -175,6 +175,9 @@ module module_interfaces
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
          integer, intent(out), optional :: status
+         real(gp), intent(out), optional :: energy
+         real(gp), dimension(:,:), pointer, optional :: fxyz
+         character(len = 1024), intent(out), optional :: comment
       END SUBROUTINE read_atomic_file
 
       !> @author
@@ -189,13 +192,16 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
+      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getLine)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
+         real(gp), intent(out) :: energy_
+         real(gp), dimension(:,:), pointer :: fxyz_
+         character(len = 1024), intent(out) :: comment_
          interface
             subroutine getline(line,ifile,eof)
                integer, intent(in) :: ifile
@@ -205,13 +211,16 @@ module module_interfaces
          end interface
       END SUBROUTINE read_xyz_positions
 
-      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
+      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment_,energy_,fxyz_,getline)
          ! use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
+         real(gp), intent(out) :: energy_
+         real(gp), dimension(:,:), pointer :: fxyz_
+         character(len = 1024), intent(out) :: comment_
          interface
             subroutine getline(line,ifile,eof)
                integer, intent(in) :: ifile
@@ -220,6 +229,18 @@ module module_interfaces
             END SUBROUTINE getline
          end interface
       END SUBROUTINE read_ascii_positions
+
+      subroutine read_yaml_positions(filename, atoms,rxyz,comment_,energy_,fxyz_)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        type(atoms_data), intent(inout) :: atoms
+        real(gp), dimension(:,:), pointer :: rxyz
+        real(gp), intent(out) :: energy_
+        real(gp), dimension(:,:), pointer :: fxyz_
+        character(len = 1024), intent(out) :: comment_
+      END SUBROUTINE read_yaml_positions
 
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base
@@ -672,7 +693,7 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hamcomp)
          use module_base
          use module_types
          use module_xc
@@ -694,6 +715,7 @@ module module_interfaces
          real(dp), dimension(:), pointer, optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
          real(wp), dimension(:), pointer, optional :: psirocc
+         integer, optional, intent(in) :: hamcomp ! lr408 hc
          type(denspot_distribution),intent(in),optional :: dpbox
          real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
          type(p2pComms),intent(inout), optional:: comgp
@@ -1685,7 +1707,7 @@ module module_interfaces
 
       subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
            ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
-           dpbox,potential,comgp)
+           dpbox,potential,comgp, all_ham)
         use module_base
         use module_types
         use module_xc
@@ -1701,6 +1723,7 @@ module module_interfaces
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
         real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        integer, optional, intent(in) :: all_ham ! lr408 hc
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -5006,7 +5029,7 @@ module module_interfaces
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
           energs,SIC,GPU,&
-          pkernel,orbsocc,psirocc)
+          pkernel,orbsocc,psirocc,hamcomp)
        use module_base
        use module_types
        use module_xc
@@ -5030,6 +5053,7 @@ module module_interfaces
        real(dp), dimension(:), pointer, optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
+       integer, optional, intent(in) :: hamcomp ! lr408 hc
      end subroutine FullHamiltonianApplication
 
      !!subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
@@ -6883,13 +6907,14 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmbder
         end subroutine transform_coeffs_to_derivatives
 
-        subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel,ovrlp)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
           real(8),dimension(ld_coeff,norb),intent(in):: coeff
           real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
+          real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
         end subroutine calculate_density_kernel
 
         subroutine calculate_norm_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)

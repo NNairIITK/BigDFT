@@ -235,7 +235,7 @@ subroutine deallocateBasicArraysInput(lin)
   if(associated(lin%potentialPrefac)) then
 !    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    !print *,'i_all',i_all
+!    print *,'i_all',i_all,shape(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)

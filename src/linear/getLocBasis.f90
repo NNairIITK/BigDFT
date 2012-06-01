@@ -29,20 +29,26 @@ logical,intent(in):: calculate_overlap_matrix
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb,borb
+integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb!,borb
 real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
-real(8),dimension(:,:),allocatable:: ovrlp,test
+real(8),dimension(:,:),allocatable:: ovrlp!,test!,ovrlp_cpy
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: tt
-logical:: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-type(energy_terms) :: energs
+type(energy_terms) :: energs!, energs2
 character(len=*),parameter:: subname='get_coeff'
 !For debug
 integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 character(len=1) :: num
-real(8),dimension(:),allocatable :: Gphi, Ghphi, work
-
+real(8),dimension(:),allocatable :: locrad_tmp
+type(DFT_wavefunction):: tmblarge
+real(8),dimension(:,:),allocatable:: locregCenter
+real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+!real(8) :: av_h_sym_diff, diff_frm_ortho, diff_frm_sym
+!real(8) :: av_h_sym_diff1,av_h_sym_diff2,av_h_sym_diff3 ! lr408 hc
+!real(8) :: ekin,epot,enl !lr408 hc
+!real(8),dimension(:,:,:),allocatable:: matrixElements1,matrixElements2,matrixElements3 ! lr408 hc
+!real(8),dimension(:),allocatable:: lhphi1,lhphi2,lhphi3
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
@@ -51,7 +57,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   call memocc(istat, eval, 'eval', subname)
   allocate(ovrlp(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
-
+  !!allocate(ovrlp_cpy(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp_cpy, 'ovrlp_cpy', subname)
 
   if(calculate_overlap_matrix) then
       if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -90,11 +97,8 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   !!!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
   !!!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
 
-  ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
-  ! confining potential added to the Hamiltonian.
   allocate(lhphi(max(tmbmix%orbs%npsidim_orbs,tmbmix%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
-  withConfinement=.false.
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
@@ -104,25 +108,117 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   !!     proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
   !!     energs,SIC,GPU,&
   !!     pkernel=denspot%pkernelseq)
+
+
+
   if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
-  call NonLocalHamiltonianApplication(iproc,at,tmbmix%orbs,rxyz,&
-       proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
-  call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
+  !!call NonLocalHamiltonianApplication(iproc,at,tmbmix%orbs,rxyz,&
+  !!     proj,lzd,nlpspd,tmbmix%psi,lhphi,energs%eproj)
+  !!call local_potential_dimensions(lzd,tmbmix%orbs,denspot%dpbox%ngatherarr(0,1))
   !!call full_local_potential(iproc,nproc,tmbmix%orbs,Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmbmix%comgp)
-  call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
-       lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
-       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)
-  call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      do iorb=1,tmb%orbs%norb
+          ilr=tmb%orbs%inwhichlocreg(iorb)
+          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      end do
+      do ilr=1,tmb%lzd%nlr
+          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      end do
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+
+  !!call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+
+      ! Go to large localization region and do the orthonormalization there.
+      !!write(*,'(a,4i9)') 'iproc, tmb%orbs%npsidim_orbs, tmb%orbs%npsidim_comp, size(tmb%psi)', iproc, tmb%orbs%npsidim_orbs, tmb%orbs%npsidim_comp, size(tmb%psi)
+      !!write(*,'(a,4i9)') 'iproc, tmblarge%orbs%npsidim_orbs, tmblarge%orbs%npsidim_comp, size(tmblarge%psi)', iproc, tmblarge%orbs%npsidim_orbs, tmblarge%orbs%npsidim_comp, size(tmblarge%psi)
+      tmblarge%psi=0.d0
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
+      !!do istat=1,size(tmb%psi)
+      !!    write(500+iproc,*) istat, tmb%psi(istat)
+      !!end do
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+      !!call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%psi, tmb%psi)
+      !!do istat=1,size(tmblarge%psi)
+      !!    write(550+iproc,*) istat, tmblarge%psi(istat)
+      !!end do
+      !!do istat=1,size(tmb%psi)
+      !!    write(600+iproc,*) istat, tmb%psi(istat)
+      !!end do
+      !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+
+      !!call allocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+  allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
+  call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
+  tmblarge%lzd%doHamAppl=.true.
+  call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
+       proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
+
+
+  call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
+
+
+  !!call LocalHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,&
+  !!     lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
+  !!     energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbmix%comgp)
+  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+       tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+  !!call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+  !!     energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
 
+  !!call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+  !!     proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+  !!     energs,SIC,GPU,&
+  !!     pkernel=denspot%pkernelseq)
+
+
+
+!!$  allocate(lhphi1(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$  allocate(lhphi2(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$  allocate(lhphi3(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi1,&
+!!$       energs2,SIC,GPU,&
+!!$       pkernel=denspot%pkernelseq,hamcomp=1) !kinetic ! lr408 hc
+!!$       av_h_sym_diff1=energs2%ekin
+!!$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi2,&
+!!$       energs2,SIC,GPU,&
+!!$       pkernel=denspot%pkernelseq,hamcomp=2) !locpot ! lr408 hc
+!!$       av_h_sym_diff2=energs2%epot
+!!$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi3,&
+!!$       energs2,SIC,GPU,&
+!!$       pkernel=denspot%pkernelseq,hamcomp=3) !nonlocpot ! lr408 hc
+!!$       av_h_sym_diff3=energs2%eproj
+
   deallocate(confdatarrtmp)
-!DEBUG
-!if (iproc==0) then
-!   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-!   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
-!endif                                                                                                                                                                       
-!END DEBUG
+!!!DEBUG
+!!if (iproc==0) then
+!!   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
+!!   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!   2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
+!!endif
+!!!END DEBUG
 
 !! TEST: precond
   !!if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -139,10 +235,13 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   !!    end do
   !!end if
 
-
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lzd%doHamAppl', subname)
+
+  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
+  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
 
 
@@ -158,19 +257,50 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+
+      allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+      call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+      allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+      call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+
       !!allocate(psit_c(tmbmix%collcom%ndimind_c))
       !!call memocc(istat, psit_c, 'psit_c', subname)
       !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
       !!call memocc(istat, psit_f, 'psit_f', subname)
-      allocate(hpsit_c(tmbmix%collcom%ndimind_c))
+      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmbmix%collcom%ndimind_f))
+      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%psi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, tmblarge%psit_c, tmblarge%psit_f, tmblarge%psit_f, matrixElements)
+      !!call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, psit_c, psit_f, tmblarge%psi, lzd)
       !!call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
-      call transpose_localized(iproc, nproc, tmbmix%orbs,  tmbmix%collcom, &
-           lhphi, hpsit_c, hpsit_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, &
-           tmbmix%psit_c, hpsit_c, tmbmix%psit_f, hpsit_f, matrixElements)
+      !!allocate(matrixElements1(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+      !!allocate(matrixElements2(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+      !!allocate(matrixElements3(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+      !!     lhphi1, hpsit_c, hpsit_f, tmblarge%lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements1)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+      !!     lhphi2, hpsit_c, hpsit_f, tmblarge%lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements2)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+      !!     lhphi3, hpsit_c, hpsit_f, tmblarge%lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements3)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+      !!     lhphi, hpsit_c, hpsit_f, lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
       !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
       !!iall=-product(shape(psit_c))*kind(psit_c)
       !!deallocate(psit_c, stat=istat)
@@ -184,29 +314,123 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       iall=-product(shape(hpsit_f))*kind(hpsit_f)
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
-  else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
-      call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
-           lhphi, tmbmix%mad, matrixElements)
-      call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+
+     iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+     deallocate(tmblarge%psit_c, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_c', subname)
+     iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+     deallocate(tmblarge%psit_f, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_f', subname)
+
+
+  else if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call allocateCommuncationBuffersOrtho(tmblarge%comon, subname)
+      call getMatrixElements2(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%psi, &
+           lhphilarge, tmblarge%mad, matrixElements)
+      call deallocateCommuncationBuffersOrtho(tmblarge%comon, subname)
+      !!call allocateCommuncationBuffersOrtho(tmbmix%comon, subname)
+      !!allocate(matrixElements1(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat) !lr408 hc
+      !!allocate(matrixElements2(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat) !lr408 hc
+      !!allocate(matrixElements3(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat) !lr408 hc
+      !!call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
+      !!     lhphi1, tmbmix%mad, matrixElements1) !lr408 hc
+      !!call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
+      !!     lhphi2, tmbmix%mad, matrixElements2) !lr408 hc
+      !!call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
+      !!     lhphi3, tmbmix%mad, matrixElements3) !lr408 hc
+      !!call getMatrixElements2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%psi, &
+      !!     lhphi, tmbmix%mad, matrixElements)
+      !!call deallocateCommuncationBuffersOrtho(tmbmix%comon, subname)
   else
       stop 'wrong communication_strategy_overlap'
   end if
 
+  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  call destroy_new_locregs(iproc, nproc, tmblarge)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  do iorb=1,tmbmix%orbs%norb
-      do jorb=1,tmbmix%orbs%norb
-          matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
-      end do
-  end do
-
+!!$$  av_h_sym_diff = 0.0_dp
+!!$$  av_h_sym_diff1 = 0.0_dp ! lr408 hc
+!!$$  av_h_sym_diff2 = 0.0_dp ! lr408 hc
+!!$$  av_h_sym_diff3 = 0.0_dp ! lr408 hc
+!!$$  open(46)
+!!$$  open(52)
+!!$$  open(53)
+!!$$  open(54)
+!!$$  open(55)
+!!$$  do iorb=1,tmbmix%orbs%norb
+!!$$      do jorb=1,tmbmix%orbs%norb
+!!$$      if(iproc==0 .and. scf_mode==LINEAR_DIRECT_MINIMIZATION) write(100,'(3es25.17)') &
+!!$$          matrixElements1(jorb,iorb,1), matrixElements2(jorb,iorb,1), matrixElements3(jorb,iorb,1)
+!!$$          matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
+!!$$          av_h_sym_diff = av_h_sym_diff + abs(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2))
+!!$$          av_h_sym_diff1 = av_h_sym_diff1 + abs(matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1)) !lr408 hc
+!!$$          av_h_sym_diff2 = av_h_sym_diff2 + abs(matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1)) !lr408 hc
+!!$$          av_h_sym_diff3 = av_h_sym_diff3 + abs(matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1)) !lr408 hc
+!!$$          if (abs(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2)) > 1.0d-5) then !lr408 debug
+!!$$             write(46,*) 'H not symmetric',iorb,jorb,matrixElements(jorb,iorb,2),&
+!!$$                  matrixElements(iorb,jorb,2),matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2)!,&
+!!$$                  !(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2))/matrixElements(jorb,iorb,2)
+!!$$             write(53,*) 'Hk not symmetric',iorb,jorb,matrixElements1(jorb,iorb,1),&
+!!$$                  matrixElements1(iorb,jorb,1),matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1)!,&
+!!$$                  !(matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1))/matrixElements1(jorb,iorb,1)
+!!$$             write(54,*) 'Hl not symmetric',iorb,jorb,matrixElements2(jorb,iorb,1),&
+!!$$                  matrixElements2(iorb,jorb,1),matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1)!,&
+!!$$                  !(matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1))/matrixElements2(jorb,iorb,1)
+!!$$             write(55,*) 'Hnl not symmetric',iorb,jorb,matrixElements3(jorb,iorb,1),&
+!!$$                  matrixElements3(iorb,jorb,1),matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1)!,&
+!!$$                  !(matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1))/matrixElements3(jorb,iorb,1)
+!!$$          end if
+!!$$          !if (abs(matrixElements(jorb,iorb,2) - matrixElements1(jorb,iorb,1)- matrixElements2(jorb,iorb,1) &
+!!$$          !     - matrixElements3(jorb,iorb,1)) > 1.0d-8) then
+!!$$             write(52,*) 'H comp wrong',iorb,jorb,abs(matrixElements(jorb,iorb,2)-matrixElements1(jorb,iorb,1)-&
+!!$$                  matrixElements2(jorb,iorb,1)-matrixElements3(jorb,iorb,1)),&
+!!$$                  matrixElements(jorb,iorb,2),matrixElements1(jorb,iorb,1),&
+!!$$                  matrixElements2(jorb,iorb,1),matrixElements3(jorb,iorb,1)
+!!$$          !end if
+!!$$      end do
+!!$$  end do
+!!$$  close(52)
+!!$$  close(53)
+!!$$  close(54)
+!!$$  close(55)
+!!$$  close(46)
+!!$$  write(50,*) 'av_h_sym_diff',av_h_sym_diff / (tmbmix%orbs%norb**2),&
+!!$$       av_h_sym_diff1 / (tmbmix%orbs%norb**2),& !lr408 hc
+!!$$       av_h_sym_diff2 / (tmbmix%orbs%norb**2),& !lr408 hc
+!!$$       av_h_sym_diff3 / (tmbmix%orbs%norb**2) !lr408 hc kin,loc,nonloc
+!!$$
+!!$$  deallocate(lhphi3) !lr408 hc
+!!$$  deallocate(lhphi2) !lr408 hc
+!!$$  deallocate(lhphi1) !lr408 hc
 
   !!allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   !!call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
   !!overlapmatrix=ovrlp
   call dcopy(tmbmix%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
-  
+
+  !!call dcopy(tmbmix%orbs%norb**2, ovrlp(1,1), 1, ovrlp_cpy(1,1), 1)
+  !!open(30,file='ovrlp.dat',status='replace')
+  !!diff_frm_ortho = 0.0_dp
+  !diff_frm_sym = 0.0_dp
+  !!do iorb=1,tmbmix%orbs%norb
+  !!   do jorb=1,tmbmix%orbs%norb
+  !!      ovrlp(jorb,iorb) = .5d0*(ovrlp_cpy(jorb,iorb)+ovrlp_cpy(iorb,jorb))
+  !!      if (iorb==jorb) then
+  !!         diff_frm_ortho = diff_frm_ortho + abs(1.0_dp - ovrlp_cpy(iorb,jorb))
+  !!      else
+  !!         diff_frm_ortho = diff_frm_ortho + abs(ovrlp_cpy(iorb,jorb))
+  !!      end if
+  !!      diff_frm_sym = diff_frm_sym + abs(ovrlp_cpy(iorb,jorb) - ovrlp_cpy(jorb,iorb))
+  !!      if (iproc == 0) write(30,*) iorb,jorb,ovrlp(iorb,jorb)
+  !!   end do
+  !!   if (iproc == 0) write(30,*) ''
+  !! end do
+  !! if (iproc == 0) write(51,*) 'diff from ortho',diff_frm_ortho / (orbs%norb **2),&
+  !!      diff_frm_sym / (orbs%norb **2)
+  !! close(30)  
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
@@ -222,11 +446,21 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
                matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
+
+      ! DEBUG
+      !do iorb=1,orbs%norb
+      !   do jorb=1,tmbmix%orbs%norb
+      !      matrixElements(jorb,iorb,2) = 0.5_dp * (matrixElements(jorb,iorb,2) + matrixElements(iorb,jorb,2))
+      !   end do
+      !end do
+
+      ! END DEBUG
+
       do iorb=1,orbs%norb
           call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
       end do
       infoCoeff=0
-
+ 
 
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
@@ -234,11 +468,11 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
           write(*,'(1x,a)') 'some selected eigenvalues:'
           do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmbmix%orbs%norb)
               if(iorb==orbs%norb) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
               else
-                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')= ',eval(iorb)
               end if
           end do
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -255,41 +489,88 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+  do jorb=1,tmbmix%orbs%norb
+     do korb = 1,orbs%norb
+        write(800,*) tmbmix%wfnmd%coeff(jorb,korb),tmb%wfnmd%coeff(jorb,korb)
+     end do
+  end do
 
+  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do jorb=1,tmbmix%orbs%norb
-      do korb=1,jorb
+      !!do korb=1,jorb
+      !!    tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+      !!    if(korb/=jorb) tt=2.d0*tt
+      !!    ebs = ebs + tt
+      !!end do
+      do korb=1,tmbmix%orbs%norb
+          if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+              write(600,'(2i8,2es19.10)') korb,jorb,density_kernel(korb,jorb),matrixElements(korb,jorb,1)
           tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
-          if(korb/=jorb) tt=2.d0*tt
           ebs = ebs + tt
       end do
   end do
 
+  !!$$ekin=0.d0 !lr408 hc
+  !!$$epot=0.d0
+  !!$$enl=0.d0
+  !!$$! NB symmetrised total Ham but not individual components, so energies won't agree
+  !!$$! if calculated in the same way as above
+  !!$$do jorb=1,tmbmix%orbs%norb
+  !!$$    do korb=1,tmbmix%orbs%norb!jorb
+  !!$$        tt = density_kernel(korb,jorb)*matrixElements1(korb,jorb,1)
+  !!$$        !if(korb/=jorb) tt=2.d0*tt
+  !!$$        ekin = ekin + tt
+  !!$$        tt = density_kernel(korb,jorb)*matrixElements2(korb,jorb,1)
+  !!$$        !if(korb/=jorb) tt=2.d0*tt
+  !!$$        epot = epot + tt
+  !!$$        tt = density_kernel(korb,jorb)*matrixElements3(korb,jorb,1)
+  !!$$        !if(korb/=jorb) tt=2.d0*tt
+  !!$$        enl = enl + tt
+  !!$$    end do
+  !!$$end do
+  !!$$!!if (iproc == 0) print *,'ebs,ekin,epot,enl',2.0_dp*ebs,2.0_dp*ekin,2.0_dp*epot,&
+  !!$$!!     2.0_dp*enl,2.0_dp*ekin+2.0_dp*epot+2.0_dp*enl !lr408 hc
+
+  !!deallocate(matrixElements3) !lr408 hc
+  !!deallocate(matrixElements2) !lr408 hc
+  !!deallocate(matrixElements1) !lr408 hc
+
   !DEBUG
   ! Check Hamiltonian
-  !!allocate(test(orbs%norb,orbs%norb))
-  !!test=0.d0
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbs%norb
-  !!        do korb=1,tmbmix%orbs%norb
-  !!          do borb = 1, tmbmix%orbs%norb
-  !!            test(iorb,jorb) = test(iorb,jorb) + tmbmix%wfnmd%coeff(korb,iorb)*tmbmix%wfnmd%coeff(borb,jorb)*&
-  !!            matrixElements(korb,borb,1)
-  !!          end do
-  !!        end do
-  !!    end do
-  !!end do
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbs%norb
-  !!       if(iproc==0)print *,'test:',test(iorb,jorb)
-  !!    end do
-  !!end do 
-  !!print *,'ebs',2.0_dp*ebs
+!  allocate(test(orbs%norb,orbs%norb)) !deallocate?!
+!  test=0.d0
+!  do iorb=1,orbs%norb
+!      do jorb=1,orbs%norb
+!          do korb=1,tmbmix%orbs%norb
+!            do borb = 1, tmbmix%orbs%norb
+!              test(iorb,jorb) = test(iorb,jorb) + tmbmix%wfnmd%coeff(korb,iorb)*tmbmix%wfnmd%coeff(borb,jorb)*&
+!              matrixElements(korb,borb,1)
+!            end do
+!          end do
+!      end do
+!  end do
+!if (iproc==0) then
+!  open(28,file='ham_test.dat',status='replace')
+!  do iorb=1,tmbmix%orbs%norb
+!      do jorb=1,tmbmix%orbs%norb
+!         !write(28,*) iorb,jorb,matrixElements(iorb,jorb,1)
+!         write(28,*)matrixElements(iorb,jorb,1)
+!      end do
+!      !write(28,*) ''
+!  end do 
+!  do iorb=1,orbs%norb
+!     jorb = iorb
+!     write(29,*) test(iorb,iorb),eval(iorb),test(iorb,iorb)-eval(iorb)
+!  end do 
+!  write(29,*) ''
+!  close(28)
+!  print *,'ebs',2.0_dp*ebs
+!end if
   !END DEBUG
 
   ! If closed shell multiply by two.
@@ -354,6 +635,10 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   deallocate(ovrlp, stat=istat)
   call memocc(istat, iall, 'ovrlp', subname)
 
+  !!iall=-product(shape(ovrlp_cpy))*kind(ovrlp_cpy)
+  !!deallocate(ovrlp_cpy, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp_cpy', subname)
+
   !!iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
   !!deallocate(overlapmatrix, stat=istat)
   !!call memocc(istat, iall, 'overlapmatrix', subname)
@@ -413,8 +698,18 @@ real(8),dimension(:),pointer:: lhphiopt,lhphioldopt
 type(local_zone_descriptors):: lzdlarge
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
-type(energy_terms) :: energs
+type(energy_terms) :: energs!, energs2
 
+integer :: i,j , k
+!!real(8),dimension(:,:), allocatable :: ks, ksk, ksksk
+!real(8),dimension(:),allocatable :: Gphi, Ghphi, work
+!real(8) :: av_h_sym_diff, diff_frm_ortho, diff_frm_sym
+!real(8) :: av_h_sym_diff1,av_h_sym_diff2,av_h_sym_diff3 ! lr408 hc
+!real(8) :: ekin,epot,enl !lr408 hc
+!real(8),dimension(:,:,:),allocatable:: matrixElements1,matrixElements2,matrixElements3 ! lr408 hc
+!real(8),dimension(:),allocatable:: lhphi1,lhphi2,lhphi3
+!type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
 
 
 
@@ -422,24 +717,57 @@ type(energy_terms) :: energs
   call allocateLocalArrays()
 
   ! Calculate the kernel
+  !!if(iproc==0)print *,'tmb%orbs%norb,',tmb%orbs%norb
+  !!if(iproc==0)write(710,*) tmb%wfnmd%coeff
   call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
+  !!         write(*,*) 'kernel(1,1) 5',kernel(1,1)
+  
+  !write(*,*) 'DEBUG KERNEL'
+  !do iorb=1,tmb%orbs%norb
+  !    do jorb=1,tmb%orbs%norb
+  !        if(jorb==iorb) then
+  !            kernel(jorb,iorb)=1.d0
+  !        else
+  !            kernel(jorb,iorb)=0.d0
+  !        end if
+  !    end do
+  !end do
 
-  !!write(*,*) 'DEBUG KERNEL'
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        if(jorb==iorb) then
-  !!            kernel(jorb,iorb)=1.d0
-  !!        else
-  !!            kernel(jorb,iorb)=0.d0
-  !!        end if
-  !!    end do
+
+  ! purification
+
+  !allocate(ks(1:tmb%orbs%norb,1:tmb%orbs%norb))
+  !allocate(ksk(1:tmb%orbs%norb,1:tmb%orbs%norb))
+  !allocate(ksksk(1:tmb%orbs%norb,1:tmb%orbs%norb))
+  !!do k=1,0
+  !!!call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+  !!!     ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
+  !!call dcopy(tmb%orbs%norb*tmb%orbs%norb,kernel(1,1),1,ks(1,1),1)
+
+  !!call dgemm('n','t', tmb%orbs%norb,tmb%orbs%norb,tmb%orbs%norb,1.d0,ks(1,1),tmb%orbs%norb,&
+  !!     kernel(1,1),tmb%orbs%norb,0.d0,ksk(1,1),tmb%orbs%norb)
+
+  !!call dgemm('n','t', tmb%orbs%norb,tmb%orbs%norb,tmb%orbs%norb,1.d0,ks(1,1),tmb%orbs%norb,&
+  !!     ksk(1,1),tmb%orbs%norb,0.d0,ksksk(1,1),tmb%orbs%norb)
+
+  !!kernel = 3.0_dp * ksk - 2.0_dp * ksksk
+
+  !!do i=1,tmb%orbs%norb
+  !!do j=i,tmb%orbs%norb
+  !!  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+  !!  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
   !!end do
+  !!end do
+
+  !!end do
+  !deallocate(ksksk)
+  !deallocate(ksk)
+  !deallocate(ks)
+
 
   tmb%can_use_transposed=.false.
   tmblarge%can_use_transposed=.false.
-
-  
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Decide whether we can have variable localization regions.
@@ -532,10 +860,12 @@ type(energy_terms) :: energs
       tmbopt => tmblarge
   end if
 
-  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-       tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-       tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
-       tmbopt%can_use_transposed)
+  !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+           tmbopt%can_use_transposed)
+  !!end if
        !!write(*,*) 'after first ortho: tmbopt%can_use_transposed',tmbopt%can_use_transposed
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -554,13 +884,14 @@ type(energy_terms) :: energs
       call MLWFnew(iproc, nproc, tmblarge%lzd, tmblarge%orbs, at, tmblarge%op, &
            tmblarge%comon, tmblarge%mad, rxyz, tmb%wfnmd%bs%nit_unitary_loop, kernel, &
            tmb%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge%psi, Umat, locregCenter)
+          !! write(*,*) 'kernel(1,1) 4',kernel(1,1)
 
       ! Check whether the new locreg centers are ok.
       call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
 
       ! Update the kernel if required.
       if(tmb%wfnmd%bs%nit_unitary_loop>0) then                          
-          call update_kernel(tmb%orbs%norb, Umat, kernel)
+          !call update_kernel(tmb%orbs%norb, Umat, kernel)
       end if
 
       if(variable_locregs) then
@@ -614,6 +945,7 @@ type(energy_terms) :: energs
 
   end if
 
+  !allocate(confdatarrtmp(tmb%orbs%norbp))
 
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
@@ -652,23 +984,251 @@ type(energy_terms) :: energs
       !!     proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
       !!     energs,SIC,GPU,&
       !!     pkernel=denspot%pkernelseq)
-      if (tmb%orbs%npsidim_orbs > 0) call to_zero(tmb%orbs%npsidim_orbs,lhphi(1))
-      call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,rxyz,&
-           proj,tmb%lzd,nlpspd,tmb%psi,lhphi,energs%eproj)
-      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-          !!call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
-      end if
-      call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
-           tmb%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
-           energs,SIC,GPU,.false.,&
-           pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp)
-      call SynchronizeHamiltonianApplication(nproc,tmb%orbs,tmb%lzd,GPU,lhphi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+!!      if (tmb%orbs%npsidim_orbs > 0) call to_zero(tmb%orbs%npsidim_orbs,lhphi(1))
+!!      call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,rxyz,&
+!!           proj,tmb%lzd,nlpspd,tmb%psi,lhphi,energs%eproj)
+!!      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+!!          call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+!!          !!call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
+!!      end if
+!!      call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
+!!           tmb%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
+!!           energs,SIC,GPU,.false.,&
+!!           pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%comgp)
+!!      call SynchronizeHamiltonianApplication(nproc,tmb%orbs,tmb%lzd,GPU,lhphi,&
+!!           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
       iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
       deallocate(tmb%lzd%doHamAppl,stat=istat)
       call memocc(istat,iall,'tmb%lzd%doHamAppl',subname)
+
+
+
+
+! DEBUG #######################################################
+
+  !call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+
+      allocate(locregCenter(3,tmbopt%lzd%nlr), stat=istat)
+      allocate(locrad_tmp(tmbopt%lzd%nlr), stat=istat)
+      do iorb=1,tmbopt%orbs%norb
+          ilr=tmbopt%orbs%inwhichlocreg(iorb)
+          locregCenter(:,ilr)=tmbopt%lzd%llr(ilr)%locregCenter
+      end do
+      do ilr=1,tmbopt%lzd%nlr
+          locrad_tmp(ilr)=tmbopt%lzd%llr(ilr)%locrad+8.d0*tmbopt%lzd%hgrids(1)
+      end do
+      call update_locreg(iproc, nproc, tmbopt%lzd%nlr, locrad_tmp, tmbopt%orbs%inwhichlocreg, locregCenter, tmbopt%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+           tmbopt%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call copy_basis_performance_options(tmbopt%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      call copy_orthon_data(tmbopt%orthpar, tmblarge%orthpar, subname)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+
+  !!call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+
+      ! Go to large localization region and do the orthonormalization there.
+      !!write(*,'(a,4i9)') 'iproc, tmbopt%orbs%npsidim_orbs, tmbopt%orbs%npsidim_comp, size(tmbopt%psi)', iproc, tmbopt%orbs%npsidim_orbs, tmbopt%orbs%npsidim_comp, size(tmbopt%psi)
+      !!write(*,'(a,4i9)') 'iproc, tmblarge%orbs%npsidim_orbs, tmblarge%orbs%npsidim_comp, size(tmblarge%psi)', iproc, tmblarge%orbs%npsidim_orbs, tmblarge%orbs%npsidim_comp, size(tmblarge%psi)
+      tmblarge%psi=0.d0
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
+      !!do istat=1,size(tmbopt%psi)
+      !!    write(500+iproc,*) istat, tmbopt%psi(istat)
+      !!end do
+      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge%lzd, tmbopt%orbs, tmblarge%orbs, tmbopt%psi, tmblarge%psi)
+      !!call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge%lzd, tmbopt%orbs, tmblarge%orbs, lhphi, lhphilarge)
+      !!call large_to_small_locreg(iproc, nproc, tmbopt%lzd, tmblarge%lzd, tmbopt%orbs, tmblarge%orbs, tmblarge%psi, tmbopt%psi)
+      !!do istat=1,size(tmblarge%psi)
+      !!    write(550+iproc,*) istat, tmblarge%psi(istat)
+      !!end do
+      !!do istat=1,size(tmbopt%psi)
+      !!    write(600+iproc,*) istat, tmbopt%psi(istat)
+      !!end do
+      !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+
+      !!call allocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+  allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
+  call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
+  tmblarge%lzd%doHamAppl=.true.
+  call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
+       proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
+
+  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+       tmblarge%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+  !!call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
+  !!     energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
+       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+
+ !call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
+
+
+
+!!$$  allocate(lhphi1(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$$  allocate(lhphi2(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$$  allocate(lhphi3(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat) ! lr408 hc
+!!$$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi1,&
+!!$$       energs2,SIC,GPU,&
+!!$$       pkernel=denspot%pkernelseq,hamcomp=1) !kinetic ! lr408 hc
+!!$$       av_h_sym_diff1=energs2%ekin
+!!$$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi2,&
+!!$$       energs2,SIC,GPU,&
+!!$$       pkernel=denspot%pkernelseq,hamcomp=2) !locpot ! lr408 hc
+!!$$       av_h_sym_diff2=energs2%epot
+!!$$  call FullHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,rxyz,&
+!!$$       proj,tmblarge%lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphi3,&
+!!$$       energs2,SIC,GPU,&
+!!$$       pkernel=denspot%pkernelseq,hamcomp=3) !nonlocpot ! lr408 hc
+!!$$       av_h_sym_diff3=energs2%eproj
+
+
+
+
+
+
+      allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+      call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+      allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+      call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+
+      !!allocate(psit_c(tmbmix%collcom%ndimind_c))
+      !!call memocc(istat, psit_c, 'psit_c', subname)
+      !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
+      !!call memocc(istat, psit_f, 'psit_f', subname)
+      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%psi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+      !!     tmblarge%psit_c, tmblarge%psit_c, tmblarge%psit_f, tmblarge%psit_f, matrixElements)
+      !!call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, psit_c, psit_f, tmblarge%psi, lzd)
+      !!call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, psit_c, psit_f, lzd)
+!!$$      allocate(matrixElements1(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+!!$$      allocate(matrixElements2(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+!!$$      allocate(matrixElements3(tmblarge%orbs%norb,tmblarge%orbs%norb,2), stat=istat) !lr408 hc
+!!$$      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+!!$$           lhphi1, hpsit_c, hpsit_f, tmblarge%lzd)
+!!$$      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+!!$$           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements1)
+!!$$      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+!!$$           lhphi2, hpsit_c, hpsit_f, tmblarge%lzd)
+!!$$      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+!!$$           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements2)
+!!$$      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, & !lr408 hc
+!!$$           lhphi3, hpsit_c, hpsit_f, tmblarge%lzd)
+!!$$      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+!!$$           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements3)
+
+
+!DEBUG
+if (iproc==0) then
+   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
+   !!write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+   !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
+endif
+!END DEBUG
+
+!!$$  av_h_sym_diff = 0.0_dp
+!!$$  av_h_sym_diff1 = 0.0_dp ! lr408 hc
+!!$$  av_h_sym_diff2 = 0.0_dp ! lr408 hc
+!!$$  av_h_sym_diff3 = 0.0_dp ! lr408 hc
+!!$$  open(1046)
+!!$$  open(1052)
+!!$$  open(1053)
+!!$$  open(1054)
+!!$$  open(1055)
+!!$$  do iorb=1,tmb%orbs%norb
+!!$$      do jorb=1,tmb%orbs%norb
+!!$$          !!write(10100,'(4es25.17)') matrixElements(jorb,iorb,2), matrixElements1(jorb,iorb,1), matrixElements2(jorb,iorb,1), matrixElements3(jorb,iorb,1)
+!!$$          if(it==tmb%wfnmd%bs%nit_basis_optimization) write(10100,'(4es25.17)') &
+!!$$              matrixElements1(jorb,iorb,1), matrixElements2(jorb,iorb,1), matrixElements3(jorb,iorb,1)
+!!$$          !!matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
+!!$$          !!av_h_sym_diff = av_h_sym_diff + abs(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2))
+!!$$          av_h_sym_diff1 = av_h_sym_diff1 + abs(matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1)) !lr408 hc
+!!$$          av_h_sym_diff2 = av_h_sym_diff2 + abs(matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1)) !lr408 hc
+!!$$          av_h_sym_diff3 = av_h_sym_diff3 + abs(matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1)) !lr408 hc
+!!$$          !!if (abs(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2)) > 1.0d-5) then !lr408 debug
+!!$$          !!   write(1046,*) 'H not symmetric',iorb,jorb,matrixElements(jorb,iorb,2),&
+!!$$          !!        matrixElements(iorb,jorb,2),matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2)!,&
+!!$$          !!        !(matrixElements(jorb,iorb,2)-matrixElements(iorb,jorb,2))/matrixElements(jorb,iorb,2)
+!!$$          !!   write(1053,*) 'Hk not symmetric',iorb,jorb,matrixElements1(jorb,iorb,1),&
+!!$$          !!        matrixElements1(iorb,jorb,1),matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1)!,&
+!!$$          !!        !(matrixElements1(jorb,iorb,1)-matrixElements1(iorb,jorb,1))/matrixElements1(jorb,iorb,1)
+!!$$          !!   write(1054,*) 'Hl not symmetric',iorb,jorb,matrixElements2(jorb,iorb,1),&
+!!$$          !!        matrixElements2(iorb,jorb,1),matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1)!,&
+!!$$          !!        !(matrixElements2(jorb,iorb,1)-matrixElements2(iorb,jorb,1))/matrixElements2(jorb,iorb,1)
+!!$$          !!   write(1055,*) 'Hnl not symmetric',iorb,jorb,matrixElements3(jorb,iorb,1),&
+!!$$          !!        matrixElements3(iorb,jorb,1),matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1)!,&
+!!$$          !!        !(matrixElements3(jorb,iorb,1)-matrixElements3(iorb,jorb,1))/matrixElements3(jorb,iorb,1)
+!!$$          !!end if
+!!$$          !if (abs(matrixElements(jorb,iorb,2) - matrixElements1(jorb,iorb,1)- matrixElements2(jorb,iorb,1) &
+!!$$          !     - matrixElements3(jorb,iorb,1)) > 1.0d-8) then
+!!$$          !!   write(1052,*) 'H comp wrong',iorb,jorb,abs(matrixElements(jorb,iorb,2)-matrixElements1(jorb,iorb,1)-&
+!!$$          !!        matrixElements2(jorb,iorb,1)-matrixElements3(jorb,iorb,1)),&
+!!$$          !!        matrixElements(jorb,iorb,2),matrixElements1(jorb,iorb,1),&
+!!$$          !!        matrixElements2(jorb,iorb,1),matrixElements3(jorb,iorb,1)
+!!$$          !end if
+!!$$      end do
+!!$$  end do
+!!$$  close(1052)
+!!$$  close(1053)
+!!$$  close(1054)
+!!$$  close(1055)
+!!$$  close(1046)
+!!$$  write(1050,*) 'av_h_sym_diff',av_h_sym_diff / (tmb%orbs%norb**2),&
+!!$$       av_h_sym_diff1 / (tmb%orbs%norb**2),& !lr408 hc
+!!$$       av_h_sym_diff2 / (tmb%orbs%norb**2),& !lr408 hc
+!!$$       av_h_sym_diff3 / (tmb%orbs%norb**2) !lr408 hc kin,loc,nonloc
+!!$$
+!!$$  deallocate(lhphi3) !lr408 hc
+!!$$  deallocate(lhphi2) !lr408 hc
+!!$$  deallocate(lhphi1) !lr408 hc
+
+
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+
+     iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+     deallocate(tmblarge%psit_c, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_c', subname)
+     iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+     deallocate(tmblarge%psit_f, stat=istat)
+     call memocc(istat, iall, 'tmblarge%psit_f', subname)
+
+  !!deallocate(matrixElements3) !lr408 hc
+  !!deallocate(matrixElements2) !lr408 hc
+  !!deallocate(matrixElements1) !lr408 hc
+
+
+
+  ! END DEBUG ###########################################
+
+
+
+
+
+
 
    
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -686,10 +1246,14 @@ type(energy_terms) :: energs
 
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          tmbopt => tmb
-          lhphiopt => lhphi
-          lphioldopt => lphiold
-          lhphioldopt => lhphiold
+          !!tmbopt => tmb
+          !!lhphiopt => lhphi
+          !!lphioldopt => lphiold
+          !!lhphioldopt => lhphiold
+          tmbopt => tmblarge
+          lhphiopt => lhphilarge
+          lphioldopt => lphilargeold
+          lhphioldopt => lhphilargeold
       else
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -707,21 +1271,35 @@ type(energy_terms) :: energs
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   
+ call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
+
+  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  call destroy_new_locregs(iproc, nproc, tmblarge)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+          write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+          write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
       if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
           if(fnrm<tmb%wfnmd%bs%conv_crit) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                  write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
           else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
           else if(emergency_exit) then
               if(iproc==0) then
@@ -773,6 +1351,7 @@ type(energy_terms) :: energs
   end do iterLoop
 
 
+  !deallocate(confdatarrtmp)
 
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -1191,8 +1770,9 @@ implicit none
 ! Calling arguments
 integer:: iproc, nproc, nsubmax
 type(orbitals_data), intent(inout) :: orbs
-real(8),dimension(orbs%norb, orbs%norb):: HamSmall, ovrlp
-real(8),dimension(orbs%norb):: eval
+real(8),dimension(orbs%norb, orbs%norb),intent(inout) :: HamSmall
+real(8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
+real(8),dimension(orbs%norb),intent(out) :: eval
 
 ! Local variables
 integer:: lwork, info, istat, iall, i, iorb, jorb, nsub
@@ -1200,25 +1780,182 @@ real(8),dimension(:),allocatable:: work
 real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
+  ! temp change
+  real(8),dimension(:),allocatable:: eval1,beta,eval2
+  real(8),dimension(:,:), allocatable :: vr,vl,ks,inv_ovrlp
+real(8),dimension(1:orbs%norb) :: temp_vec
+  integer :: ierr
+real(8) :: temp, tt, ddot
+
   call timing(iproc,'diagonal_seq  ','ON')
 
   !! OLD VERSION #####################################################################################################
   ! Get the optimal work array size
-  lwork=-1 
+!!  lwork=-1 
   allocate(work(1), stat=istat)
   call memocc(istat, work, 'work', subname)
-  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  lwork=work(1) 
+!!  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+!!  lwork=work(1) 
 
-  ! Deallocate the work array ane reallocate it with the optimal size
+  !!! find inverse overlap and premultiply Hamiltonian
+!!  allocate(inv_ovrlp(1:orbs%norb,1:orbs%norb))
+  !!call dcopy(orbs%norb**2,ovrlp(1,1),1,inv_ovrlp(1,1),1)
+  !!! Exact inversion
+  !!call dpotrf('l', orbs%norb, inv_ovrlp(1,1), orbs%norb, info)
+  !!if(info/=0) then
+  !!   write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
+  !!   stop
+  !!end if
+  !!call dpotri('l', orbs%norb, inv_ovrlp(1,1), orbs%norb, info)
+  !!if(info/=0) then
+  !!   write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
+  !!   stop
+  !!end if
+
+  !!! fill the upper triangle
+  !!do iorb=1,orbs%norb
+  !!   do jorb=1,iorb-1
+  !!      inv_ovrlp(jorb,iorb)=inv_ovrlp(iorb,jorb)
+  !!   end do
+  !!end do
+
+  allocate(ks(1:orbs%norb,1:orbs%norb))
+  !!call dgemm('n','n', orbs%norb,orbs%norb,orbs%norb,1.d0,inv_ovrlp(1,1),orbs%norb,&
+  !!     HamSmall(1,1),orbs%norb,0.d0,ks(1,1),orbs%norb)
+  !!call dcopy(orbs%norb**2,ks(1,1),1,HamSmall(1,1),1)
+  !!deallocate(ks)
+  !!deallocate(inv_ovrlp)
+  !!!!!!!!!!!
+
+  allocate(vl(1:orbs%norb,1:orbs%norb))
+  allocate(vr(1:orbs%norb,1:orbs%norb))
+  allocate(eval1(1:orbs%norb))
+  allocate(beta(1:orbs%norb))
+  !!$call dggev('v', 'v',orbs%norb,&
+  !!$      HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
+  !!$      vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
+  !!call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
+  !!     orbs%norb, WORK, LWORK, ierr )
+  !!$lwork=work(1) 
+
+  ! Deallocate the work array and reallocate it with the optimal size
+!!  iall=-product(shape(work))*kind(work)
+!!  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+!!  call memocc(istat, iall, 'work', subname)
+!!  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+!!  call memocc(istat, work, 'work', subname)
+
+  ! Diagonalize the Hamiltonian
+!!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, vl(1,1), 1)
+!!  call dcopy(orbs%norb**2, ovrlp(1,1), 1, vr(1,1), 1)
+!!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, inv_ovrlp(1,1), 1)
+  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ks(1,1), 1)
+!!  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+!!  do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!      write(200+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
+!!    end do
+!!    write(250+iproc,*) iorb,eval(iorb)
+!!  end do
+!!  call dcopy(orbs%norb**2, vl(1,1), 1, HamSmall(1,1), 1)
+!!  call dcopy(orbs%norb**2, vr(1,1), 1, ovrlp(1,1), 1)
+  lwork=-1
+  call dggev('v', 'v',orbs%norb,&
+        HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
+        vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
+  lwork=work(1) 
   iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
   allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
   call memocc(istat, work, 'work', subname)
+  call dggev('v', 'v',orbs%norb,&
+        HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
+        vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
 
-  ! Diagonalize the Hamiltonian
-  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+        hamsmall=vl
+  do iorb=1,orbs%norb
+     do jorb=iorb,orbs%norb
+        if (eval(jorb)/beta(jorb) < eval(iorb)/beta(iorb)) then
+           temp = eval(iorb)
+           temp_vec = HamSmall(:,iorb)
+           eval(iorb) = eval(jorb)
+           eval(jorb) = temp
+           HamSmall(:,iorb) = HamSmall(:,jorb)
+           HamSmall(:,jorb) = temp_vec
+           temp=beta(iorb)
+           beta(iorb)=beta(jorb)
+           beta(jorb)=temp
+        end if
+     end do
+  end do
+
+
+
+  call dcopy(orbs%norb**2, ks(1,1), 1, ovrlp(1,1), 1)
+  do iorb=1,orbs%norb
+      call dgemv('n', orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
+           orbs%norb, hamsmall(1,iorb), 1, 0.d0, vl(1,iorb), 1)
+      tt=ddot(orbs%norb, hamsmall(1,iorb),  1, vl(1,iorb), 1)
+      call dscal(orbs%norb, 1/sqrt(tt), hamsmall(1,iorb), 1)
+  end do
+
+
+
+
+!!  do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!      write(300+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
+!!    end do
+!!    write(350+iproc,*) iorb,eval(iorb)/beta(iorb)
+!!  end do
+!!
+!!  lwork=-1
+!!  call dcopy(orbs%norb**2, inv_ovrlp(1,1), 1, HamSmall(1,1), 1)
+!!  call dcopy(orbs%norb**2, ks(1,1), 1, ovrlp(1,1), 1)
+!!  call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
+!!       orbs%norb, WORK, LWORK, ierr )
+!!  ! Deallocate the work array and reallocate it with the optimal size
+!!  lwork=work(1) 
+!!  iall=-product(shape(work))*kind(work)
+!!  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+!!  call memocc(istat, iall, 'work', subname)
+!!  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+!!  call memocc(istat, work, 'work', subname)
+!!
+!!  call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
+!!       orbs%norb, WORK, LWORK, ierr )
+!!
+!!  HamSmall=vl
+!!  do iorb=1,orbs%norb
+!!     do jorb=iorb,orbs%norb
+!!        if (eval(jorb) < eval(iorb)) then
+!!           temp = eval(iorb)
+!!           temp_vec = HamSmall(:,iorb)
+!!           eval(iorb) = eval(jorb)
+!!           eval(jorb) = temp
+!!           HamSmall(:,iorb) = HamSmall(:,jorb)
+!!           HamSmall(:,jorb) = temp_vec
+!!        end if
+!!     end do
+!!  end do
+!!
+!!  do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!      write(400+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
+!!    end do
+!!    write(450+iproc,*) iorb,eval(iorb)
+!!  end do
+!!
+!!!  do iorb=1,orbs%norb
+!!!    write(36,*) vl(:,iorb)
+!!!    write(37,*) vr(:,iorb)
+!!!  end do
+!!!  write(36,*) ''
+!!!  write(37,*) ''
+!!!  write(38,*) 'eval',eval
+!!!  write(38,*) 'eval1',eval1
+!!!  !write(38,*) 'beta',beta
 
   ! Deallocate the work array.
   iall=-product(shape(work))*kind(work)
@@ -1235,6 +1972,42 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
       end if
   end do
   !! #################################################################################################################
+
+  deallocate(vl)
+  deallocate(vr)
+  deallocate(eval1)
+  deallocate(beta)
+
+if (.false.) then
+  allocate(vl(1:orbs%norb,1:orbs%norb))
+  allocate(vr(1:orbs%norb,1:orbs%norb))
+  allocate(eval1(1:orbs%norb))
+  allocate(eval2(1:orbs%norb))
+
+
+  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  ! check eigenvalues of overlap matrix
+      call DGEEV( 'v','v', orbs%norb, ovrlp(1,1), orbs%norb, eval2, eval1, VL, orbs%norb, VR,&
+                  orbs%norb, WORK, LWORK, ierr )
+!  write(40,*) 'eval',eval2
+!  write(40,*) 'eval1',eval1
+!  write(40,*) 'sum',sum(eval2)
+
+!  do iorb=1,orbs%norb
+!    write(44,*) vl(:,iorb)
+!    write(45,*) vr(:,iorb)
+!  end do
+!  write(44,*) ''
+!  write(45,*) ''
+
+  write(41,*) 'sum olap eigs',sum(eval2)
+
+  deallocate(work)
+  deallocate(vl)
+  deallocate(vr)
+  deallocate(eval1)
+  deallocate(eval2)
+end if
 
   !!!! NEW VERSION #####################################################################################################
   !!! Determine the maximal number of non-zero subdiagonals

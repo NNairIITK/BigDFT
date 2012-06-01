@@ -28,6 +28,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:,:),allocatable:: lagmat
 
+
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
 
@@ -58,11 +59,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
+
   ! Calculate trace (or band structure energy, resp.)
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      write(*,*) 'kernel(1,1) 1',kernel(1,1)
       trH=0.d0
       do jorb=1,tmbopt%orbs%norb
           do korb=1,tmbopt%orbs%norb
+              if(iproc==0) write(610,'(2i8,2es17.10)') korb,jorb,kernel(korb,jorb),lagmat(korb,jorb)
               tt = kernel(korb,jorb)*lagmat(korb,jorb)
               trH = trH + tt
           end do
@@ -192,6 +196,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
            tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
            tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+!           1.0d-3, it, iorb, eval_zero) ! 2.0d-2 for test4, 1.0d-3 for test 5
            tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
       ind2=ind2+ncnt
   end do
@@ -503,7 +508,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
 
   ! Emit that new wavefunctions are ready.
   if (tmb%c_obj /= 0) then
-     call kswfn_emit_psi(tmb, it, iproc, nproc)
+     call kswfn_emit_psi(tmb, it, 0, iproc, nproc)
   end if
 
 end subroutine hpsitopsi_linear

@@ -144,7 +144,8 @@ module module_types
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step 
+    real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -1153,13 +1154,13 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_stat
 
-    allocate(wfd%keyglob(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyglob(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-    allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keygloc(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvloc(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvglob(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd

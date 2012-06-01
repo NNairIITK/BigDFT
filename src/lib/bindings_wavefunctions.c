@@ -274,6 +274,7 @@ static void bigdft_wf_finalize(GObject *atoms);
 #ifdef HAVE_GLIB
 enum {
   PSI_READY_SIGNAL,
+  HPSI_READY_SIGNAL,
   ONE_WAVE_READY_SIGNAL,
   LAST_SIGNAL
 };
@@ -301,13 +302,13 @@ static void g_cclosure_marshal_ONE_WAVE(GClosure *closure,
                                         gpointer invocation_hint,
                                         gpointer marshal_data)
 {
-  typedef void (*callbackFunc)(gpointer data1, guint iter, GArray *arg_psi, guint arg_kpt,
-                               guint arg_orb, guint arg_spin, gpointer data2);
+  typedef void (*callbackFunc)(gpointer data1, guint iter, GArray *arg_psi, guint arg_ipsi,
+                               guint arg_kpt, guint arg_orb, guint arg_spin, gpointer data2);
   register callbackFunc callback;
   register GCClosure *cc = (GCClosure*)closure;
   register gpointer data1, data2;
 
-  g_return_if_fail(n_param_values == 6);
+  g_return_if_fail(n_param_values == 7);
 
   if (G_CCLOSURE_SWAP_DATA(closure))
     {
@@ -325,7 +326,8 @@ static void g_cclosure_marshal_ONE_WAVE(GClosure *closure,
            (GArray*)g_value_get_boxed(param_values + 2),
            g_value_get_uint(param_values + 3), 
            g_value_get_uint(param_values + 4), 
-           g_value_get_uint(param_values + 5), data2);
+           g_value_get_uint(param_values + 5), 
+           g_value_get_uint(param_values + 6), data2);
 }
 
 static void bigdft_wf_class_init(BigDFT_WfClass *klass)
@@ -342,12 +344,18 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
 		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
                  G_TYPE_NONE, 1, G_TYPE_UINT, NULL);
 
+  bigdft_wf_signals[HPSI_READY_SIGNAL] =
+    g_signal_new("hpsi-ready", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+		 0, NULL, NULL, g_cclosure_marshal_VOID__UINT,
+                 G_TYPE_NONE, 1, G_TYPE_UINT, NULL);
+
   bigdft_wf_signals[ONE_WAVE_READY_SIGNAL] =
     g_signal_new("one-wave-ready", G_TYPE_FROM_CLASS(klass),
                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS | G_SIGNAL_DETAILED,
 		 0, NULL, NULL, g_cclosure_marshal_ONE_WAVE,
-                 G_TYPE_NONE, 5, G_TYPE_UINT, G_TYPE_ARRAY, G_TYPE_UINT,
-                 G_TYPE_UINT, G_TYPE_UINT, NULL);
+                 G_TYPE_NONE, 6, G_TYPE_UINT, G_TYPE_ARRAY, G_TYPE_UINT,
+                 G_TYPE_UINT, G_TYPE_UINT, G_TYPE_UINT, NULL);
 
   g_object_class_install_property(G_OBJECT_CLASS(klass), INPUT_PROP,
 				  g_param_spec_int("init-id", "Initialisation method",
@@ -447,6 +455,14 @@ void FC_FUNC_(wf_emit_psi, WF_EMIT_PSI)(BigDFT_Wf **wf, guint *istep)
                 0 /* details */, *istep, NULL);
 #endif  
 }
+void FC_FUNC_(wf_emit_hpsi, WF_EMIT_HPSI)(BigDFT_Wf **wf, guint *istep)
+{
+#ifdef HAVE_GLIB
+  g_return_if_fail(bigdft_lzd_check((*wf)->lzd));
+  g_signal_emit(G_OBJECT(*wf), bigdft_wf_signals[HPSI_READY_SIGNAL],
+                0 /* details */, *istep, NULL);
+#endif  
+}
 void FC_FUNC_(wf_emit_lzd, WF_EMIT_LZD)(BigDFT_Wf **wf)
 {
   BigDFT_Orbs *orbs;
@@ -458,10 +474,10 @@ void FC_FUNC_(wf_emit_lzd, WF_EMIT_LZD)(BigDFT_Wf **wf)
 }
 #ifdef HAVE_GLIB
 void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
-                             GQuark quark, guint ikpt, guint iorb, guint ispin)
+                             GQuark quark, BigDFT_PsiId ipsi, guint ikpt, guint iorb, guint ispin)
 {
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[ONE_WAVE_READY_SIGNAL],
-                quark, iter, psic, ikpt, iorb, ispin, NULL);
+                quark, iter, psic, ipsi, ikpt, iorb, ispin, NULL);
 }
 #endif  
 
@@ -484,7 +500,7 @@ BigDFT_Wf* bigdft_wf_new(int inputPsiId)
   FC_FUNC_(wf_new, WF_NEW)(&self, &wf->data, &wf->parent.data, &wf->parent.comm,
                            &wf->data_lzd);
   FC_FUNC_(orbs_init, ORBS_INIT)(wf->parent.data);
-  FC_FUNC_(wf_get_psi, WF_GET_PSI)(wf->data, &wf->psi);
+  FC_FUNC_(wf_get_psi, WF_GET_PSI)(wf->data, &wf->psi, &wf->hpsi);
 
   wf->lzd = bigdft_lzd_new_with_fortran(wf->data_lzd);
 
@@ -514,7 +530,7 @@ BigDFT_Wf* bigdft_wf_new_from_fortran(void *obj, gboolean linear)
   wf->data = obj;
   FC_FUNC_(wf_get_data, WF_GET_DATA)(wf->data, &wf->parent.data, &wf->parent.comm,
                                      &wf->data_lzd);
-  FC_FUNC_(wf_get_psi, WF_GET_PSI)(wf->data, &wf->psi);
+  FC_FUNC_(wf_get_psi, WF_GET_PSI)(wf->data, &wf->psi, &wf->hpsi);
 
   wf->lzd = bigdft_lzd_new_from_fortran(wf->data_lzd);
 
@@ -715,78 +731,125 @@ static void _wf_get_psi_start_size(const BigDFT_Wf *wf, guint iorbp, guint isorb
     }
   *psis *= wf->parent.nspinor;
 }
-const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
-                                         BigDFT_Spin ispin, BigDFT_Spinor ispinor,
-                                         guint *psiSize, guint iproc)
+static gboolean _wf_get_compress(const BigDFT_Wf *wf,
+                                 guint ikpt, guint iorb, BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                 guint *psiSize, int *jproc, guint *dpsi)
 {
-  guint orbSize, dpsi;
-  int iorbp, isorb, jproc;
+  guint orbSize;
+  int iorbp, isorb;
   long psiAlloc;
 
   *psiSize = 0;
-
-  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
-    return (const double*)0;
+  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, jproc))
+    return FALSE;
   
-  _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, &dpsi, &orbSize);
+  _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, dpsi, &orbSize);
   if (ispinor == BIGDFT_IMAG && wf->parent.nspinor == 2)
-    dpsi += orbSize;
+    *dpsi += orbSize;
 
   /* Dimension checks. */
   FC_FUNC_(wf_get_psi_size, WF_GET_PSI_SIZE)(wf->psi, &psiAlloc);
-  if ((long)dpsi >= psiAlloc)
+  if ((long)*dpsi >= psiAlloc)
     {
       fprintf(stderr, "WARNING: inconsistency in psi allocation"
-              " size (%ld) and accessor (%d).\n", psiAlloc, dpsi);
-      return (const double*)0;
+              " size (%ld) and accessor (%d).\n", psiAlloc, *dpsi);
+      return FALSE;
     }
 
   *psiSize = orbSize;
   if (ispinor == BIGDFT_PARTIAL_DENSITY && wf->parent.nspinor == 2)
-    *psiSize *= 2;    
-  return (iproc == jproc)?wf->psi->data + dpsi:(const double*)0;
+    *psiSize *= 2;
+
+  return TRUE;
+}
+const double* bigdft_wf_get_compress(const BigDFT_Wf *wf, BigDFT_PsiId ipsi,
+                                     guint ikpt, guint iorb, BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                     guint *psiSize, guint iproc)
+{
+  guint dpsi;
+  int jproc;
+  f90_pointer_double *data;
+
+  if (!_wf_get_compress(wf, ikpt, iorb, ispin, ispinor, psiSize, &jproc, &dpsi))
+    return (const double*)0;
+    
+  switch (ipsi)
+    {
+    case (BIGDFT_HPSI):
+      data = wf->hpsi;
+      break;
+    case (BIGDFT_PSI):
+    default:
+      data = wf->psi;
+      break;
+    }
+  if (!data || !data->data)
+    {
+      fprintf(stderr, "WARNING: psi data are not available.\n");
+      return (const double*)0;
+    }
+
+  return (iproc == (guint)jproc)?data->data + dpsi:(const double*)0;
+}
+const double* bigdft_wf_get_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                         BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                         guint *psiSize, guint iproc)
+{
+  return bigdft_wf_get_compress(wf, BIGDFT_PSI, ikpt, iorb, ispin, ispinor, psiSize, iproc);
+}
+const double* bigdft_wf_get_hpsi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                          BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                          guint *psiSize, guint iproc)
+{
+  return bigdft_wf_get_compress(wf, BIGDFT_HPSI, ikpt, iorb, ispin, ispinor, psiSize, iproc);
+}
+gboolean bigdft_wf_copy_compress(const BigDFT_Wf *wf, BigDFT_PsiId ipsi,
+                                 guint ikpt, guint iorb, BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                 guint iproc, double *psic, guint psiAlloc)
+{
+  guint dpsi, psiSize;
+  int jproc;
+  f90_pointer_double *data;
+
+  switch (ipsi)
+    {
+    case (BIGDFT_HPSI):
+      data = wf->hpsi;
+      break;
+    case (BIGDFT_PSI):
+    default:
+      data = wf->psi;
+      break;
+    }
+  if (!data || !data->data)
+    {
+      fprintf(stderr, "WARNING: psi data are not available.\n");
+      return FALSE;
+    }
+
+  if (!_wf_get_compress(wf, ikpt, iorb, ispin, ispinor, &psiSize, &jproc, &dpsi))
+    return FALSE;
+  if (psiSize != psiAlloc)
+    return FALSE;
+
+  if (iproc == (guint)jproc)
+    memcpy(psic, data->data + dpsi, sizeof(double) * psiAlloc);
+  else
+    FC_FUNC_(kswfn_mpi_copy, KSWFN_MPI_COPY)(psic, &jproc, &dpsi, &psiAlloc);
+  
+  return TRUE;
 }
 gboolean bigdft_wf_copy_psi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                      BigDFT_Spin ispin, BigDFT_Spinor ispinor,
-                                     guint iproc, double *psic, guint psiSize)
+                                     guint iproc, double *psic, guint psiAlloc)
 {
-  guint orbSize, dpsi;
-  int iorbp, isorb, jproc;
-  long psiAlloc;
-
-  if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, ispinor, &iorbp, &isorb, &jproc))
-    return FALSE;
-
-  _wf_get_psi_start_size(wf, (guint)iorbp, (guint)isorb, &dpsi, &orbSize);
-
-  if (ispinor == BIGDFT_PARTIAL_DENSITY && wf->parent.nspinor == 2)
-    {
-      if (psiSize != 2 * orbSize)
-        return FALSE;
-    }
-  else
-    {
-      if (psiSize != orbSize)
-        return FALSE;
-    }
-  if (ispinor == BIGDFT_IMAG && wf->parent.nspinor == 2)
-    dpsi += orbSize;
-
-  /* Dimension checks. */
-  FC_FUNC_(wf_get_psi_size, WF_GET_PSI_SIZE)(wf->psi, &psiAlloc);
-  if ((long)dpsi >= psiAlloc)
-    {
-      fprintf(stderr, "WARNING: inconsistency in psi allocation"
-              " size (%ld) and accessor (%d).\n", psiAlloc, dpsi);
-      return FALSE;
-    }
-    
-  if (iproc == jproc)
-    memcpy(psic, wf->psi->data + dpsi, sizeof(double) * psiSize);
-  else
-    FC_FUNC_(kswfn_mpi_copy, KSWFN_MPI_COPY)(psic, &jproc, &dpsi, &psiSize);
-  
-  return TRUE;
+  return bigdft_wf_copy_compress(wf, BIGDFT_PSI, ikpt, iorb, ispin, ispinor, iproc, psic, psiAlloc);
+}
+gboolean bigdft_wf_copy_hpsi_compress(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+                                      BigDFT_Spin ispin, BigDFT_Spinor ispinor,
+                                      guint iproc, double *psic, guint psiAlloc)
+{
+  return bigdft_wf_copy_compress(wf, BIGDFT_HPSI, ikpt, iorb, ispin, ispinor, iproc, psic, psiAlloc);
 }
 void bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
                                   BigDFT_WfFileFormats format, const double *psic,

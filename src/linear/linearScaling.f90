@@ -319,7 +319,7 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
            input, tmb, tmbder, denspot, ldiis, lscv)
       !!if(iproc==0) write(*,*) 'MIDDLE 2: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
-      ! Somce special treatement if we are in the high accuracy part
+      ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
 
@@ -501,8 +501,15 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 
           ! Calculate the total energy.
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+          !write(34,*) energy,energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energyDiff=energy-energyold
           energyold=energy
+!DEBUG
+if(iproc==0)then
+print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+end if
+!END DEBUG
+
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -591,12 +598,31 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           !if(trim(input%lin%mixingMethod)=='dens') then
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                   'itout, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-          !else if(trim(input%lin%mixingMethod)=='pot') then
+             if (.not. lscv%lowaccur_converged) then
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                      energy-energyoldout
+             else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                      energy-energyoldout
+             end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                   'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+             if (.not. lscv%lowaccur_converged) then
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+             else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutL, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+             end if
+          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             if (.not. lscv%lowaccur_converged) then
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+             else
+                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                      'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+             end if
           end if
       end if
       call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
@@ -977,7 +1003,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
-  logical:: redefine_derivatives
+  integer :: ilr
+  logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -1015,12 +1042,21 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locreg_increased=.true.
   end if
 
-  redefine_derivatives=.false.
+  !redefine_derivatives=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
-      if(iproc==0) then
-          write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+      change = .false.
+      do ilr = 1, tmb%lzd%nlr
+         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
+             change = .true.
+             exit
+         end if
+      end do
+      if(change) then
+         if(iproc==0) then
+             write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+         end if
+         lscv%locreg_increased=.true.
       end if
-      lscv%locreg_increased=.true.
       lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(lscv%locreg_increased) then
@@ -1086,6 +1122,8 @@ subroutine check_for_exit(input, lscv)
   if(lscv%lowaccur_converged) then
       lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
       if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+          lscv%exit_outer_loop=.true.
+      else if (lscv%pnrm_out<input%lin%highaccuracy_converged) then !lr408
           lscv%exit_outer_loop=.true.
       end if
   end if
