@@ -44,6 +44,11 @@ integer:: jorb, jjorb
 real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
+real(8),dimension(:),allocatable :: locrad_tmp
+type(DFT_wavefunction):: tmblarge
+real(8),dimension(:,:),allocatable:: locregCenter
+real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -335,6 +340,31 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 
 
 
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locregCenter, 'locregCenter', subname)
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      do iorb=1,tmb%orbs%norb
+          ilr=tmb%orbs%inwhichlocreg(iorb)
+          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      end do
+      do ilr=1,tmb%lzd%nlr
+          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      end do
+
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+
+
+
+
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
@@ -578,6 +608,20 @@ end if
           end if
 
       end do
+
+
+      call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+      call destroy_new_locregs(iproc, nproc, tmblarge)
+      call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+
+      iall=-product(shape(locregCenter))*kind(locregCenter)
+      deallocate(locregCenter, stat=istat)
+      call memocc(istat, iall, 'locregCenter', subname)
+      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      deallocate(locrad_tmp, stat=istat)
+      call memocc(istat, iall, 'locrad_tmp', subname)
+
+
 
       call deallocateDIIS(ldiis_coeff)
 
