@@ -1,6 +1,8 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,ldiis_coeff)
+    hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
+    tmblarge, lhphilarge, lhphilargeold, lphilargeold, &
+    ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -26,6 +28,8 @@ type(DFT_wavefunction),intent(inout):: tmbmix, tmb
 real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
 real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix
+type(DFT_wavefunction),intent(inout):: tmblarge
+real(8),dimension(:),pointer,intent(inout):: lhphilarge, lhphilargeold, lphilargeold
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
@@ -41,9 +45,9 @@ character(len=*),parameter:: subname='get_coeff'
 integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 character(len=1) :: num
 real(8),dimension(:),allocatable :: locrad_tmp
-type(DFT_wavefunction):: tmblarge
+!!type(DFT_wavefunction):: tmblarge
 real(8),dimension(:,:),allocatable:: locregCenter
-real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+!!real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
@@ -97,24 +101,24 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
   if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
 
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      do iorb=1,tmb%orbs%norb
-          ilr=tmb%orbs%inwhichlocreg(iorb)
-          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-      end do
-      do ilr=1,tmb%lzd%nlr
-          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-      end do
-      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      !!$$allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      !!$$allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      !!$$do iorb=1,tmb%orbs%norb
+      !!$$    ilr=tmb%orbs%inwhichlocreg(iorb)
+      !!$$    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      !!$$end do
+      !!$$do ilr=1,tmb%lzd%nlr
+      !!$$    locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      !!$$end do
+      !!$$call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+      !!$$     .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+      !!$$     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+      !!$$     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      !!$$call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+      !!$$     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      !!$$call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      !!$$call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      !!$$tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
 
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
@@ -202,9 +206,9 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       stop 'wrong communication_strategy_overlap'
   end if
 
-  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+  !!$$call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  !!$$call destroy_new_locregs(iproc, nproc, tmblarge)
+  !!$$call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -329,7 +333,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm,&
     infoBasisFunctions,nlpspd,proj,ldiis,&
     SIC, &
-    locrad,tmb)
+    locrad,tmb,&
+    tmblarge2, lhphilarge2, lhphilargeold2, lphilargeold2)
 !
 ! Purpose:
 ! ========
@@ -358,6 +363,8 @@ type(localizedDIISParameters),intent(inout):: ldiis
 type(DFT_wavefunction),target,intent(inout):: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+type(DFT_wavefunction),target,intent(inout):: tmblarge2
+real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphilargeold2
 
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
@@ -589,65 +596,65 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
 
   !call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      !!allocate(locregCenter(3,tmbopt%lzd%nlr), stat=istat)
-      !!call memocc(istat, locregCenter, 'locregCenter', subname)
-      !!allocate(locrad_tmp(tmbopt%lzd%nlr), stat=istat)
-      !!call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
-      do iorb=1,tmbopt%orbs%norb
-          ilr=tmbopt%orbs%inwhichlocreg(iorb)
-          locregCenter(:,ilr)=tmbopt%lzd%llr(ilr)%locregCenter
-      end do
-      do ilr=1,tmbopt%lzd%nlr
-          locrad_tmp(ilr)=tmbopt%lzd%llr(ilr)%locrad+8.d0*tmbopt%lzd%hgrids(1)
-      end do
-      call update_locreg(iproc, nproc, tmbopt%lzd%nlr, locrad_tmp, tmbopt%orbs%inwhichlocreg, locregCenter, tmbopt%lzd%glr, &
-           .false., denspot%dpbox%nscatterarr, tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
-           tmbopt%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      call copy_basis_performance_options(tmbopt%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      call copy_orthon_data(tmbopt%orthpar, tmblarge%orthpar, subname)
-      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+      !!$$!!allocate(locregCenter(3,tmbopt%lzd%nlr), stat=istat)
+      !!$$!!call memocc(istat, locregCenter, 'locregCenter', subname)
+      !!$$!!allocate(locrad_tmp(tmbopt%lzd%nlr), stat=istat)
+      !!$$!!call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      !!$$do iorb=1,tmbopt%orbs%norb
+      !!$$    ilr=tmbopt%orbs%inwhichlocreg(iorb)
+      !!$$    locregCenter(:,ilr)=tmbopt%lzd%llr(ilr)%locregCenter
+      !!$$end do
+      !!$$do ilr=1,tmbopt%lzd%nlr
+      !!$$    locrad_tmp(ilr)=tmbopt%lzd%llr(ilr)%locrad+8.d0*tmbopt%lzd%hgrids(1)
+      !!$$end do
+      !!$$call update_locreg(iproc, nproc, tmbopt%lzd%nlr, locrad_tmp, tmbopt%orbs%inwhichlocreg, locregCenter, tmbopt%lzd%glr, &
+      !!$$     .false., denspot%dpbox%nscatterarr, tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+      !!$$     tmbopt%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+      !!$$     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      !!$$call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+      !!$$     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      !!$$call copy_basis_performance_options(tmbopt%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      !!$$call copy_orthon_data(tmbopt%orthpar, tmblarge%orthpar, subname)
+      !!$$tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
 
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge%lzd, tmbopt%orbs, tmblarge%orbs, tmbopt%psi, tmblarge%psi)
+      if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
+      if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
+      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, tmbopt%psi, tmblarge2%psi)
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-  allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
-  call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
-  tmblarge%lzd%doHamAppl=.true.
-  call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
-       proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
-  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
+           tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+  allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
+  call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
+  tmblarge2%lzd%doHamAppl=.true.
+  call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
+       proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
+  call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge2%comgp)
 
-  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-       tmblarge%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
-       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
-  call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
+  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
+       tmblarge2%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
+       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+  call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
 
-  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
+  iall=-product(shape(tmblarge2%lzd%doHamAppl))*kind(tmblarge2%lzd%doHamAppl)
+  deallocate(tmblarge2%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'tmblarge2%lzd%doHamAppl', subname)
 
 
-      allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
-      call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-      allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
-      call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+      allocate(tmblarge2%psit_c(tmblarge2%collcom%ndimind_c), stat=istat)
+      call memocc(istat, tmblarge2%psit_c, 'tmblarge2%psit_c', subname)
+      allocate(tmblarge2%psit_f(7*tmblarge2%collcom%ndimind_f), stat=istat)
+      call memocc(istat, tmblarge2%psit_f, 'tmblarge2%psit_f', subname)
 
-      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
+      allocate(hpsit_c(tmblarge2%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
+      allocate(hpsit_f(7*tmblarge2%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-           tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
+           lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
+      call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
+           tmblarge2%psi, tmblarge2%psit_c, tmblarge2%psit_f, tmblarge2%lzd)
 
 
 !DEBUG
@@ -667,12 +674,12 @@ endif
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
 
-     iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-     deallocate(tmblarge%psit_c, stat=istat)
-     call memocc(istat, iall, 'tmblarge%psit_c', subname)
-     iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-     deallocate(tmblarge%psit_f, stat=istat)
-     call memocc(istat, iall, 'tmblarge%psit_f', subname)
+     iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
+     deallocate(tmblarge2%psit_c, stat=istat)
+     call memocc(istat, iall, 'tmblarge2%psit_c', subname)
+     iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
+     deallocate(tmblarge2%psit_f, stat=istat)
+     call memocc(istat, iall, 'tmblarge2%psit_f', subname)
 
 
   ! END DEBUG ###########################################
@@ -692,18 +699,18 @@ endif
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           !!tmbopt => tmb
           !!lhphiopt => lhphi
           !!lphioldopt => lphiold
           !!lhphioldopt => lhphiold
-          tmbopt => tmblarge
-          lhphiopt => lhphilarge
-          lphioldopt => lphilargeold
-          lhphioldopt => lhphilargeold
+          tmbopt => tmblarge2
+          lhphiopt => lhphilarge2
+          lphioldopt => lphilargeold2
+          lhphioldopt => lhphilargeold2
       else
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -719,7 +726,7 @@ endif
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
   
- call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
+ call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
 
       !!!!! to avoid that it points to something which was nullified... to be corrected
       !!!!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -729,9 +736,9 @@ endif
       !!!!    lhphioldopt => lhphiold
       !!!!end if
 
-  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+  !!$$call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  !!$$call destroy_new_locregs(iproc, nproc, tmblarge)
+  !!$$call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
 
 

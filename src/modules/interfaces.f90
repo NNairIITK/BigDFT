@@ -1906,7 +1906,8 @@ module module_interfaces
 
 
         subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
-                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb)
+                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb,&
+                   tmblarge2, lhphilarge2, lhphilargeold2, lphilargeold2)
           use module_base
           use module_types
           implicit none
@@ -1924,6 +1925,8 @@ module module_interfaces
           type(DFT_wavefunction),target,intent(inout):: tmb
           type(SIC_data) :: SIC !<parameters for the SIC methods
           real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+          type(DFT_wavefunction),target,intent(inout):: tmblarge2
+          real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphilargeold2
         end subroutine getLocalizedBasis
 
 
@@ -2145,7 +2148,9 @@ module module_interfaces
 
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-               hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,ldiis_coeff)
+               hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
+               tmblarge, lhphilarge, lhphilargeold, lphilargeold, &
+               ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -2167,6 +2172,8 @@ module module_interfaces
       real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
       real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix
+      type(DFT_wavefunction),intent(inout):: tmblarge
+      real(8),dimension(:),pointer,intent(inout):: lhphilarge, lhphilargeold, lphilargeold
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 

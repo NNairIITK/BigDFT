@@ -293,6 +293,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
 
+  real(8),dimension(:),allocatable :: locrad_tmp
+  type(DFT_wavefunction):: tmblarge
+  !!real(8),dimension(:,:),allocatable:: locregCenter
+  real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+
+
 
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
@@ -792,9 +798,48 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, density_kernel, 'density_kernel', subname)
+
+
+      !!allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      !!call memocc(istat, locregCenter, 'locregCenter', subname)
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      do iorb=1,tmb%orbs%norb
+          ilr=tmb%orbs%inwhichlocreg(iorb)
+          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      end do
+      do ilr=1,tmb%lzd%nlr
+          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      end do
+
+      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+
+      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      deallocate(locrad_tmp, stat=istat)
+      call memocc(istat, iall, 'locrad_tmp', subname)
+
+
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.)
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.,&
+       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+
+
+  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  call destroy_new_locregs(iproc, nproc, tmblarge)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+
+
+
+
   iall = -product(shape(density_kernel))*kind(density_kernel)
   deallocate(density_kernel,stat=istat)
   call memocc(istat,iall,'density_kernel',subname)
