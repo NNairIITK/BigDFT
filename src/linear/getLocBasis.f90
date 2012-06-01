@@ -349,13 +349,9 @@ endif
       stop 'wrong communication_strategy_overlap'
   end if
 
-  write(*,*) 'deall 1'
   call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  write(*,*) 'deall 2'
   call destroy_new_locregs(iproc, nproc, tmblarge)
-  write(*,*) 'deall 3'
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-  write(*,*) 'deall 4'
 
   ! Symmetrize the Hamiltonian
   call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -506,7 +502,6 @@ endif
   call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel, ovrlp)
 
-           write(*,*) 'kernel(1,1) 6',density_kernel(1,1)
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
@@ -1070,7 +1065,7 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
   call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
 
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-       tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+       tmblarge%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
   !!call SynchronizeHamiltonianApplication(nproc,tmbmix%orbs,lzd,GPU,lhphi,&
   !!     energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
@@ -1279,7 +1274,6 @@ endif
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
-           write(*,*) 'kernel(1,1) 3',kernel(1,1)
   
  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
@@ -1341,7 +1335,6 @@ endif
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
            alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
-           write(*,*) 'kernel(1,1) 2',kernel(1,1)
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
