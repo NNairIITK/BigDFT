@@ -488,20 +488,19 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
-      if(associated(tmb%psit_c)) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
+      if(associated(tmbopt%psit_c)) then
+          iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+          deallocate(tmbopt%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmbopt%psit_c', subname)
       end if
-      if(associated(tmb%psit_f)) then
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
+      if(associated(tmbopt%psit_f)) then
+          iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+          deallocate(tmbopt%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmbopt%psit_f', subname)
       end if
       tmbopt%can_use_transposed=.false.
 
   !!end if
-       write(*,*) 'after first ortho: tmbopt%can_use_transposed',tmbopt%can_use_transposed
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       ! This is not the ideal place for this...
