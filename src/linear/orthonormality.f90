@@ -36,16 +36,23 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   do it=1,nItOrtho
 
       if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          if(.not.associated(psit_c)) then
-              allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, psit_c, 'psit_c', subname)
-          end if
+          !!if(associated(psit_c)) then
+          !!    iall=-product(shape(psit_c))*kind(psit_c)
+          !!    deallocate(psit_c, stat=istat)
+          !!    call memocc(istat, iall, 'psit_c', subname)
+          !!end if
+          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, psit_c, 'psit_c', subname)
           write(*,*) '1: associated(psit_f)',associated(psit_f)
-          if(.not.associated(psit_f)) then
-              allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, psit_f, 'psit_f', subname)
-          end if
+          !!if(associated(psit_f)) then
+          !!    iall=-product(shape(psit_f))*kind(psit_f)
+          !!    deallocate(psit_f, stat=istat)
+          !!    call memocc(istat, iall, 'psit_f', subname)
+          !!end if
+          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, psit_f, 'psit_f', subname)
           write(*,*) '2: associated(psit_f)',associated(psit_f)
+          !write(*,*) 'psit_f(1)',psit_f(1)
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
           call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
@@ -68,6 +75,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
+          write(*,*) 'after overlapPowerMinusOneHalf'
 
       if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -123,6 +131,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       end if
   end do
 
+  write(*,*) 'at end orthonormalizeLocalized'
 
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
