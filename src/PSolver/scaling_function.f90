@@ -83,12 +83,12 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      end if
   end do loop1
 
-  open (unit=1,file='scfunction',status='unknown')
+!  open (unit=1,file='scfunction',status='unknown')
   do i=0,nd
      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
-  write(1,*) a(i),x(i)
+!  write(1,*) a(i),x(i)
   end do
-  close(1)
+!  close(1)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)

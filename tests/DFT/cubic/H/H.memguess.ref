@@ -10,7 +10,8 @@
  |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |rho_commun DBL             Density communication scheme
+ |rho_commun DEF             Density communication scheme
+ |psolver_groupsize 0        Size of Poisson Solver taskgroups (0=nproc)
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
  |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
@@ -77,17 +78,17 @@
  Number of maximal OpenMP threads per MPI process 2
  DFT parameters:
    eXchange Correlation:
-     XC ID                             : &ixc  1
+     XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
  Ground State Optimization:
    Wavefunction:
-     Gradient Norm Threshold           : &gnrm_cv  1.0E-04
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
      CG Steps for Preconditioner       :  7
      DIIS History length               :  6
-     Max. Wfn Iterations               : &itermax  50
+     Max. Wfn Iterations               :  &itermax  50
      Max. Subspace Diagonalizations    :  10
    Density/Potential:
      Max. Iterations                   :  1
@@ -133,7 +134,7 @@
  Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    31   31   31
  Estimation performed for 1 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     2 MB    98 KB
+               Poisson Solver Kernel (K):     0 MB   281 KB
               Poisson Solver Density (D):     4 MB     0 KB
      Single Wavefunction for one orbital:     0 MB   127 KB
     All Wavefunctions for each processor:     0 MB   254 KB
@@ -143,8 +144,8 @@
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~11*K         |   W+~1*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~2*U+~ 3*D+K+P 
-        23MB         |        21MB          |       35MB     |            21MB
- The overall memory requirement needed for this calculation is thus: 35 MB
+         3MB         |        19MB          |       34MB     |            20MB
+ The overall memory requirement needed for this calculation is thus: 34 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 19 MB
  Memory Consumption Report:
@@ -155,4 +156,4 @@
       Peak Value (MB): 1
       for the array: logrid_big
       in the routine:  make_all_ib
- CPU time/ELAPSED time          0.00         0.00
+ CPU time/ELAPSED time          0.03         0.02

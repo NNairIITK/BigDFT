@@ -1,32 +1,35 @@
-                             TTTT         F       DDDDD    
-                            T    T               D         
-                           T     T        F     D          
-                           T    T         F     D        D 
-                           TTTTT          F     D         D
-                           T    T         F     D         D
-                           T     T        F     D         D
-                           T      T       F     D         D
-                           T     T     FFFF     D         D
-                           T TTTT         F      D        D
-                           T             F        D      D 
-                       TTTTTTTTT    FFFFF          DDDDDD  
-                         gggggg          iiiii    BBBBBBBBB
-                        g      g        i             B    
-                       g        g      i         BBBB B    
-                       g         g     iiii     B     B    
-                       g         g     i       B      B    
-                       g         g     i        B     B    
-                       g         g     i         B    B    
-                       g         g     i          BBBBB    
-                        g        g     i         B    B    
-                                 g     i        B     B    
-                                g               B    B     
-                           ggggg       i         BBBB                (Ver 1.7-dev.10)
- ------------------------------------------------------------------------------------
- |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
- ------------------------------------------------------------------------------------
-                                   The Journal of Chemical Physics 129, 014109 (2008)
+---
+  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
+ Code logo:
+         TTTT         F       DDDDD
+        T    T               D
+       T     T        F     D
+       T    T         F     D        D
+       TTTTT          F     D         D
+       T    T         F     D         D
+       T     T        F     D         D
+       T      T       F     D         D
+       T     T     FFFF     D         D
+       T TTTT         F      D        D
+       T             F        D      D
+   TTTTTTTTT    FFFFF          DDDDDD
+     gggggg          iiiii    BBBBBBBBB
+    g      g        i             B
+   g        g      i         BBBB B
+   g         g     iiii     B     B
+   g         g     i       B      B
+   g         g     i        B     B
+   g         g     i         B    B
+   g         g     i          BBBBB
+    g        g     i         B    B
+             g     i        B     B
+            g               B    B
+       ggggg       i         BBBB
 
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7-dev.10
+ Timestamp of this run                 :  2012-06-02 23:09:25.942
+ Hostname                              : athelas
  |... (file:input.perf.. not present)............................Performance Options 
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
@@ -39,7 +42,8 @@
  |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |rho_commun DBL             Density communication scheme
+ |rho_commun DEF             Density communication scheme
+ |psolver_groupsize 0        Size of Poisson Solver taskgroups (0=nproc)
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
  |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
@@ -106,17 +110,17 @@
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  DFT parameters:
    eXchange Correlation:
-     XC ID                             : &ixc  1
+     XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
  Ground State Optimization:
    Wavefunction:
-     Gradient Norm Threshold           : &gnrm_cv  5.0E-04
+     Gradient Norm Threshold           :  &gnrm_cv  5.0E-04
      CG Steps for Preconditioner       :  9
      DIIS History length               :  6
-     Max. Wfn Iterations               : &itermax  20
+     Max. Wfn Iterations               :  &itermax  20
      Max. Subspace Diagonalizations    :  10
    Density/Potential:
      Max. Iterations                   :  1
@@ -153,15 +157,21 @@
    Box Sizes=  1.57500E+01  1.57500E+01  2.11500E+01           35        35        47
        Extremes for the high resolution grid points:        12<23     12<23     12<35
  wavelet localization is ON
- ------------------------------------------------------------ Poisson Kernel Creation
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=5715360  Kernel=5923280
-                                 Full Grid Arrays=10201000
- Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  1 work at 100%
-  LB_kernel        : processors   0  -  0 work at 100%
-                     processor         1   works at    98%
- Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
+ Poisson Kernel Creation:
+   MPI tasks                           :  2
+   OpenMP threads per task             :  2
+   Boundary Conditions                 : Isolated
+   Memory Requirements per MPI task:
+     Density (MB)                      :  5.45
+     Kernel (MB)                       :  5.60
+     Full Grid Arrays (MB)             :  9.73
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 1                : 100%
+       Kernel:
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1432 points=     35712
    Fine resolution grid: Number of segments=        212 points=      1664
@@ -170,7 +180,7 @@
  Processes from 0 to 1 treat 7 orbitals 
  Total Number of Orbitals        14
  occup(1:14)= 1.0000
- Wavefunctions memory occupation for root MPI process:    10 MB   120 KB     0 B
+ Wavefunctions memory occupation for root MPI process:  10 MB 120 KB 0
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Mn               2                   14
@@ -209,498 +219,537 @@
  Atomic Input Orbital Generation: [
  {Atom Type: Mn, Electronic configuration: {s: [ 1.00,  1.00], d: [ 1.00,  0.00,  1.00,  0.00,  1.00,  0.00,  1.00,  0.00,  1.00,  0.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  8.96E-04, 
-             GPU acceleration:  No, Total electronic charge:  13.999998485026, 
+             GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+      Total electronic charge:  13.999997936200, 
+                     Electronic charge changed by rho compression:  5.487449055153E-07, 
  Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Expected kinetic energy:  47.6314156916, 
- Energies: {Ekin:  4.76527241713E+01, Epot: -2.16309132050E+01, Enl: -3.05368638077E+01, 
-              EH:  3.64139906850E+01,  EXC: -6.76953927359E+00, EvXC: -8.92942663358E+00}, 
- EKS: -2.93401679931191524E+01, 
+ Energies: {Ekin:  4.76527241713E+01, Epot: -2.16309139708E+01, Enl: -3.05368638077E+01, 
+              EH:  3.64139899171E+01,  EXC: -6.76953927182E+00, EvXC: -8.92942663124E+00}, 
+ EKS: -2.93401679915604845E+01, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
- {e: -3.745798295820E-01, f:  1.0000}, 
- {e: -3.745601722072E-01, f:  1.0000}, 
- {e: -3.721281560747E-01, f:  1.0000}, 
- {e: -3.721280064992E-01, f:  1.0000}, 
- {e: -3.721087717976E-01, f:  1.0000}, 
- {e: -3.721086251628E-01, f:  1.0000}, 
- {e: -3.688216505551E-01, f:  1.0000}, 
- {e: -3.688039134390E-01, f:  1.0000}, 
- {e: -3.675368027809E-01, f:  1.0000}, 
- {e: -3.675191052257E-01, f:  1.0000}, 
- {e: -2.369005067089E-01, f:  1.0000}, 
- {e: -2.367935891208E-01, f:  1.0000}, 
- {e: -1.308356103284E-01, f:  1.0000}, 
- {e: -1.307214745738E-01, f:  1.0000}, 
- {e:  5.127620299620E-02, f:  0.0000}, 
- {e:  5.127636015134E-02, f:  0.0000}, 
- {e:  5.129474666486E-02, f:  0.0000}, 
- {e:  5.129490232535E-02, f:  0.0000}, 
- {e:  5.469090985456E-02, f:  0.0000}, 
- {e:  5.470750339052E-02, f:  0.0000}, 
- {e:  5.496806946096E-02, f:  0.0000}, 
- {e:  5.498211211784E-02, f:  0.0000}, 
- {e:  5.593385379831E-02, f:  0.0000}, 
- {e:  5.595039841455E-02, f:  0.0000}], 
+ {e: -3.745798807032E-01, f:  1.0000}, 
+ {e: -3.745602307079E-01, f:  1.0000}, 
+ {e: -3.721282071353E-01, f:  1.0000}, 
+ {e: -3.721280576612E-01, f:  1.0000}, 
+ {e: -3.721088302811E-01, f:  1.0000}, 
+ {e: -3.721086838033E-01, f:  1.0000}, 
+ {e: -3.688217017143E-01, f:  1.0000}, 
+ {e: -3.688039720315E-01, f:  1.0000}, 
+ {e: -3.675368539278E-01, f:  1.0000}, 
+ {e: -3.675191638060E-01, f:  1.0000}, 
+ {e: -2.369005591747E-01, f:  1.0000}, 
+ {e: -2.367936454950E-01, f:  1.0000}, 
+ {e: -1.308356624781E-01, f:  1.0000}, 
+ {e: -1.307215306485E-01, f:  1.0000}, 
+ {e:  5.127615193997E-02, f:  0.0000}, 
+ {e:  5.127630899042E-02, f:  0.0000}, 
+ {e:  5.129468818563E-02, f:  0.0000}, 
+ {e:  5.129484369420E-02, f:  0.0000}, 
+ {e:  5.469085869895E-02, f:  0.0000}, 
+ {e:  5.470744479772E-02, f:  0.0000}, 
+ {e:  5.496801836727E-02, f:  0.0000}, 
+ {e:  5.498205365266E-02, f:  0.0000}, 
+ {e:  5.593380264738E-02, f:  0.0000}, 
+ {e:  5.595033983155E-02, f:  0.0000}], 
  IG wavefunctions defined:  Yes, 
  Accuracy estimation for this run: {Energy:  2.13E-02, Convergence Criterion:  1.52E-03}}
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization:&itrep0001
+   - Subspace Optimization: &itrep0001
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  13.999998480435, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999997933090, 
+ Electronic charge changed by rho compression:  5.472634132531E-07, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.77939774721E+01, Epot: -2.17565659080E+01, Enl: -3.06032338391E+01, 
-              EH:  3.62895669279E+01,  EXC: -6.76816009790E+00, EvXC: -8.92722139093E+00}, 
- iter:  1, EKS: -2.92673397364913654E+01, gnrm:  1.16E-01, 
+ Energies: {Ekin:  4.77939774730E+01, Epot: -2.17565666639E+01, Enl: -3.06032338397E+01, 
+              EH:  3.62895661702E+01,  EXC: -6.76816009639E+00, EvXC: -8.92722138892E+00}, 
+ iter:  1, EKS: -2.92673397349444500E+01, gnrm:  1.16E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
- GPU acceleration:  No, Total electronic charge:  13.999998530424, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998491366, 
+ Electronic charge changed by rho compression:  3.898929357149E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.91578573578E+01, Epot: -2.16028480691E+01, Enl: -3.16354993645E+01, 
-              EH:  3.68735481799E+01,  EXC: -6.90445234293E+00, EvXC: -9.10972288769E+00}, 
- iter:  2, EKS: -2.93197795375035284E+01, gnrm:  3.40E-02, 
+ Energies: {Ekin:  4.91578573044E+01, Epot: -2.16028481307E+01, Enl: -3.16354993258E+01, 
+              EH:  3.68735481011E+01,  EXC: -6.90445233729E+00, EvXC: -9.10972288013E+00}, 
+ iter:  2, EKS: -2.93197795369909500E+01, gnrm:  3.40E-02, 
  DIIS weights: [ 7.92E-02,  9.21E-01, -9.32E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
- GPU acceleration:  No, Total electronic charge:  13.999998527195, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998493551, 
+ Electronic charge changed by rho compression:  3.355644828673E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.93203316055E+01, Epot: -2.16480627808E+01, Enl: -3.17863467782E+01, 
-              EH:  3.68525500291E+01,  EXC: -6.91151717544E+00, EvXC: -9.11945961979E+00}, 
- iter:  3, EKS: -2.93296973649834669E+01, gnrm:  1.62E-02, 
+ Energies: {Ekin:  4.93203315926E+01, Epot: -2.16480628237E+01, Enl: -3.17863467681E+01, 
+              EH:  3.68525499829E+01,  EXC: -6.91151717472E+00, EvXC: -9.11945961879E+00}, 
+ iter:  3, EKS: -2.93296973646056358E+01, gnrm:  1.62E-02, 
  DIIS weights: [-1.96E-01, -1.19E-01,  1.31E+00, -2.76E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
- GPU acceleration:  No, Total electronic charge:  13.999998523954, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998488630, 
+ Electronic charge changed by rho compression:  3.526204395143E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94389008306E+01, Epot: -2.16704231242E+01, Enl: -3.18980460782E+01, 
-              EH:  3.68452238702E+01,  EXC: -6.91859087001E+00, EvXC: -9.12948874403E+00}, 
- iter:  4, EKS: -2.93349061946499106E+01, gnrm:  9.76E-03, 
+ Energies: {Ekin:  4.94389008410E+01, Epot: -2.16704231682E+01, Enl: -3.18980460848E+01, 
+              EH:  3.68452238304E+01,  EXC: -6.91859087137E+00, EvXC: -9.12948874582E+00}, 
+ iter:  4, EKS: -2.93349061945098768E+01, gnrm:  9.76E-03, 
  DIIS weights: [-5.94E-03, -2.62E-01,  5.19E-02,  1.22E+00, -5.68E-04], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
- GPU acceleration:  No, Total electronic charge:  13.999998523182, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485579, 
+ Electronic charge changed by rho compression:  3.758706412782E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94468734844E+01, Epot: -2.16726861804E+01, Enl: -3.19050001328E+01, 
-              EH:  3.68462629005E+01,  EXC: -6.92044519681E+00, EvXC: -9.13215680256E+00}, 
- iter:  5, EKS: -2.93363759502641912E+01, gnrm:  4.71E-03, 
+ Energies: {Ekin:  4.94468734872E+01, Epot: -2.16726862313E+01, Enl: -3.19050001360E+01, 
+              EH:  3.68462628493E+01,  EXC: -6.92044519690E+00, EvXC: -9.13215680268E+00}, 
+ iter:  5, EKS: -2.93363759501465111E+01, gnrm:  4.71E-03, 
  DIIS weights: [ 3.64E-02,  7.55E-02, -2.41E-01, -1.66E-01,  1.30E+00, -2.14E-04], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
- GPU acceleration:  No, Total electronic charge:  13.999998524197, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485815, 
+ Electronic charge changed by rho compression:  3.836668049928E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94173499744E+01, Epot: -2.16756243636E+01, Enl: -3.18844754849E+01, 
-              EH:  3.68341374142E+01,  EXC: -6.91831986027E+00, EvXC: -9.12941155881E+00}, 
- iter:  6, EKS: -2.93368074164422339E+01, gnrm:  3.35E-03, 
+ Energies: {Ekin:  4.94173499721E+01, Epot: -2.16756244122E+01, Enl: -3.18844754825E+01, 
+              EH:  3.68341373657E+01,  EXC: -6.91831986053E+00, EvXC: -9.12941155914E+00}, 
+ iter:  6, EKS: -2.93368074163415500E+01, gnrm:  3.35E-03, 
  DIIS weights: [-1.03E-02,  8.65E-02,  1.28E-02, -3.88E-01, -1.80E-01,  1.48E+00, -1.31E-04], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
- GPU acceleration:  No, Total electronic charge:  13.999998524547, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486125, 
+ Electronic charge changed by rho compression:  3.838013107327E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94133813236E+01, Epot: -2.16710790911E+01, Enl: -3.18787350589E+01, 
-              EH:  3.68413267139E+01,  EXC: -6.91981092951E+00, EvXC: -9.13145503100E+00}, 
- iter:  7, EKS: -2.93371272654222253E+01, gnrm:  3.11E-03, 
+ Energies: {Ekin:  4.94133813218E+01, Epot: -2.16710791437E+01, Enl: -3.18787350584E+01, 
+              EH:  3.68413266598E+01,  EXC: -6.91981092924E+00, EvXC: -9.13145503064E+00}, 
+ iter:  7, EKS: -2.93371272653203974E+01, gnrm:  3.11E-03, 
  DIIS weights: [-3.78E-02,  3.77E-02,  1.44E-01, -2.44E-01, -7.83E-01,  1.88E+00, -7.24E-05], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
- GPU acceleration:  No, Total electronic charge:  13.999998524573, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486002, 
+ Electronic charge changed by rho compression:  3.854101393586E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94142949226E+01, Epot: -2.16688700251E+01, Enl: -3.18795857693E+01, 
-              EH:  3.68443418230E+01,  EXC: -6.92094860520E+00, EvXC: -9.13306814403E+00}, 
- iter:  8, EKS: -2.93373949825933380E+01, gnrm:  2.83E-03, 
+ Energies: {Ekin:  4.94142949246E+01, Epot: -2.16688700737E+01, Enl: -3.18795857699E+01, 
+              EH:  3.68443417761E+01,  EXC: -6.92094860610E+00, EvXC: -9.13306814523E+00}, 
+ iter:  8, EKS: -2.93373949826083873E+01, gnrm:  2.83E-03, 
  DIIS weights: [ 2.83E-03,  5.82E-02,  2.35E-01, -8.89E-01, -3.33E-02,  1.63E+00, -2.81E-05], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
- GPU acceleration:  No, Total electronic charge:  13.999998524576, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486153, 
+ Electronic charge changed by rho compression:  3.835912387729E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000,  0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94140130539E+01, Epot: -2.16674289835E+01, Enl: -3.18778080135E+01, 
-              EH:  3.68480015994E+01,  EXC: -6.92229224194E+00, EvXC: -9.13493576513E+00}, 
- iter:  9, EKS: -2.93375938458642125E+01, gnrm:  2.26E-03, 
+ Energies: {Ekin:  4.94140130572E+01, Epot: -2.16674290357E+01, Enl: -3.18778080159E+01, 
+              EH:  3.68480015484E+01,  EXC: -6.92229224285E+00, EvXC: -9.13493576642E+00}, 
+ iter:  9, EKS: -2.93375938458665573E+01, gnrm:  2.26E-03, 
  DIIS weights: [-2.97E-02,  1.99E-01, -6.73E-02, -8.33E-01,  4.10E-01,  1.32E+00, -1.03E-05], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 10
- GPU acceleration:  No, Total electronic charge:  13.999998524626, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485860, 
+ Electronic charge changed by rho compression:  3.872000853278E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94137775462E+01, Epot: -2.16679438294E+01, Enl: -3.18774311139E+01, 
-              EH:  3.68482105262E+01,  EXC: -6.92335687520E+00, EvXC: -9.13646883250E+00}, 
- iter:  10, EKS: -2.93377077926207690E+01, gnrm:  1.83E-03, 
+ Energies: {Ekin:  4.94137775468E+01, Epot: -2.16679438826E+01, Enl: -3.18774311146E+01, 
+              EH:  3.68482104731E+01,  EXC: -6.92335687573E+00, EvXC: -9.13646883327E+00}, 
+ iter:  10, EKS: -2.93377077925708889E+01, gnrm:  1.83E-03, 
  DIIS weights: [ 4.07E-03,  5.04E-02, -7.75E-02, -2.00E-01,  4.41E-02,  1.18E+00, -3.10E-06], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 11
- GPU acceleration:  No, Total electronic charge:  13.999998524724, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486159, 
+ Electronic charge changed by rho compression:  3.851373620023E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94122485925E+01, Epot: -2.16678431649E+01, Enl: -3.18756504032E+01, 
-              EH:  3.68487695161E+01,  EXC: -6.92376704998E+00, EvXC: -9.13705305934E+00}, 
- iter:  11, EKS: -2.93377403089184483E+01, gnrm:  1.48E-03, 
+ Energies: {Ekin:  4.94122485919E+01, Epot: -2.16678432178E+01, Enl: -3.18756504026E+01, 
+              EH:  3.68487694631E+01,  EXC: -6.92376705018E+00, EvXC: -9.13705305964E+00}, 
+ iter:  11, EKS: -2.93377403088418660E+01, gnrm:  1.48E-03, 
  DIIS weights: [-5.05E-02,  1.42E-01, -3.40E-02, -2.97E-01,  2.23E-01,  1.02E+00, -1.23E-06], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 12
- GPU acceleration:  No, Total electronic charge:  13.999998524803, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485253, 
+ Electronic charge changed by rho compression:  3.949829086025E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94110691473E+01, Epot: -2.16684622488E+01, Enl: -3.18748565136E+01, 
-              EH:  3.68478181243E+01,  EXC: -6.92382038659E+00, EvXC: -9.13714692498E+00}, 
- iter:  12, EKS: -2.93377530275724538E+01, gnrm:  1.34E-03, 
+ Energies: {Ekin:  4.94110691462E+01, Epot: -2.16684623040E+01, Enl: -3.18748565125E+01, 
+              EH:  3.68478180690E+01,  EXC: -6.92382038652E+00, EvXC: -9.13714692491E+00}, 
+ iter:  12, EKS: -2.93377530274923899E+01, gnrm:  1.34E-03, 
  DIIS weights: [ 4.70E-02,  6.47E-03, -1.52E-01, -6.64E-02,  1.35E-01,  1.03E+00, -8.47E-07], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 13
- GPU acceleration:  No, Total electronic charge:  13.999998524831, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486361, 
+ Electronic charge changed by rho compression:  3.841984330677E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94107617494E+01, Epot: -2.16687753369E+01, Enl: -3.18744897254E+01, 
-              EH:  3.68476190461E+01,  EXC: -6.92392695914E+00, EvXC: -9.13729922646E+00}, 
- iter:  13, EKS: -2.93377619183545093E+01, gnrm:  1.23E-03, 
+ Energies: {Ekin:  4.94107617486E+01, Epot: -2.16687753893E+01, Enl: -3.18744897245E+01, 
+              EH:  3.68476189937E+01,  EXC: -6.92392695918E+00, EvXC: -9.13729922651E+00}, 
+ iter:  13, EKS: -2.93377619182692868E+01, gnrm:  1.23E-03, 
  DIIS weights: [-9.46E-03,  3.27E-02,  8.96E-02, -3.24E-01, -3.27E-01,  1.54E+00, -6.30E-07], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 14
- GPU acceleration:  No, Total electronic charge:  13.999998524858, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486709, 
+ Electronic charge changed by rho compression:  3.810159654449E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94103989080E+01, Epot: -2.16691352301E+01, Enl: -3.18742658580E+01, 
-              EH:  3.68471387879E+01,  EXC: -6.92393963127E+00, EvXC: -9.13732214336E+00}, 
- iter:  14, EKS: -2.93377702825371003E+01, gnrm:  1.12E-03, 
+ Energies: {Ekin:  4.94103989075E+01, Epot: -2.16691352811E+01, Enl: -3.18742658572E+01, 
+              EH:  3.68471387372E+01,  EXC: -6.92393963148E+00, EvXC: -9.13732214363E+00}, 
+ iter:  14, EKS: -2.93377702824522473E+01, gnrm:  1.12E-03, 
  DIIS weights: [-3.09E-02,  8.70E-02,  8.72E-02, -2.89E-01, -8.83E-01,  2.03E+00, -5.19E-07], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 15
- GPU acceleration:  No, Total electronic charge:  13.999998524881, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485552, 
+ Electronic charge changed by rho compression:  3.928066050207E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94102054675E+01, Epot: -2.16694693417E+01, Enl: -3.18740939921E+01, 
-              EH:  3.68468236682E+01,  EXC: -6.92400933181E+00, EvXC: -9.13742166170E+00}, 
- iter:  15, EKS: -2.93377810312488450E+01, gnrm:  9.72E-04, 
+ Energies: {Ekin:  4.94102054671E+01, Epot: -2.16694693958E+01, Enl: -3.18740939920E+01, 
+              EH:  3.68468236134E+01,  EXC: -6.92400933122E+00, EvXC: -9.13742166091E+00}, 
+ iter:  15, EKS: -2.93377810311200307E+01, gnrm:  9.72E-04, 
  DIIS weights: [-1.24E-02,  1.06E-01, -3.32E-03, -9.28E-01,  1.72E-01,  1.67E+00, -4.02E-07], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 16
- GPU acceleration:  No, Total electronic charge:  13.999998524918, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998485909, 
+ Electronic charge changed by rho compression:  3.896240663437E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94098197090E+01, Epot: -2.16699502457E+01, Enl: -3.18738423815E+01, 
-              EH:  3.68462499015E+01,  EXC: -6.92406882095E+00, EvXC: -9.13751020831E+00}, 
- iter:  16, EKS: -2.93377932589469310E+01, gnrm:  7.67E-04, 
+ Energies: {Ekin:  4.94098197090E+01, Epot: -2.16699503001E+01, Enl: -3.18738423814E+01, 
+              EH:  3.68462498472E+01,  EXC: -6.92406882089E+00, EvXC: -9.13751020823E+00}, 
+ iter:  16, EKS: -2.93377932588634138E+01, gnrm:  7.67E-04, 
  DIIS weights: [-1.80E-01,  3.11E-01,  1.79E+00, -3.13E+00, -3.34E-01,  2.54E+00, -2.03E-07], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 17
- GPU acceleration:  No, Total electronic charge:  13.999998524963, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486230, 
+ Electronic charge changed by rho compression:  3.868493791970E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
  Magnetic polarization per orbital: [
  {iorb:  1, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  2, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  3, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  4, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  5, M:  [  0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  6, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  7, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  8, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {iorb:  9, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {iorb:  10, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  3, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  4, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  5, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
+ {iorb:  6, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  7, M:  [ -0.00000,  0.00000, -1.00000 ]}, 
+ {iorb:  8, M:  [  0.00000, -0.00000,  1.00000 ]}, 
+ {iorb:  9, M:  [  0.00000, -0.00000, -1.00000 ]}, 
+ {iorb:  10, M:  [ -0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  11, M:  [  0.00000,  0.00000, -1.00000 ]}, 
  {iorb:  12, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
  {iorb:  13, M:  [  0.00000,  0.00000,  1.00000 ]}, 
  {iorb:  14, M:  [ -0.00000, -0.00000, -1.00000 ]}], 
- Energies: {Ekin:  4.94094574961E+01, Epot: -2.16702798230E+01, Enl: -3.18734472678E+01, 
-              EH:  3.68460339429E+01,  EXC: -6.92423325286E+00, EvXC: -9.13774157687E+00}, 
- iter:  17, EKS: -2.93378070401985624E+01, gnrm:  4.79E-04, 
+ Energies: {Ekin:  4.94094574971E+01, Epot: -2.16702798746E+01, Enl: -3.18734472675E+01, 
+              EH:  3.68460338926E+01,  EXC: -6.92423325345E+00, EvXC: -9.13774157767E+00}, 
+ iter:  17, EKS: -2.93378070401203459E+01, gnrm:  4.79E-04, 
  DIIS weights: [-1.55E-01,  8.28E-01, -9.47E-01, -5.36E-01,  6.24E-01,  1.19E+00, -1.16E-07], 
  Orthogonalization Method:  0}
        -  &FINAL  { #------------------------------------------------------------- iter: 18
- GPU acceleration:  No, Total electronic charge:  13.999998524998, 
- Magnetic density orientation:  [  0.0000,  0.0000, -0.0000 ], 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
+ Total electronic charge:  13.999998486172, 
+ Electronic charge changed by rho compression:  3.877940990549E-08, 
+      Magnetic density orientation:  [ -0.0000, -0.0000, -0.0000 ], 
  PSolver, free  BC, dimensions:   101  101  125   proc    2  ixc:      1 ... done.
  Hamiltonian Applied:  Yes, 
- iter:  18, EKS: -2.93378123196580560E+01, gnrm:  4.79E-04,  #FINAL
- Energies: {Ekin:  4.94090945290E+01, Epot: -2.16706788570E+01, Enl: -3.18732042811E+01, 
-              EH:  3.68455561710E+01,  EXC: -6.92430905764E+00, EvXC: -9.13785334463E+00, 
+ iter:  18, EKS: -2.93378123195732030E+01, gnrm:  4.79E-04,  #FINAL
+ Energies: {Ekin:  4.94090945291E+01, Epot: -2.16706789096E+01, Enl: -3.18732042805E+01, 
+              EH:  3.68455561190E+01,  EXC: -6.92430905794E+00, EvXC: -9.13785334505E+00, 
             Eion:  9.42898817335E+00}, 
  SCF criterion:  0}
-        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+        #-------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Orbitals: [
- {e: -3.392007465927E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
- {e: -3.391288163544E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
- {e: -3.373651171402E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
- {e: -3.373643201705E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {e: -3.372905869769E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
- {e: -3.372898389517E-01, f:  1.0000, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {e: -3.369358862915E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
- {e: -3.368649142381E-01, f:  1.0000, M:  [  0.00000, -0.00000, -1.00000 ]}, 
- {e: -3.355574538326E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
- {e: -3.354865301528E-01, f:  1.0000, M:  [  0.00000,  0.00000, -1.00000 ]}, 
- {e: -2.413009592637E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
- {e: -2.412745863152E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
- {e: -1.398657573897E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
- {e: -1.398630953698E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}]
+ {e: -3.392007501023E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {e: -3.391288202431E-01, f:  1.0000, M:  [  0.00000,  0.00000, -1.00000 ]}, 
+ {e: -3.373651206503E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {e: -3.373643236696E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
+ {e: -3.372905908960E-01, f:  1.0000, M:  [  0.00000,  0.00000, -1.00000 ]}, 
+ {e: -3.372898428535E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
+ {e: -3.369358897947E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {e: -3.368649181673E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
+ {e: -3.355574573217E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
+ {e: -3.354865340681E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}, 
+ {e: -2.413009629605E-01, f:  1.0000, M:  [ -0.00000, -0.00000,  1.00000 ]}, 
+ {e: -2.412745901000E-01, f:  1.0000, M:  [  0.00000,  0.00000, -1.00000 ]}, 
+ {e: -1.398657610917E-01, f:  1.0000, M:  [  0.00000,  0.00000,  1.00000 ]}, 
+ {e: -1.398630990733E-01, f:  1.0000, M:  [ -0.00000, -0.00000, -1.00000 ]}]
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
  Total electronic charge               :  13.999998524998
- Magnetic density orientation          :  [  0.0000,  0.0000, -0.0000 ]
+ Magnetic density orientation          :  [ -0.0000, -0.0000, -0.0000 ]
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  101,  101,  125 ]
@@ -710,19 +759,19 @@
   |P| =   6.978186E+01 (Debye)    (Px,Py,Pz)=   -2.6292E-02  -2.6292E-02   6.9782E+01
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.59065989E-04
- average noise along y direction:   1.59066082E-04
- average noise along z direction:   1.13091905E-04
- total average noise            :   2.51781227E-04
- clean forces norm (Ha/Bohr): maxval=  1.650388246124E-02  fnrm2=  5.447562725888E-04
- raw forces:                  maxval=  1.658458614128E-02  fnrm2=  5.448196827607E-04
- CPU time/ELAPSED time for root process     0       192.63       348.10
+ average noise along x direction:   1.59064421E-04
+ average noise along y direction:   1.59064501E-04
+ average noise along z direction:   1.13090265E-04
+ total average noise            :   2.51778501E-04
+ clean forces norm (Ha/Bohr): maxval=  1.650388186324E-02  fnrm2=  5.447562331118E-04
+ raw forces:                  maxval=  1.658458437046E-02  fnrm2=  5.448196419088E-04
+ CPU time/ELAPSED time for root process     0       218.81       402.37
  Final values of the Forces for each atom
-     1     Mn  5.92923E-21 -7.62330E-21 -1.65039E-02
-     2     Mn  5.92923E-21 -7.62330E-21  1.65039E-02
+     1     Mn  5.92923E-21 -8.47033E-22 -1.65039E-02
+     2     Mn  5.92923E-21 -8.47033E-22  1.65039E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 21399
-   Tot. No. of Deallocations: 21399
+   Tot. No. of Allocations  : 21532
+   Tot. No. of Deallocations: 21532
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 294

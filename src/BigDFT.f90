@@ -56,6 +56,7 @@ program BigDFT
    if (iproc ==0) then
       !call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
       call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+      call yaml_new_document()
    end if
 
    ! find out which input files will be used

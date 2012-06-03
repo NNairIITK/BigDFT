@@ -1,5 +1,5 @@
 
-subroutine updatePotential(iproc,nproc,geocode,ixc,nspin,hxh,hyh,hzh,Glr,denspot,ehart,eexcu,vexcu)
+subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
 !
 ! Purpose:
 ! ========
@@ -52,10 +52,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc,nproc,ixc,nspin
-real(gp), intent(in) :: hxh,hyh,hzh
-character(len=1), intent(in) :: geocode
-type(locreg_descriptors), intent(in) :: Glr
+integer, intent(in) :: ixc,nspin
 type(DFT_local_fields), intent(inout) :: denspot
 real(8),intent(out):: ehart, eexcu, vexcu
 
@@ -71,15 +68,16 @@ nullifyVXC=.false.
 
 if(nspin==4) then
    !this wrapper can be inserted inside the poisson solver 
-   call PSolverNC(geocode,'D',iproc,nproc,&
-        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,denspot%dpbox%n3d,&
-        ixc,hxh,hyh,hzh,&
-        denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+   call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
+        denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+        denspot%dpbox%n3d,ixc,&
+        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+        denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
 else
    if (.not. associated(denspot%V_XC)) then   
       !Allocate XC potential
       if (denspot%dpbox%n3p >0) then
-         allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpbox%n3p,nspin+ndebug),stat=istat)
+         allocate(denspot%V_XC(denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%n3p,nspin+ndebug),stat=istat)
          call memocc(istat,denspot%V_XC,'denspot%V_XC',subname)
       else
          allocate(denspot%V_XC(1,1,1,1+ndebug),stat=istat)
@@ -88,24 +86,25 @@ else
       nullifyVXC=.true.
    end if
 
-   call XC_potential(geocode,'D',iproc,nproc,&
-        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+   call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
+        denspot%pkernel%mpi_comm,&
+        denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
+        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)
    
-   call H_potential(geocode,'D',iproc,nproc,&
-        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-        denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,0.0_dp,.true.,&
+   call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart,0.0_dp,.true.,&
         quiet=denspot%PSquiet) !optional argument
    
    !sum the two potentials in rhopot array
    !fill the other part, for spin, polarised
    if (nspin == 2) then
-      call dcopy(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,denspot%rhov(1),1,&
-           denspot%rhov(1+Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p),1)
+      call dcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
+           denspot%rhov(1+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p),1)
    end if
    !spin up and down together with the XC part
-   call axpy(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p*nspin,1.0_dp,denspot%V_XC(1,1,1,1),1,&
+   call axpy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p*nspin,1.0_dp,denspot%V_XC(1,1,1,1),1,&
         denspot%rhov(1),1)
+   
    if (nullifyVXC) then
       iall=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
       deallocate(denspot%V_XC,stat=istat)

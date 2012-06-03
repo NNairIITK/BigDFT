@@ -471,10 +471,12 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
           w%x_f3(1))
      call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c(0,0,0))
-     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%xpsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%xpsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
      call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c(0,0,0))
-     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%ypsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%ypsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
   else if (lr%geocode == 'P') then
 

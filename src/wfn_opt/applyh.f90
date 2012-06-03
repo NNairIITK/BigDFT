@@ -32,7 +32,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
@@ -51,7 +51,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      stop
   end if
 
-  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
+  if (.not.(associated(pkernel%kernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop
@@ -217,7 +217,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: epot_sum,evSIC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
-  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
@@ -236,7 +236,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      stop
   end if
 
-  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
+  if (.not.(associated(pkernel%kernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop

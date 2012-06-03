@@ -87,12 +87,12 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   rprimd(2,3) = n2*h3*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha)
   rprimd(3,3) = n2*h3*sqrt(detg)/dsin(alpha)
 
-  write(*,*) '\n'
-  write(*,*) 'ABINIT metric computation ----------------------------------------------------' 
-  call metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
-  write(*,*) '------------------------------------------------------------------------------'
+!!$  write(*,*) '\n'
+!!$  write(*,*) 'ABINIT metric computation ----------------------------------------------------' 
+!!$  call metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
+!!$  write(*,*) '------------------------------------------------------------------------------'
 
-  write(*,*) 'nker1, nker2, nker3 = ', nker1,nker2,nker3
+!!$  write(*,*) 'nker1, nker2, nker3 = ', nker1,nker2,nker3
    
   !triclinic cell
   !covariant metric
@@ -122,18 +122,18 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   ! gu(3,2) = gu(2,3)
 
  
-  write(*,*) 'Reciprocal space metric'
-  write(*,*) '-----------------------'
-
-  write(*,*) 'gmet(1,1) = ', gmet(1,1)
-  write(*,*) 'gmet(1,2) = ', gmet(1,2)
-  write(*,*) 'gmet(1,3) = ', gmet(1,3)
-  write(*,*) 'gmet(2,1) = ', gmet(2,1)
-  write(*,*) 'gmet(2,2) = ', gmet(2,2)
-  write(*,*) 'gmet(2,3) = ', gmet(2,3)
-  write(*,*) 'gmet(3,1) = ', gmet(3,1)
-  write(*,*) 'gmet(3,2) = ', gmet(3,2)
-  write(*,*) 'gmet(3,3) = ', gmet(3,3)
+!!$  write(*,*) 'Reciprocal space metric'
+!!$  write(*,*) '-----------------------'
+!!$
+!!$  write(*,*) 'gmet(1,1) = ', gmet(1,1)
+!!$  write(*,*) 'gmet(1,2) = ', gmet(1,2)
+!!$  write(*,*) 'gmet(1,3) = ', gmet(1,3)
+!!$  write(*,*) 'gmet(2,1) = ', gmet(2,1)
+!!$  write(*,*) 'gmet(2,2) = ', gmet(2,2)
+!!$  write(*,*) 'gmet(2,3) = ', gmet(2,3)
+!!$  write(*,*) 'gmet(3,1) = ', gmet(3,1)
+!!$  write(*,*) 'gmet(3,2) = ', gmet(3,2)
+!!$  write(*,*) 'gmet(3,3) = ', gmet(3,3)
   
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -167,64 +167,64 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   do i3=1,nker3/nproc
      j3=iproc*(nker3/nproc)+i3
      if (j3 <= n3/2+1) then
-        p3=real(j3-1,dp)/real(n3,dp)
+!!$        p3=real(j3-1,dp)/real(n3,dp)
         mu3=real(j3-1,dp)/real(n3,dp)
         mu3=(mu3/h2)**2 !beware of the exchanged dimension
 
-        !acerioni
-        ig3=i3-int(i3/id3)*n3-1
-        gs3=gq(3,i3)*gq(3,i3)*gmet(3,3)
-        gqgm23=gq(3,i3)*gmet(2,3)*2
-        gqgm13=gq(3,i3)*gmet(1,3)*2
-        !acerioni
+!!$        !acerioni
+!!$        ig3=i3-int(i3/id3)*n3-1
+!!$        gs3=gq(3,i3)*gq(3,i3)*gmet(3,3)
+!!$        gqgm23=gq(3,i3)*gmet(2,3)*2
+!!$        gqgm13=gq(3,i3)*gmet(1,3)*2
+!!$        !acerioni
         do i2=1,nker2
            p2=real(i2-1,dp)/real(n2,dp)
-           !acerioni
-           ig2=i2-int(i2/id2)*n2-1
-           gs2=gs3+ gq(2,i2)*(gq(2,i2)*gmet(2,2)+gqgm23)
-           gqgm12=gq(2,i2)*gmet(1,2)*2
-           gqg2p3=gqgm13+gqgm12
-           !acerioni
+!!$           !acerioni
+!!$           ig2=i2-int(i2/id2)*n2-1
+!!$           gs2=gs3+ gq(2,i2)*(gq(2,i2)*gmet(2,2)+gqgm23)
+!!$           gqgm12=gq(2,i2)*gmet(1,2)*2
+!!$           gqg2p3=gqgm13+gqgm12
+!!$           !acerioni
            do i1=1,nker1
               p1=real(i1-1,dp)/real(n1,dp)
               !beware of the exchanged dimension
-              !ker = pi*((p1/h1)**2+(p2/h3)**2+mu3)+mu0_screening**2/16.0_dp/datan(1.0_dp)
+              ker = pi*((p1/h1)**2+(p2/h3)**2+mu3)+mu0_screening**2/16.0_dp/datan(1.0_dp)
               
-              !triclinic cell
-              !acerioni
-              ig1=i1-int(i1/id1)*n1-1
-              gs=gs2 + gq(1,i1)*(gq(1,i1)*gmet(1,1)+gqg2p3)
-              gs = gs * 4.0d0*datan(1.0d0)
-              !gs=gs/16.0d0*datan(1.0d0)
-              !write(16,*) i1,i2,i3,gs
-
-
-                b11=gprimd(1,1)*real(ig1,kind=8)
-                b21=gprimd(2,1)*real(ig1,kind=8)
-                b31=gprimd(3,1)*real(ig1,kind=8)
-                b12=gprimd(1,2)*real(ig2,kind=8)
-                b22=gprimd(2,2)*real(ig2,kind=8)
-                b32=gprimd(3,2)*real(ig2,kind=8)
-                b13=gprimd(1,3)*real(ig3,kind=8)
-                b23=gprimd(2,3)*real(ig3,kind=8)
-                b33=gprimd(3,3)*real(ig3,kind=8)
-
-                !g2cart(ifft)=( &
-                !     &     (b11+b12+b13)**2&
-                !     &     +(b21+b22+b23)**2&
-                !     &     +(b31+b32+b33)**2&
-                !     &     )
-
-                ker = mu0_screening**2/16.0_dp/datan(1.0_dp)
-                ker = ker + pi*((b11+b12+b13)**2 &
-                    &     +(b21+b22+b23)**2 &
-                    &     +(b31+b32+b33)**2 &
-                    &     )
-
-                ker = ker + pi*(gd(1,1)*(p1/h1)**2+gd(3,3)*(p2/h3)**2+gd(2,2)*(p3/h2)**2)
-                !ker = ker + 2.0_dp*pi*(gd(1,3)*(p1/h1)*(p2/h3)+gd(2,3)*(p2/h3)*(p3/h2)+gd(1,2)*(p1/h1)*(p3/h2))
-             
-              if (i3 == nker3/2) write(16,*) i1,i2,gs,ker
+!!$              !triclinic cell
+!!$              !acerioni
+!!$              ig1=i1-int(i1/id1)*n1-1
+!!$              gs=gs2 + gq(1,i1)*(gq(1,i1)*gmet(1,1)+gqg2p3)
+!!$              gs = gs * 4.0d0*datan(1.0d0)
+!!$              !gs=gs/16.0d0*datan(1.0d0)
+!!$              !write(16,*) i1,i2,i3,gs
+!!$
+!!$
+!!$                b11=gprimd(1,1)*real(ig1,kind=8)
+!!$                b21=gprimd(2,1)*real(ig1,kind=8)
+!!$                b31=gprimd(3,1)*real(ig1,kind=8)
+!!$                b12=gprimd(1,2)*real(ig2,kind=8)
+!!$                b22=gprimd(2,2)*real(ig2,kind=8)
+!!$                b32=gprimd(3,2)*real(ig2,kind=8)
+!!$                b13=gprimd(1,3)*real(ig3,kind=8)
+!!$                b23=gprimd(2,3)*real(ig3,kind=8)
+!!$                b33=gprimd(3,3)*real(ig3,kind=8)
+!!$
+!!$                !g2cart(ifft)=( &
+!!$                !     &     (b11+b12+b13)**2&
+!!$                !     &     +(b21+b22+b23)**2&
+!!$                !     &     +(b31+b32+b33)**2&
+!!$                !     &     )
+!!$
+!!$                ker = mu0_screening**2/16.0_dp/datan(1.0_dp)
+!!$                ker = ker + pi*((b11+b12+b13)**2 &
+!!$                    &     +(b21+b22+b23)**2 &
+!!$                    &     +(b31+b32+b33)**2 &
+!!$                    &     )
+!!$
+!!$                ker = ker + pi*(gd(1,1)*(p1/h1)**2+gd(3,3)*(p2/h3)**2+gd(2,2)*(p3/h2)**2)
+!!$                !ker = ker + 2.0_dp*pi*(gd(1,3)*(p1/h1)*(p2/h3)+gd(2,3)*(p2/h3)*(p3/h2)+gd(1,2)*(p1/h1)*(p3/h2))
+!!$             
+!!$              if (i3 == nker3/2) write(16,*) i1,i2,gs,ker
  
               
               if (ker/=0._dp) then
@@ -352,7 +352,8 @@ END SUBROUTINE fourtrans
 !!   @param itype_scf          Order of the scaling function
 !!   @param iproc,nproc        Number of process, number of processes
 !!   @param karray             output array
-subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha,beta,gamma)
+subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)
   
   use module_base
 
@@ -360,7 +361,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   include 'perfdata.inc'
   
   !Arguments
-  integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc,mpi_comm
   real(dp), intent(in) :: h1,h2,h3
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
@@ -744,7 +745,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
      call MPI_ALLTOALL(kernel,nker1*(nact2/nproc)*(nker3/nproc), &
           MPI_double_precision, &
           kernel_mpi,nker1*(nact2/nproc)*(nker3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
+          MPI_double_precision,mpi_comm,ierr)
 
 !!     !Maximum difference
 !!     max_diff = 0._dp
@@ -1105,11 +1106,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  integer, parameter :: n_points = 2**6
  !Better p_gauss for calculation
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
- !real(dp), dimension(1:90) :: p_gauss = 0.0_dp, w_gauss = 0.0_dp
+ !real(dp), dimension(89) :: p_gauss,w_gauss! = 0.0_dp, w_gauss = 0.0_dp
  !real(dp), dimension(n_gauss_Yukawa) :: p_gauss_Yukawa, w_gauss_Yukawa
  real(dp), dimension(:), allocatable :: fwork, p_gauss, w_gauss
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
- real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range
+ real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range,tt
  real(dp) :: factor, factor2 !mu0_screening = 1.0_dp !n(c) ,dx
  real(dp) :: a1,a2,a3,wg,k1,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
@@ -1117,7 +1118,9 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  integer :: i1, i2, i3, i_stat, i_all
  integer :: i03, iMin, iMax
  
-
+!print *,'arguments',n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
+!     hx,hy,hz,itype_scf,iproc,nproc,mu0_screening
+!print '(3(1pe25.17))',hx,hy,hz
  !Number of integration points : 2*itype_scf*n_points
  n_scf=2*itype_scf*n_points
  !Set karray
@@ -1283,6 +1286,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
     !Add to the kernel (only the local part)
     wg=w_gauss(i_gauss) * factor
+!tt=0.d0
     do i03 = iMin, iMax
        i3=i03-iproc*(nker3/nproc)
        k3=kernel_scf(i03,3) * wg
@@ -1292,11 +1296,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
           k2=kernel_scf(i2,2)*k3
           do i1=1,n1k
              karray(i1,i2,i3) = karray(i1,i2,i3) + kernel_scf(i1,1) * k2
+!             tt=tt+kernel_scf(i1,1) * k2
           end do
        end do
        !$omp end parallel do
     end do
-
+!print *,'igauss,tt',i_gauss,tt
 !!$    do i3=1,nker3/nproc  
 !!$       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
 !!$          i03=iproc*(nker3/nproc)+i3
@@ -1801,12 +1806,12 @@ END SUBROUTINE inserthalf
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !! Author:S
 !!    S. Goedecker, L. Genovese
-subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
+subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,mpi_comm,nproc,iproc,zf,zr)
   use module_base
   implicit none
   include 'perfdata.inc'
   !Arguments
-  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,mpi_comm
   real(dp), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
   real(dp), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
@@ -1939,7 +1944,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
      call MPI_ALLTOALL(zmpi2,2*n1*(nd2/nproc)*(nd3/nproc), &
           MPI_double_precision, &
           zmpi1,2*n1*(nd2/nproc)*(nd3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
+          MPI_double_precision,mpi_comm,ierr)
      ! output: I1,J2,j3,Jp2,(jp3)
   endif
 
@@ -2371,7 +2376,7 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
   integer :: ifft
   
   do ifft=1,nfft
-     if (ifft==39) write(130,'(1pe24.17)')halfft(1,:,ifft)
+     !if (ifft==39) write(130,'(1pe24.17)')halfft(1,:,ifft)
     call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
   enddo
 END SUBROUTINE copyreal

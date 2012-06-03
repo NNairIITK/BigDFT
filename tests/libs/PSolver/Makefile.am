@@ -31,7 +31,7 @@ EXTRA_DIST = PS_Check.out.ref
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise PS_Integral
 
-AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 PS_Check_SOURCES = PS_Check.f90
 PS_Check_LDADD = @LIBS_DEPENDENCIES@

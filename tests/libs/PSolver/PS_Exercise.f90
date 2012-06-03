@@ -1,4 +1,5 @@
- program exercise
+program exercise
+  use module_types
    use Poisson_Solver
    implicit none
    character(len=1) :: solvertype,afunc
@@ -10,7 +11,7 @@
    real(kind=8) :: sigma,length,hgrid,mu,energy,offset,acell,epot,intrhoS,intrhoF,intpotS,intpotF
    real(kind=8), dimension(:), allocatable :: fake_arr
    real(kind=8), dimension(:,:,:), allocatable :: psi,rhopot,rhoF,rhoS,potF,potS
-   real(kind=8), dimension(:), pointer :: kernel
+   type(coulomb_operator) :: kernel
    
    !Use arguments
    call getarg(1,chain)
@@ -113,15 +114,19 @@
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   call createKernel(0,1,solvertype,n1,n2,n3,hgrid,hgrid,hgrid,isf_order,kernel,.true.)
+   call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
    call cpu_time(t1)
 
    call cpu_time(t2)
-   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
-        rhopot,kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+!   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
+!        rhopot,kernel%kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+   call H_potential('G',kernel,rhopot,fake_arr,energy,offset,.false.,quiet='yes') !optional argument
+
    call cpu_time(t3)
 
-   deallocate(kernel)
+   call deallocate_coulomb_operator(kernel,'main')
+   !deallocate(kernel)
+
 
    !now calculate the maximum difference and compare with the analytic result
 

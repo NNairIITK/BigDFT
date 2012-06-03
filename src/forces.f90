@@ -280,7 +280,7 @@ contains
 
 end subroutine forces_via_finite_differences
 
-subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
   use module_base
@@ -289,7 +289,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
-  integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
+  integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize
   real(gp), intent(in) :: hx,hy,hz,psoffset
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
@@ -310,11 +310,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
-
   call to_zero(6,strten(1))
 
   call to_zero(6*4,strtens(1,1))
-
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
@@ -322,14 +320,20 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
+
+  !for a taksgroup Poisson Solver, multiply by the ratio.
+  !it is important that the forces are bitwise identical among the processors.
+  if (psolver_groupsize < nproc) call vscal(3*atoms%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
   
-  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
+  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
   call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
 
-  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-
+  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+  
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
+  
   if (atoms%geocode == 'P') then
      call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 

@@ -13,49 +13,61 @@
 !> Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
+  use yaml_output
   implicit none
-  integer :: length
+  integer :: length,namelen,ierr
   character(len = 64) :: fmt
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
 
   fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
   write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
+call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
 
-  write(*,'(23x,a)')'      TTTT         F       DDDDD    '
-  write(*,'(23x,a)')'     T    T               D         '
-  write(*,'(23x,a)')'    T     T        F     D          '
-  write(*,'(23x,a)')'    T    T         F     D        D '
-  write(*,'(23x,a)')'    TTTTT          F     D         D'
-  write(*,'(23x,a)')'    T    T         F     D         D'
-  write(*,'(23x,a)')'    T     T        F     D         D'
-  write(*,'(23x,a)')'    T      T       F     D         D'
-  write(*,'(23x,a)')'    T     T     FFFF     D         D'
-  write(*,'(23x,a)')'    T TTTT         F      D        D'
-  write(*,'(23x,a)')'    T             F        D      D '
-  write(*,'(23x,a)')'TTTTTTTTT    FFFFF          DDDDDD  ' 
-  !write(*,'(23x,a)')'---------------------------------------'
-  write(*,'(23x,a)')'  gggggg          iiiii    BBBBBBBBB'
-  write(*,'(23x,a)')' g      g        i             B    '
-  write(*,'(23x,a)')'g        g      i         BBBB B    '
-  write(*,'(23x,a)')'g         g     iiii     B     B    '
-  write(*,'(23x,a)')'g         g     i       B      B    '
-  write(*,'(23x,a)')'g         g     i        B     B    '
-  write(*,'(23x,a)')'g         g     i         B    B    '
-  write(*,'(23x,a)')'g         g     i          BBBBB    '
-  write(*,'(23x,a)')' g        g     i         B    B    '  
-  write(*,'(23x,a)')'          g     i        B     B    ' 
-  write(*,'(23x,a)')'         g               B    B     '
-  write(*,trim(fmt))'    ggggg       i         BBBB      ', &
-       & '(Ver ' // package_version // ')'
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
-  write(*,'(1x,a)')&
-       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
-  write(*,'(1x,a)')&
-       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
-  write(*,*)
+  call yaml_open_map('Code logo')
+
+call yaml_scalar('      TTTT         F       DDDDD    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('     T    T               D         ')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T     T        F     D          ')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T    T         F     D        D ')     !!!write(*,'(23x,a)')
+call yaml_scalar('    TTTTT          F     D         D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T    T         F     D         D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T     T        F     D         D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T      T       F     D         D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T     T     FFFF     D         D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T TTTT         F      D        D')     !!!write(*,'(23x,a)')
+call yaml_scalar('    T             F        D      D ')     !!!write(*,'(23x,a)')
+call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     !!!write(*,'(23x,a)')
+!call yaml_scalar()'-----------------------------------)----' !!!!write(*,'(23x,a)'
+call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     !!!write(*,'(23x,a)')
+call yaml_scalar(' g      g        i             B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g        g      i         BBBB B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g         g     iiii     B     B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g         g     i       B      B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g         g     i        B     B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g         g     i         B    B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('g         g     i          BBBBB    ')     !!!write(*,'(23x,a)')
+call yaml_scalar(' g        g     i         B    B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('          g     i        B     B    ')     !!!write(*,'(23x,a)')
+call yaml_scalar('         g               B    B     ')     !!!write(*,'(23x,a)')
+call yaml_scalar('    ggggg       i         BBBB      ')!, &  !!!write(*,trim(fmt))
+call yaml_close_map()
+call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
+call yaml_map('Version Number',package_version)
+call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
+call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+if (ierr ==0) call yaml_map('Hostname',trim(nodename_local))
+!       & '(Ver ' // package_version // ')'
+
+!  write(*,'(1x,a)')&
+!       '------------------------------------------------------------------------------------'
+!  write(*,'(1x,a)')&
+!       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
+!  write(*,'(1x,a)')&
+!       '------------------------------------------------------------------------------------'
+!  write(*,'(1x,a)')&
+!       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
+!  write(*,*)
 END SUBROUTINE print_logo
 
 !> Print all general parameters

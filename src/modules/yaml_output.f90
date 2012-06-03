@@ -414,7 +414,7 @@ module yaml_output
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream,yaml_date_and_time_toa
+  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
   
 contains
 
@@ -650,7 +650,8 @@ contains
     if (present(hfill)) then
        call dump(streams(strm),&
             repeat(hfill,&
-            max(streams(strm)%max_record_length-streams(strm)%icursor-&
+            max(streams(strm)%max_record_length-&
+            max(streams(strm)%icursor,streams(strm)%indent)-&
             len_trim(message)-3,0))//' '//trim(message),&
             advance=adv,event=COMMENT)
     else
@@ -658,6 +659,40 @@ contains
     end if
 
   end subroutine yaml_comment
+
+  !> Write a scalar variable, takes care of indentation only
+  subroutine yaml_scalar(message,advance,unit,hfill)
+    implicit none
+    character(len=1), optional, intent(in) :: hfill
+    character(len=*), intent(in) :: message
+    integer, optional, intent(in) :: unit
+    character(len=*), intent(in), optional :: advance
+    !local variables
+    integer :: unt,strm
+    character(len=3) :: adv
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    !comment to be written
+    if (present(advance)) then
+       adv=advance
+    else
+       adv='yes'
+    end if
+    if (present(hfill)) then
+       call dump(streams(strm),&
+            repeat(hfill,&
+            max(streams(strm)%max_record_length-&
+            max(streams(strm)%icursor,streams(strm)%indent)-&
+            len_trim(message)-3,0))//' '//trim(message),&
+            advance=adv,event=COMMENT)
+    else
+       call dump(streams(strm),trim(message),advance=adv,event=SCALAR)
+    end if
+
+  end subroutine yaml_scalar
 
   subroutine yaml_open_map(mapname,label,flow,unit)
     use yaml_strings
@@ -938,6 +973,7 @@ contains
        cut=.true.
        msg_lgt=0
        cut_line: do while(cut)
+          !print *,'hereOUTPU',cut,icut
        !verify where the message can be cut
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - max(streams(strm)%icursor,streams(strm)%indent))
@@ -1487,7 +1523,9 @@ contains
              istat=-1
              return
           else
-             stop 'ERROR (dum) writing exceeds record size'
+             !crop the writing 
+             towrite_lgt=stream%max_record_length
+             !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
           write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)

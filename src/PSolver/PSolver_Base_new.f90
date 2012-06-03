@@ -10,7 +10,7 @@
 
 !>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
-subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
+subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
              scal,hx,hy,hz,offset,strten)
   use module_base
   implicit none
@@ -18,7 +18,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   include 'perfdata.inc'
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx,mpi_comm
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
@@ -270,7 +270,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
             MPI_double_precision, &
             zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
-            MPI_double_precision,MPI_COMM_WORLD,ierr)
+            MPI_double_precision,mpi_comm,ierr)
 
        call timing(iproc,'PSolv_commun  ','OF')
        call timing(iproc,'PSolv_comput  ','ON')
@@ -438,7 +438,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
             MPI_double_precision, &
             zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
-            MPI_double_precision,MPI_COMM_WORLD,ierr)
+            MPI_double_precision,mpi_comm,ierr)
        call timing(iproc,'PSolv_commun  ','OF')
 
        call timing(iproc,'PSolv_comput  ','ON')

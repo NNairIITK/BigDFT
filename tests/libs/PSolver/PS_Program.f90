@@ -23,6 +23,7 @@
 program PSolver_Program
 
   use module_base
+  use module_types
   use Poisson_Solver
 
   implicit none
@@ -39,7 +40,7 @@ program PSolver_Program
   character(len=1) :: datacode
   character(len=30) :: mode
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
-  real(kind=8), pointer :: karray(:)
+  type(coulomb_operator) :: karray
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,monopole,mu0
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
   integer :: n01,n02,n03,itype_scf,i_all,i_stat
@@ -152,12 +153,12 @@ program PSolver_Program
   else if (geocode == 'S') then
 
      if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   
   else if (geocode == 'F') then
 
      if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   
   else if (geocode == 'W') then
     
@@ -167,7 +168,7 @@ program PSolver_Program
   else if (geocode == 'H') then
    
      if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   
   end if
 
@@ -195,7 +196,7 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray,.true.,mu0,alpha,beta,gamma)
+  call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
 
   if (.not. onlykernel) then
      !Allocations
@@ -261,7 +262,7 @@ program PSolver_Program
 
      !apply the Poisson Solver (case with distributed potential)
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
+          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
      i3=n03/2
      do i2=1,n02
@@ -310,15 +311,15 @@ program PSolver_Program
  
   do i1 = 1, nd1-1
      do i3 = 1, nd3-1
-        write(65,fmt="(3(1pe20.12e3))") i1*1.0_dp, i3*1.0_dp, karray(i1 + (nd2-1)*nd1 + i3*nd1*nd2)
+        write(65,fmt="(3(1pe20.12e3))") i1*1.0_dp, i3*1.0_dp, karray%kernel(i1 + (nd2-1)*nd1 + i3*nd1*nd2)
      end do
   end do
 
   close(65)
-  
-  i_all=-product(shape(karray))*kind(karray)
-  deallocate(karray,stat=i_stat)
-  call memocc(i_stat,i_all,'karray',subname)
+  call deallocate_coulomb_operator(karray,subname)
+!!$  i_all=-product(shape(karray))*kind(karray)
+!!$  deallocate(karray,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'karray',subname)
 
   call timing(iproc,'              ','RE')
 
@@ -358,7 +359,8 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray,.true.,mu0,alpha,beta,gamma)
+     call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,&
+          (/alpha,beta,gamma/))
 
      if (.not. onlykernel) then
         !offset, used only for the periodic solver case
@@ -366,13 +368,13 @@ program PSolver_Program
         
         !apply the Poisson Solver (case with distributed potential
         call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-             rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
+             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
         
      end if
-
-     i_all=-product(shape(karray))*kind(karray)
-     deallocate(karray,stat=i_stat)
-     call memocc(i_stat,i_all,'karray',subname)
+     call deallocate_coulomb_operator(karray,subname)
+!!$     i_all=-product(shape(karray))*kind(karray)
+!!$     deallocate(karray,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'karray',subname)
 
      call timing(iproc,'              ','RE')
 

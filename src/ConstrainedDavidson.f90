@@ -950,7 +950,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   deallocate(g,stat=i_stat)
   call memocc(i_stat,i_all,'g',subname)
 
-  call free_full_potential(nproc,0,pot,subname)
+  call free_full_potential(dpcom%nproc,0,pot,subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
