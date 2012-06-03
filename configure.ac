@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.10],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.11],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -519,6 +519,60 @@ AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
+dnl Yaml input file support
+ac_use_libyaml="yes"
+AC_ARG_WITH([yaml],
+            AS_HELP_STRING([--without-yaml], [add support of YAML for input files (default = yes).]),
+            [ac_use_libyaml=$withval], [ac_use_libyaml=yes])
+AC_ARG_WITH([yaml-path],
+            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
+            [ac_path_yaml=$withval])
+AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="yes")
+ac_build_libyaml=$ac_internal_libyaml
+if test x"$ac_use_libyaml" != x"no" ; then
+   if test x"$ac_path_yaml" == x"" ; then
+      ac_path_yaml="/usr"
+   fi
+   LDFLAGS_SVG="$LDFLAGS"
+   AC_LANG_PUSH(C)
+   LDFLAGS="-L$ac_path_yaml/lib"
+   AC_CHECK_LIB([yaml], [yaml_parser_parse],
+                [ac_use_libyaml=yes], [ac_use_libyaml=warn])
+   if test x"$ac_use_libyaml" = x"yes"; then
+      if test x"$ac_path_yaml" != x"/usr" ; then
+         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+      fi
+      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
+   fi
+   AC_LANG_POP(C)
+   LDFLAGS="$LDFLAGS_SVG"
+   if test x"$ac_use_libyaml" != x"yes" ; then
+      if test x"$ac_internal_libyaml" = x"yes" ; then
+         AC_MSG_WARN([libyaml is not available, building internal one.])
+         ac_use_libyaml="yes"
+         LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
+         LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
+         if ! test -d ${srcdir}/PyYAML-3.10 ; then
+            tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
+         fi
+         echo "[[build_ext]]" > PyYAML-3.10/setup.cfg
+         echo "define=YAML_DECLARE_STATIC" >> PyYAML-3.10/setup.cfg
+         echo "include_dirs=$PWD/${srcdir}/yaml-0.1.4/include" >> PyYAML-3.10/setup.cfg
+         echo "library_dirs=$PWD/yaml-0.1.4/src/.libs" >> PyYAML-3.10/setup.cfg
+      else
+         AC_MSG_WARN([libyaml is not available.])
+      fi
+   else
+      ac_build_libyaml="no"
+   fi
+   AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+fi
+AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
+AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
+AC_SUBST(LIB_YAML_CFLAGS)
+AC_SUBST(LIB_YAML_LIBS)
+
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -813,7 +867,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -892,7 +946,9 @@ fi
 if test x"$ac_build_libsgpu" != x"skip" ; then
    AC_CONFIG_SUBDIRS([S_GPU])
 fi
-
+if test x"$ac_build_libyaml" != x"skip" ; then
+   AC_CONFIG_SUBDIRS([yaml-0.1.4])
+fi
 
 AC_OUTPUT
 
@@ -948,6 +1004,10 @@ Options:
   With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
+  With libyaml:              $ac_use_libyaml
+   | internal built:         $ac_build_libyaml
+   | C flags:                $LIB_YAML_CFLAGS
+   | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
    | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
 
@@ -961,13 +1021,16 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" -o x"$ac_use_libyaml" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
     echo "  libarchive:                disabled by tests"
+  fi
+  if test x"$ac_use_libyaml" = x"warn" ; then
+    echo "  libyaml:                   disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"

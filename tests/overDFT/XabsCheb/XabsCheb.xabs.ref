@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -250,25 +250,29 @@ new cheb coeffs     -0.1838438448D-03     0.1577791737D-03
  coefficients from Chebychev 
    40 1.8347331808298765E+02 5.3215820427215208E-03
  ... 
--3.4837660500200776E-05
- 8.1637444238284035E-05
--9.1369199557451508E-05
- 5.4007870346802237E-05
- 1.9793062809897845E-05
--1.0419947600814406E-04
- 1.7222531886119160E-04
--2.0647422859583465E-04
- 2.0623702304384262E-04
--1.8384384484431142E-04
+-3.4837660500199692E-05
+ 8.1637444238284143E-05
+-9.1369199557451942E-05
+ 5.4007870346802129E-05
+ 1.9793062809897628E-05
+-1.0419947600814427E-04
+ 1.7222531886119268E-04
+-2.0647422859583508E-04
+ 2.0623702304384305E-04
+-1.8384384484431120E-04
  DEALLOCATING
- CPU time/ELAPSED time for root process     0        20.43        23.51
+ CPU time/ELAPSED time for root process     0        21.32        24.58
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
       x direction     0.00000000E+00
       y direction     0.00000000E+00
       z direction     0.00000000E+00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1713 allocations and 1713 deallocations, remaining memory(B): 0
- memory occupation peak: 86 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 1689
+   Tot. No. of Deallocations: 1689
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 86
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

@@ -1358,7 +1358,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
@@ -1854,7 +1855,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
+subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -1866,17 +1867,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
    integer, intent(out), optional :: status
+   real(gp), intent(out), optional :: energy
+   real(gp), dimension(:,:), pointer, optional :: fxyz
+   character(len = 1024), intent(out), optional :: comment
    !Local variables
-   !n(c) character(len=*), parameter :: subname='read_atomic_file'
-   integer :: l, extract
+   character(len=*), parameter :: subname='read_atomic_file'
+   integer :: l, extract, i_all, i_stat
    logical :: file_exists, archive
    character(len = 128) :: filename
    character(len = 15) :: arFile
    character(len = 6) :: ext
+   real(gp) :: energy_
+   real(gp), dimension(:,:), pointer :: fxyz_
+   character(len = 1024) :: comment_
 
    file_exists = .false.
    archive = .false.
    if (present(status)) status = 0
+   nullify(fxyz_)
 
    ! Extract from archive
    if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
@@ -1921,6 +1929,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
+   ! Test posinp.yaml
+   if (.not. file_exists) then
+      inquire(FILE = file//'.yaml', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+         write(atoms%format, "(A)") "yaml"
+      end if
+   end if
    ! Test the name directly
    if (.not. file_exists) then
       inquire(FILE = file, EXIST = file_exists)
@@ -1931,9 +1947,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
             write(atoms%format, "(A)") "xyz"
          else if (file(l-5:l) == ".ascii") then
             write(atoms%format, "(A)") "ascii"
+         else if (file(l-4:l) == ".yaml") then
+            write(atoms%format, "(A)") "yaml"
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-            write(*,*) " File should be *.ascii or *.xyz."
+            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
             if (present(status)) then
                status = 1
                return
@@ -1941,13 +1959,15 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
                stop
             end if
          end if
-         open(unit=99,file=trim(filename),status='old')
+         if (trim(atoms%format) /= "yaml") then
+            open(unit=99,file=trim(filename),status='old')
+         end if
       end if
    end if
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
@@ -1959,16 +1979,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    if (atoms%format == "xyz") then
       !read atomic positions
       if (.not.archive) then
-         call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "ascii") then
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
+      end if
+   else if (atoms%format == "yaml") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_yaml_positions(trim(filename),atoms,rxyz,comment_,energy_,fxyz_)
+      else
+         write(*,*) "Atomic input file in YAML not yet supported in archive file."
+         stop
       end if
    end if
 
@@ -1980,18 +2008,35 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    nullify(atoms%sym%irrzon)
    nullify(atoms%sym%phnons)
 
-   ! rm temporary file.
-   if (.not.archive) then
+   ! close open file.
+   if (.not.archive .and. trim(atoms%format) /= "yaml") then
       close(99)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
    end if
+   
+   ! We transfer optionals.
+   if (present(energy)) then
+      energy = energy_
+   end if
+   if (present(comment)) then
+      write(comment, "(A)") comment_
+   end if
+   if (present(fxyz)) then
+      fxyz => fxyz_
+   else if (associated(fxyz_)) then
+      i_all=-product(shape(fxyz_))*kind(fxyz_)
+      deallocate(fxyz_,stat=i_stat)
+      call memocc(i_stat,i_all,'fxyz_',subname)
+   end if
 END SUBROUTINE read_atomic_file
 
 !> Write an atomic file
+!Yaml output included
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
@@ -2008,6 +2053,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   else if (atoms%format == "ascii") then
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
+  else if (atoms%format == 'yaml') then
+     if (present(forces)) then
+        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+     else
+        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+     end if
   else
      write(*,*) "Error, unknown file format."
      stop

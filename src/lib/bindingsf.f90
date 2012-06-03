@@ -126,17 +126,18 @@ subroutine close_file(unitwf)
   close(unit = unitwf)
 END SUBROUTINE close_file
 
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-  use Poisson_Solver, only: ck => createKernel
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), pointer :: kernel(:)
-  logical, intent(in) :: wrtmsg
-
-  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-end subroutine createKernel
+!!$subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$  use module_types, only
+!!$  use Poisson_Solver, only: ck => createKernel
+!!$  implicit none
+!!$  character(len=1), intent(in) :: geocode
+!!$  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+!!$  real(kind=8), intent(in) :: hx,hy,hz
+!!$  real(kind=8), pointer :: kernel(:)
+!!$  logical, intent(in) :: wrtmsg
+!!$
+!!$  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$end subroutine createKernel
 
 subroutine deallocate_double_1D(array)
   use module_base
@@ -172,6 +173,20 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
+subroutine glr_copy(glr, d, wfd, from)
+  use module_types
+  implicit none
+  type(locreg_descriptors), pointer :: glr
+  type(grid_dimensions), pointer :: d
+  type(wavefunctions_descriptors), pointer :: wfd
+  type(locreg_descriptors), intent(in) :: from
+
+  allocate(glr)
+  call nullify_locreg_descriptors(glr)
+  d => glr%d
+  wfd => glr%wfd
+  call copy_locreg_descriptors(from, glr, "glr_copy")
+end subroutine glr_copy
 subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
@@ -345,6 +360,7 @@ subroutine lzd_init(lzd, glr)
   type(locreg_descriptors), pointer :: glr
 
   call nullify_local_zone_descriptors(lzd)
+  lzd%nlr = 0
   glr => lzd%glr
 end subroutine lzd_init
 subroutine lzd_get_data(lzd, glr)
@@ -387,6 +403,13 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
 
   integer :: i
   
+  if (lzd%nlr > 0) then
+     do i = 1, lzd%nlr, 1
+        call deallocate_locreg_descriptors(lzd%Llr(i), "lzd_set_nlr")
+     end do
+     deallocate(lzd%llr)
+  end if
+
   lzd%nlr = nlr
   allocate(lzd%Llr(Lzd%nlr))
   do i = 1, nlr, 1
@@ -795,6 +818,13 @@ subroutine localfields_free(denspotd)
      deallocate(denspotd%V_ext,stat=i_stat)
      call memocc(i_stat,i_all,'denspotd%V_ext',subname)
   end if
+  
+  if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
+     nullify(denspotd%pkernelseq%kernel)
+  else if (associated(denspotd%pkernelseq%kernel)) then
+     call deallocate_coulomb_operator(denspotd%pkernelseq,subname)
+  end if
+  call deallocate_coulomb_operator(denspotd%pkernel,subname)
 
 !!$  if (associated(denspotd%pkernelseq)) then
 !!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
@@ -802,11 +832,11 @@ subroutine localfields_free(denspotd)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
 !!$  end if
 
-  if (associated(denspotd%pkernel)) then
-     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
-     deallocate(denspotd%pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
-  end if
+!!$  if (associated(denspotd%pkernel)) then
+!!$     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
+!!$     deallocate(denspotd%pkernel,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'kernel',subname)
+!!$  end if
 
   if (associated(denspotd%rhov)) then
      i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
@@ -871,7 +901,7 @@ subroutine localfields_get_pkernel(denspot, pkernel)
   type(DFT_local_fields), intent(in) :: denspot
   real(dp), dimension(:), pointer :: pkernel
 
-  pkernel => denspot%pkernel
+  pkernel => denspot%pkernel%kernel
 END SUBROUTINE localfields_get_pkernel
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   use module_types
@@ -879,7 +909,7 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   type(DFT_local_fields), intent(in) :: denspot
   real(dp), dimension(:), pointer :: pkernelseq
 
-  pkernelseq => denspot%pkernelseq
+  pkernelseq => denspot%pkernelseq%kernel
 END SUBROUTINE localfields_get_pkernelseq
 subroutine localfields_get_rho_work(denspot, rho)
   use module_types
@@ -989,19 +1019,21 @@ subroutine wf_free(wf)
   call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
   deallocate(wf)
 end subroutine wf_free
-subroutine wf_get_psi(wf, psi)
+subroutine wf_get_psi(wf, psi, hpsi)
   use module_types
   implicit none
   type(DFT_wavefunction), intent(in) :: wf
-  double precision, intent(out) :: psi
+  integer(kind = 8), intent(out) :: psi
+  integer(kind = 8), intent(out) :: hpsi
 
   interface
      subroutine inquire_address1(add, pt_f)
        double precision, dimension(:), pointer :: pt_f
-       double precision, intent(out) :: add
+       integer(kind = 8), intent(out) :: add
      end subroutine inquire_address1
   end interface
   call inquire_address1(psi, wf%psi)
+  call inquire_address1(hpsi, wf%hpsi)
 end subroutine wf_get_psi
 subroutine wf_get_psi_size(psi, psiSize)
   use module_types

@@ -26,6 +26,7 @@
 gboolean onClientConnection(GSocket *socket, GIOCondition condition,
                             gpointer user_data);
 void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
+void onHPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
 void onLzdDefinedInet(BigDFT_Lzd *lzd, gpointer *data);
 void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data);
 void onDensityReadyInet(BigDFT_LocalFields *localfields, guint iter, gpointer *data);
@@ -147,8 +148,12 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
                                            G_CALLBACK(onLzdDefinedInet), (gpointer)&bmain->recv);
         }
       if (wf)
-        bmain->wf_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
-                                        G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+        {
+          bmain->wf_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
+                                          G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+          bmain->wf_h_id = g_signal_connect(G_OBJECT(wf), "hpsi-ready",
+                                            G_CALLBACK(onHPsiReadyInet), (gpointer)&bmain->recv);
+        }
 #else
       fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
@@ -174,6 +179,8 @@ void FC_FUNC_(bigdft_signals_rm_wf, BIGDFT_SIGNALS_RM_WF)(gpointer *self)
 #ifdef HAVE_GLIB
       if (bmain->wf_id)
         g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_id);
+      if (bmain->wf_h_id)
+        g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_h_id);
       if (bmain->tmb_id)
         g_signal_handler_disconnect(G_OBJECT(bmain->tmb), bmain->tmb_id);
       if (bmain->lzd_id)

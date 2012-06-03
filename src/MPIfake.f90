@@ -177,9 +177,14 @@ subroutine  MPI_WAITALL()
   stop 'MPIFAKE: WAITALL'
 END SUBROUTINE  MPI_WAITALL
 
-subroutine MPI_GET_PROCESSOR_NAME()
+subroutine MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   implicit none
-  stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
+  integer, intent(out) :: namelen,ierr
+  character(len=*), intent(inout) :: nodename_local
+  ierr=0
+  namelen=9
+  nodename_local(1:9)='localhost'
+  nodename_local(9:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
 END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()

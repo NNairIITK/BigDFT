@@ -373,8 +373,7 @@ integer:: jorb, jjorb
 
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-          call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
-               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,ehart,eexcu,vexcu)
+          call updatePotential(input%ixc,input%nspin,denspot,ehart,eexcu,vexcu)
 
           ! Calculate the total energy.
           energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp

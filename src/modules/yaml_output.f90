@@ -10,17 +10,30 @@ module yaml_strings
 contains
 
   !> Add a buffer to a string and increase its length
-  subroutine buffer_string(string,string_lgt,buffer,string_pos,back)
+  subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
     integer, intent(in) :: string_lgt
     integer, intent(inout) :: string_pos
     character(len=*), intent(in) :: buffer
     character(len=string_lgt), intent(inout) :: string
     logical, optional, intent(in) :: back
+    integer, optional, intent(out) :: istat
     !local variables
     integer :: lgt_add
 
+    if (present(istat)) istat=0 !no errors
+
     lgt_add=len(buffer)
+    !do not copy strings which are too long
+    if (lgt_add+string_pos > string_lgt) then
+       if (present(istat)) then
+          istat=-1
+          return
+       else
+          stop 'ERROR (buffer string): string too long'
+       end if
+    end if
+       
     if (lgt_add==0) return
     if (present(back)) then
        if (back) then
@@ -300,8 +313,6 @@ contains
     yaml_time_toa=yaml_adjust(yaml_time_toa)
 
   end function yaml_time_toa
-    
-
 
   function yaml_adjust(str)
     implicit none
@@ -316,6 +327,7 @@ contains
     else
        call shiftstr(yaml_adjust,0)
     end if
+    
 
   end function yaml_adjust
 
@@ -364,7 +376,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM  = -1010
   integer, parameter :: NEWLINE        = -1011
   integer, parameter :: COMMA_TO_BE_PUT= 10
-
+  integer, parameter :: STREAM_ALREADY_PRESENT=-1
   integer, parameter :: tot_max_record_length=95,tot_max_flow_events=500,tab=5,tot_streams=10
   integer :: active_streams=0,default_stream=1
 
@@ -401,23 +413,48 @@ module yaml_output
 
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
-  public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa
+  public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
+  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
   
 contains
 
+  !> Set the default stream of the module. Return a STREAM_ALREADY_PRESENT errcode if 
+  !! the stream has not be initialized
+  subroutine yaml_set_default_stream(unit,ierr)
+    implicit none
+    integer, intent(in) :: unit
+    integer, intent(out) :: ierr
+    !local variables
+    integer :: istream
+    
+    !check if the stream is present
+    call get_stream(unit,istream,istat=ierr)
+    if (ierr==0) then
+       default_stream=istream
+    end if   
+
+  end subroutine yaml_set_default_stream
+
+  subroutine yaml_get_default_stream(unit)
+    implicit none
+    integer, intent(out) :: unit
+
+    unit=stream_units(default_stream)
+
+  end subroutine yaml_get_default_stream
+
 
   !set all the output from now on to the file indicated by stdout
-  subroutine yaml_set_stream(unit,filename,iostat,tabbing,record_length)
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
     implicit none
     integer, optional, intent(in) :: unit,tabbing,record_length
     character(len=*), optional, intent(in) :: filename
-    integer, optional, intent(out) :: iostat
+    integer, optional, intent(out) :: istat
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    integer, parameter :: STREAM_ALREADY_PRESENT=-1
     integer :: istream,unt,ierr
 
-    if (present(iostat)) iostat=NO_ERRORS !so far
+    if (present(istat)) istat=NO_ERRORS !so far
 
     if (present(unit)) then
        unt=unit
@@ -428,8 +465,8 @@ contains
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
-          if (present(iostat)) then
-             iostat=STREAM_ALREADY_PRESENT
+          if (present(istat)) then
+             istat=STREAM_ALREADY_PRESENT
              return
           else
              stop 'yaml_set_stream:unit already present'
@@ -446,8 +483,8 @@ contains
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
        open(unit=unt,file=trim(filename),status='unknown',position='append',iostat=ierr)
-       if (present(iostat)) then
-          iostat=ierr
+       if (present(istat)) then
+          istat=ierr
        else
           if (ierr /=0) then
              stop 'error in file opening'
@@ -563,7 +600,7 @@ contains
        call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
        streams(strm)%indent=1
     end if
-    call dump(streams(strm),'---')
+    call dump(streams(strm),'---',event=DOCUMENT_START)
     !write(stdout,'(3a)')'---'
     streams(strm)%flow_events=NONE
   end subroutine yaml_new_document
@@ -613,7 +650,8 @@ contains
     if (present(hfill)) then
        call dump(streams(strm),&
             repeat(hfill,&
-            max(streams(strm)%max_record_length-streams(strm)%icursor-&
+            max(streams(strm)%max_record_length-&
+            max(streams(strm)%icursor,streams(strm)%indent)-&
             len_trim(message)-3,0))//' '//trim(message),&
             advance=adv,event=COMMENT)
     else
@@ -621,6 +659,40 @@ contains
     end if
 
   end subroutine yaml_comment
+
+  !> Write a scalar variable, takes care of indentation only
+  subroutine yaml_scalar(message,advance,unit,hfill)
+    implicit none
+    character(len=1), optional, intent(in) :: hfill
+    character(len=*), intent(in) :: message
+    integer, optional, intent(in) :: unit
+    character(len=*), intent(in), optional :: advance
+    !local variables
+    integer :: unt,strm
+    character(len=3) :: adv
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    !comment to be written
+    if (present(advance)) then
+       adv=advance
+    else
+       adv='yes'
+    end if
+    if (present(hfill)) then
+       call dump(streams(strm),&
+            repeat(hfill,&
+            max(streams(strm)%max_record_length-&
+            max(streams(strm)%icursor,streams(strm)%indent)-&
+            len_trim(message)-3,0))//' '//trim(message),&
+            advance=adv,event=COMMENT)
+    else
+       call dump(streams(strm),trim(message),advance=adv,event=SCALAR)
+    end if
+
+  end subroutine yaml_scalar
 
   subroutine yaml_open_map(mapname,label,flow,unit)
     use yaml_strings
@@ -653,7 +725,7 @@ contains
     end if
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
 
@@ -853,7 +925,8 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    logical :: cut,redo_line
+    integer :: msg_lgt,strm,istream,unt,icut,istr,ierr,msg_lgt_ck
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -861,27 +934,63 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-
     adv='def' !default value
     if (present(advance)) adv=advance
 
     msg_lgt=0
+
     !put the message
     call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
     !put the semicolon
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
+       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
-    !put the value
-!       if (present(fmt)) then
-!          call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-!       else
-          call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt)
-!       end if
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
+
+    !while putting the message verify that the string is not too long
+    msg_lgt_ck=msg_lgt
+    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    if (ierr ==0) then
+       call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
+    end if
+    redo_line=ierr/=0
+    !print *,'ierr',ierr
+    if (redo_line) then
+       if (streams(strm)%flowrite/=0) then
+          call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
+       else
+          if (present(label)) then
+             call yaml_open_map(mapname,label=label,unit=unt)
+          else
+             call yaml_open_map(mapname,unit=unt)
+          end if
+       end if
+!       if (streams(strm)%flowrite/=0) call yaml_newline(unit=unt)
+       icut=len_trim(mapvalue)
+       istr=1
+       cut=.true.
+       msg_lgt=0
+       cut_line: do while(cut)
+          !print *,'hereOUTPU',cut,icut
+       !verify where the message can be cut
+          cut=.false.
+          cut_message :do while(icut > streams(strm)%max_record_length - max(streams(strm)%icursor,streams(strm)%indent))
+             icut=index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
+             cut=.true.
+          end do cut_message
+          call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
+          if (streams(strm)%flowrite/=0 .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
+          call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
+          istr=icut
+          icut=len_trim(mapvalue)-istr+1
+          !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
+          msg_lgt=0
+       end do cut_line
+       if (streams(strm)%flowrite==0) call yaml_close_map(unit=unt)
+    end if
+
   end subroutine yaml_map
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
@@ -911,7 +1020,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -950,7 +1059,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -989,7 +1098,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1028,7 +1137,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1067,7 +1176,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1106,7 +1215,7 @@ contains
     call buffer_string(towrite,len(towrite),': ',msg_lgt)
     !put the optional name
     if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
     !put the value
@@ -1120,13 +1229,16 @@ contains
 
 
 
-  subroutine get_stream(unt,strm)
+  subroutine get_stream(unt,strm,istat)
     implicit none
     integer, intent(in) :: unt
     integer, intent(out) :: strm
+    integer, optional, intent(out) :: istat
     !local variables
     logical :: stream_found
     integer :: istream,prev_def
+
+    if (present(istat)) istat=0
 
     if (unt==0) then
        strm=default_stream
@@ -1141,24 +1253,29 @@ contains
           end if
        end do
        if (.not. stream_found) then
-          !otherwise initialize it, no pretty printing
-          prev_def=default_stream
-          call yaml_set_stream(unit=unt,tabbing=0)
-          strm=default_stream
-          !but do not change default stream
-          default_stream=prev_def
+          if (present(istat)) then
+             istat=STREAM_ALREADY_PRESENT
+          else
+             !otherwise initialize it, no pretty printing
+             prev_def=default_stream
+             call yaml_set_stream(unit=unt,tabbing=0)
+             strm=default_stream
+             !but do not change default stream
+             default_stream=prev_def
+          end if
        end if
     end if
 
   end subroutine get_stream
 
-  subroutine dump(stream,message,advance,event)
+  subroutine dump(stream,message,advance,event,istat)
     use yaml_strings
     implicit none
     type(yaml_stream), intent(inout) :: stream
     character(len=*), intent(in) :: message
     character(len=*), intent(in), optional :: advance
     integer, intent(in), optional :: event
+    integer, intent(out), optional :: istat
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
     integer :: lgt,evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt,iscpos
@@ -1166,6 +1283,8 @@ contains
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=stream%max_record_length) :: towrite
+
+    if(present(istat)) istat=0 !no errors
 
     !some consistency check
     if (stream%icomma /= 0 .and. stream%flowrite ==0) then
@@ -1399,7 +1518,18 @@ contains
     !print *,'adv',trim(adv),towrite_lgt,icursor,change_line,msg_lgt
     !here we should check whether the size of the string exceeds the maximum length
     if (towrite_lgt > 0) then
-       write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+       if (towrite_lgt > stream%max_record_length) then
+          if (present(istat)) then
+             istat=-1
+             return
+          else
+             !crop the writing 
+             towrite_lgt=stream%max_record_length
+             !stop 'ERROR (dump): writing exceeds record size'
+          end if
+       else
+          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+       end if
     end if
 
     !if advancing i/o cursor is again one
@@ -1524,6 +1654,8 @@ contains
          indent_value=0!1
          if (stream%icursor==1) indent_value=1
       end if
+
+      if (evt==DOCUMENT_START) indent_value=0
 
 !      if (stream%icursor > 1) then
 !         indent_value=0

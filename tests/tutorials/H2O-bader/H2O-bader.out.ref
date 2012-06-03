@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -176,7 +176,7 @@
  Total No. of Atomic Input Orbitals:  6, 
  Inputguess Orbitals Repartition: {MPI tasks  0- 1:  3}]
  Deviation from normalization          :  4.33E-06
- EKS                                   : -1.67829888878827447E+01
+ EKS                                   : -1.67829888878906317E+01
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
  {e: -9.439145816485E-01, f:  2.0000}, 
@@ -192,20 +192,20 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.70163611904813479E+01, gnrm:  2.56E-01}
-      -  {iter:  2, EKS: -1.71614731752870426E+01, gnrm:  1.34E-01}
-      -  {iter:  3, EKS: -1.71784547881679615E+01, gnrm:  5.52E-02}
-      -  {iter:  4, EKS: -1.71824315285895537E+01, gnrm:  2.95E-02}
-      -  {iter:  5, EKS: -1.71829067301259073E+01, gnrm:  1.23E-02}
-      -  {iter:  6, EKS: -1.71830267506812930E+01, gnrm:  6.11E-03}
-      -  {iter:  7, EKS: -1.71830686215349715E+01, gnrm:  3.40E-03}
-      -  {iter:  8, EKS: -1.71830832906575708E+01, gnrm:  2.00E-03}
-      -  {iter:  9, EKS: -1.71830876689310088E+01, gnrm:  1.23E-03}
-      -  {iter:  10, EKS: -1.71830884012634897E+01, gnrm:  4.90E-04}
-      -  {iter:  11, EKS: -1.71830887003590504E+01, gnrm:  2.11E-04}
-      -  {iter:  12, EKS: -1.71830887999764244E+01, gnrm:  1.58E-04}
-      -  {iter:  13, EKS: -1.71830888204767689E+01, gnrm:  6.63E-05}
-      -  &FINAL  {iter:  14, EKS: -1.71830888253781282E+01, gnrm:  6.63E-05}
+      -  {iter:  1, EKS: -1.70163611904896825E+01, gnrm:  2.56E-01}
+      -  {iter:  2, EKS: -1.71614731752955478E+01, gnrm:  1.34E-01}
+      -  {iter:  3, EKS: -1.71784547881768432E+01, gnrm:  5.52E-02}
+      -  {iter:  4, EKS: -1.71824315285985847E+01, gnrm:  2.95E-02}
+      -  {iter:  5, EKS: -1.71829067301343983E+01, gnrm:  1.23E-02}
+      -  {iter:  6, EKS: -1.71830267506899403E+01, gnrm:  6.11E-03}
+      -  {iter:  7, EKS: -1.71830686215434554E+01, gnrm:  3.40E-03}
+      -  {iter:  8, EKS: -1.71830832906663886E+01, gnrm:  2.00E-03}
+      -  {iter:  9, EKS: -1.71830876689392582E+01, gnrm:  1.23E-03}
+      -  {iter:  10, EKS: -1.71830884012721867E+01, gnrm:  4.90E-04}
+      -  {iter:  11, EKS: -1.71830887003671577E+01, gnrm:  2.11E-04}
+      -  {iter:  12, EKS: -1.71830887999843753E+01, gnrm:  1.58E-04}
+      -  {iter:  13, EKS: -1.71830888204855654E+01, gnrm:  6.63E-05}
+      -  &FINAL  {iter:  14, EKS: -1.71830888253869603E+01, gnrm:  6.63E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
  {e: -9.213680469034E-01, f:  2.0000}, 
@@ -222,12 +222,12 @@ Poisson Solver:
   |P| =   7.264700E-01 (AU)       (Px,Py,Pz)=   -2.6688E-04  -7.2647E-01  -2.0878E-04
   |P| =   1.846502E+00 (Debye)    (Px,Py,Pz)=   -6.7835E-04  -1.8465E+00  -5.3065E-04
  writing electronic_density     
- average noise along x direction:   4.81443554E-06
+ average noise along x direction:   4.81443555E-06
  average noise along y direction:  -1.75643359E-04
  average noise along z direction:   3.14601131E-06
  total average noise            :   1.75737491E-04
- clean forces norm (Ha/Bohr): maxval=  2.917500454544E-04  fnrm2=  1.331233091712E-07
- raw forces:                  maxval=  2.527894501705E-04  fnrm2=  1.640593694660E-07
+ clean forces norm (Ha/Bohr): maxval=  2.917500454553E-04  fnrm2=  1.331233091723E-07
+ raw forces:                  maxval=  2.527894501702E-04  fnrm2=  1.640593694666E-07
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
       1     |  s          |    0.88  |  0.28516 |  0.28516   |  0.57031  |  0.00000 |  0.42969
@@ -243,12 +243,16 @@ Poisson Solver:
                  Center Quantities : |  0.28515 |  0.28515   |  0.57031  |  0.00000 |  0.42969
  ---------------------------------------------------------------------------------------------
                  Total Charge considered on the centers:        7.935293708894
- CPU time/ELAPSED time for root process     0       104.72       174.75
+ CPU time/ELAPSED time for root process     0       101.04       174.66
  Final values of the Forces for each atom
-     1      H  7.25272E-21 -1.45254E-04  5.29696E-05
-     2      O  6.56968E-21  2.91746E-04 -1.58012E-06
-     3      H  7.19978E-21 -1.46492E-04 -5.13895E-05
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2562 allocations and 2562 deallocations, remaining memory(B): 0
- memory occupation peak: 413 MB
- for the array  zt in the routine G_Poisson_Solver
+     1      H  7.30566E-21 -1.45254E-04  5.29696E-05
+     2      O  5.16347E-21  2.91746E-04 -1.58012E-06
+     3      H  7.25272E-21 -1.46492E-04 -5.13895E-05
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 2358
+   Tot. No. of Deallocations: 2358
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 411
+      for the array: zmpi1
+      in the routine: G_Poisson_Solver
