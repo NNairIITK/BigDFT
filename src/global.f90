@@ -294,6 +294,13 @@ program MINHOP
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
   end if
 
+  if (iproc == 0) then 
+     tt=dnrm2(3*atoms%nat,ff,1)
+     write(fn4,'(i4.4)') nconjgr
+     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+     call write_atomic_file('posimed_'//fn4,e_pos-eref,pos,atoms,trim(comment),forces=ff)
+  endif
+
   call geopt(nproc,iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (iproc == 0) then
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
@@ -417,6 +424,15 @@ program MINHOP
      !ncount_cluster=0
 !     if (atoms%geocode == 'P') & 
 !          call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
+
+     if (iproc == 0) then 
+        tt=dnrm2(3*atoms%nat,ff,1)
+        !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
+        write(fn4,'(i4.4)') nconjgr
+        write(comment,'(a,1pe10.3)')'fnrm= ',tt
+        call write_atomic_file('posimed_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
+     endif
+
       call geopt(nproc,iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_opt,ncount_bigdft)
 
      if (iproc == 0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'

@@ -1184,7 +1184,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
-  if (iproc==0 .and. verbose > 0) call yaml_map('Orthocostraint',.true.)
+  if (iproc==0 .and. verbose > 0) call yaml_map('Orthoconstraint',.true.)
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
