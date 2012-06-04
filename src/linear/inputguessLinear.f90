@@ -39,6 +39,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   nullify(tmbig%psit_f)
   nullify(tmbig%spsi)
   nullify(tmbig%gaucoeffs)
+  tmbig%can_use_transposed=.false.
 
   nullify(tmbgauss%psi)
   nullify(tmbgauss%hpsi)
@@ -47,6 +48,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   nullify(tmbgauss%psit_f)
   nullify(tmbgauss%spsi)
   nullify(tmbgauss%gaucoeffs)
+  tmbgauss%can_use_transposed=.false.
 
   ! Nullify the local zone descriptors.
   call nullify_local_zone_descriptors(tmbig%lzd)
@@ -319,6 +321,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        tmbig, tmbgauss, rxyz, denspot%dpbox%nscatterarr)
+       write(*,*) 'after init: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -457,17 +460,20 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
+       write(*,*) '1: tmbig%can_use_transposed',tmbig%can_use_transposed
   ! Since inputguess_gaussian_orbitals overwrites tmbig%orbs,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
        tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
 
+       write(*,*) '2: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   !dimension of the wavefunctions
   call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
+       write(*,*) '3: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
@@ -489,6 +495,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!lchi2=0.d0
   call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
        psigau(1,1,min(tmbgauss%orbs%isorb+1,tmbgauss%orbs%norb)),lchi2)
+       write(*,*) '4: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -500,6 +507,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
+       write(*,*) '5: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   allocate(lchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -533,10 +541,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       stop
   end if
 
+       write(*,*) '6: tmbig%can_use_transposed',tmbig%can_use_transposed
   ! Always use the exact Loewdin method.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
        tmbig%lzd, tmbig%orbs, tmbig%comon, &
-       tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi)
+       tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
   !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
   !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
@@ -938,7 +947,7 @@ END SUBROUTINE inputguessConfinement
 
 
 subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, &
-           lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi)
+           lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi, can_use_transposed)
 
 !
 ! Purpose:
@@ -965,12 +974,12 @@ type(collective_comms),intent(in):: collcom
 type(orthon_data),intent(in):: orthpar
 type(basis_performance_options),intent(in):: bpo
 real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
+logical,intent(inout):: can_use_transposed
 
 ! Local variables
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
 real(8),dimension(:),pointer:: psit_c, psit_f
-logical:: can_use_transposed
 character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 

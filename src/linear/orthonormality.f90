@@ -41,17 +41,19 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !!    deallocate(psit_c, stat=istat)
           !!    call memocc(istat, iall, 'psit_c', subname)
           !!end if
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
           !!if(associated(psit_f)) then
           !!    iall=-product(shape(psit_f))*kind(psit_f)
           !!    deallocate(psit_f, stat=istat)
           !!    call memocc(istat, iall, 'psit_f', subname)
           !!end if
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-          !write(*,*) 'psit_f(1)',psit_f(1)
-          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          if(.not.can_use_transposed) then
+              allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, psit_c, 'psit_c', subname)
+              allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, psit_f, 'psit_f', subname)
+              call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+              can_use_transposed=.true.
+          end if
           call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
       else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           ! Allocate the send and receive buffers for the communication.

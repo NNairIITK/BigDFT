@@ -4524,7 +4524,7 @@ module module_interfaces
 
 
     subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, &
-               lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi)
+               lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi, can_use_transposed)
       use module_base
       use module_types
       implicit none
@@ -4539,6 +4539,7 @@ module module_interfaces
       type(orthon_data),intent(in):: orthpar
       type(basis_performance_options),intent(in):: bpo
       real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
+      logical,intent(inout):: can_use_transposed
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
     subroutine build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
