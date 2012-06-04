@@ -16,7 +16,7 @@ subroutine initialize_DFT_local_fields(denspot)
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
-  nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
+  nullify(denspot%V_XC)
   nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
 
   denspot%psoffset=0.0_gp
@@ -27,11 +27,23 @@ subroutine initialize_DFT_local_fields(denspot)
      denspot%PSquiet='YES'
   end if
 
+  call initialize_coulomb_operator(denspot%pkernel)
+  call initialize_coulomb_operator(denspot%pkernelseq)
   call initialize_rho_descriptors(denspot%rhod)
   call initialize_denspot_distribution(denspot%dpbox)
 
   nullify(denspot%mix)
 end subroutine initialize_DFT_local_fields
+
+subroutine initialize_coulomb_operator(kernel)
+  use module_base
+  use module_types
+  implicit none
+  type(coulomb_operator), intent(out) :: kernel
+  
+  nullify(kernel%kernel)
+end subroutine initialize_coulomb_operator
+
 
 subroutine initialize_denspot_distribution(dpbox)
   use module_base
@@ -54,6 +66,10 @@ subroutine initialize_denspot_distribution(dpbox)
   end do
 
   nullify(dpbox%nscatterarr,dpbox%ngatherarr)
+  dpbox%iproc=0
+  dpbox%iproc_world=0
+  dpbox%nproc=1
+  dpbox%mpi_comm=MPI_COMM_WORLD
   
 end subroutine initialize_denspot_distribution
 
@@ -123,25 +139,26 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
 end subroutine denspot_set_history
 
-subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbox)
+
+subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
+     ixc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
   use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: iproc, nproc,ixc,nspin
-!  type(grid_dimensions), intent(in) :: grid
-!  real(gp), intent(in) :: hxh, hyh, hzh
-!  type(input_variables), intent(in) :: in
+  integer, intent(in) :: iproc_world,iproc,nproc,mpi_comm,ixc,nspin,nproc_world
   character(len=1), intent(in) :: geocode
   character(len=4), intent(in) :: SICapproach
-!  type(atoms_data), intent(in) :: atoms
-!  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(denspot_distribution), intent(inout) :: dpbox
-!  type(rho_descriptors), intent(out) :: rhod
   !local variables
   character(len = *), parameter :: subname = 'denspot_communications' 
   integer :: i_stat
+
+  dpbox%iproc_world=iproc_world
+  dpbox%nproc_world=nproc_world
+  dpbox%iproc=iproc
+  dpbox%nproc=nproc
+  dpbox%mpi_comm=mpi_comm
 
   ! Create descriptors for density and potentials.
   ! ------------------
@@ -151,7 +168,8 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
   allocate(dpbox%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,dpbox%nscatterarr,'nscatterarr',subname)
   !allocate array for the communications of the potential
-  allocate(dpbox%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  !also used for the density
+  allocate(dpbox%ngatherarr(0:nproc-1,3+ndebug),stat=i_stat)
   call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
   call dpbox_repartition(iproc,nproc,geocode,'D',ixc,dpbox)
@@ -479,6 +497,8 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
 
   dpbox%ngatherarr(:,1)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,2)
   dpbox%ngatherarr(:,2)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,3)
+  !for the density
+  dpbox%ngatherarr(:,3)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,1)
 
 end subroutine dpbox_repartition
 
@@ -508,27 +528,58 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
-  
+
+  !decide rho communication strategy
+  !old way
+!!$  if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then
+!!$     rhodsc%icomm=2
+!!$  else
+!!$     if (.not.xc_isgga()) then
+!!$        rhodsc%icomm=1
+!!$     else
+!!$        rhodsc%icomm=0
+!!$     endif
+!!$  end if
+  !deafult
+  if (.not.xc_isgga()) then
+     rhodsc%icomm=1
+  else
+     rhodsc%icomm=0
+  endif
+  if ((atoms%geocode.eq.'F') .and. (nproc > 1)) then
+     rhodsc%icomm=2
+  end if
+  !override the  default
+  if (rho_commun=='DBL') then
+     rhodsc%icomm=0
+  else if (rho_commun == 'RSC') then
+     rhodsc%icomm=1
+  end if
+
+  !in the case of taskgroups the RSC scheme should be overrided
+  if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
+     if (atoms%geocode.eq.'F') then
+        rhodsc%icomm=2
+     else
+        rhodsc%icomm=0
+     end if
+  end if
+
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
-  !decide rho communication strategy
-  if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
+
+  
+  if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
-     rhodsc%icomm=2
   else
      !nullify rhodsc pointers
      nullify(rhodsc%spkey)
      nullify(rhodsc%dpkey)
      nullify(rhodsc%cseg_b)
      nullify(rhodsc%fseg_b)
-     if (.not.xc_isgga()) then
-        rhodsc%icomm=1
-     else
-        rhodsc%icomm=0
-     endif
   end if
   
   !calculate dimensions of the complete array to be allocated before the reduction procedure

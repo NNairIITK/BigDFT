@@ -1360,7 +1360,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &

@@ -185,10 +185,8 @@ program wvl
 
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
-  call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,dpcom%nscatterarr,&
-       GPU,atoms%sym,rhodsc,psi,rho_p)
-  call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,dpcom%nscatterarr,rho_p,rhor,.false.)
+  call sumrho(dpcom,orbs,Lzd,GPU,atoms%sym,rhodsc,psi,rho_p)
+  call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 
@@ -216,7 +214,7 @@ program wvl
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
-  call free_full_potential(nproc,0,potential,"main")
+  call free_full_potential(dpcom%nproc,0,potential,"main")
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   deallocate(pot_ion)

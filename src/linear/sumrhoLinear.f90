@@ -1,7 +1,7 @@
 
 !!>   Here starts the routine for building partial density inside the localisation region
 !!!   This routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
+subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
   use module_base
   use module_types
@@ -10,7 +10,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   use Poisson_Solver
   implicit none
   logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: nproc
   integer,intent(inout):: nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh

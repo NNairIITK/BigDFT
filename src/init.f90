@@ -1641,10 +1641,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
-   call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
-        GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
-   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
-        denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+   call sumrho(denspot%dpbox,orbse,Lzde,GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
+   call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
    call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
    orbse%nspin=nspin_ig
 
@@ -1662,8 +1660,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
       end do
    end if
 
-   call updatePotential(iproc,nproc,at%geocode,ixc,nspin,&
-        hxh,hyh,hzh,Lzde%Glr,denspot,energs%eh,energs%exc,energs%evxc)
+   call updatePotential(ixc,nspin,denspot,energs%eh,energs%exc,energs%evxc)
         
 !!$   !!!  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
@@ -1771,7 +1768,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
 
      !deallocate potential
-     call free_full_potential(nproc,Lzde%lintyp,denspot%pot_work,subname)
+     call free_full_potential(denspot%dpbox%nproc,Lzde%lintyp,denspot%pot_work,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
@@ -2208,8 +2205,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-     call updatePotential(iproc,nproc,atoms%geocode,in%ixc,in%nspin,denspot%dpbox%hgrids(1),&
-          denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),tmb%lzd%glr,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
 

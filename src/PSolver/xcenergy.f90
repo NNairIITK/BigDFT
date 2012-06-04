@@ -266,7 +266,7 @@ end function spherical_gaussian_value
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
   use module_base
   use Poisson_Solver
@@ -275,7 +275,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin,mpi_comm
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
@@ -316,12 +316,12 @@ call to_zero(6,wbstr(1))
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
@@ -593,14 +593,14 @@ call to_zero(6,wbstr(1))
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm,ierr)
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
 !XC-stress term
   if (geocode == 'P') then
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)
   end if
@@ -625,6 +625,7 @@ call to_zero(6,wbstr(1))
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
            gather_arr(jproc,1)=m1*m3*jend
            gather_arr(jproc,2)=m1*m3*istart
+           !print *,'TOINSPECT',iproc,jproc,istart,jend,istart+jend,m2
         end do
 
         !gather all the results in the same rho array
@@ -641,7 +642,7 @@ call to_zero(6,wbstr(1))
            end if
            call MPI_ALLGATHERV(vxci(1,1,nxcl,ispin),gather_arr(iproc,1),mpidtypw,&
                 potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-                MPI_COMM_WORLD,ierr)
+                mpi_comm,ierr)
         end do
         call timing(iproc,'PSolv_commun  ','OF')
         call timing(iproc,'PSolv_comput  ','ON')

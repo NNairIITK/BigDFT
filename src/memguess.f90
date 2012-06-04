@@ -308,6 +308,7 @@ program memguess
 
    !standard names
    call standard_inputfile_names(in, radical, 1)
+
    if (trim(radical) == "") then
       call read_input_variables(0, "posinp", in, atoms, rxyz)
    else
@@ -912,14 +913,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
-   real(wp), dimension(:), pointer :: fake_pkernelSIC
+   type(coulomb_operator) :: fake_pkernelSIC
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
 
    call default_confinement_data(confdatarr,orbs%norbp)
 
 
    !nullify pkernelSIC pointer
-   nullify(fake_pkernelSIC)
+   nullify(fake_pkernelSIC%kernel)
 
    !nullify the G%rxyz pointer
    nullify(G%rxyz)

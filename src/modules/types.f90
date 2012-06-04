@@ -249,6 +249,9 @@ module module_types
      !!  DBL traditional scheme with double precision
      !!  MIX mixed single-double precision scheme (requires rho_descriptors)
      character(len=3) :: rho_commun
+     !> number of taskgroups for the poisson solver
+     !! works only if the number of MPI processes is a multiple of it
+     integer :: PSolver_groupsize
   end type input_variables
 
   type, public :: energy_terms
@@ -408,6 +411,8 @@ module module_types
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+     !copy of the values of the general poisson kernel
+     integer :: iproc_world,nproc_world,iproc,nproc,mpi_comm
   end type denspot_distribution
 
 !>  Structures of basis of gaussian functions
@@ -813,6 +818,23 @@ end type linear_scaling_control_variables
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 
+  !> Defines the fundamental structure for the kernel
+  type, public :: coulomb_operator
+     !variables with physical meaning
+     character(len=1) :: geocode !< Code for the boundary conditions
+     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+     integer, dimension(3) :: ndims !< dimension of the box of the density
+     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
+     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+     !variables with computational meaning
+     integer :: iproc_world !iproc in the general communicator
+     integer :: iproc,nproc
+     integer :: mpi_comm
+     integer :: igpu !< control the usage of the GPU
+  end type coulomb_operator
+
+
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
@@ -836,8 +858,8 @@ end type linear_scaling_control_variables
      type(denspot_distribution) :: dpbox !< distribution of density and potential box
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
-     real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
-     real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
+     type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
      integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
@@ -1047,6 +1069,21 @@ subroutine deallocate_orbs(orbs,subname)
 
 END SUBROUTINE deallocate_orbs
 
+
+subroutine deallocate_coulomb_operator(kernel,subname)
+  use module_base
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(coulomb_operator), intent(inout) :: kernel
+  !local variables
+  integer :: i_all,i_stat
+
+  if (associated(kernel%kernel)) then
+     i_all=-product(shape(kernel%kernel))*kind(kernel%kernel)
+     deallocate(kernel%kernel,stat=i_stat)
+     call memocc(i_stat,i_all,'kernel',subname)
+  end if
+end subroutine deallocate_coulomb_operator
 
 !> Allocate and nullify restart objects
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)

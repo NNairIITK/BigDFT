@@ -563,8 +563,7 @@ end if
 
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-          call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
-               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,energs%eh,energs%exc,energs%evxc)
+          call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
           ! Mix the potential
           !if(trim(input%lin%mixingMethod)=='pot') then

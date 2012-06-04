@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -228,35 +228,39 @@
   done 
   alpha and beta from lanczos 
    20 1.3062311155018257E-03
- 1.5004009007841693E+01 1.3007383495409769E+01
+ 1.5004009007841695E+01 1.3007383495409769E+01
  2.3623299250132856E+01 1.9803091787356273E+01
- 6.0892143874526631E+01 5.0818255057458188E+01
- 1.2936912976232389E+02 7.6475719650328571E+01
- 1.6586187036435024E+02 8.7525605757029624E+01
- 1.7491224732638875E+02 8.2137748702908780E+01
- 1.5761832868414780E+02 7.7686747591832543E+01
- 1.5954182140333339E+02 8.8563657395799723E+01
- 1.6055256592433727E+02 7.5779147436979045E+01
- 1.6106114015840595E+02 7.6857528518425923E+01
- 1.5444621625541652E+02 8.3392182434197139E+01
- 1.5652581721416615E+02 7.9748522632080238E+01
- 1.7405795257382306E+02 8.1777380847588844E+01
- 1.6290783617372531E+02 8.5515007254161688E+01
+ 6.0892143874526646E+01 5.0818255057458188E+01
+ 1.2936912976232389E+02 7.6475719650328557E+01
+ 1.6586187036435018E+02 8.7525605757029638E+01
+ 1.7491224732638872E+02 8.2137748702908794E+01
+ 1.5761832868414788E+02 7.7686747591832528E+01
+ 1.5954182140333330E+02 8.8563657395799709E+01
+ 1.6055256592433739E+02 7.5779147436979059E+01
+ 1.6106114015840586E+02 7.6857528518425923E+01
+ 1.5444621625541660E+02 8.3392182434197139E+01
+ 1.5652581721416607E+02 7.9748522632080238E+01
+ 1.7405795257382317E+02 8.1777380847588859E+01
+ 1.6290783617372520E+02 8.5515007254161688E+01
  1.6581460531478061E+02 8.3817555505889317E+01
  1.6524026467991163E+02 8.2201622196464342E+01
- 1.6633396175270320E+02 7.9647509033145809E+01
- 1.6494374648023845E+02 8.4899824244882666E+01
- 1.5483164581174151E+02 7.6125063689003895E+01
- 1.5317148877937430E+02 7.4841709998356123E+01
+ 1.6633396175270317E+02 7.9647509033145809E+01
+ 1.6494374648023842E+02 8.4899824244882666E+01
+ 1.5483164581174154E+02 7.6125063689003881E+01
+ 1.5317148877937430E+02 7.4841709998356137E+01
  DEALLOCATING
- CPU time/ELAPSED time for root process     0        20.20        23.21
+ CPU time/ELAPSED time for root process     0        22.13        26.65
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
       x direction     0.00000000E+00
       y direction     0.00000000E+00
       z direction     0.00000000E+00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1767 allocations and 1767 deallocations, remaining memory(B): 0
- memory occupation peak: 86 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 1743
+   Tot. No. of Deallocations: 1743
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 86
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

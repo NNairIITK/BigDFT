@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -98,24 +98,28 @@
 
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
-     1      H -9.53952E-04  1.43996E-20  1.69407E-21
-     2      H  9.53952E-04  1.27055E-20 -1.69407E-21
+     1      H -9.53952E-04  8.47033E-22  8.47033E-22
+     2      H  9.53952E-04 -8.47033E-22 -8.47033E-22
 
  =Frequencies calculation ===========================================================
 
  =F =================================================================================
 
- =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -1.1489234629E-22    6.4004895956E-23   -5.4210108624E-20
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -1.0718784739E-11    8.0003059914E-12   -2.3283064365E-10
- =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00         0.00        -0.00
+ =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -1.3005092087E-23   -1.3005092087E-23    0.0000000000E+00
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -1.0026552834E-22    1.0026552834E-22    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -3.6062573517E-12   -3.6062573517E-12    0.0000000000E+00
+ =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00        -0.00         0.00
  =F =================================================================================
  =F: Zero-point energy   =      2101.32 cm-1         9.5743351076E-03 Hartree
  =F: Vibrational entropy =      4.5058946542E-02 at 300.0K
  =F: Vibrational  energy =      2101.32 cm-1         9.5743351414E-03 Hartree at 300.0K
  =F: Total energy        =     -1.1273429752E+00 Hartree at 300.0K
  =F: CPU time/ELAPSED time for root process     0         0.00         0.00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 48 allocations and 48 deallocations, remaining memory(B): 0
- memory occupation peak: 0 MB
- for the array  work in the routine solve
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 48
+   Tot. No. of Deallocations: 48
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 0
+      for the array: work
+      in the routine: solve

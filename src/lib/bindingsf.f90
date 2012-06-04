@@ -126,17 +126,18 @@ subroutine close_file(unitwf)
   close(unit = unitwf)
 END SUBROUTINE close_file
 
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-  use Poisson_Solver, only: ck => createKernel
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), pointer :: kernel(:)
-  logical, intent(in) :: wrtmsg
-
-  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-end subroutine createKernel
+!!$subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$  use module_types, only
+!!$  use Poisson_Solver, only: ck => createKernel
+!!$  implicit none
+!!$  character(len=1), intent(in) :: geocode
+!!$  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+!!$  real(kind=8), intent(in) :: hx,hy,hz
+!!$  real(kind=8), pointer :: kernel(:)
+!!$  logical, intent(in) :: wrtmsg
+!!$
+!!$  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!!$end subroutine createKernel
 
 subroutine deallocate_double_1D(array)
   use module_base
@@ -817,6 +818,13 @@ subroutine localfields_free(denspotd)
      deallocate(denspotd%V_ext,stat=i_stat)
      call memocc(i_stat,i_all,'denspotd%V_ext',subname)
   end if
+  
+  if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
+     nullify(denspotd%pkernelseq%kernel)
+  else if (associated(denspotd%pkernelseq%kernel)) then
+     call deallocate_coulomb_operator(denspotd%pkernelseq,subname)
+  end if
+  call deallocate_coulomb_operator(denspotd%pkernel,subname)
 
 !!$  if (associated(denspotd%pkernelseq)) then
 !!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
@@ -824,11 +832,11 @@ subroutine localfields_free(denspotd)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
 !!$  end if
 
-  if (associated(denspotd%pkernel)) then
-     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
-     deallocate(denspotd%pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
-  end if
+!!$  if (associated(denspotd%pkernel)) then
+!!$     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
+!!$     deallocate(denspotd%pkernel,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'kernel',subname)
+!!$  end if
 
   if (associated(denspotd%rhov)) then
      i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
@@ -893,7 +901,7 @@ subroutine localfields_get_pkernel(denspot, pkernel)
   type(DFT_local_fields), intent(in) :: denspot
   real(dp), dimension(:), pointer :: pkernel
 
-  pkernel => denspot%pkernel
+  pkernel => denspot%pkernel%kernel
 END SUBROUTINE localfields_get_pkernel
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   use module_types
@@ -901,7 +909,7 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   type(DFT_local_fields), intent(in) :: denspot
   real(dp), dimension(:), pointer :: pkernelseq
 
-  pkernelseq => denspot%pkernelseq
+  pkernelseq => denspot%pkernelseq%kernel
 END SUBROUTINE localfields_get_pkernelseq
 subroutine localfields_get_rho_work(denspot, rho)
   use module_types

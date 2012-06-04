@@ -15,6 +15,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use vdwcorrection
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc 
   integer, intent(out) :: inputpsi, input_wf_format
@@ -67,12 +68,13 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   !grid spacings and box of the density
   call dpbox_set_box(denspot%dpbox,Lzd)
-  !complete dpbox initialization
-  call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
-       atoms%geocode,in%SIC%approach,denspot%dpbox)
-
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
+  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,in,denspot)
+  !print *,'here',iproc,nproc,denspot%pkernel%iproc,denspot%pkernel%nproc
+  !complete dpbox initialization (use kernel processes)
+  call denspot_communications(denspot%pkernel%iproc_world,nproc,denspot%pkernel%iproc,&
+       denspot%pkernel%nproc,denspot%pkernel%mpi_comm,&
+       in%ixc,in%nspin,atoms%geocode,in%SIC%approach,denspot%dpbox)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
@@ -109,9 +111,12 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      nMB=nB/1024/1024
      nKB=(nB-nMB*1024*1024)/1024
      nB=modulo(nB,1024)
-     write(*,'(1x,a,3(i5,a))') &
-       'Wavefunctions memory occupation for root MPI process: ',&
-       nMB,' MB ',nKB,' KB ',nB,' B'
+     call yaml_map('Wavefunctions memory occupation for root MPI process',&
+          trim(yaml_toa(nMB,fmt='(i5)'))//' MB'//trim(yaml_toa(nKB,fmt='(i5)'))//&
+          ' KB'//trim(yaml_toa(nB,fmt='(i5)')))
+!!$     write(*,'(1x,a,3(i5,a))') &
+!!$       'Wavefunctions memory occupation for root MPI process: ',&
+!!$       nMB,' MB ',nKB,' KB ',nB,' B'
   end if
   ! Done orbs
 
@@ -175,7 +180,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
+subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
@@ -183,7 +188,6 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
   integer, intent(in) :: iproc, nproc
   logical, intent(in) :: verb
   character, intent(in) :: geocode
-  type(grid_dimensions), intent(in) :: d
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
@@ -191,19 +195,17 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   call createKernel(iproc,nproc,geocode,&
-       d%n1i,d%n2i,d%n3i,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       ndegree_ip,denspot%pkernel,verb)
+       denspot%dpbox%ndims,denspot%dpbox%hgrids,&
+       ndegree_ip,denspot%pkernel,verb,taskgroup_size=in%PSolver_groupsize)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      call createKernel(0,1,geocode,&
-          d%n1i,d%n2i,d%n3i,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%ndims,denspot%dpbox%hgrids,&
           ndegree_ip,denspot%pkernelseq,.false.)
   else 
-     denspot%pkernelseq => denspot%pkernel
+     denspot%pkernelseq = denspot%pkernel
   end if
 END SUBROUTINE system_createKernels
 
