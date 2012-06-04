@@ -3881,7 +3881,6 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -3893,12 +3892,10 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: i_all,i_stat,iorb,npot,oidx
-  real(wp) :: exctXcoeff,kinstr(6)
+  real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
-
-  exctXcoeff=libxc_functionals_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
