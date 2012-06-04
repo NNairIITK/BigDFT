@@ -1118,7 +1118,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
   integer :: ierr,ikpt,iorb,i_all,i_stat,k
-  real(gp) :: rzeroorbs,tt
+  real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 
@@ -1236,10 +1236,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      end if
   end if
 
+  call timing(iproc,'Precondition  ','OF')
+
   !sum over all the partial residues
   if (nproc > 1) then
-     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+      garray(1)=gnrm
+      garray(2)=gnrm_zero
+     call mpiallred(garray,2,MPI_SUM,MPI_COMM_WORLD,ierr)
+      gnrm     =garray(1)
+      gnrm_zero=garray(2)
   endif
 
   !count the number of orbitals which have zero occupation number
@@ -1267,7 +1272,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      !write(*,'(1x,a)')&
      !     &   'done.'
   end if
-  call timing(iproc,'Precondition  ','OF')
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)
