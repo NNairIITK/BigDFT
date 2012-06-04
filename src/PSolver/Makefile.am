@@ -1,5 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_DIST = *.inc \
+	PSolver/createKernel.f90 \
+	PSolver/PSolver_Main.f90 \
+
+
+
 SOURCES_MOD = PSolver_Main.f90 \
 	createKernel.f90
 
