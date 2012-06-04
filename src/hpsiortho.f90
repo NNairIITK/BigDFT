@@ -11,7 +11,7 @@
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-     nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optmix,psi,&
+     nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optscf,psi,&
      ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
   use module_base
   use module_types
@@ -19,7 +19,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   use Poisson_Solver
   use m_ab6_mixing
   implicit none
-  logical, intent(in) :: scf,optmix
+  logical, intent(in) :: scf
+  integer, intent(in) :: optscf !1: apply hamiltonian, 2: do not mix and do not apply ham.
   integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
@@ -122,25 +123,23 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   
 
      !here the density can be mixed
-     if(optmix ) then
-       if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-          if (mix%kind == AB6_MIXING_DENSITY) then
-             call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
-                  denspot%rhov,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                  hx*hy*hz,rpnrm,denspot%dpcom%nscatterarr)
-             
-             if (iproc == 0 .and. itrp > 1) then
-                write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                     &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
-                !yaml output
-                !write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
-             end if
-             ! xc_init_rho should be put in the mixing routines
-             denspot%rhov = abs(denspot%rhov) + 1.0d-20
-          end if
-       end if
+     if (iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. optscf.ne.2) then
+        if (mix%kind == AB6_MIXING_DENSITY) then
+           call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
+                denspot%rhov,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+                hx*hy*hz,rpnrm,denspot%dpcom%nscatterarr)
+           
+           if (iproc == 0 .and. itrp > 1) then
+              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                   &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
+              !yaml output
+              !write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+           end if
+           ! xc_init_rho should be put in the mixing routines
+           denspot%rhov = abs(denspot%rhov) + 1.0d-20
+        end if
+     end if
      denspot%rhov_is=ELECTRONIC_DENSITY
-     end if !optmix
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -186,7 +185,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      end if
 
      !here the potential can be mixed
-     if (mix%kind == AB6_MIXING_POTENTIAL .and. iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+     if (mix%kind == AB6_MIXING_POTENTIAL .and. iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. optscf.ne.2) then
         call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,alphamix,mix,&
              denspot%rhov,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hx*hy*hz,rpnrm,denspot%dpcom%nscatterarr)
         if (iproc == 0 .and. itrp > 1) then
@@ -200,6 +199,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
 
   end if
 
+if(optscf==1) then
   !non self-consistent case: rhov should be the total potential
   if (denspot%rhov_is/=KS_POTENTIAL) then
      stop 'psitohpsi: KS_potential not available' 
@@ -261,6 +261,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
 
   !deallocate potential
   call free_full_potential(nproc,linflag,denspot%pot_full,subname)
+
+end if !optscf==1
   !----
 end subroutine psitohpsi
 

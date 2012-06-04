@@ -1395,8 +1395,27 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: rhocore
       END SUBROUTINE calculate_rhocore
 
+!      subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+!           rhopot,karray,pot_ion,eh,offset,sumpion,&
+!           quiet,stress_tensor) !optional argument
+!        use module_base
+!        implicit none
+!        character(len=1), intent(in) :: geocode
+!        character(len=1), intent(in) :: datacode
+!        logical, intent(in) :: sumpion
+!        integer, intent(in) :: iproc,nproc,n01,n02,n03
+!        real(gp), intent(in) :: hx,hy,hz
+!        real(dp), intent(in) :: offset
+!        real(dp), dimension(*), intent(in) :: karray
+!        real(gp), intent(out) :: eh
+!        real(dp), dimension(*), intent(inout) :: rhopot
+!        real(wp), dimension(*), intent(inout) :: pot_ion
+!        character(len=3), intent(in), optional :: quiet
+!        real(dp), dimension(6), intent(out), optional :: stress_tensor
+!      end subroutine H_potential
+!
       subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-            &   rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
+            &   rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
          use module_base
          implicit none
          character(len=1), intent(in) :: geocode
@@ -1406,28 +1425,29 @@ module module_interfaces
          real(gp), intent(out) :: exc,vxc
          real(dp), dimension(*), intent(inout) :: rho
          real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+         real(wp), dimension(:,:,:,:), pointer,optional :: rhohat
          real(wp), dimension(*), intent(out) :: potxc
          real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
          real(dp),dimension(6),intent(out) :: xcstr
       END SUBROUTINE XC_potential
-
-
-subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
-  use module_base
-  implicit none
-  character(len=1), intent(in) :: geocode
-  character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  real(gp), intent(out) :: exc,vxc
-  real(dp), dimension(*), intent(inout) :: rho
-  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
-  real(wp), dimension(*), intent(out) :: potxc
-  real(dp), dimension(6), intent(out) :: xcstr
-  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
-  logical,intent(in)::use_rhocore,use_dvxcdrho
-end subroutine XC_potential_test
+!
+!
+!subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
+!  use module_base
+!  implicit none
+!  character(len=1), intent(in) :: geocode
+!  character(len=1), intent(in) :: datacode
+!  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+!  real(gp), intent(in) :: hx,hy,hz
+!  real(gp), intent(out) :: exc,vxc
+!  real(dp), dimension(*), intent(inout) :: rho
+!  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+!  real(wp), dimension(*), intent(out) :: potxc
+!  real(dp), dimension(6), intent(out) :: xcstr
+!  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+!  logical,intent(in)::use_rhocore,use_dvxcdrho
+!end subroutine XC_potential_test
 
       subroutine direct_minimization(iproc,nproc,in,at,& 
            orbs,orbsv,nvirt,Lzd,comms,commsv,&
@@ -5727,13 +5747,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine extract_potential_for_spectra
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optmix,psi,&
+            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,optscf,psi,&
             ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi,proj_G,paw)
          use module_base
          use module_types
          use m_ab6_mixing
          implicit none
-         logical, intent(in) :: scf,optmix
+         logical, intent(in) :: scf
+         integer, intent(in) :: optscf
          integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
          real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
          character(len=3), intent(in) :: unblock_comms

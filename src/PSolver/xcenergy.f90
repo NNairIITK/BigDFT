@@ -243,7 +243,7 @@ end function spherical_gaussian_value
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
+     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
   use Poisson_Solver
   implicit none
@@ -256,6 +256,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+  real(wp), dimension(:,:,:,:), optional :: rhohat
   real(dp), dimension(6), intent(out) :: xcstr
   !local variables
   character(len=*), parameter :: subname='XC_potential'
@@ -351,6 +352,18 @@ call to_zero(6,wbstr(1))
         call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
      end if
   end if
+ 
+  !if rhohat is present, substract it from charge density
+  if (present(rhohat)) then
+     if (nspin == 1) then
+        !sum the complete core density for non-spin polarised calculations
+        call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
+     else if (nspin==2) then
+        call axpy(m1*m3*nxt*2,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
+        !call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,rho(1+m1*m3*nxt),1)
+     end if
+  end if
+
 
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
@@ -472,6 +485,14 @@ call to_zero(6,wbstr(1))
            end do
         end do
      end do
+  end if
+
+  !if rhohat is present, remove add it to charge density
+  if(present(rhohat)) then
+     !at this stage the density is not anymore spin-polarised
+     !sum the complete compensation density for non-spin polarised calculations
+     call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake,1),1,rho(1),1)
+     if(nspin==2) call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake,2),1,rho(1),1)
   end if
 
   !if rhocore is associated we then remove it from the charge density
@@ -607,372 +628,372 @@ call to_zero(6,wbstr(1))
 
 END SUBROUTINE XC_potential
 
-subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
-  use module_base
-  use Poisson_Solver
-  implicit none
-  character(len=1), intent(in) :: geocode
-  character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  real(gp), intent(out) :: exc,vxc
-  real(dp), dimension(*), intent(inout) :: rho
-  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
-  real(wp), dimension(*), intent(out) :: potxc
-  real(dp), dimension(6), intent(out) :: xcstr
-  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
-  logical,intent(in)::use_rhocore,use_dvxcdrho
-  !local variables
-  character(len=*), parameter :: subname='XC_potential_test'
-  logical :: wrtmsg
-  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
-  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,i,j
-  integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
-  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
-  integer :: ndvxc,order
-  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
-  integer, dimension(:,:), allocatable :: gather_arr
-  real(dp), dimension(:), allocatable :: rho_G
-  real(dp), dimension(:,:,:,:), allocatable :: vxci
-  real(gp), dimension(:), allocatable :: energies_mpi
-  real(dp), dimension(:,:,:,:), pointer :: dvxci
-  real(dp), dimension(6) :: wbstr
-  call timing(iproc,'Exchangecorr  ','ON')
-
-call to_zero(6,xcstr(1))
-call to_zero(6,wbstr(1))
-
-  wrtmsg=.false.
-  !calculate the dimensions wrt the geocode
-  if (geocode == 'P') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'S') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'F') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'W') then
-     if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else
-     stop 'XC potential: geometry code not admitted'
-  end if
-
-  !dimension for exchange-correlation (different in the global or distributed case)
-  !let us calculate the dimension of the portion of the rho array to be passed 
-  !to the xc routine
-  !this portion will depend on the need of calculating the gradient or not, 
-  !and whether the White-Bird correction must be inserted or not 
-  !(absent only in the LB ixc=13 case)
-  
-  !nxc is the effective part of the third dimension that is being processed
-  !nxt is the dimension of the part of rho that must be passed to the gradient routine
-  !nwb is the dimension of the part of rho in the wb-postprocessing routine
-  !note: nxc <= nwb <= nxt
-  !the dimension are related by the values of nwbl and nwbr
-  !      nxc+nxcl+nxcr-2 = nwb
-  !      nwb+nwbl+nwbr = nxt
-  istart=iproc*(md2/nproc)
-  iend=min((iproc+1)*md2/nproc,m2)
-
-  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
-  nwb=nxcl+nxc+nxcr-2
-  nxt=nwbr+nwb+nwbl
-
-  !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
-  if (ixc == 0 .or. ixc == 100) then
-     if (datacode == 'G') then
-        call to_zero(n01*n02*n03,potxc(1))
-        !call dscal(n01*n02*n03,0.0_dp,potxc,1)
-     else
-        call to_zero(n01*n02*nxc,potxc(1))
-        !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
-     end if
-     exc=0.0_gp
-     vxc=0.0_gp
-     call timing(iproc,'Exchangecorr  ','OF')
-     return
-  end if
-  
-  !if rhocore is associated we should add it on the charge density
-  if (use_rhocore) then
-     if (nspin == 1) then
-        !sum the complete core density for non-spin polarised calculations
-        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
-     else if (nspin==2) then
-        !for spin-polarised calculation consider half per spin index
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
-     end if
-  end if
-
-  if (datacode=='G') then
-     !starting address of rho in the case of global i/o
-     i3start=istart+2-nxcl-nwbl
-     if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
-        !allocation of an auxiliary array for avoiding the shift of the density
-        allocate(rho_G(m1*m3*nxt*2+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_G,'rho_G',subname)
-        !here we put the modulo of the results for the non-isolated GGA
-        do ispin=1,nspin
-           do i3=1,nxt
-              do i2=1,m3
-                 do i1=1,m1
-                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
-                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
-                    rho_G(i)=rho(j)
-                 end do
-              end do
-           end do
-        end do
-     end if
-  else if (datacode == 'D') then
-     !distributed i/o
-     i3start=1
-  else
-     stop 'PSolver: datacode not admitted'
-  end if
-
-  !print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
-  !print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
-  !print *,'istart',i3start,nxcl,nwbl,istart,iproc,geocode
-
-  !rescale the density to apply that to ABINIT routines
-
-  if (nspin==1) then !rho_g does not enter here
-     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        call vscal(m1*m3*nxt,0.5_dp,rho_G(1),1)
-     else
-        call vscal(m1*m3*nxt,0.5_dp,rho(1+n01*n02*(i3start-1)),1)
-     end if
-  end if
-  !allocate array for XC potential enlarged for the WB procedure
-  allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,vxci,'vxci',subname)
-
-  !allocate the array of the second derivative of the XC energy if it is needed
-  !Allocations of the exchange-correlation terms, depending on the ixc value
-  if (use_dvxcdrho) then
-     if (nspin==1) then 
-        order=-2
-     else
-        order=2
-     end if
-     ndvxc = size(dvxcdrho, 4)
-     dvxci => dvxcdrho
-  else
-     order=1
-     ndvxc=0
-     !here ndebug is not put since it is taken form dvxcdrho (not very good)
-     allocate(dvxci(m1,m3,max(1,nwb),ndvxc),stat=i_stat)
-     call memocc(i_stat,dvxci,'dvxci',subname)
-  end if
-
-  !if (present(dvxcdrho)) then
-  !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
-  !end if
-  if (istart+1 <= m2) then 
-     if(datacode=='G' .and. &
-          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift
-        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
-        !restoring the density on the original form
-        do ispin=1,nspin
-           do i3=1,nxt
-              do i2=1,m3
-                 do i1=1,m1
-                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
-                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
-                    rho(j)=rho_G(i)
-                 end do
-              end do
-           end do
-        end do
-        i_all=-product(shape(rho_G))*kind(rho_G)
-        deallocate(rho_G,stat=i_stat)
-        call memocc(i_stat,i_all,'rho_G',subname)
-     else
-        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
-     end if
-  else
-     !presumably the vxc should be initialised
-     call vscal(m1*m3*nwb*nspin,0.0_dp,vxci(1,1,1,1),1)
-     eexcuLOC=0.0_dp
-     vexcuLOC=0.0_dp
-  end if
-  !the value of the shift depends of the distributed i/o or not
-  if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
-     !copy the relevant part of vxci on the output potxc
-     call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
-     if (nspin == 2) then
-        call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
-     end if
-  end if
- 
-  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
-
-  !recollect the final data, and build the total charge density
-  !no spin index anymore
-  if (datacode == 'G') then
-     do i3=nxc,1,-1
-        do i2=1,n02
-           do i1=1,n01
-              rho(i1+(i2-1)*n01+(i3+istart-1)*n01*n02)=&
-                   rho(i1+(i2-1)*n01+modulo(i3-1-1+i3start,n03)*n01*n02)
-           end do
-        end do
-     end do
-  end if
-
-  !if rhocore is associated we then remove it from the charge density
-  !and subtract its contribution from the evaluation of the XC potential integral vexcu
-  if (use_rhocore) then
-     !at this stage the density is not anymore spin-polarised
-     !sum the complete core density for non-spin polarised calculations
-     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
-     vexcuRC=0.0_gp
-     do i3=1,nxc
-        do i2=1,m3
-           do i1=1,m1
-              !do i=1,nxc*m3*m1
-              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
-           end do
-        end do
-     end do
-     if (nspin==2) then
-        do i3=1,nxc
-           do i2=1,m3
-              do i1=1,m1
-                 !do i=1,nxc*m3*m1
-                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
-                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
-              end do
-           end do
-        end do
-        !divide the results per two because of the spin multiplicity
-        vexcuRC=0.5*vexcuRC
-     end if
-     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
-     !subtract this value from the vexcu
-     vexcuLOC=vexcuLOC-vexcuRC
-  end if
-
-  call timing(iproc,'Exchangecorr  ','OF')
-
-  !gathering the data to obtain the distribution array
-  !evaluating the total ehartree,eexcu,vexcu
-  if (nproc > 1) then
-
-     call timing(iproc,'PSolv_commun  ','ON')
-     allocate(energies_mpi(2+ndebug),stat=i_stat)
-     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
-
-     energies_mpi(1)=eexcuLOC
-     energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     exc=energies_mpi(1)
-     vxc=energies_mpi(2)
-
-!XC-stress term
-  if (geocode == 'P') then
-     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
-     wbstr=wbstr/real(n01*n02*n03,dp)
-     xcstr(:)=xcstr(:)+wbstr(:)
-  end if
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi',subname)
-     call timing(iproc,'PSolv_commun  ','OF')
-
-     if (datacode == 'G') then
-        !building the array of the data to be sent from each process
-        !and the array of the displacement
-        if (use_dvxcdrho) then
-           write(*,*)'ERROR: gathering of 2nd derivative of Exc not implemented yet!'
-           stop
-        end if
-
-        call timing(iproc,'PSolv_comput  ','ON')
-        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,gather_arr,'gather_arr',subname)
-        do jproc=0,nproc-1
-           istart=min(jproc*(md2/nproc),m2-1)
-           jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
-           gather_arr(jproc,1)=m1*m3*jend
-           gather_arr(jproc,2)=m1*m3*istart
-        end do
-
-        !gather all the results in the same rho array
-        istart=min(iproc*(md2/nproc),m2-1)
-
-        call timing(iproc,'PSolv_comput  ','OF')
-        call timing(iproc,'PSolv_commun  ','ON')
-        istden=1+n01*n02*istart
-        istglo=1
-        do ispin=1,nspin
-           if (ispin==2) then
-              istden=istden+n01*n02*n03
-              istglo=istglo+n01*n02*n03
-           end if
-           call MPI_ALLGATHERV(vxci(1,1,nxcl,ispin),gather_arr(iproc,1),mpidtypw,&
-                potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-                MPI_COMM_WORLD,ierr)
-        end do
-        call timing(iproc,'PSolv_commun  ','OF')
-        call timing(iproc,'PSolv_comput  ','ON')
-
-        i_all=-product(shape(gather_arr))*kind(gather_arr)
-        deallocate(gather_arr,stat=i_stat)
-        call memocc(i_stat,i_all,'gather_arr',subname)
-
-        call timing(iproc,'PSolv_comput  ','OF')
-
-     end if
-
-  else
-     exc=real(eexcuLOC,gp)
-     vxc=real(vexcuLOC,gp)
-
-!XC-stress term
-   if (geocode == 'P') then
-    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-    wbstr=wbstr/real(n01*n02*n03,dp)
-    xcstr(:)=xcstr(:)+wbstr(:)
-   end if
-
-  end if
-
-  i_all=-product(shape(vxci))*kind(vxci)
-  deallocate(vxci,stat=i_stat)
-  call memocc(i_stat,i_all,'vxci',subname)
-
-  if (.not. use_dvxcdrho) then
-     i_all=-product(shape(dvxci))*kind(dvxci)
-     deallocate(dvxci,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxci',subname)
-  end if
-
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
-
-
-END SUBROUTINE XC_potential_test
+!subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!     rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,xcstr,use_dvxcdrho,dvxcdrho)
+!  use module_base
+!  use Poisson_Solver
+!  implicit none
+!  character(len=1), intent(in) :: geocode
+!  character(len=1), intent(in) :: datacode
+!  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+!  real(gp), intent(in) :: hx,hy,hz
+!  real(gp), intent(out) :: exc,vxc
+!  real(dp), dimension(*), intent(inout) :: rho
+!  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+!  real(wp), dimension(*), intent(out) :: potxc
+!  real(dp), dimension(6), intent(out) :: xcstr
+!  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+!  logical,intent(in)::use_rhocore,use_dvxcdrho
+!  !local variables
+!  character(len=*), parameter :: subname='XC_potential_test'
+!  logical :: wrtmsg
+!  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+!  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
+!  integer :: i_all,i_stat,ierr,i,j
+!  integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
+!  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
+!  integer :: ndvxc,order
+!  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
+!  integer, dimension(:,:), allocatable :: gather_arr
+!  real(dp), dimension(:), allocatable :: rho_G
+!  real(dp), dimension(:,:,:,:), allocatable :: vxci
+!  real(gp), dimension(:), allocatable :: energies_mpi
+!  real(dp), dimension(:,:,:,:), pointer :: dvxci
+!  real(dp), dimension(6) :: wbstr
+!  call timing(iproc,'Exchangecorr  ','ON')
+!
+!call to_zero(6,xcstr(1))
+!call to_zero(6,wbstr(1))
+!
+!  wrtmsg=.false.
+!  !calculate the dimensions wrt the geocode
+!  if (geocode == 'P') then
+!     if (iproc==0 .and. wrtmsg) &
+!          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+!          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+!     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+!  else if (geocode == 'S') then
+!     if (iproc==0 .and. wrtmsg) &
+!          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+!          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+!     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+!  else if (geocode == 'F') then
+!     if (iproc==0 .and. wrtmsg) &
+!          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+!          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+!     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+!  else if (geocode == 'W') then
+!     if (iproc==0 .and. wrtmsg) &
+!          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+!          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+!     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+!  else
+!     stop 'XC potential: geometry code not admitted'
+!  end if
+!
+!  !dimension for exchange-correlation (different in the global or distributed case)
+!  !let us calculate the dimension of the portion of the rho array to be passed 
+!  !to the xc routine
+!  !this portion will depend on the need of calculating the gradient or not, 
+!  !and whether the White-Bird correction must be inserted or not 
+!  !(absent only in the LB ixc=13 case)
+!  
+!  !nxc is the effective part of the third dimension that is being processed
+!  !nxt is the dimension of the part of rho that must be passed to the gradient routine
+!  !nwb is the dimension of the part of rho in the wb-postprocessing routine
+!  !note: nxc <= nwb <= nxt
+!  !the dimension are related by the values of nwbl and nwbr
+!  !      nxc+nxcl+nxcr-2 = nwb
+!  !      nwb+nwbl+nwbr = nxt
+!  istart=iproc*(md2/nproc)
+!  iend=min((iproc+1)*md2/nproc,m2)
+!
+!  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+!  nwb=nxcl+nxc+nxcr-2
+!  nxt=nwbr+nwb+nwbl
+!
+!  !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
+!  if (ixc == 0 .or. ixc == 100) then
+!     if (datacode == 'G') then
+!        call to_zero(n01*n02*n03,potxc(1))
+!        !call dscal(n01*n02*n03,0.0_dp,potxc,1)
+!     else
+!        call to_zero(n01*n02*nxc,potxc(1))
+!        !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
+!     end if
+!     exc=0.0_gp
+!     vxc=0.0_gp
+!     call timing(iproc,'Exchangecorr  ','OF')
+!     return
+!  end if
+!  
+!  !if rhocore is associated we should add it on the charge density
+!  if (use_rhocore) then
+!     if (nspin == 1) then
+!        !sum the complete core density for non-spin polarised calculations
+!        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
+!     else if (nspin==2) then
+!        !for spin-polarised calculation consider half per spin index
+!        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+!        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
+!     end if
+!  end if
+!
+!  if (datacode=='G') then
+!     !starting address of rho in the case of global i/o
+!     i3start=istart+2-nxcl-nwbl
+!     if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
+!        !allocation of an auxiliary array for avoiding the shift of the density
+!        allocate(rho_G(m1*m3*nxt*2+ndebug),stat=i_stat)
+!        call memocc(i_stat,rho_G,'rho_G',subname)
+!        !here we put the modulo of the results for the non-isolated GGA
+!        do ispin=1,nspin
+!           do i3=1,nxt
+!              do i2=1,m3
+!                 do i1=1,m1
+!                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+!                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+!                    rho_G(i)=rho(j)
+!                 end do
+!              end do
+!           end do
+!        end do
+!     end if
+!  else if (datacode == 'D') then
+!     !distributed i/o
+!     i3start=1
+!  else
+!     stop 'PSolver: datacode not admitted'
+!  end if
+!
+!  !print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
+!  !print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
+!  !print *,'istart',i3start,nxcl,nwbl,istart,iproc,geocode
+!
+!  !rescale the density to apply that to ABINIT routines
+!
+!  if (nspin==1) then !rho_g does not enter here
+!     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
+!        call vscal(m1*m3*nxt,0.5_dp,rho_G(1),1)
+!     else
+!        call vscal(m1*m3*nxt,0.5_dp,rho(1+n01*n02*(i3start-1)),1)
+!     end if
+!  end if
+!  !allocate array for XC potential enlarged for the WB procedure
+!  allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
+!  call memocc(i_stat,vxci,'vxci',subname)
+!
+!  !allocate the array of the second derivative of the XC energy if it is needed
+!  !Allocations of the exchange-correlation terms, depending on the ixc value
+!  if (use_dvxcdrho) then
+!     if (nspin==1) then 
+!        order=-2
+!     else
+!        order=2
+!     end if
+!     ndvxc = size(dvxcdrho, 4)
+!     dvxci => dvxcdrho
+!  else
+!     order=1
+!     ndvxc=0
+!     !here ndebug is not put since it is taken form dvxcdrho (not very good)
+!     allocate(dvxci(m1,m3,max(1,nwb),ndvxc),stat=i_stat)
+!     call memocc(i_stat,dvxci,'dvxci',subname)
+!  end if
+!
+!  !if (present(dvxcdrho)) then
+!  !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
+!  !end if
+!  if (istart+1 <= m2) then 
+!     if(datacode=='G' .and. &
+!          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+!        !allocation of an auxiliary array for avoiding the shift
+!        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+!             ixc,hx,hy,hz,rho_G,vxci,&
+!             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
+!        !restoring the density on the original form
+!        do ispin=1,nspin
+!           do i3=1,nxt
+!              do i2=1,m3
+!                 do i1=1,m1
+!                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+!                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+!                    rho(j)=rho_G(i)
+!                 end do
+!              end do
+!           end do
+!        end do
+!        i_all=-product(shape(rho_G))*kind(rho_G)
+!        deallocate(rho_G,stat=i_stat)
+!        call memocc(i_stat,i_all,'rho_G',subname)
+!     else
+!        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+!             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
+!             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
+!     end if
+!  else
+!     !presumably the vxc should be initialised
+!     call vscal(m1*m3*nwb*nspin,0.0_dp,vxci(1,1,1,1),1)
+!     eexcuLOC=0.0_dp
+!     vexcuLOC=0.0_dp
+!  end if
+!  !the value of the shift depends of the distributed i/o or not
+!  if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
+!     !copy the relevant part of vxci on the output potxc
+!     call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
+!     if (nspin == 2) then
+!        call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
+!     end if
+!  end if
+! 
+!  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
+!
+!  !recollect the final data, and build the total charge density
+!  !no spin index anymore
+!  if (datacode == 'G') then
+!     do i3=nxc,1,-1
+!        do i2=1,n02
+!           do i1=1,n01
+!              rho(i1+(i2-1)*n01+(i3+istart-1)*n01*n02)=&
+!                   rho(i1+(i2-1)*n01+modulo(i3-1-1+i3start,n03)*n01*n02)
+!           end do
+!        end do
+!     end do
+!  end if
+!
+!  !if rhocore is associated we then remove it from the charge density
+!  !and subtract its contribution from the evaluation of the XC potential integral vexcu
+!  if (use_rhocore) then
+!     !at this stage the density is not anymore spin-polarised
+!     !sum the complete core density for non-spin polarised calculations
+!     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
+!     vexcuRC=0.0_gp
+!     do i3=1,nxc
+!        do i2=1,m3
+!           do i1=1,m1
+!              !do i=1,nxc*m3*m1
+!              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+!           end do
+!        end do
+!     end do
+!     if (nspin==2) then
+!        do i3=1,nxc
+!           do i2=1,m3
+!              do i1=1,m1
+!                 !do i=1,nxc*m3*m1
+!                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+!                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+!              end do
+!           end do
+!        end do
+!        !divide the results per two because of the spin multiplicity
+!        vexcuRC=0.5*vexcuRC
+!     end if
+!     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+!     !subtract this value from the vexcu
+!     vexcuLOC=vexcuLOC-vexcuRC
+!  end if
+!
+!  call timing(iproc,'Exchangecorr  ','OF')
+!
+!  !gathering the data to obtain the distribution array
+!  !evaluating the total ehartree,eexcu,vexcu
+!  if (nproc > 1) then
+!
+!     call timing(iproc,'PSolv_commun  ','ON')
+!     allocate(energies_mpi(2+ndebug),stat=i_stat)
+!     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+!
+!     energies_mpi(1)=eexcuLOC
+!     energies_mpi(2)=vexcuLOC
+!     call mpiallred(energies_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+!     exc=energies_mpi(1)
+!     vxc=energies_mpi(2)
+!
+!!XC-stress term
+!  if (geocode == 'P') then
+!     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+!     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+!     wbstr=wbstr/real(n01*n02*n03,dp)
+!     xcstr(:)=xcstr(:)+wbstr(:)
+!  end if
+!     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+!     deallocate(energies_mpi,stat=i_stat)
+!     call memocc(i_stat,i_all,'energies_mpi',subname)
+!     call timing(iproc,'PSolv_commun  ','OF')
+!
+!     if (datacode == 'G') then
+!        !building the array of the data to be sent from each process
+!        !and the array of the displacement
+!        if (use_dvxcdrho) then
+!           write(*,*)'ERROR: gathering of 2nd derivative of Exc not implemented yet!'
+!           stop
+!        end if
+!
+!        call timing(iproc,'PSolv_comput  ','ON')
+!        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
+!        call memocc(i_stat,gather_arr,'gather_arr',subname)
+!        do jproc=0,nproc-1
+!           istart=min(jproc*(md2/nproc),m2-1)
+!           jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
+!           gather_arr(jproc,1)=m1*m3*jend
+!           gather_arr(jproc,2)=m1*m3*istart
+!        end do
+!
+!        !gather all the results in the same rho array
+!        istart=min(iproc*(md2/nproc),m2-1)
+!
+!        call timing(iproc,'PSolv_comput  ','OF')
+!        call timing(iproc,'PSolv_commun  ','ON')
+!        istden=1+n01*n02*istart
+!        istglo=1
+!        do ispin=1,nspin
+!           if (ispin==2) then
+!              istden=istden+n01*n02*n03
+!              istglo=istglo+n01*n02*n03
+!           end if
+!           call MPI_ALLGATHERV(vxci(1,1,nxcl,ispin),gather_arr(iproc,1),mpidtypw,&
+!                potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!                MPI_COMM_WORLD,ierr)
+!        end do
+!        call timing(iproc,'PSolv_commun  ','OF')
+!        call timing(iproc,'PSolv_comput  ','ON')
+!
+!        i_all=-product(shape(gather_arr))*kind(gather_arr)
+!        deallocate(gather_arr,stat=i_stat)
+!        call memocc(i_stat,i_all,'gather_arr',subname)
+!
+!        call timing(iproc,'PSolv_comput  ','OF')
+!
+!     end if
+!
+!  else
+!     exc=real(eexcuLOC,gp)
+!     vxc=real(vexcuLOC,gp)
+!
+!!XC-stress term
+!   if (geocode == 'P') then
+!    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+!    wbstr=wbstr/real(n01*n02*n03,dp)
+!    xcstr(:)=xcstr(:)+wbstr(:)
+!   end if
+!
+!  end if
+!
+!  i_all=-product(shape(vxci))*kind(vxci)
+!  deallocate(vxci,stat=i_stat)
+!  call memocc(i_stat,i_all,'vxci',subname)
+!
+!  if (.not. use_dvxcdrho) then
+!     i_all=-product(shape(dvxci))*kind(dvxci)
+!     deallocate(dvxci,stat=i_stat)
+!     call memocc(i_stat,i_all,'dvxci',subname)
+!  end if
+!
+!  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+!
+!
+!END SUBROUTINE XC_potential_test
 
 
 !>    Calculate the XC terms from the given density in a distributed way.
