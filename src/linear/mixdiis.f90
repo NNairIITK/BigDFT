@@ -146,8 +146,10 @@ call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
 pnrm=sqrt(pnrm)/ndimtot
 
 
-mat=0.d0
-rhs=0.d0
+!!mat=0.d0
+call to_zero((mixdiis%isx+1)**2, mat(1,1))
+!!rhs=0.d0
+call to_zero(mixdiis%isx+1, rhs(1))
 
 ! Copy rhopot and rhopotres to the DIIS history.
 jst=(mixdiis%mis-1)*ndimpot+1

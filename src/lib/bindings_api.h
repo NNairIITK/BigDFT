@@ -75,7 +75,7 @@ void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
                                              void *denspotd);
 void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
      (const guint *iproc, const guint *nproc, const guint *verb,
-      const gchar *geocode, const void *d, const void *in, void *denspot);
+      const gchar *geocode, const void *d, const void *in, void *denspot, int geocode_ln);
 
 
 void FC_FUNC_(glr_new, GLR_NEW)(void *glr);
@@ -85,8 +85,12 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         void *glr, double *shift);
-void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, guint *n, guint *ni,
-                                                      guint *ns, guint *nsi, guint *norb);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(const void *glr, guint *n, guint *ni,
+                                                      guint *ns, guint *nsi, guint *nfl,
+                                                      guint *nfu, guint *norb);
+void FC_FUNC_(glr_set_dimensions, GLR_SET_DIMENSIONS)(void *glr, const guint *n, const guint *ni,
+                                                      const guint *ns, const guint *nsi,
+                                                      const guint *nfl, const guint *nfu);
 void FC_FUNC_(glr_empty, GLR_EMPTY)(void *glr);
 void FC_FUNC_(glr_free, GLR_FREE)(void *glr);
 void FC_FUNC_(glr_set_wave_descriptors,
@@ -158,7 +162,7 @@ void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, const double *psic
 void FC_FUNC_(wf_new, WF_NEW)(double *self, void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(wf_free, WF_FREE)(void *wf);
 void FC_FUNC_(wf_empty, WF_EMPTY)(void *wf);
-void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi);
+void FC_FUNC_(wf_get_psi, WF_GET_PSI)(void *wf, void *psi, void *hpsi);
 void FC_FUNC_(wf_get_data, WF_GET_DATA)(void *wf, void *orbs, void *comm, void *lzd);
 void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *in, const void *GPU,

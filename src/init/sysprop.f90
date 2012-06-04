@@ -2144,17 +2144,17 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 end subroutine pawpatch_from_file
   
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, energs, denspot, optloop, &
-       & radii_cf, crmult, frmult)
+       & ntypes, radii_cf, crmult, frmult)
   use module_types
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, ntypes
   logical, intent(in) :: signaling
   double precision, intent(in) :: gmainloop
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb, tmbder
   type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_optimization_loop), intent(inout) :: optloop
   type(energy_terms), intent(inout) :: energs
-  real(gp), dimension(:,:), intent(in) :: radii_cf
+  real(gp), dimension(ntypes,3), intent(in) :: radii_cf
   real(gp), intent(in) :: crmult, frmult
 
   if (signaling) then
@@ -2162,10 +2162,9 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, ene
      if (iproc == 0) then
         call wf_new_wrapper(KSwfn%c_obj, KSwfn, 0)
         call wf_copy_from_fortran(KSwfn%c_obj, radii_cf, crmult, frmult)
-        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj)
         call wf_new_wrapper(tmb%c_obj, tmb, 1)
         call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
-        call bigdft_signals_add_wf(gmainloop, tmb%c_obj)
+        call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj, tmb%c_obj)
         call energs_new_wrapper(energs%c_obj, energs)
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot)

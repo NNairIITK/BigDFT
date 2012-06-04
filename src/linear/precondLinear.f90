@@ -1,4 +1,3 @@
-
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 !
@@ -562,6 +561,7 @@ real(gp) :: kx,ky,kz
               !!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
               !!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
               !!!     potentialPrefac, confPotOrder, it)
+              !!write(*,*) 'cprecr',cprecr
               call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
                    potentialPrefac, confPotOrder, it)

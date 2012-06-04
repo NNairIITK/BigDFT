@@ -969,8 +969,8 @@ subroutine initCompressedMatmul3(iproc, norb, mad)
   allocate(mat3(norb**2), stat=istat)
   call memocc(istat, mat2, 'mat2', subname)
 
-  mat1=0.d0
-  mat2=0.d0
+  call to_zero(norb**2, mat1(1))
+  call to_zero(norb**2, mat2(1))
   do iseg=1,mad%nseg
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
@@ -1823,6 +1823,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
+  ! Emit that lzd has been changed.
+  if (tmbmix%c_obj /= 0) then
+     call kswfn_emit_lzd(tmbmix, iproc, nproc)
+  end if
+
 end subroutine redefine_locregs_quantities
 
 
@@ -1984,10 +1989,10 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphi
   allocate(lhphiold(npsidim), stat=istat)
   call memocc(istat, lhphiold, 'lhphiold', subname)
 
-  lphi=0.d0
-  lhphi=0.d0
-  lphiold=0.d0
-  lhphiold=0.d0
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
 
 end subroutine allocate_auxiliary_basis_function
 
@@ -2048,7 +2053,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
 end subroutine destroy_new_locregs
 
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
+subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_DFT_wavefunction
@@ -2056,7 +2061,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, norb
+  integer,intent(in):: nphi, lnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(out):: wfn
 
@@ -2064,7 +2069,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   integer:: istat
   character(len=*),parameter:: subname='create_DFT_wavefunction'
 
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, input, wfn%wfnmd)
 
   allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
   call memocc(istat, wfn%psi, 'wfn%psi', subname)
@@ -2170,14 +2175,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, llbnorb, norb
+  integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(wfn_metadata),intent(out):: wfnmd
 
@@ -2197,13 +2202,17 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
       allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
+      allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
+      call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
+
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
       wfnmd%alpha_coeff=0.2d0 !default value, must check whether this is a good choice
 
-      allocate(wfnmd%grad_coeff_old(llbnorb,norb), stat=istat)
+      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
-      wfnmd%grad_coeff_old=0.d0 !default value
+      !!wfnmd%grad_coeff_old=0.d0 !default value
+      if(norbp>0) call to_zero(llbnorb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
 
       wfnmd%it_coeff_opt=0
 
@@ -2257,9 +2266,9 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
   allocate(lhphiold(npsidim), stat=istat)
   call memocc(istat, lhphiold, 'lhphiold', subname)
 
-  lphi=0.d0
-  lhphi=0.d0
-  lphiold=0.d0
-  lhphiold=0.d0
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
 
 end subroutine update_auxiliary_basis_function

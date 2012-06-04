@@ -3,6 +3,15 @@ subroutine wf_emit_psi(c_obj, istep)
   integer(kind = 8), intent(in) :: c_obj
   integer, intent(in) :: istep
 end subroutine wf_emit_psi
+subroutine wf_emit_hpsi(c_obj, istep)
+  implicit none
+  integer(kind = 8), intent(in) :: c_obj
+  integer, intent(in) :: istep
+end subroutine wf_emit_hpsi
+subroutine wf_emit_lzd(c_obj)
+  implicit none
+  integer(kind = 8), intent(in) :: c_obj
+end subroutine wf_emit_lzd
 subroutine wf_copy_from_fortran(c_obj, radii, crmult, frmult)
   use module_base
   implicit none

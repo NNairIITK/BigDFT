@@ -22,14 +22,15 @@ program memguess
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
    character(len=40) :: comment
+   character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.
+   logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
-   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor
-   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel
+   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
+   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel,energy
    type(input_variables) :: in
    type(atoms_data) :: atoms
    type(orbitals_data) :: orbs,orbstst
@@ -41,7 +42,7 @@ program memguess
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(gp), dimension(:,:), pointer :: rxyz
+   real(gp), dimension(:,:), pointer :: rxyz, fxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
@@ -87,6 +88,11 @@ program memguess
          &   '            in the "gatom-wfn.dat" file '
       write(*,'(1x,a)')&
          &   '           <ng> is the number of gaussians used for the gatom calculation'
+      write(*,'(1x,a)')&
+           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
+      write(*,'(1x,a)')&
+           & 'converts input positions file "from" to file "to" using the given formats'
+
       stop
    else
       read(unit=tatonam,fmt=*) nproc
@@ -189,6 +195,17 @@ program memguess
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
+         else if (trim(tatonam)=='convert-positions') then
+            convertpos=.true.
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            !call getarg(i_arg,fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            !call getarg(i_arg,fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -256,6 +273,36 @@ program memguess
 
       call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
+      stop
+   end if
+   if (convertpos) then
+      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat,fcomment,energy,fxyz)
+      if (i_stat /=0) stop 'error on input file parsing' 
+      !find the format of the output file
+      if (index(fileTo,'.xyz') > 0) then
+         irad=index(fileTo,'.xyz')
+         atoms%format='xyz  '
+      else if (index(fileTo,'.ascii') > 0) then
+         irad=index(fileTo,'.ascii')
+         atoms%format='ascii'
+      else if (index(fileTo,'.yaml') > 0) then
+         irad=index(fileTo,'.yaml')
+         atoms%format='yaml '
+      else
+         irad = len(trim(fileTo)) + 1
+      end if
+      
+      if (associated(fxyz)) then
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+
+         i_all=-product(shape(fxyz))*kind(fxyz)
+         deallocate(fxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'fxyz',subname)
+      else
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+      end if
       stop
    end if
 
@@ -861,6 +908,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    type(GPU_pointers) :: GPU
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
+   real(wp), dimension(:), pointer:: pottmp
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
@@ -1061,7 +1109,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
+      call memocc(i_stat,pottmp,'pottmp',subname)
+      call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      i_all=-product(shape(pottmp))*kind(pottmp)
+      deallocate(pottmp,stat=i_stat)
+      call memocc(i_stat,i_all,'pottmp',subname)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
@@ -1313,7 +1368,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
-   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)

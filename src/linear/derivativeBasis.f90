@@ -180,52 +180,64 @@ contains
     ! Allocate work arrays
     allocate(w_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3+ndebug), stat=istat)
     call memocc(istat, w_c, 'w_c', subname)
-    w_c=0.d0
+    !!w_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), w_c(0,0,0))
 
     allocate(w_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
                  lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
     call memocc(istat, w_f, 'w_f', subname)
-    w_f=0.d0
+    !!w_f=0.d0
+    call to_zero(7*nf, w_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+
   
     allocate(w_f1(nf+ndebug), stat=istat)
     call memocc(istat, w_f1, 'w_f1', subname)
-    w_f1=0.d0
+    !!w_f1=0.d0
+    call to_zero(nf, w_f1(1))
     
     allocate(w_f2(nf+ndebug), stat=istat)
     call memocc(istat, w_f2, 'w_f2', subname)
-    w_f2=0.d0
+    !!w_f2=0.d0
+    call to_zero(nf, w_f2(1))
 
     allocate(w_f3(nf+ndebug), stat=istat)
     call memocc(istat, w_f3, 'w_f3', subname)
-    w_f3=0.d0
+    !!w_f3=0.d0
+    call to_zero(nf, w_f3(1))
   
   
     allocate(phix_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
                     lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phix_f, 'phix_f', subname)
-    phix_f=0.d0
+    !!phix_f=0.d0
+    call to_zero(7*nf, phix_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
 
     allocate(phix_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phix_c, 'phix_c', subname)
-    phix_c=0.d0
+    !!phix_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phix_c(0,0,0))
 
     allocate(phiy_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
                     lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiy_f, 'phiy_f', subname)
-    phiy_f=0.d0
+    !!phiy_f=0.d0
+    call to_zero(7*nf, phiy_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
 
     allocate(phiy_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiy_c, 'phiy_c', subname)
-    phiy_c=0.d0
+    !!phiy_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phiy_c(0,0,0))
 
     allocate(phiz_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
                     lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiz_f, 'phiz_f', subname)
-    phiz_f=0.d0
+    !!phiz_f=0.d0
+    call to_zero(7*nf, phiz_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
 
     allocate(phiz_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiz_c, 'phiz_c', subname)
-    phiz_c=0.d0
+    !!phiz_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phiz_c(0,0,0))
   
   end subroutine allocateWorkarrays
 

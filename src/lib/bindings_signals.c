@@ -26,6 +26,8 @@
 gboolean onClientConnection(GSocket *socket, GIOCondition condition,
                             gpointer user_data);
 void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
+void onHPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
+void onLzdDefinedInet(BigDFT_Lzd *lzd, gpointer *data);
 void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data);
 void onDensityReadyInet(BigDFT_LocalFields *localfields, guint iter, gpointer *data);
 void onVExtReadyInet(BigDFT_LocalFields *localfields, gpointer *data);
@@ -88,21 +90,24 @@ static gpointer bigdft_main(gpointer data)
 }
 #endif
 
-void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpointer *wf_)
+void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpointer *wf_,
+                                                            gpointer *tmb_)
 {
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
   BigDFT_Wf *wf      = BIGDFT_WF(*wf_);
+  BigDFT_Wf *tmb     = BIGDFT_WF(*tmb_);
 #ifdef HAVE_GDBUS
   BigdftDBusObjectSkeleton *obj;
   BigdftDBusWf *dbus_wf;
 #endif
 
-  if (bigdft_orbs_get_linear(&wf->parent))
-    bmain->tmb = wf;
-  else
-    bmain->wf = wf;
+  bmain->tmb = tmb;
+  bmain->wf  = wf;
 #ifdef HAVE_GLIB
-  g_object_ref(wf);
+  if (wf)
+    g_object_ref(wf);
+  if (tmb)
+    g_object_ref(tmb);
 #endif
 
   switch (bmain->kind)
@@ -135,12 +140,20 @@ void FC_FUNC_(bigdft_signals_add_wf, BIGDFT_SIGNALS_ADD_WF)(gpointer *self, gpoi
       break;
     case BIGDFT_SIGNALS_INET:
 #ifdef HAVE_GLIB
-      if (bigdft_orbs_get_linear(&wf->parent))
-        bmain->tmb_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
-                                         G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
-      else
-        bmain->wf_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
-                                        G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+      if (tmb)
+        {
+          bmain->tmb_id = g_signal_connect(G_OBJECT(tmb), "psi-ready",
+                                           G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+          bmain->lzd_id = g_signal_connect(G_OBJECT(tmb->lzd), "defined",
+                                           G_CALLBACK(onLzdDefinedInet), (gpointer)&bmain->recv);
+        }
+      if (wf)
+        {
+          bmain->wf_id = g_signal_connect(G_OBJECT(wf), "psi-ready",
+                                          G_CALLBACK(onPsiReadyInet), (gpointer)&bmain->recv);
+          bmain->wf_h_id = g_signal_connect(G_OBJECT(wf), "hpsi-ready",
+                                            G_CALLBACK(onHPsiReadyInet), (gpointer)&bmain->recv);
+        }
 #else
       fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif
@@ -166,8 +179,12 @@ void FC_FUNC_(bigdft_signals_rm_wf, BIGDFT_SIGNALS_RM_WF)(gpointer *self)
 #ifdef HAVE_GLIB
       if (bmain->wf_id)
         g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_id);
+      if (bmain->wf_h_id)
+        g_signal_handler_disconnect(G_OBJECT(bmain->wf), bmain->wf_h_id);
       if (bmain->tmb_id)
         g_signal_handler_disconnect(G_OBJECT(bmain->tmb), bmain->tmb_id);
+      if (bmain->lzd_id)
+        g_signal_handler_disconnect(G_OBJECT(bmain->tmb->lzd), bmain->lzd_id);
 #else
       fprintf(stderr, "Signals init: Inet transport unavailable.");
 #endif

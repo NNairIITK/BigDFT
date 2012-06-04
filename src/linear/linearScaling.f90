@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
      rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-     eion,edisp,eexctX,scpot,psi,energy)
+     energs,scpot,psi,energy)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -20,7 +20,8 @@ real(gp), dimension(:), intent(inout) :: rhopotold
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
-real(gp),intent(in):: eion, edisp, eexctX,hx,hy,hz
+type(energy_terms),intent(inout) :: energs
+real(gp),intent(in):: hx,hy,hz
 logical,intent(in):: scpot
 real(8),dimension(:),pointer,intent(out):: psi
 real(gp), dimension(:), pointer :: rho,pot
@@ -29,8 +30,8 @@ type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode
-real(8):: ebs,pnrm,ehart,eexcu,vexcu,trace
+real(8):: pnrm,trace,fnrm_tmb
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf, nit_highaccur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -38,8 +39,9 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used, coeffs_copied, first_time_with_der
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
 integer:: jorb, jjorb
+real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
 
@@ -54,6 +56,32 @@ integer:: jorb, jjorb
   ! Now all initializations are done ######################################################################################
 
 
+     !!!! Allocate the transposed TMBs
+     !!!allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=istat)
+     !!!call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+     !!!allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=istat)
+     !!!call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+     !!!allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+     !!!call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+     !!!! Deallocate the transposed TMBs
+     !!!iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+     !!!deallocate(tmb%psit_c, stat=istat)
+     !!!call memocc(istat, iall, 'tmb%psit_c', subname)
+     !!!iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+     !!!deallocate(tmb%psit_f, stat=istat)
+     !!!call memocc(istat, iall, 'tmb%psit_f', subname)
+     !!!iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+     !!!deallocate(overlapmatrix, stat=istat)
+     !!!call memocc(istat, iall, 'overlapmatrix', subname)
+     !!!!!call random_seed()
+     !!!!!call random_number(tmb%psi)
+     !!!call memocc(istat, density_kernel, 'density_kernel', subname)
+     !!!call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+     !!!     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
+     !!!call sumrhoForLocalizedBasis2(iproc, nproc, &
+     !!!iall = -product(shape(density_kernel))*kind(density_kernel)
+     !!!deallocate(density_kernel,stat=istat)
+     !!!call memocc(istat,iall,'density_kernel',subname)
 ! DEBUG (SEE IF HAMILTONIAN IS GOOD)
 !!     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 !!     call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -178,6 +206,7 @@ integer:: jorb, jjorb
   lscv%increase_locreg=0.d0
   lscv%decrease_factor_total=1.d10 !initialize to some large value
   lscv%ifail=0
+  lscv%enlarge_locreg=.false.
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! or to tmbder if we use the derivatives.
@@ -199,22 +228,53 @@ integer:: jorb, jjorb
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
   call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
 
-
-  ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
-  ! are optimized and a consecutive loop in which the density is mixed.
-  coeffs_copied=.false.
-  first_time_with_der=.false.
-  outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
-
-
-      ! First to some initialization and determine the value of some control parameters.
-
-      ! Initialize DIIS...
+  ! Initialize DIIS...
+  !!if(.not.lscv%lowaccur_converged) then
       call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
       ldiis%DIISHistMin=input%lin%DIISHistMin
       ldiis%DIISHistMax=input%lin%DIISHistMax
       ldiis%alphaSD=input%lin%alphaSD
       ldiis%alphaDIIS=input%lin%alphaDIIS
+      ldiis%icountSDSatur=0
+      ldiis%icountSwitch=0
+      ldiis%icountDIISFailureTot=0
+      ldiis%icountDIISFailureCons=0
+      ldiis%is=0
+      ldiis%switchSD=.false.
+      ldiis%trmin=1.d100
+      ldiis%trold=1.d100
+  !!end if
+
+
+  ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
+  ! are optimized and a consecutive loop in which the density is mixed.
+  coeffs_copied=.false.
+  first_time_with_der=.false.
+  nit_highaccur=0
+  outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+      !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
+
+
+      ! First to some initialization and determine the value of some control parameters.
+
+      !!! Initialize DIIS...
+      !!! Keep the history in the high accuracy case.
+      !!if(.not.lscv%lowaccur_converged) then
+      !!    if(itout>1) call deallocateDIIS(ldiis)
+      !!    call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+      !!    ldiis%DIISHistMin=input%lin%DIISHistMin
+      !!    ldiis%DIISHistMax=input%lin%DIISHistMax
+      !!    ldiis%alphaSD=input%lin%alphaSD
+      !!    ldiis%alphaDIIS=input%lin%alphaDIIS
+      !!    ldiis%icountSDSatur=0
+      !!    ldiis%icountSwitch=0
+      !!    ldiis%icountDIISFailureTot=0
+      !!    ldiis%icountDIISFailureCons=0
+      !!    ldiis%is=0
+      !!    ldiis%switchSD=.false.
+      !!    ldiis%trmin=1.d100
+      !!    ldiis%trold=1.d100
+      !!end if
 
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
@@ -230,7 +290,8 @@ integer:: jorb, jjorb
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
       if(lscv%withder .and. lscv%lowaccur_converged .and. .not.coeffs_copied) then
-          tmbder%wfnmd%coeff=0.d0
+          !!tmbder%wfnmd%coeff=0.d0
+          call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
           do iorb=1,orbs%norb
               jjorb=0
               do jorb=1,tmbder%orbs%norb,4
@@ -248,14 +309,21 @@ integer:: jorb, jjorb
       call set_optimization_variables(input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
            tmbder%confdatarr, tmbder%wfnmd, lscv)
 
+      if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
+      if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
+
+      !!if(iproc==0) write(*,*) 'MIDDLE 1: ldiis%hphiHist(1)',ldiis%hphiHist(1)
       ! Adjust the confining potential if required.
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
+      !!if(iproc==0) write(*,*) 'MIDDLE 2: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
-      ! Somce special treatement if we are in the high accuracy part
+      ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
       !!if(lscv%exit_outer_loop) exit outerLoop
+
+      !!if(iproc==0) write(*,*) 'MIDDLE: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       if(lscv%withder) then
           call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
@@ -272,12 +340,15 @@ integer:: jorb, jjorb
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
-          if(lscv%withder .and. .not.first_time_with_der) then
-              first_time_with_der=.true.
-              scf_mode=LINEAR_MIXDENS_SIMPLE
-          else
-              scf_mode=input%lin%scf_mode
-          end if
+          !!if(lscv%withder .and. .not.first_time_with_der) then
+          !!    first_time_with_der=.true.
+          !!    !scf_mode=LINEAR_MIXDENS_SIMPLE
+          !!    scf_mode=input%lin%scf_mode
+          !!    call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
+          !!else
+          !!    scf_mode=input%lin%scf_mode
+          !!end if
+          scf_mode=input%lin%scf_mode
 
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
@@ -297,7 +368,7 @@ integer:: jorb, jjorb
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
-              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace, lscv%info_basis_functions,&
+              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb)
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
@@ -305,7 +376,38 @@ integer:: jorb, jjorb
               tmbder%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
+
+              !!write(*,*) 'nit_highaccur',nit_highaccur
+              if(nit_highaccur<=1) then
+                  call deallocateDIIS(ldiis)
+                  call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+                  ldiis%DIISHistMin=input%lin%DIISHistMin
+                  ldiis%DIISHistMax=input%lin%DIISHistMax
+                  ldiis%alphaSD=input%lin%alphaSD
+                  ldiis%alphaDIIS=input%lin%alphaDIIS
+                  ldiis%icountSDSatur=0
+                  ldiis%icountSwitch=0
+                  ldiis%icountDIISFailureTot=0
+                  ldiis%icountDIISFailureCons=0
+                  ldiis%is=0
+                  ldiis%switchSD=.false.
+                  ldiis%trmin=1.d100
+                  ldiis%trold=1.d100
+              else
+                  ! Since the potential changes, the values of ldiis%trmin should be reset.
+                  ldiis%switchSD=.false.
+                  ldiis%trmin=1.d100
+                  ldiis%trold=1.d100
+                  ldiis%icountSDSatur=0
+                  ldiis%icountSwitch=0
+                  ldiis%icountDIISFailureTot=0
+                  ldiis%icountDIISFailureCons=0
+              end if
           end if
+
+          ! Initialize DIIS...
+          ! Keep the history in the high accuracy case.
+          !if(.not.lscv%lowaccur_converged) then
 
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -339,28 +441,84 @@ integer:: jorb, jjorb
                   call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
+                  !! TEST ###############################################################################################
+                  !write(*,*) 'test: orthonormalize derivatives'
+                  !!call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+                  !!     tmbder%orbs, tmbder%op, tmbder%comon, tmb%lzd, &
+                  !!     tmbder%mad, tmbder%collcom, tmbder%orthpar, tmbder%wfnmd%bpo, tmbder%psi, tmbder%psit_c, tmbder%psit_f, &
+                  !!     tmbder%can_use_transposed)
+                  !!if(tmbder%can_use_transposed) then
+                  !!    ! This is not optimal, these quantities will be recalculated...
+                  !!    iall = -product(shape(tmbder%psit_c))*kind(tmbder%psit_c)
+                  !!    deallocate(tmbder%psit_c,stat=istat)
+                  !!    call memocc(istat,iall,'tmbder%psit_c',subname)
+                  !!    iall = -product(shape(tmbder%psit_f))*kind(tmbder%psit_f)
+                  !!    deallocate(tmbder%psit_f,stat=istat)
+                  !!    call memocc(istat,iall,'tmbder%psit_f',subname)
+                  !!end if
+                  !! END TEST ###########################################################################################
               else
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
+
+              ! Allocate the transposed TMBs
+              allocate(tmbmix%psit_c(tmbmix%collcom%ndimind_c), stat=istat)
+              call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+              allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
+              call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+              call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
           end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
           if(it_scc<=lscv%nit_scc_when_optimizing) then
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.true.
+              calculate_overlap_matrix=.true.
           else
               tmbmix%wfnmd%bs%communicate_phi_for_lsumrho=.false.
+              calculate_overlap_matrix=.false.
           end if
+
+          if(lscv%withder .and. .not.first_time_with_der) then
+              first_time_with_der=.true.
+              !scf_mode=LINEAR_MIXDENS_SIMPLE
+              scf_mode=input%lin%scf_mode
+              call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
+              tmb%wfnmd%alpha_coeff=1.d-2
+              tmbder%wfnmd%alpha_coeff=1.d-2
+          else
+              scf_mode=input%lin%scf_mode
+          end if
+
+
+          allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+          call memocc(istat, density_kernel, 'density_kernel', subname)
+
           ! Calculate the coefficients
-          call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,ebs,nlpspd,proj,&
+          call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,ldiis_coeff)
+               hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,ldiis_coeff)
+
+          ! Calculate the total energy.
+          energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+          energyDiff=energy-energyold
+          energyold=energy
+!DEBUG
+!if(iproc==0)then
+!print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+!end if
+!END DEBUG
 
 
           ! Calculate the charge density.
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+          call sumrhoForLocalizedBasis2(iproc, nproc, &
                tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-               tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+               density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
+
+          iall = -product(shape(density_kernel))*kind(density_kernel)
+          deallocate(density_kernel,stat=istat)
+          call memocc(istat,iall,'density_kernel',subname)
 
           ! Mix the density.
           !if(trim(input%lin%mixingMethod)=='dens') then
@@ -370,17 +528,10 @@ integer:: jorb, jjorb
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
-
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
           call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
-               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,ehart,eexcu,vexcu)
-
-          ! Calculate the total energy.
-          energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
-          energyDiff=energy-energyold
-          energyold=energy
-
+               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,energs%eh,energs%exc,energs%evxc)
 
           ! Mix the potential
           !if(trim(input%lin%mixingMethod)=='pot') then
@@ -404,20 +555,46 @@ integer:: jorb, jjorb
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
+              info_scf=it_scc
               lscv%reduce_convergence_tolerance=.true.
               exit
           else
+              info_scf=-1
               lscv%reduce_convergence_tolerance=.false.
+          end if
+
+          if(it_scc<lscv%nit_scc_when_optimizing) then
+              ! Deallocate the transposed TMBs
+              iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+              deallocate(tmbmix%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmbmix%psit_c', subname)
+              iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+              deallocate(tmbmix%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmbmix%psit_f', subname)
+              iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+              deallocate(overlapmatrix, stat=istat)
+              call memocc(istat, iall, 'overlapmatrix', subname)
           end if
 
       end do
 
       call deallocateDIIS(ldiis_coeff)
 
+      ! Deallocate the transposed TMBs
+      iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+      deallocate(tmbmix%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmbmix%psit_c', subname)
+      iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+      deallocate(tmbmix%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmbmix%psit_f', subname)
+      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+      deallocate(overlapmatrix, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix', subname)
+
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              ebs, ehart, eexcu, vexcu, eexctX, eion, edisp
+              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           !if(trim(input%lin%mixingMethod)=='dens') then
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
@@ -428,16 +605,23 @@ integer:: jorb, jjorb
                    'itout, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
           end if
       end if
+      call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
+           fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
+
       energyoldout=energy
 
-      ! Deallocate DIIS structures.
-      call deallocateDIIS(ldiis)
+      !!! Deallocate DIIS structures.
+      !!call deallocateDIIS(ldiis)
+
 
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
 
   end do outerLoop
+
+  ! Deallocate DIIS structures.
+  call deallocateDIIS(ldiis)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
   call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
@@ -466,8 +650,16 @@ integer:: jorb, jjorb
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmbmix%orbs, tmbmix%comsr, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov, at,denspot%dpbox%nscatterarr)
+  allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+  call memocc(istat, density_kernel, 'density_kernel', subname)
+  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+  call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
+       tmbmix%orbs, tmbmix%comsr, density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, at,denspot%dpbox%nscatterarr)
+  iall = -product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel,stat=istat)
+  call memocc(istat,iall,'density_kernel',subname)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
@@ -526,21 +718,16 @@ integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
 real(8),intent(in):: pnrm, energy, energyDiff
 
   if(iproc==0) then
-      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
-      write(*,'(1x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
-      if(infoBasisFunctions<0) then
-          write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-      else
-          write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
-      end if
+      write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a,i0,a)') 'at iteration ', itSCC, ' of the density optimization:'
       !!if(infoCoeff<0) then
       !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
       !!else if(infoCoeff>0) then
       !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
       if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a)') '- coefficients obtained by direct minimization.'
+          write(*,'(3x,a)') 'coefficients obtained by direct minimization.'
       else
-          write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
+          write(*,'(3x,a)') 'coefficients obtained by diagonalization.'
       end if
       !!end if
       !if(mixingMethod=='dens') then
@@ -548,14 +735,76 @@ real(8),intent(in):: pnrm, energy, energyDiff
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       end if
-      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
   end if
 
 end subroutine printSummary
+
+
+
+subroutine print_info(iproc, itout, info_tmb, info_coeff, scf_mode, target_function, &
+           fnrm_tmb, pnrm, value_tmb, energy, energyDiff)
+use module_base
+use module_types
+!
+! Purpose:
+! ========
+!   Print a short summary of some values calculated during the last iteration in the self
+!   consistency cycle.
+! 
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, itout, info_tmb, info_coeff, scf_mode, target_function
+real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
+
+  if(iproc==0) then
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+      write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
+      write(*,'(3x,a)') '> basis functions optimization:'
+      if(target_function==TARGET_FUNCTION_IS_TRACE) then
+          write(*,'(5x,a)') '- target function is trace'
+      else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
+          write(*,'(5x,a)') '- target function is energy'
+      end if
+      if(info_tmb<0) then
+          write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+      else
+          write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_tmb, ' iterations.'
+      end if
+      write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', value_tmb, fnrm_tmb
+      write(*,'(3x,a)') '> density optimization:'
+      if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(5x,a)') '- using direct minimization.'
+      else
+          write(*,'(5x,a)') '- using diagonalization / mixing.'
+      end if
+      if(info_coeff<0) then
+          write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+      else
+          write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_coeff, ' iterations.'
+      end if
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+      else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, fnrm coeff, energy', itout, pnrm, energy
+      end if
+      write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+  end if
+
+end subroutine print_info
 
 
 
@@ -686,6 +935,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       else
           lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
       end if
+      !!if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
+
 
   else
 
@@ -732,7 +983,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(linear_scaling_control_variables),intent(inout):: lscv
 
   ! Local variables
-  logical:: redefine_derivatives
+  integer :: ilr
+  logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
   if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
@@ -754,7 +1006,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged) then
+  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
+     input%lin%locrad_increase_amount>0.d0) then
       lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
       !lscv%increase_locreg=lscv%increase_locreg+0.d0
       if(iproc==0) then
@@ -769,12 +1022,22 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%locreg_increased=.true.
   end if
 
-  redefine_derivatives=.false.
-  if(lscv%lowaccur_converged) then
-      if(iproc==0) then
-          write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+  !redefine_derivatives=.false.
+  if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
+      change = .false.
+      do ilr = 1, tmb%lzd%nlr
+         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
+             change = .true.
+             exit
+         end if
+      end do
+      if(change) then
+         if(iproc==0) then
+             write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+         end if
+         lscv%locreg_increased=.true.
       end if
-      lscv%locreg_increased=.true.
+      lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(lscv%locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, tmb, denspot, ldiis)
