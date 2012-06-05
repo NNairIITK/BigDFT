@@ -335,7 +335,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end if
   
   !print *,'okhere1',dpbox%iproc_world
-  call mpi_barrier(MPI_COMM_WORLD,ierr)
+  !call mpi_barrier(MPI_COMM_WORLD,ierr)
   if (dpbox%nproc > 1) then
      call timing(dpbox%iproc_world,'Rho_comput    ','OF')
      call timing(dpbox%iproc_world,'Rho_commun    ','ON')
@@ -345,7 +345,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      call timing(dpbox%iproc_world,'Rho_comput    ','ON')
   endif
   !print *,'okthere',dpbox%iproc_world
-  call mpi_barrier(MPI_COMM_WORLD,ierr)
+  !call mpi_barrier(MPI_COMM_WORLD,ierr)
   !write the results
   if (dump) then
      if(nspin==4) then

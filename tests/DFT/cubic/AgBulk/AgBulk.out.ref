@@ -27,70 +27,70 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.10
- Timestamp of this run                 :  2012-06-02 22:59:41.066
+ Version Number                        : 1.7-dev.11
+ Timestamp of this run                 :  2012-06-05 00:24:48.595
  Hostname                              : athelas
- |... (file:input.perf)...........................................Performance Options
- |debug F                    Debug option
- |fftcache 8192              Cache size for the FFT
- |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
- |blas F                     CUBLAS acceleration
- |projrad  1.50E+01          Radius of the projector as a function of the maxrad
- |exctxpar OP2P              Exact exchange parallelisation scheme
- |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
- |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
- |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
- |ig_tol  1.00E-04           Input guess: Tolerance criterion
- |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |rho_commun DEF             Density communication scheme
- |psolver_groupsize 0        Size of Poisson Solver taskgroups (0=nproc)
- |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
- |tolsym -1.00E+00           Tolerance for symmetry detection
- |signaling F                Expose calculation results on Network
- |signalTimeout 0            Time out on startup for signal connection
- |domain                     Domain to add to the hostname to find the IP
- |verbosity 3                verbosity of the output 0=low, 2=high
- |psp_onfly F                Calculate pseudopotential projectors on the fly
- |... (file:input.dft).....................................DFT Calculation Parameters
- |0.5 0.5 0.5    hx,hy,hz: grid spacing in the three directions                      
- |8.0  15.0      c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
- |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
- |0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                     
- |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
- |1.E-05         gnrm_cv: convergence criterion gradient                             
- |5 1            itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
- |3  0           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
- |0              dispersion correction potential (values 1,2,3), 0=none              
- |0 0            InputPsiId, output_wf, output_denspot                               
- |.0  30         rbuf, ncongt: length of the tail (AU),# tail CG iterations          
- |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
- |F              disable the symmetry detection                                      
- |... (file:input.mix)..............................................Mixing Parameters
- |17             Mixing parameters                                                   
- |10             Maximum number of diagonalisation iterations                        
- |1.e-7          Stop criterion on the residue of potential or density               
- |2 1.d-4 1      No. of additional bands, elec. temperature, smearing method         
- |0.95 .8        Multiplying factors for the mixing and the electronic DIIS          
- |... (file:input.geopt.. not present)...........................Geometry Parameters 
- |BFGS           Geometry optimisation method                                        
- |1              Maximum number of force evaluations                                 
- |1.0 0.0        fract_fluct,forcemax                                                
- |0.0            random displacement amplitude                                       
- |4.0            Stepsize for the geometry optimisation                              
- |... (file:input.tddft.. not present).............................TD-DFT Parameters 
- |NONE           TDDFT Method                                                        
- |... (file:input.sic.. not present)..................................SIC Parameters 
- |NONE           SIC method: NONE, PZ, NK                                            
- |0.0            SIC downscaling parameter                                           
- |0.0            Reference occupation fref (NK case only)                            
- |... (file:input.kpt).............................Brillouin Zone Sampling Parameters
- |MPgrid         K-point sampling method                                             
- |3 3 3          No. of Monkhorst-Pack grid points                                   
- |1              No. of different shifts                                             
- |0.0 0. 0.0                                                                         
- |----------------------------------------------------------------------------------
- |  Data Writing directory:    not needed
+ #... (file:input.perf)..................................................Performance Options
+ #|debug F                   Debug option
+ #|fftcache 8192             Cache size for the FFT
+ #|accel NO                  Acceleration (NO, CUDAGPU, OCLGPU)
+ #|blas F                    CUBLAS acceleration
+ #|projrad  1.50E+01         Radius of the projector as a function of the maxrad
+ #|exctxpar OP2P             Exact exchange parallelisation scheme
+ #|ig_diag T                 Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ #|ig_norbp 5                Input guess: Orbitals per process for iterative diag.
+ #|ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ #|ig_tol  1.00E-04          Input guess: Tolerance criterion
+ #|methortho 0               Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ #|rho_commun DEF            Density communication scheme
+ #|psolver_groupsize 0       Size of Poisson Solver taskgroups (0=nproc)
+ #|unblock_comms OFF         Overlap Communications of fields (OFF,DEN,POT)
+ #|linear OFF                Linear Input Guess approach (OFF, LIG, FUL, TMO)
+ #|tolsym -1.00E+00          Tolerance for symmetry detection
+ #|signaling F               Expose calculation results on Network
+ #|signalTimeout 0           Time out on startup for signal connection
+ #|domain                    Domain to add to the hostname to find the IP 
+ #|verbosity 3               verbosity of the output 0=low, 2=high
+ #|psp_onfly F               Calculate pseudopotential projectors on the fly
+ #... (file:input.dft)............................................DFT Calculation Parameters
+ #|0.5 0.5 0.5    hx,hy,hz: grid spacing in the three directions                             
+ #|8.0  15.0      c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
+ #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
+ #|0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                            
+ #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
+ #|1.E-05         gnrm_cv: convergence criterion gradient                                    
+ #|5 1            itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
+ #|3  0           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
+ #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|0 0            InputPsiId, output_wf, output_denspot                                      
+ #|.0  30         rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
+ #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
+ #|F              disable the symmetry detection                                             
+ #... (file:input.mix).....................................................Mixing Parameters
+ #|17             Mixing parameters                                                          
+ #|10             Maximum number of diagonalisation iterations                               
+ #|1.e-7          Stop criterion on the residue of potential or density                      
+ #|2 1.d-4 1      No. of additional bands, elec. temperature, smearing method                
+ #|0.95 .8        Multiplying factors for the mixing and the electronic DIIS                 
+ #... (file:input.geopt.. not present)..................................Geometry Parameters 
+ #|BFGS           Geometry optimisation method                                               
+ #|1              Maximum number of force evaluations                                        
+ #|1.0 0.0        fract_fluct,forcemax                                                       
+ #|0.0            random displacement amplitude                                              
+ #|4.0            Stepsize for the geometry optimisation                                     
+ #... (file:input.tddft.. not present)....................................TD-DFT Parameters 
+ #|NONE           TDDFT Method                                                               
+ #... (file:input.sic.. not present).........................................SIC Parameters 
+ #|NONE           SIC method: NONE, PZ, NK                                                   
+ #|0.0            SIC downscaling parameter                                                  
+ #|0.0            Reference occupation fref (NK case only)                                   
+ #... (file:input.kpt)....................................Brillouin Zone Sampling Parameters
+ #|MPgrid         K-point sampling method                                                    
+ #|3 3 3          No. of Monkhorst-Pack grid points                                          
+ #|1              No. of different shifts                                                    
+ #|0.0 0. 0.0                                                                                
+ #|----------------------------------------------------------------------------------
+ Data Writing directory                : None
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = 24          
@@ -301,30 +301,30 @@
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  3.999999999797, 
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H):  2.12130453077352760E-01, gnrm:  1.28E-01, gnrm_0:  1.88E-01, 
+ iter:  1, tr(H):  2.12130453077353898E-01, gnrm:  1.28E-01, gnrm_0:  1.88E-01, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.43315552649092659E-03, gnrm:  7.57E-02, gnrm_0:  1.44E-01, 
+ iter:  2, tr(H): -2.43315552648998290E-03, gnrm:  7.57E-02, gnrm_0:  1.44E-01, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -1.06991352226607120E-01, gnrm:  4.67E-02, gnrm_0:  1.10E-01, 
+ iter:  3, tr(H): -1.06991352226605885E-01, gnrm:  4.67E-02, gnrm_0:  1.10E-01, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -1.68357366768408928E-01, gnrm:  2.99E-02, gnrm_0:  8.87E-02, 
+ iter:  4, tr(H): -1.68357366768409178E-01, gnrm:  2.99E-02, gnrm_0:  8.87E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79427438610945345E+00, gnrm:  2.99E-02, gnrm_0:  8.87E-02,  #final
+ iter:  5, EKS: -1.79427438610944701E+00, gnrm:  2.99E-02, gnrm_0:  8.87E-02,  #final
  Energies: {Ekin:  6.80066277647E-01, Epot: -6.35036144273E-01, Enl: -6.12633547487E-01, 
               EH:  2.37796951799E-03,  EXC: -7.60357612959E-01, EvXC: -9.88556678350E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.33533911977152E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.33533911977148E-02  0.0E+00  0.0E+00
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
@@ -345,9 +345,9 @@
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
  {e: -1.659210564544E-01, f:  2.0000, k:  4}, 
  {e: -1.613588924860E-03, f:  0.0000, k:  4}, 
- {e: -1.613588924859E-03, f:  0.0000, k:  4}, 
- {e: -1.594461393784E-03, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.33533911977152E-02
+ {e: -1.613588924860E-03, f:  0.0000, k:  4}, 
+ {e: -1.594461393782E-03, f:  0.0000, k:  4}]
+   Fermi Energy                        : -6.33533911977148E-02
  - Hamiltonian Optimization: &itrp0002
    - Subspace Optimization: &itrep0001
        Wavefunctions Iterations:
@@ -356,23 +356,23 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     2    5.70E-06
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.06202279046777431E-01, gnrm:  2.00E-02, gnrm_0:  7.50E-02, 
+ iter:  1, tr(H): -2.06202279046775433E-01, gnrm:  2.00E-02, gnrm_0:  7.50E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.30063550355760926E-01, gnrm:  1.32E-02, gnrm_0:  6.24E-02, 
+ iter:  2, tr(H): -2.30063550355759650E-01, gnrm:  1.32E-02, gnrm_0:  6.24E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.45332953005763132E-01, gnrm:  8.67E-03, gnrm_0:  5.09E-02, 
+ iter:  3, tr(H): -2.45332953005763077E-01, gnrm:  8.67E-03, gnrm_0:  5.09E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.55367497919678887E-01, gnrm:  5.71E-03, gnrm_0:  4.19E-02, 
+ iter:  4, tr(H): -2.55367497919677278E-01, gnrm:  5.71E-03, gnrm_0:  4.19E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79587340516368599E+00, gnrm:  5.71E-03, gnrm_0:  4.19E-02,  #final
+ iter:  5, EKS: -1.79587340516368998E+00, gnrm:  5.71E-03, gnrm_0:  4.19E-02,  #final
  Energies: {Ekin:  6.95964276938E-01, Epot: -6.30569594906E-01, Enl: -6.34533084301E-01, 
               EH:  2.49469689128E-03,  EXC: -7.60528795251E-01, EvXC: -9.88780557118E-01, 
             Eion: -1.45249206787E+00}, 
@@ -413,30 +413,30 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     3    5.73E-06
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.61545763243403895E-01, gnrm:  4.04E-03, gnrm_0:  3.40E-02, 
+ iter:  1, tr(H): -2.61545763243476059E-01, gnrm:  4.04E-03, gnrm_0:  3.40E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.65934015491488207E-01, gnrm:  2.51E-03, gnrm_0:  2.83E-02, 
+ iter:  2, tr(H): -2.65934015491559872E-01, gnrm:  2.51E-03, gnrm_0:  2.83E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.68891296829915027E-01, gnrm:  1.63E-03, gnrm_0:  2.29E-02, 
+ iter:  3, tr(H): -2.68891296829985804E-01, gnrm:  1.63E-03, gnrm_0:  2.29E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.70911405762693513E-01, gnrm:  1.08E-03, gnrm_0:  1.95E-02, 
+ iter:  4, tr(H): -2.70911405762763846E-01, gnrm:  1.08E-03, gnrm_0:  1.95E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79507877693975271E+00, gnrm:  1.08E-03, gnrm_0:  1.95E-02,  #final
+ iter:  5, EKS: -1.79507877693972362E+00, gnrm:  1.08E-03, gnrm_0:  1.95E-02,  #final
  Energies: {Ekin:  6.97837767108E-01, Epot: -6.31126745395E-01, Enl: -6.35426237032E-01, 
-              EH:  1.85209864650E-03,  EXC: -7.59647512595E-01, EvXC: -9.87628117491E-01, 
+              EH:  1.85209864649E-03,  EXC: -7.59647512596E-01, EvXC: -9.87628117492E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.36390668180278E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.36390668180362E-02  0.0E+00  0.0E+00
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
@@ -445,21 +445,21 @@
  {e:  2.016915216124E-01, f:  0.0000, k:  1}, 
  {e:  2.016915216144E-01, f:  0.0000, k:  1}, 
   # Kpt #0002 BZ coord. =     0.271245    0.000000    0.000000
- {e: -2.503635641253E-01, f:  2.0000, k:  2}, 
+ {e: -2.503635641254E-01, f:  2.0000, k:  2}, 
  {e: -1.161195505564E-01, f:  2.0000, k:  2}, 
  {e:  2.370684618241E-01, f:  0.0000, k:  2}, 
  {e:  2.370684623397E-01, f:  0.0000, k:  2}, 
   # Kpt #0003 BZ coord. =     0.271245    0.271245    0.000000
  {e: -2.110881046718E-01, f:  2.0000, k:  3}, 
- {e: -6.373148728415E-02, f:  1.8088, k:  3}, 
- {e: -6.371103287229E-02, f:  1.6912, k:  3}, 
- {e:  9.177782113264E-02, f:  0.0000, k:  3}, 
+ {e: -6.373148728416E-02, f:  1.8088, k:  3}, 
+ {e: -6.371103287230E-02, f:  1.6912, k:  3}, 
+ {e:  9.177782113263E-02, f:  0.0000, k:  3}, 
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
  {e: -1.660334377941E-01, f:  2.0000, k:  4}, 
- {e: -1.494450095621E-02, f:  0.0000, k:  4}, 
- {e: -1.494450095621E-02, f:  0.0000, k:  4}, 
+ {e: -1.494450095622E-02, f:  0.0000, k:  4}, 
+ {e: -1.494450095622E-02, f:  0.0000, k:  4}, 
  {e: -1.491480770970E-02, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.36390668180278E-02
+   Fermi Energy                        : -6.36390668180362E-02
    RhoPot Delta                        : *rpnrm
    Energies                            : *FINAL #End RhoPot Iterations, itrp: 3
  - Hamiltonian Optimization: &itrp0004
@@ -470,53 +470,53 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     4    7.60E-06
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.69470253678649296E-01, gnrm:  5.62E-03, gnrm_0:  1.65E-02, 
+ iter:  1, tr(H): -2.69470253678358640E-01, gnrm:  5.62E-03, gnrm_0:  1.65E-02, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.71043935700106153E-01, gnrm:  1.85E-03, gnrm_0:  1.46E-02, 
+ iter:  2, tr(H): -2.71043935699821104E-01, gnrm:  1.85E-03, gnrm_0:  1.46E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.71764610506468773E-01, gnrm:  1.09E-03, gnrm_0:  1.03E-02, 
+ iter:  3, tr(H): -2.71764610506184556E-01, gnrm:  1.09E-03, gnrm_0:  1.03E-02, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.72266269728742016E-01, gnrm:  6.97E-04, gnrm_0:  9.03E-03, 
+ iter:  4, tr(H): -2.72266269728457855E-01, gnrm:  6.97E-04, gnrm_0:  9.03E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79723123732225920E+00, gnrm:  6.97E-04, gnrm_0:  9.03E-03,  #final
+ iter:  5, EKS: -1.79723123732227030E+00, gnrm:  6.97E-04, gnrm_0:  9.03E-03,  #final
  Energies: {Ekin:  7.03241675441E-01, Epot: -6.25788897345E-01, Enl: -6.46003732167E-01, 
-              EH:  6.39847076451E-03,  EXC: -7.66888850563E-01, EvXC: -9.97099105947E-01, 
+              EH:  6.39847076452E-03,  EXC: -7.66888850563E-01, EvXC: -9.97099105946E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34755961821512E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34755961821161E-02  0.0E+00  0.0E+00
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
  {e: -2.794032047836E-01, f:  2.0000, k:  1}, 
- {e:  2.030656138262E-01, f:  0.0000, k:  1}, 
+ {e:  2.030656138263E-01, f:  0.0000, k:  1}, 
  {e:  2.030656138621E-01, f:  0.0000, k:  1}, 
  {e:  2.030656138621E-01, f:  0.0000, k:  1}, 
   # Kpt #0002 BZ coord. =     0.271245    0.000000    0.000000
- {e: -2.504626126372E-01, f:  2.0000, k:  2}, 
- {e: -1.160246624553E-01, f:  2.0000, k:  2}, 
- {e:  2.365968332149E-01, f:  0.0000, k:  2}, 
+ {e: -2.504626126371E-01, f:  2.0000, k:  2}, 
+ {e: -1.160246624552E-01, f:  2.0000, k:  2}, 
+ {e:  2.365968332150E-01, f:  0.0000, k:  2}, 
  {e:  2.365968335510E-01, f:  0.0000, k:  2}, 
   # Kpt #0003 BZ coord. =     0.271245    0.271245    0.000000
- {e: -2.111537110602E-01, f:  2.0000, k:  3}, 
- {e: -6.356899987133E-02, f:  1.8135, k:  3}, 
- {e: -6.354686959325E-02, f:  1.6865, k:  3}, 
- {e:  9.199707960826E-02, f:  0.0000, k:  3}, 
+ {e: -2.111537110601E-01, f:  2.0000, k:  3}, 
+ {e: -6.356899987130E-02, f:  1.8135, k:  3}, 
+ {e: -6.354686959322E-02, f:  1.6865, k:  3}, 
+ {e:  9.199707960829E-02, f:  0.0000, k:  3}, 
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
  {e: -1.660697115440E-01, f:  2.0000, k:  4}, 
- {e: -1.529247625606E-02, f:  0.0000, k:  4}, 
- {e: -1.526062580245E-02, f:  0.0000, k:  4}, 
- {e: -1.526062580245E-02, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.34755961821512E-02
+ {e: -1.529247625602E-02, f:  0.0000, k:  4}, 
+ {e: -1.526062580241E-02, f:  0.0000, k:  4}, 
+ {e: -1.526062580241E-02, f:  0.0000, k:  4}]
+   Fermi Energy                        : -6.34755961821161E-02
    RhoPot Delta                        : *rpnrm
    Energies                            : *FINAL #End RhoPot Iterations, itrp: 4
  - Hamiltonian Optimization: &itrp0005
@@ -527,53 +527,53 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     5    3.67E-07
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.71867591629194938E-01, gnrm:  7.94E-04, gnrm_0:  7.09E-03, 
+ iter:  1, tr(H): -2.71867591628170646E-01, gnrm:  7.94E-04, gnrm_0:  7.09E-03, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.72183292652585784E-01, gnrm:  4.36E-04, gnrm_0:  6.46E-03, 
+ iter:  2, tr(H): -2.72183292651577813E-01, gnrm:  4.36E-04, gnrm_0:  6.46E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.72345487431309985E-01, gnrm:  2.83E-04, gnrm_0:  4.88E-03, 
+ iter:  3, tr(H): -2.72345487430307620E-01, gnrm:  2.83E-04, gnrm_0:  4.88E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.72460197532244930E-01, gnrm:  1.88E-04, gnrm_0:  4.16E-03, 
+ iter:  4, tr(H): -2.72460197531244397E-01, gnrm:  1.88E-04, gnrm_0:  4.16E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79722078171530186E+00, gnrm:  1.88E-04, gnrm_0:  4.16E-03,  #final
- Energies: {Ekin:  7.04379301111E-01, Epot: -6.24838983865E-01, Enl: -6.47846161826E-01, 
-              EH:  6.91371118526E-03,  EXC: -7.67801118842E-01, EvXC: -9.98291960762E-01, 
+ iter:  5, EKS: -1.79722078171528898E+00, gnrm:  1.88E-04, gnrm_0:  4.16E-03,  #final
+ Energies: {Ekin:  7.04379301111E-01, Epot: -6.24838983864E-01, Enl: -6.47846161827E-01, 
+              EH:  6.91371118567E-03,  EXC: -7.67801118842E-01, EvXC: -9.98291960762E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.33974994933710E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.33974994932555E-02  0.0E+00  0.0E+00
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
- {e: -2.793604290023E-01, f:  2.0000, k:  1}, 
- {e:  2.032759410918E-01, f:  0.0000, k:  1}, 
- {e:  2.032759411245E-01, f:  0.0000, k:  1}, 
- {e:  2.032759411245E-01, f:  0.0000, k:  1}, 
+ {e: -2.793604290022E-01, f:  2.0000, k:  1}, 
+ {e:  2.032759410921E-01, f:  0.0000, k:  1}, 
+ {e:  2.032759411247E-01, f:  0.0000, k:  1}, 
+ {e:  2.032759411247E-01, f:  0.0000, k:  1}, 
   # Kpt #0002 BZ coord. =     0.271245    0.000000    0.000000
  {e: -2.504177333102E-01, f:  2.0000, k:  2}, 
- {e: -1.159579328883E-01, f:  2.0000, k:  2}, 
- {e:  2.362499593681E-01, f:  0.0000, k:  2}, 
- {e:  2.362499614429E-01, f:  0.0000, k:  2}, 
+ {e: -1.159579328882E-01, f:  2.0000, k:  2}, 
+ {e:  2.362499593683E-01, f:  0.0000, k:  2}, 
+ {e:  2.362499614431E-01, f:  0.0000, k:  2}, 
   # Kpt #0003 BZ coord. =     0.271245    0.271245    0.000000
- {e: -2.111046746463E-01, f:  2.0000, k:  3}, 
- {e: -6.350125337750E-02, f:  1.8577, k:  3}, 
- {e: -6.346253529772E-02, f:  1.6423, k:  3}, 
- {e:  9.208997665540E-02, f:  0.0000, k:  3}, 
+ {e: -2.111046746462E-01, f:  2.0000, k:  3}, 
+ {e: -6.350125337739E-02, f:  1.8577, k:  3}, 
+ {e: -6.346253529760E-02, f:  1.6423, k:  3}, 
+ {e:  9.208997665554E-02, f:  0.0000, k:  3}, 
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
- {e: -1.660154820423E-01, f:  2.0000, k:  4}, 
- {e: -1.531430056448E-02, f:  0.0000, k:  4}, 
- {e: -1.525882938490E-02, f:  0.0000, k:  4}, 
- {e: -1.525882938490E-02, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.33974994933710E-02
+ {e: -1.660154820422E-01, f:  2.0000, k:  4}, 
+ {e: -1.531430056438E-02, f:  0.0000, k:  4}, 
+ {e: -1.525882938477E-02, f:  0.0000, k:  4}, 
+ {e: -1.525882938477E-02, f:  0.0000, k:  4}]
+   Fermi Energy                        : -6.33974994932555E-02
    RhoPot Delta                        : *rpnrm
    Energies                            : *FINAL #End RhoPot Iterations, itrp: 5
  - Hamiltonian Optimization: &itrp0006
@@ -584,34 +584,34 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     6    7.39E-07
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.73232409739780802E-01, gnrm:  5.03E-04, gnrm_0:  3.61E-03, 
+ iter:  1, tr(H): -2.73232409739663895E-01, gnrm:  5.03E-04, gnrm_0:  3.61E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.73287652005473003E-01, gnrm:  2.09E-04, gnrm_0:  3.00E-03, 
+ iter:  2, tr(H): -2.73287652005355486E-01, gnrm:  2.09E-04, gnrm_0:  3.00E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.73326592190804962E-01, gnrm:  1.05E-04, gnrm_0:  2.50E-03, 
+ iter:  3, tr(H): -2.73326592190687057E-01, gnrm:  1.05E-04, gnrm_0:  2.50E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.73354457951252350E-01, gnrm:  5.91E-05, gnrm_0:  2.13E-03, 
+ iter:  4, tr(H): -2.73354457951134389E-01, gnrm:  5.91E-05, gnrm_0:  2.13E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79723323540781954E+00, gnrm:  5.91E-05, gnrm_0:  2.13E-03,  #final
+ iter:  5, EKS: -1.79723323540782376E+00, gnrm:  5.91E-05, gnrm_0:  2.13E-03,  #final
  Energies: {Ekin:  7.04122367809E-01, Epot: -6.25453562749E-01, Enl: -6.47204772616E-01, 
-              EH:  6.42759943320E-03,  EXC: -7.66927978612E-01, EvXC: -9.97150378063E-01, 
+              EH:  6.42759943321E-03,  EXC: -7.66927978611E-01, EvXC: -9.97150378063E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34717936472732E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34717936472587E-02  0.0E+00  0.0E+00
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
- {e: -2.794017800513E-01, f:  2.0000, k:  1}, 
+ {e: -2.794017800512E-01, f:  2.0000, k:  1}, 
  {e:  2.030720159977E-01, f:  0.0000, k:  1}, 
  {e:  2.030720160355E-01, f:  0.0000, k:  1}, 
  {e:  2.030720160355E-01, f:  0.0000, k:  1}, 
@@ -619,18 +619,18 @@
  {e: -2.504602214407E-01, f:  2.0000, k:  2}, 
  {e: -1.160202366182E-01, f:  2.0000, k:  2}, 
  {e:  2.359290830606E-01, f:  0.0000, k:  2}, 
- {e:  2.359290835852E-01, f:  0.0000, k:  2}, 
+ {e:  2.359290835853E-01, f:  0.0000, k:  2}, 
   # Kpt #0003 BZ coord. =     0.271245    0.271245    0.000000
  {e: -2.111505175628E-01, f:  2.0000, k:  3}, 
- {e: -6.355325950034E-02, f:  1.7507, k:  3}, 
- {e: -6.355301201284E-02, f:  1.7493, k:  3}, 
- {e:  9.198268102950E-02, f:  0.0000, k:  3}, 
+ {e: -6.355325950032E-02, f:  1.7507, k:  3}, 
+ {e: -6.355301201282E-02, f:  1.7493, k:  3}, 
+ {e:  9.198268102952E-02, f:  0.0000, k:  3}, 
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
  {e: -1.660661036355E-01, f:  2.0000, k:  4}, 
- {e: -1.536757920607E-02, f:  0.0000, k:  4}, 
- {e: -1.536724557527E-02, f:  0.0000, k:  4}, 
- {e: -1.536724557527E-02, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.34717936472732E-02
+ {e: -1.536757920606E-02, f:  0.0000, k:  4}, 
+ {e: -1.536724557526E-02, f:  0.0000, k:  4}, 
+ {e: -1.536724557526E-02, f:  0.0000, k:  4}]
+   Fermi Energy                        : -6.34717936472587E-02
    RhoPot Delta                        : *rpnrm
    Energies                            : *FINAL #End RhoPot Iterations, itrp: 6
  - Hamiltonian Optimization: &itrp0007
@@ -641,25 +641,25 @@
  DENSITY iteration,Delta : (Norm 2/Volume)     7    7.59E-08
  Poisson Solver: {BC: Periodic, Dimensions:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -2.73226286227868986E-01, gnrm:  9.90E-05, gnrm_0:  1.75E-03, 
+ iter:  1, tr(H): -2.73226286227703619E-01, gnrm:  9.90E-05, gnrm_0:  1.75E-03, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -2.73244290001193879E-01, gnrm:  2.97E-05, gnrm_0:  1.49E-03, 
+ iter:  2, tr(H): -2.73244290001027235E-01, gnrm:  2.97E-05, gnrm_0:  1.49E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -2.73253802339940066E-01, gnrm:  1.61E-05, gnrm_0:  1.24E-03, 
+ iter:  3, tr(H): -2.73253802339773366E-01, gnrm:  1.61E-05, gnrm_0:  1.24E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- iter:  4, tr(H): -2.73260781010484399E-01, gnrm:  1.02E-05, gnrm_0:  1.03E-03, 
+ iter:  4, tr(H): -2.73260781010318032E-01, gnrm:  1.02E-05, gnrm_0:  1.03E-03, 
  SDalpha:  8.000E-01, Orthogonalization Method:  0}
        -  &FINAL  { #-------------------------------------------------------------- iter: 5
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.79723306722473142E+00, gnrm:  1.02E-05, gnrm_0:  1.03E-03,  #FINAL
+ iter:  5, EKS: -1.79723306722472098E+00, gnrm:  1.02E-05, gnrm_0:  1.03E-03,  #FINAL
  Energies: {Ekin:  7.04211192416E-01, Epot: -6.25318941216E-01, Enl: -6.47377092839E-01, 
-              EH:  6.53826278717E-03,  EXC: -7.67122030061E-01, EvXC: -9.97404135132E-01, 
+              EH:  6.53826278720E-03,  EXC: -7.67122030061E-01, EvXC: -9.97404135132E-01, 
             Eion: -1.45249206787E+00}, 
  SCF criterion:  0}
  No convergence within the allowed number of minimization steps
@@ -667,26 +667,26 @@
     #------------------------------------------ Kohn-Sham Eigenvalues and Occupation Numbers
    Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
- {e: -2.793933046047E-01, f:  2.0000, k:  1}, 
- {e:  2.031153824179E-01, f:  0.0000, k:  1}, 
- {e:  2.031153824554E-01, f:  0.0000, k:  1}, 
- {e:  2.031153824554E-01, f:  0.0000, k:  1}, 
+ {e: -2.793933046046E-01, f:  2.0000, k:  1}, 
+ {e:  2.031153824180E-01, f:  0.0000, k:  1}, 
+ {e:  2.031153824555E-01, f:  0.0000, k:  1}, 
+ {e:  2.031153824555E-01, f:  0.0000, k:  1}, 
   # Kpt #0002 BZ coord. =     0.271245    0.000000    0.000000
  {e: -2.504511096702E-01, f:  2.0000, k:  2}, 
  {e: -1.160062915303E-01, f:  2.0000, k:  2}, 
- {e:  2.359298968623E-01, f:  0.0000, k:  2}, 
+ {e:  2.359298968624E-01, f:  0.0000, k:  2}, 
  {e:  2.359298970280E-01, f:  0.0000, k:  2}, 
   # Kpt #0003 BZ coord. =     0.271245    0.271245    0.000000
- {e: -2.111404382320E-01, f:  2.0000, k:  3}, 
- {e: -6.353949901248E-02, f:  1.7507, k:  3}, 
- {e: -6.353507873890E-02, f:  1.7493, k:  3}, 
- {e:  9.200523017558E-02, f:  0.0000, k:  3}, 
+ {e: -2.111404382319E-01, f:  2.0000, k:  3}, 
+ {e: -6.353949901247E-02, f:  1.7507, k:  3}, 
+ {e: -6.353507873888E-02, f:  1.7493, k:  3}, 
+ {e:  9.200523017560E-02, f:  0.0000, k:  3}, 
   # Kpt #0004 BZ coord. =     0.271245    0.271245    0.271245
  {e: -1.660549132780E-01, f:  2.0000, k:  4}, 
- {e: -1.535832150488E-02, f:  0.0000, k:  4}, 
- {e: -1.535199196747E-02, f:  0.0000, k:  4}, 
- {e: -1.535199196747E-02, f:  0.0000, k:  4}]
-   Fermi Energy                        : -6.34717936472732E-02
+ {e: -1.535832150486E-02, f:  0.0000, k:  4}, 
+ {e: -1.535199196745E-02, f:  0.0000, k:  4}, 
+ {e: -1.535199196745E-02, f:  0.0000, k:  4}]
+   Fermi Energy                        : -6.34717936472587E-02
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
@@ -697,25 +697,28 @@
    MPI tasks                           :  2
  Number of Symmetries                  :  24
  Number of Symmetries                  :  24
- ------------------------------------------------------------- Electric Dipole Moment
-  |P| =   1.265091E+01 (AU)       (Px,Py,Pz)=   -7.3040E+00  -7.3040E+00  -7.3040E+00
-  |P| =   3.215541E+01 (Debye)    (Px,Py,Pz)=   -1.8565E+01  -1.8565E+01  -1.8565E+01
+ Electric Dipole Moment (AU):
+   P vector                            :  [ -7.3040E+00, -7.3040E+00, -7.3040E+00 ]
+   |P|                                 :  1.265091E+01
+ Electric Dipole Moment (Debye):
+   P vector                            :  [ -1.8565E+01, -1.8565E+01, -1.8565E+01 ]
+   |P|                                 :  3.215541E+01
  Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate nonlocal forces... done.
- average noise along x direction:  -3.90985908E-07
+ Non Local forces calculated           :  Yes
+ average noise along x direction:  -3.90985909E-07
  average noise along y direction:  -5.20438513E-07
  average noise along z direction:  -7.31049374E-07
  total average noise            :   9.78856176E-07
- clean forces norm (Ha/Bohr): maxval=  3.031180252544E-06  fnrm2=  3.002039794678E-11
+ clean forces norm (Ha/Bohr): maxval=  3.031180253217E-06  fnrm2=  3.002039794634E-11
  Stress Tensor:
    Ewald stress tensor matrix (Ha/Bohr^3):
    -  [  1.435372394011E-03,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000,  1.435372394011E-03,  0.00000000000 ]
    -  [  0.00000000000,  0.00000000000,  1.435372394011E-03 ]
    Hartree stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.691470664446E-06,  0.00000000000,  0.00000000000 ]
-   -  [  0.00000000000, -4.691470664446E-06,  0.00000000000 ]
-   -  [  0.00000000000,  0.00000000000, -4.691470664446E-06 ]
+   -  [ -4.691470664448E-06,  0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000, -4.691470664448E-06,  0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000, -4.691470664448E-06 ]
    XC stress tensor matrix (Ha/Bohr^3):
    -  [  5.002285943484E-04,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000,  5.002285943484E-04,  0.00000000000 ]
@@ -726,27 +729,27 @@
    -  [  0.00000000000, -3.336121390938E-04,  0.00000000000 ]
    -  [  0.00000000000,  0.00000000000, -3.336121390938E-04 ]
    PSP Projectors stress tensor matrix (Ha/Bohr^3):
-   -  [  7.118482599022E-04,  0.00000000000,  0.00000000000 ]
-   -  [  0.00000000000,  7.118482599022E-04,  0.00000000000 ]
-   -  [  0.00000000000,  0.00000000000,  7.118482599022E-04 ]
+   -  [  7.118482599024E-04,  0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  7.118482599024E-04,  0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  7.118482599024E-04 ]
    Kinetic stress tensor matrix (Ha/Bohr^3):
    -  [ -1.019811692258E-03,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000, -1.019811692258E-03,  0.00000000000 ]
    -  [  0.00000000000,  0.00000000000, -1.019811692258E-03 ]
    PSP Long Range stress tensor matrix (Ha/Bohr^3):
-   -  [ -3.522397805236E-07,  0.00000000000,  0.00000000000 ]
-   -  [  0.00000000000, -3.522397805236E-07,  0.00000000000 ]
-   -  [  0.00000000000,  0.00000000000, -3.522397805236E-07 ]
+   -  [ -3.522397805286E-07,  0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000, -3.522397805286E-07,  0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000, -3.522397805286E-07 ]
    Total stress tensor matrix (Ha/Bohr^3):
    -  [  1.288981706465E-03,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000,  1.288981706465E-03,  0.00000000000 ]
    -  [  0.00000000000,  0.00000000000,  1.288981706465E-03 ]
    Pressure:
-     Ha/Bohr^3                         :  1.28898170646532E-03
+     Ha/Bohr^3                         :  1.28898170646535E-03
      GPa                               :  37.9231
-     PV (Ha)                           :  0.59338755144383
+     PV (Ha)                           :  0.59338755144384
  Symmetrise forces with 24 symmetries.
- CPU time/ELAPSED time for root process     0        58.44       100.06
+ CPU time/ELAPSED time for root process     0        50.13        92.86
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Ag -1.47875E-06 -1.47875E-06 -1.47875E-06
