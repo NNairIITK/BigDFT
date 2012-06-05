@@ -460,20 +460,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
-       write(*,*) '1: tmbig%can_use_transposed',tmbig%can_use_transposed
   ! Since inputguess_gaussian_orbitals overwrites tmbig%orbs,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
        tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
 
-       write(*,*) '2: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   !dimension of the wavefunctions
   call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
-       write(*,*) '3: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
@@ -495,7 +492,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!lchi2=0.d0
   call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
        psigau(1,1,min(tmbgauss%orbs%isorb+1,tmbgauss%orbs%norb)),lchi2)
-       write(*,*) '4: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -507,7 +503,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
-       write(*,*) '5: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   allocate(lchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -541,7 +536,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       stop
   end if
 
-       write(*,*) '6: tmbig%can_use_transposed',tmbig%can_use_transposed
   ! Always use the exact Loewdin method.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
        tmbig%lzd, tmbig%orbs, tmbig%comon, &
