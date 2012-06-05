@@ -60,12 +60,12 @@ void create_kernels(struct bigdft_kernels *kernels){
 void get_context_devices_infos(cl_context * context, struct bigdft_device_infos * infos){
     cl_uint device_number;
 
-#if __OPENCL_VERSION__ <= CL_VERSION_1_0
+#ifdef CL_VERSION_1_1
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
+#else
     size_t nContextDescriptorSize;
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
     device_number = nContextDescriptorSize/sizeof(cl_device_id);
-#else
-    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
 #endif
     cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
@@ -76,6 +76,7 @@ void get_context_devices_infos(cl_context * context, struct bigdft_device_infos 
 }
 
 void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
+    clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(infos->DEVICE_TYPE), &(infos->DEVICE_TYPE), NULL);
     clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(infos->LOCAL_MEM_SIZE), &(infos->LOCAL_MEM_SIZE), NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(infos->MAX_WORK_GROUP_SIZE), &(infos->MAX_WORK_GROUP_SIZE), NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(infos->MAX_COMPUTE_UNITS), &(infos->MAX_COMPUTE_UNITS), NULL);
@@ -278,7 +279,11 @@ void FC_FUNC_(ocl_finish,OCL_FINISH)(bigdft_command_queue *command_queue){
 
 void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(bigdft_command_queue *command_queue){
     cl_int ciErrNum;
+#ifdef CL_VERSION_1_2
+    ciErrNum = clEnqueueBarrierWithWaitList((*command_queue)->command_queue, 0, NULL, NULL);
+#else
     ciErrNum = clEnqueueBarrier((*command_queue)->command_queue);
+#endif
     oclErrorCheck(ciErrNum,"Failed to enqueue barrier!");
 }
 

@@ -1,5 +1,7 @@
+#include <string.h>
 #include "OpenCL_wrappers.h"
 #include "fft_generator.h"
+
 
 cl_uint use_constant_memory=1;
 
@@ -333,7 +335,16 @@ void build_fft_programs(cl_context * context){
           exit(1);
       }
       if(!use_constant_memory) {
+#ifdef CL_VERSION_1_2
+        cl_image_desc desc;
+        memset(&desc,0,sizeof(cl_image_desc));
+        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+        desc.image_width = fft_size[0];
+        desc.buffer = NULL;
+        cossind0 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+#else
         cossind0 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[0],1,0,c->cossin,&ciErrNum);
+#endif
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind0!\n",ciErrNum);
       }
@@ -356,7 +367,16 @@ void build_fft_programs(cl_context * context){
           exit(1);
       }
       if(!use_constant_memory) {
+#ifdef CL_VERSION_1_2
+        cl_image_desc desc;
+        memset(&desc,0,sizeof(cl_image_desc));
+        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+        desc.image_width = fft_size[1];
+        desc.buffer = NULL;
+        cossind1 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+#else
         cossind1 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[1],1,0,c->cossin,&ciErrNum);
+#endif
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind1!\n",ciErrNum);
       }
@@ -379,7 +399,16 @@ void build_fft_programs(cl_context * context){
           exit(1);
       }
       if(!use_constant_memory) {
+#ifdef CL_VERSION_1_2
+        cl_image_desc desc;
+        memset(&desc,0,sizeof(cl_image_desc));
+        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+        desc.image_width = fft_size[2];
+        desc.buffer = NULL;
+        cossind2 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+#else
         cossind2 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[2],1,0,c->cossin,&ciErrNum);
+#endif
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind2!\n",ciErrNum);
       }

@@ -21,7 +21,7 @@
 /** Activate profiling info. */
 #define PROFILING 0
 
-#define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
+#define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);fflush(NULL);exit(1);} 
 
 struct bigdft_kernels { 
   cl_kernel c_initialize_kernel_d;
@@ -119,6 +119,7 @@ struct bigdft_kernels {
 };
 
 struct bigdft_device_infos {
+  cl_device_type DEVICE_TYPE;
   size_t MAX_WORK_GROUP_SIZE;
   cl_ulong LOCAL_MEM_SIZE;
   cl_uint MAX_COMPUTE_UNITS;
