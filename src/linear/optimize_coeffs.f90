@@ -77,31 +77,40 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
        orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
 
-  !!! Calculate the right hand side
-  !!do iorb=1,orbs%norb
-  !!    do lorb=1,tmb%orbs%norb
-  !!        tt=0.d0
-  !!        do korb=1,tmb%orbs%norb
-  !!            tt=tt+tmb%wfnmd%coeff(korb,iorb)*ham(korb,lorb)
-  !!        end do
-  !!        do jorb=1,orbs%norb
-  !!            do korb=1,tmb%orbs%norb
-  !!                tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
-  !!            end do
-  !!        end do
-  !!        rhs(lorb,iorb)=tt
-  !!        !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
-  !!    end do
-  !!end do
 
-  !!! Solve the linear system ovrlp*grad=rhs
-  !!call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
-  !!call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
-  !!if(info/=0) then
-  !!    write(*,'(a,i0)') 'ERROR in dgesv: info=',info
-  !!    stop
-  !!end if
-  !!call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
+  ! ##############################################################################
+  ! ################################ OLD #########################################
+  ! Calculate the right hand side
+  !!do iorb=1,orbs%norb
+  do iorb=1,orbs%norbp
+      do lorb=1,tmb%orbs%norb
+          tt=0.d0
+          do korb=1,tmb%orbs%norb
+              tt=tt+tmb%wfnmd%coeff(korb,iorb)*ham(korb,lorb)
+          end do
+          do jorb=1,orbs%norb
+              do korb=1,tmb%orbs%norb
+                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
+              end do
+          end do
+          rhs(lorb,iorb)=tt
+          !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
+      end do
+  end do
+
+  ! Solve the linear system ovrlp*grad=rhs
+  call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  !call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
+  call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
+  if(info/=0) then
+      write(*,'(a,i0)') 'ERROR in dgesv: info=',info
+      stop
+  end if
+  !call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
+  call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,1), 1, gradp(1,1), 1)
+
+  ! ##############################################################################
+  ! ############################ END OLD #########################################
 
 
   !! NEW VERSION - TEST ######################################################
@@ -119,23 +128,29 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !         grad(jorb,iorb)=tt
   !    end do
   !end do
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      do jorb=1,tmb%orbs%norb
-           tt=0.d0
-           do korb=1,tmb%orbs%norb
-               tt=tt+ham(korb,jorb)*tmb%wfnmd%coeffp(korb,iorb)
-               !write(100+iproc,'(4i8,es14.5)') iorb, iiorb, jorb, korb, tmb%wfnmd%coeffp(korb,iorb)
-           end do
-           do korb=1,orbs%norb
-               do lorb=1,tmb%orbs%norb
-                   tt=tt-lagmat(korb,iiorb)*ovrlp(lorb,jorb)*tmb%wfnmd%coeff(lorb,korb)
-                   !write(100+iproc,'(6i8,3es14.5)') iorb, iiorb, jorb, lorb, korb, korb, tmb%wfnmd%coeff(lorb,korb), ovrlp(lorb,jorb), lagmat(korb,iiorb)
-               end do
-           end do
-           gradp(jorb,iorb)=tt
-      end do
-  end do
+
+  !!! #############################################################################
+  !!! ########################## NEW ##############################################
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    do jorb=1,tmb%orbs%norb
+  !!         tt=0.d0
+  !!         do korb=1,tmb%orbs%norb
+  !!             tt=tt+ham(korb,jorb)*tmb%wfnmd%coeffp(korb,iorb)
+  !!             !write(100+iproc,'(4i8,es14.5)') iorb, iiorb, jorb, korb, tmb%wfnmd%coeffp(korb,iorb)
+  !!         end do
+  !!         do korb=1,orbs%norb
+  !!             do lorb=1,tmb%orbs%norb
+  !!                 tt=tt-lagmat(korb,iiorb)*ovrlp(lorb,jorb)*tmb%wfnmd%coeff(lorb,korb)
+  !!                 !write(100+iproc,'(6i8,3es14.5)') iorb, iiorb, jorb, lorb, korb, korb, tmb%wfnmd%coeff(lorb,korb), ovrlp(lorb,jorb), lagmat(korb,iiorb)
+  !!             end do
+  !!         end do
+  !!         gradp(jorb,iorb)=tt
+  !!    end do
+  !!end do
+  !!! #############################################################################
+  !!! ###################### END NEW ##############################################
+
   !! #########################################################################, 
   !!do iorb=1,orbs%norbp
   !!    iiorb=orbs%isorb+iorb
