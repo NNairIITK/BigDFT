@@ -2002,7 +2002,7 @@ END SUBROUTINE calc_moments
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, except_this_one => check_communications
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
