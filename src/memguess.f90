@@ -1333,6 +1333,7 @@ END SUBROUTINE compare_data_and_gflops
 subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor)
    use module_base
    use module_types
+   use module_interfaces
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz

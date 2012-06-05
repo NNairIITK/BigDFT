@@ -71,7 +71,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
-
+  use yaml_output
   implicit none
 
   !Arguments
@@ -83,10 +83,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-
+  
+  !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
-
+  !call yaml_close_map()
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
@@ -170,6 +171,7 @@ END SUBROUTINE read_input_parameters
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
@@ -178,7 +180,7 @@ subroutine check_for_data_writing_directory(iproc,in)
   integer :: i_stat,ierror,ierr
   character(len=100) :: dirname
 
-  if (iproc==0)write(*,'(1x,a)')'|'//repeat('-',82)
+  if (iproc==0)write(*,'(1x,a)')'#|'//repeat('-',82)
 
   !initialize directory name
   shouldwrite=.false.
@@ -205,9 +207,10 @@ subroutine check_for_data_writing_directory(iproc,in)
      end if
      call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      in%dir_output=dirname
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    ',trim(in%dir_output)
+     if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))!,write(*,'(1x,2a)')'#|  Data Writing directory:    ',trim(in%dir_output)
   else
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    not needed'
+     if (iproc==0) call yaml_map('Data Writing directory','None')
+     !if (iproc==0) write(*,'(1x,2a)')'#|  Data Writing directory:    not needed'
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
