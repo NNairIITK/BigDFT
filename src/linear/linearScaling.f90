@@ -362,6 +362,17 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       tmblarge%can_use_transposed=.false.
+      allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
+      !call memocc(istat, tmblarge%confdatarr, 'tmblarge%confdatarr', subname)
+      if(.not.lscv%lowaccur_converged) then
+          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+               input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+      else
+          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+               input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+      end if
+      !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
+
 
 
 
@@ -624,6 +635,9 @@ end if
           deallocate(tmblarge%psit_f, stat=istat)
           call memocc(istat, iall, 'tmblarge%psit_f', subname)
       end if
+      !!iall=-product(shape(tmblarge%confdatarr))*kind(tmblarge%confdatarr)
+      deallocate(tmblarge%confdatarr, stat=istat)
+      !!call memocc(istat, iall, 'tmblarge%confdatarr', subname)
     
 
       iall=-product(shape(locregCenter))*kind(locregCenter)

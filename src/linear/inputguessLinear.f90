@@ -198,6 +198,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   locrad=max(12.d0,maxval(lin%locrad(:)))
+  !locrad=max(1.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmbig%orbs, tmbgauss%orbs, subname)
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated

@@ -642,7 +642,7 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
   call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge2%comgp)
 
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
-       tmblarge2%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
+       tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
   call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)

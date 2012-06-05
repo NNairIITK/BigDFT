@@ -920,6 +920,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  i1et=i1e
               end if
               !no need of setting up to zero values outside wavefunction bounds
+              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
@@ -959,6 +960,7 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+       !if(r2>=81.d0) write(*,'(6i8,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), r2 
 
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else
