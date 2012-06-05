@@ -119,7 +119,7 @@ module module_interfaces
          integer, intent(out) :: nelec
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(inout) :: at
-         type(orbitals_data), intent(out) :: orbs
+         type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
