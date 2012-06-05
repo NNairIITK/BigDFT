@@ -83,14 +83,15 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Calculate the right hand side
   !!do iorb=1,orbs%norb
   do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
       do lorb=1,tmb%orbs%norb
           tt=0.d0
           do korb=1,tmb%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(korb,iorb)*ham(korb,lorb)
+              tt=tt+tmb%wfnmd%coeffp(korb,iorb)*ham(korb,lorb)
           end do
           do jorb=1,orbs%norb
               do korb=1,tmb%orbs%norb
-                  tt=tt-lagmat(jorb,iorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
+                  tt=tt-lagmat(jorb,iiorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
               end do
           end do
           rhs(lorb,iorb)=tt

@@ -321,7 +321,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        tmbig, tmbgauss, rxyz, denspot%dpbox%nscatterarr)
-       write(*,*) 'after init: tmbig%can_use_transposed',tmbig%can_use_transposed
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
