@@ -479,6 +479,8 @@ $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o gl
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
+abscalc.o : esatto.o
+
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o

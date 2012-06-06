@@ -656,6 +656,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   real(gp):: epred,eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
+  fluct=0.0_gp
   check=0
 !Set FIRE parameters
   Nmin=5

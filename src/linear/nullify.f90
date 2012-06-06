@@ -24,7 +24,7 @@ subroutine nullify_p2pComms(p2pcomm)
   implicit none
 
   ! Calling argument
-  type(p2pComms),intent(out):: p2pcomm
+  type(p2pComms),intent(inout):: p2pcomm
 
   nullify(p2pcomm%noverlaps)
   nullify(p2pcomm%overlaps)
