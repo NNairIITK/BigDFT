@@ -93,12 +93,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           iall=-product(shape(psittemp_f))*kind(psittemp_f)
           deallocate(psittemp_f, stat=istat)
           call memocc(istat, iall, 'psittemp_f', subname)
-          !!iall=-product(shape(psit_c))*kind(psit_c)
-          !!deallocate(psit_c, stat=istat)
-          !!call memocc(istat, iall, 'psit_c', subname)
-          !!iall=-product(shape(psit_f))*kind(psit_f)
-          !!deallocate(psit_f, stat=istat)
-          !!call memocc(istat, iall, 'psit_f', subname)
+          iall=-product(shape(psit_c))*kind(psit_c)
+          deallocate(psit_c, stat=istat)
+          call memocc(istat, iall, 'psit_c', subname)
+          iall=-product(shape(psit_f))*kind(psit_f)
+          deallocate(psit_f, stat=istat)
+          call memocc(istat, iall, 'psit_f', subname)
+          can_use_transposed=.false.
 
           !!! Normalize... could this be done in the tranposed layout?
           !!ist=1
@@ -188,15 +189,16 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
           !!allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
           !!call memocc(istat, psit_f, 'psit_f', subname)
           !!!!write(*,*) 'transposing...'
-          if(.not.associated(psit_c)) then
+          !if(.not.associated(psit_c)) then
               allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
               call memocc(istat, psit_c, 'psit_c', subname)
-          end if
-          if(.not.associated(psit_f)) then
+          !end if
+          !if(.not.associated(psit_f)) then
               allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, psit_f, 'psit_f', subname)
-          end if
+          !end if
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          can_use_transposed=.true.
       end if
       allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
@@ -281,10 +283,10 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
       iall=-product(shape(psit_c))*kind(psit_c)
       deallocate(psit_c, stat=istat)
       call memocc(istat, iall, 'psit_c', subname)
-      can_use_transposed=.false.
       iall=-product(shape(psit_f))*kind(psit_f)
       deallocate(psit_f, stat=istat)
       call memocc(istat, iall, 'psit_f', subname)
+      can_use_transposed=.false.
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb

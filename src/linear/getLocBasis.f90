@@ -63,16 +63,27 @@ real(8),dimension(:,:),allocatable:: locregCenter
           !!call memocc(istat, psit_c, 'psit_c', subname)
           !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
           !!call memocc(istat, psit_f, 'psit_f', subname)
-          call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
+          write(*,*) 'tmbmix%can_use_transposed',tmbmix%can_use_transposed
+          if(.not.tmbmix%can_use_transposed) then
+              allocate(tmbmix%psit_c(sum(tmbmix%collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+              allocate(tmbmix%psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
+              tmbmix%can_use_transposed=.true.
+          end if
+
+          !call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
           call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, tmbmix%psit_c, &
                tmbmix%psit_c, tmbmix%psit_f, tmbmix%psit_f, overlapmatrix)
           !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-          !!iall=-product(shape(psit_c))*kind(psit_c)
-          !!deallocate(psit_c, stat=istat)
-          !!call memocc(istat, iall, 'psit_c', subname)
-          !!iall=-product(shape(psit_f))*kind(psit_f)
-          !!deallocate(psit_f, stat=istat)
-          !!call memocc(istat, iall, 'psit_f', subname)
+          iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+          deallocate(tmbmix%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmbmix%psit_c', subname)
+          iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+          deallocate(tmbmix%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmbmix%psit_f', subname)
+          tmbmix%can_use_transposed=.false.
       else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, overlapmatrix)
       else
@@ -167,10 +178,15 @@ real(8),dimension(:,:),allocatable:: locregCenter
   ! Calculate the matrix elements <phi|H|phi>.
   if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 
-      allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
-      call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-      allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
-      call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+      if(.not.tmblarge%can_use_transposed) then
+          allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+          call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+          allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+          call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+               tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+          tmblarge%can_use_transposed=.true.
+      end if
 
       allocate(hpsit_c(tmblarge%collcom%ndimind_c))
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
@@ -178,8 +194,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-           tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
@@ -195,6 +209,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
      iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
      deallocate(tmblarge%psit_f, stat=istat)
      call memocc(istat, iall, 'tmblarge%psit_f', subname)
+     tmblarge%can_use_transposed=.false.
 
 
   else if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
@@ -488,12 +503,13 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
-      if(associated(tmbopt%psit_c)) then
+      if(tmbopt%can_use_transposed) then
+      !if(associated(tmbopt%psit_c)) then
           iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
           deallocate(tmbopt%psit_c, stat=istat)
           call memocc(istat, iall, 'tmbopt%psit_c', subname)
-      end if
-      if(associated(tmbopt%psit_f)) then
+      !end if
+      !if(associated(tmbopt%psit_f)) then
           iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
           deallocate(tmbopt%psit_f, stat=istat)
           call memocc(istat, iall, 'tmbopt%psit_f', subname)
@@ -653,19 +669,19 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
   call memocc(istat, iall, 'tmblarge2%lzd%doHamAppl', subname)
 
 
-      allocate(tmblarge2%psit_c(tmblarge2%collcom%ndimind_c), stat=istat)
-      call memocc(istat, tmblarge2%psit_c, 'tmblarge2%psit_c', subname)
-      allocate(tmblarge2%psit_f(7*tmblarge2%collcom%ndimind_f), stat=istat)
-      call memocc(istat, tmblarge2%psit_f, 'tmblarge2%psit_f', subname)
+      !!!allocate(tmblarge2%psit_c(tmblarge2%collcom%ndimind_c), stat=istat)
+      !!!call memocc(istat, tmblarge2%psit_c, 'tmblarge2%psit_c', subname)
+      !!!allocate(tmblarge2%psit_f(7*tmblarge2%collcom%ndimind_f), stat=istat)
+      !!!call memocc(istat, tmblarge2%psit_f, 'tmblarge2%psit_f', subname)
 
-      allocate(hpsit_c(tmblarge2%collcom%ndimind_c))
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmblarge2%collcom%ndimind_f))
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
-           lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
-      call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
-           tmblarge2%psi, tmblarge2%psit_c, tmblarge2%psit_f, tmblarge2%lzd)
+      !!!allocate(hpsit_c(tmblarge2%collcom%ndimind_c))
+      !!!call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      !!!allocate(hpsit_f(7*tmblarge2%collcom%ndimind_f))
+      !!!call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      !!!call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
+      !!!     lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
+      !!!call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
+      !!!     tmblarge2%psi, tmblarge2%psit_c, tmblarge2%psit_f, tmblarge2%lzd)
 
 
 !DEBUG
@@ -678,19 +694,19 @@ endif
 !END DEBUG
 
 
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
+     !! iall=-product(shape(hpsit_c))*kind(hpsit_c)
+     !! deallocate(hpsit_c, stat=istat)
+     !! call memocc(istat, iall, 'hpsit_c', subname)
+     !! iall=-product(shape(hpsit_f))*kind(hpsit_f)
+     !! deallocate(hpsit_f, stat=istat)
+     !! call memocc(istat, iall, 'hpsit_f', subname)
 
-     iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
-     deallocate(tmblarge2%psit_c, stat=istat)
-     call memocc(istat, iall, 'tmblarge2%psit_c', subname)
-     iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
-     deallocate(tmblarge2%psit_f, stat=istat)
-     call memocc(istat, iall, 'tmblarge2%psit_f', subname)
+     !!iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
+     !!deallocate(tmblarge2%psit_c, stat=istat)
+     !!call memocc(istat, iall, 'tmblarge2%psit_c', subname)
+     !!iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
+     !!deallocate(tmblarge2%psit_f, stat=istat)
+     !!call memocc(istat, iall, 'tmblarge2%psit_f', subname)
 
 
   ! END DEBUG ###########################################
@@ -722,6 +738,7 @@ endif
           lhphiopt => lhphilarge2
           lphioldopt => lphilargeold2
           lhphioldopt => lhphilargeold2
+          tmbopt%confdatarr => tmblarge2%confdatarr
       else
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -729,16 +746,35 @@ endif
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
+          tmbopt%confdatarr => tmb%confdatarr
       end if
-      tmbopt%confdatarr => tmb%confdatarr
+      !!!if(variable_locregs) then
+      !!!    tmbopt => tmblarge
+      !!!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      !!!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+      !!!    lhphiopt => lhphilarge
+      !!!    lphioldopt => lphilargeold
+      !!!    lhphioldopt => lhphilargeold
+      !!!    tmbopt%confdatarr => tmb%confdatarr
+      !!!else
+      !!!    tmbopt => tmblarge2
+      !!!    lhphiopt => lhphilarge2
+      !!!    lphioldopt => lphilargeold2
+      !!!    lhphioldopt => lhphilargeold2
+      !!!    tmbopt%confdatarr => tmblarge2%confdatarr
+      !!!end if
 
 
+      write(*,*) 'BEFORE calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
+      write(*,*) 'AFTER calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
   
- call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      if(.not.variable_locregs) then
+          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      end if
 
       !!!!! to avoid that it points to something which was nullified... to be corrected
       !!!!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -797,13 +833,14 @@ endif
           lhphiopt => lhphi
           lphioldopt => lphiold
           lhphioldopt => lhphiold
+          tmbopt%confdatarr => tmblarge2%confdatarr
       else
           tmbopt => tmblarge
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
+          tmbopt%confdatarr => tmb%confdatarr
       end if
-      tmbopt%confdatarr => tmb%confdatarr
 
       call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
@@ -814,13 +851,14 @@ endif
           lhphiopt => lhphi
           lphioldopt => lphiold
           lhphioldopt => lhphiold
+          tmbopt%confdatarr => tmblarge2%confdatarr
       else
           tmbopt => tmblarge
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
+          tmbopt%confdatarr => tmb%confdatarr
       end if
-      tmbopt%confdatarr => tmb%confdatarr
 
 
      ! Flush the standard output

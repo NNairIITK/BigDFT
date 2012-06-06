@@ -348,7 +348,7 @@ program BigDFT2Wannier
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
-         if(nproc > 1) then                                                                                                                                                              
+         if(nproc > 1) then
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
          end if
          !print *,'overlap_proj',overlap_proj
@@ -650,7 +650,7 @@ program BigDFT2Wannier
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
-         if(nproc > 1) then                                                                                                                                                              
+         if(nproc > 1) then
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
          end if
          !print *,'overlap_proj',overlap_proj

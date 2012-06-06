@@ -307,6 +307,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           coeffs_copied=.true.
       end if
 
+      write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
+      write(*,*) 'associated(tmbder%confdatarr)',associated(tmbder%confdatarr)
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
@@ -362,13 +364,17 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       tmblarge%can_use_transposed=.false.
+      nullify(tmblarge%psit_c)
+      nullify(tmblarge%psit_f)
       allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
       !call memocc(istat, tmblarge%confdatarr, 'tmblarge%confdatarr', subname)
       if(.not.lscv%lowaccur_converged) then
-          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+               tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
       else
-          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+          call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+               tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
       end if
       !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
@@ -503,11 +509,11 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
 
-              ! Allocate the transposed TMBs
-              allocate(tmbmix%psit_c(tmbmix%collcom%ndimind_c), stat=istat)
-              call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
-              allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
-              call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              !!! Allocate the transposed TMBs
+              !!allocate(tmbmix%psit_c(tmbmix%collcom%ndimind_c), stat=istat)
+              !!call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+              !!allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
+              !!call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
               allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
               call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
           end if
@@ -541,6 +547,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
                hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
                tmblarge, lhphilarge, lhphilargeold, lphilargeold, ldiis_coeff)
+
+
 
           ! Calculate the total energy.
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
@@ -608,12 +616,14 @@ end if
 
           if(it_scc<lscv%nit_scc_when_optimizing) then
               ! Deallocate the transposed TMBs
-              iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
-              deallocate(tmbmix%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmbmix%psit_c', subname)
-              iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
-              deallocate(tmbmix%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmbmix%psit_f', subname)
+              if(tmbmix%can_use_transposed) then
+                  iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+                  deallocate(tmbmix%psit_c, stat=istat)
+                  call memocc(istat, iall, 'tmbmix%psit_c', subname)
+                  iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+                  deallocate(tmbmix%psit_f, stat=istat)
+                  call memocc(istat, iall, 'tmbmix%psit_f', subname)
+              end if
               iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
               deallocate(overlapmatrix, stat=istat)
               call memocc(istat, iall, 'overlapmatrix', subname)
@@ -625,12 +635,13 @@ end if
       call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
       call destroy_new_locregs(iproc, nproc, tmblarge)
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-      if(associated(tmblarge%psit_c)) then
+      if(tmblarge%can_use_transposed) then
+      !if(associated(tmblarge%psit_c)) then
           iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
           deallocate(tmblarge%psit_c, stat=istat)
           call memocc(istat, iall, 'tmblarge%psit_c', subname)
-      end if
-      if(associated(tmblarge%psit_f)) then
+      !end if
+      !if(associated(tmblarge%psit_f)) then
           iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
           deallocate(tmblarge%psit_f, stat=istat)
           call memocc(istat, iall, 'tmblarge%psit_f', subname)
@@ -651,16 +662,31 @@ end if
 
       call deallocateDIIS(ldiis_coeff)
 
-      ! Deallocate the transposed TMBs
-      iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
-      deallocate(tmbmix%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psit_c', subname)
-      iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
-      deallocate(tmbmix%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psit_f', subname)
+
       iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
       deallocate(overlapmatrix, stat=istat)
       call memocc(istat, iall, 'overlapmatrix', subname)
+      ! Deallocate the transposed TMBs
+      write(*,*) 'associated(tmbmix%psit_c)',associated(tmbmix%psit_c)
+      write(*,*) 'associated(tmbmix%psit_f)',associated(tmbmix%psit_f)
+      if(tmbmix%can_use_transposed) then
+          iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+          deallocate(tmbmix%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmbmix%psit_c', subname)
+          iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+          deallocate(tmbmix%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmbmix%psit_f', subname)
+      end if
+  !write(*,*) 'allocated(overlapmatrix)',allocated(overlapmatrix)
+ !!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+ !!     tmb%confdatarr, tmb%wfnmd, lscv)
+ !! if(itout==1) then
+ !!     write(*,*) 'after deallocating transposed quantities, itout=',itout
+ !!     call mpi_finalize(istat)
+ !!     stop
+ !! end if
+
+
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -698,6 +724,7 @@ end if
       call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
            fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
 
+
       energyoldout=energy
 
       !!! Deallocate DIIS structures.
@@ -706,6 +733,8 @@ end if
 
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
+
+
 
 
   end do outerLoop

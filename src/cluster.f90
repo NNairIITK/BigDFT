@@ -1086,8 +1086,11 @@ contains
     if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
     else
-       deallocate(tmb%confdatarr)
-       deallocate(tmbder%confdatarr)
+        write(*,*) 'BEFORE DEALLOCATING confdatarr'
+        write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
+        write(*,*) 'associated(tmbder%confdatarr)',associated(tmbder%confdatarr)
+       !!deallocate(tmb%confdatarr)
+       !!deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf

@@ -540,6 +540,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
        tmbig%lzd, tmbig%orbs, tmbig%comon, &
        tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
+       write(*,*) 'after ortho in inguess: tmb%can_use_transposed',tmb%can_use_transposed
   !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
   !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
@@ -839,12 +840,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
       tmblarge%can_use_transposed=.false.
+      nullify(tmblarge%psit_c)
+      nullify(tmblarge%psit_f)
 
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)
       call memocc(istat, iall, 'locrad_tmp', subname)
 
 
+  write(*,*) 'calling get_coeff: tmblarge%can_use_transposed',tmblarge%can_use_transposed
+  write(*,*) 'calling get_coeff: tmb%can_use_transposed',tmb%can_use_transposed
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
        hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.,&

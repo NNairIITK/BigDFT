@@ -2159,20 +2159,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
-     allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=i_stat)
-     call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-     allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
-     call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+     !allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=i_stat)
+     !call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+     !allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
+     !call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+     tmb%can_use_transposed=.false.
      call inputguessConfinement(iproc, nproc, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs,tempmat)
-     i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-     deallocate(tmb%psit_c, stat=i_stat)
-     call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-     i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-     deallocate(tmb%psit_f, stat=i_stat)
-     call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+     if(tmb%can_use_transposed) then
+         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+         deallocate(tmb%psit_c, stat=i_stat)
+         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
+         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+         deallocate(tmb%psit_f, stat=i_stat)
+         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+     end if
      deallocate(tempmat)
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then

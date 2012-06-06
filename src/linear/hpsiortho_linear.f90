@@ -274,6 +274,17 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
 
+  ! The transposed quantities can now not be used any more...
+  if(tmbopt%can_use_transposed) then
+      iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+      deallocate(tmbopt%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmbopt%psit_c', subname)
+      iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+      deallocate(tmbopt%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmbopt%psit_f', subname)
+      tmbopt%can_use_transposed=.false.
+  end if
+
   
   newgradient_if_2: if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       call update_confdatarr(tmblarge%lzd, tmblarge%orbs, locregCenterTemp, tmb%confdatarr)
@@ -375,12 +386,15 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
-      if(associated(tmbopt%psit_c)) then
+      write(*,'(a,2i9,l5)') 'size(tmbopt%psit_c), size(tmbopt%psit_f), tmbopt%can_use_transposed', &
+          size(tmbopt%psit_c), size(tmbopt%psit_f), tmbopt%can_use_transposed
+      if(tmbopt%can_use_transposed) then
+      !if(associated(tmbopt%psit_c)) then
           iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
           deallocate(tmbopt%psit_c, stat=istat)
           call memocc(istat, iall, 'tmbopt%psit_c', subname)
-      end if
-      if(associated(tmbopt%psit_f)) then
+      !end if
+      !if(associated(tmbopt%psit_f)) then
           iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
           deallocate(tmbopt%psit_f, stat=istat)
           call memocc(istat, iall, 'tmbopt%psit_f', subname)
