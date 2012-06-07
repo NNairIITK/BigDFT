@@ -253,7 +253,7 @@ END SUBROUTINE initInputguessConfinement
 
 
 !>   input guess wavefunction diagonalization
-subroutine inputguessConfinement(iproc, nproc, at, &
+subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU, lphi,orbs,tmb,energs,overlapmatrix)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -265,7 +265,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   use Poisson_Solver
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,inputpsi
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -523,7 +523,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       ind2=ind2+tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
   end do
 
-  call dcopy(size(lchi), lchi, 1, lphi, 1)
+  if (inputpsi == INPUT_PSI_LINEAR_AO) then
+      call dcopy(size(lchi), lchi, 1, lphi, 1)
+  end if
 
   if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
@@ -634,180 +636,197 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !call dcopy(tmbig%orbs%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
+
+  LCAO_inguess: if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
   
-  ! Set localnorb, i.e. the number of orbitals a given process has in a specific loalization region.
-  do ilr=1,tmbig%lzd%nlr
-      tmbig%lzd%Llr(ilr)%localnorb=0
-      do iorb=1,tmbig%orbs%norbp
-          !if(tmbig%orbs%inWhichLocregp(iorb)==ilr) then
-          if(tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+iorb)==ilr) then
-              tmbig%lzd%Llr(ilr)%localnorb = tmbig%lzd%Llr(ilr)%localnorb+1
+      ! Set localnorb, i.e. the number of orbitals a given process has in a specific loalization region.
+      do ilr=1,tmbig%lzd%nlr
+          tmbig%lzd%Llr(ilr)%localnorb=0
+          do iorb=1,tmbig%orbs%norbp
+              !if(tmbig%orbs%inWhichLocregp(iorb)==ilr) then
+              if(tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+iorb)==ilr) then
+                  tmbig%lzd%Llr(ilr)%localnorb = tmbig%lzd%Llr(ilr)%localnorb+1
+              end if
+          end do
+      end do
+    
+    
+      ! Post the messages for the communication of the potential.
+      call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
+      !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbig%comgp)
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmbig%comgp%nrecvbuf, tmbig%comgp%recvbuf, tmbig%comgp)
+    
+    
+      ! Apply the Hamiltonian for each atom.
+      ! onWhichAtomTemp indicates that all orbitals feel the confining potential
+      ! centered on atom iat.
+      allocate(onWhichAtomTemp(tmbig%orbs%norb), stat=istat)
+      call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
+      allocate(skip(lzd%nlr), stat=istat)
+      call memocc(istat, skip, 'skip', subname)
+    
+    
+      ! Determine for how many localization regions we need a Hamiltonian application.
+      ndim_lhchi=0
+      do ilr=1,lzd%nlr
+          skip(ilr)=.true.
+          do jorb=1,tmbig%orbs%norbp
+              onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbig%orbs%inwhichlocreg(ilr)
+              jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
+              if(tmbig%orbs%inWhichlocreg(jorb+tmbig%orbs%isorb)/=jlr) stop 'this should not happen'
+              call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(ilr),tmbig%lzd%llr(jlr),isoverlap)
+               if(isoverlap) then
+                  skip(ilr)=.false.
+              end if
+          end do
+          if(.not.skip(ilr)) then
+              ndim_lhchi=ndim_lhchi+1
           end if
       end do
-  end do
-
-
-  ! Post the messages for the communication of the potential.
-  call allocateCommunicationsBuffersPotential(tmbig%comgp, subname)
-  !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmbig%comgp)
-  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmbig%comgp%nrecvbuf, tmbig%comgp%recvbuf, tmbig%comgp)
-
-
-  ! Apply the Hamiltonian for each atom.
-  ! onWhichAtomTemp indicates that all orbitals feel the confining potential
-  ! centered on atom iat.
-  allocate(onWhichAtomTemp(tmbig%orbs%norb), stat=istat)
-  call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
-  allocate(skip(lzd%nlr), stat=istat)
-  call memocc(istat, skip, 'skip', subname)
-
-
-  ! Determine for how many localization regions we need a Hamiltonian application.
-  ndim_lhchi=0
-  do ilr=1,lzd%nlr
-      skip(ilr)=.true.
-      do jorb=1,tmbig%orbs%norbp
-          onWhichAtomTemp(tmbig%orbs%isorb+jorb)=tmbig%orbs%inwhichlocreg(ilr)
-          jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
-          if(tmbig%orbs%inWhichlocreg(jorb+tmbig%orbs%isorb)/=jlr) stop 'this should not happen'
-          call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(ilr),tmbig%lzd%llr(jlr),isoverlap)
-           if(isoverlap) then
-              skip(ilr)=.false.
-          end if
-      end do
-      if(.not.skip(ilr)) then
-          ndim_lhchi=ndim_lhchi+1
-      end if
-  end do
-
-
-  allocate(lhchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp),ndim_lhchi),stat=istat)
-  call memocc(istat, lhchi, 'lhchi', subname)
-  !!lhchi=0.d0
-  call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)*ndim_lhchi, lhchi(1,1))
-
-
-  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
-
-
-  call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
-
-  !!tmbig%comgp%communication_complete=.false.
-  !!call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
-  !!     denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
-
-  tmbig%lzd%hgrids(1)=hx
-  tmbig%lzd%hgrids(2)=hy
-  tmbig%lzd%hgrids(3)=hz
-
-
-  allocate(tmbig%lzd%doHamAppl(tmbig%lzd%nlr), stat=istat)
-  call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
-  ii=0
-  owa=-1
-  owa_old=-1
-  do ilr=1,lzd%nlr
-      tmbig%lzd%doHamAppl=.false.
-      skip(ilr)=.true.
-      do jorb=1,tmbig%orbs%norbp
-          onWhichAtomTemp(tmbig%orbs%isorb+jorb)=lorbs%onwhichatom(ilr)
-          owa=lorbs%onwhichatom(ilr)
-          jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
-          call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(lorbs%inwhichlocreg(ilr)),&
-               tmbig%lzd%llr(jlr),isoverlap)
-          if(isoverlap) then
-              tmbig%lzd%doHamAppl(jlr)=.true.
-              skip(ilr)=.false.
+    
+    
+      allocate(lhchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp),ndim_lhchi),stat=istat)
+      call memocc(istat, lhchi, 'lhchi', subname)
+      !!lhchi=0.d0
+      call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)*ndim_lhchi, lhchi(1,1))
+    
+    
+      if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
+    
+    
+      call local_potential_dimensions(tmbig%lzd,tmbig%orbs,denspot%dpbox%ngatherarr(0,1))
+    
+      !!tmbig%comgp%communication_complete=.false.
+      !!call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,&
+      !!     denspot%dpbox,denspot%rhov,denspot%pot_work,tmbig%comgp)
+    
+      tmbig%lzd%hgrids(1)=hx
+      tmbig%lzd%hgrids(2)=hy
+      tmbig%lzd%hgrids(3)=hz
+    
+    
+      allocate(tmbig%lzd%doHamAppl(tmbig%lzd%nlr), stat=istat)
+      call memocc(istat, tmbig%lzd%doHamAppl, 'tmbig%lzd%doHamAppl', subname)
+      ii=0
+      owa=-1
+      owa_old=-1
+      do ilr=1,lzd%nlr
+          tmbig%lzd%doHamAppl=.false.
+          skip(ilr)=.true.
+          do jorb=1,tmbig%orbs%norbp
+              onWhichAtomTemp(tmbig%orbs%isorb+jorb)=lorbs%onwhichatom(ilr)
+              owa=lorbs%onwhichatom(ilr)
+              jlr=tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+jorb)
+              call check_overlap_cubic_periodic(tmb%lzd%Glr,tmb%lzd%llr(lorbs%inwhichlocreg(ilr)),&
+                   tmbig%lzd%llr(jlr),isoverlap)
+              if(isoverlap) then
+                  tmbig%lzd%doHamAppl(jlr)=.true.
+                  skip(ilr)=.false.
+              else
+                  tmbig%lzd%doHamAppl(jlr)=.false.
+              end if
+          end do
+          if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
+    
+          if(.not.skip(ilr)) then
+              ii=ii+1
+              if(input%lin%nItInguess>0) then
+                 allocate(confdatarr(tmbig%orbs%norbp))
+                 call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
+                      hx,hy,hz,input%lin%confpotorder,&
+                      input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
+                 call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
+                 if(owa/=owa_old) then
+                     call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
+                          rxyz,&
+                          proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
+                     call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
+                          tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                          energs,input%SIC,GPUe,.false.,&
+                          pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
+                     ii_old=ii
+                 else
+                     call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)
+                 end if
+                 deallocate(confdatarr)
+              end if
           else
-              tmbig%lzd%doHamAppl(jlr)=.false.
+              if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
+          end if
+          if(iproc==0) write(*,'(a)') 'done.'
+          owa_old=owa
+      end do
+    
+    
+      ! Deallocate the buffers needed for communication the potential.
+      call deallocateCommunicationsBuffersPotential(tmbig%comgp, subname)
+      ! Deallocate the parameters needed for the communication of the potential.
+    
+      if(associated(denspot%pot_work)) then
+          iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+          deallocate(denspot%pot_work, stat=istat)
+          call memocc(istat, iall, 'denspot%pot_work', subname)
+      end if
+      if(ii/=ndim_lhchi) then
+          write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+          stop
+      end if
+    
+    
+    
+      ! Calculate the number of different matrices that have to be stored on a given MPI process.
+      jlrold=0
+      nlocregPerMPI=0
+      do jorb=1,lorbs%norb
+          jlr=lorbs%inWhichLocreg(jorb)
+          jproc=lorbs%onWhichMPI(jorb)
+          if(iproc==jproc) then
+              if(jlr/=jlrold) then
+                  nlocregPerMPI=nlocregPerMPI+1
+                  jlrold=jlr
+              end if
           end if
       end do
-      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
-
-      if(.not.skip(ilr)) then
-          ii=ii+1
-          if(input%lin%nItInguess>0) then
-             allocate(confdatarr(tmbig%orbs%norbp))
-             call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
-                  hx,hy,hz,input%lin%confpotorder,&
-                  input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
-             call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
-             if(owa/=owa_old) then
-                 call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
-                      rxyz,&
-                      proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
-                 call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
-                      tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                      energs,input%SIC,GPUe,.false.,&
-                      pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
-                 ii_old=ii
-             else
-                 call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)
-             end if
-             deallocate(confdatarr)
-          end if
-      else
-          if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
+    
+    
+    
+    
+    
+      ! Calculate the Hamiltonian matrix.
+      allocate(ham(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
+      call memocc(istat,ham,'ham',subname)
+    
+      if(input%lin%nItInguess>0) then
+          call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
+               input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
+               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, ham)
       end if
-      if(iproc==0) write(*,'(a)') 'done.'
-      owa_old=owa
-  end do
+    
+      iall=-product(shape(lhchi))*kind(lhchi)
+      deallocate(lhchi, stat=istat)
+      call memocc(istat, iall, 'lhchi',subname)
+    
+    
+      ! Build the orbitals phi as linear combinations of the atomic orbitals.
+      call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
+               tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
 
 
-  ! Deallocate the buffers needed for communication the potential.
-  call deallocateCommunicationsBuffersPotential(tmbig%comgp, subname)
-  ! Deallocate the parameters needed for the communication of the potential.
-  call deallocate_p2pComms(tmbig%comgp, subname)
+      iall=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
+      deallocate(onWhichAtomTemp, stat=istat)
+      call memocc(istat, iall, 'onWhichAtomTemp',subname)
 
-  if(associated(denspot%pot_work)) then
-      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work, stat=istat)
-      call memocc(istat, iall, 'denspot%pot_work', subname)
-  end if
-  if(ii/=ndim_lhchi) then
-      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
-      stop
-  end if
+      iall=-product(shape(skip))*kind(skip)
+      deallocate(skip, stat=istat)
+      call memocc(istat, iall, 'skip',subname)
+      
+      iall=-product(shape(ham))*kind(ham)
+      deallocate(ham, stat=istat)
+      call memocc(istat, iall, 'ham',subname)
 
 
-
-  ! Calculate the number of different matrices that have to be stored on a given MPI process.
-  jlrold=0
-  nlocregPerMPI=0
-  do jorb=1,lorbs%norb
-      jlr=lorbs%inWhichLocreg(jorb)
-      jproc=lorbs%onWhichMPI(jorb)
-      if(iproc==jproc) then
-          if(jlr/=jlrold) then
-              nlocregPerMPI=nlocregPerMPI+1
-              jlrold=jlr
-          end if
-      end if
-  end do
-
-
-
-
-
-  ! Calculate the Hamiltonian matrix.
-  allocate(ham(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI), stat=istat)
-  call memocc(istat,ham,'ham',subname)
-
-  if(input%lin%nItInguess>0) then
-      call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
-           input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
-           nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, ham)
-  end if
-
-  iall=-product(shape(lhchi))*kind(lhchi)
-  deallocate(lhchi, stat=istat)
-  call memocc(istat, iall, 'lhchi',subname)
-
-
-  !!! Build the orbitals phi as linear combinations of the atomic orbitals.
-  !!call build_input_guess(iproc, nproc, nlocregPerMPI, hx, hy, hz, &
-  !!         tmb, tmbig, at, input, lchi, locregCenter, rxyz, ham, lphi)
+  end if LCAO_inguess
 
   ! Calculate the coefficients
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -892,16 +911,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_overlapParameters(tmbig%op, subname)
   call deallocate_p2pComms(tmbig%comon, subname)
   call deallocate_collective_comms(tmbig%collcom, subname)
+  call deallocate_p2pComms(tmbig%comgp, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=istat)
   call memocc(istat,iall,'norbsc_arr',subname)
 
-  iall=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
-  deallocate(onWhichAtomTemp, stat=istat)
-  call memocc(istat, iall, 'onWhichAtomTemp',subname)
-  
   iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
   deallocate(norbsPerAt, stat=istat)
   call memocc(istat, iall, 'norbsPerAt',subname)
@@ -909,14 +925,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(lchi))*kind(lchi)
   deallocate(lchi, stat=istat)
   call memocc(istat, iall, 'lchi',subname)
-
-  iall=-product(shape(skip))*kind(skip)
-  deallocate(skip, stat=istat)
-  call memocc(istat, iall, 'skip',subname)
-
-  iall=-product(shape(ham))*kind(ham)
-  deallocate(ham, stat=istat)
-  call memocc(istat, iall, 'ham',subname)
 
   iall=-product(shape(mapping))*kind(mapping)
   deallocate(mapping, stat=istat)

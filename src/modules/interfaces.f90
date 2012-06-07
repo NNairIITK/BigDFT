@@ -2336,7 +2336,7 @@ module module_interfaces
       integer,dimension(orbsig%norb),intent(out):: onWhichAtom
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
-    subroutine inputguessConfinement(iproc, nproc, at, &
+    subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
          input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
          lphi,orbs,tmb,energs,overlapmatrix)
@@ -2344,7 +2344,7 @@ module module_interfaces
       use module_types
       implicit none
       !Arguments
-      integer, intent(in) :: iproc,nproc
+      integer, intent(in) :: iproc,nproc,inputpsi
       real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd

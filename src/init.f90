@@ -2168,7 +2168,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
      !call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
      tmb%can_use_transposed=.false.
-     call inputguessConfinement(iproc, nproc, atoms, in, &
+     call inputguessConfinement(iproc, nproc, inputpsi, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs,tempmat)
