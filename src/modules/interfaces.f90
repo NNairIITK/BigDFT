@@ -799,11 +799,11 @@ module module_interfaces
         real(gp), intent(in) :: hx,hy,hz,psoffset
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
-       type(locreg_descriptors) :: lr
+        type(locreg_descriptors) :: lr
         type(orbitals_data), intent(in) :: orbs
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-        real(wp), dimension(nlpspd%nprojel), intent(inout: proj
+        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
         real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -6933,6 +6933,17 @@ module module_interfaces
           real(gp), dimension(3,at%nat), intent(out) :: floc
           real(gp), dimension(6), intent(out) :: locstrten
         end subroutine local_forces
+
+        subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
+          use module_base
+          use module_types
+          implicit none
+          type(atoms_data), intent(inout) :: atoms
+          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          logical, intent(in) :: disableSym
+          real(gp), intent(in) :: tol
+          real(gp), intent(in) :: elecfield(3)
+        end subroutine atoms_set_symmetries
 
    end interface
 
