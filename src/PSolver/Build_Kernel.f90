@@ -1424,11 +1424,11 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         fwork(0:n_range) = fwork_tmp(0:n_range)
      end if
 
-     open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
-     do j= 0,n_range
-        write (52,*) j,fwork(j)
-      end do
-     close(52)
+!     open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
+!     do j= 0,n_range
+!        write (52,*) j,fwork(j)
+!      end do
+!     close(52)
 
      do idir=1,3
         n=ndims(idir)
