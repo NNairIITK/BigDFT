@@ -313,8 +313,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           coeffs_copied=.true.
       end if
 
-      write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
-      write(*,*) 'associated(tmbder%confdatarr)',associated(tmbder%confdatarr)
       
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.

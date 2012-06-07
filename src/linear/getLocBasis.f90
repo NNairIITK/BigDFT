@@ -700,8 +700,8 @@ endif
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-!!      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
-!!      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
+      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           !!tmbopt => tmb
