@@ -31,7 +31,7 @@ program wvl
   real(dp), dimension(:,:), pointer :: rho_p
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  real(dp), dimension(:), pointer :: pkernel
+  type(coulomb_operator) :: pkernel
 
   ! Start MPI in parallel version
   call MPI_INIT(ierr)
@@ -64,7 +64,7 @@ program wvl
   !grid spacings and box of the density
   call dpbox_set_box(dpcom,Lzd)
   !complete dpbox initialization
-  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
+  call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,inputs%ixc,inputs%nspin,&
        atoms%geocode,inputs%SIC%approach,dpcom)
 
 
@@ -191,8 +191,10 @@ program wvl
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  call createKernel(iproc,nproc,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
+  call createKernel(iproc,nproc,atoms%geocode,&
+       (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
+       ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &

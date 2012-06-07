@@ -334,7 +334,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   
   if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
   
-  if (atoms%geocode == 'P') then
+  if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&

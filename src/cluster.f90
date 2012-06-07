@@ -629,10 +629,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      ! calculate dipole moment associated to the charge density
      if (DoLastRunThings) then 
-        call calc_dipole(iproc,nproc,KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpbox%n3p,in%nspin,&
-             denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-             atoms,rxyz,denspot%dpbox%ngatherarr,denspot%rho_work)
+        call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then

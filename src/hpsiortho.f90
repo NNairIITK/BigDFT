@@ -1195,9 +1195,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
   integer :: ierr,ikpt,iorb,i_all,i_stat,k
-  real(gp) :: rzeroorbs,tt
+  real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
-  real(gp),dimension(2):: reducearr
 
 
 !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
@@ -1261,7 +1260,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
-  if (iproc==0 .and. verbose > 0) call yaml_map('Orthocostraint',.true.)
+  if (iproc==0 .and. verbose > 0) call yaml_map('Orthoconstraint',.true.)
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
@@ -1318,13 +1317,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
   !sum over all the partial residues
   if (nproc > 1) then
-     reducearr(1)=gnrm
-     reducearr(2)=gnrm_zero
-     !!call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     !!call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(reducearr(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     gnrm=reducearr(1)
-     gnrm_zero=reducearr(2)
+      garray(1)=gnrm
+      garray(2)=gnrm_zero
+     call mpiallred(garray(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+      gnrm     =garray(1)
+      gnrm_zero=garray(2)
   endif
 
   !count the number of orbitals which have zero occupation number

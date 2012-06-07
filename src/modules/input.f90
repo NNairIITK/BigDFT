@@ -24,7 +24,7 @@ module module_input
    !> Max line of a file
    integer, parameter :: nmax_lines=500
    !> Max length of a line
-   integer, parameter :: max_length=85
+   integer, parameter :: max_length=92
    character(len=max_length) :: input_file,input_radical,input_type,line_being_processed
    logical :: output,lmpinit
    integer :: iline_parsed,iline_written,iargument,ipos,nlines_total
@@ -136,12 +136,12 @@ module module_input
       !write the first line in the output
       if (exists) then
          write(inout_lines(iline_written),'(1x,5a)')&
-            &   '|... (file:', trim(filename),')',&
+            &   '#... (file:', trim(filename),')',&
             &    repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+11)),&
             &   trim(comment_file_usage)
       else
          write(inout_lines(iline_written),'(1x,5a)')&
-            &   '|... (file:',trim(filename),'.. not present)',&
+            &   '#... (file:',trim(filename),'.. not present)',&
             &     repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+26)),&
             &   trim(comment_file_usage)
       end if
@@ -189,7 +189,7 @@ module module_input
             end if
             !dump the file on the screen
             do iline=1,iline_written-1
-               write(*,fmt='(1x,a,a)') '|',inout_lines(iline)(1:max_length-2)
+               write(*,fmt='(1x,a,a)') '#|',inout_lines(iline)(1:max_length-2)
             end do
          end if
       end if
@@ -868,7 +868,7 @@ module module_input
             call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
          end if
       end if
-      if (output) write(*,"(1x,a,a,1x,a,t30,a)") "|", name, var, description
+      if (output) write(*,"(1x,a,a,1x,a,t30,a)") "#|", name, var, description
    END SUBROUTINE var_character
 
 
@@ -888,7 +888,7 @@ module module_input
             var = .true.
          end if
       end if
-      if (output) write(*,"(1x,a,a,1x,l1,t30,a)") "|", name, var, description
+      if (output) write(*,"(1x,a,a,1x,l1,t30,a)") "#|", name, var, description
    END SUBROUTINE var_logical
 
 
@@ -910,7 +910,7 @@ module module_input
             call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
          end if
       end if
-      if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
+      if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "#|", name, var, description
    END SUBROUTINE var_integer
 
 
@@ -933,7 +933,7 @@ module module_input
          end if
       end if
       if (output) then
-         write(*,"(1x,a,a,1x)", advance = "NO") "|", name
+         write(*,"(1x,a,a,1x)", advance = "NO") "#|", name
          do i = 1, size(var), 1
             write(*,"(1x,I0)", advance = "NO") var(i)
          end do
@@ -960,7 +960,7 @@ module module_input
             call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
          end if
       end if
-      if (output) write(*,"(1x,a,a,1x,es9.2,t30,a)") "|", name, var, description
+      if (output) write(*,"(1x,a,a,1x,es9.2,t30,a)") "#|", name, var, description
    END SUBROUTINE var_double
 
 
@@ -1002,7 +1002,7 @@ module module_input
       end if
       if (output) then
          write(*,"(1x,a,a,1x,a,t30,2a)", advance = "NO") &
-            &   "|", name, list(var + 1), description, " ("
+            &   "#|", name, list(var + 1), description, " ("
          write(*,"(A)", advance = "NO") trim(list(1))
          do i = 2, size(list), 1
             write(*,"(2A)", advance = "NO") ", ", trim(list(i))
@@ -1038,7 +1038,7 @@ module module_input
             call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
          end if
       end if
-      if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
+      if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "#|", name, var, description
    END SUBROUTINE var_ids
 
 END MODULE module_input
