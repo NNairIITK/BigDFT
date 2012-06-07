@@ -496,7 +496,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
           & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
   end do
 
-  ! Do the mixing
+  ! Do the mixing 
   call ab6_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
@@ -510,7 +510,6 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   i_all=-product(shape(user_data))*kind(user_data)
   deallocate(user_data,stat=i_stat)
   call memocc(i_stat,i_all,'user_data',subname)
-
   ! Copy new in vrespc
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
@@ -521,6 +520,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psimix
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
@@ -591,8 +591,9 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
         diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0) then
-        if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
+        !if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
         !yaml output
+        call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
 !        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
@@ -1031,79 +1032,79 @@ end function s2d_dot
 !!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
-  use module_base
-  use module_types
-  use module_interfaces, excpet_this_one => psimixVariable
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
-  type(diis_objects), intent(inout) :: diis
-  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
-  logical, optional:: quiet ! to avoid that the DIIS weights are written
-  !real(wp), dimension(:), pointer :: psit,hpsit
-  !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst,jj,ierr
-
-
-  if (diis%idsx > 0) then
-     !do not transpose the hpsi wavefunction into the diis array
-     !for compatibility with the k-points distribution
-     ispsi=1
-     ispsidst=1
-     do ikptp=1,orbs%nkptsp
-        nvctrp=comms%nvctr_par(iproc,ikptp)
-        if (nvctrp == 0) cycle
-        
-     !here we can choose to store the DIIS arrays with single precision
-     !psidst=psit
-        call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
-             psit(ispsi),1,&
-             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
-     !hpsidst=hpsi
-     !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
-     !        hpsit(ispsi),1,&
-     !        hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
-
-     do jj=0,nvctrp*orbs%norb*orbs%nspinor-1
-        diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)+jj)&
-             =real(hpsit(ispsi+jj),tp) !diis precision conversion
-     end do
-        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
-     end do
-
-     !here we should separate between up and down spin orbitals, maybe
-     if(present(quiet)) then
-         call diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
-     else
-         call diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit)
-     end if
-
-  else
-     ! update all wavefunctions with the preconditioned gradient
-     if (diis%energy > diis%energy_old) then
-        diis%alpha=max(.125_wp,.5_wp*diis%alpha)
-        if (diis%alpha == .125_wp) write(*,*) ' WARNING: Convergence problem or limit'
-     else
-        diis%alpha=min(1.05_wp*diis%alpha,1._wp)
-     endif
-     if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
-
-!!     do iorb=1,orbs%norb*orbs%nspinor
-!!        call axpy(comms%nvctr_par(iproc),&
-!!             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
-!!             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
-!!     enddo
-
-     call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
-
-  endif
-
-END SUBROUTINE psimixVariable
-!!***
+!!subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, excpet_this_one => psimixVariable
+!!  implicit none
+!!  integer, intent(in) :: iproc,nproc
+!!  type(orbitals_data), intent(in) :: orbs
+!!  type(communications_arrays), intent(in) :: comms
+!!  type(diis_objects), intent(inout) :: diis
+!!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
+!!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
+!!  logical, optional:: quiet ! to avoid that the DIIS weights are written
+!!  !real(wp), dimension(:), pointer :: psit,hpsit
+!!  !local variables
+!!  integer :: ikptp,nvctrp,ispsi,ispsidst,jj,ierr
+!!
+!!
+!!  if (diis%idsx > 0) then
+!!     !do not transpose the hpsi wavefunction into the diis array
+!!     !for compatibility with the k-points distribution
+!!     ispsi=1
+!!     ispsidst=1
+!!     do ikptp=1,orbs%nkptsp
+!!        nvctrp=comms%nvctr_par(iproc,ikptp)
+!!        if (nvctrp == 0) cycle
+!!        
+!!     !here we can choose to store the DIIS arrays with single precision
+!!     !psidst=psit
+!!        call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!             psit(ispsi),1,&
+!!             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
+!!     !hpsidst=hpsi
+!!     !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!     !        hpsit(ispsi),1,&
+!!     !        hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
+!!
+!!     do jj=0,nvctrp*orbs%norb*orbs%nspinor-1
+!!        diis%hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)+jj)&
+!!             =real(hpsit(ispsi+jj),tp) !diis precision conversion
+!!     end do
+!!        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+!!        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+!!     end do
+!!
+!!     !here we should separate between up and down spin orbitals, maybe
+!!     if(present(quiet)) then
+!!         call diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
+!!     else
+!!         call diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit)
+!!     end if
+!!
+!!  else
+!!     ! update all wavefunctions with the preconditioned gradient
+!!     if (diis%energy > diis%energy_old) then
+!!        diis%alpha=max(.125_wp,.5_wp*diis%alpha)
+!!        if (diis%alpha == .125_wp) write(*,*) ' WARNING: Convergence problem or limit'
+!!     else
+!!        diis%alpha=min(1.05_wp*diis%alpha,1._wp)
+!!     endif
+!!     if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
+!!
+!!!!     do iorb=1,orbs%norb*orbs%nspinor
+!!!!        call axpy(comms%nvctr_par(iproc),&
+!!!!             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
+!!!!             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
+!!!!     enddo
+!!
+!!     call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
+!!
+!!  endif
+!!
+!!END SUBROUTINE psimixVariable
+!!!!***
 
 
 
@@ -1111,174 +1112,174 @@ END SUBROUTINE psimixVariable
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points psidst and the associated error 
 ! vectors (preconditioned gradients) hpsidst
-subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
-  use module_base
-  use module_types
-  implicit none
-! Arguments
-  integer, intent(in) :: nproc,iproc
-  type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
-  type(diis_objects), intent(inout) :: diis
-  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
-  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
-  logical, optional:: quiet ! to avoid that the DIIS weights are written
-! Local variables
-  character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
-  integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
-  integer, dimension(:), allocatable :: ipiv
-  real(dp), dimension(:,:), allocatable :: rds
-  logical:: quietHere
-
-  ! This decides whether the DIIS weights are written to the screen or not.
-  ! If quietHere is false, then they are written, otherwise not.
-  if(present(quiet) .and. quiet) then
-      quietHere=.true.
-  else
-      quietHere=.false.
-  end if
-
-  allocate(ipiv(diisArr(1)%idsx+1+ndebug),stat=i_stat)
-  call memocc(i_stat,ipiv,'ipiv',subname)
-  allocate(rds(diisArr(1)%idsx+1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,rds,'rds',subname)
-
-
-  orbsLoop: do iorb=1,orbs%norb
-      call razero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
-
-      ispsidst=1
-      do ikptp=1,orbs%nkptsp
-         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-         nvctrp=comms%nvctr_par(iproc,ikptp)
-         if (nvctrp == 0) cycle
-
-         ! set up DIIS matrix (upper triangle)
-         if (diisArr(iorb)%ids > diisArr(iorb)%idsx) then
-            ! shift left up matrix
-            do i=1,diisArr(iorb)%idsx-1
-               do j=1,i
-                  diisArr(iorb)%ads(1,j,i,1,ikptp,1)=diisArr(iorb)%ads(1,j+1,i+1,1,ikptp,1)
-               end do
-            end do
-         end if
-
-         ! calculate new line, use rds as work array for summation
-         ist=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
-         do i=ist,diisArr(iorb)%ids
-            mi=mod(i-1,diisArr(iorb)%idsx)+1
-!!         do iorb=1,norb*nspinor
-!!            tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
-!!            rds(i-ist+1)=rds(i-ist+1)+tt
+!!subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!! Arguments
+!!  integer, intent(in) :: nproc,iproc
+!!  type(orbitals_data), intent(in) :: orbs
+!!  type(communications_arrays), intent(in) :: comms
+!!  type(diis_objects), intent(inout) :: diis
+!!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
+!!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
+!!  logical, optional:: quiet ! to avoid that the DIIS weights are written
+!!! Local variables
+!!  character(len=*), parameter :: subname='diisstp'
+!!  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
+!!  integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
+!!  integer, dimension(:), allocatable :: ipiv
+!!  real(dp), dimension(:,:), allocatable :: rds
+!!  logical:: quietHere
+!!
+!!  ! This decides whether the DIIS weights are written to the screen or not.
+!!  ! If quietHere is false, then they are written, otherwise not.
+!!  if(present(quiet) .and. quiet) then
+!!      quietHere=.true.
+!!  else
+!!      quietHere=.false.
+!!  end if
+!!
+!!  allocate(ipiv(diisArr(1)%idsx+1+ndebug),stat=i_stat)
+!!  call memocc(i_stat,ipiv,'ipiv',subname)
+!!  allocate(rds(diisArr(1)%idsx+1,orbs%nkpts+ndebug),stat=i_stat)
+!!  call memocc(i_stat,rds,'rds',subname)
+!!
+!!
+!!  orbsLoop: do iorb=1,orbs%norb
+!!      call razero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
+!!
+!!      ispsidst=1
+!!      do ikptp=1,orbs%nkptsp
+!!         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+!!         nvctrp=comms%nvctr_par(iproc,ikptp)
+!!         if (nvctrp == 0) cycle
+!!
+!!         ! set up DIIS matrix (upper triangle)
+!!         if (diisArr(iorb)%ids > diisArr(iorb)%idsx) then
+!!            ! shift left up matrix
+!!            do i=1,diisArr(iorb)%idsx-1
+!!               do j=1,i
+!!                  diisArr(iorb)%ads(1,j,i,1,ikptp,1)=diisArr(iorb)%ads(1,j+1,i+1,1,ikptp,1)
+!!               end do
+!!            end do
+!!         end if
+!!
+!!         ! calculate new line, use rds as work array for summation
+!!         ist=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
+!!         do i=ist,diisArr(iorb)%ids
+!!            mi=mod(i-1,diisArr(iorb)%idsx)+1
+!!!!         do iorb=1,norb*nspinor
+!!!!            tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
+!!!!            rds(i-ist+1)=rds(i-ist+1)+tt
+!!!!         end do
+!!            !to be corrected for complex wavefunctions
+!!            rds(i-ist+1,ikpt)=dot(nvctrp*orbs%nspinor,&
+!!                 diis%hpsidst(ispsidst+(iorb-1)*nvctrp*orbs%nspinor+(diisArr(iorb)%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
+!!                 diis%hpsidst(ispsidst+(iorb-1)*nvctrp*orbs%nspinor+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+!!            !this has to be inserted in module_base
+!!            !call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
+!!            !     hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+!!            !     hpsidst_sp,ispsidst+(mi  -1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+!!            !     rds(i-ist+1,ikpt))
 !!         end do
-            !to be corrected for complex wavefunctions
-            rds(i-ist+1,ikpt)=dot(nvctrp*orbs%nspinor,&
-                 diis%hpsidst(ispsidst+(iorb-1)*nvctrp*orbs%nspinor+(diisArr(iorb)%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
-                 diis%hpsidst(ispsidst+(iorb-1)*nvctrp*orbs%nspinor+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
-            !this has to be inserted in module_base
-            !call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
-            !     hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
-            !     hpsidst_sp,ispsidst+(mi  -1)*nvctrp*orbs%norb*orbs%nspinor,1,&
-            !     rds(i-ist+1,ikpt))
-         end do
-         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
-      end do
-
-      if (nproc > 1) then
-         call mpiallred(rds(1,1),(diisArr(iorb)%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-!         call MPI_ALLREDUCE(MPI_IN_PLACE,rds,(diis%idsx+1)*orbs%nkpts,  & 
-!                     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
-!
-!!         call MPI_ALLREDUCE(rds,ads(1,min(diis%idsx,ids),1),min(ids,diis%idsx),  & 
-!!                     MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      endif
-      
-      ispsi=1
-      ispsidst=1
-      do ikptp=1,orbs%nkptsp
-         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-         nvctrp=comms%nvctr_par(iproc,ikptp)
-         if (nvctrp == 0) cycle
-
-         do i=1,min(diisArr(iorb)%ids,diisArr(iorb)%idsx)
-            diisArr(iorb)%ads(1,i,min(diisArr(iorb)%idsx,diisArr(iorb)%ids),1,ikptp,1)=rds(i,ikpt)
-         end do
-
-         ! copy to work array, right hand side, boundary elements
-         do j=1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
-            diisArr(iorb)%ads(1,j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=1.0_wp
-            rds(j,ikpt)=0.d0
-            do i=j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
-               diisArr(iorb)%ads(1,j,i,1,ikptp,2)=diisArr(iorb)%ads(1,j,i,1,ikptp,1)
-            end do
-         end do
-         diisArr(iorb)%ads(1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,&
-              min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=0.0_dp
-         rds(min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,ikpt)=1.0_dp
-         
-         !if(iproc==0)  write(6,*) 'DIIS matrix'
-         !do i=1,min(diis%idsx,ids)+1
-         !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(diis%idsx,ids)+1),rds(i)
-         !enddo
-         if (diisArr(iorb)%ids > 1) then
-            ! solve linear system:(LAPACK)
-            call DSYSV('U',min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,diisArr(iorb)%ads(1,1,1,1,ikptp,2),diisArr(iorb)%idsx+1,  & 
-                 ipiv,rds(1,ikpt),diisArr(iorb)%idsx+1,diisArr(iorb)%ads(1,1,1,1,ikptp,3),(diisArr(iorb)%idsx+1)**2,info)
-            
-            if (info /= 0) then
-               print*, 'diisstp: DSYSV',info
-            end if
-         else
-            rds(1,ikpt)=1.0_dp
-         endif
-     !end do orbsLoop
-
-! new guess
-     !do iorb=1,orbs%norb
-         call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
-         
-         jst=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
-         jj=0
-         do j=jst,diisArr(iorb)%ids
-            jj=jj+1
-            mj=mod(j-1,diisArr(iorb)%idsx)+1
-            do k=1,nvctrp*orbs%nspinor
-               psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)=&
-                    psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)+&
-                    rds(jj,ikpt)*(&
-                    diis%psidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
-                    (mj-1)*orbs%norb*orbs%nspinor*nvctrp)&
-                    -real(diis%hpsidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
-                    (mj-1)*orbs%norb*orbs%nspinor*nvctrp),wp))
-            end do
-         end do
-      !end do
-      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
-    end do
- end do orbsLoop
-  ! Output to screen, depending on policy.
-  if (verbose >= 10) then
-     call broadcast_kpt_objects(nproc, orbs%nkpts, diis%idsx+1, rds, orbs%ikptproc)
-  end if
-  if (iproc == 0 .and. verbose > 0 .and. .not.quietHere) then 
-     if (verbose < 10) then
-        !we restrict the printing to the first k point only.
-        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,1),j=1,min(diis%idsx,diis%ids)+1)
-     else
-        do ikpt = 1, orbs%nkpts
-           write(*,'(1x,a,I3.3,a,2x,12(1x,1pe9.2))')'DIIS weights (kpt #', ikpt, &
-                & ')', (rds(j,0),j=1,min(diis%idsx,diis%ids)+1)
-        end do
-     end if
-  endif
-  
-  i_all=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv,stat=i_stat)
-  call memocc(i_stat,i_all,'ipiv',subname)
-  i_all=-product(shape(rds))*kind(rds)
-  deallocate(rds,stat=i_stat)
-  call memocc(i_stat,i_all,'rds',subname)
-
-END SUBROUTINE diisstpVariable
+!!         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+!!      end do
+!!
+!!      if (nproc > 1) then
+!!         call mpiallred(rds(1,1),(diisArr(iorb)%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!         call MPI_ALLREDUCE(MPI_IN_PLACE,rds,(diis%idsx+1)*orbs%nkpts,  & 
+!!!                     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!
+!!!!         call MPI_ALLREDUCE(rds,ads(1,min(diis%idsx,ids),1),min(ids,diis%idsx),  & 
+!!!!                     MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!      endif
+!!      
+!!      ispsi=1
+!!      ispsidst=1
+!!      do ikptp=1,orbs%nkptsp
+!!         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+!!         nvctrp=comms%nvctr_par(iproc,ikptp)
+!!         if (nvctrp == 0) cycle
+!!
+!!         do i=1,min(diisArr(iorb)%ids,diisArr(iorb)%idsx)
+!!            diisArr(iorb)%ads(1,i,min(diisArr(iorb)%idsx,diisArr(iorb)%ids),1,ikptp,1)=rds(i,ikpt)
+!!         end do
+!!
+!!         ! copy to work array, right hand side, boundary elements
+!!         do j=1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
+!!            diisArr(iorb)%ads(1,j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=1.0_wp
+!!            rds(j,ikpt)=0.d0
+!!            do i=j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
+!!               diisArr(iorb)%ads(1,j,i,1,ikptp,2)=diisArr(iorb)%ads(1,j,i,1,ikptp,1)
+!!            end do
+!!         end do
+!!         diisArr(iorb)%ads(1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,&
+!!              min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=0.0_dp
+!!         rds(min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,ikpt)=1.0_dp
+!!         
+!!         !if(iproc==0)  write(6,*) 'DIIS matrix'
+!!         !do i=1,min(diis%idsx,ids)+1
+!!         !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(diis%idsx,ids)+1),rds(i)
+!!         !enddo
+!!         if (diisArr(iorb)%ids > 1) then
+!!            ! solve linear system:(LAPACK)
+!!            call DSYSV('U',min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,diisArr(iorb)%ads(1,1,1,1,ikptp,2),diisArr(iorb)%idsx+1,  & 
+!!                 ipiv,rds(1,ikpt),diisArr(iorb)%idsx+1,diisArr(iorb)%ads(1,1,1,1,ikptp,3),(diisArr(iorb)%idsx+1)**2,info)
+!!            
+!!            if (info /= 0) then
+!!               print*, 'diisstp: DSYSV',info
+!!            end if
+!!         else
+!!            rds(1,ikpt)=1.0_dp
+!!         endif
+!!     !end do orbsLoop
+!!
+!!! new guess
+!!     !do iorb=1,orbs%norb
+!!         call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+!!         
+!!         jst=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
+!!         jj=0
+!!         do j=jst,diisArr(iorb)%ids
+!!            jj=jj+1
+!!            mj=mod(j-1,diisArr(iorb)%idsx)+1
+!!            do k=1,nvctrp*orbs%nspinor
+!!               psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)=&
+!!                    psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)+&
+!!                    rds(jj,ikpt)*(&
+!!                    diis%psidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
+!!                    (mj-1)*orbs%norb*orbs%nspinor*nvctrp)&
+!!                    -real(diis%hpsidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
+!!                    (mj-1)*orbs%norb*orbs%nspinor*nvctrp),wp))
+!!            end do
+!!         end do
+!!      !end do
+!!      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+!!      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+!!    end do
+!! end do orbsLoop
+!!  ! Output to screen, depending on policy.
+!!  if (verbose >= 10) then
+!!     call broadcast_kpt_objects(nproc, orbs%nkpts, diis%idsx+1, rds, orbs%ikptproc)
+!!  end if
+!!  if (iproc == 0 .and. verbose > 0 .and. .not.quietHere) then 
+!!     if (verbose < 10) then
+!!        !we restrict the printing to the first k point only.
+!!        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,1),j=1,min(diis%idsx,diis%ids)+1)
+!!     else
+!!        do ikpt = 1, orbs%nkpts
+!!           write(*,'(1x,a,I3.3,a,2x,12(1x,1pe9.2))')'DIIS weights (kpt #', ikpt, &
+!!                & ')', (rds(j,0),j=1,min(diis%idsx,diis%ids)+1)
+!!        end do
+!!     end if
+!!  endif
+!!  
+!!  i_all=-product(shape(ipiv))*kind(ipiv)
+!!  deallocate(ipiv,stat=i_stat)
+!!  call memocc(i_stat,i_all,'ipiv',subname)
+!!  i_all=-product(shape(rds))*kind(rds)
+!!  deallocate(rds,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rds',subname)
+!!
+!!END SUBROUTINE diisstpVariable

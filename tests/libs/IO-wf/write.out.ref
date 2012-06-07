@@ -21,25 +21,72 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.6-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
 
- --- (file: input.perf -- not present) -------------------------- Performance Options
- |   debug F                 !Debug option
- |   fftcache 8192           !Cache size for the FFT
- |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
- |   blas F                  !CUBLAS acceleration
- |   projrad  1.50E+01       !Radius of the projector as a function of the maxrad
- |   exctxpar BC             !Exact exchange parallelisation scheme
- |   ig_diag T               !Input guess: (T:Direct, F:Iterative) diag. of Ham.
- |   ig_norbp 5              !Input guess: Orbitals per process for iterative diag.
- |   ig_blocks  300 800      !Input guess: Block sizes for orthonormalisation
- |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
- |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |   rho_commun DBL          !Density communication scheme
+ |... (file:default.perf).........................................Performance Options
+ |debug F                    Debug option
+ |fftcache 8192              Cache size for the FFT
+ |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
+ |blas F                     CUBLAS acceleration
+ |projrad  1.50E+01          Radius of the projector as a function of the maxrad
+ |exctxpar OP2P              Exact exchange parallelisation scheme
+ |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
+ |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ |ig_tol  1.00E-04           Input guess: Tolerance criterion
+ |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |rho_commun DBL             Density communication scheme
+ |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
+ |tolsym -1.00E+00           Tolerance for symmetry detection
+ |signaling F                Expose calculation results on Network
+ |signalTimeout 0            Time out on startup for signal connection
+ |domain                     Domain to add to the hostname to find the IP
+ |verbosity 2                verbosity of the output 0=low, 2=high
+ |psp_onfly T                Calculate pseudopotential projectors on the fly
+ |... (file:binary.dft)....................................DFT Calculation Parameters
+ |0.40 0.40 0.40  hx,hy,hz: grid spacing in the three directions                     
+ |6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+ |11             ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
+ |0 0.0  0.0  0. charge of the system, Electric field (Ex,Ey,Ez)                     
+ |2 4            nspin=1 non-spin polarization, mpol=total magnetic moment           
+ |1.E-05         gnrm_cv: convergence criterion gradient                             
+ |2 1            itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
+ |6  0           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
+ |0              dispersion correction potential (values 1,2,3), 0=none              
+ |0 2 0          InputPsiId, output_wf, output_denspot                               
+ |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
+ |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
+ |T              disable the symmetry detection                                      
+ |... (file:default.mix)............................................Mixing Parameters
+ |0              Mixing parameters                                                   
+ |1              Maximum number of diagonalisation iterations                        
+ |1.e-4          Stop criterion on the residue of potential or density               
+ |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
+ |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
+ |... (file:default.geopt)........................................Geometry Parameters
+ |BFGS           Geometry optimisation method                                        
+ |1              Maximum number of force evaluations                                 
+ |1.0 0.0        fract_fluct,forcemax                                                
+ |0.0            random displacement amplitude                                       
+ |4.0            Stepsize for the geometry optimisation                              
+ |... (file:default.tddft)..........................................TD-DFT Parameters
+ |NONE           TDDFT Method                                                        
+ |... (file:default.sic)...............................................SIC Parameters
+ |NONE           SIC method: NONE, PZ, NK                                            
+ |0.0            SIC downscaling parameter                                           
+ |0.0            Reference occupation fref (NK case only)                            
+ |... (file:binary.kpt)............................Brillouin Zone Sampling Parameters
+ |MPgrid         K-point sampling method                                             
+ |3 1 1          No. of Monkhorst-Pack grid points                                   
+ |1              No. of different shifts                                             
+ |0.0 0. 0.0                                                                         
+ |----------------------------------------------------------------------------------
+ |  Data Writing directory:    data-binary/
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -52,7 +99,33 @@
         red. coordinates         weight       id        BZ coordinates
    0.00000  0.00000  0.00000    0.33333        1   0.00000  0.00000  0.00000
    0.33333  0.00000  0.00000    0.66667        2   0.24629  0.00000  0.00000
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
+ No material acceleration (iproc=0)
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             : &ixc  11
+     Name                              : "XC: Perdew, Burke & Ernzerhof"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.40,  0.40,  0.40 ]
+   Coarse and Fine Radii Multipliers   :  [  6.0,  8.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           : &gnrm_cv  1.0E-05
+     CG Steps for Preconditioner       :  6
+     DIIS History length               :  0
+     Max. Wfn Iterations               : &itermax  2
+     Max. Subspace Diagonalizations    :  1
+   Density/Potential:
+     Max. Iterations                   :  1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
    Max. hgrid=  0.400 |  Coarse Wfs.= 6.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
@@ -61,7 +134,7 @@
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
  Polarisation=      4 |
    Geom. Code=    P   |   Box Sizes (Bohr) =  8.50377E+00  8.50377E+00  8.50377E+00
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     3 (ETSF        )
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     2 (Fortran bin.)
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
                                                     XC functional provided by ABINIT.
@@ -73,13 +146,6 @@
         O   0.24455 -16.66721   2.48731
      l=0      rl        h1j       h2j       h3j 
             0.22096  18.33746
- Total Number of Electrons       12
- Spin-polarized calculation
- Processes from 0 to 1 treat 12 orbitals 
- Total Number of Orbitals        12
- occup(1:12)= 1.0000
- Total Number of Orbitals        12
- occup(1:12)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      O  0.00000E+00  0.00000E+00  0.00000E+00        0.000     0.000     0.000
      2      O  0.00000E+00  0.00000E+00  2.28279E+00        0.000     0.000     6.443
@@ -97,13 +163,20 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        576 points=     13824
    Fine resolution grid: Number of segments=        250 points=       856
+ Total Number of Electrons       12
+ Spin-polarized calculation
+ Processes from 0 to 1 treat 12 orbitals 
+ Total Number of Orbitals        12
+ occup(1:12)= 1.0000
+ Total Number of Orbitals        12
+ occup(1:12)= 1.0000
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
  |    0 |      12     |------|------------||        19816  |------|-----------------|
  |      |             |   1  |    1-   12 ||               |   1  |       1-   19816|
  |    1 |      12     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   12 ||               |   2  |       1-   19816|
- Wavefunctions memory occupation for root processor (Bytes): 3804672
+ Wavefunctions memory occupation for root MPI process:     3 MB   643 KB   512 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               2                    1
@@ -132,92 +205,154 @@
  ion-ion interaction energy -7.53895186697576E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000000   0.000E+00
- PSolver, periodic BC, dimensions:    48   48   48   proc    2 ... done.
- ------------------------------------------------------- Input Wavefunctions Creation
- Generating 16 Atomic Input Orbitals
- Processes from 0 to 1 treat 16 inguess orbitals 
- Calculating AIO wavefunctions: 
- Generation of input wavefunction data for atom      O: 
-   Elec. Configuration: s 1.00 1.00 , p 1.00 1.00 1.00 1/3 1/3 1/3 , ... done.
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  48,  48,  48 ]
+   MPI tasks                           :  2
+ Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
+ Total No. of Atomic Input Orbitals:  16, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 1:  16}, 
+ Atomic Input Orbital Generation: [
+ {Atom Type: O, Electronic configuration: {s: [ 1.00,  1.00], p: [ 1.00,  1.00,  1.00,  1/3,  1/3,  1/3]}}], 
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
  |    0 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   1  |    1-   16 ||               |   1  |       1-   19816|
  |    1 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
- Wavefunctions memory occupation for root processor (Bytes): 5072896
- Writing wavefunctions in wavelet form... done.
- Deviation from normalization of the imported orbitals    5.20E-03
- Calculation of charge density... done. Total electronic charge=      11.999999344210
- PSolver, periodic BC, dimensions:    48   48   48   proc    2 ... done.
- Hamiltonian application... done. ekin_sum,eks:      23.8568191900      23.7908619683
- ekin_sum,epot_sum,eproj_sum  2.38568191900E+01 -3.30380927139E+01  2.79817343756E+00
-    ehart,   eexcu,    vexcu  2.02044854640E+01 -6.88908378753E+00 -8.95086618468E+00
- Input Wavefunctions Orthogonalization:
- Overlap Matrix... Direct diagonalization...
- Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
- evale(   1,u)= -1.12447131366902E+00            evale(   1,d)= -1.00137556265522E+00
- evale(   2,u)= -7.15135850090843E-01            evale(   2,d)= -5.95869849662997E-01
- evale(   3,u)= -4.58669833808964E-01            evale(   3,d)= -3.37751616115644E-01
- evale(   4,u)= -4.29502424043723E-01    Last->  evale(   4,d)= -3.15041368988100E-01
- evale(   5,u)= -4.29414323844470E-01    deg->   evale(   5,d)= -3.14829098702240E-01
- evale(   6,u)= -1.92074674533741E-01            evale(   6,d)= -6.31491648789196E-02
- evale(   7,u)= -1.91998263862009E-01            evale(   7,d)= -6.28984872184110E-02
- evale(   8,u)=  2.62459716080860E-01  <-Last    evale(   8,d)=  4.09015487332230E-01
- Kpt #0002 BZ coord. =     0.246290    0.000000    0.000000
- evale(   1,u)= -1.12448396213924E+00            evale(   1,d)= -1.00134460217054E+00
- evale(   2,u)= -7.15058495503442E-01            evale(   2,d)= -5.95764661680817E-01
- evale(   3,u)= -4.58610057920479E-01            evale(   3,d)= -3.37642483795850E-01
- evale(   4,u)= -4.31374671147513E-01    Last->  evale(   4,d)= -3.17885741079756E-01
- evale(   5,u)= -4.29242153116134E-01    deg->   evale(   5,d)= -3.14566124205777E-01
- evale(   6,u)= -1.93018179016892E-01            evale(   6,d)= -6.43798831573716E-02
- evale(   7,u)= -1.91914204393165E-01            evale(   7,d)= -6.27893696521094E-02
- evale(   8,u)=  2.62703350530814E-01  <-Last    evale(   8,d)=  4.09312838081963E-01
- Building orthogonal Wavefunctions... done.
- ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999999267066
- PSolver, periodic BC, dimensions:    48   48   48   proc    2 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- ekin_sum,epot_sum,eproj_sum  2.58842246387E+01 -3.40009627344E+01  2.63593900719E+00
-    ehart,   eexcu,    vexcu  2.02930930728E+01 -7.03180785282E+00 -9.12864729385E+00
- iter,total energy,gnrm     1  -3.12160045872816099E+01  2.80E-01
- alpha=  2.000E+00
- Orthogonalization... done.
- ---------------------------------------------------------------------------- iter= 2
- Calculation of charge density... done. Total electronic charge=      11.999999453999
- PSolver, periodic BC, dimensions:    48   48   48   proc    2 ... done.
- Hamiltonian application... done. 2 minimization iterations required
- --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.58311951051E+01 -3.36861624128E+01  2.79018687907E+00
- final ehart, eexcu,  vexcu   2.08466310406E+01 -7.09509222749E+00 -9.21108320163E+00
- FINAL iter,total energy,gnrm     2  -3.13343723620770618E+01  2.80E-01
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.20E-03, 
+             GPU acceleration:  No, Total electronic charge:  11.999999344210, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
+ Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343756E+00, 
+              EH:  2.02044854640E+01,  EXC: -6.88908378753E+00, EvXC: -8.95086618468E+00}, 
+ EKS: -3.20647550202283469E+01, 
+ IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
+  #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetization:  5.333333, Orbitals: [
+  # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
+ {e: -1.124471E+00, f:  1.000, s:  1, k:  1},  {e: -1.001376E+00, f:  1.000, s: -1, k:  1}, 
+ {e: -7.151359E-01, f:  1.000, s:  1, k:  1},  {e: -5.958698E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -4.586698E-01, f:  1.000, s:  1, k:  1},  {e: -3.377516E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -4.295024E-01, f:  1.000, s:  1, k:  1},  {e: -3.150414E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -4.294143E-01, f:  1.000, s:  1, k:  1},  {e: -3.148291E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -1.920747E-01, f:  1.000, s:  1, k:  1},  {e: -6.314916E-02, f:  1.000, s: -1, k:  1}, 
+ {e: -1.919983E-01, f:  1.000, s:  1, k:  1},  {e: -6.289849E-02, f:  1.000, s: -1, k:  1}, 
+ {e:  2.624597E-01, f:  1.000, s:  1, k:  1},  {e:  4.090155E-01, f:  1.000, s: -1, k:  1}, 
+  # Kpt #0002 BZ coord. =     0.246290    0.000000    0.000000
+ {e: -1.124484E+00, f:  1.000, s:  1, k:  2},  {e: -1.001345E+00, f:  0.000, s: -1, k:  2}, 
+ {e: -7.150585E-01, f:  1.000, s:  1, k:  2},  {e: -5.957647E-01, f:  0.000, s: -1, k:  2}, 
+ {e: -4.586101E-01, f:  1.000, s:  1, k:  2},  {e: -3.376425E-01, f:  0.000, s: -1, k:  2}, 
+ {e: -4.313747E-01, f:  1.000, s:  1, k:  2},  {e: -3.178857E-01, f:  0.000, s: -1, k:  2}, 
+ {e: -4.292422E-01, f:  1.000, s:  1, k:  2},  {e: -3.145661E-01, f:  0.000, s: -1, k:  2}, 
+ {e: -1.930182E-01, f:  1.000, s:  1, k:  2},  {e: -6.437988E-02, f:  0.000, s: -1, k:  2}, 
+ {e: -1.919142E-01, f:  1.000, s:  1, k:  2},  {e: -6.278937E-02, f:  0.000, s: -1, k:  2}, 
+ {e:  2.627034E-01, f:  1.000, s:  1, k:  2},  {e:  4.093128E-01, f:  0.000, s: -1, k:  2}], 
+ IG wavefunctions defined:  Yes}
+ Ground State Optimization:
+ - Hamiltonian Optimization: &itrp0001
+   - Subspace Optimization:&itrep0001
+       Wavefunctions Iterations:
+       -  { #---------------------------------------------------------------------- iter: 1
+ GPU acceleration:  No, Total electronic charge:  11.999999267066, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
+ Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
+ Energies: {Ekin:  2.58842246387E+01, Epot: -3.40009627344E+01, Enl:  2.63593900719E+00, 
+              EH:  2.02930930728E+01,  EXC: -7.03180785282E+00, EvXC: -9.12864729385E+00}, 
+ iter:  1, EKS: -3.12160045872817093E+01, gnrm:  2.80E-01, 
+ SDalpha:  2.000E+00, Orthogonalization Method:  0}
+       -  &FINAL  { #-------------------------------------------------------------- iter: 2
+ GPU acceleration:  No, Total electronic charge:  11.999999453999, 
+ Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
+ Hamiltonian Applied:  Yes, 
+ iter:  2, EKS: -3.13343723620770618E+01, gnrm:  2.80E-01,  #FINAL
+ Energies: {Ekin:  2.58311951051E+01, Epot: -3.36861624128E+01, Enl:  2.79018687907E+00, 
+              EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
+            Eion: -7.53895186698E+00}, 
+ SCF criterion:  0}
  No convergence within the allowed number of minimization steps
- --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- Total magnetisation:  4.000000
- Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
- e(   1,u)= -1.07671151767132E+00 1.0000      1.0000 e(   1,d)= -9.40694120678232E-01
- e(   2,u)= -6.71884543769169E-01 1.0000      1.0000 e(   2,d)= -5.44552388926237E-01
- e(   3,u)= -4.26401157213671E-01 1.0000      1.0000 e(   3,d)= -3.14491429403843E-01
- e(   4,u)= -4.02905010217661E-01 1.0000      1.0000 e(   4,d)= -2.77565373177548E-01
- e(   5,u)= -3.81765835567442E-01 1.0000
- e(   6,u)= -1.83465471495028E-01 1.0000
- e(   7,u)= -1.39570208592472E-01 1.0000
- e(   8,u)=  2.98390074826464E-01 1.0000
- Kpt #0002 BZ coord. =     0.246290    0.000000    0.000000
- e(   1,u)= -1.07675349751124E+00 1.0000      1.0000 e(   1,d)= -9.40702049280856E-01
- e(   2,u)= -6.71801208137416E-01 1.0000      1.0000 e(   2,d)= -5.44401606263083E-01
- e(   3,u)= -4.26273151660969E-01 1.0000      1.0000 e(   3,d)= -3.13821174496799E-01
- e(   4,u)= -4.02510110865326E-01 1.0000      1.0000 e(   4,d)= -2.81306999618831E-01
- e(   5,u)= -3.83842993889855E-01 1.0000
- e(   6,u)= -1.83358207436975E-01 1.0000
- e(   7,u)= -1.41034137465582E-01 1.0000
- e(   8,u)=  2.99442984623882E-01 1.0000
   WARNING: Wavefunctions not converged after cycle           1
- Write wavefunctions to file: wavefunction.etsf
-- WRITING WAVES TIME   0  0.930E+00  0.883E+00
+        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+       Total magnetization             :  4.000000
+       Orbitals: [
+  # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
+ {e: -1.076712E+00, f:  1.000, s:  1, k:  1},  {e: -9.406941E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -6.718845E-01, f:  1.000, s:  1, k:  1},  {e: -5.445524E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -4.264012E-01, f:  1.000, s:  1, k:  1},  {e: -3.144914E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -4.029050E-01, f:  1.000, s:  1, k:  1},  {e: -2.775654E-01, f:  1.000, s: -1, k:  1}, 
+ {e: -3.817658E-01, f:  1.000, s:  1, k:  1}, 
+ {e: -1.834655E-01, f:  1.000, s:  1, k:  1}, 
+ {e: -1.395702E-01, f:  1.000, s:  1, k:  1}, 
+ {e:  2.983901E-01, f:  1.000, s:  1, k:  1}, 
+  # Kpt #0002 BZ coord. =     0.246290    0.000000    0.000000
+ {e: -1.076753E+00, f:  1.000, s:  1, k:  2},  {e: -9.407020E-01, f:  1.000, s: -1, k:  2}, 
+ {e: -6.718012E-01, f:  1.000, s:  1, k:  2},  {e: -5.444016E-01, f:  1.000, s: -1, k:  2}, 
+ {e: -4.262732E-01, f:  1.000, s:  1, k:  2},  {e: -3.138212E-01, f:  1.000, s: -1, k:  2}, 
+ {e: -4.025101E-01, f:  1.000, s:  1, k:  2},  {e: -2.813070E-01, f:  1.000, s: -1, k:  2}, 
+ {e: -3.838430E-01, f:  1.000, s:  1, k:  2}, 
+ {e: -1.833582E-01, f:  1.000, s:  1, k:  2}, 
+ {e: -1.410341E-01, f:  1.000, s:  1, k:  2}, 
+ {e:  2.994430E-01, f:  1.000, s:  1, k:  2}]
+ Write wavefunctions to file: data-binary/wavefunction.*
+ 1th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
+ 3th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+ 5th wavefunction written
+ 4th wavefunction written
+ 5th wavefunction written
+ 5th wavefunction written
+ 6th wavefunction written
+ 5th wavefunction written
+ 6th wavefunction written
+ 7th wavefunction written
+ 6th wavefunction written
+ 7th wavefunction written
+ 8th wavefunction written
+ 6th wavefunction written
+ 7th wavefunction written
+ 8th wavefunction written
+ 7th wavefunction written
+ 8th wavefunction written
+ 1th wavefunction written
+ 8th wavefunction written
+ 1th wavefunction written
+ 1th wavefunction written
+ 2th wavefunction written
+ 2th wavefunction written
+ 1th wavefunction written
+ 3th wavefunction written
+ 2th wavefunction written
+ 3th wavefunction written
+ 2th wavefunction written
+ 4th wavefunction written
+ 3th wavefunction written
+ 4th wavefunction written
+- WRITE WAVES TIME   0  2.600E-01  2.100E-01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      11.999999453999
- PSolver, periodic BC, dimensions:    48   48   48   proc    2 ... done.
+ GPU acceleration                      :  No
+ 3th wavefunction written
+ 4th wavefunction written
+ 4th wavefunction written
+- WRITE WAVES TIME   1  2.900E-01  2.270E-01
+ Total electronic charge               :  11.999999453999
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  48,  48,  48 ]
+   MPI tasks                           :  2
+ ------------------------------------------------------------- Electric Dipole Moment
+  |P| =   9.387111E+01 (AU)       (Px,Py,Pz)=   -6.1630E+01  -6.0512E+01  -3.6769E+01
+  |P| =   2.385965E+02 (Debye)    (Px,Py,Pz)=   -1.5665E+02  -1.5381E+02  -9.3457E+01
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
  average noise along x direction:  -2.81392213E-04
@@ -225,12 +360,25 @@
  average noise along z direction:   4.76577028E-03
  total average noise            :   4.77555870E-03
  clean forces norm (Ha/Bohr): maxval=  4.846821384229E-01  fnrm2=  4.633456084404E-01
- CPU time/ELAPSED time for root process     0        16.67        31.07
+ Stress Tensor:
+   Total stress tensor matrix (Ha/Bohr^3):
+   -  [ -4.739406561784E-04, -4.863593146638E-07, -3.324444372111E-09 ]
+   -  [ -4.863593146638E-07, -2.109450790453E-04, -1.555582882390E-09 ]
+   -  [ -3.324444372111E-09, -1.555582882390E-09, -3.457292927749E-03 ]
+   Pressure:
+     Ha/Bohr^3                         : -1.38072622099101E-03
+     GPa                               : -40.6224
+     PV (Ha)                           : -0.84906651780275
+ CPU time/ELAPSED time for root process     0        18.70        35.23
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 596 allocations and 596 deallocations, remaining memory(B): 0
- memory occupation peak: 59 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 630
+   Tot. No. of Deallocations: 630
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 59
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

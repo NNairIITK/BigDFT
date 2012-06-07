@@ -22,14 +22,15 @@ program memguess
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
    character(len=40) :: comment
+   character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.
+   logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
-   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor
-   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel
+   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
+   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel,energy
    type(input_variables) :: in
    type(atoms_data) :: atoms
    type(orbitals_data) :: orbs,orbstst
@@ -37,10 +38,11 @@ program memguess
    type(local_zone_descriptors) :: Lzd
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
+   type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(gp), dimension(:,:), pointer :: rxyz
+   real(gp), dimension(:,:), pointer :: rxyz, fxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
@@ -86,6 +88,11 @@ program memguess
          &   '            in the "gatom-wfn.dat" file '
       write(*,'(1x,a)')&
          &   '           <ng> is the number of gaussians used for the gatom calculation'
+      write(*,'(1x,a)')&
+           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
+      write(*,'(1x,a)')&
+           & 'converts input positions file "from" to file "to" using the given formats'
+
       stop
    else
       read(unit=tatonam,fmt=*) nproc
@@ -188,6 +195,17 @@ program memguess
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
+         else if (trim(tatonam)=='convert-positions') then
+            convertpos=.true.
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            !call getarg(i_arg,fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            !call getarg(i_arg,fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -244,16 +262,53 @@ program memguess
          &   nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
       atoms%ntypes = size(atoms%nzatom) - ndebug
       write(*,*) "Write new density file..."
-      !n(?) norbsc_arr was not allocated
-      call plot_density(trim(fileTo), 0, 1, Lzd%Glr%d%n1i / 2 - 1, Lzd%Glr%d%n2i / 2 - 1, &
-         &   Lzd%Glr%d%n3i / 2 - 1, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, Lzd%Glr%d%n3i, nspin, hx, hy, hz, &
-         & atoms, rxyz, norbsc_arr, rhocoeff)
+      dpbox%ndims(1)=Lzd%Glr%d%n1i
+      dpbox%ndims(2)=Lzd%Glr%d%n2i
+      dpbox%ndims(3)=Lzd%Glr%d%n3i
+      dpbox%hgrids(1)=hx
+      dpbox%hgrids(2)=hy
+      dpbox%hgrids(3)=hz
+      allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
+      call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
+
+      call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
+      stop
+   end if
+   if (convertpos) then
+      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat,fcomment,energy,fxyz)
+      if (i_stat /=0) stop 'error on input file parsing' 
+      !find the format of the output file
+      if (index(fileTo,'.xyz') > 0) then
+         irad=index(fileTo,'.xyz')
+         atoms%format='xyz  '
+      else if (index(fileTo,'.ascii') > 0) then
+         irad=index(fileTo,'.ascii')
+         atoms%format='ascii'
+      else if (index(fileTo,'.yaml') > 0) then
+         irad=index(fileTo,'.yaml')
+         atoms%format='yaml '
+      else
+         irad = len(trim(fileTo)) + 1
+      end if
+      
+      if (associated(fxyz)) then
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+
+         i_all=-product(shape(fxyz))*kind(fxyz)
+         deallocate(fxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'fxyz',subname)
+      else
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+      end if
       stop
    end if
 
    !standard names
-   call standard_inputfile_names(in, radical)
+   call standard_inputfile_names(in, radical, 1)
+
    if (trim(radical) == "") then
       call read_input_variables(0, "posinp", in, atoms, rxyz)
    else
@@ -426,7 +481,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
 
       !for the given processor (this is only the cubic strategy)
       orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
@@ -837,8 +892,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(in) :: orbs
-   type(local_zone_descriptors), intent(in) :: Lzd
+   type(orbitals_data), intent(inout) :: orbs
+   type(local_zone_descriptors), intent(inout) :: Lzd
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
@@ -857,14 +912,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
-   real(wp), dimension(:), pointer :: fake_pkernelSIC
+   type(coulomb_operator) :: fake_pkernelSIC
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
 
    call default_confinement_data(confdatarr,orbs%norbp)
 
 
    !nullify pkernelSIC pointer
-   nullify(fake_pkernelSIC)
+   nullify(fake_pkernelSIC%kernel)
 
    !nullify the G%rxyz pointer
    nullify(G%rxyz)
@@ -1297,6 +1352,16 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    real(gp), dimension(:,:), allocatable :: rxyz_file
    character(len = 1) :: code
 
+   integer :: confPotOrder !lr408
+   real(gp) :: locrad, confPotprefac !lr408
+   real(gp), dimension(3) :: locregCenter !lr408
+   character(len=3) :: in_name !lr408
+   type(local_zone_descriptors) :: Lzd 
+   integer, dimension(1) :: orblist
+   character(len=100) :: filename_start
+   real(wp), allocatable, dimension(:) :: lpsi
+   type(orbitals_data) :: lin_orbs
+
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
 
@@ -1328,6 +1393,44 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       read(filename(i+1:i+1),*) code
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
+
+
+      i = index(filename, "/",back=.true.)+1
+      read(filename(i:i+3),*) in_name ! lr408
+
+      if (in_name == 'min') then
+         ! Create orbs data structure.
+         !call read_orbital_variables(0,1,(iproc == 0),in,atoms,lin_orbs,nelec)
+         !allocate communications arrays (allocate it before Projectors because of the definition
+         !of iskpts and nkptsp)
+
+         !lin_orbs%isorb = 0
+
+         !call orbitals_communicators(0,1,Lzd%Glr,lin_orbs,comms) 
+         call nullify_orbitals_data(lin_orbs)
+         call copy_orbitals_data(orbs, lin_orbs, subname)
+
+         lin_orbs%norb = 1
+         lin_orbs%norbp = 1
+
+         ! need to change the lr info so relates to locregs not global
+         ! need to copy Glr and hgrids into Lzd
+         Lzd%Glr = lr
+         Lzd%hgrids(1) = hx
+         Lzd%hgrids(2) = hy
+         Lzd%hgrids(3) = hz
+         orblist = iorbp
+
+         i = index(filename, "-",back=.true.)+1
+         read(filename(1:i),*) filename_start
+         filename_start = trim(filename_start)//"/minBasis"
+
+         call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
+              Lzd,lin_orbs,at,rxyz,orblist)
+
+         allocate(lpsi(1:Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f))
+      end if
+
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else
@@ -1335,8 +1438,24 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       end if
 
       !@ todo geocode should be passed in the localisation regions descriptors
-      call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
-           & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      if (in_name /= 'min') then
+         call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
+              & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      else
+         call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
+              lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1)%wfd,rxyz_file,rxyz,&
+              locrad,locregCenter,confPotOrder,confPotPrefac,&
+              lpsi(1),eval_fake,psifscf)
+
+         call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
+
+
+
+         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+              lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
+
+         deallocate(lpsi)
+      end if
 
       ! Update iorbp
       iorbp = (ikpt - 1) * orbs%norb + (ispin - 1) * orbs%norbu + iorbp

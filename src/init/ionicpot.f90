@@ -22,7 +22,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eion,edisp,psoffset
   real(dp), dimension(6),intent(out) :: ewaldstr
   real(gp), dimension(:,:), pointer :: fion,fdisp
@@ -80,7 +80,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
      call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
-     ucvol,xred,real(at%nelpsp,kind=8))
+          ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
@@ -303,14 +303,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
            !these nested loops will be used also for the actual ionic forces, to be recalculated
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
                  y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
                     x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
@@ -327,12 +330,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
 
      !now call the Poisson Solver for the global energy forces
-     call H_potential(at%geocode,'D',iproc,nproc,&
-          n1i,n2i,n3i,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,-2.0_gp*psoffset,.false.)
-
-!!$     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
+     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-2.0_gp*psoffset,.false.)
 
      eion=ehart-eself
 
@@ -372,14 +370,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         if (n3pi >0 ) then
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
                  y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
                     x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
@@ -409,8 +410,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      end do
 
-     if (nproc > 1) then
-        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (pkernel%nproc > 1) then
+        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_comm,ierr)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -457,7 +458,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
@@ -507,7 +508,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
@@ -604,11 +605,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
-  if (nproc > 1) then
+  if (pkernel%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -632,11 +633,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
 
-     if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     !if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-     call H_potential(geocode,'D',iproc,nproc,&
-          n1i,n2i,n3i,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
+     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 
      call timing(iproc,'CrtLocPot     ','ON')
      
@@ -680,7 +679,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
 
         if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
@@ -885,6 +884,29 @@ subroutine ind_positions(periodic,i,n,j,go)
 
 END SUBROUTINE ind_positions
 
+!>   Determine the index in which the potential must be inserted, following the BC
+!!   Determine also whether the index is inside or outside the box for free BC
+subroutine ind_positions_new(periodic,i,ni,j,go)
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(in) :: i,ni
+  logical, intent(out) :: go
+  integer, intent(out) :: j
+
+  if (periodic) then
+     go=.true.
+     j=modulo(i,ni)
+  else
+     j=i
+     if (i >= -14 .and. i <= ni-15) then
+        go=.true.
+     else
+        go=.false.
+     end if
+  end if
+
+END SUBROUTINE ind_positions_new
+
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base
@@ -959,7 +981,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
   type(grid_dimensions), intent(in) :: grid
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'
@@ -1083,11 +1105,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   tt=tt*hxh*hyh*hzh
   rholeaked=rholeaked*hxh*hyh*hzh
 
-  if (nproc > 1) then
+  if (pkernel%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1104,9 +1126,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      !here the value of the datacode must be kept fixed
      nspin=1
 
-     call H_potential(geocode,'D',iproc,nproc,&
-          grid%n1i,grid%n2i,grid%n3i,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,0.0_gp,.false.)
+     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,0.0_gp,.false.)
 
      call timing(iproc,'CrtLocPot     ','ON')
      
@@ -1150,7 +1170,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
 
         if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 

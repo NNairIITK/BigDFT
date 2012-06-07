@@ -4,11 +4,11 @@ else
 GPUBLAS_INTERFACE = cublas_fake.f90
 endif
 
-#if USE_BLACS
-#BLACS = 
-#else
+if USE_BLACS
+BLACS = 
+else
 BLACS = blacs_fake.f90
-#endif
+endif
 
 if USE_MPI
 mpi_include =
@@ -22,6 +22,12 @@ xc.o: base.o
 else
 LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
+endif
+
+if BUILD_BINDINGS
+bindings_headers = bigdft.h bigdft_cst.h
+else
+bindings_headers =
 endif
 
 if CAPITALIZE
@@ -48,7 +54,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
-include_HEADERS = bigdft.h bigdft_cst.h
+include_HEADERS = $(bindings_headers)
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 
@@ -67,7 +73,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	yaml_output.f90 \
-	bigdft.h \
+	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
@@ -85,8 +91,9 @@ mpif.h:
 	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=1, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
         echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
+        echo "integer, parameter :: mpi_tag_ub=1" >> mpif.h &&\
         echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 

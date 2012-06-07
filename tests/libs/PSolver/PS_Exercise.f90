@@ -1,4 +1,5 @@
- program exercise
+program exercise
+  use module_types
    use Poisson_Solver
    implicit none
    character(len=1) :: solvertype,afunc
@@ -10,7 +11,7 @@
    real(kind=8) :: sigma,length,hgrid,mu,energy,offset,acell,epot,intrhoS,intrhoF,intpotS,intpotF
    real(kind=8), dimension(:), allocatable :: fake_arr
    real(kind=8), dimension(:,:,:), allocatable :: psi,rhopot,rhoF,rhoS,potF,potS
-   real(kind=8), dimension(:), pointer :: kernel
+   type(coulomb_operator) :: kernel
    
    !Use arguments
    call getarg(1,chain)
@@ -113,15 +114,19 @@
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   call createKernel(0,1,solvertype,n1,n2,n3,hgrid,hgrid,hgrid,isf_order,kernel,.true.)
+   call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
    call cpu_time(t1)
 
    call cpu_time(t2)
-   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
-        rhopot,kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+!   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
+!        rhopot,kernel%kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+   call H_potential('G',kernel,rhopot,fake_arr,energy,offset,.false.,quiet='yes') !optional argument
+
    call cpu_time(t3)
 
-   deallocate(kernel)
+   call deallocate_coulomb_operator(kernel,'main')
+   !deallocate(kernel)
+
 
    !now calculate the maximum difference and compare with the analytic result
 
@@ -213,8 +218,15 @@
             x=real(i1,kind=8)*hgrid-0.5d0*length
             call functions(x,length,zero,fx,fx2,5)
             r2=x**2+y**2+z**2
-            rhoF(i1,i2,i3)=exp(-r2/a2)
-            rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            !rhoF(i1,i2,i3)=exp(-r2/a2)
+            !! CHECK WITH KRONECKER DELTA !!
+            if(i1 == n1/2 .and. i2 == n2/2 .and. i3 == n3/2) then
+               rhoF(i1,i2,i3) = 1.d0
+            else
+               rhoF(i1,i2,i3) = 0.d0
+            end if
+            !rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            rhoS(i1,i2,i3) = rhoF(i1,i2,i3)
             if (r2==0.d0) then
                potF(i1,i2,i3)= 2.d0/(sqrt(pi)*a_gauss)/factor
             else

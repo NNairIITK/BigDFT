@@ -473,6 +473,7 @@ subroutine wpdot_4(  &
   integer, dimension(maseg_f) :: keyag_f_lin !>linear version of second indices of keyag_f
   real(dp) :: apsi_temp
   real(dp), dimension(7) :: apsi_f_temp
+!  !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 !!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
 !!!    real(gp) :: tel
 
@@ -491,6 +492,7 @@ subroutine wpdot_4(  &
 !$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
 !$omp shared(apsi_f,scpr)
 
+!  !$  print *,'AAANonLocalHamiltonian with nthread:, out to:' ,omp_get_num_threads(),omp_get_thread_num()
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
   iaseg0=1 

@@ -28,6 +28,7 @@ src/frequencies
 src/oneatom
 src/rism
 src/splsad
+src/lib/bindings_dbus.*
 src/tools/analyze_georelax
 src/tools/fermi
 src/tools/matchrotation
@@ -56,6 +57,7 @@ libxc-1.1.0/testsuite/.deps/
 libxc-1.1.0/testsuite/.libs
 libxc-1.1.0/testsuite/xc-consistency
 libxc-1.1.0/testsuite/xc-get_data
+yaml-0.1.4/config/ltmain.sh
 src/CUDA/S_GPU/.deps/
 src/CUDA/S_GPU/src/.deps/
 src/CUDA/S_GPU/src/.dirstamp

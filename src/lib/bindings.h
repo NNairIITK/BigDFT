@@ -14,6 +14,12 @@
   FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
   obj->name = (guint*)tmp.data; \
   }
+#define GET_ATTR_UINT_2D(obj,OBJ,name,NAME) {       \
+  f90_pointer_int tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_int_2D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  obj->name = (guint*)tmp.data; \
+  }
 #define GET_ATTR_INT(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int)); \

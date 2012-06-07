@@ -15,7 +15,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
-  integer :: mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
@@ -188,6 +187,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
   ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
+
+  ! allocate onwhichatom
+  allocate(orbs%onwhichatom(orbs%norb*orbs%nkpts),stat=i_stat)
+  call memocc(i_stat,orbs%onwhichatom,'orbs%onwhichatom',subname)
+  ! default for onwhichatom (all orbitals are situated in the same locreg)
+  orbs%onwhichatom = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)
   allocate(orbs%ispot(orbs%norbp+ndebug),stat=i_stat)
@@ -586,7 +591,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, iiorb, iorb, ierr, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -637,7 +642,7 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  integer:: ii, kk, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -660,3 +665,54 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 
 
 end subroutine repartitionOrbitals2
+
+subroutine lzd_set_hgrids(Lzd, hgrids)
+  use module_base
+  use module_types
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: Lzd
+  real(gp), intent(in) :: hgrids(3)
+  !initial values
+  Lzd%hgrids = hgrids
+end subroutine lzd_set_hgrids
+
+subroutine inputs_parse_params(in, iproc, dump)
+  use module_types
+  use module_xc
+  implicit none
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+
+  ! Parse all values independant from atoms.
+  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
+  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
+  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
+  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
+  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+end subroutine inputs_parse_params
+
+subroutine inputs_parse_add(in, atoms, iproc, dump)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+
+  ! Read k-points input variables (if given)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
+       & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+
+  ! Linear scaling (if given)
+  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR .or. &
+       & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
+end subroutine inputs_parse_add

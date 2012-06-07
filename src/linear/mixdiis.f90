@@ -1,3 +1,98 @@
+subroutine mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
+!
+! Purpose:
+! ========
+!   Mixes the potential in order to get a self consistent potential.
+!
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, n3p
+type(locreg_descriptors),intent(in) :: Glr
+type(input_variables),intent(in):: input
+real(8),intent(in):: alphaMix
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in):: rhopotOld
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+real(8),intent(out):: pnrm
+
+! Local variables
+integer:: i, ierr
+real(8):: tt
+
+  call timing(iproc,'mix_linear    ','ON')
+
+  pnrm=0.d0
+  tt=1.d0-alphaMix
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+      pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
+      rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
+  end do
+  call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+
+  call timing(iproc,'mix_linear    ','OF')
+
+end subroutine mixPotential
+
+
+
+subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
+           denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => mix_main
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, mixHist
+  logical,intent(in):: compare_outer_loop
+  type(input_variables),intent(in):: input
+  type(locreg_descriptors),intent(in):: glr
+  real(8),intent(in):: alpha_mix
+  type(DFT_local_fields),intent(inout):: denspot
+  type(mixrhopotDIISParameters),intent(inout):: mixdiis
+  real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
+  real(8),intent(out):: pnrm, pnrm_out
+  
+  ! Local variables
+  integer:: ndimtot, i, ierr
+
+  ! Mix the density.
+  if(mixHist==0) then
+      call mixPotential(iproc, denspot%dpbox%n3p, glr, input, alpha_mix, rhopotOld, denspot%rhov, pnrm)
+  else 
+      ndimtot=glr%d%n1i*glr%d%n2i*glr%d%n3i
+      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+      mixdiis%is=mixdiis%is+1
+      call mixrhopotDIIS(iproc, nproc, denspot%dpbox%ndimpot,&
+           denspot%rhov, rhopotold, mixdiis, ndimtot, alpha_mix, 1, pnrm)
+  end if
+  ! Determine the change in the density between this iteration and the last iteration in the outer loop.
+  if(compare_outer_loop) then
+      pnrm_out=0.d0
+      do i=1,glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p
+          pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+      end do
+      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+      call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
+  end if
+
+  ! Copy the current charge density.
+  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+
+end subroutine mix_main
+
+
 subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
 use module_base
 use module_types

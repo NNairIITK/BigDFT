@@ -166,13 +166,41 @@ __global__ void spread_y(Complex* src, Complex* dst)
 
    Complex res =  src[tid];
    dst[tid1 + blockDim.x*gridDim.x] = res;
-   int plus = -gridDim.x;
 #ifdef DOUBLE
-   dst[tid1 + blockDim.x*(gridDim.x + plus)] = make_double2(0., 0.);
+   dst[tid1] = make_double2(0., 0.);
 #else
-   dst[tid1 + blockDim.x*(gridDim.x + plus)] = make_float2(0.f, 0.f);
+   dst[tid1] = make_float2(0.f, 0.f);
 #endif
 }
+
+__global__ void spread_y_r(Real* src, Real* dst)
+{
+   unsigned int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+   unsigned int tid1 = (blockIdx.y * gridDim.x * 2 + blockIdx.x) * blockDim.x + threadIdx.x;
+
+   Real res =  src[tid];
+   dst[tid1 + blockDim.x*gridDim.x] = res;
+#ifdef DOUBLE
+   dst[tid1] = 0.;
+#else
+   dst[tid1] = 0.f;
+#endif
+}
+
+__global__ void spread_z(Real* src, Real* dst)
+{
+   unsigned int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+   //unsigned int tid1 = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+
+   Real res =  src[tid];
+   src[tid + (gridDim.y * gridDim.x) * blockDim.x] = res;
+#ifdef DOUBLE
+   src[tid] = 0.0;
+#else
+   src[tid] = 0.f;
+#endif
+}
+
 
 // inverse spread operation for 2nd dim
 __global__ void spread_y_i(Complex* src, Complex* dst)
@@ -183,6 +211,16 @@ __global__ void spread_y_i(Complex* src, Complex* dst)
    Complex res =  src[tid1];
    dst[tid] = res;
 }
+
+__global__ void spread_y_i_r(Real* src, Real* dst)
+{
+   unsigned int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+   unsigned int tid1 = (blockIdx.y * gridDim.x * 2 + blockIdx.x) * blockDim.x + threadIdx.x;
+
+   Real res =  src[tid1];
+   dst[tid] = res;
+}
+
 
 // multiply with potential
 __global__ void multiply_kernel(int nx, int ny, int nz, Complex *d_data, Real *d_kernel, Real scal) {
@@ -374,7 +412,7 @@ extern "C" void cuda_3d_inverse_(int *NX_p, int *NY_p, int *NZ_p ,cufftHandle *p
 
 /************ 3D Poisson Solver for periodic boundary *************/
 
-extern "C" void cuda_3d_psolver_per_plan_(int *NX_p, int *NY_p, int *NZ_p,
+extern "C" void cuda_3d_psolver_cufft3d_plan_(int *NX_p, int *NY_p, int *NZ_p,
                  cufftHandle *plan, cufftHandle *plan1) {
 
  int NX = *NX_p;
@@ -395,15 +433,20 @@ extern "C" void cuda_3d_psolver_per_plan_(int *NX_p, int *NY_p, int *NZ_p,
 }
 
 
-extern "C" void cuda_3d_psolver_per_(int *NX_p, int *NY_p, int *NZ_p,cufftHandle *plan,
+extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHandle *plan,
              cufftHandle *plan1, Complex **d_data, Complex **d_data2, Real **d_kernel, Real *scal_p,
-	     int *geo_p) {
+	     int *geo1_p, int *geo2_p, int *geo3_p) {
 
  int NX = *NX_p;
  int NY = *NY_p;
  int NZ = *NZ_p;
 
- int geo = *geo_p;
+ int geo1 = *geo1_p;
+ int geo2 = *geo2_p;
+ int geo3 = *geo3_p;
+
+ int ysize = NY/2 + geo2 * NY/2;
+ int zsize = NZ/2 + geo3 * NZ/2;
 
  Real scal = *scal_p;
 
@@ -415,14 +458,41 @@ extern "C" void cuda_3d_psolver_per_(int *NX_p, int *NY_p, int *NZ_p,cufftHandle
  int nthreads = NX/2;
  dim3 nblocks(NY/2,NZ/2,1);
 
+ // spread kernel parameters
+ dim3 nblocks_s(zsize,ysize,1);
+
  Complex* dst = *d_data;
  Complex* src = *d_data2;
 
-   if (geo==0) {
+   if (geo1==0 && geo2==0 && geo3==0) {
     src = *d_data;
     dst = *d_data2;
     zero <<< nblocks, nthreads >>> (NX,NY,NZ, (Real*)dst);
     copy_0 <<< nblocks, nthreads  >>> (NX,NY,NZ, (Real*)src, (Real*)dst);
+   }
+   else {
+    if (geo1==0) {
+     src = *d_data;
+     dst = *d_data2;
+     spread<<<nblocks_s, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
+    }
+    if (geo2==0) {
+      if (geo1==0) {
+        src = *d_data2;
+        dst = *d_data;
+      } else {
+        src = *d_data;
+        dst = *d_data2;
+      }
+      nblocks_s.x=ysize;
+      nblocks_s.y=zsize;
+      spread_y_r<<<nblocks_s, NX>>>((Real*)src, (Real*)dst);
+    }
+    if (geo3==0) {
+      nblocks_s.x=NY;
+      nblocks_s.y=zsize;
+      spread_z<<<nblocks_s, NX>>>((Real*)dst, (Real*)src);
+    }
    }
 
    // Forward FFT
@@ -441,24 +511,40 @@ extern "C" void cuda_3d_psolver_per_(int *NX_p, int *NY_p, int *NZ_p,cufftHandle
       printf("error in PSper inverse transform\n");
    }
 
-   if (geo==0)
+   if (geo1==0 && geo2==0 && geo3==0)
      copy <<< nblocks, nthreads >>> (NX,NY,NZ, (Real*)dst, (Real*)src);
+   else { 
+    if (geo2==0) {
+       nblocks_s.x=ysize;
+       nblocks_s.y=zsize;
+       spread_y_i_r<<<nblocks_s, NX>>>((Real*)dst, (Real*)src);
+    }
+    if (geo1==0) {
+       if (geo2==0) {
+        Complex* tmp = src;
+        src = dst;
+        dst = tmp;
+       }
+      nblocks_s.x=zsize;
+      nblocks_s.y=ysize; 
+      spread_i<<<nblocks_s, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
+    }
+   }
 }
 
 /************ 3D Poisson Solver for general boundary *************/
 
-extern "C" void cuda_3d_psolver_general_plan_(int *NX_p, int *NY_p, int *NZ_p,
-                 cufftHandle *plan1, cufftHandle *plan1_, cufftHandle *plan2,
-                 cufftHandle *plan3, cufftHandle *plan3_, int *switch_alg,
-		 int *geo1_p, int *geo2_p, int *geo3_p) {
+extern "C" void cuda_3d_psolver_general_plan_(int *N,
+                 cufftHandle *plan, int *switch_alg,
+		 int *geo) {
 
- int NX = *NX_p;
- int NY = *NY_p;
- int NZ = *NZ_p;
+ int NX = N[0];
+ int NY = N[1];
+ int NZ = N[2];
 
- //int geo1 = *geo1_p;
- int geo2 = *geo2_p;
- int geo3 = *geo3_p;
+ //int geo1 = geo[0];
+ int geo2 = geo[1];
+ int geo3 = geo[2];
 
  int n1d[3]= {1, 1, 1};
 
@@ -466,24 +552,24 @@ extern "C" void cuda_3d_psolver_general_plan_(int *NX_p, int *NY_p, int *NZ_p,
  int zsize = NZ/2 + geo3 * NZ/2;
 
  n1d[0] = NX;
- if(cufftPlanMany(plan1,  1, n1d,
+ if(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_D2Z, ysize*zsize) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
 
- if(cufftPlanMany(plan1_,  1, n1d,
+ if(cufftPlanMany(plan+1,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_Z2D, ysize*zsize) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
 
  n1d[0] = NY;
- if(cufftPlanMany(plan2,  1, n1d,
+ if(cufftPlanMany(plan+2,  1, n1d,
               NULL, 1, NY,
               NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
 
  n1d[0] = NZ;
- if(cufftPlanMany(plan3,  1, n1d,
+ if(cufftPlanMany(plan+3,  1, n1d,
               NULL, 1, NZ,
               NULL, 1, NZ, Transform, (NX/2+1)*NY) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
@@ -504,34 +590,33 @@ extern "C" void cuda_3d_psolver_general_plan_(int *NX_p, int *NY_p, int *NZ_p,
  int onembed[1];
  inembed[0] = 1;
  onembed[0] = 1;
- if(cufftPlanMany(plan3_,  1, n1d,
+ if(cufftPlanMany(plan+4,  1, n1d,
               inembed, NY, 1,
               onembed, NY, 1, Transform, NY) != CUFFT_SUCCESS)
       printf("Error creating plan\n");
 
 }
 
-extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
-          cufftHandle *plan1, cufftHandle *plan1_, cufftHandle *plan2,
-          cufftHandle *plan3, cufftHandle *plan3_,
+extern "C" void cuda_3d_psolver_general_(int *N,
+          cufftHandle *plan,
           Complex **d_data, Complex **d_data2, Real **d_kernel, int *switch_alg,
-          int *geo1_p, int *geo2_p, int *geo3_p, Real *scal_p) {
+          int *geo, Real *scal_p) {
 
- int NX = *NX_p;
- int NY = *NY_p;
- int NZ = *NZ_p;
+ int NX = N[0];
+ int NY = N[1];
+ int NZ = N[2];
 
  Real scal = *scal_p;
 
- int geo1 = *geo1_p;
- int geo2 = *geo2_p;
- int geo3 = *geo3_p;
+ int geo1 = geo[0];
+ int geo2 = geo[1];
+ int geo3 = geo[2];
 
  int ysize=NY/2+geo2*NY/2;
  int zsize=NZ/2+geo3*NZ/2;
 
  // transpose kernel parameters
- dim3 grid((NX+TILE_DIM-1)/TILE_DIM,(ysize*zsize+TILE_DIM-1)/TILE_DIM,1);
+ dim3 grid((NX/2+1+TILE_DIM-1)/TILE_DIM,(ysize*zsize+TILE_DIM-1)/TILE_DIM,1);
  dim3 threads(TILE_DIM,TILE_DIM,1);
 
  // spread kernel parameters
@@ -552,7 +637,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
      spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
    }
 
-   if( cufftExecD2Z(*plan1, (Real*)dst, src)!= CUFFT_SUCCESS){
+   if( cufftExecD2Z(plan[0], (Real*)dst, src)!= CUFFT_SUCCESS){
       printf("error in PSolver forward transform 1\n");
    }
 
@@ -563,7 +648,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
    }
 
    // Y transform
-   if( TransformExec(*plan2, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
+   if( TransformExec(plan[2], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
       printf("error in PSolver forward transform 2\n");
    }
 
@@ -578,7 +663,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
      transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
    }
 
-   if( TransformExec(*plan3, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
+   if( TransformExec(plan[3], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
       printf("error in PSolver forward transform 3\n");
    }
   }
@@ -590,7 +675,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
    }
 
    for(int k=0; k<NX; ++k){
-     if( TransformExec(*plan3_, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
+     if( TransformExec(plan[4], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
       printf("error in PSolver forward transform 3\n");
      }
      src += NY*NZ;
@@ -609,7 +694,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
 
   // Z transform, on entire cube 
   if (!(*switch_alg)) {
-   if( TransformExec(*plan3, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+   if( TransformExec(plan[3], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
       printf("error in PSolver inverse transform 1\n");
    }
 
@@ -626,7 +711,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
   else {
 
    for(int k=0; k<NX; ++k){
-     if( TransformExec(*plan3_, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+     if( TransformExec(plan[4], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
       printf("error in PSolver inverse transform 3\n");
      }
      src += NY*NZ;
@@ -642,7 +727,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
 
   // Y transform
 
-   if( TransformExec(*plan2, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+   if( TransformExec(plan[2], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
       printf("error in PSolver inverse transform 2\n");
    }
 
@@ -656,7 +741,7 @@ extern "C" void cuda_3d_psolver_general_(int *NX_p, int *NY_p, int *NZ_p,
 
    // X transform
 
-   if( cufftExecZ2D(*plan1_, src, (Real*)dst)!= CUFFT_SUCCESS){
+   if( cufftExecZ2D(plan[1], src, (Real*)dst)!= CUFFT_SUCCESS){
       printf("error in PSolver inverse transform 3\n");
    }
 

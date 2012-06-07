@@ -21,13 +21,13 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                     (Ver 1.6.0)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- 
- |... (file:XabsCheb.perf.. not present).........................Performance Options 
+
+ |... (file:default.perf.. not present)..........................Performance Options 
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
  |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
@@ -41,8 +41,11 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
+ |signaling F                Expose calculation results on Network
+ |signalTimeout 0            Time out on startup for signal connection
+ |domain                     Domain to add to the hostname to find the IP
  |verbosity 2                verbosity of the output 0=low, 2=high
  |psp_onfly T                Calculate pseudopotential projectors on the fly
  |... (file:XabsCheb.dft)..................................DFT Calculation Parameters
@@ -59,33 +62,49 @@
  |5.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
  |0 0  0         Davidson subspace dim., # of opt. orbs, # of plotted orbs           
  |T              disable the symmetry detection                                      
- |... (file:XabsCheb.mix.. not present)............................Mixing Parameters 
+ |... (file:default.mix.. not present).............................Mixing Parameters 
  |0              Mixing parameters                                                   
  |1              Maximum number of diagonalisation iterations                        
  |1.e-4          Stop criterion on the residue of potential or density               
  |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
  |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
- |... (file:XabsCheb.geopt.. not present)........................Geometry Parameters 
+ |... (file:default.geopt.. not present).........................Geometry Parameters 
  |BFGS           Geometry optimisation method                                        
  |1              Maximum number of force evaluations                                 
  |1.0 0.0        fract_fluct,forcemax                                                
  |0.0            random displacement amplitude                                       
  |4.0            Stepsize for the geometry optimisation                              
- |... (file:XabsCheb.tddft.. not present)..........................TD-DFT Parameters 
+ |... (file:default.tddft.. not present)...........................TD-DFT Parameters 
  |NONE           TDDFT Method                                                        
- |... (file:XabsCheb.sic.. not present)...............................SIC Parameters 
+ |... (file:default.sic.. not present)................................SIC Parameters 
  |NONE           SIC method: NONE, PZ, NK                                            
  |0.0            SIC downscaling parameter                                           
  |0.0            Reference occupation fref (NK case only)                            
- |... (file:XabsCheb.kpt.. not present)...........Brillouin Zone Sampling Parameters 
+ |... (file:default.kpt.. not present)............Brillouin Zone Sampling Parameters 
  |manual         K-point sampling method                                             
  |1              Number of K-points                                                  
  |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
  |----------------------------------------------------------------------------------
  |  Data Writing directory:    not needed
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             : &ixc  1
+     Name                              : "XC: Teter 93"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Coarse and Fine Radii Multipliers   :  [  20.0,  9.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           : &gnrm_cv  2.0E-04
+     CG Steps for Preconditioner       :  6
+     DIIS History length               :  0
+     Max. Wfn Iterations               : &itermax  50
+     Max. Subspace Diagonalizations    :  10
+   Density/Potential:
+     Max. Iterations                   :  1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
    Max. hgrid=  0.450 |  Coarse Wfs.=20.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
@@ -114,7 +133,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 H grids=  0.4199  0.4199  0.4199
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -158,91 +177,102 @@
  Total number of projectors =                   24
  Total number of components =               167280
  Percent of zero components =                   18
- ion-ion interaction energy -1.59920646116929E+01
+ ion-ion interaction energy -1.59920646116928E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
- PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  108,  108,  108 ]
+   MPI tasks                           :  1
  ------------------------------------------------------- Input Wavefunctions Creation
- Generating 10 Atomic Input Orbitals
-   of which 4 are semicore orbitals
- Calculating AIO wavefunctions: 
- Generation of input wavefunction data for atom     Fe: 
-   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
- Writing wavefunctions in wavelet form... done.
- Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273240
- PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
+ Total No. of Atomic Input Orbitals    :  10
+ No. of Semicore Orbitals              :  4
+ Atomic Input Orbital Generation:
+ - Atom Type                           : Fe
+     Electronic configuration: {[s]: [ 2.00], [p]: [ 2.00,  2.00,  2.00], d: [ 6/5,  6/5,  6/5,  6/5,  6/5], s: [ 2.00]}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  7.47E-05
+ GPU acceleration                      :  No
+ Total electronic charge               :  15.999983273239
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  108,  108,  108 ]
+   MPI tasks                           :  1
   going to calculate spectra 
   IN ROUTINE  chebychev  
- weigths    1.00000000000000     
+ weigths    1.0000000000000000     
  LB_nproc=            1
  USING PTILDES TO BUILD INITIAL WAVE
   EP_initialize_start    OK 
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.9782199496D-03     0.6330151359D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.1907834866D-03    -0.2044846776D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.4411213054D-03    -0.4770151398D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.3483306864D-03    -0.1440774201D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.3495152280D-04     0.1186076198D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.8928532060D-04    -0.1869968616D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.1433004852D-03    -0.2249016206D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.2332506633D-03    -0.1758136288D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.9063020424D-04    -0.2423287950D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.1018901864D-04    -0.5322639119D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.1299592880D-03    -0.2003382177D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.2285158929D-03    -0.1986141522D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.1227347480D-03    -0.3317084926D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.3248423157D-04     0.5046314764D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.2032943539D-04    -0.3483766050D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.8163744424D-04    -0.9136919956D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs      0.5400787035D-04     0.1979306281D-04
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.1041994760D-03     0.1722253189D-03
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.2064742286D-03     0.2062370230D-03
   done 
  writing spectra to  cheb_spectra_proc_0_orbp_1
  writing spectra to  cheb_spectra_40
- Hamiltonian application...  done 
+  done 
 new cheb coeffs     -0.1838438448D-03     0.1577791737D-03
  coefficients from Chebychev 
-   40 1.8347331808298759E+02 5.3215820427215173E-03
+   40 1.8347331808298765E+02 5.3215820427215208E-03
  ... 
--3.4837660499904789E-05
- 8.1637444237966472E-05
--9.1369199557091337E-05
- 5.4007870346396204E-05
- 1.9793062810330875E-05
--1.0419947600856581E-04
- 1.7222531886156066E-04
--2.0647422859611762E-04
- 2.0623702304403322E-04
--1.8384384484440835E-04
+-3.4837660500199692E-05
+ 8.1637444238284143E-05
+-9.1369199557451942E-05
+ 5.4007870346802129E-05
+ 1.9793062809897628E-05
+-1.0419947600814427E-04
+ 1.7222531886119268E-04
+-2.0647422859583508E-04
+ 2.0623702304384305E-04
+-1.8384384484431120E-04
  DEALLOCATING
- CPU time/ELAPSED time for root process     0        10.69        15.98
+ CPU time/ELAPSED time for root process     0        21.32        24.58
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
       x direction     0.00000000E+00
       y direction     0.00000000E+00
       z direction     0.00000000E+00
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1798 allocations and 1798 deallocations, remaining memory(B): 0
- memory occupation peak: 86 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 1689
+   Tot. No. of Deallocations: 1689
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 86
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

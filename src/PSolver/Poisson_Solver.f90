@@ -55,6 +55,7 @@
 module Poisson_Solver
 
   use module_base
+  use module_types, only: coulomb_operator
 
   implicit none
 
@@ -75,11 +76,5 @@ contains
 
   include 'PSolver_Main.f90'
   include 'createKernel.f90'
-  !include 'Build_Kernel.f90'
-  !include 'PSolver_Base.f90'
-  !include 'xcenergy.f90'
-  !include '3Dgradient.f90'
-  !include 'fft3D.f90'
-  !include 'scaling_function.f90'
 
 end module Poisson_Solver

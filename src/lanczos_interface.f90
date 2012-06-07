@@ -1035,7 +1035,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU)
 
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1044,7 +1044,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
@@ -1142,7 +1142,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%ekin_sum,ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 

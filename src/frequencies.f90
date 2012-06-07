@@ -21,7 +21,7 @@ program frequencies
    use module_types
    use module_interfaces
    use m_ab6_symmetry
-
+   use yaml_output
    implicit none
 
    !Parameters
@@ -79,6 +79,14 @@ program frequencies
       write(radical, "(A)") "input"
    end if
 
+!!$   !open unit for yaml output
+!!$   if (istat > 0) then
+!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
+!!$   else
+!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
+!!$   end if
+  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+
    ! Welcome screen
    if (iproc == 0) call print_logo()
 
@@ -86,7 +94,7 @@ program frequencies
    !call memocc(0,iproc,'count','start')
 
    !standard names
-   call standard_inputfile_names(inputs,radical)
+   call standard_inputfile_names(inputs,radical,nproc)
    call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
    ! Read all input files.

@@ -25,7 +25,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-   real(dp), dimension(:), pointer :: pkernel
+   type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
    !local variables
@@ -249,7 +249,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
            proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
-           energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,KSwfn%orbs,psirocc)
 
       energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -274,6 +274,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
+      call total_energies(energs, iter, iproc)
      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
           VTwfn,gnrm,gnrm_zero)
 
@@ -309,7 +310,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    call deallocate_diis_objects(VTwfn%diis,subname)
 
    !this deallocates also hpsivirt and psitvirt
-   call last_orthon(iproc,nproc,VTwfn,energs%evsum)
+   call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
 
    !resize work array before final transposition
    if(nproc > 1)then
@@ -331,7 +332,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(nproc,0,pot,subname)
+   call free_full_potential(dpcom%nproc,0,pot,subname)
 
    if (GPUconv) then
       call free_gpu(GPU,VTwfn%orbs%norbp)
@@ -400,13 +401,13 @@ subroutine davidson(iproc,nproc,in,at,&
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-   type(local_zone_descriptors), intent(in) :: Lzd
+   type(local_zone_descriptors), intent(inout) :: Lzd
    type(orbitals_data), intent(in) :: orbs
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-   real(dp), dimension(:), pointer :: pkernel
+   type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU
@@ -419,13 +420,14 @@ subroutine davidson(iproc,nproc,in,at,&
    integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
    integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
    integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake
+   real(gp) :: tt,gnrm,gnrm_fake
    integer, dimension(:,:), allocatable :: ndimovrlp
    real(wp), dimension(:), allocatable :: work,work_rp,hamovr
    real(wp), dimension(:), allocatable :: hv,g,hg,ew
    real(wp), dimension(:,:,:), allocatable :: e
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
+   type(energy_terms) :: energs
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -465,9 +467,9 @@ subroutine davidson(iproc,nproc,in,at,&
    GPU%full_locham=.true.
    !verify whether the calculation of the exact exchange term
    !should be performed
-   eexctX=0.0_gp
+   energs%eexctX=0.0_gp
    exctX = xc_exctXfac() /= 0.0_gp
-   if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+   if (in%exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
 
    !check the size of the rhopot array related to NK SIC
    nrhodim=in%nspin
@@ -598,7 +600,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+        energs,in%SIC,GPU,&
         pkernel,orbs,psirocc)
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -872,7 +874,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
@@ -1137,7 +1139,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv
@@ -1156,7 +1158,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(nproc,0,pot,subname)
+   call free_full_potential(dpcom%nproc,0,pot,subname)
 
    i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
    deallocate(ndimovrlp,stat=i_stat)
@@ -1925,11 +1927,12 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
    integer :: ikpt
 
    if (orbs%nkpts /= orbsv%nkpts) then
+      return
       stop 'HL gap with Band structure not implemented yet'
    end if
 
    !depending on nspin
-   orbs%HLgap=1.e100_gp
+   orbs%HLgap=UNINITIALIZED(orbs%HLgap)
    if (orbs%nspin==1) then
       !the minimum wrt all the k-points
       do ikpt=1,orbs%nkpts
@@ -1944,7 +1947,7 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
    end if
 
    !warning if gap is negative
-   if (orbs%HLgap < 0.0_gp) then
+   if (orbs%HLgap < 0.0_gp .and. orbs%HLgap/=uninitialized(orbs%HLgap)) then
       if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
    end if
 

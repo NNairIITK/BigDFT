@@ -12,7 +12,7 @@ noinst_LIBRARIES = libpoissonsolver.a
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = @LIBS_DEPENDENCIES@ -lcufft
+conv_check_fft_LDADD = @LIBS_DEPENDENCIES@
 
 libpoissonsolver_a_SOURCES = Poisson_Solver.f90
 

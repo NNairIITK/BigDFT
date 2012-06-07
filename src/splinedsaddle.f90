@@ -15,7 +15,7 @@ program splined_saddle
   use module_types
   use module_interfaces
   use m_ab6_symmetry
-
+  use yaml_output
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
@@ -43,14 +43,21 @@ program splined_saddle
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   call memocc_set_memory_limit(memorylimit)
+  call memocc_set_memory_limit(memorylimit)
 
-   ! Read a possible radical format argument.
-   call get_command_argument(1, value = radical, status = istat)
-   if (istat > 0) then
-      write(radical, "(A)") "input"
-   end if
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
 
+!!$  !open unit for yaml output
+!!$  if (istat > 0) then
+!!$     if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
+!!$  else
+!!$     if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
+!!$  end if
+  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
 
 !
 !    call system("echo $HOSTNAME")
@@ -88,7 +95,7 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs,radical)
+     call standard_inputfile_names(inputs,radical,nproc)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
@@ -161,6 +168,8 @@ program splined_saddle
      call deallocate_atoms(atoms,subname) 
 
 !     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
+     if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
+          & call deallocateBasicArraysInput(inputs%lin)
 
      call free_restart_objects(rst,subname)
 
@@ -361,7 +370,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
-    call standard_inputfile_names(ll_inputs,'input')
+    call standard_inputfile_names(ll_inputs,'input',nproc)
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
         call perf_input_variables(iproc,.true.,'ll_input.perf',ll_inputs)

@@ -20,6 +20,7 @@
 
 program conv_check_fft
   use module_base
+  use module_types
   use Poisson_Solver
   implicit none
   integer  :: n1,n2,n3 
@@ -45,10 +46,14 @@ program conv_check_fft
   integer(kind=8) :: tsc0, tsc1
   !objects for the 3D Poisson solver
   real(kind=8), dimension(:), allocatable :: rhopot,rhopot2,rhopot1
-  real(kind=8), dimension(:), pointer :: pkernel,pkernel2
-  integer :: plan,plan1,plan1_,plan2,plan3,plan3_,size1,size2,sizek,switch_alg,geo1,geo2,geo3
+  integer :: plan,plan1,plan1_,plan2,plan3,plan3_,size1,size2,sizek,switch_alg
   real(kind=8) :: scal
   integer :: count_0
+  integer, dimension(3) :: ndim
+  integer, dimension(3) :: n
+  integer, dimension(3) :: geo
+  real(kind=8), dimension(3) :: hgriddim
+  type(coulomb_operator) :: pkernel,pkernel2
 
   write(chain,'(a6)') 'fort.1'
   open(unit=1,file=trim(chain),status='old')
@@ -68,11 +73,15 @@ program conv_check_fft
  !n3=150
 
  !ntimes=1
+ 
 
-  hx=0.1e0_gp
+  hx=0.2d0
   !n(c) hy=0.1e0_gp
   !n(c) hz=0.1e0_gp
 
+  hgriddim(1)=hx
+  hgriddim(2)=hx
+  hgriddim(3)=hx
   
    !allocate arrays
    allocate(psi_in(2,n1,n2*n3,1+ndebug),stat=i_stat)
@@ -262,60 +271,37 @@ program conv_check_fft
 
    
    !Poisson Solver - periodic boundary
-    write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
+   ndim(1)=n1
+   ndim(2)=n2
+   ndim(3)=n3
+
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,0) 
+   pkernel%igpu=0
+   call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
-   call H_potential('P','D',0,1,n1,n2,n3,0.2d0,0.2d0,0.2d0,&
-        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call H_potential('D',pkernel, &
+        rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
+   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
    !here the GPU part
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
 
-   call transpose_kernel_forGPU('P',n1,n2,n3,pkernel,pkernel2)
-
-   geo1=1
-   geo2=1
-   geo3=1
-
-   scal=1.d0/dble(n1*n2*n3)
-
-   size1=n1*n2*n3
-   size2=2*n1*n2*n3
-   sizek=(n1/2+1)*n2*n3
-   call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
-   call cudamalloc(size2,work_GPU)
-   call cudamalloc(size2,psi_GPU)
-   call cudamalloc(sizek,k_GPU)
-   call reset_gpu_data(size1,rhopot2,work_GPU)
-   call reset_gpu_data(sizek,pkernel2,k_GPU)
+   pkernel2%igpu=1
+   call createKernel(0,1,'P',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
-   do i=1,ntimes
-     call cuda_3d_psolver_general(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,work_GPU,psi_GPU,k_GPU,switch_alg,geo1,geo2,geo3,scal)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
+   call H_potential('D',pkernel2, &
+        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
 
-   call get_gpu_data(size1,rhopot2,work_GPU)
 
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-   call cudafree(k_GPU)
-   i_all=-product(shape(pkernel))*kind(pkernel)
-   deallocate(pkernel,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
-   i_all=-product(shape(pkernel2))*kind(pkernel2)
-   deallocate(pkernel2,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
- 
+   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
@@ -323,67 +309,40 @@ program conv_check_fft
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
    !Poisson Solver - Free boundary
-    write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
 
    !initialize rhopots
    call vcopy(n1*n2*n3/8,psi_in(1,1,1,1),2,rhopot(1),1)
    call vcopy(n1*n2*n3/8,psi_in(1,1,1,1),2,rhopot2(1),1)
 
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'F',n1/2,n2/2,n3/2,1.0d0,1.0d0,1.0d0,16,pkernel,.false.,0)
+   ndim(1)=n1/2
+   ndim(2)=n2/2
+   ndim(3)=n3/2
+   pkernel%igpu=0
+   call createKernel(0,1,'F',ndim,hgriddim,16,pkernel,(verbose > 1))
  
    call nanosec(tsc0);
-   call H_potential('F','D',0,1,n1/2,n2/2,n3/2,1.0d0,1.0d0,1.0d0,&
-        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+    call H_potential('D',pkernel, &
+        rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
+   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
    !here the GPU part
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
 
-   call createKernel(0,1,'F',n1/2,n2/2,n3/2,1.0d0,1.0d0,1.0d0,16,pkernel,.false.,1)
-
-   call transpose_kernel_forGPU_free('F',n1/2,n2/2,n3/2,pkernel,pkernel2)
-
-   geo1=0
-   geo2=0
-   geo3=0
-
-   scal=(1.0d0*1.0d0*1.0d0)/dble(n1*n2*n3)
-
-   size1=n1*n2*n3/8
-   size2=2*n1*n2*n3
-   sizek=(n1/2+1)*n2*n3
-   call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
-   call cudamalloc(size2,work_GPU)
-   call cudamalloc(size2,psi_GPU)
-   call cudamalloc(sizek,k_GPU)
-   call reset_gpu_data(size1,rhopot2,work_GPU)
-   call reset_gpu_data(sizek,pkernel2,k_GPU)
+   pkernel2%igpu=1
+   call createKernel(0,1,'F',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
-   do i=1,ntimes
-     call cuda_3d_psolver_general(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,work_GPU,psi_GPU,k_GPU,switch_alg,geo1,geo2,geo3,scal)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
+    call H_potential('D',pkernel2, &
+        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
 
-   call get_gpu_data(size1,rhopot2,work_GPU)
-
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-   call cudafree(k_GPU)
-   i_all=-product(shape(pkernel))*kind(pkernel)
-   deallocate(pkernel,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
-   i_all=-product(shape(pkernel2))*kind(pkernel2)
-   deallocate(pkernel2,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
- 
+   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1/2, n2/2, n3/2, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
@@ -392,73 +351,85 @@ program conv_check_fft
 
 
    !Poisson Solver - Surface boundary
-    write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
 
    !initialize rhopots
    call vcopy(n1*n2*n3/2,psi_in(1,1,1,1),2,rhopot(1),1)
    call vcopy(n1*n2*n3/2,psi_in(1,1,1,1),2,rhopot2(1),1)
 
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'S',n1,n2/2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,0)
-   !pkernel(1:size(pkernel))=1.0_dp
+   ndim(1)=n1
+   ndim(2)=n2/2
+   ndim(3)=n3
+   pkernel%igpu=0
+   call createKernel(0,1,'S',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
-   call H_potential('S','D',0,1,n1,n2/2,n3,0.2d0,0.2d0,0.2d0,&
-        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+    call H_potential('D',pkernel, &
+        rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
+   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
 
-   call createKernel(0,1,'S',n1,n2/2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,1)
-
-   call transpose_kernel_forGPU_free('S',n1,n2/2,n3,pkernel,pkernel2)
-
-   geo1=1
-   geo2=0
-   geo3=1
-
-   scal=(-16.0_dp*atan(1.0_dp)*dble(0.2_dp))/dble(n1*n2*n3)
-
-   size1=n1*n2*n3/2
-   size2=2*n1*n2*n3
-   sizek=(n1/2+1)*n2*n3
-   call cuda_3d_psolver_general_plan(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,switch_alg,geo1,geo2,geo3)
-   call cudamalloc(size2,work_GPU)
-   call cudamalloc(size2,psi_GPU)
-   call cudamalloc(sizek,k_GPU)
-   call reset_gpu_data(size1,rhopot2,work_GPU)
-   call reset_gpu_data(sizek,pkernel2,k_GPU)
+   pkernel2%igpu=1
+   call createKernel(0,1,'S',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
-   do i=1,ntimes
-     call cuda_3d_psolver_general(n1,n2,n3,plan1,plan1_,plan2,plan3,plan3_,work_GPU,psi_GPU,k_GPU,switch_alg,geo1,geo2,geo3,scal)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
+    call H_potential('D',pkernel2, &
+        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
 
-   call get_gpu_data(size1,rhopot2,work_GPU)
-
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-   call cudafree(k_GPU)
-   i_all=-product(shape(pkernel))*kind(pkernel)
-   deallocate(pkernel,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
-   i_all=-product(shape(pkernel2))*kind(pkernel2)
-   deallocate(pkernel2,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
-
-
+   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1, n2/2, n3, rhopot(1), rhopot2(1), maxdiff, 3.0d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+
+   !Poisson Solver - Wire boundary
+
+   !initialize rhopots
+   call vcopy(n1*n2*n3/4,psi_in(1,1,1,1),2,rhopot(1),1)
+   call vcopy(n1*n2*n3/4,psi_in(1,1,1,1),2,rhopot2(1),1)
+
+   !calculate the kernel in parallel for each processor
+   ndim(1)=n1/2
+   ndim(2)=n2/2
+   ndim(3)=n3
+   pkernel%igpu=0
+   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel,(verbose > 1))
+
+   call nanosec(tsc0);
+    call H_potential('D',pkernel, &
+        rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
+
+   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
+   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
+
+   !here the GPU part
+
+   pkernel2%igpu=1
+   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel2,(verbose > 1))
+
+   call nanosec(tsc0);
+    call H_potential('D',pkernel2, &
+        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
+   
+  write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
+   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+   call compare_3D_results(n1/2, n2/2, n3, rhopot(1), rhopot2(1), maxdiff, 3.0d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+
 
   i_all=-product(shape(rhopot))*kind(rhopot)
   deallocate(rhopot,stat=i_stat)
@@ -679,11 +650,12 @@ contains
     end do
   end subroutine compare_1D_results
 
-  subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
+  subroutine transpose_kernel_forGPU(geocode,n0,pkernel,pkernel2,offset)
     use module_base
     use Poisson_Solver
     implicit none
-    integer, intent(in) :: n01,n02,n03
+    integer, intent(in) :: offset
+    integer, dimension(3), intent(in) :: n0
     character(len=*), intent(in) :: geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
@@ -696,16 +668,18 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+     else if (geocode == 'W') then
+       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
 
-    allocate(pkernel2(n1*n2*n3+ndebug),stat=i_stat)
+    allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
     call memocc(i_stat,pkernel2,'pkernel2',subname)
 
     do i3=1,n3
@@ -725,15 +699,16 @@ contains
        end do
     end do
     !offset to zero
-    pkernel2(1)=0.0_dp
+    if (offset.eq.1) pkernel2(1)=0.0_dp
 
   end subroutine transpose_kernel_forGPU
- 
-  subroutine transpose_kernel_forGPU_free(geocode,n01,n02,n03,pkernel,pkernel2)
+
+  subroutine transpose_kernel_forGPU_cufft3D(geocode,n0,pkernel,pkernel2,offset)
     use module_base
     use Poisson_Solver
     implicit none
-    integer, intent(in) :: n01,n02,n03
+    integer, intent(in) :: offset
+    integer, dimension(3), intent(in) :: n0
     character(len=*), intent(in) :: geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
@@ -746,11 +721,13 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call S_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+       call F_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
+     else if (geocode == 'W') then
+       call W_FFT_dimensions(n0(1),n0(2),n0(3),m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,1)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
@@ -767,17 +744,17 @@ contains
              !injective index
              ind=j1+(j2-1)*nd1+(j3-1)*nd1*nd2
              !unfolded index
-             !indt=j1+(i3-1)*nd1+(i2-1)*nd1*n3
-             !indt=i2+(i1-1)*n2+(i3-1)*n1*n2
-             indt=i2+(j1-1)*n2+(i3-1)*nd1*n2
+             indt=j1+(i3-1)*nd1+(i2-1)*nd1*n3
+             !indt=i2+(i1-1)*n2+(i3-1)*n1*n2             
+             !indt=i2+(j1-1)*n2+(i3-1)*nd1*n2
              pkernel2(indt)=pkernel(ind)
           end do
        end do
     end do
     !offset to zero
-    !pkernel2(1)=0.0_dp
+    if (offset.eq.1) pkernel2(1)=0.0_dp
 
-  end subroutine transpose_kernel_forGPU_free
+  end subroutine transpose_kernel_forGPU_cufft3D
 
 end program conv_check_fft
 

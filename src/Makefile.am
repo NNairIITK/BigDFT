@@ -1,8 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-all: all-recursive
-	chmod ug+x bigdft-tool
-
 # Main targets.
 # ------------
 bin_PROGRAMS    = $(binaries_sources)
@@ -62,7 +59,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -180,6 +177,33 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if BUILD_BINDINGS
+bindings_files = lib/bindings_api.h \
+	lib/bindings.c lib/bindings.h \
+	lib/bindings_atoms.c \
+	lib/bindings_regions.c \
+	lib/bindings_wavefunctions.c \
+	lib/bindings_localfields.c \
+	lib/bindings_signals.c lib/bindings_signals.h \
+	lib/bindings_signals_inet.c \
+	lib/bindingsf.f90
+else
+bindings_files = lib/bindingsf_fake.f90
+endif
+
+EXTRA_DIST += lib/bindings_dbus.xml
+if HAVE_GDBUS
+bindings_files += lib/bindings_signals_dbus.c
+nodist_bindings_files = bindings_dbus.c bindings_dbus.h
+
+bindings_dbus.h: bindings_dbus.c
+bindings_dbus.c: lib/bindings_dbus.xml
+	gdbus-codegen --interface-prefix eu.etsf.bigdft.dbus. \
+                      --generate-c-code bindings_dbus \
+                      --c-namespace BigdftDBus \
+                      --c-generate-object-manager $(srcdir)/lib/bindings_dbus.xml
+endif
+
 if HAVE_FC_FLUSH
 flush_files = lib/flush.f90
 else
@@ -211,7 +235,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
-AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@ @LIB_YAML_CFLAGS@
 
 if USE_MPI
 mpi_source =
@@ -293,6 +317,7 @@ low_level = \
 	$(PS_SOURCES) \
 	init/atoms.f90 \
 	init/projectors.f90  \
+	init/kswfn.f90 \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
@@ -322,13 +347,7 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
-	lib/bindings_api.h \
-	lib/bindings.c lib/bindings.h \
-	lib/bindings_atoms.c \
-	lib/bindings_regions.c \
-	lib/bindings_wavefunctions.c \
-	lib/bindings_localfields.c \
-	lib/bindingsf.f90 \
+	$(bindings_files) \
 	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
@@ -353,8 +372,6 @@ low_level = \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/locReg_projectors.f90 \
-	linear/LinearForces.f90 \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
@@ -373,6 +390,10 @@ low_level = \
 	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
+	linear/init_collective_comms.f90 \
+	linear/init_collective_comms_vectors.f90 \
+	linear/communications_p2p.f90 \
+	linear/optimize_coeffs.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -380,6 +401,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
+	init/atoms_yaml.c init/atoms_yaml.h \
 	$(CUDA_SOURCES)
 
 #	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
@@ -392,6 +414,7 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
+nodist_libbigdft_a_SOURCES = $(nodist_bindings_files)
 libbigdft_a_LIBADD = $(modules_objects) 
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
@@ -401,14 +424,14 @@ bigdft_LDADD = @LIBS_DEPENDENCIES@
 splsad_SOURCES = splinedsaddle.f90
 splsad_LDADD = @LIBS_DEPENDENCIES@
 
-rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDADD = @LIBS_DEPENDENCIES@
+#rism_SOURCES = rism.f90 rismlowlevel.f90
+#rism_LDADD = @LIBS_DEPENDENCIES@
 
 #sandbox_SOURCES = sandbox.f90
 #sandbox_LDADD = @LIBS_DEPENDENCIES@
 
-oneatom_SOURCES = oneatom.f90
-oneatom_LDADD = @LIBS_DEPENDENCIES@
+#oneatom_SOURCES = oneatom.f90
+#oneatom_LDADD = @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
@@ -438,13 +461,16 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
 
-CLEANFILES = *.@MODULE_EXT@
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
 SUFFIXES = .cu
 .cu.o:
 	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+
+all: $(nodist_bindings_files) all-recursive
+	chmod ug+x bigdft-tool
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

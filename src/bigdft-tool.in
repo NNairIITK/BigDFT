@@ -6,7 +6,7 @@ import os
 from optparse import OptionParser, OptionGroup
 
 actions = ["memory-estimation", "rotate", "convert-field",
-           "export-wf", "export-grid", "atomic-wf", "GPU-test"]
+           "export-wf", "export-grid", "atomic-wf", "GPU-test","convert-positions"]
 
 abs_top_builddir = "@abs_top_builddir@"
 bindir = "@prefix@"
@@ -88,6 +88,13 @@ def parse():
                    " GPU-test action [default: %default]")
   parser.add_option_group(group)
 
+  # Convert positions
+  group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[7],
+                    "Convert the <input> position file to the <output> format"
+                    " the allowed formats are xyz, ascii and yaml")
+  parser.add_option_group(group)
+
+
   return parser
 
 if __name__ == "__main__":
@@ -126,6 +133,12 @@ if __name__ == "__main__":
     command = "%s 1 %s dd atwf %d" % (memguess, options.name, options.n_gaussians)
   if options.action == actions[6]:
     command = "%s 1 %s dd GPUtest %d %d" % (memguess, options.name, options.n_repeats, options.n_orbs)
+  if options.action == actions[7]:
+    if len(args) < 2:
+      parser.print_help()
+      raise ValueError("Action '%s' requires two mandatory arguments" % actions[2])
+    command = "%s 1 dd convert-positions %s %s" % (memguess, args[0], args[1])
+
 
   #print command
   #print 

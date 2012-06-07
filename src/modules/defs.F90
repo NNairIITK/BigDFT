@@ -89,7 +89,7 @@ module module_defs
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
   end interface
 
   !initialize to zero an array
@@ -194,7 +194,7 @@ module module_defs
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
       if (provided /= 1 .or. ierr/=0) then
-         !write(*,*)'MPI_THREAD_FUNNELED not supported!',provided,ierr
+         !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
 	 !call MPI_INIT(ierr)
       else
           mpi_thread_funneled_is_supported=.true.
@@ -203,6 +203,18 @@ module module_defs
       call MPI_INIT(ierr)      
 #endif
     end subroutine bigdft_mpi_init
+
+!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
+!!$    subroutine bigdft_open_nesting
+!!$      implicit none
+!!$      !$   call OMP_SET_NESTED(.true.) 
+!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
+!!$      !$ if (unblock_comms_den) then
+!!$      !$   call OMP_SET_NUM_THREADS(2)
+!!$      !$ else
+!!$      !$   call OMP_SET_NUM_THREADS(1)
+!!$      !$ end if
+!!$    end subroutine bigdft_open_nesting
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -345,6 +357,15 @@ module module_defs
       foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
+
+    function uninitialized_long(one) 
+      implicit none
+      integer(kind = 8), intent(in) :: one
+      integer(kind = 8) :: uninitialized_long
+      integer :: foo
+      foo = kind(one)
+      uninitialized_long=-123456789
+    end function uninitialized_long
 
     function uninitialized_real(one) 
       implicit none
@@ -611,7 +632,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_simple(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
     subroutine put_to_zero_double(n,da)
@@ -619,7 +642,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
     subroutine put_to_zero_integer(n,da)
@@ -627,7 +652,9 @@ module module_defs
       integer, intent(in) :: n
       integer, intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_integer(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)

@@ -326,6 +326,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
    allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,proj,'proj',subname)
+   if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
 
    ! After having determined the size of the projector descriptor arrays fill them
    do iat=1,at%nat
@@ -1301,10 +1302,10 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
      if (nproc > 1) then
         do ispin=1,input_spin
            call MPI_SCATTERV(denspot%Vloc_KS(1,1,1,ispin),&
-                denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2),&
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
                 mpidtypw,denspot%rhov((ispin-1)*&
-                d%n1i*d%n2i*denspot%dpcom%n3p+1),&
-                d%n1i*d%n2i*denspot%dpcom%n3p,mpidtypw,0,&
+                d%n1i*d%n2i*denspot%dpbox%n3p+1),&
+                d%n1i*d%n2i*denspot%dpbox%n3p,mpidtypw,0,&
                 MPI_COMM_WORLD,ierr)
         end do
      else
@@ -1312,7 +1313,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
              denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
      end if
      !now the meaning is KS potential
-     denspot%rhov_is=KS_POTENTIAL
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
      i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
      deallocate(denspot%Vloc_KS,stat=i_stat)
@@ -1471,7 +1472,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   !reduce the value for all the eigenvectors
   if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
      call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
      !read potential depending of the mixing scheme
@@ -1486,9 +1487,9 @@ END SUBROUTINE input_wf_disk
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
-     orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
+     orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,potshortcut,symObj,GPU,input)
+     nspin,symObj,GPU,input)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1503,12 +1504,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
    integer, intent(inout) :: nspin,nvirt
-   real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(inout) :: orbs
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
+   type(energy_terms), intent(inout) :: energs
+   type(orbitals_data), intent(inout) :: orbs
    type(DFT_local_fields), intent(inout) :: denspot
    type(GPU_pointers), intent(in) :: GPU
    type(input_variables), intent(in) :: input
@@ -1517,7 +1518,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
    real(wp), dimension(:), pointer :: psi,hpsi,psit
-   integer, intent(in) ::potshortcut
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
@@ -1526,14 +1526,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
-   type(energy_terms) :: energs
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
    real(wp), dimension(:,:,:), pointer :: psigau
-   real(gp), dimension(:,:,:), pointer :: mom_vec_fake
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
@@ -1547,8 +1545,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    if (iproc == 0) then
       !yaml_output
-      call yaml_flow_map("Input Hamiltonian")
-      call yaml_flow_newline()
+      !call yaml_newline()
    end if
    !spin for inputguess orbitals
    if (nspin == 4) then
@@ -1568,9 +1565,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
    call memocc(i_stat,orbse%eval,'orbse%eval',subname)
 
-   hxh=.5_gp*hx
-   hyh=.5_gp*hy
-   hzh=.5_gp*hz
+   hxh=.5_gp*Lzd%hgrids(1)
+   hyh=.5_gp*Lzd%hgrids(2)
+   hzh=.5_gp*Lzd%hgrids(3)
 
    !check the communication distribution
   !call check_communications(iproc,nproc,orbse,Lzd%Glr,commse)
@@ -1588,15 +1585,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 ! ###################################################################
 !!experimental part for building the localisation regions
 ! ###################################################################
-   if(potshortcut<=0) then
-       call nullify_local_zone_descriptors(Lzde)
-       call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
-   else
-       call nullify_local_zone_descriptors(Lzde)
-       Lzde = Lzd
-   end if
+   call nullify_local_zone_descriptors(Lzde)
+   call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,&
+        Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,at,orbse,rxyz,Lzde)
 
-   if(iproc==0 .and. Lzde%linear)  write(*,'(1x,A)') 'Entering the Linear IG'
+   if(iproc==0 .and. Lzde%linear) call yaml_comment('Entering the Linear IG')
+   !write(*,'(1x,A)') 'Entering the Linear IG'
 
    ! determine the wavefunction dimension
    call wavefunction_dimension(Lzde,orbse)
@@ -1609,20 +1603,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      GPUe = GPU
      switchGPUconv=.false.
      switchOCLconv=.false.
-     if (GPUconv .and. potshortcut ==0 ) then
+     if (GPUconv) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-             hx,hy,hz,Lzde%Glr%wfd,orbse,GPUe)
-     else if (OCLconv .and. potshortcut ==0) then
+             Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
+     else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
         if (iproc == 0) write(*,*)&
              'GPU data allocated'
-     else if (GPUconv .and. potshortcut >0 ) then
-        switchGPUconv=.true.
-        GPUconv=.false.
-     else if (OCLconv .and. potshortcut >0 ) then
-        switchOCLconv=.true.
-        OCLconv=.false.
      end if
 
     call timing(iproc,'wavefunction  ','ON')   
@@ -1653,41 +1641,26 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
-   call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
-        GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
-   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
-        denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+   call sumrho(denspot%dpbox,orbse,Lzde,GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
+   call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
+   call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
    orbse%nspin=nspin_ig
-
-   !-- if spectra calculation uses a energy dependent potential
-   !    input_wf_diag will write (to be used in abscalc)
-   !    the density to the file electronic_density.cube
-   !  The writing is activated if  5th bit of  in%potshortcut is on.
-   if( iand( potshortcut,16)==0 .and. potshortcut /= 0) then
-      call plot_density_cube_old('electronic_density',&
-           iproc,nproc,Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,&
-           Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,denspot%dpcom%nscatterarr(iproc,2),  & 
-           nspin,hxh,hyh,hzh,at,rxyz,denspot%dpcom%ngatherarr,&
-           denspot%rhov(1+denspot%dpcom%nscatterarr(iproc,4)*Lzde%Glr%d%n1i*Lzde%Glr%d%n2i))
-   endif
-   !---
 
    !before creating the potential, save the density in the second part 
    !if the case of NK SIC, so that the potential can be created afterwards
    !copy the density contiguously since the GGA is calculated inside the NK routines
    if (input%SIC%approach=='NK') then
-      irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,4)+1
-      irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,1)*input%nspin+1
+      irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
+      irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
       do ispin=1,input%nspin
-        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2),&
+        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
              denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-        irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,1)
-        irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+        irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
+        irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
       end do
    end if
 
-   call updatePotential(iproc,nproc,at%geocode,ixc,nspin,&
-        hxh,hyh,hzh,Lzde%Glr,denspot,energs%eh,energs%exc,energs%evxc)
+   call updatePotential(ixc,nspin,denspot,energs%eh,energs%exc,energs%evxc)
         
 !!$   !!!  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
@@ -1762,40 +1735,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!     call memocc(i_stat,i_all,'smat',subname)
    !!! end if
    
-     if(potshortcut>0) then
-   !!$    if (GPUconv) then
-   !!$       call free_gpu(GPU,orbs%norbp)
-   !!$    end if
-        if (switchGPUconv) then
-           GPUconv=.true.
-        end if
-        if (switchOCLconv) then
-           OCLconv=.true.
-        end if
    
-        call deallocate_orbs(orbse,subname)
-        i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-        deallocate(orbse%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'orbse%eval',subname)
-
-        
-        !deallocate the gaussian basis descriptors
-        call deallocate_gwf(G,subname)
-       
-        i_all=-product(shape(psigau))*kind(psigau)
-        deallocate(psigau,stat=i_stat)
-        call memocc(i_stat,i_all,'psigau',subname)
-        call deallocate_comms(commse,subname)
-        i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-        deallocate(norbsc_arr,stat=i_stat)
-        call memocc(i_stat,i_all,'norbsc_arr',subname)
-
-       return 
-   end if
-   
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsi,'hpsi',subname)
+   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+   allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+   call memocc(i_stat,hpsi,'hpsi',subname)
    
      !call dcopy(orbse%npsidim,psi,1,hpsi,1)
    if (input%exctxpar == 'OP2P') then
@@ -1806,25 +1749,26 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    
    !change temporarily value of Lzd%npotddim
    allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
-   call local_potential_dimensions(Lzde,orbse,denspot%dpcom%ngatherarr(0,1))
+   call local_potential_dimensions(Lzde,orbse,denspot%dpbox%ngatherarr(0,1))
    
    call default_confinement_data(confdatarr,orbse%norbp)
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
-   call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpcom,denspot%rhov,denspot%pot_full)
+   call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpbox,denspot%rhov,denspot%pot_work)
    orbse%nspin=nspin_ig
 
-   !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
+   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
-        proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-        energs%ekin,energs%epot,energs%eexctX,energs%eproj,energs%evsic,input%SIC,GPUe,&
+        proj,Lzde,nlpspd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
+        energs,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
+   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
     !restore the good value
-    call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
 
      !deallocate potential
-     call free_full_potential(nproc,Lzde%lintyp,denspot%pot_full,subname)
+     call free_full_potential(denspot%dpbox%nproc,Lzde%lintyp,denspot%pot_work,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
@@ -1852,16 +1796,15 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      accurex=abs(eks-energs%ekin)
      !tolerance for comparing the eigenvalues in the case of degeneracies
      etol=accurex/real(orbse%norbu,gp)
-     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
-
-     call total_energies(energs)
+     if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') &!write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
+          call yaml_map('Expected kinetic energy',eks,fmt='(f19.10)')
+     if (iproc==0) call yaml_newline()
+     call total_energies(energs, 0, iproc)
 
    if (iproc==0) then
       !yaml output
-      call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
-      !write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-      !energs%ekin,energs%epot,energs%eproj
-      !  write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%evxc
+      !call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
+      call write_energies(0,0,energs,0.0_gp,0.0_gp,'')
      endif
   
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
@@ -1883,8 +1826,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         call free_gpu_OCL(GPUe,orbse,nspin_ig)
      end if
 
-     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
-          'Input Wavefunctions Orthogonalization:'
+     !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
+     !     'Input Wavefunctions Orthogonalization:'
   
      !nullify psit (will be created in DiagHam)
      nullify(psit)
@@ -1908,34 +1851,36 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
           psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
     end if
 
-     if (iproc==0) call yaml_flow_newline()
+    if (iproc==0) call yaml_newline()
 
    !test merging of Linear and cubic
      call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,Lzde,comms,&
-         psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
+         psi,hpsi,psit,input%orthpar,passmat,input%iscf,input%Tel,input%occopt,&
+         orbse,commse,etol,norbsc_arr)
 
      i_all=-product(shape(passmat))*kind(passmat)
      deallocate(passmat,stat=i_stat)
      call memocc(i_stat,i_all,'passmat',subname)
 
-   if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
-     
-      !clean the array of the IG eigenvalues
-      call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
-      !put the actual values on it
-      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
+   if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
-      !add a small displacement in the eigenvalues
-      do iorb=1,orbs%norb*orbs%nkpts
-         tt=builtin_rand(idum)
-         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-      end do
+!commented out, this part has already been done in LDiagHam     
+!!$      !clean the array of the IG eigenvalues
+!!$      call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
+!!$      !put the actual values on it
+!!$      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
+!!$
+!!$      !add a small displacement in the eigenvalues
+!!$      do iorb=1,orbs%norb*orbs%nkpts
+!!$         tt=builtin_rand(idum)
+!!$         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
+!!$      end do
+!!$
+!!$      !correct the occupation numbers wrt fermi level
+!!$      call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
 
-      !correct the occupation numbers wrt fermi level
-      call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
-
-      !restore the eigenvalues
-      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
+      !restore the occupations 
+      call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
 
    end if
 
@@ -1973,9 +1918,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    if (iproc == 0) then
       !gaussian estimation valid only for Free BC
       if (at%geocode == 'F') then
-         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
-         write(*,'(1x,a,1pe9.2)') &
-            &   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
+         call yaml_newline()
+         call yaml_open_map('Accuracy estimation for this run')
+         call yaml_map('Energy',accurex,fmt='(1pe9.2)')
+         call yaml_map('Convergence Criterion',accurex/real(orbs%norb,kind=8),fmt='(1pe9.2)')
+         call yaml_close_map()
+            !write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
+      !write(*,'(1x,a,1pe9.2)') &
+      !&   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
          !write(*,'(1x,a,1pe9.2)') &
          !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
       end if
@@ -1983,7 +1933,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    !here we can define the subroutine which generates the coefficients for the virtual orbitals
    call deallocate_gwf(G,subname)
-   if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)
+   call deallocate_local_zone_descriptors(Lzde, subname)
 
    i_all=-product(shape(psigau))*kind(psigau)
    deallocate(psigau,stat=i_stat)
@@ -1994,31 +1944,30 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    deallocate(orbse%eval,stat=i_stat)
    call memocc(i_stat,i_all,'orbse%eval',subname)
 
-   if (iproc==0) call yaml_close_flow_map() !input hamiltonian
-
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-     denspot,nlpspd,proj,KSwfn,inputpsi,norbv,&
+     denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
      wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
+  use yaml_output
   implicit none
 
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx_old,hy_old,hz_old
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
-  !type(orbitals_data), intent(inout) :: orbs
-  !type(communications_arrays), intent(in) :: comms
   type(DFT_local_fields), intent(inout) :: denspot
-  type(DFT_wavefunction), intent(inout) :: KSwfn !<input wavefunction
+  type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunctions
+  real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
+  type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(wp), dimension(:), pointer :: psi_old
-  integer, intent(out) :: inputpsi, norbv
+  integer, intent(out) :: norbv
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   !type(gaussian_basis), intent(inout) :: gbd
@@ -2028,102 +1977,125 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  logical :: onefile
-  integer :: input_wf_format, i_stat, nspin
+  integer :: i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmb%orthpar%nItOrtho = in%lin%nItOrtho
+     tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+
+     tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmbder%orthpar%nItOrtho = in%lin%nItOrtho
+     tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+  end if
+
   !SIC parameters
   KSwfn%SIC = in%SIC
   !exact exchange parallelization parameter
   KSwfn%exctxpar=in%exctxpar
-  !confinement parameter
-  allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
-  call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
 
-  norbv=abs(in%norbv)
-  inputpsi=in%inputPsiId
-  input_wf_format=WF_FORMAT_NONE !default value
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",KSwfn%orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
   !avoid allocation of the eigenvalues array in case of restart
   if (inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_GAUSS) then
+       & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
+
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
+  if (inputpsi /= INPUT_PSI_LCAO) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
+     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
+     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
+     
+     tmb%wfnmd%bs%update_phi=.false.
+  end if
 
-  call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpcom%ngatherarr(0,1))
+  !confinement parameter
+  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     allocate(tmb%confdatarr(tmb%orbs%norbp))
+     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
+     
+     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
+     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+  else
+     allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
+     call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
+  end if
+
+  if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+     call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
+  end if
+
+  norbv=abs(in%norbv)
+  if (iproc ==0) call yaml_open_map("Input Hamiltonian",flow=.true.)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------------- Empty wavefunctions initialization'
+        !write( *,'(1x,a)')&
+        !     &   '------------------------------------------------- Empty wavefunctions initialization'
+        call yaml_comment('Empty wavefunctions initialization',hfill='-')
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
           in%band_structure_filename, in%nspin, atoms, KSwfn%Lzd%Glr%d, denspot)
   case(INPUT_PSI_RANDOM)
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------------ Random wavefunctions initialization'
+        !write( *,'(1x,a)')&
+        !     &   '------------------------------------------------ Random wavefunctions initialization'
+        call yaml_comment('Random wavefunctions initialization',hfill='-')
      end if
 
      call input_wf_random(iproc, nproc, KSwfn%psi, KSwfn%orbs)
   case(INPUT_PSI_CP2K)
      if (iproc == 0) then
-        write(*,'(1x,a)')&
-             &   '--------------------------------------------------------- Import Gaussians from CP2K'
+        !write(*,'(1x,a)')&
+        !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
+        call yaml_comment('Import Gaussians from CP2K',hfill='-')
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),KSwfn%psi,KSwfn%orbs)
   case(INPUT_PSI_LCAO)
      if (iproc == 0) then
-        write(*,'(1x,a)')&
-             &   '------------------------------------------------------- Input Wavefunctions Creation'
+        !write(*,'(1x,a)')&
+        !     &   '------------------------------------------------------- Input Wavefunctions Creation'
+        call yaml_comment('Atomic Orbitals of PSP wavefunctions',hfill='-')
      end if
 
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,denspot,&
-          KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),rxyz,&
+          KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,0,atoms%sym,GPU,in)
-     denspot%rhov_is=KS_POTENTIAL
+          Gvirt,nspin,atoms%sym,GPU,in)
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '-------------------------------------------------------------- Wavefunctions Restart'
+        !write( *,'(1x,a)')&
+        !     &   '-------------------------------------------------------------- Wavefunctions Restart'
+        call yaml_comment('Wavefunctions Restart',hfill='-')
      end if
 
      call input_wf_memory(iproc, atoms, &
@@ -2132,8 +2104,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '---------------------------------------------------- Reading Wavefunctions from disk'
+        !write( *,'(1x,a)')&
+        !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
+        call yaml_comment('Reading Wavefunctions from disk',hfill='-')
      end if
 
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
@@ -2142,8 +2115,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_MEMORY_GAUSS)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
+        !write( *,'(1x,a)')&
+        !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
+        call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
      end if
 
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
@@ -2155,6 +2129,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (iproc == 0) then
         write( *,'(1x,a)')&
              &   '------------------------------------------- Reading Wavefunctions from gaussian file'
+        call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
      end if
 
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
@@ -2174,6 +2149,49 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
 
+  case (INPUT_PSI_LINEAR)
+     if (iproc == 0) then
+        !write(*,'(1x,a)')&
+        !     '------------------------------------------------------- Input Wavefunctions Creation'
+        call yaml_comment('Input Wavefunctions Creation',hfill='-')
+     end if
+
+     ! By doing an LCAO input guess
+     call inputguessConfinement(iproc, nproc, atoms, in, &
+          & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb)
+  case (INPUT_PSI_MEMORY_LINEAR)
+     if (iproc == 0) then
+        !write( *,'(1x,a)')&
+        !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
+        call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+     end if
+
+     ! By reading the basis functions and coefficients from file
+     call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
+          & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+     !TO DO: COEFF PROJ
+!     tmb%orbs%occup = (/2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,&
+!                      2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp,2.0_gp,2.0_gp,1.0_gp/)
+!      tmb%orbs%occup = 2.0_gp
+     ! Now need to calculate the charge density and the potential related to this inputguess
+     call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+     call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+     call sumrhoForLocalizedBasis2(iproc, nproc, KSwfn%orbs%norb,&
+          tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          tmb%orbs, tmb%comsr, tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, &
+          KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          denspot%rhov, atoms, denspot%dpbox%nscatterarr)
+     ! Must initialize rhopotold (FOR NOW... use the trivial one)
+     call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+          denspot%rhov(1), 1, denspot0(1), 1)
+     call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+     call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+
   case default
 
      !     if (iproc == 0) then
@@ -2184,23 +2202,34 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   end select
 
+  !save the previous potential if the rho_work is associated
+  if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
+     if (associated(denspot%rho_work)) then
+        write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
+        stop
+     end if
+     call yaml_newline()
+     call yaml_comment('Saving the KS potential obtained from IG')
+     allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+     call dcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
+          denspot%rhov(1),1,denspot%rho_work(1),1)
+  end if
+
   !all the input format need first_orthon except the LCAO input_guess
   ! WARNING: at the momemt the linear scaling version does not need first_orthon.
   ! hpsi and psit have been allocated during the LCAO input guess.
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
-       & inputpsi /= INPUT_PSI_EMPTY) then
+       & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  if(inputpsi /= INPUT_PSI_LINEAR) then
-     ! allocate arrays necessary for DIIS convergence acceleration
-     call allocate_diis_objects(in%idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
-          KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
+  if (iproc==0) call yaml_close_map() !input hamiltonian
 
+  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2217,4 +2246,60 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
   end if
 
+   ! Emit that new wavefunctions are ready.
+   if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR &
+        & .and. KSwfn%c_obj /= 0) then
+      call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
+   end if
+   if ((inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) &
+        & .and. tmb%c_obj /= 0) then
+      call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
+   end if
+
 END SUBROUTINE input_wf
+
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc)
+  use module_types
+  use yaml_output
+  implicit none
+  integer, intent(out) :: input_wf_format
+  integer, intent(inout) :: inputpsi
+  integer, intent(in) :: iproc
+  character(len = *), intent(in) :: dir_output
+  type(orbitals_data), intent(in) :: orbs, lorbs
+
+  logical :: onefile
+
+
+  input_wf_format=WF_FORMAT_NONE !default value
+  !for the inputPsiId==2 case, check 
+  !if the wavefunctions are all present
+  !otherwise switch to normal input guess
+  if (inputpsi == INPUT_PSI_DISK_WVL) then
+     ! Test ETSF file.
+     inquire(file=trim(dir_output)//"wavefunction.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LCAO
+     end if
+  end if
+  ! Test if the files are there for initialization via reading files
+  if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     ! Test ETSF file.
+     inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format = WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LINEAR
+     end if
+  end if
+END SUBROUTINE input_check_psi_id

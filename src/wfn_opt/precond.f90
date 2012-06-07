@@ -464,17 +464,19 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      end do
 
      !initalize to zero the work arrays, probably not needed
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f1)
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f2)
-     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f3)
-     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c)
-     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%xpsig_f)
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f1(1))
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f2(1))
+     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f3(1))
+     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c(0,0,0))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%xpsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
-     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c)
-     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%ypsig_f)
+     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c(0,0,0))
+     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%ypsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
 
   else if (lr%geocode == 'P') then
 
@@ -887,13 +889,19 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   !local variables
   logical :: sseprecond=.false.
-  integer :: idx,nf
+  integer :: idx,nf,isegf,ipsif
+
+  isegf=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+  ipsif=lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f)
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
 
         if (sseprecond) then
-           call uncompress_standard_scal(lr%d,lr%wfd,scal,x(1,idx),&
+           call uncompress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                x(1,idx),x(ipsif,idx),&
                 w%xpsig_c,w%xpsig_f)
 !commented out, not working correctly        
 !!$           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
@@ -903,8 +911,11 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
 !!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
 !!$                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
            
-           call compress_standard_scal(lr%d,lr%wfd,scal,w%ypsig_c,w%ypsig_f,&
-                y(1,idx))
+           call compress_standard_scal(lr%d,lr%wfd,scal,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%ypsig_c,w%ypsig_f,&
+                y(1,idx),y(ipsif,idx))
 
         else
 
@@ -1357,15 +1368,15 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,x_f3,'x_f3',subname)
   
   !initalize to zero the work arrays, probably not needed
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1(nfl1,nfl2,nfl3))
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2(nfl2,nfl1,nfl3))
+  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3(nfl3,nfl1,nfl2))
 
-  call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
+  call to_zero((n1+1)*(n2+1)*(n3+1),xpsig_c(0,0,0))
+  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f(1,nfl1,nfl2,nfl3))
 
-  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
+  call to_zero((n1+1)*(n2+1)*(n3+1),ypsig_c(0,0,0))
+  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f(1,nfl1,nfl2,nfl3))
   
   call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
