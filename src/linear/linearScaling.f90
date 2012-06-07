@@ -384,7 +384,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
       end if
-      write(*,*) 'tmblarge%orbs%onwhichatom',tmblarge%orbs%onwhichatom
       !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
 
 
