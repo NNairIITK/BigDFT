@@ -63,7 +63,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
           !!call memocc(istat, psit_c, 'psit_c', subname)
           !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
           !!call memocc(istat, psit_f, 'psit_f', subname)
-          write(*,*) 'tmbmix%can_use_transposed',tmbmix%can_use_transposed
           if(.not.tmbmix%can_use_transposed) then
               allocate(tmbmix%psit_c(sum(tmbmix%collcom%nrecvcounts_c)), stat=istat)
               call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
