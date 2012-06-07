@@ -386,8 +386,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
-      write(*,'(a,2i9,l5)') 'size(tmbopt%psit_c), size(tmbopt%psit_f), tmbopt%can_use_transposed', &
-          size(tmbopt%psit_c), size(tmbopt%psit_f), tmbopt%can_use_transposed
       if(tmbopt%can_use_transposed) then
       !if(associated(tmbopt%psit_c)) then
           iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
