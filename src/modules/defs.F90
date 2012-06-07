@@ -351,8 +351,8 @@ module module_defs
 
     function uninitialized_int(one) 
       implicit none
-      integer, intent(in) :: one
-      integer :: uninitialized_int
+      integer(kind = 4), intent(in) :: one
+      integer(kind = 4) :: uninitialized_int
       integer :: foo
       foo = kind(one)
       uninitialized_int=-123456789
