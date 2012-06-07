@@ -26,14 +26,15 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR       = 100
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_LINEAR_LCAO  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(11), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_LINEAR_LCAO /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -1606,7 +1607,9 @@ end subroutine deallocate_coulomb_operator
        write(input_psi_names, "(A)") "gauss. in mem."
     case(INPUT_PSI_DISK_GAUSS)
        write(input_psi_names, "(A)") "gauss. on disk"
-    case(INPUT_PSI_LINEAR)
+    case(INPUT_PSI_LINEAR_AO)
+       write(input_psi_names, "(A)") "Linear AO"
+    case(INPUT_PSI_LINEAR_LCAO)
        write(input_psi_names, "(A)") "Linear LCAO"
     case(INPUT_PSI_MEMORY_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
