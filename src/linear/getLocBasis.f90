@@ -643,55 +643,34 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
       !!$$call copy_basis_performance_options(tmbopt%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       !!$$call copy_orthon_data(tmbopt%orthpar, tmblarge%orthpar, subname)
       !!$$tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-      call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
 
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
-      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, tmbopt%psi, tmblarge2%psi)
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-  call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge2%comgp)
-      write(*,*) 'tmblarge2%lzd%ndimpotisf+ndebug',tmblarge2%lzd%ndimpotisf+ndebug
-      !allocate(denspot%pot_work(3513390),stat=istat)
-      !!if(it==1) then
-      !!    allocate(denspot%pot_work(tmblarge2%lzd%ndimpotisf+ndebug),stat=istat)
-      !!    call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
-      !!end if
+      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
+           tmbopt%psi, tmblarge2%psi)
+      if(it==1) then
+          call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+               tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+          call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,&
+               denspot%pot_work,tmblarge2%comgp)
+      end if
 
-
-  allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
-  call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
-  tmblarge2%lzd%doHamAppl=.true.
-  call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
-       proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
-  call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
-       tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
-       energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
-  call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+      allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
+      call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
+      tmblarge2%lzd%doHamAppl=.true.
+      call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
+           proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
+      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
+           tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
+           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+      call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
 
   iall=-product(shape(tmblarge2%lzd%doHamAppl))*kind(tmblarge2%lzd%doHamAppl)
   deallocate(tmblarge2%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'tmblarge2%lzd%doHamAppl', subname)
-!!call random_number(lhphilarge2)
-!!call random_number(tmblarge2%psi)
-
-
-      !!!allocate(tmblarge2%psit_c(tmblarge2%collcom%ndimind_c), stat=istat)
-      !!!call memocc(istat, tmblarge2%psit_c, 'tmblarge2%psit_c', subname)
-      !!!allocate(tmblarge2%psit_f(7*tmblarge2%collcom%ndimind_f), stat=istat)
-      !!!call memocc(istat, tmblarge2%psit_f, 'tmblarge2%psit_f', subname)
-
-      !!!allocate(hpsit_c(tmblarge2%collcom%ndimind_c))
-      !!!call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      !!!allocate(hpsit_f(7*tmblarge2%collcom%ndimind_f))
-      !!!call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      !!!call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
-      !!!     lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
-      !!!call transpose_localized(iproc, nproc, tmblarge2%orbs,  tmblarge2%collcom, &
-      !!!     tmblarge2%psi, tmblarge2%psit_c, tmblarge2%psit_f, tmblarge2%lzd)
-
 
 !DEBUG
 if (iproc==0) then
@@ -702,20 +681,6 @@ if (iproc==0) then
 endif
 !END DEBUG
 
-
-     !! iall=-product(shape(hpsit_c))*kind(hpsit_c)
-     !! deallocate(hpsit_c, stat=istat)
-     !! call memocc(istat, iall, 'hpsit_c', subname)
-     !! iall=-product(shape(hpsit_f))*kind(hpsit_f)
-     !! deallocate(hpsit_f, stat=istat)
-     !! call memocc(istat, iall, 'hpsit_f', subname)
-
-     !!iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
-     !!deallocate(tmblarge2%psit_c, stat=istat)
-     !!call memocc(istat, iall, 'tmblarge2%psit_c', subname)
-     !!iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
-     !!deallocate(tmblarge2%psit_f, stat=istat)
-     !!call memocc(istat, iall, 'tmblarge2%psit_f', subname)
 
 
   ! END DEBUG ###########################################
@@ -774,16 +739,10 @@ endif
       end if
 
 
-      write(*,*) 'BEFORE calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
-      write(*,*) 'AFTER calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
-!!$trH=1.d0
-!!$fnrm=1.d-1
-!!$fnrmMax=1.d-1
-!!$emergency_exit=.false.
   
       if(.not.variable_locregs) then
           call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
@@ -796,11 +755,6 @@ endif
           lphioldopt => lphiold
           lhphioldopt => lhphiold
       end if
-
-  !!$$call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  !!$$call destroy_new_locregs(iproc, nproc, tmblarge)
-  !!$$call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-
 
 
   
@@ -880,9 +834,6 @@ endif
 
   end do iterLoop
 
-  !nullify(tmbopt%confdatarr)
-
-  !deallocate(confdatarrtmp)
 
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
