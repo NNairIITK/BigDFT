@@ -401,6 +401,7 @@ type(energy_terms) :: energs!, energs2
 
 integer :: i,j , k
 real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
+real(8),dimension(2):: reducearr
 
 
 
@@ -834,8 +835,18 @@ endif
   end do iterLoop
 
   ! Keep the values for the next iteration
-  ldiis%alphaSD=alpha
-  ldiis%alphaDIIS=alphaDIIS
+  reducearr(1)=0.d0
+  reducearr(2)=0.d0
+  do iorb=1,tmb%orbs%norbp
+      reducearr(1)=reducearr(1)+alpha(iorb)
+      reducearr(2)=reducearr(2)+alphaDIIS(iorb)
+  end do
+  call mpiallred(reducearr(1), 2, mpi_sum, mpi_comm_world, ierr)
+  reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
+  reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
+
+  ldiis%alphaSD=reducearr(1)
+  ldiis%alphaDIIS=reducearr(2)
 
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
