@@ -856,7 +856,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        tmblarge, lhphilarge, lhphilargeold, lphilargeold)
 
 
-  call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
+  !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
   call destroy_new_locregs(iproc, nproc, tmblarge)
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
   if(associated(tmblarge%psit_c)) then

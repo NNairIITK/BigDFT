@@ -650,13 +650,20 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
       call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, tmbopt%psi, tmblarge2%psi)
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+  call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge2%comgp)
+      write(*,*) 'tmblarge2%lzd%ndimpotisf+ndebug',tmblarge2%lzd%ndimpotisf+ndebug
+      !allocate(denspot%pot_work(3513390),stat=istat)
+      !!if(it==1) then
+      !!    allocate(denspot%pot_work(tmblarge2%lzd%ndimpotisf+ndebug),stat=istat)
+      !!    call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
+      !!end if
+
+
   allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
   call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
   tmblarge2%lzd%doHamAppl=.true.
   call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
        proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
-  call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge2%comgp)
-
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
        tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
@@ -667,6 +674,8 @@ real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
   iall=-product(shape(tmblarge2%lzd%doHamAppl))*kind(tmblarge2%lzd%doHamAppl)
   deallocate(tmblarge2%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'tmblarge2%lzd%doHamAppl', subname)
+!!call random_number(lhphilarge2)
+!!call random_number(tmblarge2%psi)
 
 
       !!!allocate(tmblarge2%psit_c(tmblarge2%collcom%ndimind_c), stat=istat)
@@ -726,8 +735,8 @@ endif
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
+!!      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
+!!      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           !!tmbopt => tmb
@@ -738,7 +747,7 @@ endif
           lhphiopt => lhphilarge2
           lphioldopt => lphilargeold2
           lhphioldopt => lhphilargeold2
-          tmbopt%confdatarr => tmblarge2%confdatarr
+          !tmbopt%confdatarr => tmblarge2%confdatarr
       else
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -746,23 +755,23 @@ endif
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
-          tmbopt%confdatarr => tmb%confdatarr
+          !tmbopt%confdatarr => tmb%confdatarr
       end if
-      !!!if(variable_locregs) then
-      !!!    tmbopt => tmblarge
-      !!!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-      !!!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
-      !!!    lhphiopt => lhphilarge
-      !!!    lphioldopt => lphilargeold
-      !!!    lhphioldopt => lhphilargeold
-      !!!    tmbopt%confdatarr => tmb%confdatarr
-      !!!else
-      !!!    tmbopt => tmblarge2
-      !!!    lhphiopt => lhphilarge2
-      !!!    lphioldopt => lphilargeold2
-      !!!    lhphioldopt => lhphilargeold2
-      !!!    tmbopt%confdatarr => tmblarge2%confdatarr
-      !!!end if
+      if(variable_locregs) then
+          tmbopt => tmblarge
+          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+          lhphiopt => lhphilarge
+          lphioldopt => lphilargeold
+          lhphioldopt => lhphilargeold
+          !tmbopt%confdatarr => tmb%confdatarr
+      else
+          tmbopt => tmblarge2
+          lhphiopt => lhphilarge2
+          lphioldopt => lphilargeold2
+          lhphioldopt => lhphilargeold2
+          !tmbopt%confdatarr => tmblarge2%confdatarr
+      end if
 
 
       write(*,*) 'BEFORE calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
@@ -771,18 +780,22 @@ endif
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
       write(*,*) 'AFTER calculate_energy_and_gradient_linear: tmbopt%can_use_transposed',tmbopt%can_use_transposed
+!!$trH=1.d0
+!!$fnrm=1.d-1
+!!$fnrmMax=1.d-1
+!!$emergency_exit=.false.
   
       if(.not.variable_locregs) then
           call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
       end if
 
-      !!!!! to avoid that it points to something which was nullified... to be corrected
-      !!!!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      !!!!    tmbopt => tmb
-      !!!!    lhphiopt => lhphi
-      !!!!    lphioldopt => lphiold
-      !!!!    lhphioldopt => lhphiold
-      !!!!end if
+      ! to avoid that it points to something which was nullified... to be corrected
+      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          tmbopt => tmb
+          lhphiopt => lhphi
+          lphioldopt => lphiold
+          lhphioldopt => lhphiold
+      end if
 
   !!$$call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
   !!$$call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -833,13 +846,14 @@ endif
           lhphiopt => lhphi
           lphioldopt => lphiold
           lhphioldopt => lhphiold
-          tmbopt%confdatarr => tmblarge2%confdatarr
+          !tmbopt%confdatarr => tmblarge2%confdatarr
+          !tmbopt%confdatarr => tmb%confdatarr
       else
           tmbopt => tmblarge
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
-          tmbopt%confdatarr => tmb%confdatarr
+          !!tmbopt%confdatarr => tmb%confdatarr
       end if
 
       call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
@@ -851,13 +865,13 @@ endif
           lhphiopt => lhphi
           lphioldopt => lphiold
           lhphioldopt => lhphiold
-          tmbopt%confdatarr => tmblarge2%confdatarr
+          !!tmbopt%confdatarr => tmblarge2%confdatarr
       else
           tmbopt => tmblarge
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
-          tmbopt%confdatarr => tmb%confdatarr
+          !!tmbopt%confdatarr => tmb%confdatarr
       end if
 
 
@@ -866,6 +880,7 @@ endif
 
   end do iterLoop
 
+  !nullify(tmbopt%confdatarr)
 
   !deallocate(confdatarrtmp)
 

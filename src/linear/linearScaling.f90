@@ -40,7 +40,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
-integer:: jorb, jjorb
+integer:: jorb, jjorb, iiat
 real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
@@ -251,6 +251,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   !!end if
 
 
+  ! just to be sure...
+  nullify(tmb%psit_c)
+  nullify(tmb%psit_f)
+  nullify(tmbder%psit_c)
+  nullify(tmbder%psit_f)
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   coeffs_copied=.false.
@@ -309,6 +315,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
       write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
       write(*,*) 'associated(tmbder%confdatarr)',associated(tmbder%confdatarr)
+      
 
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
@@ -416,8 +423,28 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
+
+
+
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb, tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+              !allocate(denspot%pot_work(tmblarge%lzd%ndimpotisf+ndebug),stat=istat)
+              !call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
+
+!! call deallocate_overlapParameters(tmblarge%op, subname)
+!! call deallocate_collective_comms(tmblarge%collcom, subname)
+!! deallocate(tmblarge%confdatarr, stat=istat)
+!! deallocate(overlapmatrix, stat=istat)
+!! allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+!! write(*,*) 'tmb%confdatarr(1)',tmb%confdatarr(1)
+!! if(itout==1) then
+!!     write(*,*) 'before inner loop, itout=',itout
+!!     call mpi_finalize(istat)
+!!     stop
+!! end if
+
+
+
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
               tmb%wfnmd%it_coeff_opt=0
@@ -514,8 +541,11 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
               !!call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
               !!allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
               !!call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              write(*,*) 'allocating overlapmatrix'
               allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
               call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+
+
           end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
@@ -624,6 +654,7 @@ end if
                   deallocate(tmbmix%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmbmix%psit_f', subname)
               end if
+              write(*,*) 'deallocating overlapmatrix'
               iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
               deallocate(overlapmatrix, stat=istat)
               call memocc(istat, iall, 'overlapmatrix', subname)
@@ -632,9 +663,13 @@ end if
       end do
 
 
-      call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-      call destroy_new_locregs(iproc, nproc, tmblarge)
+
+    call destroy_new_locregs(iproc, nproc, tmblarge)
+
       call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+
+
+
       if(tmblarge%can_use_transposed) then
       !if(associated(tmblarge%psit_c)) then
           iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
@@ -649,6 +684,8 @@ end if
       !!iall=-product(shape(tmblarge%confdatarr))*kind(tmblarge%confdatarr)
       deallocate(tmblarge%confdatarr, stat=istat)
       !!call memocc(istat, iall, 'tmblarge%confdatarr', subname)
+
+
     
 
       iall=-product(shape(locregCenter))*kind(locregCenter)
@@ -663,12 +700,52 @@ end if
       call deallocateDIIS(ldiis_coeff)
 
 
+ call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+      tmb%confdatarr, tmb%wfnmd, lscv)
+
+
+
+
+write(*,*) 'allocated(overlapmatrix)',allocated(overlapmatrix)
+      write(*,*) 'tmb%confdatarr(1)%prefac', tmb%confdatarr(1)%prefac
+!!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+!!     tmb%confdatarr, tmb%wfnmd, lscv)
       iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
       deallocate(overlapmatrix, stat=istat)
       call memocc(istat, iall, 'overlapmatrix', subname)
+
+
+! TEST
+      !!do iorb=1,tmb%orbs%norbp
+      !!    !!ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+      !!    !!iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+      !!!!    tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+      !!    !tmb%confdatarr(iorb)%prefac=1.d0
+      !!    write(*,*) 'tmb%confdatarr(iorb)%prefac', tmb%confdatarr(iorb)%prefac
+      !!end do
+      !!tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+      !!tmb%wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+      !!tmb%wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+      !!lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
+      !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
+      !!lscv%mix_hist=input%lin%mixHist_lowaccuracy
+      !!do ilr=1,tmb%lzd%nlr
+      !!    lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+      !!end do
+      !!if(tmb%wfnmd%bs%update_phi) then
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
+      !!else
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
+      !!end if
+
+
+
+
       ! Deallocate the transposed TMBs
       write(*,*) 'associated(tmbmix%psit_c)',associated(tmbmix%psit_c)
       write(*,*) 'associated(tmbmix%psit_f)',associated(tmbmix%psit_f)
+      write(*,*) 'tmbmix%can_use_transposed',tmbmix%can_use_transposed
+      write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
       if(tmbmix%can_use_transposed) then
           iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
           deallocate(tmbmix%psit_c, stat=istat)
@@ -678,13 +755,9 @@ end if
           call memocc(istat, iall, 'tmbmix%psit_f', subname)
       end if
   !write(*,*) 'allocated(overlapmatrix)',allocated(overlapmatrix)
- !!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
- !!     tmb%confdatarr, tmb%wfnmd, lscv)
- !! if(itout==1) then
- !!     write(*,*) 'after deallocating transposed quantities, itout=',itout
- !!     call mpi_finalize(istat)
- !!     stop
- !! end if
+!!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
+!!     tmb%confdatarr, tmb%wfnmd, lscv)
+
 
 
 
