@@ -833,6 +833,9 @@ endif
 
   end do iterLoop
 
+  ! Keep the values for the next iteration
+  ldiis%alphaSD=alpha
+  ldiis%alphaDIIS=alphaDIIS
 
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
