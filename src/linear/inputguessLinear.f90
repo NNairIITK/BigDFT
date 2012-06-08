@@ -539,9 +539,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end if
 
   ! Always use the exact Loewdin method.
-  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
-       tmbig%lzd, tmbig%orbs, tmbig%comon, &
-       tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
+  if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
+      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
+           tmbig%lzd, tmbig%orbs, tmbig%comon, &
+           tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
+  end if
   !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
   !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
@@ -829,9 +831,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end if LCAO_inguess
 
   ! Calculate the coefficients
-  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+  !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+  !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
   allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, density_kernel, 'density_kernel', subname)
 
@@ -895,7 +897,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(density_kernel,stat=istat)
   call memocc(istat,iall,'density_kernel',subname)
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'

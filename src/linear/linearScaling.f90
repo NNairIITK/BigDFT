@@ -405,15 +405,16 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           !!end if
           scf_mode=input%lin%scf_mode
 
-          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-               tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
+          ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
+          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
+
+
+          !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+          !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
               call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                    tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
           end if
-
-          ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
-          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
 
          ! Improve the trace minimizing orbitals.
