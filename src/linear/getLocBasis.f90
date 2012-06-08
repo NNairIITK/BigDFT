@@ -76,13 +76,13 @@ real(8),dimension(:,:),allocatable:: locregCenter
           call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, tmbmix%psit_c, &
                tmbmix%psit_c, tmbmix%psit_f, tmbmix%psit_f, overlapmatrix)
           !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-          iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
-          deallocate(tmbmix%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmbmix%psit_c', subname)
-          iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
-          deallocate(tmbmix%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmbmix%psit_f', subname)
-          tmbmix%can_use_transposed=.false.
+          !iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+          !deallocate(tmbmix%psit_c, stat=istat)
+          !call memocc(istat, iall, 'tmbmix%psit_c', subname)
+          !iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+          !deallocate(tmbmix%psit_f, stat=istat)
+          !call memocc(istat, iall, 'tmbmix%psit_f', subname)
+          !tmbmix%can_use_transposed=.false.
       else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, overlapmatrix)
       else
@@ -202,13 +202,13 @@ real(8),dimension(:,:),allocatable:: locregCenter
       deallocate(hpsit_f, stat=istat)
       call memocc(istat, iall, 'hpsit_f', subname)
 
-     iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-     deallocate(tmblarge%psit_c, stat=istat)
-     call memocc(istat, iall, 'tmblarge%psit_c', subname)
-     iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-     deallocate(tmblarge%psit_f, stat=istat)
-     call memocc(istat, iall, 'tmblarge%psit_f', subname)
-     tmblarge%can_use_transposed=.false.
+     !!iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+     !!deallocate(tmblarge%psit_c, stat=istat)
+     !!call memocc(istat, iall, 'tmblarge%psit_c', subname)
+     !!iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+     !!deallocate(tmblarge%psit_f, stat=istat)
+     !!call memocc(istat, iall, 'tmblarge%psit_f', subname)
+     !!tmblarge%can_use_transposed=.false.
 
 
   else if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then

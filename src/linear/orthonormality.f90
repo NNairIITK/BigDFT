@@ -85,7 +85,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
           call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
           call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
-          call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+          !!call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
           can_use_transposed=.true.
           iall=-product(shape(psittemp_c))*kind(psittemp_c)
           deallocate(psittemp_c, stat=istat)
@@ -93,13 +93,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           iall=-product(shape(psittemp_f))*kind(psittemp_f)
           deallocate(psittemp_f, stat=istat)
           call memocc(istat, iall, 'psittemp_f', subname)
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
-          can_use_transposed=.false.
+          !!iall=-product(shape(psit_c))*kind(psit_c)
+          !!deallocate(psit_c, stat=istat)
+          !!call memocc(istat, iall, 'psit_c', subname)
+          !!iall=-product(shape(psit_f))*kind(psit_f)
+          !!deallocate(psit_f, stat=istat)
+          !!call memocc(istat, iall, 'psit_f', subname)
+          !!can_use_transposed=.false.
 
           !!! Normalize... could this be done in the tranposed layout?
           !!ist=1
