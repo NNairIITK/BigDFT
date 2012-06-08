@@ -44,7 +44,7 @@ integer:: jorb, jjorb, iiat
 real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
-real(8),dimension(:),allocatable :: locrad_tmp
+real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
 real(8),dimension(:,:),allocatable:: locregCenter
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
@@ -257,6 +257,11 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   nullify(tmbder%psit_c)
   nullify(tmbder%psit_f)
 
+
+  allocate(eval(tmb%orbs%norb), stat=istat)
+  call memocc(istat, eval, 'eval', subname)
+  call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   coeffs_copied=.false.
@@ -386,6 +391,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       end if
       !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
 
+      ! take the eigenvalues from the input guess for the preconditioning
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
 
 
 
@@ -869,6 +876,10 @@ end if
   iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
   deallocate(lscv%locrad, stat=istat)
   call memocc(istat, iall, 'lscv%locrad', subname)
+
+  iall=-product(shape(eval))*kind(eval)
+  deallocate(eval, stat=istat)
+  call memocc(istat, iall, 'eval', subname)
 
   call timing(iproc,'WFN_OPT','PR')
 

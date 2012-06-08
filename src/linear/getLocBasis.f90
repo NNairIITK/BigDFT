@@ -280,6 +280,9 @@ real(8),dimension(:,:),allocatable:: locregCenter
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
+      ! keep the eigeanvalues for the preconditioning
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
+
   end if
 
   ! TEST
