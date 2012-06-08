@@ -517,18 +517,18 @@ real(8),dimension(2):: reducearr
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)
-      if(tmbopt%can_use_transposed) then
-      !if(associated(tmbopt%psit_c)) then
-          iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
-          deallocate(tmbopt%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmbopt%psit_c', subname)
-      !end if
-      !if(associated(tmbopt%psit_f)) then
-          iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
-          deallocate(tmbopt%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmbopt%psit_f', subname)
-      end if
-      tmbopt%can_use_transposed=.false.
+      !!if(tmbopt%can_use_transposed) then
+      !!!if(associated(tmbopt%psit_c)) then
+      !!    iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
+      !!    deallocate(tmbopt%psit_c, stat=istat)
+      !!    call memocc(istat, iall, 'tmbopt%psit_c', subname)
+      !!!end if
+      !!!if(associated(tmbopt%psit_f)) then
+      !!    iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
+      !!    deallocate(tmbopt%psit_f, stat=istat)
+      !!    call memocc(istat, iall, 'tmbopt%psit_f', subname)
+      !!end if
+      !!tmbopt%can_use_transposed=.false.
 
   !!end if
 
