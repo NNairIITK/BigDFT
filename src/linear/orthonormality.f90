@@ -36,17 +36,17 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   do it=1,nItOrtho
 
       if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          !!if(associated(psit_c)) then
-          !!    iall=-product(shape(psit_c))*kind(psit_c)
-          !!    deallocate(psit_c, stat=istat)
-          !!    call memocc(istat, iall, 'psit_c', subname)
-          !!end if
-          !!if(associated(psit_f)) then
-          !!    iall=-product(shape(psit_f))*kind(psit_f)
-          !!    deallocate(psit_f, stat=istat)
-          !!    call memocc(istat, iall, 'psit_f', subname)
-          !!end if
           if(.not.can_use_transposed) then
+              if(associated(psit_c)) then
+                  iall=-product(shape(psit_c))*kind(psit_c)
+                  deallocate(psit_c, stat=istat)
+                  call memocc(istat, iall, 'psit_c', subname)
+              end if
+              if(associated(psit_f)) then
+                  iall=-product(shape(psit_f))*kind(psit_f)
+                  deallocate(psit_f, stat=istat)
+                  call memocc(istat, iall, 'psit_f', subname)
+              end if
               allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
               call memocc(istat, psit_c, 'psit_c', subname)
               allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
@@ -93,13 +93,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           iall=-product(shape(psittemp_f))*kind(psittemp_f)
           deallocate(psittemp_f, stat=istat)
           call memocc(istat, iall, 'psittemp_f', subname)
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
-          can_use_transposed=.false.
+          !!iall=-product(shape(psit_c))*kind(psit_c)
+          !!deallocate(psit_c, stat=istat)
+          !!call memocc(istat, iall, 'psit_c', subname)
+          !!iall=-product(shape(psit_f))*kind(psit_f)
+          !!deallocate(psit_f, stat=istat)
+          !!call memocc(istat, iall, 'psit_f', subname)
+          !!can_use_transposed=.false.
 
           !!! Normalize... could this be done in the tranposed layout?
           !!ist=1
