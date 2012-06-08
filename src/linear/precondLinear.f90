@@ -554,7 +554,6 @@ real(gp) :: kx,ky,kz
 
            else !normal preconditioner
               
-               write(*,*) 'cprecr, orbs%eval(orbs%isorb+iorb)',cprecr,orbs%eval(orbs%isorb+iorb)
               ! iiAt indicates on which atom orbital iorb is centered.
               !iiAt=lin%onWhichAtom(iorb)
               !iiAt=lin%orbs%inWhichLocregp(iorb)

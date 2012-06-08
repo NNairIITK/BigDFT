@@ -137,7 +137,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmbmix%orbs, tmblarge%orbs, tmbmix%psi, tmblarge%psi)
 
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
@@ -720,26 +720,26 @@ endif
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
-      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          !!tmbopt => tmb
-          !!lhphiopt => lhphi
-          !!lphioldopt => lphiold
-          !!lhphioldopt => lhphiold
-          tmbopt => tmblarge2
-          lhphiopt => lhphilarge2
-          lphioldopt => lphilargeold2
-          lhphioldopt => lhphilargeold2
-          !tmbopt%confdatarr => tmblarge2%confdatarr
-      else
-          tmbopt => tmblarge
-          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
-          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
-          lhphiopt => lhphilarge
-          lphioldopt => lphilargeold
-          lhphioldopt => lhphilargeold
-          !tmbopt%confdatarr => tmb%confdatarr
-      end if
-      if(variable_locregs) then
+      !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    !!tmbopt => tmb
+      !!    !!lhphiopt => lhphi
+      !!    !!lphioldopt => lphiold
+      !!    !!lhphioldopt => lhphiold
+      !!    tmbopt => tmblarge2
+      !!    lhphiopt => lhphilarge2
+      !!    lphioldopt => lphilargeold2
+      !!    lhphioldopt => lhphilargeold2
+      !!    !tmbopt%confdatarr => tmblarge2%confdatarr
+      !!else
+      !!    tmbopt => tmblarge
+      !!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+      !!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+      !!    lhphiopt => lhphilarge
+      !!    lphioldopt => lphilargeold
+      !!    lhphioldopt => lhphilargeold
+      !!    !tmbopt%confdatarr => tmb%confdatarr
+      !!end if
+      if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           tmbopt => tmblarge
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
