@@ -64,10 +64,14 @@ real(8),dimension(:,:),allocatable:: locregCenter
           !!allocate(psit_f(7*tmbmix%collcom%ndimind_f))
           !!call memocc(istat, psit_f, 'psit_f', subname)
           if(.not.tmbmix%can_use_transposed) then
-              allocate(tmbmix%psit_c(sum(tmbmix%collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
-              allocate(tmbmix%psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              if(.not.associated(tmbmix%psit_c)) then
+                  allocate(tmbmix%psit_c(sum(tmbmix%collcom%nrecvcounts_c)), stat=istat)
+                  call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+              end if
+              if(.not.associated(tmbmix%psit_f)) then
+                  allocate(tmbmix%psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)), stat=istat)
+                  call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              end if
               call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
               tmbmix%can_use_transposed=.true.
           end if
@@ -76,13 +80,13 @@ real(8),dimension(:,:),allocatable:: locregCenter
           call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, tmbmix%psit_c, &
                tmbmix%psit_c, tmbmix%psit_f, tmbmix%psit_f, overlapmatrix)
           !!call untranspose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, psit_c, psit_f, tmbmix%psi, lzd)
-          iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
-          deallocate(tmbmix%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmbmix%psit_c', subname)
-          iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
-          deallocate(tmbmix%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmbmix%psit_f', subname)
-          tmbmix%can_use_transposed=.false.
+          !!iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
+          !!deallocate(tmbmix%psit_c, stat=istat)
+          !!call memocc(istat, iall, 'tmbmix%psit_c', subname)
+          !!iall=-product(shape(tmbmix%psit_f))*kind(tmbmix%psit_f)
+          !!deallocate(tmbmix%psit_f, stat=istat)
+          !!call memocc(istat, iall, 'tmbmix%psit_f', subname)
+          !!tmbmix%can_use_transposed=.false.
       else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
           call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, overlapmatrix)
       else

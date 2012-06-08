@@ -429,6 +429,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb, tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+              tmb%can_use_transposed=.false. !since basis functions have changed...
               !allocate(denspot%pot_work(tmblarge%lzd%ndimpotisf+ndebug),stat=istat)
               !call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
 
