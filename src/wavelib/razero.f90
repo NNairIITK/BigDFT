@@ -15,8 +15,19 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
+  real(kind=8) :: t1,t2
   integer :: i,is
   logical within_openmp,omp_in_parallel
+
+  if (n.le.128) then
+
+      do i=1,n
+      x(i)=0.d0
+      end do            
+
+  else
+
+   !!  call CPU_time(t1)
 
 !$    within_openmp=omp_in_parallel()
 
@@ -51,7 +62,12 @@ subroutine razero(n,x)
       is=i
       do i=is,n
       x(i)=0.d0
-      end do
+      end do            
+
+    !!  call CPU_time(t2)
+    !!  write(999,*) 'CPUTIMErazero ',n,t2-t1
+  endif
+
 END SUBROUTINE razero
 
 !>   Set to zero an array x(n)
