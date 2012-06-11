@@ -59,18 +59,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call deallocateRecvBufferOrtho(tmbopt%comon, subname)
       call deallocateSendBufferOrtho(tmbopt%comon, subname)
   end if
+
+  !!tmbopt => tmb
+  !!lhphiopt => lhphi
+  !!lphioldopt => lphiold
+  !!lhphioldopt => lhphiold
+  !!if(.not.variable_locregs) then
+  !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  !!end if
+
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
        tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
 
-  tmbopt => tmb
-  lhphiopt => lhphi
-  lphioldopt => lphiold
-  lhphioldopt => lhphiold
+  !!tmbopt => tmb
+  !!lhphiopt => lhphi
+  !!lphioldopt => lphiold
+  !!lhphioldopt => lhphiold
   if(.not.variable_locregs) then
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
 
 
@@ -204,6 +214,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
       ind2=ind2+ncnt
   end do
+
+  tmbopt => tmb
+  lhphiopt => lhphi
+  lphioldopt => lphiold
+  lhphioldopt => lhphiold
+  if(.not.variable_locregs) then
+      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  end if
 
 
   ! Determine the mean step size for steepest descent iterations.
