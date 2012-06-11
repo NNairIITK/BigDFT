@@ -1152,7 +1152,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
 
@@ -1192,6 +1192,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      !set the opt%infocode to the value it would have in the case of no convergence
      opt%infocode=1
      opt%itrep=1
+     iter_for_diis=0 !initialize it here for keeping the history also after a subspace diagonalization
      subd_loop: do
         if (opt%itrep > opt%nrepmax) exit subd_loop
         !yaml output 
@@ -1206,6 +1207,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_open_sequence("Wavefunctions Iterations")
         end if
         opt%iter=1
+        iter_for_diis=0
         wfn_loop: do
            if (opt%iter > opt%itermax) exit wfn_loop
 
@@ -1236,8 +1238,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (endloop .and. opt%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
-                (opt%itrp==1 .and. opt%itrpmax/=1 .and. opt%gnrm > opt%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
+                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
@@ -1263,8 +1264,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
-
-           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn)
+           iter_for_diis=iter_for_diis+1
+           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &

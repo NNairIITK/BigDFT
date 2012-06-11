@@ -317,6 +317,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
   !does not maxes sense a DIIS history longer than the number of iterations
+  !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter

@@ -165,7 +165,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   end if
 
   if (wrtmsg) then
-     call yaml_map('Dimensions',kernel%ndims,fmt='(i5)')
+     call yaml_map('Box',kernel%ndims,fmt='(i5)')
      call yaml_map('MPI tasks',kernel%nproc,fmt='(i5)')
      call yaml_close_map()
      call yaml_newline()

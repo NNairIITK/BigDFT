@@ -30,21 +30,6 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   glrout%outofzone(2) = glrin%outofzone(2)
   glrout%outofzone(3) = glrin%outofzone(3)
   
-!  if(associated(glrout%projflg)) then
-!     iall=-product(shape(glrout%projflg))*kind(glrout%projflg)
-!     deallocate(glrout%projflg, stat=istat)
-!     call memocc(istat, iall, 'glrout%projflg', subname)
-!  end if
-!  if(associated(glrin%projflg)) then
-!      iis=lbound(glrin%projflg,1)
-!      iie=ubound(glrin%projflg,1)
-!      allocate(glrout%projflg(iis:iie), stat=istat)
-!      call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
-!      do i=iis,iie
-!          glrout%projflg(i) = glrin%projflg(i)
-!      end do
-!  end if
-  
   call copy_grid_dimensions(glrin%d, glrout%d)
   call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
   if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then

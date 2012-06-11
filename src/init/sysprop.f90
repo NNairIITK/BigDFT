@@ -47,6 +47,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   call nullify_locreg_descriptors(Lzd%Glr)
+  Lzd%Glr=default_locreg()
 
   !grid spacings of the zone descriptors (not correct, the set is done by system size)
   h_input=(/ in%hx, in%hy, in%hz /)

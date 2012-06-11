@@ -329,12 +329,11 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-!     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
-     real(8),dimension(3):: locregCenter !< center of the locreg 
-     real(8):: locrad !< cutoff radius of the localization region
+     real(gp),dimension(3):: locregCenter !< center of the locreg 
+     real(gp):: locrad !< cutoff radius of the localization region
   end type locreg_descriptors
 
 !>  Non local pseudopotential descriptors
@@ -947,6 +946,43 @@ end type linear_scaling_control_variables
 
 contains
 
+  function default_grid() result(g)
+    type(grid_dimensions) :: g
+    g%n1   =0
+    g%n2   =0
+    g%n3   =0
+    g%nfl1 =0
+    g%nfu1 =0
+    g%nfl2 =0
+    g%nfu2 =0
+    g%nfl3 =0
+    g%nfu3 =0
+    g%n1i  =0
+    g%n2i  =0
+    g%n3i  =0
+  end function default_grid
+
+
+  function default_locreg() result(lr)
+    type(locreg_descriptors) :: lr
+
+    lr%geocode='F'
+    lr%hybrid_on=.false.   
+    lr%ns1=0
+    lr%ns2=0
+    lr%ns3=0 
+    lr%nsi1=0
+    lr%nsi2=0
+    lr%nsi3=0  !< starting point of locreg for interpolating grid
+    lr%Localnorb=0              !< number of orbitals contained in locreg
+    lr%outofzone=(/0,0,0/)  !< vector of points outside of the zone outside Glr for periodic systems
+    lr%d=default_grid()
+    !default to be defined  type(wavefunctions_descriptors) :: wfd
+    !                      type(convolutions_bounds) :: bounds
+    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) !< center of the locreg 
+    lr%locrad=0 !< cutoff radius of the localization region
+
+  end function default_locreg
 
 !!$!> Allocate communications_arrays
 !!$  subroutine allocate_comms(nproc,orbs,comms,subname)

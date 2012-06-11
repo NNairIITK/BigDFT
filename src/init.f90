@@ -288,17 +288,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    !allocate the different localization regions of the projectors
    nlpspd%natoms=at%nat
    allocate(nlpspd%plr(at%nat),stat=i_stat)
-   
-
-!!$   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
-!!$   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nvctr_p,'nlpspd%nvctr_p',subname)
-!!$   allocate(nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
-!!$   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
-
+   do iat=1,at%nat
+      nlpspd%plr(iat)=default_locreg() !< set in types
+   end do
 
   ! define the region dimensions
     n1 = lr%d%n1
@@ -318,12 +310,6 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
       call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
    end do
 
-!!$   ! allocations for arrays holding the projectors and their data descriptors
-!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
-
    allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,proj,'proj',subname)
    if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
@@ -335,29 +321,10 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
               nl1,nl2,nl3,nu1,nu2,nu3)         
-!!$         nl1=nlpspd%plr(iat)%ns1
-!!$         nl2=nlpspd%plr(iat)%ns2
-!!$         nl3=nlpspd%plr(iat)%ns3
-!!$             
-!!$         nu1=nlpspd%plr(iat)%d%n1+nl1
-!!$         nu2=nlpspd%plr(iat)%d%n2+nl2
-!!$         nu3=nlpspd%plr(iat)%d%n3+nl3
-
-!!$         ! coarse grid quantities
-!!$         nl1=nlpspd%nboxp_c(1,1,iat) 
-!!$         nl2=nlpspd%nboxp_c(1,2,iat) 
-!!$         nl3=nlpspd%nboxp_c(1,3,iat) 
-!!$
-!!$         nu1=nlpspd%nboxp_c(2,1,iat)
-!!$         nu2=nlpspd%nboxp_c(2,2,iat)
-!!$         nu3=nlpspd%nboxp_c(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
             cpmult,hx,hy,hz,logrid)
-
-!!$         iseg=nlpspd%nseg_p(2*iat-2)+1
-!!$         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
               nlpspd%plr(iat)%wfd%nseg_c,&
@@ -366,29 +333,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
         call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
              nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
 
-!!$         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-!!$         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
-
-
          ! fine grid quantities
          call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
               nl1,nl2,nl3,nu1,nu2,nu3)         
-
-!!$         nl1=nlpspd%plr(iat)%d%nfl1+nlpspd%plr(iat)%ns1
-!!$         nl2=nlpspd%plr(iat)%d%nfl2+nlpspd%plr(iat)%ns2
-!!$         nl3=nlpspd%plr(iat)%d%nfl3+nlpspd%plr(iat)%ns3
-!!$                                  
-!!$         nu1=nlpspd%plr(iat)%d%nfu1+nlpspd%plr(iat)%ns1
-!!$         nu2=nlpspd%plr(iat)%d%nfu2+nlpspd%plr(iat)%ns2
-!!$         nu3=nlpspd%plr(iat)%d%nfu3+nlpspd%plr(iat)%ns3
-
-!!$         nl1=nlpspd%nboxp_f(1,1,iat)
-!!$         nl2=nlpspd%nboxp_f(1,2,iat)
-!!$         nl3=nlpspd%nboxp_f(1,3,iat)
-!!$
-!!$         nu1=nlpspd%nboxp_f(2,1,iat)
-!!$         nu2=nlpspd%nboxp_f(2,2,iat)
-!!$         nu3=nlpspd%nboxp_f(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
@@ -397,11 +344,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
          mseg=nlpspd%plr(iat)%wfd%nseg_f
          iseg=nlpspd%plr(iat)%wfd%nseg_c+1
 
-!!$         iseg=nlpspd%nseg_p(2*iat-1)+1
-!!$         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
          if (mseg > 0) then
-!!$            call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-!!$            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                  logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                  nlpspd%plr(iat)%wfd%keyvglob(iseg))
