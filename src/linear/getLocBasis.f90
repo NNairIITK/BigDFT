@@ -751,24 +751,26 @@ endif
           lhphioldopt => lhphilargeold
           !tmbopt%confdatarr => tmb%confdatarr
       else
-          !!tmbopt => tmblarge2
-          !!lhphiopt => lhphilarge2
-          !!lphioldopt => lphilargeold2
-          !!lhphioldopt => lhphilargeold2
-          tmbopt => tmb
-          lhphiopt => lhphi
-          lphioldopt => lphiold
-          lhphioldopt => lhphiold
+          tmbopt => tmblarge2
+          lhphiopt => lhphilarge2
+          lphioldopt => lphilargeold2
+          lhphioldopt => lhphilargeold2
+          !!tmbopt => tmb
+          !!lhphiopt => lhphi
+          !!lphioldopt => lphiold
+          !!lhphioldopt => lhphiold
       end if
 
-      if(.not.variable_locregs) then
-          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
-      end if
+      !!if(.not.variable_locregs) then
+      !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      !!end if
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+           tmb, lhphi, lphiold, lhphiold, &
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
 
       !!!plot gradient
       !!ist=1

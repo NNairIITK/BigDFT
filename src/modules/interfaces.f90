@@ -5578,27 +5578,34 @@ module module_interfaces
        !!!  type(DFT_wavefunction),intent(inout):: tmb
        !!!end subroutine enlarge_locreg
 
+
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+                  tmb, lhphi, lphiold, lhphiold, &
+                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, it
          logical,intent(in):: variable_locregs
-         type(DFT_wavefunction),intent(inout):: tmbopt
+         type(DFT_wavefunction),pointer,intent(inout):: tmbopt
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lhphiopt
-         real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lphioldopt, lhphioldopt
+         real(8),dimension(:),pointer,intent(inout):: lhphiopt
+         real(8),dimension(:),pointer,intent(inout):: lphioldopt, lhphioldopt
          integer,intent(inout):: consecutive_rejections
          real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
          logical,intent(out):: emergency_exit
+         type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
+         real(8),dimension(:),target,intent(inout):: lhphilarge2
+         real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
        end subroutine calculate_energy_and_gradient_linear
+
 
        subroutine copy_basis_specifications(bsin, bsout, subname)
          use module_base
