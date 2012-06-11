@@ -32,6 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:,:),allocatable:: lagmat
+  real(8):: closesteval, gnrm_temple
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -71,6 +72,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
        tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
+
+
+
+
 
 
 
@@ -159,6 +164,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
       istart=istart+ncount
   end do
+
+
+
+  ! TEST: Temple Criterium ###########################
+  gnrm_temple=0.d0
+  do iorb=1,tmbopt%orbs%norbp
+      iiorb=tmbopt%orbs%isorb+iorb
+      closesteval=1.d100
+      do jorb=1,tmbopt%orbs%norb
+          if(jorb/=iiorb) then
+              tt=abs(lagmat(iiorb,iiorb)-lagmat(jorb,jorb))
+              if(tt<=closesteval) then
+                  closesteval=tt
+              end if
+          end if
+      end do
+      !write(*,*) 'iiorb, Temple', iiorb, fnrmArr(iorb,1)/closesteval
+      gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
+  end do
+  call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
+  gnrm_temple = gnrm_temple/dble(tmbopt%orbs%norb)
+  if(iproc==0) write(*,*) 'GNRM TEMPLE', gnrm_temple
+  ! ##################################################
+
+
 
   ! Keep the gradient for the next iteration.
   if(it>1) then
