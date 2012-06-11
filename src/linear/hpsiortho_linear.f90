@@ -180,7 +180,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               end if
           end if
       end do
-      !write(*,*) 'iiorb, Temple', iiorb, fnrmArr(iorb,1)/closesteval
+      write(1000+iproc,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
       gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
   end do
   call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
