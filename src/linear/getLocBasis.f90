@@ -415,8 +415,8 @@ type(local_zone_descriptors):: lzdlarge
 type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
 type(energy_terms) :: energs!, energs2
-
-integer :: i,j , k
+character(len=3):: num
+integer :: i,j , k, ncount, ist, iiorb
 real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
 real(8),dimension(2):: reducearr
 
@@ -614,6 +614,9 @@ real(8),dimension(2):: reducearr
 
   !allocate(confdatarrtmp(tmb%orbs%norbp))
 
+  !!write(*,*) 'ATTENTION: SET RHO TO ZERO'
+  !!denspot%rhov=0.d0
+
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
@@ -748,22 +751,42 @@ endif
           lhphioldopt => lhphilargeold
           !tmbopt%confdatarr => tmb%confdatarr
       else
-          tmbopt => tmblarge2
-          lhphiopt => lhphilarge2
-          lphioldopt => lphilargeold2
-          lhphioldopt => lhphilargeold2
-          !tmbopt%confdatarr => tmblarge2%confdatarr
+          !!tmbopt => tmblarge2
+          !!lhphiopt => lhphilarge2
+          !!lphioldopt => lphilargeold2
+          !!lhphioldopt => lhphilargeold2
+          tmbopt => tmb
+          lhphiopt => lhphi
+          lphioldopt => lphiold
+          lhphioldopt => lhphiold
       end if
 
+      if(.not.variable_locregs) then
+          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      end if
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit)
+
+      !!!plot gradient
+      !!ist=1
+      !!do iorb=1,tmbopt%orbs%norbp
+      !!    iiorb=tmbopt%orbs%isorb+iorb
+      !!    ilr=tmbopt%orbs%inwhichlocreg(iiorb)
+      !!    write(num,'(i3.3)') iiorb
+      !!    call plot_wf('gradient'//num,2,at,1.d0,tmbopt%lzd%llr(ilr),tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,tmbopt%psi(ist:ist+ncount-1))
+      !!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+      !!    ist = ist + ncount
+      !!end do
+
+
+
   
-      if(.not.variable_locregs) then
-          call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
-      end if
+      !!if(.not.variable_locregs) then
+      !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      !!end if
 
       ! to avoid that it points to something which was nullified... to be corrected
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -817,14 +840,15 @@ endif
           lhphiopt => lhphi
           lphioldopt => lphiold
           lhphioldopt => lhphiold
-          !tmbopt%confdatarr => tmblarge2%confdatarr
-          !tmbopt%confdatarr => tmb%confdatarr
+          !!tmbopt => tmblarge2
+          !!lhphiopt => lhphilarge2
+          !!lphioldopt => lphilargeold2
+          !!lhphioldopt => lhphilargeold2
       else
           tmbopt => tmblarge
           lhphiopt => lhphilarge
           lphioldopt => lphilargeold
           lhphioldopt => lhphilargeold
-          !!tmbopt%confdatarr => tmb%confdatarr
       end if
 
       call hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
@@ -844,6 +868,10 @@ endif
           lhphioldopt => lhphilargeold
           !!tmbopt%confdatarr => tmb%confdatarr
       end if
+
+      !!if(.not.variable_locregs) then
+      !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+      !!end if
 
 
      ! Flush the standard output
