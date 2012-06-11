@@ -487,12 +487,14 @@ call to_zero(6,wbstr(1))
      end do
   end if
 
-  !if rhohat is present, remove add it to charge density
+  !if rhohat is present, add it to charge density
+  !
   if(present(rhohat)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete compensation density for non-spin polarised calculations
      call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake,1),1,rho(1),1)
      if(nspin==2) call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake,2),1,rho(1),1)
+     call substract_from_vexcu(rhohat)
   end if
 
   !if rhocore is associated we then remove it from the charge density
@@ -501,31 +503,7 @@ call to_zero(6,wbstr(1))
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
-     vexcuRC=0.0_gp
-     do i3=1,nxc
-        do i2=1,m3
-           do i1=1,m1
-              !do i=1,nxc*m3*m1
-              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
-           end do
-        end do
-     end do
-     if (nspin==2) then
-        do i3=1,nxc
-           do i2=1,m3
-              do i1=1,m1
-                 !do i=1,nxc*m3*m1
-                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
-                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
-              end do
-           end do
-        end do
-        !divide the results per two because of the spin multiplicity
-        vexcuRC=0.5*vexcuRC
-     end if
-     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
-     !subtract this value from the vexcu
-     vexcuLOC=vexcuLOC-vexcuRC
+     call substract_from_vexcu(rhocore)
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
@@ -625,6 +603,40 @@ call to_zero(6,wbstr(1))
   end if
 
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
+contains
+subroutine substract_from_vexcu(rhoin)
+ implicit none
+ real(wp),dimension(:,:,:,:),intent(in)::rhoin
+
+ vexcuRC=0.0_gp
+ do i3=1,nxc
+    do i2=1,m3
+       do i1=1,m1
+          !do i=1,nxc*m3*m1
+          i=i1+(i2-1)*m1+(i3-1)*m1*m3
+          vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+       end do
+    end do
+ end do
+ if (nspin==2) then
+    do i3=1,nxc
+       do i2=1,m3
+          do i1=1,m1
+             !do i=1,nxc*m3*m1
+             !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+             vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+          end do
+       end do
+    end do
+    !divide the results per two because of the spin multiplicity
+    vexcuRC=0.5*vexcuRC
+ end if
+ vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ !subtract this value from the vexcu
+ vexcuLOC=vexcuLOC-vexcuRC
+ 
+end subroutine substract_from_vexcu
 
 END SUBROUTINE XC_potential
 

@@ -1500,12 +1500,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar
      if (orbs%npsidim_orbs >0 .and. paw%usepaw==1) call to_zero(orbs%npsidim_orbs,paw%spsi(1))
      call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
-     !
+     
      !transpose psit
      !here we cannot erase hpsi, so we use work
      allocate(work(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,work,'work',subname)
-     !
+     !!
      call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit,work=work)
      !transpose spsi 
      call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
@@ -1520,23 +1520,21 @@ subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar
 
    call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw,hpsi)
 
-   !PENDING: PAW HPSI and PSI should also be modified
-   !in orthogonalize, probably, we need to unstranspose hpsi at the end
-   
 
-   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+   !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+   if(paw%usepaw==1) call checkortho_paw(iproc,orbs%norb*orbs%nspinor,comms%nvctr_par(iproc,0),psit,paw%spsi)
 
    if(paw%usepaw==0) then
      call untranspose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
         &   psit,work=hpsi,outadd=psi(1))
    else
-     !
+     
      call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
         &   psit,work=work,outadd=psi(1))
      !retranspose the spsi and hpsi wavefunctions
      call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,paw%spsi,work=work)
      call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=work)
-     !
+     
      !deallocate temporary array
      i_all=-product(shape(work))*kind(work)
      deallocate(work,stat=i_stat)
@@ -1558,32 +1556,50 @@ subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar
    !previous value already filled
    diis%energy_old=diis%energy
 
-   !DEBUG hpsi,psi et spsi
-   !call debug_psi() 
    !
-   !Calculate  hpsi,spsi and cprj with new psi
-   !if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
-   !if (orbs%npsidim_orbs >0.and. paw%usepaw==1) call to_zero(orbs%npsidim_orbs,paw%spsi(1))
-   !call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-   !       proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
-   !
-   !call debug_psi() 
-   !stop
+   if(paw%usepaw==1) call checkortho_paw(iproc,orbs%norb*orbs%nspinor,comms%nvctr_par(iproc,0),psi,paw%spsi)
+
+   !DEBUG hpsi
+   if(paw%usepaw==1) then
+      call debug_psi() 
+
+      !
+      !Recalculate  hpsi,spsi and cprj with new psi
+      !PENDING: cprj should be updated before, so we avoid this call
+      write(*,*)'Recalculate hpsi,spsi and cprj with new psi'
+      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
+      if (orbs%npsidim_orbs >0.and. paw%usepaw==1) call to_zero(orbs%npsidim_orbs,paw%spsi(1))
+      call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+             proj,Lzd,nlpspd,psi,hpsi,eproj_sum,proj_G,paw)
+      
+      !check ortho again, to see if psi and spsi are correct
+      if(paw%usepaw==1) call checkortho_paw(iproc,orbs%norb*orbs%nspinor,comms%nvctr_par(iproc,0),psi,paw%spsi)
+      !call debug_psi() 
+   end if
    !END DEBUG
 contains
 
 subroutine debug_psi()
-
+  use module_base
 implicit none
-integer::istart_j,jlmn,j_shell,j_l,j_m,ispinor
-logical :: dosome, overlap
+integer::i,istart_j,jlmn,j_shell,j_l,j_m,ispinor
+integer::ispsi_a,ispsi_b,ia,ib,iatype
+integer::nvctr_c,nvctr_f,nvctr_tot
 integer::ncplx,nspinor
 integer::mbseg_c,mbseg_f,mbvctr_c,mbvctr_f
 integer::ikpt,ispsi_k,iat,ilr,ilr_skip,iorb
 integer::isorb,ieorb,ispsi,istart_ck
+logical :: dosome, overlap
 real(gp),dimension(2)::scpr
+real(gp) ::scalprod(2,2)
+real(dp) :: ddot
 
-nspinor=1
+write(*,*)'Calculate <PSI|H|PSI> for debugging'
+
+nvctr_c=Lzd%glr%wfd%nvctr_c
+nvctr_f=Lzd%glr%wfd%nvctr_f
+nvctr_tot=nvctr_c+7*nvctr_f
+
 ikpt=orbs%iokpt(1)
 
 ispsi_k=1
@@ -1601,6 +1617,7 @@ loop_kpt: do
       if (.not. dosome) cycle loop_lr
 
       do iat=1,at%nat
+           iatype=at%iatype(iat)
            ispsi=ispsi_k
          do iorb=isorb,ieorb
             if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) then
@@ -1610,22 +1627,36 @@ loop_kpt: do
                cycle
             end if
 
-            call plr_segs_and_vctrs(nlpspd%plr(iat),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+            !call plr_segs_and_vctrs(nlpspd%plr(iat),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
             call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
-
-             do ispinor=1,nspinor,ncplx
-                call wpdot_wrap(ncplx,  &
-                     Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyglob,&
-                     psi(ispsi), &
-                     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                     nlpspd%plr(iat)%wfd%keyv,nlpspd%plr(iat)%wfd%keyglob,&
-                     hpsi(ispsi),&
-                     scpr)
-                ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
-                write(*,'("<psi| H|psi> for kpt=,",i5," iat=",i5," jlmn=",i5,"=>",2(f15.5,x))')ikpt,iat,jlmn,scpr
-             end do !ispinor
-            ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*nspinor
+            jlmn=0
+            do j_shell=1,proj_G(iatype)%nshltot
+               j_l=proj_G(iatype)%nam(j_shell)
+               do j_m=1,2*j_l-1
+                  jlmn=jlmn+1
+                  !loop over all the components of the wavefunction
+                  do ispinor=1,nspinor,ncplx
+                     ispsi_a=ispsi
+                     ispsi_b=ispsi
+                     do ia=1,ncplx
+                        do ib=1,ncplx
+                           scalprod(ia,ib)=ddot(nvctr_tot,psi(ispsi_a),1,hpsi(ispsi_b),1)
+                           ispsi_b=ispsi_b+nvctr_tot
+                        end do
+                        ispsi_b=ispsi_b+nvctr_tot
+                     end do
+                     !then define the result
+                     if (ncplx == 1) then
+                        scpr(1)=scalprod(1,1)
+                     else if (ncplx == 2) then
+                        scpr(1)=scalprod(1,1)+scalprod(2,2)
+                        scpr(2)=scalprod(1,2)-scalprod(2,1)
+                     end if
+                     write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5," jlmn=",i5,"=>",2(f15.5,x))')ikpt,iat,jlmn,scpr
+                     ispsi=ispsi+(nvctr_tot)*ncplx
+                   end do !ispinor
+               end do !j_m
+            end do !j_shell
          end do !iorb
       end do !iat
    end do loop_lr
@@ -1645,7 +1676,21 @@ if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
 end if
 
 
+
 end subroutine debug_psi
+
+real(8) function ddot(n,A,l1,B,l2)
+  implicit none
+  integer, intent(in)::n,l1,l2
+  real(8),intent(in),dimension(n)::A,B
+  real(8)::scpr
+  integer::i
+
+  scpr=0.00_dp
+  do i=1,n
+   ddot=ddot+A(i)*B(i)
+  end do
+end function ddot
 
 END SUBROUTINE hpsitopsi
 

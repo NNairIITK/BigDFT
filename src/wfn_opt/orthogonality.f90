@@ -81,19 +81,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw,hpsi)
 
         end if
 
-
-
-!call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
-!     ndimovrlp,ovrlp(1),norbArr,1,ispin)
-!do i_stat=1,size(ovrlp)
-!    write(2000+iproc,*) i_stat, ovrlp(i_stat)
-!end do
      end do
 
      ! Deallocate the arrays.
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
      call memocc(i_stat,i_all,'ovrlp',subname)
+
 
   else if(orthpar%methOrtho==1) then
        category='GS/Chol'
@@ -1337,6 +1331,56 @@ subroutine loewe(norb,nvctrp,psi)
 
 END SUBROUTINE loewe
 
+subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
+  use module_base
+  implicit real(kind=8) (a-h,o-z)
+  integer :: iproc,norb,nvctrp
+  dimension psit(nvctrp,norb)
+  dimension spsi(nvctrp,norb)
+  character(len=*), parameter :: subname='checkortho_paw'
+  real(kind=8), allocatable :: ovrlp(:,:,:)
+
+  allocate(ovrlp(norb,norb,2+ndebug),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
+
+  do iorb=1,norb
+     do jorb=1,norb
+        !<psi|S|psi>
+        ovrlp(iorb,jorb,2)=ddot(nvctrp,psit(1,iorb),1,spsi(1,jorb),1)
+        !add <psi|psi>
+        ovrlp(iorb,jorb,2)=ovrlp(iorb,jorb,2)+&
+         & ddot(nvctrp,psit(1,iorb),1,psit(1,jorb),1)
+     end do
+  end do
+
+  call MPI_ALLREDUCE(ovrlp(1,1,2),ovrlp(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+  toler=1.d-10
+  dev=0.d0
+  do iorb=1,norb
+     do jorb=1,norb
+        scpr=ovrlp(iorb,jorb,1)
+        if (iorb.eq.jorb) then
+           dev=dev+(scpr-1.d0)**2
+        else
+           dev=dev+scpr**2
+        endif
+        if (iproc == 0) then
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+                'ERROR ORTHO',iorb,jorb,scpr
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+                'ERROR ORTHO',iorb,jorb,scpr
+        end if
+     end do
+  end do
+
+  if (dev.gt.toler) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
+
+  i_all=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp',subname)
+
+END SUBROUTINE checkortho_paw
 
 subroutine checkortho_p(iproc,norb,nvctrp,psit)
   use module_base
@@ -1801,12 +1845,14 @@ do ikptp=1,orbs%nkptsp
             if(nspinor==1) then
                 call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,psit(istThis),1)
                 if(usepaw==1) then
+                   !Update also spsit and hpsit
                    call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,hpsit(istThis),1)
                    call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,spsit(istThis),1)
                 end if
             else
                 call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,psit(istThis),1)
                 if(usepaw==1) then
+                   !Update also spsit and hpsit
                    call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,hpsit(istThis),1)
                    call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,spsit(istThis),1)
                 end if
@@ -1910,6 +1956,7 @@ do ikptp=1,orbs%nkptsp
                 call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                      Lc(ndimL(ispin,ikpt-1)+1,1), norb, psi(ist), nvctrp)
                 if(usepaw==1) then
+                   !update also hpsi and spsi
                    call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                         Lc(ndimL(ispin,ikpt-1)+1,1), norb, hpsi(ist), nvctrp)
                    call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
@@ -2249,12 +2296,13 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   ! Local variables
   integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,ierr,nvctrp,norb
-
+  real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp_pw
 
 
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
   call razero(ndimovrlp(nspin,orbs%nkpts),ovrlp)
+  call razero(ndimovrlp(nspin,orbs%nkpts),ovrlp_pw)
 
 
   ispsi=1
@@ -2279,15 +2327,19 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
            if (nvctrp == 0) cycle
 
            ! Now calclulate one part of the overlap matrix. The starting index of this part is given by ndimovrlp(ispin,ikpt-1)+1.
+           !Notice that two overlaps are computed:
+           ! overlap_pw= <psi|psi>
+           ! overlap   = <psi|S|psi>
            if(nspinor==1) then
-              !call syrk('L','T',norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),&
-              !     0.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
+              call syrk('L','T',norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),&
+                   0.0_wp,ovrlp_pw(ndimovrlp(ispin,ikpt-1)+1),norb)
               !for nspinor==1, ncomp==1
               call gemm('t','n',norb,norb,ncomp*nvctrp,1.0_wp,psi(ispsi),&
                    ncomp*nvctrp,spsi(ispsi),ncomp*nvctrp,0.d0,ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
            else
-              !call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psi(ispsi),&
-              !     max(1,ncomp*nvctrp),0.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
+              call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psi(ispsi),&
+                   max(1,ncomp*nvctrp),0.0_wp,ovrlp_pw(ndimovrlp(ispin,ikpt-1)+1),norb)
+              !
               call c_gemm('c','n',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
                    ncomp*nvctrp,spsi(ispsi),ncomp*nvctrp,(0.d0,0.d0),ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
            end if
@@ -2298,6 +2350,11 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
         ispsi=ispsi+nvctrp*(norbTot(ispin)-block1+1)*nspinor
      end do
   end do
+
+  !Sum the two overlaps:
+  !overlap matrix in paw: O=1+S
+  !<psi|O|psi> =  <psi|psi> + <psi|S|psi>
+  ovrlp=ovrlp_pw + ovrlp
 
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !print *,'here',iproc
@@ -2471,10 +2528,12 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   integer,dimension(nspin):: norbTot
   ! Local variables
   integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, ierr, nvctrp, norb, ispsi1, ispsi2
+  real(kind=8),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp_pw
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
   call razero(ndimovrlp(nspin,orbs%nkpts),ovrlp)
+  call razero(ndimovrlp(nspin,orbs%nkpts),ovrlp_pw)
 
   ispsi1=1
   ispsi2=1
@@ -2502,12 +2561,20 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
             if (nvctrp == 0) cycle
        
             ! Now calclulate one part of the overlap matrix. The starting index of this part is given by ndimovrlp(ispin,ikpt-1)+1.
+            !
+            !Notice that two overlaps are computed:
+            ! overlap_pw= <psi|psi>
+            ! overlap   = <psi|S|psi>
             if(nspinor==1) then
                call gemm('t','n',norb,norb,ncomp*nvctrp,1.0_wp,psit(ispsi2),&
                     ncomp*nvctrp,spsit(ispsi1),ncomp*nvctrp,0.d0,ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
+               call gemm('t','n',norb,norb,ncomp*nvctrp,1.0_wp,psit(ispsi2),&
+                    ncomp*nvctrp,psit(ispsi1),ncomp*nvctrp,0.d0,ovrlp_pw(ndimovrlp(ispin,ikpt-1)+1),norb)
             else
                call c_gemm('c','n',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(ispsi2),&
                     ncomp*nvctrp,spsit(ispsi1),ncomp*nvctrp,(0.d0,0.d0),ovrlp(ndimovrlp(ispin,ikpt-1)+1),norb)
+               call c_gemm('c','n',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(ispsi2),&
+                    ncomp*nvctrp,psit(ispsi1),ncomp*nvctrp,(0.d0,0.d0),ovrlp_pw(ndimovrlp(ispin,ikpt-1)+1),norb)
             end if
 
         end if
@@ -2519,6 +2586,12 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
 
      end do
   end do
+
+  !Sum the two overlaps:
+  !overlap matrix in paw: O=1+S
+  !<psi|O|psi> =  <psi|psi> + <psi|S|psi>
+  ovrlp=ovrlp_pw + ovrlp
+
 
   ! Sum up the overlap matrices from all processes.
   if (nproc > 1) then

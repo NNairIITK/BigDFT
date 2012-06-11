@@ -1122,6 +1122,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   integer :: istart_i,istart_j,icplx,jspinor
   integer :: i_stat,i_all
   real(gp)::eproj_i
+  real(gp)::ddot
   real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
   real(gp) :: dij
   real(wp), dimension(:,:), allocatable :: cprj_i
@@ -1175,6 +1176,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 
   !  deallocate(cprj_i)
   !else !use standart subroutine for projector application
+
   istart_j=istart_c
 ! Get cprj:
   jlmn=0
@@ -1207,8 +1209,9 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 !  end do
   do ispinor=1,nspinor
      cprj_out%cp(ispinor,:)=cprj(ispinor,:)
-     write(*,*)'cpjr',cprj_out%cp(ispinor,:)
+     write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
   end do
+!
 
   if(sij_opt==1 .or. sij_opt==3) then
   !CALCULATE |H|PSI>
@@ -1221,22 +1224,13 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      istart_j=istart_c
      call apply_non_local_operator(hpsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
      eproj=eproj+eproj_i
-  !
-  !DEBUG: calculate <PSI|H|PSI>
-  !
+     !
+     !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
      do ispinor=1,nspinor,ncplx
-        call wpdot_wrap(ncplx,  &
-             nvctr_c,nvctr_f,nseg_c,nseg_f,&
-             keyv,keyg,&
-             psi(1,ispinor), &
-             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-             keyv_p,&!nlpspd%keyv_p(jseg_c),&
-             keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
-             hpsi,&
-             scpr(1))
+        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
+        write(*,*)'erase me: applyprojector_paw l1231'
+        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
      end do !ispinor
-     write(*,*)'erase me: applyprojector_paw l242'
-     write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
   end if
   if(sij_opt==2 .or. sij_opt==3) then
   !CALCULATE |S|PSI>
@@ -1244,8 +1238,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      !Pending: check if it works  for cplex_dij=2
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
      !DEBUG
-     write(*,*)'erase me, applyprojector_paw, l1248'
-     write(*,*)'sij=',sij(1:iaux)
+     write(*,*)'erase me, applyprojector_paw, l1241 sij=',sij(1:iaux)
      !END DEBUG
      !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
      call calculate_dprj(sij(1:iaux),iaux)
@@ -1253,22 +1246,13 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      !apply non-local operator
      istart_j=istart_c
      call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
-  !
-  !DEBUG: calculate <PSI|S|PSI>
-  !
+     !
+     !DEBUG: calculate <PSI|S|PSI>, only for 1 orbital and ncplx=1
      do ispinor=1,nspinor,ncplx
-        call wpdot_wrap(ncplx,  &
-             nvctr_c,nvctr_f,nseg_c,nseg_f,&
-             keyv,keyg,&
-             psi(1,ispinor), &
-             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-             keyv_p,&!nlpspd%keyv_p(jseg_c),&
-             keyg_p,&!nlpspd%keyg_p(1,jseg_c),&
-             spsi,&
-             scpr(1))
+        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,spsi(istart_c,ispinor),1)
+        write(*,*)'erase me: applyprojector_paw l1260'
+        write(*,*)'O=1+S: <psi|S|psi>= ',scpr(1:ncplx)
      end do !ispinor
-     write(*,*)'erase me: applyprojector_paw l253'
-     write(*,*)'<psi|S|psi>= ',scpr(1:ncplx)
   end if
 
   !update istart_c, note that we only used istart_j above.
@@ -1282,6 +1266,19 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   call memocc(i_stat,i_all,'dprj',subname)
 
   contains
+
+!real(8) function ddot(n,A,l1,B,l2)
+!  implicit none
+!  integer, intent(in)::n,l1,l2
+!  real(8),intent(in),dimension(n)::A,B
+!  real(8)::scpr
+!  integer::i
+
+!  scpr=0.00_dp
+!  do i=1,n
+!   ddot=ddot+A(i)*B(i)
+!  end do
+!end function ddot
 
   subroutine calculate_dprj(kij,dim1)
      !Here we calculate:
@@ -1356,8 +1353,8 @@ subroutine applyprojector_paw(ncplx,istart_c,&
                    nvctr_c,nvctr_f,nseg_c,nseg_f,&
                    keyv,keyg,&
                    apham(1,ispinor))
-              istart=istart+(mbvctr_c+7*mbvctr_f)*ncplx
            end do
+           istart=istart+(mbvctr_c+7*mbvctr_f)*ncplx
         end do
      end do
   end subroutine apply_non_local_operator

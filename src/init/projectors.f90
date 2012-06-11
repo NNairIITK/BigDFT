@@ -790,10 +790,10 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      if (idir == 0) then
         !here the norm should be done with the complex components
         call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
-        write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
-             'The norm of the projector for atom n=',iat,&
-             ' (',trim(atomname),&
-             ') labeled by l=',l,', m=',m,' is ',scpr
+        !write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
+        !     'The norm of the projector for atom n=',iat,&
+        !     ' (',trim(atomname),&
+        !     ') labeled by l=',l,', m=',m,' is ',scpr
      end if
      !end testing
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
