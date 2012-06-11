@@ -82,6 +82,8 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
            !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
+        !write(*,*) 'preconditionall: verbosity ',verbose
+!           write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
 
        if (scpr /= 0.0_wp) then
 
@@ -159,6 +161,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
 !        MPI_MAX,MPI_COMM_WORLD,ierr)
 
+  if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
@@ -246,6 +249,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
+        if (verbose.ge.3) write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr
 
        if (scpr /= 0.0_wp) then
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
