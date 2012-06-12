@@ -238,23 +238,23 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
+  !if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
   ind2=1
   do iorb=1,tmbopt%orbs%norbp
       iiorb=tmbopt%orbs%isorb+iorb
       ilr = tmbopt%orbs%inWhichLocreg(iiorb)
       ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
                tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
                tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
                tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
-      else if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
-               tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
-               tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-               2.d-3, it, iorb, eval_zero)
-      end if
+      !!else if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+      !!         tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+      !!         tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+      !!         2.d-3, it, iorb, eval_zero)
+      !!end if
       ind2=ind2+ncnt
   end do
 
