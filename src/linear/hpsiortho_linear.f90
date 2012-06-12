@@ -85,6 +85,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!lhphioldopt => lhphiold
   if(.not.variable_locregs) then
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      !call flatten_at_boundaries(tmb%lzd, tmb%orbs, lhphi)
+      !!do istat=1,tmb%orbs%npsidim_orbs
+      !!    write(200+iproc,*) istat, lhphi(istat)
+      !!end do
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
 
@@ -234,16 +238,23 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
+  if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
   ind2=1
   do iorb=1,tmbopt%orbs%norbp
       iiorb=tmbopt%orbs%isorb+iorb
       ilr = tmbopt%orbs%inWhichLocreg(iiorb)
       ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
-           tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
-           tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-!           1.0d-3, it, iorb, eval_zero) ! 2.0d-2 for test4, 1.0d-3 for test 5
-           tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
+      if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+               tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+               tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+               tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
+      else if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+               tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+               tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+               2.d-3, it, iorb, eval_zero)
+      end if
       ind2=ind2+ncnt
   end do
 

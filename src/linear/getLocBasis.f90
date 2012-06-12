@@ -416,8 +416,8 @@ type(DFT_wavefunction),target:: tmblarge
 type(DFT_wavefunction),pointer:: tmbopt
 type(energy_terms) :: energs!, energs2
 character(len=3):: num
-integer :: i,j , k, ncount, ist, iiorb
-real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f
+integer :: i,j , k, ncount, ist, iiorb, sdim, ldim
+real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, phiplot
 real(8),dimension(2):: reducearr
 
 
@@ -773,15 +773,30 @@ endif
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
 
       !!!plot gradient
+      !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
       !!ist=1
       !!do iorb=1,tmbopt%orbs%norbp
       !!    iiorb=tmbopt%orbs%isorb+iorb
       !!    ilr=tmbopt%orbs%inwhichlocreg(iiorb)
+      !!    sdim=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+      !!    ldim=tmbopt%lzd%glr%wfd%nvctr_c+7*tmbopt%lzd%glr%wfd%nvctr_f
+      !!    call to_zero(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f, phiplot(1))
+      !!    call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmbopt%orbs%norb, tmbopt%orbs%nspinor, 1, tmbopt%lzd%glr, &
+      !!         tmbopt%lzd%llr(ilr), lhphiopt(ist), phiplot(1))
+      !!    !!do istat=1,sdim
+      !!    !!    write(300,*) lhphiopt(ist+istat-1)
+      !!    !!end do
+      !!    !!do istat=1,ldim
+      !!    !!    write(400,*) phiplot(istat)
+      !!    !!end do
+      !!    !!call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
+      !!    !!     tmbopt%psi, tmblarge2%psi)
       !!    write(num,'(i3.3)') iiorb
-      !!    call plot_wf('gradient'//num,2,at,1.d0,tmbopt%lzd%llr(ilr),tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,tmbopt%psi(ist:ist+ncount-1))
+      !!    call plot_wf('gradient'//num,2,at,1.d0,tmbopt%lzd%glr,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,phiplot)
       !!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
       !!    ist = ist + ncount
       !!end do
+      !!deallocate(phiplot)
 
 
 
@@ -3331,3 +3346,83 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   end if
 
 end subroutine DIISorSD
+
+
+
+subroutine flatten_at_boundaries(lzd, orbs, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
+      call memocc(istat, psig, 'psig', subname)
+      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
+
+      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
+      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           psi(istc), psi(istf), psig)
+
+      r0=lzd%llr(ilr)%locrad**2/3.d0
+      do i3=0,lzd%llr(ilr)%d%n3
+          r3 = (dble(i3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          do i2=0,lzd%llr(ilr)%d%n2
+              r2 = (dble(i2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              do i1=0,lzd%llr(ilr)%d%n1
+                  r1 = (dble(i1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  rr=r1+r2+r3
+                  tt=exp(-(rr-lzd%llr(ilr)%locrad**2/2.d0)/r0)
+                  tt=min(tt,1.d0)
+                  psig(i1,1,i2,1,i3,1)=tt*psig(i1,1,i2,1,i3,1)
+                  psig(i1,2,i2,1,i3,1)=tt*psig(i1,2,i2,1,i3,1)
+                  psig(i1,1,i2,2,i3,1)=tt*psig(i1,1,i2,2,i3,1)
+                  psig(i1,2,i2,2,i3,1)=tt*psig(i1,2,i2,2,i3,1)
+                  psig(i1,1,i2,1,i3,2)=tt*psig(i1,1,i2,1,i3,2)
+                  psig(i1,2,i2,1,i3,2)=tt*psig(i1,2,i2,1,i3,2)
+                  psig(i1,1,i2,2,i3,2)=tt*psig(i1,1,i2,2,i3,2)
+                  psig(i1,2,i2,2,i3,2)=tt*psig(i1,2,i2,2,i3,2)
+              end do
+          end do
+      end do
+
+      call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+           0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+           psig, psi(istc), psi(istf))
+
+      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+      iall=-product(shape(psig))*kind(psig)
+      deallocate(psig,stat=istat)
+      call memocc(istat,iall,'psig',subname)
+
+
+  end do
+
+end subroutine flatten_at_boundaries
