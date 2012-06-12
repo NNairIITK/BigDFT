@@ -962,6 +962,42 @@ contains
     g%n3i  =0
   end function default_grid
 
+  function default_wfd() result(wfd)
+    type(wavefunctions_descriptors) :: wfd
+    wfd%nvctr_c=0
+    wfd%nvctr_f=0
+    wfd%nseg_c=0
+    wfd%nseg_f=0
+    nullify(wfd%keyglob)
+    nullify(wfd%keygloc)
+    nullify(wfd%keyvglob)
+    nullify(wfd%keyvloc)
+  end function default_wfd
+
+  function default_kb() result(kb)
+    type(kinetic_bounds) :: kb
+    nullify(&
+         kb%ibyz_c,kb%ibxz_c,kb%ibxy_c, &
+         kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)
+  end function default_kb
+
+  function default_sb() result(sb)
+    type(shrink_bounds) :: sb
+    nullify(sb%ibzzx_c,sb%ibyyzz_c,sb%ibxy_ff,sb%ibzzx_f,sb%ibyyzz_f)
+  end function default_sb
+  
+  function default_gb() result(gb)
+    type(grow_bounds) :: gb
+    nullify(gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f)
+  end function default_gb
+
+  function default_bounds() result(b)
+    type(convolutions_bounds) :: b
+    b%kb=default_kb()
+    b%sb=default_sb()
+    b%gb=default_gb()
+    nullify(b%ibyyzz_r)
+  end function default_bounds
 
   function default_locreg() result(lr)
     type(locreg_descriptors) :: lr
@@ -973,16 +1009,28 @@ contains
     lr%ns3=0 
     lr%nsi1=0
     lr%nsi2=0
-    lr%nsi3=0  !< starting point of locreg for interpolating grid
-    lr%Localnorb=0              !< number of orbitals contained in locreg
-    lr%outofzone=(/0,0,0/)  !< vector of points outside of the zone outside Glr for periodic systems
+    lr%nsi3=0  
+    lr%Localnorb=0  
+    lr%outofzone=(/0,0,0/) 
     lr%d=default_grid()
-    !default to be defined  type(wavefunctions_descriptors) :: wfd
-    !                      type(convolutions_bounds) :: bounds
-    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) !< center of the locreg 
-    lr%locrad=0 !< cutoff radius of the localization region
+    lr%wfd=default_wfd()
+    lr%bounds=default_bounds()
+    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
+    lr%locrad=0 
 
   end function default_locreg
+
+  function default_lzd() result(lzd)
+    type(local_zone_descriptors) :: lzd
+    lzd%linear=.false.
+    lzd%nlr=0
+    lzd%lintyp=0
+    lzd%ndimpotisf=0
+    lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(lzd%doHamAppl)
+    lzd%Glr=default_locreg()
+    nullify(lzd%Llr)
+  end function default_lzd
 
 !!$!> Allocate communications_arrays
 !!$  subroutine allocate_comms(nproc,orbs,comms,subname)

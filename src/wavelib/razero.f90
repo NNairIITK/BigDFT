@@ -20,20 +20,23 @@ subroutine razero(n,x)
   logical within_openmp,omp_in_parallel
 
   if (n.le.128) then
-
-      do i=1,n
-      x(i)=0.d0
-      end do            
-
+     !loop is unrolled by the compiler
+     do i=1,n
+        x(i)=0.d0
+     end do
   else
 
    !!  call CPU_time(t1)
-
+     !loop for the non-unrollable part
+     is=modulo(n,8) !also bitwise shift could be considered
+     do i=1,is
+        x(i)=0.d0
+     end do
 !$    within_openmp=omp_in_parallel()
 
 !$ if (within_openmp) then
 !$ write(*,*) "RAZERO CALLED WITHIN OPENMP"
-!$    do i=1,n-7,8
+!$    do i=is+1,n-7,8
 !$    x(i+0)=0.d0
 !$    x(i+1)=0.d0
 !$    x(i+2)=0.d0
@@ -42,11 +45,11 @@ subroutine razero(n,x)
 !$    x(i+5)=0.d0
 !$    x(i+6)=0.d0
 !$    x(i+7)=0.d0
-!$    x(i+8)=0.d0
+!!$    x(i+8)=0.d0
 !$    end do
 !$ else
 !$omp do
-      do i=1,n-7,8
+      do i=is+1,n-7,8
       x(i+0)=0.d0
       x(i+1)=0.d0
       x(i+2)=0.d0
@@ -55,14 +58,14 @@ subroutine razero(n,x)
       x(i+5)=0.d0
       x(i+6)=0.d0
       x(i+7)=0.d0
-      x(i+8)=0.d0
+!      x(i+8)=0.d0
       end do
 !$omp enddo
 !$ endif   
-      is=i
-      do i=is,n
-      x(i)=0.d0
-      end do            
+!!$      is=i
+!!$      do i=is,n
+!!$      x(i)=0.d0
+!!$      end do            
 
     !!  call CPU_time(t2)
     !!  write(999,*) 'CPUTIMErazero ',n,t2-t1

@@ -140,7 +140,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
           kernel%nproc,kernel%igpu)
   else if (kernel%geocode == 'F') then
      if (wrtmsg) &
-          call yaml_map('BC','Isolated')
+          call yaml_map('BC','Free')
      !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
      !     'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&

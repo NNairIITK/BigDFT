@@ -326,7 +326,8 @@ logical,dimension(:),allocatable:: calculateBounds
 allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
-    call nullify_locreg_descriptors(lzd%Llr(ilr))
+   lzd%Llr(ilr)=default_locreg()
+   call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 

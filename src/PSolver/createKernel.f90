@@ -224,7 +224,7 @@ subroutine createKernel(iproc,nproc,geocode,ndims,hgrids,itype_scf,kernel,wrtmsg
      if (dump) then
         !write(*,'(1x,a)',advance='no')&
         !     'Calculating Poisson solver kernel, free BC...'
-        call yaml_map('Boundary Conditions','Isolated')
+        call yaml_map('Boundary Conditions','Free')
      end if
 !     print *,'debug',kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3)
      !Build the Kernel
