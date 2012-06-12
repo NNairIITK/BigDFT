@@ -32,7 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:,:),allocatable:: lagmat
-  real(8):: closesteval, gnrm_temple
+  real(8):: closesteval, gnrm_temple, firstfnrm
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -74,8 +74,52 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
+!! TEMPORARY TEST #################################################################
+  ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
+  ! of the previous iteration (fnrmOvrlpArr).
+  istart=1
+  do iorb=1,tmbopt%orbs%norbp
+      if(.not.variable_locregs .or. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          iiorb=tmbopt%orbs%isorb+iorb
+          ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+          ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
+          fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+      else
+          ! Here the angle between the current and the old gradient cannot be determined since
+          ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
+          iiorb=tmbopt%orbs%isorb+iorb
+          ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+          ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+          if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
+          fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+      end if
+      istart=istart+ncount
+  end do
 
-
+  fnrm=0.d0
+  do iorb=1,tmbopt%orbs%norbp
+      fnrm=fnrm+fnrmArr(iorb,1)
+      if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+      if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      ! Adapt step size for the steepest descent minimization.
+          tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+          !if(tt>.9d0 .and. trH<trHold) then
+          !if(tt>.7d0 .and. trH<trHold) then
+          if(tt>.6d0 .and. trH<trHold) then
+              alpha(iorb)=alpha(iorb)*1.1d0
+          else
+              alpha(iorb)=alpha(iorb)*.6d0
+          end if
+      end if
+  end do
+  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
+  fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
+  fnrmMax=sqrt(fnrmMax)
+  if(iproc==0) write(*,*) 'first fnrm',fnrm
+  firstfnrm=fnrm
+!! END TEST #####################################################################
 
 
 
@@ -171,28 +215,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  ! TEST: Temple Criterium ###########################
-  gnrm_temple=0.d0
-  do iorb=1,tmbopt%orbs%norbp
-      iiorb=tmbopt%orbs%isorb+iorb
-      closesteval=1.d100
-      do jorb=1,tmbopt%orbs%norb
-          if(jorb/=iiorb) then
-              tt=abs(lagmat(iiorb,iiorb)-lagmat(jorb,jorb))
-              if(tt<=closesteval) then
-                  closesteval=tt
-              end if
-          end if
-      end do
-      !write(1000+iproc,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      !write(*,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      !!write(*,*) 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
-  end do
-  call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
-  gnrm_temple = gnrm_temple/dble(tmbopt%orbs%norb)
-  !if(iproc==0) write(*,*) 'GNRM TEMPLE', gnrm_temple
-  ! ##################################################
+  !!! TEST: Temple Criterium ###########################
+  !!gnrm_temple=0.d0
+  !!do iorb=1,tmbopt%orbs%norbp
+  !!    iiorb=tmbopt%orbs%isorb+iorb
+  !!    closesteval=1.d100
+  !!    do jorb=1,tmbopt%orbs%norb
+  !!        if(jorb/=iiorb) then
+  !!            tt=abs(lagmat(iiorb,iiorb)-lagmat(jorb,jorb))
+  !!            if(tt<=closesteval) then
+  !!                closesteval=tt
+  !!            end if
+  !!        end if
+  !!    end do
+  !!    !write(1000+iproc,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    !write(*,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    !!write(*,*) 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
+  !!end do
+  !!call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
+  !!gnrm_temple = gnrm_temple/dble(tmbopt%orbs%norb)
+  !!!if(iproc==0) write(*,*) 'GNRM TEMPLE', gnrm_temple
+  !!! ##################################################
 
 
 
@@ -207,6 +251,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+  fnrm=0.d0
   do iorb=1,tmbopt%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
@@ -231,6 +276,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if(variable_locregs .and. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
       call dcopy(max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
   trHold=trH
+
+  if(iproc==0) write(*,*) 'fnrm/firstfnrm',fnrm/firstfnrm
 
   ! Precondition the gradient.
   if(iproc==0) then

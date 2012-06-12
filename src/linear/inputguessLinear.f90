@@ -316,6 +316,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(DFT_wavefunction):: tmblarge
   !!real(8),dimension(:,:),allocatable:: locregCenter
   real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+  real(8),dimension(:),allocatable:: phiplot
+  integer:: sdim, ncount
+  character(len=3):: num
 
 
 
@@ -460,6 +463,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
+
+
+
   ! Since inputguess_gaussian_orbitals overwrites tmbig%orbs,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
@@ -496,6 +502,32 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
   call memocc(istat,iall,'psigau',subname)
+
+      !plot AO
+      allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
+      ist=1
+      do iorb=1,tmbgauss%orbs%norbp
+          iiorb=tmbgauss%orbs%isorb+iorb
+          ilr=tmbgauss%orbs%inwhichlocreg(iiorb)
+          sdim=tmbgauss%lzd%llr(ilr)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilr)%wfd%nvctr_f
+          ldim=tmbgauss%lzd%glr%wfd%nvctr_c+7*tmbgauss%lzd%glr%wfd%nvctr_f
+          call to_zero(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f, phiplot(1))
+          call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmbgauss%orbs%norb, tmbgauss%orbs%nspinor, 1, tmbgauss%lzd%glr, &
+               tmbgauss%lzd%llr(ilr), lchi2(ist), phiplot(1))
+          !!do istat=1,sdim
+          !!    write(300,*) lhphiopt(ist+istat-1)
+          !!end do
+          !!do istat=1,ldim
+          !!    write(400,*) phiplot(istat)
+          !!end do
+          !!call small_to_large_locreg(iproc, nproc, tmbgauss%lzd, tmblarge2%lzd, tmbgauss%orbs, tmblarge2%orbs, &
+          !!     tmbgauss%psi, tmblarge2%psi)
+          write(num,'(i3.3)') iiorb
+          call plot_wf('AO'//num,2,at,1.d0,tmbgauss%lzd%glr,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,phiplot)
+          ncount=tmbgauss%lzd%llr(ilr)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilr)%wfd%nvctr_f
+          ist = ist + ncount
+      end do
+      deallocate(phiplot)
 
   call deallocate_gwf(G,subname)
 

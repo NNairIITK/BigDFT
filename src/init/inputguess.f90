@@ -2220,6 +2220,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    !Functions
    real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
 
+write(*,*) 'rprb',rprb
+
    if (nintp.ne.n_int) then
       stop 'n_int/=nintp'
    end if
@@ -2360,6 +2362,9 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                ! potential energy from parabolic potential
                hh(i,j)=hh(i,j) +&
                   &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+                  !write(*,*) 'potential',.5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4
+                  !&   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/(3.9d0*rprb)**4 *sxp*(l+5/2) !quartic potential
+                  !write(*,*) 'potential',.5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
                ! hartree potential from ionic core charge
                tt=sqrt(1._gp+2._gp*alpz**2*d)
                if (l.eq.0) then

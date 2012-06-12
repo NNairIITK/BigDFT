@@ -2522,6 +2522,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normslize_transposed'
+  real(8):: tt
 
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)
@@ -2558,9 +2559,14 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   end if
   
 
+  tt=0.d0
   do iorb=1,orbs%norb
+      !if(iproc==0) write(*,*) 'iorb,1.d0-norm(iorb)',iorb,1.d0-norm(iorb)
+      tt=tt+abs(1.d0-norm(iorb))
       norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
+  tt=tt/orbs%norb
+  if(iproc==0) write(*,*) 'dev from normalization',tt
 
 
   i0=0
