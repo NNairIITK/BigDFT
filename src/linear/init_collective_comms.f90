@@ -731,7 +731,7 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
   logical:: found, overlap_possible
   integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
   character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
-  !!real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
+  real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)
@@ -744,8 +744,8 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
   iitot=0
   iiorb=0
   iipt=0
-!!t_check_gridpoint=0.d0
-!!t1tot=mpi_wtime()
+t_check_gridpoint=0.d0
+t1tot=mpi_wtime()
   !write(*,*) 'iproc, istartp_seg_c,iendp_seg_c', iproc, istartp_seg_c,iendp_seg_c
     !do iseg=1,lzd%glr%wfd%nseg_c
     do iseg=istartp_seg_c,iendp_seg_c
@@ -772,12 +772,12 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
                    if(.not. overlap_possible) then
                        found=.false.
                    else
-                       !!t1=mpi_wtime()
+                       t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%llr(ilr)%wfd%keygloc, &
                             i, i2, i3, iseg_start_c(ilr), found)
-                       !!t2=mpi_wtime()
-                       !!t_check_gridpoint=t_check_gridpoint+t2-t1
+                       t2=mpi_wtime()
+                       t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -824,13 +824,13 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
                        found=.false.
                    else
                        iii=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-                       !!t1=mpi_wtime()
+                       t1=mpi_wtime()
                        call check_gridpoint(lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
                             lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
                             lzd%llr(ilr)%wfd%keygloc(1,iii), &
                             i, i2, i3, iseg_start_f(ilr), found)
-                       !!t2=mpi_wtime()
-                       !!t_check_gridpoint=t_check_gridpoint+t2-t1
+                       t2=mpi_wtime()
+                       t_check_gridpoint=t_check_gridpoint+t2-t1
                    end if
                    if(found) then
                        npgp=npgp+1
@@ -854,9 +854,9 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
   deallocate(iseg_start_f, stat=istat)
   call memocc(istat, iall, 'iseg_start_f', subname)
 
-!!t2tot=mpi_wtime()
-!!write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
-!!write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
+t2tot=mpi_wtime()
+if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
+if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
 
 end subroutine determine_num_orbs_per_gridpoint
 
