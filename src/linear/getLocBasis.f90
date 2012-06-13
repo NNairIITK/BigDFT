@@ -775,7 +775,7 @@ endif
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))

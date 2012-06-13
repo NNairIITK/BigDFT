@@ -3,7 +3,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   integer,intent(in):: iproc, nproc, it
   logical,intent(in):: variable_locregs
   type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
+  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
   type(localizedDIISParameters),intent(inout):: ldiis
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
   real(8),dimension(:),pointer,intent(inout):: lphioldopt, lhphioldopt
@@ -26,13 +26,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
+  type(orbitals_data),intent(in):: orbs
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
+  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:,:),allocatable:: lagmat
+  real(8),dimension(:,:),allocatable:: lagmat, epsmat, ovrlp
   real(8):: closesteval, gnrm_temple
+
+
+
+  do iorb=1,tmbopt%orbs%norb
+      ilr=tmbopt%orbs%inwhichlocreg(iorb)
+      do jorb=1,tmbopt%orbs%norb
+          jlr=tmbopt%orbs%inwhichlocreg(jorb)
+          tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
+              +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
+              +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
+          tt=sqrt(tt)
+          !if(tt>10.d0) kernel(jorb,iorb)=0.d0
+          if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+      end do
+  end do
+  if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -58,6 +75,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
   fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
   if(iproc==0) write(*,*) 'FISRT FNRM',fnrm
+
 
 
 
@@ -95,7 +113,61 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
+  !! EXPERIMENTAL ######################################################################
+  ! calculate Lagrange multiplier matrix for psi
+  allocate(epsmat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, epsmat, 'epsmat', subname)
+  allocate(ovrlp(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
+  do iorb=1,orbs%norb
+     do jorb=1,orbs%norb
+         tt=0.d0
+         do korb=1,tmbopt%orbs%norb
+             do lorb=1,tmbopt%orbs%norb
+                 tt=tt+tmb%wfnmd%coeff(korb,iorb)*tmb%wfnmd%coeff(lorb,jorb)*lagmat(korb,lorb)
+             end do
+         end do
+         epsmat(jorb,iorb)=tt
+     end do
+  end do
+  call getOverlapMatrix2(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%comon, tmbopt%op, tmbopt%psi, tmbopt%mad, ovrlp)
 
+  tt=0.d0
+  do iorb=1,tmbopt%orbs%norb
+      do jorb=1,orbs%norb
+          do korb=1,tmbopt%orbs%norb
+              tt=tt+tmb%wfnmd%coeff(korb,jorb)*lagmat(korb,iorb)
+          end do
+          do korb=1,orbs%norb
+              do lorb=1,tmbopt%orbs%norb
+                  tt=tt-epsmat(korb,jorb)*tmb%wfnmd%coeff(lorb,korb)*ovrlp(lorb,iorb)
+              end do
+          end do
+      end do
+  end do
+  if(iproc==0) write(*,*) 'tt',tt
+
+  iall=-product(shape(epsmat))*kind(epsmat)
+  deallocate(epsmat, stat=istat)
+  call memocc(istat, iall, 'epsmat', subname)
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
+  !! ###################################################################################
+
+      if(iproc==0) write(*,*) 'EXPERIMENTAL: precond here with confinement'
+  !!if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!    ind2=1
+  !!    do iorb=1,tmbopt%orbs%norbp
+  !!        iiorb=tmbopt%orbs%isorb+iorb
+  !!        ilr = tmbopt%orbs%inWhichLocreg(iiorb)
+  !!        ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+  !!        call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+  !!             tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+  !!             5, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+  !!             1.d-3, it, iorb, eval_zero)
+  !!    end do
+  !!end if
 
 
   call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
@@ -265,7 +337,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  !if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
+  !!if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
   ind2=1
   do iorb=1,tmbopt%orbs%norbp
       iiorb=tmbopt%orbs%isorb+iorb
