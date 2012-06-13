@@ -220,7 +220,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   ! Normalize the coeffiecients (Loewdin)
 
-  ! Calculate the overlap matrix among the coefficients with respect to ovrlp. Use lagmat as temporary array.
+  ! Calculate the overlap matrix among the coefficients with resct to ovrlp. Use lagmat as temporary array.
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeffp(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   do iorb=1,orbs%norbp

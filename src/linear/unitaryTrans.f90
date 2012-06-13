@@ -1020,7 +1020,17 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
               +(centers_start(2,iorb)-centers_end(2,iorb))**2 &
               +(centers_start(3,iorb)-centers_end(3,iorb))**2 
           tt=sqrt(tt)
-          !!if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
+          if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
+      end do
+  else
+      do iorb=1,lzd%nlr
+          tt = (centers(1,iorb)-locregCenters(1,iorb))**2 &
+              +(centers(2,iorb)-locregCenters(2,iorb))**2 &
+              +(centers(3,iorb)-locregCenters(3,iorb))**2 
+          tt=sqrt(tt)
+          if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
+          if(iproc==0) write(*,'(a,6es9.2)') 'centers(1,iorb), centers(2,iorb), centers(3,iorb), locregCenters(1,iorb), locregCenters(2,iorb), locregCenters(3,iorb)', &
+                                                centers(1,iorb), centers(2,iorb), centers(3,iorb), locregCenters(1,iorb), locregCenters(2,iorb), locregCenters(3,iorb)
       end do
   end if
 
