@@ -43,7 +43,7 @@ PS_Program_LDADD = @LIBS_DEPENDENCIES@
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = @LIBS_DEPENDENCIES@
 
-PS_Integral_SOURCES = PS_Integral.f90 ../MPIfake.f90
+PS_Integral_SOURCES = PS_Integral.f90
 PS_Integral_LDADD = @LIBS_DEPENDENCIES@
 
 

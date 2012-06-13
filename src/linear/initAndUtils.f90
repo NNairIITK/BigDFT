@@ -1831,9 +1831,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
 end subroutine redefine_locregs_quantities
 
-
-
-
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)

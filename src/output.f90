@@ -56,7 +56,7 @@ call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (20
 call yaml_map('Version Number',package_version)
 call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
 call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-if (ierr ==0) call yaml_map('Hostname',trim(nodename_local))
+if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
 !       & '(Ver ' // package_version // ')'
 
 !  write(*,'(1x,a)')&
