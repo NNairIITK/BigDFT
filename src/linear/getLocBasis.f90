@@ -624,6 +624,7 @@ real(8),dimension(2):: reducearr
 
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
+
       fnrmMax=0.d0
       fnrm=0.d0
   
@@ -673,6 +674,8 @@ real(8),dimension(2):: reducearr
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
       call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
            tmbopt%psi, tmblarge2%psi)
+      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
+           lphiold, lphilargeold2)
       if(it==1) then
           call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -3274,7 +3277,6 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
-  if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
   if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
