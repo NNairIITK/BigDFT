@@ -216,7 +216,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !if(ldiis%isx==0) then
        if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
        !if(trH > trHold + 1.d-8*abs(trHold)) then
-       if(trH > ldiis%trmin )
+       if(trH > ldiis%trmin) then
            consecutive_rejections=consecutive_rejections+1
            if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
            !!if(consecutive_rejections<=3) then
