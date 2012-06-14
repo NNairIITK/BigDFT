@@ -170,9 +170,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!end if
 
 
-  call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
 
   !!tmbopt => tmb
@@ -188,8 +188,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
 
-  call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
 
 
@@ -371,8 +371,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ind2=ind2+ncnt
   end do
 
-  call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
   tmbopt => tmb
   lhphiopt => lhphi
