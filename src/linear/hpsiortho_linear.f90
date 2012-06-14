@@ -46,10 +46,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
           tt=sqrt(tt)
           !if(tt>10.d0) kernel(jorb,iorb)=0.d0
-          if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+          !if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
       end do
   end do
-  if (iproc==0) write(999,*) '-------------------------------------------------------------------'
+  !if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
