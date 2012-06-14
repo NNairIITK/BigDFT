@@ -46,10 +46,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
           tt=sqrt(tt)
           !if(tt>10.d0) kernel(jorb,iorb)=0.d0
-          !if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+          if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
       end do
   end do
-  !if (iproc==0) write(999,*) '-------------------------------------------------------------------'
+  if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -223,15 +223,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                    if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                    call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-                   if(.not.variable_locregs) then
-                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-                   end if
                else if(.not.variable_locregs) then
                    if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                    call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-                   if(.not.variable_locregs) then
-                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-                   end if
                else 
                    ! It is not possible to use the old orbitals since the locregs might have changed.
                    !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
@@ -240,15 +234,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                end if
            else
                consecutive_rejections=0
-               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will reuse the old TMBs and exit...'
-                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-                   if(.not.variable_locregs) then
-                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-                   end if
+               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
                emergency_exit=.true.
            end if
        else
-           !consecutive_rejections=0
+           consecutive_rejections=0
        end if
   end if
 
@@ -341,9 +331,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call dcopy(tmbopt%orbs%npsidim_orbs, lhphiopt, 1, lhphioldopt, 1)
   if(variable_locregs .and. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
       call dcopy(max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), lhphiopt, 1, lhphioldopt, 1)
-  if(trH <= trHold + 1.d-8*abs(trHold)) then
-      trHold=trH
-  end if
+  trHold=trH
 
   ! Precondition the gradient.
   if(iproc==0) then
@@ -462,11 +450,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   !!if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
-  if(.not.ldiis%switchSD) then
+  !if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, nproc, it, variable_locregs, tmbopt, ldiis, lhphiopt, alpha)
-  else
-      if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
-  end if
+  !!else
+  !!    if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+  !!end if
 
   ! The transposed quantities can now not be used any more...
   if(tmbopt%can_use_transposed) then
@@ -559,9 +547,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   end if newgradient_if_2
 
 
-  !do_ortho_if2: if(.true.) then
   do_ortho_if2: if(.not.ldiis%switchSD) then
-  !do_ortho_if2: if(ldiis%nwaitortho<=0) then
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       else
@@ -577,7 +563,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           lphioldopt => lphilargeold
       end if
       tmbopt%confdatarr => tmb%confdatarr
-      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
+      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &

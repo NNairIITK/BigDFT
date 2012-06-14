@@ -248,9 +248,9 @@ real(8),dimension(:,:),allocatable:: locregCenter
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       do iorb=1,tmbmix%orbs%norb
-        !!do jorb=1,tmbmix%orbs%norb
-        !!  write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
-        !!end do
+        do jorb=1,tmbmix%orbs%norb
+          write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
+        end do
       end do
       if(blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
@@ -624,14 +624,12 @@ real(8),dimension(2):: reducearr
 
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
-
       fnrmMax=0.d0
       fnrm=0.d0
   
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
-      if(iproc==0) write(*,*) 'at begin iterLoop: tmb%psi(1)',tmb%psi(1)
 
 
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -675,8 +673,6 @@ real(8),dimension(2):: reducearr
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
       call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
            tmbopt%psi, tmblarge2%psi)
-      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
-           lphiold, lphilargeold2)
       if(it==1) then
           call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -853,7 +849,6 @@ endif
                   write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
                       ' iterations to keep presumably good TMBs before they deteriorate too much.'
                   write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-                  if(iproc==0) write(*,*) 'when exiting: tmb%psi(1)',tmb%psi(1)
               end if
               infoBasisFunctions=-1
           end if
@@ -3279,6 +3274,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
+  if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
   if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
