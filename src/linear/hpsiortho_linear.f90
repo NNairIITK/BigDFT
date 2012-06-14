@@ -240,11 +240,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                end if
            else
                consecutive_rejections=0
-               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will reuse the old TMBs and exit...'
+                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+                   if(.not.variable_locregs) then
+                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   end if
                emergency_exit=.true.
            end if
        else
-           consecutive_rejections=0
+           !consecutive_rejections=0
        end if
   end if
 
@@ -555,8 +559,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   end if newgradient_if_2
 
 
-  do_ortho_if2: if(.true.) then
-  !do_ortho_if2: if(.not.ldiis%switchSD) then
+  !do_ortho_if2: if(.true.) then
+  do_ortho_if2: if(.not.ldiis%switchSD) then
   !do_ortho_if2: if(ldiis%nwaitortho<=0) then
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then

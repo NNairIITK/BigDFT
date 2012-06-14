@@ -631,6 +631,7 @@ real(8),dimension(2):: reducearr
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
+      if(iproc==0) write(*,*) 'at begin iterLoop: tmb%psi(1)',tmb%psi(1)
 
 
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -852,6 +853,7 @@ endif
                   write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
                       ' iterations to keep presumably good TMBs before they deteriorate too much.'
                   write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  if(iproc==0) write(*,*) 'when exiting: tmb%psi(1)',tmb%psi(1)
               end if
               infoBasisFunctions=-1
           end if
