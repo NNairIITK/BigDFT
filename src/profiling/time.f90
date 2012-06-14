@@ -157,7 +157,7 @@ module timeData
          !calculate the summary of the category
          call sort_positions(ncat,timesum,isort)
 !!$         iunit=60
-!!$         open(unit=iunit,file=trim(filename_time),status='unknown',position='append')
+         open(unit=60,file=trim(filename_time),status='unknown',position='append')
 !!$                  
 !!$         !first get the default stream
 !!$         call yaml_get_default_stream(iunit_def)
