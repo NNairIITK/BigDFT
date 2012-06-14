@@ -1331,6 +1331,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            opt%iter = opt%iter + 1
         end do wfn_loop
+
         if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if

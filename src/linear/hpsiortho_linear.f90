@@ -170,9 +170,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!end if
 
 
-  call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
 
   !!tmbopt => tmb
@@ -188,8 +188,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
 
-  call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
 
 
@@ -212,7 +212,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Cycle if the trace increased (steepest descent only)
-  if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  if(ldiis%isx==0) then
        if(trH > trHold + 1.d-8*abs(trHold)) then
            consecutive_rejections=consecutive_rejections+1
            if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
@@ -309,7 +310,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmbopt%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-      if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      !if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      if(it>1 .and. ldiis%isx==0) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           !if(tt>.9d0 .and. trH<trHold) then
@@ -357,8 +359,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ind2=ind2+ncnt
   end do
 
-  call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
   tmbopt => tmb
   lhphiopt => lhphi
@@ -448,11 +450,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   !!if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
-  if(.not.ldiis%switchSD) then
+  !if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, nproc, it, variable_locregs, tmbopt, ldiis, lhphiopt, alpha)
-  else
-      if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
-  end if
+  !!else
+  !!    if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+  !!end if
 
   ! The transposed quantities can now not be used any more...
   if(tmbopt%can_use_transposed) then

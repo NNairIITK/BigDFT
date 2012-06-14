@@ -3274,6 +3274,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
+  if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
   if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
