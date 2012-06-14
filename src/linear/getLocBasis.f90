@@ -248,9 +248,9 @@ real(8),dimension(:,:),allocatable:: locregCenter
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       do iorb=1,tmbmix%orbs%norb
-        do jorb=1,tmbmix%orbs%norb
-          write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
-        end do
+        !!do jorb=1,tmbmix%orbs%norb
+        !!  write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
+        !!end do
       end do
       if(blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '

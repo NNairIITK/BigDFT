@@ -212,43 +212,43 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Cycle if the trace increased (steepest descent only)
-  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-  if(ldiis%isx==0) then
+  if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  !if(ldiis%isx==0) then
        if(trH > trHold + 1.d-8*abs(trHold)) then
            consecutive_rejections=consecutive_rejections+1
            if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-           !!if(consecutive_rejections<=3) then
-           !!    ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
-           !!    alpha=alpha*.6d0
-           !!    if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-           !!        call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    else if(.not.variable_locregs) then
-           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-           !!        call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    else 
-           !!        ! It is not possible to use the old orbitals since the locregs might have changed.
-           !!        !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
-           !!        if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
-           !!        emergency_exit=.true.
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    end if
-           !!else
+           if(consecutive_rejections<=3) then
+               ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
+               alpha=alpha*.6d0
+               if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+                   if(.not.variable_locregs) then
+                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   end if
+               else if(.not.variable_locregs) then
+                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+                   if(.not.variable_locregs) then
+                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   end if
+               else 
+                   ! It is not possible to use the old orbitals since the locregs might have changed.
+                   !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+                   if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
+                   emergency_exit=.true.
+                   if(.not.variable_locregs) then
+                       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   end if
+               end if
+           else
                consecutive_rejections=0
                if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
                emergency_exit=.true.
                if(.not.variable_locregs) then
                    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
                end if
-           !!end if
+           end if
        else
            consecutive_rejections=0
        end if
@@ -321,9 +321,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm=0.d0
   do iorb=1,tmbopt%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
+      write(1000+iorb+tmbopt%orbs%isorb,*) lagmat(iorb+tmbopt%orbs%isorb,iorb+tmbopt%orbs%isorb), fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-      !if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-      if(it>1 .and. ldiis%isx==0) then
+      if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      !if(it>1 .and. ldiis%isx==0) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           !if(tt>.9d0 .and. trH<trHold) then
