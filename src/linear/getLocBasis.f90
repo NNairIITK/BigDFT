@@ -3614,7 +3614,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
 
   ! Local variables
