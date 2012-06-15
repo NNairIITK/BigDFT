@@ -648,16 +648,20 @@ typedef enum
 #ifdef GLIB_MAJOR_VERSION
 #include <gio/gio.h>
 
-GSocket* bigdft_signals_client_new(const gchar *hostname,
-                                   GCancellable *cancellable, GError **error);
-GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
+typedef struct _BigDFT_SignalsHandler BigDFT_SignalsClient;
+
+BigDFT_SignalsClient* bigdft_signals_client_new(const gchar *hostname,
+                                                GCancellable *cancellable, GError **error);
+GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
-void bigdft_signals_client_create_thread(GSocket *socket, BigDFT_Energs *energs,
+void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                          BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                          BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                          GDestroyNotify destroy, gpointer data);
+void bigdft_signals_client_set_block_run(BigDFT_SignalsClient *client, gboolean status);
+gboolean bigdft_signals_client_get_block_run(BigDFT_SignalsClient *client);
 #endif
 
 double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
