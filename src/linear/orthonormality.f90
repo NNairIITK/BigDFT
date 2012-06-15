@@ -20,10 +20,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   logical,intent(out):: can_use_transposed
 
   ! Local variables
-  integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
+  integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
   real(8),dimension(:),allocatable:: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError
+  real(8):: maxError, tt
   real(8),dimension(:,:),allocatable:: ovrlp
 
 
@@ -72,6 +72,23 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
       end if
+
+      !!! EXPERIMENTAL ###########################################################
+      !!do iorb=1,orbs%norb
+      !!    ilr=orbs%inwhichlocreg(iorb)
+      !!    do jorb=1,orbs%norb
+      !!        jlr=orbs%inwhichlocreg(jorb)
+      !!        tt = (lzd%llr(ilr)%locregCenter(1) - lzd%llr(jlr)%locregCenter(1))**2 &
+      !!            +(lzd%llr(ilr)%locregCenter(2) - lzd%llr(jlr)%locregCenter(2))**2 &
+      !!            +(lzd%llr(ilr)%locregCenter(3) - lzd%llr(jlr)%locregCenter(3))**2
+      !!        tt=sqrt(tt)
+      !!        if(tt > 6.6d-1*lzd%llr(ilr)%locrad) then
+      !!            if(iproc==0) write(99,*) tt, ovrlp(jorb,iorb)
+      !!            ovrlp(jorb,iorb)=0.d0
+      !!        end if
+      !!    end do
+      !!end do
+      !!! END EXPERIMENTAL #######################################################
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
