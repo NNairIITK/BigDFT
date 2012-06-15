@@ -938,7 +938,7 @@ static gboolean _signals_client_send_answer(BigDFT_SignalsClient *client, _Answe
   if (!mutex) mutex = g_mutex_new();
   g_mutex_lock(mutex);
 
-  g_printerr("sending answer start %d %d\n", status, client->blockingStatus);
+  /* g_printerr("sending answer start %d %d\n", status, client->blockingStatus); */
   answer.id = BIGDFT_SIGNAL_ANSWER_DONE;
   size = sizeof(BigDFT_SignalReply);
   switch (status)
@@ -961,7 +961,7 @@ static gboolean _signals_client_send_answer(BigDFT_SignalsClient *client, _Answe
         client->blockingStatus = status;
       break;
     }
-  g_printerr("sending status %d\n", client->blockingStatus);
+  /* g_printerr("sending status %d\n", client->blockingStatus); */
 
   g_mutex_unlock(mutex);
 
@@ -1161,15 +1161,30 @@ static gboolean bigdft_signals_client_handle(BigDFT_SignalsClient *client,
     }
   return ret;
 }
+
+struct _SourceArg
+{
+  BigDFT_SignalsClient *client;
+  GDestroyNotify destroy;
+  gpointer data;
+};
+static void destroySourceArg(gpointer user_data)
+{
+  struct _SourceArg *ct = (struct _SourceArg *)user_data;
+
+  /* g_printerr("Destroy function from source.\n"); */
+  if (ct->destroy)
+    ct->destroy(ct->data);
+  g_free(ct);
+};
+
 static gboolean testCancel(gpointer user_data)
 {
-  BigDFT_Main *bmain = (BigDFT_Main*)user_data;
+  struct _SourceArg *ct = (struct _SourceArg *)user_data;
 
-  if (g_cancellable_is_cancelled(bmain->cancellable))
+  if (g_cancellable_is_cancelled(ct->client->cancellable))
     {
-      g_source_destroy(bmain->source);
-      if (bmain->destroy)
-        bmain->destroy(bmain->destroyData);
+      g_source_destroy(g_main_current_source());
       return FALSE;
     }
   
@@ -1179,7 +1194,8 @@ static gboolean testCancel(gpointer user_data)
 static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
                                  gpointer user_data)
 {
-  BigDFT_SignalsClient *client = (BigDFT_SignalsClient*)user_data;
+  struct _SourceArg *ct = (struct _SourceArg *)user_data;
+  BigDFT_SignalsClient *client = ct->client;
   GError *error;
   
   error = (GError*)0;
@@ -1197,11 +1213,7 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
           if (error->code != G_IO_ERROR_CLOSED)
             g_warning("Client: %s", error->message);
           else
-            {
-              g_source_destroy(g_main_current_source());
-              if (client->destroy)
-                client->destroy(client->destroyData);
-            }
+            g_source_destroy(g_main_current_source());
           g_error_free(error);
           return (error->code != G_IO_ERROR_CLOSED);
         }
@@ -1217,7 +1229,8 @@ static gboolean onClientTransfer(GSocket *socket, GIOCondition condition,
 
 static gboolean onMainClientTransfer(gpointer user_data)
 {
-  BigDFT_Main *ct = (BigDFT_Main*)user_data;
+  struct _SourceArg *ct = (struct _SourceArg *)user_data;
+  BigDFT_SignalsClient *client = ct->client;
   gpointer data;
   BigDFT_Energs *energs;
   BigDFT_Wf *wf;
@@ -1231,68 +1244,68 @@ static gboolean onMainClientTransfer(gpointer user_data)
   BigDFT_Lzd *lzd;
   BigDFT_PsiId ipsi;
 
-  data = g_async_queue_try_pop(ct->message);
+  data = g_async_queue_try_pop(client->message);
   if (!data)
     return TRUE;
 
-  /* g_printerr("Data (%d) retrieval from %p.\n", GPOINTER_TO_INT(data), (gpointer)g_thread_self()); */
+  /* g_printerr("Data (%d) retrieval from %p.\n", */
+  /*            GPOINTER_TO_INT(data), (gpointer)g_thread_self()); */
   switch (GPOINTER_TO_INT(data))
     {
     case BIGDFT_SIGNAL_E_READY:
-      energs = BIGDFT_ENERGS(g_async_queue_pop(ct->message));
-      signal = (BigDFT_Signals*)g_async_queue_pop(ct->message);
+      energs = BIGDFT_ENERGS(g_async_queue_pop(client->message));
+      signal = (BigDFT_Signals*)g_async_queue_pop(client->message);
       bigdft_energs_emit(energs, signal->iter, signal->kind);
       break;
     case BIGDFT_SIGNAL_PSI_READY:
-      wf = BIGDFT_WF(g_async_queue_pop(ct->message));
-      iter = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
-      psic = (GArray*)g_async_queue_pop(ct->message);
-      quark = GPOINTER_TO_INT(g_async_queue_pop(ct->message));
-      ipsi = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
-      answer = (BigDFT_SignalReply*)g_async_queue_pop(ct->message);
+      wf = BIGDFT_WF(g_async_queue_pop(client->message));
+      iter = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
+      psic = (GArray*)g_async_queue_pop(client->message);
+      quark = GPOINTER_TO_INT(g_async_queue_pop(client->message));
+      ipsi = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
+      answer = (BigDFT_SignalReply*)g_async_queue_pop(client->message);
       bigdft_wf_emit_one_wave(wf, iter, psic, quark, ipsi,
                               answer->ikpt, answer->iorb, answer->kind);
       break;
     case BIGDFT_SIGNAL_LZD_DEFINED:
-      lzd = BIGDFT_LZD(g_async_queue_pop(ct->message));
+      lzd = BIGDFT_LZD(g_async_queue_pop(client->message));
       bigdft_lzd_emit_defined(lzd);
       break;
     case BIGDFT_SIGNAL_DENSPOT_READY:
-      denspot = BIGDFT_LOCALFIELDS(g_async_queue_pop(ct->message));
-      iter = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
-      kind = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
+      denspot = BIGDFT_LOCALFIELDS(g_async_queue_pop(client->message));
+      iter = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
+      kind = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
       if (kind == BIGDFT_DENSPOT_DENSITY)
         bigdft_localfields_emit_rhov(denspot, iter);
       else if (kind == BIGDFT_DENSPOT_V_EXT)
         bigdft_localfields_emit_v_ext(denspot);
       break;
     case BIGDFT_SIGNAL_OPTLOOP_READY:
-      optloop = BIGDFT_OPTLOOP(g_async_queue_pop(ct->message));
-      kind = GPOINTER_TO_INT(g_async_queue_pop(ct->message)) - 1;
-      energs = BIGDFT_ENERGS(g_async_queue_pop(ct->message));
+      optloop = BIGDFT_OPTLOOP(g_async_queue_pop(client->message));
+      kind = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
+      energs = BIGDFT_ENERGS(g_async_queue_pop(client->message));
       bigdft_optloop_emit(optloop, kind, energs);
       break;
     case BIGDFT_SIGNAL_CONNECTION_CLOSED:
       g_source_destroy(g_main_current_source());
-      if (ct->destroy)
-        ct->destroy(ct->destroyData);
       return FALSE;
     default:
       break;
     }
-  data = g_async_queue_pop(ct->message);
-  /* g_printerr("Data (%d) processed from %p.\n", GPOINTER_TO_INT(data), (gpointer)g_thread_self()); */
+  data = g_async_queue_pop(client->message);
+  /* g_printerr("Data (%d) processed from %p.\n", */
+  /*            GPOINTER_TO_INT(data), (gpointer)g_thread_self()); */
   
   return TRUE;
 }
 
 GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                             BigDFT_OptLoop *optloop,
-                                             GCancellable *cancellable,
+                                             BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data)
 {
   GSource *source;
+  struct _SourceArg *args;
 
   client->wf = wf;
   if (wf)
@@ -1313,50 +1326,58 @@ GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDF
       g_signal_handler_block(G_OBJECT(client->optloop), client->optloop_sync);
     }
   client->cancellable = cancellable;
-  client->destroy = destroy;
-  client->destroyData = data;
   
   source = g_socket_create_source(client->socket, G_IO_IN | G_IO_HUP, cancellable);
+  args = g_malloc(sizeof(struct _SourceArg));
+  args->client  = client;
+  args->destroy = destroy;
+  args->data    = data;
   g_source_set_callback(source, (GSourceFunc)onClientTransfer,
-                        client, bigdft_signals_free_main);
+                        args, destroySourceArg);
 
   return source;
 }
 
 static gpointer _signals_client_thread(gpointer data)
 {
-  BigDFT_Main *bmain, *ct = (BigDFT_Main*)data;
+  BigDFT_SignalsClient *client = (BigDFT_SignalsClient*)data;
   GAsyncQueue *message;
   GMainContext *context;
   GMainLoop *loop;
-  GSource *source;
+  GSource *source, *cancel;
+  struct _SourceArg *args;
 
   /* g_printerr("Creating a new thread %p for data retrieval.\n", (gpointer)g_thread_self()); */
-  message = ct->message;
+  message = client->message;
   g_async_queue_ref(message);
+
   context = g_main_context_new();
   loop    = g_main_loop_new(context, FALSE);
 
-  bmain = g_malloc0(sizeof(BigDFT_Main));
-  bmain->message = message;
-  g_async_queue_ref(bmain->message);
-  bmain->socket = ct->socket;
-  g_object_ref(bmain->socket);
-  bmain->source = bigdft_signals_client_create_source(bmain, ct->energs, ct->wf, ct->denspot,
-                                                      ct->optloop, ct->cancellable,
-                                                      (GDestroyNotify)g_main_loop_quit,
-                                                      (gpointer)loop);
-  g_source_attach(bmain->source, context);
-  source = g_timeout_source_new_seconds(1);
-  g_source_set_callback(source, testCancel, bmain, (GDestroyNotify)0);
-  if (bmain->cancellable)
-    g_source_attach(source, context);
-  g_async_queue_push(bmain->message, GINT_TO_POINTER(BIGDFT_SIGNAL_ANSWER_DONE));
+  source = bigdft_signals_client_create_source(client, client->energs, client->wf, client->denspot,
+                                               client->optloop, client->cancellable,
+                                               (GDestroyNotify)g_main_loop_quit,
+                                               (gpointer)loop);
+  g_source_attach(source, context);
+
+  cancel = g_timeout_source_new_seconds(1);
+  args = g_malloc(sizeof(struct _SourceArg));
+  args->client  = client;
+  args->destroy = (GDestroyNotify)g_main_loop_quit;
+  args->data    = (gpointer)loop;
+  g_source_set_callback(cancel, testCancel, args, destroySourceArg);
+  if (client->cancellable)
+    g_source_attach(cancel, context);
+
+  /* We have done the initialisation, main thread can continue. */
+  /* g_printerr("Initialisation done in thread %p.\n", (gpointer)g_thread_self()); */
+  g_async_queue_push(client->message, GINT_TO_POINTER(BIGDFT_SIGNAL_ANSWER_DONE));
 
   /* g_printerr("Running loop in thread %p.\n", (gpointer)g_thread_self()); */
   g_main_loop_run(loop);
   /* g_printerr("Terminating loop in thread %p.\n", (gpointer)g_thread_self()); */
 
+  g_source_unref(cancel);
   g_source_unref(source);
   g_main_loop_unref(loop);
   g_main_context_unref(context);
@@ -1375,28 +1396,28 @@ void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_En
 {
   GThread *ld_thread;
   GError *error;
-  BigDFT_Main ct_;
+  struct _SourceArg *args;
 
   /* g_printerr("Main thread %p.\n", (gpointer)g_thread_self()); */
   
-  ct_.socket      = client->socket;
-  ct_.energs      = energs;
-  ct_.wf          = wf;
-  ct_.denspot     = denspot;
-  ct_.optloop     = optloop;
-  ct_.cancellable = cancellable;
+  client->energs      = energs;
+  client->wf          = wf;
+  client->denspot     = denspot;
+  client->optloop     = optloop;
+  client->cancellable = cancellable;
   
-  ct_.message     = g_async_queue_new();
+  client->message     = g_async_queue_new();
+
   error = (GError*)0;
-  ld_thread = g_thread_create(_signals_client_thread, &ct_, FALSE, &error);
+  ld_thread = g_thread_create(_signals_client_thread, client, FALSE, &error);
   /* Wait for thread up and running. */
-  g_async_queue_pop(ct_.message);
+  g_async_queue_pop(client->message);
   
-  client->message = ct_.message;
-  client->destroy = destroy;
-  client->destroyData = data;
-  g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, onMainClientTransfer,
-                  client, (GDestroyNotify)bigdft_signals_free_main);
+  args = g_malloc(sizeof(struct _SourceArg));
+  args->client  = client;
+  args->destroy = destroy;
+  args->data    = data;
+  g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, onMainClientTransfer, args, destroySourceArg);
   /* g_printerr("Main thread %p starts idle waiting.\n", (gpointer)g_thread_self()); */
 }
 

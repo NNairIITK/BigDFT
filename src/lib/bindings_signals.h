@@ -44,8 +44,6 @@ struct _BigDFT_SignalsHandler
   _AnswerStatus blockingStatus;
 
   GCancellable *cancellable;
-  GDestroyNotify destroy;
-  gpointer destroyData;
 #endif
 
   BigDFT_Wf *wf, *tmb;

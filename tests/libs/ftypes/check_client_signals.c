@@ -314,7 +314,6 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic, BigDFT_PsiId ips
 }
 static gboolean onRunUnblock(gpointer data)
 {
-  g_printerr("Unblocking ???\n");
   bigdft_signals_client_set_block_run((BigDFT_SignalsClient*)data, FALSE);
 
   return FALSE;
@@ -442,7 +441,9 @@ int main(int argc, const char **argv)
                                           NULL, onClosedSocket, loop);
 
       g_main_loop_run(loop);
-    }
+
+      bigdft_signals_client_free(client);
+    }    
 
   g_object_unref(wf);
   g_object_unref(energs);

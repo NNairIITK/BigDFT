@@ -662,6 +662,7 @@ void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_En
                                          GDestroyNotify destroy, gpointer data);
 void bigdft_signals_client_set_block_run(BigDFT_SignalsClient *client, gboolean status);
 gboolean bigdft_signals_client_get_block_run(BigDFT_SignalsClient *client);
+void bigdft_signals_client_free(BigDFT_SignalsClient *client);
 #endif
 
 double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
