@@ -269,6 +269,7 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
   coeffs_copied=.false.
   first_time_with_der=.false.
   nit_highaccur=0
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
       !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 

@@ -991,6 +991,9 @@ character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
+nullify(psit_c)
+nullify(psit_f)
+
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
      orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
 

@@ -540,6 +540,10 @@ real(8),dimension(2):: reducearr
 
   !!end if
 
+
+  call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+
+
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       ! This is not the ideal place for this...
       if(tmbopt%can_use_transposed) then
@@ -877,6 +881,7 @@ endif
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
            alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
+  call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
@@ -3595,3 +3600,72 @@ subroutine plot_gradient(iproc, nproc, num, lzd, orbs, psi)
   end do
 
 end subroutine plot_gradient
+
+
+
+
+
+subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(DFT_wavefunction),intent(in):: tmb
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+
+  ! Local variables
+  integer:: istat, iorb, jorb, ierr
+  real(8):: ddot, tt, tt2, tt3
+  real(8),dimension(:,:),allocatable:: ovrlp_tmb, coeff_tmp, ovrlp_tmp, ovrlp_coeff
+
+
+  allocate(ovrlp_tmb(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  allocate(coeff_tmp(tmb%orbs%norb,orbs%norb), stat=istat)
+  allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
+  allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
+
+   ! Calculate the overlap matrix between the TMBs.
+   call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+
+  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb. Use lagmat as temporary array.
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+       tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  do iorb=1,orbs%norbp
+      do jorb=1,orbs%norb
+          ovrlp_tmp(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
+      end do
+  end do
+  ! Gather together the complete matrix
+  call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+
+  ! WARNING: this is the wrong mad, but it does not matter for iorder=0
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
+
+  ! Build the new linear combinations
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+       ovrlp_coeff(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+
+  call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+
+  ! Check normalization
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+       tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
+          tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+          tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+          if(iproc==0) write(200,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
+      end do
+  end do
+
+  ! Recalculate the kernel
+  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+
+
+end subroutine reconstruct_kernel
