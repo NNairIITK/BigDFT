@@ -3608,6 +3608,7 @@ end subroutine plot_gradient
 subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   ! Calling arguments
