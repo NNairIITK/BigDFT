@@ -960,7 +960,7 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
-       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
+       !if(r2>=81.d0) write(*,'(6i8,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), r2 
 
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else

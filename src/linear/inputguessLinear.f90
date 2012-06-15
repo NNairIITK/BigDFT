@@ -854,6 +854,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
            .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+
       call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
@@ -866,7 +867,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)
       call memocc(istat, iall, 'locrad_tmp', subname)
-
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
@@ -1969,7 +1969,7 @@ do it=1,nItOrtho
         call memocc(istat, psittemp_f, 'psittemp_f', subname)
         call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
         call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f)
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
         call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
     
         ist=1
@@ -2172,14 +2172,14 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
                 ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
             end do
         end do
-        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
         
         do iorb=1,orbs%norb
             do jorb=1,orbs%norb
                 ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
             end do
         end do
-        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f)
+        call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   
       !!call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, vec_compr)
       call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, grad_compr)

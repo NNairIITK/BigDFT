@@ -1865,7 +1865,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
   character(len=*),parameter:: subname='update_locreg'
 
-
+  call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_orbitals_data(llborbs)
   call nullify_overlapParameters(lbop)
   call nullify_p2pComms(lbcomon)
@@ -1916,6 +1916,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
+
+  call timing(iproc,'updatelocreg1','OF') !lr408t
+
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
@@ -1924,13 +1927,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 
-
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-
 
 end subroutine update_locreg
 

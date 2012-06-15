@@ -490,6 +490,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
+     call timing(iproc,'gauss_proj','ON') !lr408t
      if (iproc == 0) then
         write( *,'(1x,a)')&
              &   '---------------------------------------------------------- Gaussian Basis Projection'
@@ -532,7 +533,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
      call memocc(i_stat,i_all,'thetaphi',subname)
-
+     call timing(iproc,'gauss_proj','OF') !lr408t
   end if
 
   !  write all the wavefunctions into files
@@ -1331,7 +1332,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            opt%iter = opt%iter + 1
         end do wfn_loop
-
         if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
