@@ -521,10 +521,10 @@ real(8),dimension(2):: reducearr
   end if
 
   !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
-           tmbopt%can_use_transposed)
+!!!$$      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+!!!$$           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+!!!$$           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+!!!$$           tmbopt%can_use_transposed)
       !!if(tmbopt%can_use_transposed) then
       !!!if(associated(tmbopt%psit_c)) then
       !!    iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)

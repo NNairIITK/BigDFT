@@ -270,6 +270,13 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
   first_time_with_der=.false.
   nit_highaccur=0
 
+
+  ! Orthonormalize the TMBs
+  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+       tmb%can_use_transposed)
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
       !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
