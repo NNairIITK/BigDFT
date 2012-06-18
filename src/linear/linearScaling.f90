@@ -39,7 +39,7 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, first_in_highaccuracy
 integer:: jorb, jjorb, iiat
 real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
@@ -537,12 +537,13 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
           end if
       end if
 
-      if(itout==1) then
+      if(itout==1 .or. first_in_highaccuracy==1) then
           ! Orthonormalize the TMBs
           ! just to be sure...
           tmb%can_use_transposed=.false.
           nullify(tmb%psit_c)
           nullify(tmb%psit_f)
+          if(iproc==0) write(*,*) 'calling orthonormalizeLocalized'
           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
                tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
