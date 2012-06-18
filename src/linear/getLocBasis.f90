@@ -831,8 +831,9 @@ endif
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<.3d0) .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<.3d0) then
+      if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) .or. &
+          it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+          if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
