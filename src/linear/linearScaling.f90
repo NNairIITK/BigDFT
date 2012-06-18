@@ -271,11 +271,6 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
   nit_highaccur=0
 
 
-  ! Orthonormalize the TMBs
-  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-       tmb%can_use_transposed)
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
       !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
@@ -540,6 +535,18 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
                    tmblargeder%lzd%hgrids(1),tmblargeder%lzd%hgrids(2),tmblargeder%lzd%hgrids(3),&
                    input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblargeder%lzd,tmblargeder%orbs%onwhichatom)
           end if
+      end if
+
+      if(itout==1) then
+          ! Orthonormalize the TMBs
+          ! just to be sure...
+          tmb%can_use_transposed=.false.
+          nullify(tmb%psit_c)
+          nullify(tmb%psit_f)
+          call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+               tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+               tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+               tmb%can_use_transposed)
       end if
 
 
