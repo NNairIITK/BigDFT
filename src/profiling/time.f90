@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=87,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=76,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -98,18 +98,6 @@ module timeData
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
        'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
        'Init to Zero  ','Other         ' ,'Memset        ' ,  &
-       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
-       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
-       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
-       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
-       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
-       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
-       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
-       'ovrlptrans    ','Other         ' ,'Miscellaneous ' ,  &
-       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
-       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
@@ -382,6 +370,7 @@ subroutine timing(iproc,category,action)
      if (action == 'ON') then  ! ON
         !some other category was initalized before, overriding
         if (init) return
+
         t0=real(itns,kind=8)*1.d-9
         init=.true.
         ncaton=ii !category which has been activated

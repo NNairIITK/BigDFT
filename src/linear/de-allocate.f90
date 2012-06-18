@@ -316,7 +316,7 @@ character(len=*),intent(in):: subname
 
 ! Local variables
 integer:: istat
-call timing(iproc,'allocommsumrho','ON') !lr408t
+
 allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
 call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
 call razero(comsr%nSendBuf, comsr%sendBuf)
@@ -324,7 +324,7 @@ call razero(comsr%nSendBuf, comsr%sendBuf)
 allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
 call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
 call razero(comsr%nrecvBuf, comsr%recvBuf)
-call timing(iproc,'allocommsumrho','OF') !lr408t
+
 end subroutine allocateCommunicationbufferSumrho
 
 

@@ -3,7 +3,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   integer,intent(in):: iproc, nproc, it
   logical,intent(in):: variable_locregs
   type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
+  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
   type(localizedDIISParameters),intent(inout):: ldiis
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
   real(8),dimension(:),pointer,intent(inout):: lphioldopt, lhphioldopt
@@ -26,13 +26,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
+  type(orbitals_data),intent(in):: orbs
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
+  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:,:),allocatable:: lagmat
+  real(8),dimension(:,:),allocatable:: lagmat, epsmat, ovrlp
   real(8):: closesteval, gnrm_temple
+
+
+
+  do iorb=1,tmbopt%orbs%norb
+      ilr=tmbopt%orbs%inwhichlocreg(iorb)
+      do jorb=1,tmbopt%orbs%norb
+          jlr=tmbopt%orbs%inwhichlocreg(jorb)
+          tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
+              +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
+              +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
+          tt=sqrt(tt)
+          !if(tt>10.d0) kernel(jorb,iorb)=0.d0
+          if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+      end do
+  end do
+  if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -40,6 +57,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! by default no quick exit
   emergency_exit=.false.
+
+
+
+  istart=1
+  fnrm=0.d0
+  do iorb=1,tmbopt%orbs%norbp
+      iiorb=tmbopt%orbs%isorb+iorb
+      ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+      ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+      fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+      istart=istart+ncount
+  end do
+  do iorb=1,tmbopt%orbs%norbp
+      fnrm=fnrm+fnrmArr(iorb,1)
+  end do
+  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
+  if(iproc==0) write(*,*) 'FISRT FNRM',fnrm
+
+
+
+
  
 
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -50,13 +89,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
            lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
       !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
-      call timing(iproc,'eglincomms','ON') ! lr408t
       call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
            tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
       !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
       !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
       call wait_p2p_communication(iproc, nproc, tmbopt%comon)
-      call timing(iproc,'eglincomms','OF') ! lr408t
       call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
            tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
       call deallocateRecvBufferOrtho(tmbopt%comon, subname)
@@ -76,14 +113,85 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
+  !! EXPERIMENTAL ######################################################################
+  ! calculate Lagrange multiplier matrix for psi
+  allocate(epsmat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, epsmat, 'epsmat', subname)
+  allocate(ovrlp(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
+  do iorb=1,orbs%norb
+     do jorb=1,orbs%norb
+         tt=0.d0
+         do korb=1,tmbopt%orbs%norb
+             do lorb=1,tmbopt%orbs%norb
+                 tt=tt+tmb%wfnmd%coeff(korb,iorb)*tmb%wfnmd%coeff(lorb,jorb)*lagmat(korb,lorb)
+             end do
+         end do
+         epsmat(jorb,iorb)=tt
+     end do
+  end do
+  call getOverlapMatrix2(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%comon, tmbopt%op, tmbopt%psi, tmbopt%mad, ovrlp)
+
+  tt=0.d0
+  do iorb=1,tmbopt%orbs%norb
+      do jorb=1,orbs%norb
+          do korb=1,tmbopt%orbs%norb
+              tt=tt+tmb%wfnmd%coeff(korb,jorb)*lagmat(korb,iorb)
+          end do
+          do korb=1,orbs%norb
+              do lorb=1,tmbopt%orbs%norb
+                  tt=tt-epsmat(korb,jorb)*tmb%wfnmd%coeff(lorb,korb)*ovrlp(lorb,iorb)
+              end do
+          end do
+      end do
+  end do
+  if(iproc==0) write(*,*) 'tt',tt
+
+  iall=-product(shape(epsmat))*kind(epsmat)
+  deallocate(epsmat, stat=istat)
+  call memocc(istat, iall, 'epsmat', subname)
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
+  !! ###################################################################################
+
+      if(iproc==0) write(*,*) 'EXPERIMENTAL: precond here with confinement'
+  !!if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!    ind2=1
+  !!    do iorb=1,tmbopt%orbs%norbp
+  !!        iiorb=tmbopt%orbs%isorb+iorb
+  !!        ilr = tmbopt%orbs%inWhichLocreg(iiorb)
+  !!        ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+  !!        call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+  !!             tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+  !!             5, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+  !!             1.d-3, it, iorb, eval_zero)
+  !!    end do
+  !!end if
+
+
+  call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+
+
   !!tmbopt => tmb
   !!lhphiopt => lhphi
   !!lphioldopt => lphiold
   !!lhphioldopt => lhphiold
   if(.not.variable_locregs) then
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+      !call flatten_at_boundaries(tmb%lzd, tmb%orbs, lhphi)
+      !!do istat=1,tmb%orbs%npsidim_orbs
+      !!    write(200+iproc,*) istat, lhphi(istat)
+      !!end do
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
+
+  call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+
+
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -105,29 +213,44 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-       if(trH > trHold + 1.d-8*abs(trHold)) then
+  !if(ldiis%isx==0) then
+       if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
+       !if(trH > trHold + 1.d-8*abs(trHold)) then
+       if(trH > ldiis%trmin) then
            consecutive_rejections=consecutive_rejections+1
            if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-           if(consecutive_rejections<=3) then
-               ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
-               alpha=alpha*.6d0
-               if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-               else if(.not.variable_locregs) then
-                   if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                   call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
-               else 
-                   ! It is not possible to use the old orbitals since the locregs might have changed.
-                   !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
-                   if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
-                   emergency_exit=.true.
-               end if
-           else
+           !!if(consecutive_rejections<=3) then
+           !!    ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
+           !!    alpha=alpha*.6d0
+           !!    if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+           !!        call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+           !!        if(.not.variable_locregs) then
+           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+           !!        end if
+           !!    else if(.not.variable_locregs) then
+           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
+           !!        call dcopy(size(tmbopt%psi), lphioldopt, 1, tmbopt%psi, 1)
+           !!        if(.not.variable_locregs) then
+           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+           !!        end if
+           !!    else 
+           !!        ! It is not possible to use the old orbitals since the locregs might have changed.
+           !!        !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
+           !!        if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
+           !!        emergency_exit=.true.
+           !!        if(.not.variable_locregs) then
+           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+           !!        end if
+           !!    end if
+           !!else
                consecutive_rejections=0
                if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
                emergency_exit=.true.
-           end if
+               if(.not.variable_locregs) then
+                   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+               end if
+           !end if
        else
            consecutive_rejections=0
        end if
@@ -197,10 +320,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+  fnrm=0.d0
   do iorb=1,tmbopt%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
+      write(1000+iorb+tmbopt%orbs%isorb,*) lagmat(iorb+tmbopt%orbs%isorb,iorb+tmbopt%orbs%isorb), fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      !if(it>1 .and. ldiis%isx==0) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           !if(tt>.9d0 .and. trH<trHold) then
@@ -227,20 +353,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       write(*,'(a)') 'Preconditioning.'
   end if
 
-
-  ind2=1
-  do iorb=1,tmbopt%orbs%norbp
-      iiorb=tmbopt%orbs%isorb+iorb
-      ilr = tmbopt%orbs%inWhichLocreg(iiorb)
-      ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
-           tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
-           tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-!           1.0d-3, it, iorb, eval_zero) ! 2.0d-2 for test4, 1.0d-3 for test 5
-           tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
-      ind2=ind2+ncnt
-  end do
-
   tmbopt => tmb
   lhphiopt => lhphi
   lphioldopt => lphiold
@@ -249,6 +361,38 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
   end if
 
+
+  !!if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
+  ind2=1
+  do iorb=1,tmbopt%orbs%norbp
+      iiorb=tmbopt%orbs%isorb+iorb
+      ilr = tmbopt%orbs%inWhichLocreg(iiorb)
+      ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+      if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+               tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+               tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+               tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
+      else if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
+               tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
+               tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
+               0.d-4, it, iorb, eval_zero)
+      end if
+      ind2=ind2+ncnt
+  end do
+
+  call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+
+!!  tmbopt => tmb
+!!  lhphiopt => lhphi
+!!  lphioldopt => lphiold
+!!  lhphioldopt => lhphiold
+!!  if(.not.variable_locregs) then
+!!      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+!!  end if
+!!
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
