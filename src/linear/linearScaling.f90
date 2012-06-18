@@ -31,7 +31,7 @@ type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf, nit_highaccur
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -39,8 +39,8 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, first_in_highaccuracy
-integer:: jorb, jjorb, iiat
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
+integer:: jorb, jjorb, iiat,nit_highaccur
 real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
@@ -537,7 +537,7 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
           end if
       end if
 
-      if(itout==1 .or. first_in_highaccuracy==1) then
+      if(itout==1 .or. nit_highaccur==1) then
           ! Orthonormalize the TMBs
           ! just to be sure...
           tmb%can_use_transposed=.false.
