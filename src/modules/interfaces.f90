@@ -5582,7 +5582,8 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+                  meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
                   tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
          use module_base
@@ -5599,7 +5600,7 @@ module module_interfaces
          real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
-         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
          logical,intent(out):: emergency_exit
          type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
          real(8),dimension(:),target,intent(inout):: lhphilarge2

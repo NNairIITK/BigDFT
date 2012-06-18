@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
   use module_base
@@ -21,7 +21,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
   logical,intent(out):: emergency_exit
   type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
   real(8),dimension(:),target,intent(inout):: lhphilarge2
@@ -170,7 +170,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!end if
 
 
-  call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call get_both_gradients(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt, gnrm_in, gnrm_out)
   call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
   call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
@@ -353,14 +354,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       write(*,'(a)') 'Preconditioning.'
   end if
 
-  tmbopt => tmb
-  lhphiopt => lhphi
-  lphioldopt => lphiold
-  lhphioldopt => lhphiold
+  !if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      tmbopt => tmb
+      lhphiopt => lhphi
+      lphioldopt => lphiold
+      lhphioldopt => lhphiold
+  !end if
   if(.not.variable_locregs) then
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
   end if
+  !call cut_at_boundaries(tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !call flatten_at_boundaries(tmbopt%lzd, tmbopt%orbs, lhphiopt)
 
+  call get_both_gradients(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt, gnrm_in, gnrm_out)
 
   !!if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
   ind2=1
@@ -385,14 +391,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
   call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
-!!  tmbopt => tmb
-!!  lhphiopt => lhphi
-!!  lphioldopt => lphiold
-!!  lhphioldopt => lhphiold
-!!  if(.not.variable_locregs) then
-!!      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
-!!  end if
-!!
+  !!if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!    tmbopt => tmb
+  !!    lhphiopt => lhphi
+  !!    lphioldopt => lphiold
+  !!    lhphioldopt => lhphiold
+  !!    if(.not.variable_locregs) then
+  !!        call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  !!    end if
+  !!end if
+
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)

@@ -405,7 +405,7 @@ real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphila
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, meanAlpha
+real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
@@ -777,7 +777,8 @@ endif
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+           meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
 
@@ -830,8 +831,8 @@ endif
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(fnrm<tmb%wfnmd%bs%conv_crit) then
+      if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<.3d0) .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+          if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<.3d0) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -3382,7 +3383,7 @@ subroutine flatten_at_boundaries(lzd, orbs, psi)
   real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
 
   ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ii1, ii2, ii3
   real(8):: r0, r1, r2, r3, rr, tt
   real(8),dimension(:,:,:,:,:,:),allocatable:: psig
   character(len=*),parameter:: subname='flatten_at_boundaries'
@@ -3406,13 +3407,16 @@ subroutine flatten_at_boundaries(lzd, orbs, psi)
            lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
            psi(istc), psi(istf), psig)
 
-      r0=lzd%llr(ilr)%locrad**2/3.d0
+      r0=lzd%llr(ilr)%locrad**2/5.d0
       do i3=0,lzd%llr(ilr)%d%n3
-          r3 = (dble(i3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
           do i2=0,lzd%llr(ilr)%d%n2
-              r2 = (dble(i2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
               do i1=0,lzd%llr(ilr)%d%n1
-                  r1 = (dble(i1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
                   rr=r1+r2+r3
                   tt=exp(-(rr-lzd%llr(ilr)%locrad**2/2.d0)/r0)
                   tt=min(tt,1.d0)
@@ -3463,7 +3467,7 @@ subroutine get_weighted_gradient(iproc, nproc, lzd, orbs, psi)
   real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
 
   ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3
   real(8):: r0, r1, r2, r3, rr, tt, gnrm
   real(8),dimension(:,:,:,:,:,:),allocatable:: psig
   character(len=*),parameter:: subname='flatten_at_boundaries'
@@ -3490,11 +3494,14 @@ subroutine get_weighted_gradient(iproc, nproc, lzd, orbs, psi)
 
       r0=lzd%llr(ilr)%locrad**2/3.d0
       do i3=0,lzd%llr(ilr)%d%n3
-          r3 = (dble(i3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
           do i2=0,lzd%llr(ilr)%d%n2
-              r2 = (dble(i2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
               do i1=0,lzd%llr(ilr)%d%n1
-                  r1 = (dble(i1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
                   rr=r1+r2+r3
                   !tt=exp(-(rr-lzd%llr(ilr)%locrad**2/2.d0)/r0)
                   tt=exp(-rr/r0)
@@ -3670,3 +3677,371 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
 
 
 end subroutine reconstruct_kernel
+
+
+
+subroutine cut_at_boundaries(lzd, orbs, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
+      call memocc(istat, psig, 'psig', subname)
+      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
+
+      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
+      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           psi(istc), psi(istf), psig)
+
+      r0 = (lzd%llr(ilr)%locrad-8.d0*lzd%hgrids(1))**2
+      !r0 = (lzd%llr(ilr)%locrad-2.d0)**2
+      do i3=0,lzd%llr(ilr)%d%n3
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          do i2=0,lzd%llr(ilr)%d%n2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              do i1=0,lzd%llr(ilr)%d%n1
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  rr=r1+r2+r3
+                  !write(999,'(5es14.3)') r1, r2, r3, rr, r0
+                  if(rr>=r0) then
+                      psig(i1,1,i2,1,i3,1)=0.d0
+                      psig(i1,2,i2,1,i3,1)=0.d0
+                      psig(i1,1,i2,2,i3,1)=0.d0
+                      psig(i1,2,i2,2,i3,1)=0.d0
+                      psig(i1,1,i2,1,i3,2)=0.d0
+                      psig(i1,2,i2,1,i3,2)=0.d0
+                      psig(i1,1,i2,2,i3,2)=0.d0
+                      psig(i1,2,i2,2,i3,2)=0.d0
+                  else
+                      !write(*,*) 'not zero'
+                  end if
+              end do
+          end do
+      end do
+
+      call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+           0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+           psig, psi(istc), psi(istf))
+
+      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+      iall=-product(shape(psig))*kind(psig)
+      deallocate(psig,stat=istat)
+      call memocc(istat,iall,'psig',subname)
+
+
+  end do
+
+end subroutine cut_at_boundaries
+
+
+
+
+
+
+subroutine cut_at_boundaries2(lr, orbs, hx, hy, hz, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in):: lr
+  type(orbitals_data),intent(in):: orbs
+  real(8),intent(in):: hx, hy, hz
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+
+  allocate(psig(0:lr%d%n1,2,0:lr%d%n2,2,0:lr%d%n3,2), stat=istat)
+  call memocc(istat, psig, 'psig', subname)
+  call to_zero(8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), psig(0,1,0,1,0,1))
+
+  istf = istf + lr%wfd%nvctr_c
+  call uncompress(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       psi(istc), psi(istf), psig)
+
+  r0 = (lr%locrad-8.d0*hx)**2
+  !r0 = (lr%locrad-2.d0)**2
+  do i3=0,lr%d%n3
+      ii3=lr%ns3+i3
+      r3 = (dble(ii3)*hz-lr%locregCenter(3))**2
+      do i2=0,lr%d%n2
+          ii2=lr%ns2+i2
+          r2 = (dble(ii2)*hy-lr%locregCenter(2))**2
+          do i1=0,lr%d%n1
+              ii1=lr%ns1+i1
+              r1 = (dble(ii1)*hx-lr%locregCenter(1))**2
+              rr=r1+r2+r3
+              !write(999,'(5es14.3)') r1, r2, r3, rr, r0
+              if(rr>=r0) then
+                  psig(i1,1,i2,1,i3,1)=0.d0
+                  psig(i1,2,i2,1,i3,1)=0.d0
+                  psig(i1,1,i2,2,i3,1)=0.d0
+                  psig(i1,2,i2,2,i3,1)=0.d0
+                  psig(i1,1,i2,1,i3,2)=0.d0
+                  psig(i1,2,i2,1,i3,2)=0.d0
+                  psig(i1,1,i2,2,i3,2)=0.d0
+                  psig(i1,2,i2,2,i3,2)=0.d0
+              else
+                  !write(*,*) 'not zero'
+              end if
+          end do
+      end do
+  end do
+
+  call compress(lr%d%n1, lr%d%n2, &
+       0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  &
+       psig, psi(istc), psi(istf))
+
+  istf = istf + 7*lr%wfd%nvctr_f
+  istc = istc + lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f
+
+  iall=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=istat)
+  call memocc(istat,iall,'psig',subname)
+
+
+
+end subroutine cut_at_boundaries2
+
+
+
+
+
+
+
+
+
+
+subroutine flatten_at_boundaries2(lr, orbs, hx, hy, hz, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in):: lr
+  type(orbitals_data),intent(in):: orbs
+  real(8),intent(in):: hx, hy, hz
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+
+  allocate(psig(0:lr%d%n1,2,0:lr%d%n2,2,0:lr%d%n3,2), stat=istat)
+  call memocc(istat, psig, 'psig', subname)
+  call to_zero(8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), psig(0,1,0,1,0,1))
+
+  istf = istf + lr%wfd%nvctr_c
+  call uncompress(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       psi(istc), psi(istf), psig)
+
+  r0=lr%locrad**2/5.d0
+  !r0 = (lr%locrad-2.d0)**2
+  do i3=0,lr%d%n3
+      ii3=lr%ns3+i3
+      r3 = (dble(ii3)*hz-lr%locregCenter(3))**2
+      do i2=0,lr%d%n2
+          ii2=lr%ns2+i2
+          r2 = (dble(ii2)*hy-lr%locregCenter(2))**2
+          do i1=0,lr%d%n1
+              ii1=lr%ns1+i1
+              r1 = (dble(ii1)*hx-lr%locregCenter(1))**2
+              rr=r1+r2+r3
+              tt=exp(-(rr-lr%locrad**2/2.d0)/r0)
+              if(tt<1.d0) then
+                  psig(i1,1,i2,1,i3,1)=tt*psig(i1,1,i2,1,i3,1)
+                  psig(i1,2,i2,1,i3,1)=tt*psig(i1,2,i2,1,i3,1)
+                  psig(i1,1,i2,2,i3,1)=tt*psig(i1,1,i2,2,i3,1)
+                  psig(i1,2,i2,2,i3,1)=tt*psig(i1,2,i2,2,i3,1)
+                  psig(i1,1,i2,1,i3,2)=tt*psig(i1,1,i2,1,i3,2)
+                  psig(i1,2,i2,1,i3,2)=tt*psig(i1,2,i2,1,i3,2)
+                  psig(i1,1,i2,2,i3,2)=tt*psig(i1,1,i2,2,i3,2)
+                  psig(i1,2,i2,2,i3,2)=tt*psig(i1,2,i2,2,i3,2)
+              end if
+          end do
+      end do
+  end do
+
+  call compress(lr%d%n1, lr%d%n2, &
+       0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  &
+       psig, psi(istc), psi(istf))
+
+  istf = istf + 7*lr%wfd%nvctr_f
+  istc = istc + lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f
+
+  iall=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=istat)
+  call memocc(istat,iall,'psig',subname)
+
+
+
+end subroutine flatten_at_boundaries2
+
+
+
+
+
+subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+  real(8),intent(out):: gnrm_out, gnrm_in
+
+  ! Local variables
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+  gnrm_out=0.d0
+  gnrm_in=0.d0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
+      call memocc(istat, psig, 'psig', subname)
+      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
+
+      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
+      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           psi(istc), psi(istf), psig)
+
+      !r0=(lzd%llr(ilr)%locrad-3.d0)**2
+      r0=(lzd%llr(ilr)%locrad-8.d0*lzd%hgrids(1))**2
+      do i3=0,lzd%llr(ilr)%d%n3
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          do i2=0,lzd%llr(ilr)%d%n2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              do i1=0,lzd%llr(ilr)%d%n1
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  rr=r1+r2+r3
+                  if(rr>r0) then
+                      gnrm_out=gnrm_out+psig(i1,1,i2,1,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,1,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,2,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,2,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,1,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,1,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,2,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,2,i3,2)**2
+                  else
+                      gnrm_in=gnrm_in+psig(i1,1,i2,1,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,2,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,2,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,1,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,2,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,2,i3,2)**2
+                  end if
+              end do
+          end do
+      end do
+
+      !!call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+      !!     0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
+      !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+      !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+      !!     lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+      !!     lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+      !!     psig, psi(istc), psi(istf))
+
+      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+      iall=-product(shape(psig))*kind(psig)
+      deallocate(psig,stat=istat)
+      call memocc(istat,iall,'psig',subname)
+
+
+  end do
+
+  call mpiallred(gnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
+  gnrm_out=sqrt(gnrm_out/dble(orbs%norb))
+  gnrm_in=sqrt(gnrm_in/dble(orbs%norb))
+  if(iproc==0) write(*,'(a,3es14.4)') 'gnrm_in, gnrm_out, gnrm_in/gnrm_out', gnrm_in, gnrm_out, gnrm_in/gnrm_out
+
+end subroutine get_both_gradients
