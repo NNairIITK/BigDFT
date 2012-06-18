@@ -3960,8 +3960,8 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
   real(8),intent(out):: gnrm_out, gnrm_in
 
   ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3
-  real(8):: r0, r1, r2, r3, rr, tt
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3, ipts_out, ipts_in
+  real(8):: r0, r1, r2, r3, rr, tt, pts_in, pts_out
   real(8),dimension(:,:,:,:,:,:),allocatable:: psig
   character(len=*),parameter:: subname='flatten_at_boundaries'
   
@@ -3970,6 +3970,8 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
   istf=1
   gnrm_out=0.d0
   gnrm_in=0.d0
+  pts_in=0.d0
+  pts_out=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
@@ -3986,6 +3988,8 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
            lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
            psi(istc), psi(istf), psig)
 
+      ipts_in=0
+      ipts_out=0
       !r0=(lzd%llr(ilr)%locrad-3.d0)**2
       r0=(lzd%llr(ilr)%locrad-8.d0*lzd%hgrids(1))**2
       do i3=0,lzd%llr(ilr)%d%n3
@@ -4007,6 +4011,16 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
                       gnrm_out=gnrm_out+psig(i1,2,i2,1,i3,2)**2
                       gnrm_out=gnrm_out+psig(i1,1,i2,2,i3,2)**2
                       gnrm_out=gnrm_out+psig(i1,2,i2,2,i3,2)**2
+                      if(psig(i1,1,i2,1,i3,1)/=0.d0) then
+                          ! point carries scaling function
+                          pts_out=pts_out+1.d0
+                          ipts_out=ipts_out+1
+                      end if
+                      if(psig(i1,2,i2,1,i3,1)/=0.d0) then
+                          ! point carries wavelets
+                          pts_out=pts_out+7.d0
+                          ipts_out=ipts_out+7
+                      end if
                   else
                       gnrm_in=gnrm_in+psig(i1,1,i2,1,i3,1)**2
                       gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,1)**2
@@ -4016,10 +4030,26 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
                       gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,2)**2
                       gnrm_in=gnrm_in+psig(i1,1,i2,2,i3,2)**2
                       gnrm_in=gnrm_in+psig(i1,2,i2,2,i3,2)**2
+                      if(psig(i1,1,i2,1,i3,1)/=0.d0) then
+                          ! point carries scaling function
+                          pts_in=pts_in+1.d0
+                          ipts_in=ipts_in+1
+                      end if
+                      if(psig(i1,2,i2,1,i3,1)/=0.d0) then
+                          ! point carries wavelets
+                          pts_in=pts_in+7.d0
+                          ipts_in=ipts_in+7
+                      end if
                   end if
               end do
           end do
       end do
+
+      if (ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f) then
+          write(*,'(2(a,i0))') 'ERROR: ',ipts_in+ipts_out,' = ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f = ',&
+                      lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          stop
+      end if
 
       !!call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
       !!     0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
@@ -4039,10 +4069,12 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
 
   end do
 
+  gnrm_in=gnrm_in/pts_in
+  gnrm_out=gnrm_out/pts_out
   call mpiallred(gnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
   gnrm_out=sqrt(gnrm_out/dble(orbs%norb))
   gnrm_in=sqrt(gnrm_in/dble(orbs%norb))
-  if(iproc==0) write(*,'(a,3es14.4)') 'gnrm_in, gnrm_out, gnrm_in/gnrm_out', gnrm_in, gnrm_out, gnrm_in/gnrm_out
+  if(iproc==0) write(*,'(a,5es14.4)') 'pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out', pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out
 
 end subroutine get_both_gradients
