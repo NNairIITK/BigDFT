@@ -411,7 +411,7 @@ integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_referenc
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, variable_locregs, emergency_exit
+logical:: withConfinement, variable_locregs, emergency_exit, overlap_calculated
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
@@ -628,6 +628,7 @@ real(8),dimension(2):: reducearr
   !!denspot%rhov=0.d0
 
   trH_old=0.d0
+  overlap_calculated=.false.
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
@@ -782,7 +783,7 @@ endif
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
@@ -889,7 +890,9 @@ endif
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
            alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
-  call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+
+      call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, kernel)
+
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
@@ -3619,31 +3622,33 @@ end subroutine plot_gradient
 
 
 
-subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => reconstruct_kernel
   implicit none
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
+  logical,intent(out):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
 
   ! Local variables
   integer:: istat, iorb, jorb, ierr
   real(8):: ddot, tt, tt2, tt3
-  real(8),dimension(:,:),allocatable:: ovrlp_tmb, coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
 
 
-  allocate(ovrlp_tmb(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   allocate(coeff_tmp(tmb%orbs%norb,orbs%norb), stat=istat)
   allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
 
    ! Calculate the overlap matrix between the TMBs.
    call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+   overlap_calculated=.true.
 
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &

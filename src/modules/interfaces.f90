@@ -4393,7 +4393,7 @@ module module_interfaces
       !!end subroutine initMatrixCompression
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
-                 lphi, lhphi, lagmat,  psit_c, psit_f, can_use_transposed)
+                 lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
         implicit none
@@ -4408,9 +4408,9 @@ module module_interfaces
         type(basis_performance_options),intent(in):: bpo
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-        real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp
         real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f
-        logical,intent(inout):: can_use_transposed
+        logical,intent(inout):: can_use_transposed, overlap_calculated
       end subroutine orthoconstraintNonorthogonal
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
@@ -5585,7 +5585,7 @@ module module_interfaces
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
-                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
+                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
          use module_base
          use module_types
          implicit none
@@ -5606,6 +5606,8 @@ module module_interfaces
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
          type(orbitals_data),intent(in):: orbs
+         logical,intent(inout):: overlap_calculated
+         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
 
 
@@ -6306,6 +6308,18 @@ module module_interfaces
           real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
           real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
         end subroutine calculate_norm_transposed
+
+        subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
+          logical,intent(out):: overlap_calculated
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+        end subroutine reconstruct_kernel
 
    end interface
 
