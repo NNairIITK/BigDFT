@@ -3639,12 +3639,13 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
    ! Calculate the overlap matrix between the TMBs.
    call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
 
-  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb. Use lagmat as temporary array.
+  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   do iorb=1,orbs%norbp
       do jorb=1,orbs%norb
           ovrlp_tmp(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
+          if(Iproc==0) write(210,*) ovrlp_tmp(jorb,iorb)
       end do
   end do
   ! Gather together the complete matrix
