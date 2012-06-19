@@ -541,7 +541,8 @@ real(8),dimension(2):: reducearr
   !!end if
 
 
-  call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+  ! Not necessary here...
+  !!$$call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
 
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
