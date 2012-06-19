@@ -3637,17 +3637,44 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
 
   ! Local variables
-  integer:: istat, iorb, jorb, ierr
+  integer:: istat, iorb, jorb, ierr, iall
   real(8):: ddot, tt, tt2, tt3
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  character(len=*),parameter:: subname='reconstruct_kernel'
 
 
   allocate(coeff_tmp(tmb%orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
   allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
   ! Calculate the overlap matrix between the TMBs.
-  call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+  if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      if(.not.tmb%can_use_transposed) then
+          if(associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if(associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          tmb%can_use_transposed=.true.
+      end if
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
+           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
+  else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+  end if
   overlap_calculated=.true.
 
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
@@ -3690,6 +3717,20 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
        tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+
+
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+  deallocate(ovrlp_tmp,stat=istat)
+  call memocc(istat,iall,'ovrlp_tmp',subname)
+
+  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+  deallocate(ovrlp_coeff,stat=istat)
+  call memocc(istat,iall,'ovrlp_coeff',subname)
 
 
 end subroutine reconstruct_kernel
