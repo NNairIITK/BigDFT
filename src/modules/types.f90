@@ -13,7 +13,7 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized
+  use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
   implicit none
 
   !> Input wf parameters.
@@ -162,7 +162,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output
+          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output,run_name
      integer :: files ! existing files.
      !miscellaneous variables
      logical :: gaussian_help
@@ -218,6 +218,7 @@ module module_types
      !!        1: CUDA acceleration with CUBLAS
      !!        2: OpenCL acceleration (with CUBLAS one day)
      integer :: iacceleration
+     integer :: Psolver_igpu !< acceleration of the Poisson solver
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -228,6 +229,7 @@ module module_types
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
      character(len = 64) :: domain !< Domain to get the IP from hostname.
+     character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
      double precision :: gmainloop !< Internal C pointer on the signaling structure.
 
      !orthogonalisation data
@@ -818,12 +820,16 @@ end type linear_scaling_control_variables
   !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
      !variables with physical meaning
-     character(len=1) :: geocode !< Code for the boundary conditions
+     integer :: itype_scf !< order of the ISF family to be used
      real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+     character(len=1) :: geocode !< Code for the boundary conditions
      integer, dimension(3) :: ndims !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+     real(dp) :: work1_GPU,work2_GPU,k_GPU
+     integer, dimension(5) :: plan
+     integer, dimension(3) :: geo
      !variables with computational meaning
      integer :: iproc_world !iproc in the general communicator
      integer :: iproc,nproc
@@ -945,6 +951,27 @@ end type linear_scaling_control_variables
 
 
 contains
+
+  function pkernel_null() result(k)
+    type(coulomb_operator) :: k
+    k%itype_scf=0
+    k%geocode='F'
+    k%mu=0.0_gp
+    k%ndims=(/0,0,0/)
+    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(k%kernel)
+    k%work1_GPU=0.d0
+    k%work2_GPU=0.d0
+    k%k_GPU=0.d0
+    k%plan=(/0,0,0,0,0/)
+    k%geo=(/0,0,0/)
+    k%iproc_world=0
+    k%iproc=0
+    k%nproc=1
+    k%mpi_comm=MPI_COMM_WORLD
+    k%igpu=0
+  end function pkernel_null
 
   function default_grid() result(g)
     type(grid_dimensions) :: g
@@ -1149,22 +1176,6 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
 END SUBROUTINE deallocate_orbs
-
-
-subroutine deallocate_coulomb_operator(kernel,subname)
-  use module_base
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(coulomb_operator), intent(inout) :: kernel
-  !local variables
-  integer :: i_all,i_stat
-
-  if (associated(kernel%kernel)) then
-     i_all=-product(shape(kernel%kernel))*kind(kernel%kernel)
-     deallocate(kernel%kernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
-  end if
-end subroutine deallocate_coulomb_operator
 
 !> Allocate and nullify restart objects
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)

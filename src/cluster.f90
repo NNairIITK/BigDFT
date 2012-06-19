@@ -184,12 +184,12 @@ END SUBROUTINE call_bigdft
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-     KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
+     KSwfn,&
      rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
-!  use Poisson_Solver
+  use Poisson_Solver
   use module_xc
 !  use vdwcorrection
   use m_ab6_mixing
@@ -915,14 +915,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-     call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+     
+     call pkernel_free(denspot%pkernelseq,subname)
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call deallocate_coulomb_operator(denspot%pkernel,subname)
+  call pkernel_free(denspot%pkernel,subname)
 
 
   !------------------------------------------------------------------------
@@ -1025,11 +1026,11 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+          call pkernel_free(denspot%pkernelseq,subname)
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
-       call deallocate_coulomb_operator(denspot%pkernel,subname)
+       call pkernel_free(denspot%pkernel,subname)
 !!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
 !!$       deallocate(denspot%pkernel,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'kernel',subname)

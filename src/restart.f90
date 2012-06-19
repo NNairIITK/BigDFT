@@ -408,7 +408,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   type(orbitals_data), intent(in) :: orbs
   integer, intent(out) :: iformat
   !local variables
-  character(len=50) :: filename
+  character(len=500) :: filename
   logical :: onefile,allfiles
   integer :: iorb,ispinor,iorb_out,ierr
   
@@ -522,7 +522,6 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 
   !complete the information in the name of the orbital
   completename='-'//f3//'-'//spintype//realimag
-
   if (lbin) then
      filename_out = trim(filename)//completename//".bin."//f4
   else
@@ -546,14 +545,13 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   integer, intent(out) :: iorb_out
   integer, intent(in), optional :: iiorb
   !local variables
-  character(len=50) :: filename_out
+  character(len=500) :: filename_out
 
   if(present(iiorb)) then   
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
-
   if (lbin) then
      open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
   else

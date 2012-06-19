@@ -101,7 +101,8 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/structDef_kinetic.h \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
-	CUDA/cpp_utils.h
+	CUDA/cpp_utils.h \
+	PSolver/cufft.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else

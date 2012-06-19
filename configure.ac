@@ -370,7 +370,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(NVCC_FLAGS)
-  LIBCUDA_LIBS="-lcudart -lcublas"
+  LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
   LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
 

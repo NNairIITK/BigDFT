@@ -42,6 +42,8 @@ subroutine initialize_coulomb_operator(kernel)
   type(coulomb_operator), intent(out) :: kernel
   
   nullify(kernel%kernel)
+
+  
 end subroutine initialize_coulomb_operator
 
 

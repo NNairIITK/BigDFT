@@ -102,9 +102,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp), dimension(6) :: strten
   real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
+  integer, dimension(3) :: n
+  integer :: size1,switch_alg
 
-
-  call timing(kernel%iproc,'PSolv_comput  ','ON')
 
   !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then
@@ -122,6 +122,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   wrtmsg=wrtmsg .and. kernel%iproc_world==0
 ! rewrite
   if (wrtmsg) call yaml_open_map('Poisson Solver')
+
+if (kernel%igpu.ne.1) then !CPU case
+  call timing(kernel%iproc,'PSolv_comput  ','ON')
   !calculate the dimensions wrt the geocode
   if (kernel%geocode == 'P') then
      if (wrtmsg) &
@@ -152,7 +155,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
      !     'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
+          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
   else if (kernel%geocode == 'H') then
      if (wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
@@ -164,12 +167,31 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      stop 'PSolver: geometry code not admitted'
   end if
 
+
   if (wrtmsg) then
      call yaml_map('Box',kernel%ndims,fmt='(i5)')
      call yaml_map('MPI tasks',kernel%nproc,fmt='(i5)')
+     if (kernel%igpu == 1) call yaml_map('GPU acceleration',.true.)
      call yaml_close_map()
      call yaml_newline()
   end if
+  
+  if(kernel%geocode == 'P') then
+     !no powers of hgrid because they are incorporated in the plane wave treatment
+     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
+  else if (kernel%geocode == 'S') then
+     !only one power of hgrid 
+     !factor of -4*pi for the definition of the Poisson equation
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
+  else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
+     !hgrid=max(hx,hy,hz)
+     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
+  else if (kernel%geocode == 'W') then
+     !only one power of hgrid 
+     !factor of -1/(2pi) already included in the kernel definition
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
+  end if
+  !here the case ncplx/= 1 should be added
 
   !array allocations
   allocate(zf(md1,md3,md2/kernel%nproc+ndebug),stat=i_stat)
@@ -229,23 +251,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
     !$omp end parallel do
   end do
 
-  if(kernel%geocode == 'P') then
-     !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
-  else if (kernel%geocode == 'S') then
-     !only one power of hgrid 
-     !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
-  else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
-     !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
-  else if (kernel%geocode == 'W') then
-     !only one power of hgrid 
-     !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
-  end if
-  !here the case ncplx/= 1 should be added
-  !eventually one may avoid zf array
   call timing(kernel%iproc,'PSolv_comput  ','OF')
   call G_PoissonSolver(kernel%iproc,kernel%nproc,kernel%mpi_comm,kernel%geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
        zf(1,1,1),&
@@ -369,6 +374,45 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      end if
   end if
+
+else !GPU case
+  call timing(kernel%iproc,'PSolv_comput  ','ON')
+
+  n(1)=kernel%ndims(1)*(2-kernel%geo(1))
+  n(2)=kernel%ndims(2)*(2-kernel%geo(2))
+  n(3)=kernel%ndims(3)*(2-kernel%geo(3))
+
+  if(kernel%geocode == 'P') then
+     !no powers of hgrid because they are incorporated in the plane wave treatment
+     scal=1.0_dp/(real(n(1),dp)*real(n(2)*n(3),dp)) !to reduce chances of overflow
+  else if (kernel%geocode == 'S') then
+     !only one power of hgrid 
+     !factor of -4*pi for the definition of the Poisson equation
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n(1)*n(2)*n(3),dp)
+  else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
+     !hgrid=max(hx,hy,hz)
+     scal=product(kernel%hgrids)/real(n(1)*n(2)*n(3),dp)
+  else if (kernel%geocode == 'W') then
+     !only one power of hgrid 
+     !factor of -1/(2pi) already included in the kernel definition
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n(1)*n(2)*n(3),dp)
+  end if
+
+
+  size1=kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
+
+  call reset_gpu_data(size1,rhopot,kernel%work1_GPU)
+
+  switch_alg=0
+
+  call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+                               kernel%k_GPU,switch_alg,kernel%geo,scal)
+
+  call get_gpu_data(size1,rhopot,kernel%work1_GPU)
+
+  call timing(kernel%iproc,'PSolv_comput  ','OF')
+
+endif
 
   !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
@@ -533,7 +577,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'H') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
@@ -1143,7 +1187,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   else if (geocode == 'F' .or. geocode == 'H') then
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else if (geocode == 'W') then
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else
      write(*,*) geocode
      stop 'PS_dim4allocation: geometry code not admitted'
@@ -1515,9 +1559,9 @@ END SUBROUTINE S_FFT_dimensions
 !! CREATION DATE
 !!    October 2006
 !!
-subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu)
  implicit none
- integer, intent(in) :: n01,n02,n03,nproc
+ integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
 
@@ -1529,7 +1573,11 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  ! real space grid dimension (suitable for number of processors)
  l1=2*m1
  l2=m2
- l3=m3 !beware of the half dimension
+ if (gpu.eq.0) then
+  l3=m3 !beware of the half dimension
+ else
+  l3=2*m3
+ endif
 
  do
     call fourier_dim(l1,n1)
@@ -1555,7 +1603,7 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     l3=l3+1
  end do
 
- n3=2*n3
+ if (gpu.eq.0) n3=2*n3
 
  !dimensions that contain the unpadded real space,
  ! compatible with the number of processes
@@ -1659,7 +1707,6 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     end if
     l3=l3+1
  end do
-
  if (gpu.eq.0) n3=2*n3
 
  !dimensions that contain the unpadded real space,

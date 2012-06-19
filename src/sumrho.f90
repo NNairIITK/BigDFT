@@ -60,7 +60,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   end if
 
   !calculate electrostatic potential
-  call dcopy(dpbox%ndimpot,rho,1,vh,1) 
+  call dcopy(dpbox%ndimpot,rho,1,vh,1)
   call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
   !already symmetrized

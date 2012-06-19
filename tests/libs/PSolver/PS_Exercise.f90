@@ -114,7 +114,11 @@ program exercise
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
+   kernel=pkernel_init(0,1,1,0,&
+        solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
+   call pkernel_set(kernel,.true.)
+
+   !call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
    call cpu_time(t1)
 
    call cpu_time(t2)
@@ -124,7 +128,7 @@ program exercise
 
    call cpu_time(t3)
 
-   call deallocate_coulomb_operator(kernel,'main')
+   call pkernel_free(kernel,'main')
    !deallocate(kernel)
 
 
