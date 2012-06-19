@@ -6321,6 +6321,23 @@ module module_interfaces
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
         end subroutine reconstruct_kernel
 
+        subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+                   weightp_c, weightp_f, nptsp_c, nptsp_f, weight_c, weight_f, &
+                   norb_per_gridpoint_c, norb_per_gridpoint_f)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+          type(orbitals_data),intent(in):: orbs
+          type(local_zone_descriptors),intent(in):: lzd
+          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
+          real(8),intent(in):: weightp_c, weightp_f
+          real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
+          integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
+          integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
+        end subroutine determine_num_orbs_per_gridpoint_new
+
    end interface
 
 END MODULE module_interfaces
