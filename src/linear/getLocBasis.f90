@@ -3290,7 +3290,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
-  if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
+  !if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
   if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
@@ -3642,13 +3642,13 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
 
 
-  allocate(coeff_tmp(tmb%orbs%norb,orbs%norb), stat=istat)
+  allocate(coeff_tmp(tmb%orbs%norb,orbs%norbp), stat=istat)
   allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
 
-   ! Calculate the overlap matrix between the TMBs.
-   call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
-   overlap_calculated=.true.
+  ! Calculate the overlap matrix between the TMBs.
+  call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+  overlap_calculated=.true.
 
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
@@ -3667,10 +3667,13 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
 
   ! Build the new linear combinations
-  call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-       ovrlp_coeff(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+       ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
 
-  call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+  call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
+       tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+
+  !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
 
   !!! Check normalization
   !!call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
