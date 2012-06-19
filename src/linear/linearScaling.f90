@@ -550,6 +550,12 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
                tmb%can_use_transposed)
       end if
 
+!!!! ATTENTION: EXPERIMENTAL
+!!if(itout>3) then
+!!    if(iproc==0) write(*,*) 'WARNING: SET PREFAC TO ZERO MANUALLY!!'
+!!    tmb%confdatarr(:)%prefac=0.d0
+!!    tmblarge%confdatarr(:)%prefac=0.d0
+!!end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining

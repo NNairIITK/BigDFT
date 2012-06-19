@@ -405,7 +405,7 @@ real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphila
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out
+real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
@@ -627,6 +627,7 @@ real(8),dimension(2):: reducearr
   !!write(*,*) 'ATTENTION: SET RHO TO ZERO'
   !!denspot%rhov=0.d0
 
+  trH_old=0.d0
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
@@ -825,6 +826,8 @@ endif
       end if
 
 
+      if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
+      trH_old=trH
   
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -832,9 +835,11 @@ endif
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) .or. &
+      !if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) .or. &
+      if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
           it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) then
+          !if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) then
+          if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
