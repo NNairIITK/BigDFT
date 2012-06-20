@@ -34,9 +34,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
+  real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
   real(8),dimension(:,:),allocatable:: lagmat, epsmat
   real(8):: closesteval, gnrm_temple
 
+  nullify(hpsit_c)
+  nullify(hpsit_f)
+  nullify(hpsittmp_c)
+  nullify(hpsittmp_f)
 
 
   !!do iorb=1,tmbopt%orbs%norb
@@ -84,22 +89,51 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
  
 
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      call allocateSendBufferOrtho(tmbopt%comon, subname)
-      call allocateRecvBufferOrtho(tmbopt%comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-      call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-           tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
-           lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-      !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
-      call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
-           tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
-      !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-      !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-      call wait_p2p_communication(iproc, nproc, tmbopt%comon)
-      call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-           tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
-      call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-      call deallocateSendBufferOrtho(tmbopt%comon, subname)
+      if(tmbopt%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+          if(.not. tmbopt%can_use_transposed) then
+              allocate(tmbopt%psit_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, tmbopt%psit_c, 'tmbopt%psit_c', subname)
+              allocate(tmbopt%psit_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, tmbopt%psit_f, 'tmbopt%psit_f', subname)
+              call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, tmbopt%lzd)
+              tmbopt%can_use_transposed=.true.
+          end if
+          allocate(hpsit_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, hpsit_c, 'hpsit_c', subname)
+          allocate(hpsit_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, hpsit_f, 'hpsit_f', subname)
+          allocate(hpsittmp_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+          allocate(hpsittmp_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+          call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, lhphiopt, hpsit_c, hpsit_f, tmbopt%lzd)
+          call dcopy(sum(tmbopt%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+          call dcopy(7*sum(tmbopt%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+          call build_linear_combination_transposed(tmbopt%orbs%norb, kernel, tmbopt%collcom, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+          iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+          deallocate(hpsittmp_c, stat=istat)
+          call memocc(istat, iall, 'hpsittmp_c', subname)
+          iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+          deallocate(hpsittmp_f, stat=istat)
+          call memocc(istat, iall, 'hpsittmp_f', subname)
+      else if (tmbopt%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+          call allocateSendBufferOrtho(tmbopt%comon, subname)
+          call allocateRecvBufferOrtho(tmbopt%comon, subname)
+          ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
+          call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+               tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
+               lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
+          !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
+          call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
+               tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
+          !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
+          !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
+          call wait_p2p_communication(iproc, nproc, tmbopt%comon)
+          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
+               tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
+          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
+          call deallocateSendBufferOrtho(tmbopt%comon, subname)
+      end if
   end if
 
   !!tmbopt => tmb
@@ -110,10 +144,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
   !!end if
 
+
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
        tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, ovrlp, &
-       tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed, overlap_calculated)
+       tmbopt%psit_c, tmbopt%psit_f, hpsit_c, hpsit_f, tmbopt%can_use_transposed, overlap_calculated)
 
+  iall=-product(shape(hpsit_c))*kind(hpsit_c)
+  deallocate(hpsit_c, stat=istat)
+  call memocc(istat, iall, 'hpsit_c', subname)
+  iall=-product(shape(hpsit_f))*kind(hpsit_f)
+  deallocate(hpsit_f, stat=istat)
+  call memocc(istat, iall, 'hpsit_f', subname)
 
   tmbopt => tmb
   lhphiopt => lhphi

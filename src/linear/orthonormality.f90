@@ -160,7 +160,7 @@ end subroutine orthonormalizeLocalized
 
 
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
-           lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, can_use_transposed, overlap_calculated)
+           lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -179,12 +179,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi !inout due to tranposition...
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp
-  real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f
+  real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables
   integer:: istat, iall, ierr, iorb, jorb
-  real(8),dimension(:),allocatable:: lphiovrlp, hpsit_c, hpsit_f
+  real(8),dimension(:),allocatable:: lphiovrlp
   real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='orthoconstraintNonorthogonal'
 integer :: i, j
@@ -205,11 +205,14 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
           can_use_transposed=.true.
       end if
-      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
-      call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+      ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
+      if(.not.associated(hpsit_c)) then
+          allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, hpsit_c, 'hpsit_c', subname)
+          allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, hpsit_f, 'hpsit_f', subname)
+          call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+      end if
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
       if(.not. overlap_calculated) then
           call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
@@ -282,12 +285,12 @@ real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
 
       !call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
+      !!iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      !!deallocate(hpsit_c, stat=istat)
+      !!call memocc(istat, iall, 'hpsit_c', subname)
+      !!iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      !!deallocate(hpsit_f, stat=istat)
+      !!call memocc(istat, iall, 'hpsit_f', subname)
       iall=-product(shape(psit_c))*kind(psit_c)
       deallocate(psit_c, stat=istat)
       call memocc(istat, iall, 'psit_c', subname)
