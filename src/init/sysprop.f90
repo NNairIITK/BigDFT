@@ -194,12 +194,6 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
 
   call pkernel_set(denspot%pkernel,verb)
 
-!!$  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-!!$!  denspot%pkernel%igpu=1
-!!$  call createKernel(iproc,nproc,geocode,&
-!!$       denspot%dpbox%ndims,denspot%dpbox%hgrids,&
-!!$       ndegree_ip,denspot%pkernel,verb,taskgroup_size=in%PSolver_groupsize)
-
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
@@ -209,10 +203,6 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
 
      call pkernel_set(denspot%pkernelseq,.false.)
 
-!!$!     denspot%pkernelseq%igpu=1
-!!$     call createKernel(0,1,geocode,&
-!!$          denspot%dpbox%ndims,denspot%dpbox%hgrids,&
-!!$          ndegree_ip,denspot%pkernelseq,.false.)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if

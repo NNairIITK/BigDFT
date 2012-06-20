@@ -27,9 +27,9 @@ extern "C" void synchronize_() {
 }
 
 // allocate device memory
-extern "C" void cudamalloc_(int *size, Real **d_data) {
+extern "C" void cudamalloc_(int *size, Real **d_data,int *ierr) {
 
-  cudaMalloc((void**)d_data, sizeof(Real)*(*size));
+  *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
   if( cudaGetLastError() != cudaSuccess)
       printf("allocate error\n");
 }

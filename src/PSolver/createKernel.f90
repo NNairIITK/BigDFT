@@ -140,6 +140,14 @@ subroutine pkernel_free(kernel,subname)
      call memocc(i_stat,i_all,'kernel',subname)
   end if
 
+  !free GPU data
+  if (kernel%igpu == 1) then
+     call cudafree(kernel%work1_GPU)
+     call cudafree(kernel%work2_GPU)
+     call cudafree(kernel%k_GPU)
+  end if
+  
+
   !cannot yet free the communicators of the poisson kernel
 
 end subroutine pkernel_free
@@ -380,9 +388,12 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
 
-    call cudamalloc(size2,kernel%work1_GPU)
-    call cudamalloc(size2,kernel%work2_GPU)
-    call cudamalloc(sizek,kernel%k_GPU)
+    call cudamalloc(size2,kernel%work1_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size2,kernel%work2_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(sizek,kernel%k_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
 
     allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
     call memocc(i_stat,pkernel2,'pkernel2',subname)
@@ -425,9 +436,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
     call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
 
-    n(1)=kernel%ndims(1)*(2-kernel%geo(1))
-    n(2)=kernel%ndims(2)*(2-kernel%geo(2))
-    n(3)=kernel%ndims(3)*(2-kernel%geo(3))
+    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
     call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
 

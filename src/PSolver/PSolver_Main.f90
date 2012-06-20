@@ -93,7 +93,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp), dimension(6), intent(out), optional :: stress_tensor
   !local variables
   character(len=*), parameter :: subname='H_potential'
-  logical :: wrtmsg
+  logical :: wrtmsg,cudasolver
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
@@ -105,6 +105,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   integer, dimension(3) :: n
   integer :: size1,switch_alg
 
+
+  cudasolver=.false.
 
   !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then
@@ -120,62 +122,47 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      wrtmsg=.true.
   end if
   wrtmsg=wrtmsg .and. kernel%iproc_world==0
-! rewrite
+  ! rewrite
   if (wrtmsg) call yaml_open_map('Poisson Solver')
 
-if (kernel%igpu.ne.1) then !CPU case
   call timing(kernel%iproc,'PSolv_comput  ','ON')
   !calculate the dimensions wrt the geocode
   if (kernel%geocode == 'P') then
      if (wrtmsg) &
           call yaml_map('BC','Periodic')
-     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-     !     'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
   else if (kernel%geocode == 'S') then
      if (wrtmsg) &
           call yaml_map('BC','Surface')
-     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-     !     'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
           kernel%nproc,kernel%igpu)
   else if (kernel%geocode == 'F') then
      if (wrtmsg) &
           call yaml_map('BC','Free')
-     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-     !     'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
           kernel%nproc,kernel%igpu)
   else if (kernel%geocode == 'W') then
      if (wrtmsg) &
           call yaml_map('BC','Wires')
-     !write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-     !     'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
-  else if (kernel%geocode == 'H') then
-     if (wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
-          'PSolver, Helmholtz Equation Solver, dimensions: ',&
-          kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),'   proc',kernel%nproc,' ... '
-     call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
   else
      stop 'PSolver: geometry code not admitted'
   end if
 
+  cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
 
   if (wrtmsg) then
      call yaml_map('Box',kernel%ndims,fmt='(i5)')
      call yaml_map('MPI tasks',kernel%nproc,fmt='(i5)')
-     if (kernel%igpu == 1) call yaml_map('GPU acceleration',.true.)
+     if (cudasolver) call yaml_map('GPU acceleration',.true.)
      call yaml_close_map()
      call yaml_newline()
   end if
-  
+
   if(kernel%geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
      scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
@@ -198,24 +185,7 @@ if (kernel%igpu.ne.1) then !CPU case
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
   call to_zero(md1*md3*md2/kernel%nproc,zf(1,1,1))
-  !zf=0.0_dp
-  !call razero(md1*md3*md2/kernel%nproc,zf)
 
-  
-
-
-  !dimension for exchange-correlation (different in the global or distributed case)
-  !let us calculate the dimension of the portion of the rhopot array to be passed 
-  !to the xc routine
-  !this portion will depend on the need of calculating the gradient or not, 
-  !and whether the White-Bird correction must be inserted or not 
-  !(absent only in the LB ixc=13 case)
-  
-  !nxc is the effective part of the third dimension that is being processed
-  !nwb is the dimension of the part of rhopot in the wb-postprocessing routine
-  !note: nxc <= nwb
-  !the dimension are related by the values of nwbl and nwbr
-  !      nxc+nxcl+nxcr-2 = nwb
   istart=kernel%iproc*(md2/kernel%nproc)
   iend=min((kernel%iproc+1)*md2/kernel%nproc,m2)
   if (istart <= m2-1) then
@@ -241,28 +211,51 @@ if (kernel%igpu.ne.1) then !CPU case
   !still the complex case should be defined
 
   do i3 = 1, nxc
-    !$omp parallel do default(shared) private(i2, i1, i)
-    do i2=1,m3
-      do i1=1,m1
-        i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-        zf(i1,i2,i3)=rhopot(i)
-      end do
-    end do
-    !$omp end parallel do
+     !$omp parallel do default(shared) private(i2, i1, i)
+     do i2=1,m3
+        do i1=1,m1
+           i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+           zf(i1,i2,i3)=rhopot(i)
+        end do
+     end do
+     !$omp end parallel do
   end do
 
-  call timing(kernel%iproc,'PSolv_comput  ','OF')
-  call G_PoissonSolver(kernel%iproc,kernel%nproc,kernel%mpi_comm,kernel%geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
-       zf(1,1,1),&
-       scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-  call timing(kernel%iproc,'PSolv_comput  ','ON')
+  if (.not. cudasolver) then !CPU case
 
-  !check for the presence of the stress tensor
-  if (present(stress_tensor)) then
-     call vcopy(6,strten(1),1,stress_tensor(1),1)
-  end if
+     call timing(kernel%iproc,'PSolv_comput  ','OF')
+     call G_PoissonSolver(kernel%iproc,kernel%nproc,kernel%mpi_comm,kernel%geocode,1,&
+          n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
+          zf(1,1,1),&
+          scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+     call timing(kernel%iproc,'PSolv_comput  ','ON')
 
-  
+     !check for the presence of the stress tensor
+     if (present(stress_tensor)) then
+        call vcopy(6,strten(1),1,stress_tensor(1),1)
+     end if
+
+  else !GPU case
+
+     n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+     n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+     n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+
+     size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
+
+     !fill the GPU memory 
+     call reset_gpu_data(size1,zf,kernel%work1_GPU)
+
+     switch_alg=0
+
+     call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,switch_alg,kernel%geo,scal)
+
+     !take data from GPU
+     call get_gpu_data(size1,zf,kernel%work1_GPU)
+
+  endif
+
   !the value of the shift depends on the distributed i/o or not
   if (datacode=='G') then
      i3xcsh=istart !beware on the fact that this is not what represents its name!!!
@@ -270,7 +263,7 @@ if (kernel%igpu.ne.1) then !CPU case
   else if (datacode=='D') then
      i3xcsh=0 !shift not needed anymore
   end if
- 
+
   !if (iproc == 0) print *,'n03,nxc,kernel%geocode,datacode',n03,nxc,kernel%geocode,datacode
 
   ehartreeLOC=0.0_dp
@@ -316,7 +309,7 @@ if (kernel%igpu.ne.1) then !CPU case
   end if
 
   ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
-  
+
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
   call memocc(i_stat,i_all,'zf',subname)
@@ -375,47 +368,6 @@ if (kernel%igpu.ne.1) then !CPU case
      end if
   end if
 
-else !GPU case
-  call timing(kernel%iproc,'PSolv_comput  ','ON')
-
-  n(1)=kernel%ndims(1)*(2-kernel%geo(1))
-  n(2)=kernel%ndims(2)*(2-kernel%geo(2))
-  n(3)=kernel%ndims(3)*(2-kernel%geo(3))
-
-  if(kernel%geocode == 'P') then
-     !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.0_dp/(real(n(1),dp)*real(n(2)*n(3),dp)) !to reduce chances of overflow
-  else if (kernel%geocode == 'S') then
-     !only one power of hgrid 
-     !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n(1)*n(2)*n(3),dp)
-  else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
-     !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n(1)*n(2)*n(3),dp)
-  else if (kernel%geocode == 'W') then
-     !only one power of hgrid 
-     !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n(1)*n(2)*n(3),dp)
-  end if
-
-
-  size1=kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
-
-  call reset_gpu_data(size1,rhopot,kernel%work1_GPU)
-
-  switch_alg=0
-
-  call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
-                               kernel%k_GPU,switch_alg,kernel%geo,scal)
-
-  call get_gpu_data(size1,rhopot,kernel%work1_GPU)
-
-  call timing(kernel%iproc,'PSolv_comput  ','OF')
-
-endif
-
-  !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 
 END SUBROUTINE H_potential
