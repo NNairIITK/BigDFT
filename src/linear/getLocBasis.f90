@@ -1371,18 +1371,18 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
   !!allocate(ham_copy(1:orbs%norb,1:orbs%norb))
 
 
-  allocate(ovrlp_copy(1:orbs%norb,1:orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_copy, 'ovrlp_copy', subname)
-  allocate(vl(1:orbs%norb,1:orbs%norb), stat=istat)
-  call memocc(istat, vl, 'vl', subname)
-  allocate(vr(1:orbs%norb,1:orbs%norb), stat=istat)
-  call memocc(istat, vr, 'vr', subname)
-  allocate(eval1(1:orbs%norb), stat=istat)
-  call memocc(istat, eval1, 'eval1', subname)
-  allocate(beta(1:orbs%norb), stat=istat)
-  call memocc(istat, beta, 'beta', subname)
+  !allocate(ovrlp_copy(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, ovrlp_copy, 'ovrlp_copy', subname)
+  !allocate(vl(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, vl, 'vl', subname)
+  !allocate(vr(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, vr, 'vr', subname)
+  !allocate(eval1(1:orbs%norb), stat=istat)
+  !call memocc(istat, eval1, 'eval1', subname)
+  !allocate(beta(1:orbs%norb), stat=istat)
+  !call memocc(istat, beta, 'beta', subname)
 
-  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_copy(1,1), 1)
+  !call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_copy(1,1), 1)
 
   !!$call dggev('v', 'v',orbs%norb,&
   !!$      HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
@@ -1417,9 +1417,9 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
 !!  call dcopy(orbs%norb**2, vr(1,1), 1, ovrlp(1,1), 1)
 
 
-  do iorb=1,orbs%norb
-    eval(iorb) = eval(iorb) / beta(iorb)
-  end do
+  !do iorb=1,orbs%norb
+  !  eval(iorb) = eval(iorb) / beta(iorb)
+  !end do
 
 !!$$$  lwork=-1
 !!$$$  call dggev('v', 'v',orbs%norb,&

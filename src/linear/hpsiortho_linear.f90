@@ -242,7 +242,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
                emergency_exit=.true.
                if(.not.variable_locregs) then
-                   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge2%lzd,tmb%orbs,tmblarge2%orbs,tmblarge2%psi,tmb%psi)
                end if
            !end if
        else
