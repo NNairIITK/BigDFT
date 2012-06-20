@@ -276,8 +276,10 @@ program conv_check_fft
    ndim(3)=n3
 
    !calculate the kernel in parallel for each processor
-   pkernel%igpu=0
-   call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
+   pkernel=pkernel_init(0,1,1,0,'P',ndim,hgriddim,16)
+   call pkernel_set(pkernel,verbose >1)
+   !pkernel%igpu=0
+   !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
    call H_potential('D',pkernel, &
@@ -291,9 +293,11 @@ program conv_check_fft
 
 
    !here the GPU part
+   pkernel2=pkernel_init(0,1,1,1,'P',ndim,hgriddim,16)
+   call pkernel_set(pkernel2,verbose >1)
 
-   pkernel2%igpu=1
-   call createKernel(0,1,'P',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   !pkernel2%igpu=1
+   !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
    call H_potential('D',pkernel2, &
@@ -318,8 +322,12 @@ program conv_check_fft
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3/2
-   pkernel%igpu=0
-   call createKernel(0,1,'F',ndim,hgriddim,16,pkernel,(verbose > 1))
+
+   pkernel=pkernel_init(0,1,1,0,'F',ndim,hgriddim,16)
+   call pkernel_set(pkernel,verbose >1)
+
+   !pkernel%igpu=0
+   !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel,(verbose > 1))
  
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
@@ -333,9 +341,11 @@ program conv_check_fft
 
 
    !here the GPU part
+   pkernel2=pkernel_init(0,1,1,1,'F',ndim,hgriddim,16)
+   call pkernel_set(pkernel2,verbose >1)
 
-   pkernel2%igpu=1
-   call createKernel(0,1,'F',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   !pkernel2%igpu=1
+   !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel2, &
@@ -360,8 +370,12 @@ program conv_check_fft
    ndim(1)=n1
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel%igpu=0
-   call createKernel(0,1,'S',ndim,hgriddim,16,pkernel,(verbose > 1))
+
+   pkernel=pkernel_init(0,1,1,0,'S',ndim,hgriddim,16)
+   call pkernel_set(pkernel,verbose >1)
+
+   !pkernel%igpu=0
+   !call createKernel(0,1,'S',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
@@ -374,9 +388,11 @@ program conv_check_fft
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
+   pkernel2=pkernel_init(0,1,1,1,'S',ndim,hgriddim,16)
+   call pkernel_set(pkernel2,verbose >1)
 
-   pkernel2%igpu=1
-   call createKernel(0,1,'S',ndim,hgriddim,16,pkernel2,(verbose > 1))
+!!$   pkernel2%igpu=1
+!!$   call createKernel(0,1,'S',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel2, &
@@ -400,8 +416,11 @@ program conv_check_fft
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel%igpu=0
-   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel,(verbose > 1))
+   pkernel=pkernel_init(0,1,1,0,'W',ndim,hgriddim,16)
+   call pkernel_set(pkernel,verbose >1)
+
+!!$   pkernel%igpu=0
+!!$   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
@@ -414,9 +433,11 @@ program conv_check_fft
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
+   pkernel2=pkernel_init(0,1,1,1,'W',ndim,hgriddim,16)
+   call pkernel_set(pkernel2,verbose >1)
 
-   pkernel2%igpu=1
-   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel2,(verbose > 1))
+!!$   pkernel2%igpu=1
+!!$   call createKernel(0,1,'W',ndim,hgriddim,16,pkernel2,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel2, &

@@ -32,7 +32,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB
+  integer :: nelec,nB,nKB,nMB,ierr
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
@@ -146,7 +146,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
-
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
   if (iproc==0 .and. verbose > 0) then
@@ -155,11 +154,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
   
-!!$  !calculate the descriptors for rho and the potentials.
-!!$  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-!!$       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-!!$       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
-
   !here dpbox can be put as input
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
        denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)

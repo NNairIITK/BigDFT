@@ -522,6 +522,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: crmult,frmult
@@ -531,6 +532,8 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
+  !local variables
+  integer :: ierr
 
   !decide rho communication strategy
   !old way
@@ -567,12 +570,11 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
         rhodsc%icomm=0
      end if
   end if
-
+rhodsc%icomm=2
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
-
-  
+ 
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
@@ -591,7 +593,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   else
      rhodsc%nrhotot=dpbox%ndims(3)
   end if
-  
+ 
 end subroutine density_descriptors
 
 

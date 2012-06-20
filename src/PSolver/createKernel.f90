@@ -26,6 +26,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
   !$ integer :: omp_get_max_threads
 
+  group_size=taskgroup_size
   !nullification
   kernel=pkernel_null()
 
@@ -70,10 +71,11 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
      end if
   end if
 
-  if (nproc >1) then
+  if (nproc >1 .and. group_size > 0) then
      !create taskgroups if the number of processes is bigger than one and multiple of group_size
      !print *,'am i here',nproc >1 .and. group_size < nproc .and. mod(nproc,group_size)==0
 !     print *,nproc,group_size,mod(nproc,group_size)
+     
      if (nproc >1 .and. group_size < nproc .and. mod(nproc,group_size)==0) then
         group_id=iproc/group_size
         kernel%iproc=mod(iproc,group_size)
@@ -200,6 +202,11 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   call timing(kernel%iproc_world,'PSolvKernel   ','ON')
 
   dump=wrtmsg .and. kernel%iproc_world==0
+
+  mu0t=kernel%mu
+  alphat=kernel%angrad(1)
+  betat=kernel%angrad(2)
+  gammat=kernel%angrad(3)
 
   if (dump) then 
      if (mu0t==0.0_gp) then 

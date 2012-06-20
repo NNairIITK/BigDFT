@@ -1157,17 +1157,18 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
 
-  !number of switching betweed DIIS and SD during self-consistent loop
-  ndiis_sd_sw=0
-  !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=KSwfn%diis%idsx
-
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
        KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
+
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=KSwfn%diis%idsx
+
 
   gnrm_zero=0.0d0
   opt%gnrm=1.d10

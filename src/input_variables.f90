@@ -1457,14 +1457,15 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      end if
   else
      !use stdout
-     call yaml_set_stream(record_length=92)
+     if (iproc==0) call yaml_set_stream(record_length=92)
   end if
-  !start writing on logfile
-  call yaml_new_document()
-  !welcome screen
-  if (dump) call print_logo()
-
-  call input_free(dump)
+  if (iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+  call input_free(iproc==0)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
