@@ -394,7 +394,7 @@ call wait_p2p_communication(iproc, nproc, comsr)
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
 !call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
+!call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
 
@@ -536,9 +536,9 @@ do iorb=1,comsr%noverlaps(iproc)
        end do !izones
     end do
 end do
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!call cpu_time(t2)
+!!time=t2-t1
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
