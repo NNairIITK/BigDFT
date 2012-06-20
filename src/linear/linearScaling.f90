@@ -553,14 +553,15 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
           end if
       end if
 
-      if(itout==1 .or. nit_highaccur==1) then
+      !if(itout==1 .or. nit_highaccur==1) then
+      if(itout==1) then
           ! Orthonormalize the TMBs
           ! just to be sure...
           tmb%can_use_transposed=.false.
           nullify(tmb%psit_c)
           nullify(tmb%psit_f)
-          if(iproc==0) write(*,*) 'calling orthonormalizeLocalized'
-          call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+          if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                tmb%can_use_transposed)
