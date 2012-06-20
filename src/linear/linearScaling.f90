@@ -794,18 +794,18 @@ end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lscv%lowaccur_converged) then
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+                      'itoutL, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+                      'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
              end if
           else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
              if (.not. lscv%lowaccur_converged) then
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+                      'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
+                      'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
              end if
           end if
       end if

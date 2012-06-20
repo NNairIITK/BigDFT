@@ -110,7 +110,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
 
 
-
   if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
 
       !!$$allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
@@ -256,13 +255,11 @@ real(8),dimension(:,:),allocatable:: locregCenter
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
-
       do iorb=1,orbs%norb
           call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
       end do
       infoCoeff=0
  
-
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -281,7 +278,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
       ! keep the eigeanvalues for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
-
   end if
 
   ! TEST
@@ -307,7 +303,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
           ebs = ebs + tt
       end do
   end do
-
 
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
@@ -1308,11 +1303,11 @@ real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
   ! temp change
-  real(8),dimension(:),allocatable:: eval1,beta,eval2
-  real(8),dimension(:,:), allocatable :: vr,vl,ks,inv_ovrlp
-real(8),dimension(1:orbs%norb) :: temp_vec
+  real(8),dimension(:),allocatable:: eval1,beta
+  real(8),dimension(:,:), allocatable :: vr,vl,ovrlp_copy
+  !real(8),dimension(:,:), allocatable :: inv_ovrlp,ks
   integer :: ierr
-real(8) :: temp, tt, ddot
+  real(8) :: temp, tt, ddot
 
   call timing(iproc,'diagonal_seq  ','ON')
 
@@ -1346,18 +1341,29 @@ real(8) :: temp, tt, ddot
   !!   end do
   !!end do
 
-  allocate(ks(1:orbs%norb,1:orbs%norb))
+  !!allocate(ks(1:orbs%norb,1:orbs%norb))
   !!call dgemm('n','n', orbs%norb,orbs%norb,orbs%norb,1.d0,inv_ovrlp(1,1),orbs%norb,&
   !!     HamSmall(1,1),orbs%norb,0.d0,ks(1,1),orbs%norb)
   !!call dcopy(orbs%norb**2,ks(1,1),1,HamSmall(1,1),1)
   !!deallocate(ks)
   !!deallocate(inv_ovrlp)
   !!!!!!!!!!!
+  !!allocate(ham_copy(1:orbs%norb,1:orbs%norb))
 
-  allocate(vl(1:orbs%norb,1:orbs%norb))
-  allocate(vr(1:orbs%norb,1:orbs%norb))
-  allocate(eval1(1:orbs%norb))
-  allocate(beta(1:orbs%norb))
+
+  allocate(ovrlp_copy(1:orbs%norb,1:orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_copy, 'ovrlp_copy', subname)
+  allocate(vl(1:orbs%norb,1:orbs%norb), stat=istat)
+  call memocc(istat, vl, 'vl', subname)
+  allocate(vr(1:orbs%norb,1:orbs%norb), stat=istat)
+  call memocc(istat, vr, 'vr', subname)
+  allocate(eval1(1:orbs%norb), stat=istat)
+  call memocc(istat, eval1, 'eval1', subname)
+  allocate(beta(1:orbs%norb), stat=istat)
+  call memocc(istat, beta, 'beta', subname)
+
+  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_copy(1,1), 1)
+
   !!$call dggev('v', 'v',orbs%norb,&
   !!$      HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
   !!$      vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
@@ -1376,7 +1382,8 @@ real(8) :: temp, tt, ddot
 !!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, vl(1,1), 1)
 !!  call dcopy(orbs%norb**2, ovrlp(1,1), 1, vr(1,1), 1)
 !!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, inv_ovrlp(1,1), 1)
-  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ks(1,1), 1)
+
+!!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, tmp(1,1), 1)
 !!  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
 !!  do iorb=1,orbs%norb
 !!    do jorb=1,orbs%norb
@@ -1405,11 +1412,11 @@ real(8) :: temp, tt, ddot
      do jorb=iorb,orbs%norb
         if (eval(jorb)/beta(jorb) < eval(iorb)/beta(iorb)) then
            temp = eval(iorb)
-           temp_vec = HamSmall(:,iorb)
+           eval1 = HamSmall(:,iorb)
            eval(iorb) = eval(jorb)
            eval(jorb) = temp
            HamSmall(:,iorb) = HamSmall(:,jorb)
-           HamSmall(:,jorb) = temp_vec
+           HamSmall(:,jorb) = eval1
            temp=beta(iorb)
            beta(iorb)=beta(jorb)
            beta(jorb)=temp
@@ -1417,17 +1424,23 @@ real(8) :: temp, tt, ddot
      end do
   end do
 
+  do iorb=1,orbs%norb
+    eval(iorb) = eval(iorb) / beta(iorb)
+  end do
 
+  ! normalize
+  call dcopy(orbs%norb**2, ovrlp_copy(1,1), 1, ovrlp(1,1), 1)
 
-  call dcopy(orbs%norb**2, ks(1,1), 1, ovrlp(1,1), 1)
+  iall=-product(shape(ovrlp_copy))*kind(ovrlp_copy)
+  deallocate(ovrlp_copy, stat=istat)
+  call memocc(istat, iall, 'ovrlp_copy', subname)
+
   do iorb=1,orbs%norb
       call dgemv('n', orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
            orbs%norb, hamsmall(1,iorb), 1, 0.d0, vl(1,iorb), 1)
       tt=ddot(orbs%norb, hamsmall(1,iorb),  1, vl(1,iorb), 1)
       call dscal(orbs%norb, 1/sqrt(tt), hamsmall(1,iorb), 1)
   end do
-
-
 
 
 !!  do iorb=1,orbs%norb
@@ -1484,6 +1497,22 @@ real(8) :: temp, tt, ddot
 !!!  write(38,*) 'eval1',eval1
 !!!  !write(38,*) 'beta',beta
 
+  iall=-product(shape(vl))*kind(vl)
+  deallocate(vl, stat=istat)
+  call memocc(istat, iall, 'vl', subname)
+
+  iall=-product(shape(vr))*kind(vr)
+  deallocate(vr, stat=istat)
+  call memocc(istat, iall, 'vr', subname)
+
+  iall=-product(shape(eval1))*kind(eval1)
+  deallocate(eval1, stat=istat)
+  call memocc(istat, iall, 'eval1', subname)
+
+  iall=-product(shape(beta))*kind(beta)
+  deallocate(beta, stat=istat)
+  call memocc(istat, iall, 'beta', subname)
+
   ! Deallocate the work array.
   iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
@@ -1500,41 +1529,33 @@ real(8) :: temp, tt, ddot
   end do
   !! #################################################################################################################
 
-  deallocate(vl)
-  deallocate(vr)
-  deallocate(eval1)
-  deallocate(beta)
-
-if (.false.) then
-  allocate(vl(1:orbs%norb,1:orbs%norb))
-  allocate(vr(1:orbs%norb,1:orbs%norb))
-  allocate(eval1(1:orbs%norb))
-  allocate(eval2(1:orbs%norb))
-
-
-  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-  ! check eigenvalues of overlap matrix
-      call DGEEV( 'v','v', orbs%norb, ovrlp(1,1), orbs%norb, eval2, eval1, VL, orbs%norb, VR,&
-                  orbs%norb, WORK, LWORK, ierr )
-!  write(40,*) 'eval',eval2
-!  write(40,*) 'eval1',eval1
-!  write(40,*) 'sum',sum(eval2)
-
-!  do iorb=1,orbs%norb
-!    write(44,*) vl(:,iorb)
-!    write(45,*) vr(:,iorb)
-!  end do
-!  write(44,*) ''
-!  write(45,*) ''
-
-  write(41,*) 'sum olap eigs',sum(eval2)
-
-  deallocate(work)
-  deallocate(vl)
-  deallocate(vr)
-  deallocate(eval1)
-  deallocate(eval2)
-end if
+!!  allocate(vl(1:orbs%norb,1:orbs%norb))
+!!  allocate(vr(1:orbs%norb,1:orbs%norb))
+!!  allocate(eval1(1:orbs%norb))
+!!  allocate(eval2(1:orbs%norb))
+!!
+!!  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+!!  ! check eigenvalues of overlap matrix
+!!      call DGEEV( 'v','v', orbs%norb, ovrlp(1,1), orbs%norb, eval2, eval1, VL, orbs%norb, VR,&
+!!                  orbs%norb, WORK, LWORK, ierr )
+!!  !write(40,*) 'eval',eval2
+!!  !write(40,*) 'eval1',eval1
+!!  !write(40,*) 'sum',sum(eval2)
+!!
+!!  !do iorb=1,orbs%norb
+!!  !  write(44,*) vl(:,iorb)
+!!  !  write(45,*) vr(:,iorb)
+!!  !end do
+!!  !write(44,*) ''
+!!  !write(45,*) ''
+!!
+!!  write(41,*) 'sum olap eigs',sum(eval2)
+!!
+!!  deallocate(work)
+!!  deallocate(vl)
+!!  deallocate(vr)
+!!  deallocate(eval1)
+!!  deallocate(eval2)
 
   !!!! NEW VERSION #####################################################################################################
   !!! Determine the maximal number of non-zero subdiagonals
@@ -1574,7 +1595,6 @@ end if
   !!!!           write(*,'(14es10.3)') (ham_band(iorb,jorb), jorb=1,orbs%norb)
   !!!!      end do
   !!!!end if
-
 
 
   !!!!! Get the optimal work array size
