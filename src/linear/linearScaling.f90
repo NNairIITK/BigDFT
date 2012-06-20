@@ -45,9 +45,11 @@ real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
 !FOR DEBUG ONLY
 !integer,dimension(:),allocatable:: debugarr
 real(8),dimension(:),allocatable :: locrad_tmp, eval
-type(DFT_wavefunction):: tmblarge, tmblargeder
-real(8),dimension(:,:),allocatable:: locregCenter
+type(DFT_wavefunction):: tmblarge, tmblargeder, tmblarge2
+real(8),dimension(:,:),allocatable:: locregCenter, locregCenterTemp, kernel, Umat
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilargeder, lhphilargeoldder, lphilargeoldder
+real(8),dimension(:),pointer:: lhphilarge2, lhphilarge2old, lphilarge2old
+integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_reference
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -352,6 +354,113 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
       call memocc(istat, locregCenter, 'locregCenter', subname)
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      !!$$allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
+      !!$$call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
+      !!$$allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
+      !!$$call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
+      !!$$allocate(locregCenterTemp(3,tmb%lzd%nlr), stat=istat)
+      !!$$call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
+      !!$$allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !!$$call memocc(istat, kernel, 'kernel', subname)
+      !!$$allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !!$$call memocc(istat, Umat, 'Umat', subname)
+
+
+!!$$      !## TEST ###################################################
+!!$$
+!!$$  call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
+!!$$
+!!$$
+!!$$  ! Initialize largestructures if required
+!!$$      do iorb=1,tmb%orbs%norb
+!!$$          ilr=tmb%orbs%inwhichlocreg(iorb)
+!!$$          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+!!$$      end do
+!!$$      locregCenterTemp=locregCenter
+!!$$      do ilr=1,tmb%lzd%nlr
+!!$$          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+4.d0
+!!$$      end do
+!!$$      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
+!!$$           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+!!$$           tmb%orbs, tmblarge2%lzd, tmblarge2%orbs, tmblarge2%op, tmblarge2%comon, &
+!!$$           tmblarge2%comgp, tmblarge2%comsr, tmblarge2%mad, tmblarge2%collcom)
+!!$$      call update_ldiis_arrays(tmblarge2, subname, ldiis)
+!!$$      call allocate_auxiliary_basis_function(tmblarge2%orbs%npsidim_orbs, subname, tmblarge2%psi, &
+!!$$           lhphilarge2, lhphilarge2old, lphilarge2old)
+!!$$      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge2%wfnmd%bpo, subname)
+!!$$      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
+!!$$      tmblarge2%wfnmd%nphi=tmblarge2%orbs%npsidim_orbs
+!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+!!$$      !call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge2%orbs%onwhichatom(1), 1)
+!!$$
+!!$$      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmb%psi, tmblarge2%psi)
+!!$$      allocate(tmblarge2%confdatarr(tmblarge2%orbs%norbp), stat=istat)
+!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge2%orbs%onwhichatom(1), 1)
+!!$$      if(.not.lscv%lowaccur_converged) then
+!!$$          call define_confinement_data(tmblarge2%confdatarr,tmblarge2%orbs,rxyz,at,&
+!!$$               tmblarge2%lzd%hgrids(1),tmblarge2%lzd%hgrids(2),tmblarge2%lzd%hgrids(3),&
+!!$$               input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge2%lzd,tmblarge2%orbs%onwhichatom)
+!!$$      else
+!!$$          call define_confinement_data(tmblarge2%confdatarr,tmblarge2%orbs,rxyz,at,&
+!!$$               tmblarge2%lzd%hgrids(1),tmblarge2%lzd%hgrids(2),tmblarge2%lzd%hgrids(3),&
+!!$$               input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge2%lzd,tmblarge2%orbs%onwhichatom)
+!!$$      end if
+!!$$
+!!$$      call MLWFnew(iproc, nproc, tmblarge2%lzd, tmblarge2%orbs, at, tmblarge2%op, &
+!!$$           tmblarge2%comon, tmblarge2%mad, rxyz, 0, kernel, &
+!!$$           tmblarge2%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge2%psi, Umat, locregCenter)
+!!$$      deallocate(tmblarge2%confdatarr, stat=istat)
+!!$$
+!!$$      call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
+!!$$
+!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
+!!$$      do ilr=1,tmb%lzd%nlr
+!!$$          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad
+!!$$      end do
+!!$$      call destroy_new_locregs(iproc, nproc, tmb)
+!!$$      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmblarge2%lzd%glr, &
+!!$$           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+!!$$           tmblarge2%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
+!!$$           tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
+!!$$      call update_ldiis_arrays(tmb, subname, ldiis)
+!!$$
+!!$$      allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
+!!$$      call memocc(istat, tmb%psi, 'tmb%psi', subname)
+!!$$
+!!$$      !!call update_auxiliary_basis_function(subname, tmb%orbs%npsidim_orbs, tmb%psi, lhphi, lhphiold, lphiold)
+!!$$      call copy_basis_performance_options(tmblarge2%wfnmd%bpo, tmb%wfnmd%bpo, subname)
+!!$$      call copy_orthon_data(tmblarge2%orthpar, tmb%orthpar, subname)
+!!$$      call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
+!!$$      tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
+!!$$
+!!$$      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+!!$$      call destroy_new_locregs(iproc, nproc, tmblarge2)
+!!$$
+!!$$      iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
+!!$$      deallocate(onwhichatom_reference, stat=istat)
+!!$$      call memocc(istat, iall, 'onwhichatom_reference', subname)
+!!$$      iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
+!!$$      deallocate(inwhichlocreg_reference, stat=istat)
+!!$$      call memocc(istat, iall, 'inwhichlocreg_reference', subname)
+!!$$      iall=-product(shape(locregCenterTemp))*kind(locregCenterTemp)
+!!$$      deallocate(locregCenterTemp, stat=istat)
+!!$$      call memocc(istat, iall, 'locregCenterTemp', subname)
+!!$$      iall=-product(shape(kernel))*kind(kernel)
+!!$$      deallocate(kernel, stat=istat)
+!!$$      call memocc(istat, iall, 'kernel', subname)
+!!$$      iall=-product(shape(Umat))*kind(Umat)
+!!$$      deallocate(Umat, stat=istat)
+!!$$      call memocc(istat, iall, 'Umat', subname)
+!!$$
+!!$$      !## END TEST ###################################################
+
+
+
+
+
+
+
+
       do iorb=1,tmb%orbs%norb
           ilr=tmb%orbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter

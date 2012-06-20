@@ -5584,7 +5584,7 @@ module module_interfaces
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
-                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2)
+                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
          use module_base
          use module_types
          implicit none
@@ -5604,6 +5604,7 @@ module module_interfaces
          type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
+         type(orbitals_data),intent(in):: orbs
        end subroutine calculate_energy_and_gradient_linear
 
 
