@@ -15,58 +15,25 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  real(kind=8) :: t1,t2
-  integer :: i,is
+  integer :: i
   logical within_openmp,omp_in_parallel
-
-  if (n.le.128) then
-
-      do i=1,n
-      x(i)=0.d0
-      end do            
-
-  else
-
-   !!  call CPU_time(t1)
 
 !$    within_openmp=omp_in_parallel()
 
-!$ if (within_openmp) then
-!$ write(*,*) "RAZERO CALLED WITHIN OPENMP"
-!$    do i=1,n-7,8
-!$    x(i+0)=0.d0
-!$    x(i+1)=0.d0
-!$    x(i+2)=0.d0
-!$    x(i+3)=0.d0
-!$    x(i+4)=0.d0
-!$    x(i+5)=0.d0
-!$    x(i+6)=0.d0
-!$    x(i+7)=0.d0
-!$    x(i+8)=0.d0
+!$ if (within_openmp .or. n.le.128) then
+!!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"
+!$    do i=1,n
+!$    x(i)=0.d0
 !$    end do
 !$ else
-!$omp do
-      do i=1,n-7,8
-      x(i+0)=0.d0
-      x(i+1)=0.d0
-      x(i+2)=0.d0
-      x(i+3)=0.d0
-      x(i+4)=0.d0
-      x(i+5)=0.d0
-      x(i+6)=0.d0
-      x(i+7)=0.d0
-      x(i+8)=0.d0
+!$omp parallel shared(x,n) private(i)
+!$omp do 
+      do i=1,n
+      x(i)=0.d0
       end do
 !$omp enddo
+!$omp end parallel 
 !$ endif   
-      is=i
-      do i=is,n
-      x(i)=0.d0
-      end do            
-
-    !!  call CPU_time(t2)
-    !!  write(999,*) 'CPUTIMErazero ',n,t2-t1
-  endif
 
 END SUBROUTINE razero
 
