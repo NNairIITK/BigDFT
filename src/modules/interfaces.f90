@@ -927,6 +927,19 @@ module module_interfaces
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
 
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc,nproc,ncong
+        real(gp), intent(in) :: hx,hy,hz
+        type(local_zone_descriptors), intent(in) :: Lzd
+        type(orbitals_data), intent(in) :: orbs
+        real(dp), intent(out) :: gnrm,gnrm_zero
+        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+      end subroutine preconditionall2
+
       subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
             &   work,outadd) !optional
          !n(c) use module_base

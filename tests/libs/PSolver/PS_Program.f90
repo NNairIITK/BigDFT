@@ -163,7 +163,7 @@ program PSolver_Program
   else if (geocode == 'W') then
     
      if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
      
   else if (geocode == 'H') then
    
@@ -196,8 +196,12 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
+  karray=pkernel_init(iproc,nproc,nproc,0,&
+       geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
+  call pkernel_set(karray,.true.)
 
+  !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
+  !print *,'sum',sum(karray%kernel)
   if (.not. onlykernel) then
      !Allocations
      !Density
@@ -261,8 +265,11 @@ program PSolver_Program
 
 
      !apply the Poisson Solver (case with distributed potential)
-     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
+     eexcu=0.0_gp
+     vexcu=0.0_gp
+     call H_potential(datacode,karray,density(1,1,i3sd),pot_ion(1,1,i3s+i3xcsh),ehartree,offset,.false.)
+!!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
      i3=n03/2
      do i2=1,n02
@@ -298,25 +305,24 @@ program PSolver_Program
   end if
 
   
-  if (geocode == 'P') then
-     open(unit=65,file='karrayP.dump')
-  elseif (geocode == 'S') then
-     open(unit=65,file='karrayS.dump')
-  elseif (geocode == 'F') then
-     open(unit=65,file='karrayF.dump')
-  elseif (geocode == 'W') then
-     open(unit=65,file='karrayW.dump')
-  end if
-
- 
-  do i1 = 1, nd1-1
-     do i3 = 1, nd3-1
-        write(65,fmt="(3(1pe20.12e3))") i1*1.0_dp, i3*1.0_dp, karray%kernel(i1 + (nd2-1)*nd1 + i3*nd1*nd2)
-     end do
-  end do
-
-  close(65)
-  call deallocate_coulomb_operator(karray,subname)
+!!$  if (geocode == 'P') then
+!!$     open(unit=65,file='karrayP.dump')
+!!$  elseif (geocode == 'S') then
+!!$     open(unit=65,file='karrayS.dump')
+!!$  elseif (geocode == 'F') then
+!!$     open(unit=65,file='karrayF.dump')
+!!$  elseif (geocode == 'W') then
+!!$     open(unit=65,file='karrayW.dump')
+!!$  end if
+!!$
+!!$ 
+!!$  do i1 = 1, nd1-1
+!!$     do i3 = 1, nd3-1
+!!$        write(65,fmt="(3(1pe20.12e3))") i1*1.0_dp, i3*1.0_dp, karray%kernel(i1 + (nd2-1)*nd1 + i3*nd1*nd2)
+!!$     end do
+!!$  end do
+!!$  close(65)
+  call pkernel_free(karray,subname)
 !!$  i_all=-product(shape(karray))*kind(karray)
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
@@ -359,8 +365,13 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,&
-          (/alpha,beta,gamma/))
+     karray=pkernel_init(0,1,1,0,&
+          geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
+
+     call pkernel_set(karray,.true.)
+
+!!$     call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,&
+!!$          (/alpha,beta,gamma/))
 
      if (.not. onlykernel) then
         !offset, used only for the periodic solver case
@@ -371,7 +382,7 @@ program PSolver_Program
              rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
         
      end if
-     call deallocate_coulomb_operator(karray,subname)
+     call pkernel_free(karray,subname)
 !!$     i_all=-product(shape(karray))*kind(karray)
 !!$     deallocate(karray,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'karray',subname)
@@ -495,8 +506,8 @@ subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
   !tk=tk2
   !txc=txc2
   
-  write(99,'(a2,3(i4),1pe9.2,1pe10.3,4(1pe9.2),4(0pf5.1),1pe9.2)')&
-       geocode,n01,n02,n03,hgrid,max_diff,tcp,tcm,tk,txc,pcp,pcm,pk,pxc,diff_parser
+!  write(99,'(a2,3(i4),1pe9.2,1pe10.3,4(1pe9.2),4(0pf5.1),1pe9.2)')&
+ !      geocode,n01,n02,n03,hgrid,max_diff,tcp,tcm,tk,txc,pcp,pcm,pk,pxc,diff_parser
   
 end subroutine regroup_data
 

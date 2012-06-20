@@ -101,7 +101,7 @@ mpif.h:
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 types.o: base.o
-input.o: base.o
+input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o

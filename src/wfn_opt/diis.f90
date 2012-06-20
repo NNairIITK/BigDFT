@@ -607,6 +607,7 @@ END SUBROUTINE psimix
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,idsx,nkptsp
   type(diis_objects), intent(inout) :: diis
@@ -619,19 +620,12 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   end if
   if (diis%idiistol > idsx .and. .not. diis%switchSD) then
      !the energy has not decreasing for too much steps, switching to SD for next steps
-     if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
-          'WARNING: The energy value is growing (delta=',diis%energy-diis%energy_min,') switch to SD'
+     if (iproc ==0) call yaml_warning('The energy value is growing (delta='//&
+          trim(yaml_toa(diis%energy-diis%energy_min,fmt='(1pe9.2)'))//&
+          ') switch to SD')
+     !write(*,'(1x,a,1pe9.2,a)')&
+     !     'WARNING: The energy value is growing (delta=',diis%energy-diis%energy_min,') switch to SD'
      diis%switchSD=.true.
-     !il is not necessary to deallocate these arrays
-     !i_all=-product(shape(psidst))*kind(psidst)
-     !deallocate(psidst,stat=i_stat)
-     !call memocc(i_stat,i_all,'psidst',subname)
-     !i_all=-product(shape(hpsidst_sp))*kind(hpsidst_sp)
-     !deallocate(hpsidst_sp,stat=i_stat)
-     !call memocc(i_stat,i_all,'hpsidst_sp',subname)
-     !i_all=-product(shape(ads))*kind(ads)
-     !deallocate(ads,stat=i_stat)
-     !call memocc(i_stat,i_all,'ads',subname)
      diis%idsx=0
      diis%idiistol=0
   end if

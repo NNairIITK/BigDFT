@@ -810,7 +810,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
      !write or not electric field in a separate file
-     efwrite=.true.
+     efwrite=.false.!true.
 
      if (n3pi > 0) then
         do i3=1,n3pi

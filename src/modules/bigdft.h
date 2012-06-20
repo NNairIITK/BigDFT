@@ -522,7 +522,7 @@ struct BigDFT_LocalFields_
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Private. */
-  double *pkernel, *pkernelseq;
+  void *pkernel, *pkernelseq;
   void *rhod;
   void *dpbox;
   void *data;

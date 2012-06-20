@@ -1162,8 +1162,15 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  a1 = hx * real(n01,dp)
  a2 = hy * real(n02,dp)
  a3 = hz * real(n03,dp)
-
+ 
  if (mu0_screening == 0.0_dp) then
+
+ !We divide the p_gauss by a_range**2 and a_gauss by a_range
+    a_range = sqrt(a1*a1+a2*a2+a3*a3)
+    factor = 1._dp/a_range
+    !factor2 = factor*factor
+    factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
+
    
     n_gauss = 89
     allocate(p_gauss(1:n_gauss), stat = i_stat)
@@ -1175,27 +1182,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     call gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
     !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
     !(biggest length in the cube)
-    !We divide the p_gauss by a_range**2 and a_gauss by a_range
-    a_range = sqrt(a1*a1+a2*a2+a3*a3)
-    factor = 1._dp/a_range
-    !factor2 = factor*factor
-    factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
  !do i_gauss=1,n_gauss
  !   p_gauss(i_gauss) = factor2*p_gauss(i_gauss)
  !end do
  !do i_gauss=1,n_gauss
  !   w_gauss(i_gauss) = factor*w_gauss(i_gauss)
  !end do
-
-  do i3=1,n3k/nproc 
-    !$omp parallel do default(shared) private(i2, i1)
-    do i2=1,n2k
-      do i1=1,n1k
-        karray(i1,i2,i3) = 0.0_dp
-      end do
-    end do
-    !$omp end parallel do
-  end do
 
  else
 
@@ -1218,8 +1210,20 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
        ! it is already accounted for in 'scal'
        w_gauss(i_gauss) = mu0_screening*w_gauss(i_gauss)
     end do
- 
+    factor2=1.0_gp
+    factor=1.0_gp
  end if
+
+
+  do i3=1,n3k/nproc 
+    !$omp parallel do default(shared) private(i2, i1)
+    do i2=1,n2k
+      do i1=1,n1k
+        karray(i1,i2,i3) = 0.0_dp
+      end do
+    end do
+    !$omp end parallel do
+  end do
 
 
   allocate(fwork(0:n_range+ndebug), stat=i_stat)
@@ -1280,13 +1284,14 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$    !STOP
 
 !    fwork = 0.0_dp
-    
+
     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
          fwork,fftwork,kernel_scf)
 
     !Add to the kernel (only the local part)
     wg=w_gauss(i_gauss) * factor
 !tt=0.d0
+!print *,'aaa',iMin,iMax,n2k,n3k,sum(kernel_scf(:,:))
     do i03 = iMin, iMax
        i3=i03-iproc*(nker3/nproc)
        k3=kernel_scf(i03,3) * wg
@@ -1296,7 +1301,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
           k2=kernel_scf(i2,2)*k3
           do i1=1,n1k
              karray(i1,i2,i3) = karray(i1,i2,i3) + kernel_scf(i1,1) * k2
-!             tt=tt+kernel_scf(i1,1) * k2
+ !            tt=tt+kernel_scf(i1,1) * k2
           end do
        end do
        !$omp end parallel do

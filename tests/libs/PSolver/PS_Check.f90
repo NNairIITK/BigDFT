@@ -112,7 +112,11 @@ program PS_Check
    end if
 
    !calculate the kernel in parallel for each processor
-   call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
+          
+   pkernel=pkernel_init(iproc,nproc,nproc/2,0,&
+        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf)
+   call pkernel_set(pkernel,.true.)
+   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
 
    !Allocations, considering also spin density
    !Density
@@ -228,7 +232,7 @@ program PS_Check
    end if
 
    call timing(pkernel%iproc_world,'Parallel','PR')
-   call deallocate_coulomb_operator(pkernel,subname)
+   call pkernel_free(pkernel,subname)
 
    if (pkernel%nproc == 1 .and. pkernel%iproc_world==0 ) call yaml_map('Monoprocess run','*MPIrun')
 
@@ -251,8 +255,11 @@ program PS_Check
             density,potential,rhopot,pot_ion,offset)
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
+       pkernelseq=pkernel_init(0,1,1,0,&
+            geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf)
+       call pkernel_set(pkernelseq,.true.)
 
-       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
+!!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
        call yaml_open_map('Comparison with a reference run')
 
        call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
@@ -263,6 +270,7 @@ program PS_Check
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernelseq)
 
+       call pkernel_free(pkernelseq,subname)
        call yaml_close_map() !comparison
        if (ixc == 0) exit
        call xc_end()    

@@ -141,3 +141,29 @@
    implicit none
    !stop 'sg_end'
  END SUBROUTINE sg_end
+
+subroutine cudamalloc()
+   implicit none
+   stop 'allocation'
+ END SUBROUTINE cudamalloc
+
+subroutine reset_gpu_data()
+   implicit none
+   stop 'reset'
+ END SUBROUTINE reset_gpu_data
+
+subroutine get_gpu_data()
+   implicit none
+   stop 'get'
+ END SUBROUTINE get_gpu_data
+
+
+subroutine cuda_3d_psolver_general_plan()
+   implicit none
+   stop 'GPUsolver'
+ END SUBROUTINE cuda_3d_psolver_general_plan
+
+subroutine cuda_3d_psolver_general()
+   implicit none
+   stop 'GPUsolver'
+ END SUBROUTINE cuda_3d_psolver_general

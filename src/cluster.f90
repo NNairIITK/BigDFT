@@ -184,12 +184,12 @@ END SUBROUTINE call_bigdft
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-     KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
+     KSwfn,&
      rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
-!  use Poisson_Solver
+  use Poisson_Solver
   use module_xc
 !  use vdwcorrection
   use m_ab6_mixing
@@ -915,14 +915,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-     call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+     
+     call pkernel_free(denspot%pkernelseq,subname)
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call deallocate_coulomb_operator(denspot%pkernel,subname)
+  call pkernel_free(denspot%pkernel,subname)
 
 
   !------------------------------------------------------------------------
@@ -1025,11 +1026,11 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+          call pkernel_free(denspot%pkernelseq,subname)
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
-       call deallocate_coulomb_operator(denspot%pkernel,subname)
+       call pkernel_free(denspot%pkernel,subname)
 !!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
 !!$       deallocate(denspot%pkernel,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'kernel',subname)
@@ -1152,14 +1153,9 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
-
-  !number of switching betweed DIIS and SD during self-consistent loop
-  ndiis_sd_sw=0
-  !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=KSwfn%diis%idsx
 
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
@@ -1167,6 +1163,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
        KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
+
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=KSwfn%diis%idsx
+
 
   gnrm_zero=0.0d0
   opt%gnrm=1.d10
@@ -1192,6 +1194,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      !set the opt%infocode to the value it would have in the case of no convergence
      opt%infocode=1
      opt%itrep=1
+     iter_for_diis=0 !initialize it here for keeping the history also after a subspace diagonalization
      subd_loop: do
         if (opt%itrep > opt%nrepmax) exit subd_loop
         !yaml output 
@@ -1206,6 +1209,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_open_sequence("Wavefunctions Iterations")
         end if
         opt%iter=1
+        iter_for_diis=0
         wfn_loop: do
            if (opt%iter > opt%itermax) exit wfn_loop
 
@@ -1236,8 +1240,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (endloop .and. opt%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
-                (opt%itrp==1 .and. opt%itrpmax/=1 .and. opt%gnrm > opt%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
+                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
@@ -1263,8 +1266,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
-
-           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn)
+           iter_for_diis=iter_for_diis+1
+           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
