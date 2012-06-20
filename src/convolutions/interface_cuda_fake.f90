@@ -147,6 +147,11 @@ subroutine cudamalloc()
    stop 'allocation'
  END SUBROUTINE cudamalloc
 
+subroutine cudafree()
+   implicit none
+   stop 'free'
+ END SUBROUTINE cudafree
+
 subroutine reset_gpu_data()
    implicit none
    stop 'reset'
