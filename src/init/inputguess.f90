@@ -2359,7 +2359,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                   &   real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
                ! potential energy from parabolic potential
                hh(i,j)=hh(i,j) +&
-                  &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+                  !&   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+                  &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
                ! hartree potential from ionic core charge
                tt=sqrt(1._gp+2._gp*alpz**2*d)
                if (l.eq.0) then
