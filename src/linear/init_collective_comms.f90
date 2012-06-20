@@ -2323,6 +2323,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(8),dimension(:),allocatable:: ovrlp_compr
   character(len=*),parameter:: subname='calculate_overlap_transposed'
 
+  call timing(iproc,'ovrlptrans','ON') !lr408t
   !!ovrlp=0.d0
   call to_zero(orbs%norb**2, ovrlp(1,1))
 
@@ -2368,12 +2369,13 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       deallocate(ovrlp_compr, stat=istat)
       call memocc(istat, iall, 'ovrlp_compr', subname)
   end if
-
+  call timing(iproc,'ovrlptrans','OF') !lr408t
 end subroutine calculate_overlap_transposed
 
 
 
-subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c, psitwork_f, reset, psit_c, psit_f)
+subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c, psitwork_f, reset, psit_c, psit_f, &
+     iproc)
   use module_base
   use module_types
   implicit none
@@ -2387,10 +2389,10 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   logical,intent(in):: reset
   real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
   real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
-
+  integer, intent(in) :: iproc
   ! Local variables
   integer:: i0, ipt, ii, j, iiorb, jjorb, i
-
+  call timing(iproc,'lincombtrans','ON') !lr408t
   if(reset) then
       !!psit_c=0.d0
       !!psit_f=0.d0
@@ -2429,7 +2431,7 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       end do
       i0=i0+ii
   end do
-
+  call timing(iproc,'lincombtrans','OF') !lr408t
 end subroutine build_linear_combination_transposed
 
 

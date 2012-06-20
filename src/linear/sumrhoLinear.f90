@@ -86,7 +86,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(mapping(iorb))/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(iorb)
 
-
+     Lzd%Llr(ilr)%hybrid_on=.false.
 
      if (hfac /= 0.d0) then
 
@@ -636,14 +636,15 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
 
   ! Local variables
   integer:: ierr
-  integer :: i, j, lwork, k
-  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
-  real(8),dimension(:),allocatable:: eval,eval1,beta
-  real(8),dimension(:),allocatable:: work
-  real(8),dimension(norb,norb) :: kernelij
-  real(8),dimension(ld_coeff,norb):: ocoeff
-  real(dp) :: av_idem, av_k_sym_diff
-  integer :: num_counted
+!!  integer :: i, j, lwork, k
+!!  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
+!!  real(8),dimension(:),allocatable:: eval,eval1,beta
+!!  real(8),dimension(:),allocatable:: work
+!!  real(8),dimension(norb,norb) :: kernelij
+!!  real(8),dimension(ld_coeff,norb):: ocoeff
+!!  real(dp) :: av_idem, av_k_sym_diff
+!!  integer :: num_counted
+  call timing(iproc,'calc_kernel','ON') !lr408t
 
   if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
   !call timing(iproc,'sumrho_TMB    ','ON')
@@ -657,6 +658,13 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
       call to_zero(norb_tmb**2, kernel(1,1))
   end if
   call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
+
+!  ! Calculate the kernel in serial
+!  call dgemm('n', 't', norb_tmb, norb_tmb, norb, 1.d0, coeff(1,1), norb_tmb, &
+!       coeff(1,1), norb_tmb, 0.d0, kernel(1,1), norb_tmb)
+
+  call timing(iproc,'calc_kernel','OF') !lr408t
+
 
 !!$  ! calculate kernelij and print
 !!$  if (present(ovrlp)) then

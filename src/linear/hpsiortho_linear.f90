@@ -50,11 +50,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
            lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
       !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
+      call timing(iproc,'eglincomms','ON') ! lr408t
       call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
            tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
       !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
       !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
       call wait_p2p_communication(iproc, nproc, tmbopt%comon)
+      call timing(iproc,'eglincomms','OF') ! lr408t
       call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
            tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
       call deallocateRecvBufferOrtho(tmbopt%comon, subname)
@@ -74,11 +76,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
 
 
-
-
-
-
-
   !!tmbopt => tmb
   !!lhphiopt => lhphi
   !!lphioldopt => lphiold
@@ -87,9 +84,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
   end if
-
-
-
 
 
   ! Calculate trace (or band structure energy, resp.)

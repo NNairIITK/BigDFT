@@ -50,6 +50,8 @@ real(8),dimension(:,:),allocatable:: locregCenter
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilargeder, lhphilargeoldder, lphilargeoldder
 
 
+  call timing(iproc,'linscalinit','ON') !lr408t
+
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
@@ -261,7 +263,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
   allocate(eval(tmb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
-
+  call timing(iproc,'linscalinit','OF') !lr408t
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   coeffs_copied=.false.
@@ -269,7 +271,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
   nit_highaccur=0
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
       !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
-
 
       ! First to some initialization and determine the value of some control parameters.
 
@@ -318,8 +319,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
           coeffs_copied=.true.
       end if
 
-      
-
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
@@ -328,7 +327,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
 
       if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
       if(nit_highaccur==1) lscv%enlarge_locreg=.true.
-
 
       !!if(iproc==0) write(*,*) 'MIDDLE 1: ldiis%hphiHist(1)',ldiis%hphiHist(1)
       ! Adjust the confining potential if required.
@@ -349,8 +347,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
       end if
 
       ! Now all initializations are done...
-
-
 
       allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
       call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -379,6 +375,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
       allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
       !call memocc(istat, tmblarge%confdatarr, 'tmblarge%confdatarr', subname)
       ! copy onwhichatom... maybe to be done somewhere else
+
       call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
       if(.not.lscv%lowaccur_converged) then
           call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
@@ -393,7 +390,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
 
       ! take the eigenvalues from the input guess for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
-
 
       if(lscv%withder) then
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmbder%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
@@ -423,7 +419,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
           end if
       end if
 
-
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
@@ -442,14 +437,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
           ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
-
           !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
           !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
               call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                    tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
           end if
-
 
          ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
@@ -459,16 +452,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
                   end do
               end if
 
-
-
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb, tmblarge, lhphilarge, lhphilargeold, lphilargeold)
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
               !allocate(denspot%pot_work(tmblarge%lzd%ndimpotisf+ndebug),stat=istat)
               !call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
-
-
 
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
@@ -592,7 +581,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
               scf_mode=input%lin%scf_mode
           end if
 
-
           allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
           call memocc(istat, density_kernel, 'density_kernel', subname)
 
@@ -608,7 +596,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
                    hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
                    tmblargeder, lhphilargeder, lhphilargeoldder, lphilargeoldder, ldiis_coeff)
           end if
-
 
 
           ! Calculate the total energy.
@@ -653,7 +640,6 @@ end if
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
-
           ! Make sure that the previous communication is complete (only do that if this check
           ! for completeness has not been done in get_coeff)
           if(tmbmix%wfnmd%bs%use_derivative_basis .and. .not.tmb%wfnmd%bs%update_phi) then
@@ -693,8 +679,6 @@ end if
 
       end do
 
-
-
     call destroy_new_locregs(iproc, nproc, tmblarge)
     call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
     if(tmblarge%can_use_transposed) then
@@ -706,7 +690,6 @@ end if
         call memocc(istat, iall, 'tmblarge%psit_f', subname)
     end if
     deallocate(tmblarge%confdatarr, stat=istat)
-
 
     if(lscv%withder) then
         call destroy_new_locregs(iproc, nproc, tmblargeder)
@@ -734,7 +717,6 @@ end if
 
 
       call deallocateDIIS(ldiis_coeff)
-
 
 !! call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
 !!      tmb%confdatarr, tmb%wfnmd, lscv)
@@ -794,9 +776,6 @@ end if
 !!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
 !!     tmb%confdatarr, tmb%wfnmd, lscv)
 
-
-
-
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
           write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
@@ -833,7 +812,6 @@ end if
       call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
            fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
 
-
       energyoldout=energy
 
       !!! Deallocate DIIS structures.
@@ -843,11 +821,7 @@ end if
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
-
-
-
   end do outerLoop
-
   ! Deallocate DIIS structures.
   call deallocateDIIS(ldiis)
 
@@ -860,7 +834,6 @@ end if
      call wait_p2p_communication(iproc, nproc, tmbder%comgp)
      call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
   end if
-
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
@@ -874,9 +847,10 @@ end if
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,tmb%Lzd,&
        tmbmix%orbs,orbs%norb,hx,hy,hz,at,rxyz,tmbmix%psi,tmbmix%wfnmd%coeff)
    end if
-
   ! Allocate the communication buffers for the calculation of the charge density.
+
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
+
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
   call memocc(istat, density_kernel, 'density_kernel', subname)
@@ -909,7 +883,6 @@ end if
         nullify(psit)
      end if
   end if
-
 
   nullify(rho,pot)
 
@@ -1231,7 +1204,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       lscv%decrease_factor_total=1.d0-dble(lscv%idecrease)*input%lin%decrease_step
   end if
   if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) lscv%decrease_factor_total=1.d0
-  if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Reduce the confining potential to ', &
+  if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Changing the confining potential to ', &
       100.d0*lscv%decrease_factor_total,'% of its initial value.'
   tmb%confdatarr(:)%prefac=lscv%decrease_factor_total*tmb%confdatarr(:)%prefac
 
