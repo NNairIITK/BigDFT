@@ -4129,8 +4129,8 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
 
   end do
 
-  gnrm_in=gnrm_in/pts_in
-  gnrm_out=gnrm_out/pts_out
+  if(pts_in>0) gnrm_in=gnrm_in/pts_in
+  if(pts_out>0) gnrm_out=gnrm_out/pts_out
   call mpiallred(gnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
   gnrm_out=sqrt(gnrm_out/dble(orbs%norb))

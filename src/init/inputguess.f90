@@ -1956,9 +1956,15 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    end do
 
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
-   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-      &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-      &   aeval,ng,psi,res,chrg)
+   if(present(quartic_prefactor)) then
+       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+          &   aeval,ng,psi,res,chrg,4)
+   else
+       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+          &   aeval,ng,psi,res,chrg,2)
+   end if
 
    !post-treatment of the inguess data
    do i=1,ng+1
@@ -2173,7 +2179,7 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
    call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-      &   aeval,ng,psi,res,chrg)
+      &   aeval,ng,psi,res,chrg,2)
 
    !post-treatment of the inguess data
    do i=1,ng+1
@@ -2220,13 +2226,13 @@ END SUBROUTINE iguess_generator_modified
 !!  pseudoptential.
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
-      &   aeval,ng,psi,res,chrg)
+      &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp
    !implicit real(gp) (a-h,o-z)
    implicit none
    integer, parameter :: n_int=100
    !Arguments
-   integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng
+   integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng,iorder
    real(gp), intent(in) :: rcov,rprb,zion,alpz,alpl
    real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
    real(gp) :: psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
@@ -2245,6 +2251,10 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    real(gp) :: emuxc,dr,d,fact,const
    !Functions
    real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+
+   if(iorder/=2 .and. iorder/=4) then
+       stop 'ERROR: can only use qudratic or quartic potential'
+   end if
 
    if (nintp.ne.n_int) then
       stop 'n_int/=nintp'
@@ -2383,10 +2393,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                hh(i,j)=.5_gp*const*sxp**2* ( 3._gp*xp(i)*xp(j) +&
                   &   real(l,gp)*(6._gp*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
                   &   real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
-               ! potential energy from parabolic potential
-               hh(i,j)=hh(i,j) +&
-                  !&   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
-                  &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
+               ! potential energy from parabolic or quartic potential
+               if (iorder==2) then
+                   ! parabolic potential
+                   hh(i,j)=hh(i,j) +&
+                      &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+               else if (iorder==4) then
+                   ! quartic potential
+                   hh(i,j)=hh(i,j) +&
+                      &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
+               end if
                ! hartree potential from ionic core charge
                tt=sqrt(1._gp+2._gp*alpz**2*d)
                if (l.eq.0) then
