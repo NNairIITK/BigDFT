@@ -39,19 +39,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  do iorb=1,tmbopt%orbs%norb
-      ilr=tmbopt%orbs%inwhichlocreg(iorb)
-      do jorb=1,tmbopt%orbs%norb
-          jlr=tmbopt%orbs%inwhichlocreg(jorb)
-          tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
-              +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
-              +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
-          tt=sqrt(tt)
-          !if(tt>10.d0) kernel(jorb,iorb)=0.d0
-          !!if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
-      end do
-  end do
- !! if (iproc==0) write(999,*) '-------------------------------------------------------------------'
+  !!do iorb=1,tmbopt%orbs%norb
+  !!    ilr=tmbopt%orbs%inwhichlocreg(iorb)
+  !!    do jorb=1,tmbopt%orbs%norb
+  !!        jlr=tmbopt%orbs%inwhichlocreg(jorb)
+  !!        tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
+  !!            +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
+  !!            +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
+  !!        tt=sqrt(tt)
+  !!        !if(tt>10.d0) kernel(jorb,iorb)=0.d0
+  !!        !!if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+  !!    end do
+  !!end do
+  !!!! if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
