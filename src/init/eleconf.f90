@@ -56,7 +56,7 @@ case(1*1000+1)
 !      0      0      0      0      0      0  l=2
 !      0      0      0      0      0      0  l=3
 symbol = "H"
-rcov=3.8d0!0.75d0
+rcov=0.75d0
 rprb=1.21d0
 ehomo=-0.233471d0
 neleconf(1,0)=1
@@ -131,7 +131,7 @@ case(6*1000+4)
 ! -----------------------           8
 ! C            6           4     Symbol, Z, Zion
 symbol = "C"
-rcov=3.8!1.45d0
+rcov=1.45d0
 rprb=2.90d0
 ehomo=-0.199186d0
 neleconf(2,0)=2.d0

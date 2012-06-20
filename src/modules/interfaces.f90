@@ -1059,7 +1059,7 @@ module module_interfaces
 
      subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt,nspin,&
           nlr, norbsPerAt, mapping, &
-          orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+          orbs,orbse,norbsc_arr,locrad,G,psigau,eks,quartic_prefactor)
        use module_base
        use module_types
        implicit none
@@ -1076,6 +1076,7 @@ module module_interfaces
        type(orbitals_data), intent(out) :: orbse
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
+       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
      END SUBROUTINE inputguess_gaussian_orbitals_forLinear
 
      subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
@@ -1099,7 +1100,7 @@ module module_interfaces
      END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping)
+          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
        use module_base
        use module_types
        implicit none
@@ -1114,6 +1115,7 @@ module module_interfaces
        integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
        real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff !fake interface for passing address
        integer,dimension(orbse%norb), optional, intent(in):: mapping
+       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
       subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
@@ -6337,6 +6339,24 @@ module module_interfaces
           integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
           integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
         end subroutine determine_num_orbs_per_gridpoint_new
+
+        subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
+              &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor)
+           use module_base
+           implicit none
+           logical, intent(in) :: enlargerprb
+           integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+           real(gp), intent(in) :: zion
+           integer, dimension(lmax+1), intent(in) :: nl
+           !real(gp), dimension(0:4,0:6), intent(in) :: psppar
+           real(gp), intent(in) :: psppar
+           !real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+           real(gp),  intent(in) :: nlccpar
+           real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
+           real(gp), dimension(ng+1), intent(out) :: expo
+           real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+           real(gp),intent(in),optional:: quartic_prefactor
+        end subroutine iguess_generator
 
    end interface
 

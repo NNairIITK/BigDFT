@@ -459,7 +459,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
-       lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks)
+       lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
   ! Since inputguess_gaussian_orbitals overwrites tmbig%orbs,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
