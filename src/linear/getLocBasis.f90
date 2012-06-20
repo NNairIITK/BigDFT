@@ -146,7 +146,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
   tmblarge%lzd%doHamAppl=.true.
   call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
        proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
-  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
+  !call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
 
 
   !!call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
