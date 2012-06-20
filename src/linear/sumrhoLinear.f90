@@ -657,13 +657,16 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   else
       call to_zero(norb_tmb**2, kernel(1,1))
   end if
+  call timing(iproc,'calc_kernel','OF') !lr408t
+
+  call timing(iproc,'commun_kernel','ON') !lr408t
   call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
 
 !  ! Calculate the kernel in serial
 !  call dgemm('n', 't', norb_tmb, norb_tmb, norb, 1.d0, coeff(1,1), norb_tmb, &
 !       coeff(1,1), norb_tmb, 0.d0, kernel(1,1), norb_tmb)
 
-  call timing(iproc,'calc_kernel','OF') !lr408t
+  call timing(iproc,'commun_kernel','OF') !lr408t
 
 
 !!$  ! calculate kernelij and print

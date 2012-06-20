@@ -1,6 +1,6 @@
 4  1                  iterations with low accuracy, high accuracy
 8  4                  iterations to optimize the basis functions for low accuracy and high accuracy
-0  1.2d0  1.d-1 1.d-1 iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy
+0  1.2d0  1.d-1 1.d-1  .5d0  iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy, ratio of inner and outer gnrm
 0  5  1.d0  1.d0      DIISHistMin, DIISHistMax, step size for DIIS, step size for SD
 5                     number of iterations in the preconditioner
 s                     cubic ('c') or spheric ('s') localization region
