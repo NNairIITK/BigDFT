@@ -2523,7 +2523,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(8),dimension(:),allocatable:: ovrlp_compr
   character(len=*),parameter:: subname='calculate_overlap_transposed'
 
-  call timing(iproc,'ovrlptrans','ON') !lr408t
+  call timing(iproc,'ovrlptransComp','ON') !lr408t
   !!ovrlp=0.d0
   call to_zero(orbs%norb**2, ovrlp(1,1))
 
@@ -2559,6 +2559,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       i0=i0+ii
   end do
 
+  call timing(iproc,'ovrlptransComp','OF') !lr408t
+
+  call timing(iproc,'ovrlptransComm','ON') !lr408t
+
   if(nproc>1) then
       allocate(ovrlp_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
@@ -2569,7 +2573,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       deallocate(ovrlp_compr, stat=istat)
       call memocc(istat, iall, 'ovrlp_compr', subname)
   end if
-  call timing(iproc,'ovrlptrans','OF') !lr408t
+  call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_overlap_transposed
 
 

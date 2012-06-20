@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=88,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=89,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -106,7 +106,8 @@ module timeData
        'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
        'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
        'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
-       'ovrlptrans    ','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
        'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
        'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
        'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
