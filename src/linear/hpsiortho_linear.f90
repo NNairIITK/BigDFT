@@ -148,7 +148,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, ovrlp, &
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%wfnmd%bs, tmbopt%psi, lhphiopt, lagmat, ovrlp, &
        tmbopt%psit_c, tmbopt%psit_f, hpsit_c, hpsit_f, tmbopt%can_use_transposed, overlap_calculated)
 
   if(associated(hpsit_c)) then

@@ -159,7 +159,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
            lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
@@ -176,6 +176,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(collective_comms),intent(in):: collcom
   type(orthon_data),intent(in):: orthpar
   type(basis_performance_options),intent(in):: bpo
+  type(basis_specifications),intent(in):: bs
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi !inout due to tranposition...
   real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp
@@ -258,8 +259,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 0, &
-       orbs, lagmat, ovrlp, mad, &
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
+       bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
   !!call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 1, &
   !!     orbs, lagmat, ovrlp, mad, &

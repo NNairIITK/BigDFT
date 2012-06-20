@@ -4394,7 +4394,7 @@ module module_interfaces
       !!  type(matrixDescriptors),intent(out):: mad
       !!end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
                  lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
@@ -4408,6 +4408,7 @@ module module_interfaces
         type(collective_comms),intent(in):: collcom
         type(orthon_data),intent(in):: orthpar
         type(basis_performance_options),intent(in):: bpo
+        type(basis_specifications),intent(in):: bs
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp

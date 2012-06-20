@@ -769,6 +769,7 @@ end type linear_scaling_control_variables
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
+    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
   end type basis_specifications
 
   type,public:: basis_performance_options
