@@ -94,11 +94,9 @@ real(8),dimension(:,:),allocatable:: locregCenter
       end if
   end if
 
-
   if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
   end if
-  
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
@@ -110,7 +108,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
   lzd%doHamAppl=.true.
   allocate(confdatarrtmp(tmbmix%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
-
 
 
   if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
@@ -155,9 +152,10 @@ real(8),dimension(:,:),allocatable:: locregCenter
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+  call timing(iproc,'glsynchham1','ON') !lr408t
   call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-
+  call timing(iproc,'glsynchham1','OF') !lr408t
   deallocate(confdatarrtmp)
 
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -262,13 +260,11 @@ real(8),dimension(:,:),allocatable:: locregCenter
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
-
       do iorb=1,orbs%norb
           call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
       end do
       infoCoeff=0
  
-
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -287,7 +283,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
       ! keep the eigeanvalues for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
-
   end if
 
   ! TEST
@@ -296,7 +291,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
       !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
-
 
   call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
        tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel, ovrlp)
@@ -314,7 +308,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
           ebs = ebs + tt
       end do
   end do
-
 
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
@@ -430,13 +423,13 @@ real(8),dimension(2):: reducearr
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
-  ! Calculate the kernel
-  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-       tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
-  !!         write(*,*) 'kernel(1,1) 5',kernel(1,1)
-  
+  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp)
 
+  !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+  !     tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
 
+  call timing(iproc,'getlocbasinit','ON') !lr408t
   tmb%can_use_transposed=.false.
   tmblarge%can_use_transposed=.false.
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -462,7 +455,6 @@ real(8),dimension(2):: reducearr
   alphaDIIS=ldiis%alphaDIIS
   !!write(*,*) 'ldiis%is',ldiis%is
 
-
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
       ! The messages for this point ', to point communication have been posted in the subroutine linearScaling.
@@ -473,14 +465,11 @@ real(8),dimension(2):: reducearr
       !!call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
   end if
 
-
-
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   consecutive_rejections=0
   trHold=1.d100
  
-
   ! ratio of large locreg and standard locreg
   factor=tmb%wfnmd%bs%locreg_enlargement
 
@@ -509,7 +498,6 @@ real(8),dimension(2):: reducearr
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge%orbs%onwhichatom(1), 1)
   end if
 
-
   ! Do a first orthonormalization
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Do a standard orthonormalization
@@ -519,7 +507,7 @@ real(8),dimension(2):: reducearr
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
       tmbopt => tmblarge
   end if
-
+  call timing(iproc,'getlocbasinit','OF') !lr408t
   !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
 !!!$$      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
 !!!$$           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
@@ -586,7 +574,6 @@ real(8),dimension(2):: reducearr
           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
       end if
 
-
       !!call postCommunicationsPotential(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, tmb%comgp)
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
@@ -650,7 +637,6 @@ real(8),dimension(2):: reducearr
 
 
 
-
 ! DEBUG #######################################################
 
   !call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
@@ -696,9 +682,10 @@ real(8),dimension(2):: reducearr
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
            tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
            energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+      call timing(iproc,'glsynchham2','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-
+      call timing(iproc,'glsynchham2','OF') !lr408t
 
   iall=-product(shape(tmblarge2%lzd%doHamAppl))*kind(tmblarge2%lzd%doHamAppl)
   deallocate(tmblarge2%lzd%doHamAppl, stat=istat)
@@ -712,7 +699,6 @@ if (iproc==0) then
    !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
 endif
 !END DEBUG
-
 
 
   ! END DEBUG ###########################################
@@ -829,7 +815,6 @@ endif
 
       if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
       trH_old=trH
-  
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
@@ -868,7 +853,6 @@ endif
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
       end if
-  
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
@@ -911,7 +895,6 @@ endif
       !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
       !!end if
 
-
      ! Flush the standard output
      !flush(unit=6) 
 
@@ -947,8 +930,6 @@ endif
   end if
 
 
-
-
   if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       ! Deallocate potential
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
@@ -959,7 +940,6 @@ endif
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
-
 
 contains
 
@@ -1359,11 +1339,11 @@ real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
   ! temp change
-  real(8),dimension(:),allocatable:: eval1,beta,eval2
-  real(8),dimension(:,:), allocatable :: vr,vl,ks,inv_ovrlp
-real(8),dimension(1:orbs%norb) :: temp_vec
+  real(8),dimension(:),allocatable:: eval1,beta
+  real(8),dimension(:,:), allocatable :: vr,vl,ovrlp_copy
+  !real(8),dimension(:,:), allocatable :: inv_ovrlp,ks
   integer :: ierr
-real(8) :: temp, tt, ddot
+  real(8) :: temp, tt, ddot
 
   call timing(iproc,'diagonal_seq  ','ON')
 
@@ -1397,18 +1377,29 @@ real(8) :: temp, tt, ddot
   !!   end do
   !!end do
 
-!!$  allocate(ks(1:orbs%norb,1:orbs%norb))
+  !!allocate(ks(1:orbs%norb,1:orbs%norb))
   !!call dgemm('n','n', orbs%norb,orbs%norb,orbs%norb,1.d0,inv_ovrlp(1,1),orbs%norb,&
   !!     HamSmall(1,1),orbs%norb,0.d0,ks(1,1),orbs%norb)
   !!call dcopy(orbs%norb**2,ks(1,1),1,HamSmall(1,1),1)
   !!deallocate(ks)
   !!deallocate(inv_ovrlp)
   !!!!!!!!!!!
+  !!allocate(ham_copy(1:orbs%norb,1:orbs%norb))
 
-!!$  allocate(vl(1:orbs%norb,1:orbs%norb))
-!!$  allocate(vr(1:orbs%norb,1:orbs%norb))
-!!$  allocate(eval1(1:orbs%norb))
-!!$  allocate(beta(1:orbs%norb))
+
+  !allocate(ovrlp_copy(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, ovrlp_copy, 'ovrlp_copy', subname)
+  !allocate(vl(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, vl, 'vl', subname)
+  !allocate(vr(1:orbs%norb,1:orbs%norb), stat=istat)
+  !call memocc(istat, vr, 'vr', subname)
+  !allocate(eval1(1:orbs%norb), stat=istat)
+  !call memocc(istat, eval1, 'eval1', subname)
+  !allocate(beta(1:orbs%norb), stat=istat)
+  !call memocc(istat, beta, 'beta', subname)
+
+  !call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_copy(1,1), 1)
+
   !!$call dggev('v', 'v',orbs%norb,&
   !!$      HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
   !!$      vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
@@ -1442,6 +1433,9 @@ real(8) :: temp, tt, ddot
 !!  call dcopy(orbs%norb**2, vr(1,1), 1, ovrlp(1,1), 1)
 
 
+  !do iorb=1,orbs%norb
+  !  eval(iorb) = eval(iorb) / beta(iorb)
+  !end do
 
 !!$$$  lwork=-1
 !!$$$  call dggev('v', 'v',orbs%norb,&
@@ -1631,7 +1625,6 @@ real(8) :: temp, tt, ddot
   !!!!           write(*,'(14es10.3)') (ham_band(iorb,jorb), jorb=1,orbs%norb)
   !!!!      end do
   !!!!end if
-
 
 
   !!!!! Get the optimal work array size
@@ -3182,6 +3175,8 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   integer:: ist, istr, iorb, iiorb, ilr, ierr
   type(workarr_sumrho):: w
 
+  call timing(iproc,'commbasis4dens','ON') !lr408t
+
   ! Allocate the communication buffers for the calculation of the charge density.
   !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   ! Transform all orbitals to real space.
@@ -3206,6 +3201,9 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   ! in the subroutine sumrhoForLocalizedBasis2.
   !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
   call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
+
+  call timing(iproc,'commbasis4dens','OF') !lr408t
+
 end subroutine communicate_basis_for_density
 
 

@@ -124,11 +124,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
                lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
           !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
+      call timing(iproc,'eglincomms','ON') ! lr408t
           call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
                tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
           !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
           !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
           call wait_p2p_communication(iproc, nproc, tmbopt%comon)
+      call timing(iproc,'eglincomms','OF') ! lr408t
           call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
                tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
           call deallocateRecvBufferOrtho(tmbopt%comon, subname)
@@ -187,7 +189,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!$$   end do
   !!$$end do
   !!$$call getOverlapMatrix2(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%comon, tmbopt%op, tmbopt%psi, tmbopt%mad, ovrlp)
-
   !!$$tt=0.d0
   !!$$do iorb=1,tmbopt%orbs%norb
   !!$$    do jorb=1,orbs%norb
@@ -224,14 +225,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!             1.d-3, it, iorb, eval_zero)
   !!    end do
   !!end if
-
-
   !call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
   !!call get_both_gradients(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt, gnrm_in, gnrm_out)
   !!call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
   !!call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
-
-
   !!!!tmbopt => tmb
   !!!!lhphiopt => lhphi
   !!!!lphioldopt => lphiold
@@ -247,9 +244,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !!call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
   !!call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
-
-
-
 
   ! Calculate trace (or band structure energy, resp.)
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -305,7 +299,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
                emergency_exit=.true.
                if(.not.variable_locregs) then
-                   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
+                   call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge2%lzd,tmb%orbs,tmblarge2%orbs,tmblarge2%psi,tmb%psi)
                end if
            !end if
        else
