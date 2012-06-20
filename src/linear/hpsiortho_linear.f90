@@ -149,12 +149,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, ovrlp, &
        tmbopt%psit_c, tmbopt%psit_f, hpsit_c, hpsit_f, tmbopt%can_use_transposed, overlap_calculated)
 
-  iall=-product(shape(hpsit_c))*kind(hpsit_c)
-  deallocate(hpsit_c, stat=istat)
-  call memocc(istat, iall, 'hpsit_c', subname)
-  iall=-product(shape(hpsit_f))*kind(hpsit_f)
-  deallocate(hpsit_f, stat=istat)
-  call memocc(istat, iall, 'hpsit_f', subname)
+  if(associated(hpsit_c)) then
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+  end if
+  if(associated(hpsit_f)) then
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+  end if
 
   tmbopt => tmb
   lhphiopt => lhphi
