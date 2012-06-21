@@ -486,7 +486,7 @@ real(8),dimension(2):: reducearr
       locregCenterTemp=locregCenter
       locrad_tmp=factor*locrad
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
       call update_ldiis_arrays(tmblarge, subname, ldiis)
@@ -563,7 +563,7 @@ real(8),dimension(2):: reducearr
           call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
           call destroy_new_locregs(iproc, nproc, tmb)
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
           call update_ldiis_arrays(tmb, subname, ldiis)
@@ -593,7 +593,7 @@ real(8),dimension(2):: reducearr
           call destroy_new_locregs(iproc, nproc, tmblarge)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call update_ldiis_arrays(tmblarge, subname, ldiis)

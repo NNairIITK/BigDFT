@@ -487,7 +487,7 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
           end do
 
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
@@ -523,7 +523,7 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
 
       if(lscv%withder) then
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmbder%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmbder%orbs, tmblargeder%lzd, tmblargeder%orbs, tmblargeder%op, tmblargeder%comon, &
                tmblargeder%comgp, tmblargeder%comsr, tmblargeder%mad, tmblargeder%collcom)
           call allocate_auxiliary_basis_function(max(tmblargeder%orbs%npsidim_comp,tmblargeder%orbs%npsidim_orbs), subname, &

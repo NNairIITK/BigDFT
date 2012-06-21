@@ -1755,6 +1755,7 @@ integer,dimension(:,:),allocatable:: overlaps_op
 integer,dimension(:,:,:),allocatable :: overlaps_nseg
 !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
 character(len=*),parameter:: subname='determine_overlap_from_descriptors'
+real(8):: t1, t2
 
 allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
@@ -1767,7 +1768,7 @@ call memocc(istat, recvcnts, 'recvcnts', subname)
 allocate(overlaps_nseg(orbsig%norb,orbs%norbp,2), stat=istat)
 call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
-
+t1=mpi_wtime()
     overlapMatrix=.false.
     overlaps_nseg = 0
     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
@@ -1823,6 +1824,9 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
     end do
     !comon%noverlaps(jproc)=ioverlapMPI
     noverlaps=ioverlapMPI
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 1',t2-t1
+t1=mpi_wtime()
 
 !call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
 
@@ -1844,6 +1848,9 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
        comon%noverlaps=noverlaps
     end if
 
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 2',t2-t1
+t1=mpi_wtime()
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
@@ -1905,6 +1912,9 @@ do i2=1,orbs%norbp
         call allocate_wfd(op%wfd_overlap(i1,i2),subname)
     end do
 end do
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 3',t2-t1
+t1=mpi_wtime()
 
 !Now redo the loop for the keygs
 iiorb=0
@@ -1935,6 +1945,9 @@ do iorb=1,orbs%norbp
     end do 
 end do
 
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 4',t2-t1
+t1=mpi_wtime()
 
 displs(0)=0
 recvcnts(0)=comon%noverlaps(0)
@@ -1962,6 +1975,8 @@ else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
 
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 5',t2-t1
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
 deallocate(overlapMatrix, stat=istat)

@@ -1774,7 +1774,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
+       tmbmix%wfnmd%bpo, tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
@@ -1834,7 +1834,7 @@ end subroutine redefine_locregs_quantities
 
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
@@ -1851,6 +1851,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
   real(8),dimension(3,nlr),intent(in):: locregCenter
   type(locreg_descriptors),intent(in):: glr_tmp
+  type(basis_performance_options),intent(in):: bpo
   type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(inout):: llborbs
   type(overlapParameters),intent(inout):: lbop
@@ -1919,7 +1920,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call timing(iproc,'updatelocreg1','OF') !lr408t
 
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)

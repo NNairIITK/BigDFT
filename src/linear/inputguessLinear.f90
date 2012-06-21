@@ -216,7 +216,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, &
-       lin%locregShape, tmbig%op, tmbig%comon)
+       lin%locregShape, tmbig%wfnmd%bpo, tmbig%op, tmbig%comon)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
@@ -802,7 +802,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       if(input%lin%nItInguess>0) then
           call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
                input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
-               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, ham)
+               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, &
+               tmbig%wfnmd%bpo, ham)
       end if
     
       iall=-product(shape(lhchi))*kind(lhchi)
@@ -851,7 +852,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       end do
 
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 
@@ -1016,7 +1017,7 @@ end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
            input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, &
-           skip, mad, memoryForCommunOverlapIG, locregShape, ham)
+           skip, mad, memoryForCommunOverlapIG, locregShape, bpo, ham)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_hamiltonian_matrices
@@ -1037,6 +1038,7 @@ logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
+type(basis_performance_options),intent(in):: bpo
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
@@ -1078,7 +1080,7 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
 call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, &
-     locregShape, op, comon)
+     locregShape, bpo, op, comon)
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)

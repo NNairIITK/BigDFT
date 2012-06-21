@@ -129,7 +129,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   call initCommsOrtho(iproc, nproc, in%nspin, &
        lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &
-       wfn%orbs, in%lin%locregShape, wfn%op, wfn%comon)
+       wfn%orbs, in%lin%locregShape, wfn%wfnmd%bpo, wfn%op, wfn%comon)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, lzd, wfn%comgp)

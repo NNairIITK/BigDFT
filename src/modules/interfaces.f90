@@ -2715,7 +2715,7 @@ module module_interfaces
      end subroutine determineOverlapDescriptors
      
      subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, &
-                locregShape, op, comon)
+                locregShape, bpo, op, comon)
        use module_base
        use module_types
        implicit none
@@ -2724,6 +2724,7 @@ module module_interfaces
        type(local_zone_descriptors),intent(in):: lzd, lzdig
        type(orbitals_data),intent(in):: orbs
        character(len=1),intent(in):: locregShape
+       type(basis_performance_options),intent(in):: bpo
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
      end subroutine initCommsOrtho
@@ -4762,7 +4763,7 @@ module module_interfaces
 
        subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
                   input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad,&
-                  memoryForCommunOverlapIG, locregShape, ham)
+                  memoryForCommunOverlapIG, locregShape, bpo, ham)
          use module_base
          use module_types
          implicit none
@@ -4778,6 +4779,7 @@ module module_interfaces
          type(matrixDescriptors),intent(in):: mad
          integer,intent(in):: memoryForCommunOverlapIG
          character(len=1),intent(in):: locregShape
+         type(basis_performance_options),intent(in):: bpo
          real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
        end subroutine get_hamiltonian_matrices
        
@@ -5449,7 +5451,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
          use module_types
@@ -5463,6 +5465,7 @@ module module_interfaces
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
+         type(basis_performance_options),intent(in):: bpo
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop

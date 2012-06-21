@@ -402,7 +402,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, locregShape, op, comon) 
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, locregShape, bpo, op, comon) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -414,6 +414,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   type(local_zone_descriptors),intent(in):: lzd, lzdig
   type(orbitals_data),intent(in):: orbs
   character(len=1),intent(in):: locregShape
+  type(basis_performance_options),intent(in):: bpo
   type(overlapParameters),intent(out):: op
   type(p2pComms),intent(out):: comon
 
@@ -427,6 +428,12 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 
   call nullify_overlapParameters(op)
   call nullify_p2pComms(comon)
+
+  !!if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+  !!    if(iproc==0) write(*,'(a)') 'will not initialize op and comon'
+  !!    !!call determine_overlapParameters_fast(iproc, nproc, orbs, lzd, op)
+  !!    !!return
+  !!end if
 
   ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
   ! and per orbital (op%noverlaps)
@@ -1887,3 +1894,118 @@ subroutine getStartingIndicesGlobal(iiorbx, jjorbx, op, orbs, ist, jst, ncount)
 end subroutine getStartingIndicesGlobal
 
 
+
+
+
+
+!!subroutine determine_overlapParameters_fast(iproc, nproc, orbs, lzd, op)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, nproc
+!!  type(orbitals_data),intent(in):: orbs
+!!  type(local_zone_descriptors),intent(in):: lzd
+!!  type(overlapParameters),intent(out):: op
+!!
+!!  ! Local variables
+!!  integer:: istat, iall, n0, iorb, ii, iiorb, ilr, jj, j0, j1, i3, i2, i1, i0, ii1, ii2, ii3, iseg, i, inumber, ierr
+!!  integer,dimension(:),allocatable:: numbers, overlaps_tmp
+!!  integer,dimension(:,:,:),allocatable:: orbitalnumbers
+!!  character(len=*),parameter:: subname='determine_overlapParameters_fast'
+!!
+!!
+!!
+!!  allocate(numbers(orbs%norb), stat=istat)
+!!  call memocc(istat, numbers, 'numbers', subname)
+!!
+!!
+!!  ! Determine the reference number n0
+!!  n0=(1+orbs%norb)*orbs%norb/2+1
+!!  if(n0>2**30) then
+!!      stop 'ERROR: this will give an integer overflow!'
+!!  end if
+!!
+!!  ! Determine all numbers
+!!  ii=0
+!!  do iorb=1,orbs%norb
+!!      ii=ii+iorb
+!!      numbers(iorb)=n0+ii
+!!      !if(iproc==0) write(*,*) 'iorb, numbers(iorb)', iorb, numbers(iorb)
+!!  end do
+!!
+!!
+!!  allocate(orbitalnumbers(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
+!!  call memocc(istat, orbitalnumbers, 'orbitalnumbers', subname)
+!!  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), orbitalnumbers(0,0,0))
+!!  
+!!  ! Assign the orbital numbers to the all grid points where they extend. Fine part not needed
+!!  ! since the fine region is contained in the coarse region.
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      ilr=orbs%inwhichlocreg(iiorb)
+!!      do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+!!          jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+!!          j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+!!          j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+!!          ii=j0-1
+!!          i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+!!          ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+!!          i2=ii/(lzd%llr(ilr)%d%n1+1)
+!!          i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+!!          i1=i0+j1-j0
+!!          do i=i0,i1
+!!              ii1=i+lzd%llr(ilr)%ns1
+!!              ii2=i2+lzd%llr(ilr)%ns2
+!!              ii3=i3+lzd%llr(ilr)%ns3
+!!              orbitalnumbers(ii1,ii2,ii3)=numbers(iiorb)
+!!          end do
+!!      end do
+!!  end do
+!!
+!!
+!!  ! Communicate the grid among all processes
+!!  call mpiallred(orbitalnumbers(0,0,0), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), &
+!!       mpi_sum, mpi_comm_world, ierr)
+!!
+!!
+!!  allocate(overlaps_tmp(orbs%norb), stat=istat)
+!!  call memocc(istat, overlaps_tmp, 'overlaps_tmp', subname)
+!! 
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      ilr=orbs%inwhichlocreg(iiorb)
+!!      do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+!!          jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+!!          j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+!!          j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+!!          ii=j0-1
+!!          i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+!!          ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+!!          i2=ii/(lzd%llr(ilr)%d%n1+1)
+!!          i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+!!          i1=i0+j1-j0
+!!          do i=i0,i1
+!!              ii1=i+lzd%llr(ilr)%ns1
+!!              ii2=i2+lzd%llr(ilr)%ns2
+!!              ii3=i3+lzd%llr(ilr)%ns3
+!!              inumber=orbitalnumbers(ii1,ii2,ii3)
+!!          end do
+!!      end do
+!!  end do
+!!
+!!
+!!  iall=-product(shape(numbers))*kind(numbers)
+!!  deallocate(numbers, stat=istat)
+!!  call memocc(istat, iall, 'numbers', subname)
+!!
+!!  iall=-product(shape(orbitalnumbers))*kind(orbitalnumbers)
+!!  deallocate(orbitalnumbers, stat=istat)
+!!  call memocc(istat, iall, 'orbitalnumbers', subname)
+!!
+!!  iall=-product(shape(overlaps_tmp))*kind(overlaps_tmp)
+!!  deallocate(overlaps_tmp, stat=istat)
+!!  call memocc(istat, iall, 'overlaps_tmp', subname)
+!!
+!!end subroutine determine_overlapParameters_fast

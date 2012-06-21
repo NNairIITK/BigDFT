@@ -321,6 +321,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+          write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
       else
           ! Here the angle between the current and the old gradient cannot be determined since
           ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
@@ -575,7 +576,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           call destroy_new_locregs(iproc, nproc, tmb)
           !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
           call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmblarge%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
           call update_ldiis_arrays(tmb, subname, ldiis)
@@ -600,7 +601,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
           !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           locrad_tmp=factor*locrad
           call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-               .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call update_ldiis_arrays(tmblarge, subname, ldiis)
@@ -688,7 +689,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
               !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
                    inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-                   .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                   tmblarge%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                    tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
               call update_ldiis_arrays(tmb, subname, ldiis)
@@ -721,7 +722,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
               !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
               locrad_tmp=factor*locrad
               call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-                   .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                   tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                    tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
               call update_ldiis_arrays(tmblarge, subname, ldiis)
