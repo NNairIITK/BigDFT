@@ -1640,7 +1640,7 @@ loop_kpt: do
                      ispsi_b=ispsi
                      do ia=1,ncplx
                         do ib=1,ncplx
-                           scalprod(ia,ib)=ddot(nvctr_tot,psi(ispsi_a),1,hpsi(ispsi_b),1)
+                           scalprod(ia,ib)=ddot(nvctr_tot,psi(ispsi_a),1,paw%spsi(ispsi_b),1)
                            ispsi_b=ispsi_b+nvctr_tot
                         end do
                         ispsi_b=ispsi_b+nvctr_tot
@@ -1652,7 +1652,7 @@ loop_kpt: do
                         scpr(1)=scalprod(1,1)+scalprod(2,2)
                         scpr(2)=scalprod(1,2)-scalprod(2,1)
                      end if
-                     write(*,'("<psi|H|psi> for kpt=,",i5," iat=",i5," jlmn=",i5,"=>",2(f15.5,x))')ikpt,iat,jlmn,scpr
+                     write(*,'("<psi|S|psi> for kpt=,",i5," iat=",i5," jlmn=",i5,"=>",2(f15.5,x))')ikpt,iat,jlmn,scpr
                      ispsi=ispsi+(nvctr_tot)*ncplx
                    end do !ispinor
                end do !j_m

@@ -269,24 +269,30 @@ END SUBROUTINE gauss_to_daub
 !!@warning 
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
-subroutine gauss_to_daub_k(hgrid,kval,ncplx,ncplx_g,ncplx_k,&
+subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
      factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx,ncplx_g,ncplx_k,nstart
+  integer, intent(in) :: n_gau,nmax,nwork,nstart
+  integer, intent(in) :: ncplx_w !size of the ww matrix
+  integer, intent(in) :: ncplx_g !1 or 2 for simple or complex gaussians, respectively.
+  integer, intent(in) :: ncplx_k !use 2 for k-points.
   real(gp), intent(in) :: hgrid,gau_cen,kval
   real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
-  real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
+  real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
+  real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
   !local variables
+  character(len=*), parameter :: subname='gauss_to_daub_k'
+  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
   real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk
   real(gp) :: fac(ncplx_g)
   real(wp) :: func,cval,sval,cval2,sval2
+  real(wp), dimension(:,:,:), allocatable :: cc
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
@@ -296,8 +302,11 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,ncplx_g,ncplx_k,&
   !rescale the parameters so that hgrid goes to 1.d0  
   !when calculating "r2" in gauss_to_scf 
   a1=gau_a(1)/hgrid
-  if(ncplx_g==2) a2=gau_a(2)*hgrid*hgrid
-
+  if(ncplx_g==2) then
+    a2=gau_a(2)*hgrid*hgrid
+    allocate(cc(ncplx_g,0:nmax,2),stat=i_stat)
+    call memocc(i_stat,cc,'cc',subname)
+  end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
   h=.125_gp*.5_gp
@@ -313,6 +322,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,ncplx_g,ncplx_k,&
 
   !initialise array
   c=0.0_gp
+  if(ncplx_g==2)cc=0.0_gp
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -338,21 +348,36 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,ncplx_g,ncplx_k,&
       n_left = n_left - nstart
      
      !loop for each complex component
-     do icplx=1,ncplx
-        ! non-periodic: no tails to fold
-        do i=0,length-1
-           c(icplx,i+n_left,1)=ww(i       ,2,icplx)
-           c(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+     if(ncplx_g==1) then
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              c(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              c(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
         end do
-     end do
+     else !ncplx_g==2
+     !use a temporary array cc instead
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              cc(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              cc(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
+        end do
+     end if
   endif
 
 ! Apply factor:
-  if(ncplx==1) then
+  if(ncplx_g==1) then
      c=fac(1)*c
   else
-     c(1,:,:)=fac(1)*c(1,:,:)-fac(2)*c(2,:,:)
-     c(2,:,:)=fac(1)*c(2,:,:)+fac(2)*c(1,:,:)
+     c(1,:,:)=fac(1)*cc(1,:,:)-fac(2)*cc(2,:,:)
+     c(2,:,:)=fac(1)*cc(2,:,:)+fac(2)*cc(1,:,:)
+ 
+     i_all=-product(shape(cc))*kind(cc)
+     deallocate(cc,stat=i_stat)
+     call memocc(i_stat,i_all,'cc',subname)
   end if
 
 
@@ -387,7 +412,7 @@ contains
   
    !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
    !corrected for avoiding 0**0 problem
-   if (ncplx==1) then
+   if (ncplx_w==1) then
       if (n_gau == 0) then
          do i=leftx,rightx
             x=real(i-i0*16,gp)*h
@@ -514,7 +539,7 @@ contains
       end if
    end if
       
-   do icplx=1,ncplx
+   do icplx=1,ncplx_w
       !print *,'here',gau_a,gau_cen,n_gau
       call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
            leftx   ,rightx   ,lefts(4),rights(4),h)
@@ -543,7 +568,7 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx
+    do icplx=1,ncplx_w
        do i=n_left,n_right
           j=modulo(i,nmax+1)
           c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
