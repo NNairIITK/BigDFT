@@ -426,7 +426,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: ierr, ii, istat, root
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff
-
+  real(8):: tt1, tt2, tt3, tt4, t1, t2
+tt1=0.d0
+tt2=0.d0
+tt3=0.d0
+tt4=0.d0
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
@@ -455,9 +459,12 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          llr(ilr)%locrad=cutoff
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
+t1=mpi_wtime()
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               cutoff, llr(ilr)%locregCenter, &
                glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+t2=mpi_wtime()
+tt1=tt1+t2-t1
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -631,7 +638,10 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
+t1=mpi_wtime()
          call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
+t2=mpi_wtime()
+tt2=tt2+t2-t1
     
          ! Sould check if nfu works properly... also relative to locreg!!
          !if the localisation region is isolated build also the bounds
@@ -639,9 +649,12 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             ! Check whether the bounds shall be calculated. Do this only if the currect process handles
             ! orbitals in the current localization region.
             !if(calculateBounds(ilr)) then
+t1=mpi_wtime()
                 call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                      Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                      Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+t2=mpi_wtime()
+tt3=tt3+t2-t1
             !end if
          end if
      end if
@@ -665,11 +678,20 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! orbitals in the current localization region.
         if(.not.calculateBounds(ilr)) then
             !write(*,'(a,i0,a,i0)') 'process ',iproc,' deletes bounds for locreg ',ilr
+t1=mpi_wtime()
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
+t2=mpi_wtime()
+tt4=tt4+t2-t1
         end if
     end if
   end do
 
+if(iproc==0) then
+    write(*,*) 'determine_locregSphere_parallel: time 1',tt1
+    write(*,*) 'determine_locregSphere_parallel: time 2',tt2
+    write(*,*) 'determine_locregSphere_parallel: time 3',tt3
+    write(*,*) 'determine_locregSphere_parallel: time 4',tt4
+end if
 
 END SUBROUTINE determine_locregSphere_parallel
 
@@ -1755,7 +1777,6 @@ integer,dimension(:,:),allocatable:: overlaps_op
 integer,dimension(:,:,:),allocatable :: overlaps_nseg
 !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
 character(len=*),parameter:: subname='determine_overlap_from_descriptors'
-real(8):: t1, t2
 
 allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
@@ -1768,7 +1789,6 @@ call memocc(istat, recvcnts, 'recvcnts', subname)
 allocate(overlaps_nseg(orbsig%norb,orbs%norbp,2), stat=istat)
 call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
-t1=mpi_wtime()
     overlapMatrix=.false.
     overlaps_nseg = 0
     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
@@ -1824,9 +1844,6 @@ t1=mpi_wtime()
     end do
     !comon%noverlaps(jproc)=ioverlapMPI
     noverlaps=ioverlapMPI
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 1',t2-t1
-t1=mpi_wtime()
 
 !call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
 
@@ -1848,9 +1865,6 @@ t1=mpi_wtime()
        comon%noverlaps=noverlaps
     end if
 
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 2',t2-t1
-t1=mpi_wtime()
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
@@ -1912,9 +1926,6 @@ do i2=1,orbs%norbp
         call allocate_wfd(op%wfd_overlap(i1,i2),subname)
     end do
 end do
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 3',t2-t1
-t1=mpi_wtime()
 
 !Now redo the loop for the keygs
 iiorb=0
@@ -1945,9 +1956,6 @@ do iorb=1,orbs%norbp
     end do 
 end do
 
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 4',t2-t1
-t1=mpi_wtime()
 
 displs(0)=0
 recvcnts(0)=comon%noverlaps(0)
@@ -1975,8 +1983,6 @@ else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
 
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'determine_overlap_from_descriptors: time 5',t2-t1
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
 deallocate(overlapMatrix, stat=istat)

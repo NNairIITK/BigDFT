@@ -422,7 +422,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   integer:: iorb, jorb, iiorb
   integer::  istat, i1, i2, jjorb, nsub, ierr
   character(len=*),parameter:: subname='initCommsOrtho'
-  real(8):: t1, t2
 
 
   call timing(iproc,'init_commOrtho','ON')
@@ -452,7 +451,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 !  allocate(overlaps_nseg(orbs%norb,orbs%norbp), stat=istat)
 !  call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
-t1=mpi_wtime()
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
      call countOverlaps(iproc, nproc, orbs, lzd, op, comon)
@@ -462,9 +460,6 @@ t1=mpi_wtime()
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'initCommsOrtho: time 1',t2-t1
-t1=mpi_wtime()
 
   ! OLRs NOT NEEDED ANYMORE
   ! Allocate the types describing the overlap localization regions.
@@ -493,9 +488,6 @@ t1=mpi_wtime()
   if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   end if
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'initCommsOrtho: time 2',t2-t1
-t1=mpi_wtime()
 
   !DON'T need this anymore
   ! Initialize the index arrays for the transformations from overlap region
@@ -535,8 +527,6 @@ t1=mpi_wtime()
   end do
   call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
   !if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
-t2=mpi_wtime()
-if(iproc==0) write(*,*) 'initCommsOrtho: time 3',t2-t1
 
   call timing(iproc,'init_commOrtho','OF')
 
