@@ -105,20 +105,64 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
 
    ! Local variables
    integer:: ierr
+   !integer:: commtype
+   !integer,dimension(12):: types
+   integer,dimension(10):: temparr_int
+   real(8),dimension(4):: temparr_dbl
 
-   ! First communicate all scalars and fixed-size arrays
+   
+
+   !!types = (/ mpi_character, mpi_logical, mpi_integer, mpi_integer, mpi_integer, mpi_integer, &
+   !!          mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision /)
+
+
+   !!! First communicate all scalars and fixed-size arrays
+   !!call mpi_bcast(llr%geocode, 1, mpi_character, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%hybrid_on, 1, mpi_logical, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%ns1, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%ns2, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%ns3, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%nsi1, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%nsi2, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%nsi3, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%localnorb, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%outofzone, 3, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%locregCenter, 3, mpi_double_precision, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(llr%locrad, 1, mpi_double_precision, root, mpi_comm_world, ierr)
+
+   temparr_int(1)=llr%ns1
+   temparr_int(2)=llr%ns2
+   temparr_int(3)=llr%ns3
+   temparr_int(4)=llr%nsi1
+   temparr_int(5)=llr%nsi2
+   temparr_int(6)=llr%nsi3
+   temparr_int(7)=llr%localnorb
+   temparr_int(8)=llr%outofzone(1)
+   temparr_int(9)=llr%outofzone(2)
+   temparr_int(10)=llr%outofzone(3)
+   temparr_dbl(1)=llr%locregCenter(1)
+   temparr_dbl(2)=llr%locregCenter(2)
+   temparr_dbl(3)=llr%locregCenter(3)
+   temparr_dbl(4)=llr%locrad
    call mpi_bcast(llr%geocode, 1, mpi_character, root, mpi_comm_world, ierr)
    call mpi_bcast(llr%hybrid_on, 1, mpi_logical, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%ns1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%ns2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%ns3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%nsi1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%nsi2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%nsi3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%localnorb, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%outofzone, 3, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%locregCenter, 3, mpi_double_precision, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%locrad, 1, mpi_double_precision, root, mpi_comm_world, ierr)
+   call mpi_bcast(temparr_int(1), 10, mpi_integer, root, mpi_comm_world, ierr)
+   call mpi_bcast(temparr_dbl(1), 4, mpi_double_precision, root, mpi_comm_world, ierr)
+   llr%ns1=temparr_int(1)
+   llr%ns2=temparr_int(2)
+   llr%ns3=temparr_int(3)
+   llr%nsi1=temparr_int(4)
+   llr%nsi2=temparr_int(5)
+   llr%nsi3=temparr_int(6)
+   llr%localnorb=temparr_int(7)
+   llr%outofzone(1)=temparr_int(8)
+   llr%outofzone(2)=temparr_int(9)
+   llr%outofzone(3)=temparr_int(10)
+   llr%locregCenter(1)=temparr_dbl(1)
+   llr%locregCenter(2)=temparr_dbl(2)
+   llr%locregCenter(3)=temparr_dbl(3)
+   llr%locrad=temparr_dbl(4)
+
 
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
@@ -141,21 +185,47 @@ subroutine communicate_grid_dimensions(iproc, root, d)
 
    ! Local variables
    integer:: ierr
+   integer,dimension(12):: temparr_int
 
 
-   call mpi_bcast(d%n1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%n2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%n3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfl1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfu1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfl2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfu2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfl3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%nfu3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%n1i, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%n2i, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(d%n3i, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n1, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n2, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n3, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfl1, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfu1, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfl2, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfu2, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfl3, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%nfu3, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n1i, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n2i, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(d%n3i, 1, mpi_integer, root, mpi_comm_world, ierr)
 
+   temparr_int(1)=d%n1
+   temparr_int(2)=d%n2
+   temparr_int(3)=d%n3
+   temparr_int(4)=d%nfl1
+   temparr_int(5)=d%nfu1
+   temparr_int(6)=d%nfl2
+   temparr_int(7)=d%nfu2
+   temparr_int(8)=d%nfl3
+   temparr_int(9)=d%nfu3
+   temparr_int(10)=d%n1i
+   temparr_int(11)=d%n2i
+   temparr_int(12)=d%n3i
+   call mpi_bcast(temparr_int(1), 12, mpi_integer, root, mpi_comm_world, ierr)
+   d%n1=temparr_int(1)
+   d%n2=temparr_int(2)
+   d%n3=temparr_int(3)
+   d%nfl1=temparr_int(4)
+   d%nfu1=temparr_int(5)
+   d%nfl2=temparr_int(6)
+   d%nfu2=temparr_int(7)
+   d%nfl3=temparr_int(8)
+   d%nfu3=temparr_int(9)
+   d%n1i=temparr_int(10)
+   d%n2i=temparr_int(11)
+   d%n3i=temparr_int(12)
 
 END SUBROUTINE communicate_grid_dimensions
 
@@ -175,12 +245,23 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    ! Local variables
    integer:: ierr
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors'
+   integer,dimension(4):: temparr_int
 
    ! First communicate all scalars
-   call mpi_bcast(wfd%nvctr_c, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%nvctr_f, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%nseg_c, 1, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%nseg_f, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(wfd%nvctr_c, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(wfd%nvctr_f, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(wfd%nseg_c, 1, mpi_integer, root, mpi_comm_world, ierr)
+   !!call mpi_bcast(wfd%nseg_f, 1, mpi_integer, root, mpi_comm_world, ierr)
+
+   temparr_int(1)=wfd%nvctr_c
+   temparr_int(2)=wfd%nvctr_f
+   temparr_int(3)=wfd%nseg_c
+   temparr_int(4)=wfd%nseg_f
+   call mpi_bcast(temparr_int(1), 4, mpi_integer, root, mpi_comm_world, ierr)
+   wfd%nvctr_c=temparr_int(1)
+   wfd%nvctr_f=temparr_int(2)
+   wfd%nseg_c=temparr_int(3)
+   wfd%nseg_f=temparr_int(4)
 
    ! Allocate the arrays
    if(iproc/=root) call allocate_wfd(wfd,subname)
