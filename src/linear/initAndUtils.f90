@@ -1680,8 +1680,10 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   integer:: iat, ityp, ilr, istat, iorb, iall
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='lzd_init_llr'
+  real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
+t1=mpi_wtime()
   
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
@@ -1719,6 +1721,8 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
   
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
