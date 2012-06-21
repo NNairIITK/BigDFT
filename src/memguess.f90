@@ -327,9 +327,6 @@ program memguess
    call print_dft_parameters(in,atoms)
    call xc_dump()
 
-   write(*,'(1x,a)')&
-      &   '------------------------------------------------------------------ System Properties'
-
    !Time initialization
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)

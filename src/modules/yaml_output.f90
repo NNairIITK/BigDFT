@@ -3,9 +3,9 @@ module yaml_strings
   integer :: max_value_length=95
 
   interface yaml_toa
-     module procedure yaml_itoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
   end interface
-  private :: yaml_itoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
 
 contains
 
@@ -95,6 +95,25 @@ contains
     yaml_itoa=yaml_adjust(yaml_itoa)
 
   end function yaml_itoa
+
+  !> Convert longinteger to character
+  function yaml_litoa(i,fmt)
+    implicit none
+    integer(kind=8), intent(in) :: i
+    character(len=max_value_length) :: yaml_litoa
+    character(len=*), optional, intent(in) :: fmt
+
+    yaml_litoa=repeat(' ',max_value_length)
+    if (present(fmt)) then
+       write(yaml_litoa,fmt)i
+    else
+       write(yaml_litoa,'(i0)')i
+    end if
+
+    yaml_litoa=yaml_adjust(yaml_litoa)
+
+  end function yaml_litoa
+
 
 !!$
   !> Convert float to character
@@ -624,15 +643,16 @@ contains
     end if
   end subroutine yaml_warning
 
-  subroutine yaml_comment(message,advance,unit,hfill)
+  subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
     character(len=1), optional, intent(in) :: hfill
     character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit,tabbing
     character(len=*), intent(in), optional :: advance
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,msg_lgt,tb,ipos
     character(len=3) :: adv
+    character(len=tot_max_record_length) :: towrite
 
     unt=0
     if (present(unit)) unt=unit
@@ -644,15 +664,27 @@ contains
     else
        adv='yes'
     end if
+
+    ipos=max(streams(strm)%icursor,streams(strm)%indent)
+
+    msg_lgt=0
+    if (present(tabbing)) then
+       tb=max(tabbing-ipos-1,1)
+       call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+       ipos=ipos+tb
+    end if
+
+    call buffer_string(towrite,len(towrite),trim(message),msg_lgt)
+
+
     if (present(hfill)) then
        call dump(streams(strm),&
             repeat(hfill,&
-            max(streams(strm)%max_record_length-&
-            max(streams(strm)%icursor,streams(strm)%indent)-&
-            len_trim(message)-3,0))//' '//trim(message),&
+            max(streams(strm)%max_record_length-ipos-&
+            len_trim(message)-3,0))//' '//towrite(1:msg_lgt),&
             advance=adv,event=COMMENT)
     else
-       call dump(streams(strm),trim(message),advance=adv,event=COMMENT)
+       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
     end if
 
   end subroutine yaml_comment

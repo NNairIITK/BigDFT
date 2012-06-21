@@ -1730,6 +1730,7 @@ END SUBROUTINE frequencies_input_variables_new
 subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   use module_input
+  use yaml_output
   implicit none
   ! Arguments
   logical, intent(in) :: verb
@@ -1847,8 +1848,10 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      end do
      if (verb) then
-        write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+        call yaml_map('Occupation numbers come from',' Input file (<runname>.occ)',advance='no')
+        call yaml_comment('('//trim(yaml_toa(nt))//' lines read)')
+        !write(*,'(1x,a,i0,a)') &
+        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 
@@ -1871,27 +1874,38 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            spinsgn(iorb)=-1.0_gp
         end do
      end if
+  else
+     if (verb) call yaml_map('Occupation numbers come from','System properties')
   end if
   if (verb) then 
-     write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     call yaml_open_map('Occupation Numbers')
+     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
         if (occup(iorb) /= rocc) then
            if (iorb1 == iorb-1) then
-              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+              call yaml_map('Orbital No. '//trim(yaml_toa(iorb1,fmt='(i0)')),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
            else
-              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
+                trim(yaml_toa(iorb-1,fmt='(i0)')),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
            end if
            rocc=occup(iorb)
            iorb1=iorb
         end if
      enddo
      if (iorb1 == norb) then
-        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+        call yaml_map('Orbital No. '//trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
-        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
+             trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
+     call yaml_close_map()
   endif
 
   !Check if sum(occup)=nelec

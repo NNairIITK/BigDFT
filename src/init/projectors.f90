@@ -12,6 +12,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nlpspd)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -27,29 +28,30 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
-  if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------ PSP Projectors Creation'
-     write(*,'(1x,a4,4x,a4,2(1x,a))')&
-          'Type','Name','Number of atoms','Number of projectors'
+  if (iproc == 0) then
+     call yaml_open_map('NonLocal PSP Projectors Descriptors')
+     !write(*,'(1x,a)')&
+     !     '------------------------------------------------------------ PSP Projectors Creation'
+     !write(*,'(1x,a4,4x,a4,2(1x,a))')&
+     !     'Type','Name','Number of atoms','Number of projectors'
   end if
   
   istart=1
   nlpspd%nproj=0
   nlpspd%nprojel=0
 
-  if (iproc ==0) then
-     !print the number of projectors to be created
-     do ityp=1,at%ntypes
-        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
-        natyp=0
-        do iat=1,at%nat
-           if (at%iatype(iat) == ityp) natyp=natyp+1
-        end do
-        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-             ityp,trim(at%atomnames(ityp)),natyp,mproj
-     end do
-  end if
+!!$  if (iproc ==0) then
+!!$     !print the number of projectors to be created
+!!$     do ityp=1,at%ntypes
+!!$        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
+!!$        natyp=0
+!!$        do iat=1,at%nat
+!!$           if (at%iatype(iat) == ityp) natyp=natyp+1
+!!$        end do
+!!$        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
+!!$             ityp,trim(at%atomnames(ityp)),natyp,mproj
+!!$     end do
+!!$  end if
 
   do iat=1,at%nat
 
@@ -215,13 +217,20 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
   if (iproc == 0) then
      if (DistProjApply) then
-        write(*,'(44x,a)') '------  On-the-fly projectors application'
+        call yaml_map('Creation strategy','On-the-fly')
+        !write(*,'(44x,a)') '------  On-the-fly projectors application'
      else
-        write(*,'(44x,a)') '------'
+        call yaml_map('Creation strategy','Once-and-for-all')
+        !write(*,'(44x,a)') '------'
      end if
-     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
-     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
-     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
+     call yaml_map('Total number of projectors',nlpspd%nproj)
+     call yaml_map('Total number of components',nlpspd%nprojel)
+     call yaml_map('Percent of zero components',nint(100.0_gp*zerovol))
+
+!!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
+!!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
+!!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
+     call yaml_close_map()
   end if
 
 END SUBROUTINE localize_projectors

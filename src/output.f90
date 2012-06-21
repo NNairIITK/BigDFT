@@ -299,6 +299,7 @@ subroutine print_dft_parameters(in,atoms)
   !local variables
   character(len=500) :: name_xc
 
+  call yaml_comment('Input parameters',hfill='-')
   call yaml_open_map('DFT parameters')
      call yaml_open_map('eXchange Correlation')
      call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
@@ -334,21 +335,33 @@ subroutine print_dft_parameters(in,atoms)
      call yaml_close_map()
   call yaml_close_map()
 
-  write(*,'(1x,a)')&
-       '--- (file: input.dft) --------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',(in%rbuf > 0.0_gp)
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
-       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       'x',in%nrepmax,'| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
-       '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
+  call yaml_open_map('Post Optimization Parameters')
+  if (atoms%geocode == 'F') then
+     call yaml_open_map('Finite-Size Effect estimation')
+      call yaml_map('Scheduled',(in%rbuf > 0.0_gp))
+      if (in%rbuf > 0.0_gp) then
+         call yaml_map('Extension',in%rbuf,fmt='(f4.1)')
+         call yaml_map('No. of CG steps',in%ncongt)
+      end if
+     call yaml_close_map()
+  end if
+  call yaml_close_map()
+
+!!$  write(*,'(1x,a)')&
+!!$       '--- (file: input.dft) --------------------------------------------- Input Parameters'
+!!$  write(*,'(1x,a)')&
+!!$       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+!!$  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+!!$       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+!!$       '| Calculate=',(in%rbuf > 0.0_gp)
+!!$  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
+!!$       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+!!$       'x',in%nrepmax,'| Extension=',in%rbuf
+!!$  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
+!!$       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
+!!$       '|  CG Steps=',in%ncongt
+!!$  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
+!!$       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',in%mpol, '|'
@@ -527,7 +540,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
      tolerance=etol
   end if
 
-  call yaml_comment('Kohn-Sham Eigenvalues and Occupation Numbers',hfill='-')
+  call yaml_comment('Eigenvalues and Occupation Numbers',hfill='-')
   !write(*,'(1x,a)')&
   !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
   ! Calculate and print the magnetisation
@@ -588,6 +601,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
               call yaml_close_sequence(advance='no')
               !print *,'there',nwrtmsg,message
            end if
+           call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
            if (nwrtmsg==1) then
               call yaml_comment(adjustl(message))
            else
@@ -617,6 +631,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
            if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
               call yaml_close_sequence(advance='no')
            end if
+           call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
            if (nwrtmsg==1) then
               call yaml_comment(adjustl(message))
            else
@@ -635,6 +650,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
               if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
                  call yaml_close_sequence(advance='no')
               end if
+              call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
               if (nwrtmsg==1) then
                  call yaml_comment(adjustl(message))
               else
@@ -651,6 +667,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
               if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
                  call yaml_close_sequence(advance='no')
               end if
+              call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
               if (nwrtmsg==1) then
                  call yaml_comment(adjustl(message))
               else
