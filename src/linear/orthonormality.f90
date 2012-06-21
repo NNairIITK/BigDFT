@@ -489,7 +489,10 @@ t1=mpi_wtime()
   call memocc(istat, comon%comarr, 'comon%comarr', subname)
   !!allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
   !!call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-  call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
+
+  if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
+  end if
 t2=mpi_wtime()
 if(iproc==0) write(*,*) 'initCommsOrtho: time 2',t2-t1
 t1=mpi_wtime()
