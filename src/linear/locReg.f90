@@ -426,7 +426,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: ierr, ii, istat, root
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff
-  real(8):: tt1, tt2, tt3, tt4, t1, t2
+  real(8):: tt1, tt2, tt3, tt4, t1, t2, tl1, tl2
 tt1=0.d0
 tt2=0.d0
 tt3=0.d0
@@ -434,7 +434,7 @@ tt4=0.d0
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
-
+tl1=mpi_wtime()
   !determine the limits of the different localisation regions
   do ilr=1,nlr
      !initialize out of zone and logicals
@@ -659,8 +659,12 @@ tt3=tt3+t2-t1
          end if
      end if
   end do !on ilr
+call mpi_barrier(mpi_comm_world, ierr)
+tl2=mpi_wtime()
+if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 1: time',tl2-tl1
 
   ! Communicate the locregs
+tl1=mpi_wtime()
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
      !!if(iproc==root) then
@@ -685,6 +689,9 @@ tt4=tt4+t2-t1
         end if
     end if
   end do
+call mpi_barrier(mpi_comm_world, ierr)
+tl2=mpi_wtime()
+if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
 
 if(iproc==0) then
     write(*,*) 'determine_locregSphere_parallel: time 1',tt1

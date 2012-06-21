@@ -321,6 +321,7 @@ type(orbitals_data),optional,intent(in):: lborbs
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
 character(len=*),parameter:: subname='initLocregs'
 logical,dimension(:),allocatable:: calculateBounds
+real(8):: t1, t2
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
@@ -356,7 +357,7 @@ end do
      lzd%llr(ilr)%locrad=locrad(ilr)
      lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
  end do
-
+t1=mpi_wtime()
  if(locregShape=='c') then
      call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
@@ -365,6 +366,8 @@ end do
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
  end if
+t2=mpi_wtime()
+if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)
