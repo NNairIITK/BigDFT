@@ -477,7 +477,7 @@ subroutine communicate_shrink_bounds(iproc, root, sb)
    call mpi_get_address(sb, addr_sb, ierr)
    call mpi_get_address(sb%ibzzx_c, addr_ibzzx_c, ierr)
    dspls(1) = addr_ibzzx_c - addr_sb
-   call mpi_get_address(sb%ibyyzz_c, addr_ibyyzz_c)
+   call mpi_get_address(sb%ibyyzz_c, addr_ibyyzz_c, ierr)
    dspls(2) = addr_ibyyzz_c - addr_sb
    call mpi_get_address(sb%ibxy_ff, addr_ibxy_ff, ierr)
    dspls(3) = addr_ibxy_ff - addr_sb
