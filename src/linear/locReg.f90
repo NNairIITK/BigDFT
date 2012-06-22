@@ -671,6 +671,10 @@ tl1=mpi_wtime()
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
      end if
  end do
+call mpi_barrier(mpi_comm_world, ierr)
+tl2=mpi_wtime()
+if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
+tl1=mpi_wtime()
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
      if (Llr(ilr)%geocode=='F') then
@@ -689,7 +693,7 @@ tt4=tt4+t2-t1
   end do
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
-if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
+if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 3: time',tl2-tl1
 
 if(iproc==0) then
     write(*,*) 'determine_locregSphere_parallel: time 1',tt1
