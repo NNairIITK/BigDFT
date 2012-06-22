@@ -103,17 +103,75 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    integer,intent(in):: iproc, root
    type(locreg_descriptors),intent(inout):: llr
 
+   !!! Local type
+   !!type: local_scalars
+   !!  character(len=1) :: geocode
+   !!  logical :: hybrid_on
+   !!  integer :: ns1, ns2, ns3, nsi1, nsi2, nsi3, Localnorb
+   !!  integer,dimension(3) :: outofzone
+   !!  real(8),dimension(3):: locregCenter
+   !!  real(8):: locrad
+   !!end type local_scalars
+
    ! Local variables
-   integer:: ierr
-   !integer:: commtype
-   !integer,dimension(12):: types
-   integer,dimension(10):: temparr_int
-   real(8),dimension(4):: temparr_dbl
+   integer:: ierr, ncount, mpi_tmptype
+   integer:: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
+   integer:: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_llr
+   integer,dimension(12):: blocklengths, dspls, types
 
    
+   !!! Copy data to datatype
+   !!tmptype%geocode = llr%geocode
+   !!tmptype%hybrid_on = llr%hybrid_on
+   !!tmptype%ns1 = llr%ns1
+   !!tmptype%ns2 = llr%ns2
+   !!tmptype%ns3 = llr%ns3
+   !!tmptype%nsi1 = llr%nsi1
+   !!tmptype%nsi2 = llr%nsi2
+   !!tmptype%nsi3 = llr%nsi3
+   !!tmptype%localnorb = llr%localnorb
+   !!tmptype%outofzone = llr%outofzone
+   !!tmptype%locregCenter = llr%locregCenter
+   !!tmptype%locrad = llr%locrad
+   
+   ! Build MPI datatype
+   ncount=12
+   blocklengths=(/1,1,1,1,1,1,1,1,1,3,3,1/)
+   call mpi_get_address(llr, addr_llr, ierr)
+   call mpi_get_address(llr%geocode, addr_geocode, ierr)
+   call mpi_get_address(llr%hybrid_on, addr_hybrid_on, ierr)
+   call mpi_get_address(llr%ns1,  addr_ns1, ierr)
+   call mpi_get_address(llr%ns2,  addr_ns2, ierr)
+   call mpi_get_address(llr%ns3,  addr_ns3, ierr)
+   call mpi_get_address(llr%nsi1, addr_nsi1, ierr)
+   call mpi_get_address(llr%nsi2, addr_nsi2, ierr)
+   call mpi_get_address(llr%nsi3, addr_nsi3, ierr)
+   call mpi_get_address(llr%localnorb, addr_localnorb, ierr)
+   call mpi_get_address(llr%outofzone, addr_outofzone, ierr)
+   call mpi_get_address(llr%locregCenter, addr_locregCenter, ierr)
+   call mpi_get_address(llr%locrad, addr_locrad, ierr)
+   
+   dspls(1) = addr_geocode - addr_llr
+   dspls(2) = addr_hybrid_on - addr_llr
+   dspls(3) = addr_ns1 - addr_llr
+   dspls(4) = addr_ns2 - addr_llr
+   dspls(5) = addr_ns3 - addr_llr
+   dspls(6) = addr_nsi1 - addr_llr
+   dspls(7) = addr_nsi2 - addr_llr
+   dspls(8) = addr_nsi3 - addr_llr
+   dspls(9) = addr_localnorb - addr_llr
+   dspls(10) = addr_outofzone - addr_llr
+   dspls(11) = addr_locregCenter - addr_llr
+   dspls(12) = addr_locrad - addr_llr
 
-   !!types = (/ mpi_character, mpi_logical, mpi_integer, mpi_integer, mpi_integer, mpi_integer, &
-   !!          mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision /)
+   types = (/mpi_character, mpi_logical, mpi_integer, mpi_integer, mpi_integer, mpi_integer, &
+             mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision/)
+
+   call mpi_type_struct(ncount, blocklengths, dspls, types, mpi_tmptype, ierr)
+   !call mpi_type_struct(1, 1, 0, mpi_character, mpi_tmptype, ierr)
+   call mpi_type_commit(mpi_tmptype, ierr)
+   call mpi_bcast(llr, 1, mpi_tmptype, root, mpi_comm_world, ierr)
+   call mpi_type_free(mpi_tmptype, ierr)
 
 
    !!! First communicate all scalars and fixed-size arrays
@@ -130,44 +188,11 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    !!call mpi_bcast(llr%locregCenter, 3, mpi_double_precision, root, mpi_comm_world, ierr)
    !!call mpi_bcast(llr%locrad, 1, mpi_double_precision, root, mpi_comm_world, ierr)
 
-   temparr_int(1)=llr%ns1
-   temparr_int(2)=llr%ns2
-   temparr_int(3)=llr%ns3
-   temparr_int(4)=llr%nsi1
-   temparr_int(5)=llr%nsi2
-   temparr_int(6)=llr%nsi3
-   temparr_int(7)=llr%localnorb
-   temparr_int(8)=llr%outofzone(1)
-   temparr_int(9)=llr%outofzone(2)
-   temparr_int(10)=llr%outofzone(3)
-   temparr_dbl(1)=llr%locregCenter(1)
-   temparr_dbl(2)=llr%locregCenter(2)
-   temparr_dbl(3)=llr%locregCenter(3)
-   temparr_dbl(4)=llr%locrad
-   call mpi_bcast(llr%geocode, 1, mpi_character, root, mpi_comm_world, ierr)
-   call mpi_bcast(llr%hybrid_on, 1, mpi_logical, root, mpi_comm_world, ierr)
-   call mpi_bcast(temparr_int(1), 10, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(temparr_dbl(1), 4, mpi_double_precision, root, mpi_comm_world, ierr)
-   llr%ns1=temparr_int(1)
-   llr%ns2=temparr_int(2)
-   llr%ns3=temparr_int(3)
-   llr%nsi1=temparr_int(4)
-   llr%nsi2=temparr_int(5)
-   llr%nsi3=temparr_int(6)
-   llr%localnorb=temparr_int(7)
-   llr%outofzone(1)=temparr_int(8)
-   llr%outofzone(2)=temparr_int(9)
-   llr%outofzone(3)=temparr_int(10)
-   llr%locregCenter(1)=temparr_dbl(1)
-   llr%locregCenter(2)=temparr_dbl(2)
-   llr%locregCenter(3)=temparr_dbl(3)
-   llr%locrad=temparr_dbl(4)
-
 
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
    call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
-   if (llr%geocode == 'F') call communicate_convolutions_bounds(iproc, root, llr%bounds)
+   !!if (llr%geocode == 'F') call communicate_convolutions_bounds(iproc, root, llr%bounds)
 
 END SUBROUTINE communicate_locreg_descriptors
 
@@ -184,48 +209,13 @@ subroutine communicate_grid_dimensions(iproc, root, d)
    type(grid_dimensions),intent(inout):: d
 
    ! Local variables
-   integer:: ierr
-   integer,dimension(12):: temparr_int
+   integer:: ierr, grid_dimensions_type
 
+   call mpi_type_contiguous(12, mpi_integer, grid_dimensions_type, ierr)
+   call mpi_type_commit(grid_dimensions_type, ierr)
+   call mpi_bcast(d, 1, grid_dimensions_type, root, mpi_comm_world, ierr)
+   call mpi_type_free(grid_dimensions_type, ierr)
 
-   !!call mpi_bcast(d%n1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%n2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%n3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfl1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfu1, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfl2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfu2, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfl3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%nfu3, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%n1i, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%n2i, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(d%n3i, 1, mpi_integer, root, mpi_comm_world, ierr)
-
-   temparr_int(1)=d%n1
-   temparr_int(2)=d%n2
-   temparr_int(3)=d%n3
-   temparr_int(4)=d%nfl1
-   temparr_int(5)=d%nfu1
-   temparr_int(6)=d%nfl2
-   temparr_int(7)=d%nfu2
-   temparr_int(8)=d%nfl3
-   temparr_int(9)=d%nfu3
-   temparr_int(10)=d%n1i
-   temparr_int(11)=d%n2i
-   temparr_int(12)=d%n3i
-   call mpi_bcast(temparr_int(1), 12, mpi_integer, root, mpi_comm_world, ierr)
-   d%n1=temparr_int(1)
-   d%n2=temparr_int(2)
-   d%n3=temparr_int(3)
-   d%nfl1=temparr_int(4)
-   d%nfu1=temparr_int(5)
-   d%nfl2=temparr_int(6)
-   d%nfu2=temparr_int(7)
-   d%nfl3=temparr_int(8)
-   d%nfu3=temparr_int(9)
-   d%n1i=temparr_int(10)
-   d%n2i=temparr_int(11)
-   d%n3i=temparr_int(12)
 
 END SUBROUTINE communicate_grid_dimensions
 
@@ -243,34 +233,56 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    type(wavefunctions_descriptors),intent(inout):: wfd
 
    ! Local variables
-   integer:: ierr
+   integer:: ierr, ncount, commtype, addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
+   integer:: addr_keyglob, addr_keygloc, addr_keyvloc, addr_keyvglob
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors'
-   integer,dimension(4):: temparr_int
+   integer,dimension(4):: blocklengths, dspls, types
 
-   ! First communicate all scalars
-   !!call mpi_bcast(wfd%nvctr_c, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(wfd%nvctr_f, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(wfd%nseg_c, 1, mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(wfd%nseg_f, 1, mpi_integer, root, mpi_comm_world, ierr)
+   ncount=4 
+   blocklengths=(/1,1,1,1/)
+   call mpi_get_address(wfd, addr_wfd, ierr)
+   call mpi_get_address(wfd%nvctr_c, addr_nvctr_c, ierr)
+   call mpi_get_address(wfd%nvctr_f, addr_nvctr_f, ierr)
+   call mpi_get_address(wfd%nseg_c, addr_nseg_c, ierr)
+   call mpi_get_address(wfd%nseg_f, addr_nseg_f, ierr)
 
-   temparr_int(1)=wfd%nvctr_c
-   temparr_int(2)=wfd%nvctr_f
-   temparr_int(3)=wfd%nseg_c
-   temparr_int(4)=wfd%nseg_f
-   call mpi_bcast(temparr_int(1), 4, mpi_integer, root, mpi_comm_world, ierr)
-   wfd%nvctr_c=temparr_int(1)
-   wfd%nvctr_f=temparr_int(2)
-   wfd%nseg_c=temparr_int(3)
-   wfd%nseg_f=temparr_int(4)
+   dspls(1) = addr_nvctr_c - addr_wfd
+   dspls(2) = addr_nvctr_f - addr_wfd
+   dspls(3) = addr_nseg_c - addr_wfd
+   dspls(4) = addr_nseg_f - addr_wfd
+
+   types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
+   
+   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_commit(commtype, ierr)
+   call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
+   call mpi_type_free(commtype, ierr)
 
    ! Allocate the arrays
    if(iproc/=root) call allocate_wfd(wfd,subname)
 
+   ncount=4 
+   blocklengths=(/2*(wfd%nseg_c+wfd%nseg_f), 2*(wfd%nseg_c+wfd%nseg_f), wfd%nseg_c+wfd%nseg_f, wfd%nseg_c+wfd%nseg_f/)
+   call mpi_get_address(wfd, addr_wfd, ierr)
+   call mpi_get_address(wfd%keyglob, addr_keyglob, ierr)
+   call mpi_get_address(wfd%keygloc, addr_keygloc, ierr)
+   call mpi_get_address(wfd%keyvloc, addr_keyvloc, ierr)
+   call mpi_get_address(wfd%keyvglob, addr_keyvglob, ierr)
+
+   dspls(1) = addr_keyglob - addr_wfd
+   dspls(2) = addr_keygloc - addr_wfd
+   dspls(3) = addr_keyvloc - addr_wfd
+   dspls(4) = addr_keyvglob - addr_wfd
+
+   types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
+
+   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_commit(commtype, ierr)
+
+
    ! Communicate the arrays
-   call mpi_bcast(wfd%keyglob, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%keygloc, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%keyvloc, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
-   call mpi_bcast(wfd%keyvglob, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
+   call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
+   call mpi_type_free(commtype, ierr)
 
 
 

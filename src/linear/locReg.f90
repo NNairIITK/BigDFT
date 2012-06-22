@@ -667,21 +667,19 @@ if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 1: time',tl2-t
 tl1=mpi_wtime()
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
-     !!if(iproc==root) then
-     !!    communicate_bounds=calculateBounds(ilr)
-     !!end if
-     !!call mpi_bcast(communicate_bounds, 1, mpi_logical, root, mpi_comm_world, ierr)
-     !!if(iproc==root) write(*,'(a,3i5,2l3)') 'iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, communicate_bounds, associated(llr(ilr)%bounds%sb%ibzzx_c)
-     !if(iproc==root) write(*,'(a,3i5,l3)') 'iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)', iproc, root, ilr, associated(llr(ilr)%bounds%sb%ibzzx_c)
-     !!call communicate_locreg_descriptors(iproc, root, llr(ilr), communicate_bounds)
      if (nproc > 1) then
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
      end if
+ end do
+  do ilr=1,nlr
+     root=mod(ilr-1,nproc)
      if (Llr(ilr)%geocode=='F') then
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
+        if (nproc > 1) then
+           call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
+        end if
         if(.not.calculateBounds(ilr)) then
-            !write(*,'(a,i0,a,i0)') 'process ',iproc,' deletes bounds for locreg ',ilr
 t1=mpi_wtime()
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
 t2=mpi_wtime()
