@@ -1059,7 +1059,7 @@ module module_interfaces
 
      subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt,nspin,&
           nlr, norbsPerAt, mapping, &
-          orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+          orbs,orbse,norbsc_arr,locrad,G,psigau,eks,quartic_prefactor)
        use module_base
        use module_types
        implicit none
@@ -1076,6 +1076,7 @@ module module_interfaces
        type(orbitals_data), intent(out) :: orbse
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
+       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
      END SUBROUTINE inputguess_gaussian_orbitals_forLinear
 
      subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
@@ -1099,7 +1100,7 @@ module module_interfaces
      END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping)
+          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
        use module_base
        use module_types
        implicit none
@@ -1114,6 +1115,7 @@ module module_interfaces
        integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
        real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff !fake interface for passing address
        integer,dimension(orbse%norb), optional, intent(in):: mapping
+       real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
       subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
@@ -4392,8 +4394,8 @@ module module_interfaces
       !!  type(matrixDescriptors),intent(out):: mad
       !!end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, &
-                 lphi, lhphi, lagmat,  psit_c, psit_f, can_use_transposed)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
+                 lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
         implicit none
@@ -4406,11 +4408,12 @@ module module_interfaces
         type(collective_comms),intent(in):: collcom
         type(orthon_data),intent(in):: orthpar
         type(basis_performance_options),intent(in):: bpo
+        type(basis_specifications),intent(in):: bs
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-        real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
-        real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f
-        logical,intent(inout):: can_use_transposed
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp
+        real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f, hpsit_c, hpsit_f
+        logical,intent(inout):: can_use_transposed, overlap_calculated
       end subroutine orthoconstraintNonorthogonal
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
@@ -5582,9 +5585,10 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   variable_locregs, tmbopt, kernel, &
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+                  meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
-                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
+                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
          use module_base
          use module_types
          implicit none
@@ -5599,12 +5603,14 @@ module module_interfaces
          real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
-         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
          logical,intent(out):: emergency_exit
          type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
          type(orbitals_data),intent(in):: orbs
+         logical,intent(inout):: overlap_calculated
+         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
 
 
@@ -6305,6 +6311,53 @@ module module_interfaces
           real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
           real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
         end subroutine calculate_norm_transposed
+
+        subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
+          logical,intent(out):: overlap_calculated
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+        end subroutine reconstruct_kernel
+
+        subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+                   weightp_c, weightp_f, nptsp_c, nptsp_f, weight_c, weight_f, &
+                   norb_per_gridpoint_c, norb_per_gridpoint_f)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+          type(orbitals_data),intent(in):: orbs
+          type(local_zone_descriptors),intent(in):: lzd
+          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
+          real(8),intent(in):: weightp_c, weightp_f
+          real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
+          integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
+          integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
+        end subroutine determine_num_orbs_per_gridpoint_new
+
+        subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
+              &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor)
+           use module_base
+           implicit none
+           logical, intent(in) :: enlargerprb
+           integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+           real(gp), intent(in) :: zion
+           integer, dimension(lmax+1), intent(in) :: nl
+           !real(gp), dimension(0:4,0:6), intent(in) :: psppar
+           real(gp), intent(in) :: psppar
+           !real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+           real(gp),  intent(in) :: nlccpar
+           real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
+           real(gp), dimension(ng+1), intent(out) :: expo
+           real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+           real(gp),intent(in),optional:: quartic_prefactor
+        end subroutine iguess_generator
 
    end interface
 

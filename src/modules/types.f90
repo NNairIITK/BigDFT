@@ -140,7 +140,7 @@ module module_types
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
     real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
@@ -761,6 +761,7 @@ end type linear_scaling_control_variables
     logical:: use_derivative_basis !<use derivatives or not
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
+    real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
     real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
@@ -768,6 +769,7 @@ end type linear_scaling_control_variables
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
+    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
   end type basis_specifications
 
   type,public:: basis_performance_options

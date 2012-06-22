@@ -1,9 +1,9 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -21,35 +21,42 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
   logical,intent(out):: emergency_exit
   type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
   type(orbitals_data),intent(in):: orbs
+  logical,intent(inout):: overlap_calculated
+  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: ovrlp
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:,:),allocatable:: lagmat, epsmat, ovrlp
+  real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
+  real(8),dimension(:,:),allocatable:: lagmat, epsmat
   real(8):: closesteval, gnrm_temple
 
+  nullify(hpsit_c)
+  nullify(hpsit_f)
+  nullify(hpsittmp_c)
+  nullify(hpsittmp_f)
 
 
-  do iorb=1,tmbopt%orbs%norb
-      ilr=tmbopt%orbs%inwhichlocreg(iorb)
-      do jorb=1,tmbopt%orbs%norb
-          jlr=tmbopt%orbs%inwhichlocreg(jorb)
-          tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
-              +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
-              +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
-          tt=sqrt(tt)
-          !if(tt>10.d0) kernel(jorb,iorb)=0.d0
-          if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
-      end do
-  end do
-  if (iproc==0) write(999,*) '-------------------------------------------------------------------'
+  !!do iorb=1,tmbopt%orbs%norb
+  !!    ilr=tmbopt%orbs%inwhichlocreg(iorb)
+  !!    do jorb=1,tmbopt%orbs%norb
+  !!        jlr=tmbopt%orbs%inwhichlocreg(jorb)
+  !!        tt = (tmbopt%lzd%llr(ilr)%locregCenter(1)-tmbopt%lzd%llr(jlr)%locregCenter(1))**2 &
+  !!            +(tmbopt%lzd%llr(ilr)%locregCenter(2)-tmbopt%lzd%llr(jlr)%locregCenter(2))**2 &
+  !!            +(tmbopt%lzd%llr(ilr)%locregCenter(3)-tmbopt%lzd%llr(jlr)%locregCenter(3))**2
+  !!        tt=sqrt(tt)
+  !!        !if(tt>10.d0) kernel(jorb,iorb)=0.d0
+  !!        !!if (iproc==0) write(999,'(2i8,es12.4,es15.6)') jorb,iorb,tt,kernel(jorb,iorb)
+  !!    end do
+  !!end do
+  !!!! if (iproc==0) write(999,*) '-------------------------------------------------------------------'
 
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
@@ -60,21 +67,21 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  istart=1
-  fnrm=0.d0
-  do iorb=1,tmbopt%orbs%norbp
-      iiorb=tmbopt%orbs%isorb+iorb
-      ilr=tmbopt%orbs%inWhichLocreg(iiorb)
-      ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
-      istart=istart+ncount
-  end do
-  do iorb=1,tmbopt%orbs%norbp
-      fnrm=fnrm+fnrmArr(iorb,1)
-  end do
-  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-  fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
-  if(iproc==0) write(*,*) 'FISRT FNRM',fnrm
+  !!istart=1
+  !!fnrm=0.d0
+  !!do iorb=1,tmbopt%orbs%norbp
+  !!    iiorb=tmbopt%orbs%isorb+iorb
+  !!    ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+  !!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+  !!    fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+  !!    istart=istart+ncount
+  !!end do
+  !!do iorb=1,tmbopt%orbs%norbp
+  !!    fnrm=fnrm+fnrmArr(iorb,1)
+  !!end do
+  !!call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  !!fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
+  !!if(iproc==0) write(*,*) 'FISRT FNRM',fnrm
 
 
 
@@ -82,24 +89,55 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
  
 
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      call allocateSendBufferOrtho(tmbopt%comon, subname)
-      call allocateRecvBufferOrtho(tmbopt%comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
-      call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
-           tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
-           lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
-      !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
+      if(tmbopt%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+          if(.not. tmbopt%can_use_transposed) then
+              allocate(tmbopt%psit_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, tmbopt%psit_c, 'tmbopt%psit_c', subname)
+              allocate(tmbopt%psit_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, tmbopt%psit_f, 'tmbopt%psit_f', subname)
+              call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+                   tmbopt%lzd)
+              tmbopt%can_use_transposed=.true.
+          end if
+          allocate(hpsit_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, hpsit_c, 'hpsit_c', subname)
+          allocate(hpsit_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, hpsit_f, 'hpsit_f', subname)
+          allocate(hpsittmp_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+          allocate(hpsittmp_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+          call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, lhphiopt, hpsit_c, hpsit_f, tmbopt%lzd)
+          call dcopy(sum(tmbopt%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+          call dcopy(7*sum(tmbopt%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+          call build_linear_combination_transposed(tmbopt%orbs%norb, kernel, tmbopt%collcom, hpsittmp_c, hpsittmp_f, .true., &
+               hpsit_c, hpsit_f)
+          iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+          deallocate(hpsittmp_c, stat=istat)
+          call memocc(istat, iall, 'hpsittmp_c', subname)
+          iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+          deallocate(hpsittmp_f, stat=istat)
+          call memocc(istat, iall, 'hpsittmp_f', subname)
+      else if (tmbopt%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+          call allocateSendBufferOrtho(tmbopt%comon, subname)
+          call allocateRecvBufferOrtho(tmbopt%comon, subname)
+          ! Extract the overlap region from the orbitals phi and store them in tmbopt%comon%sendBuf.
+          call extractOrbital3(iproc, nproc, tmbopt%orbs, tmbopt%orbs, max(tmbopt%orbs%npsidim_orbs,tmbopt%orbs%npsidim_comp), &
+               tmbopt%lzd, tmbopt%lzd, tmbopt%op, tmbopt%op, &
+               lhphiopt, tmbopt%comon%nsendBuf, tmbopt%comon%sendBuf)
+          !!call postCommsOverlapNew(iproc, nproc, tmbopt%orbs, tmbopt%op, tmbopt%lzd, lhphiopt, tmbopt%comon, tt1, tt2)
       call timing(iproc,'eglincomms','ON') ! lr408t
-      call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
-           tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
-      !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
-      !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
-      call wait_p2p_communication(iproc, nproc, tmbopt%comon)
+          call post_p2p_communication(iproc, nproc, tmbopt%comon%nsendbuf, tmbopt%comon%sendbuf, &
+               tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tmbopt%comon)
+          !!call collectnew(iproc, nproc, tmbopt%comon, tmbopt%mad, tmbopt%op, tmbopt%orbs, tmbopt%lzd, tmbopt%comon%nsendbuf, &
+          !!     tmbopt%comon%sendbuf, tmbopt%comon%nrecvbuf, tmbopt%comon%recvbuf, tt3, tt4, tt5)
+          call wait_p2p_communication(iproc, nproc, tmbopt%comon)
       call timing(iproc,'eglincomms','OF') ! lr408t
-      call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
-           tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
-      call deallocateRecvBufferOrtho(tmbopt%comon, subname)
-      call deallocateSendBufferOrtho(tmbopt%comon, subname)
+          call build_new_linear_combinations(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon%nrecvbuf, &
+               tmbopt%comon%recvbuf, kernel, .true., lhphiopt)
+          call deallocateRecvBufferOrtho(tmbopt%comon, subname)
+          call deallocateSendBufferOrtho(tmbopt%comon, subname)
+      end if
   end if
 
   !!tmbopt => tmb
@@ -110,53 +148,73 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
   !!end if
 
+
   call orthoconstraintNonorthogonal(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%mad, &
-       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, lhphiopt, lagmat, &
-       tmbopt%psit_c, tmbopt%psit_f, tmbopt%can_use_transposed)
+       tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%wfnmd%bs, tmbopt%psi, lhphiopt, lagmat, ovrlp, &
+       tmbopt%psit_c, tmbopt%psit_f, hpsit_c, hpsit_f, tmbopt%can_use_transposed, overlap_calculated)
+
+  if(associated(hpsit_c)) then
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+  end if
+  if(associated(hpsit_f)) then
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
+  end if
+
+  tmbopt => tmb
+  lhphiopt => lhphi
+  lphioldopt => lphiold
+  lhphioldopt => lhphiold
+  if(.not.variable_locregs) then
+      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  end if
 
 
-  !! EXPERIMENTAL ######################################################################
-  ! calculate Lagrange multiplier matrix for psi
-  allocate(epsmat(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, epsmat, 'epsmat', subname)
-  allocate(ovrlp(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp', subname)
-  do iorb=1,orbs%norb
-     do jorb=1,orbs%norb
-         tt=0.d0
-         do korb=1,tmbopt%orbs%norb
-             do lorb=1,tmbopt%orbs%norb
-                 tt=tt+tmb%wfnmd%coeff(korb,iorb)*tmb%wfnmd%coeff(lorb,jorb)*lagmat(korb,lorb)
-             end do
-         end do
-         epsmat(jorb,iorb)=tt
-     end do
-  end do
-  call getOverlapMatrix2(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%comon, tmbopt%op, tmbopt%psi, tmbopt%mad, ovrlp)
+  !!$$!! EXPERIMENTAL ######################################################################
+  !!$$! calculate Lagrange multiplier matrix for psi
+  !!$$allocate(epsmat(orbs%norb,orbs%norb), stat=istat)
+  !!$$call memocc(istat, epsmat, 'epsmat', subname)
+  !!$$allocate(ovrlp(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
+  !!$$call memocc(istat, ovrlp, 'ovrlp', subname)
+  !!$$do iorb=1,orbs%norb
+  !!$$   do jorb=1,orbs%norb
+  !!$$       tt=0.d0
+  !!$$       do korb=1,tmbopt%orbs%norb
+  !!$$           do lorb=1,tmbopt%orbs%norb
+  !!$$               tt=tt+tmb%wfnmd%coeff(korb,iorb)*tmb%wfnmd%coeff(lorb,jorb)*lagmat(korb,lorb)
+  !!$$           end do
+  !!$$       end do
+  !!$$       epsmat(jorb,iorb)=tt
+  !!$$   end do
+  !!$$end do
+  !!$$call getOverlapMatrix2(iproc, nproc, tmbopt%lzd, tmbopt%orbs, tmbopt%comon, tmbopt%op, tmbopt%psi, tmbopt%mad, ovrlp)
+  !!$$tt=0.d0
+  !!$$do iorb=1,tmbopt%orbs%norb
+  !!$$    do jorb=1,orbs%norb
+  !!$$        do korb=1,tmbopt%orbs%norb
+  !!$$            tt=tt+tmb%wfnmd%coeff(korb,jorb)*lagmat(korb,iorb)
+  !!$$        end do
+  !!$$        do korb=1,orbs%norb
+  !!$$            do lorb=1,tmbopt%orbs%norb
+  !!$$                tt=tt-epsmat(korb,jorb)*tmb%wfnmd%coeff(lorb,korb)*ovrlp(lorb,iorb)
+  !!$$            end do
+  !!$$        end do
+  !!$$    end do
+  !!$$end do
+  !!$$if(iproc==0) write(*,*) 'tt',tt
 
-  tt=0.d0
-  do iorb=1,tmbopt%orbs%norb
-      do jorb=1,orbs%norb
-          do korb=1,tmbopt%orbs%norb
-              tt=tt+tmb%wfnmd%coeff(korb,jorb)*lagmat(korb,iorb)
-          end do
-          do korb=1,orbs%norb
-              do lorb=1,tmbopt%orbs%norb
-                  tt=tt-epsmat(korb,jorb)*tmb%wfnmd%coeff(lorb,korb)*ovrlp(lorb,iorb)
-              end do
-          end do
-      end do
-  end do
-  if(iproc==0) write(*,*) 'tt',tt
+  !!$$iall=-product(shape(epsmat))*kind(epsmat)
+  !!$$deallocate(epsmat, stat=istat)
+  !!$$call memocc(istat, iall, 'epsmat', subname)
+  !!$$iall=-product(shape(ovrlp))*kind(ovrlp)
+  !!$$deallocate(ovrlp, stat=istat)
+  !!$$call memocc(istat, iall, 'ovrlp', subname)
+  !!$$!! ###################################################################################
 
-  iall=-product(shape(epsmat))*kind(epsmat)
-  deallocate(epsmat, stat=istat)
-  call memocc(istat, iall, 'epsmat', subname)
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
-  !! ###################################################################################
-      if(iproc==0) write(*,*) 'EXPERIMENTAL: precond here with confinement'
+  !!    if(iproc==0) write(*,*) 'EXPERIMENTAL: precond here with confinement'
   !!if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
   !!    ind2=1
   !!    do iorb=1,tmbopt%orbs%norbp
@@ -169,24 +227,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!             1.d-3, it, iorb, eval_zero)
   !!    end do
   !!end if
-  call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
-  !!tmbopt => tmb
-  !!lhphiopt => lhphi
-  !!lphioldopt => lphiold
-  !!lhphioldopt => lhphiold
-  if(.not.variable_locregs) then
-      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
-      !call flatten_at_boundaries(tmb%lzd, tmb%orbs, lhphi)
-      !!do istat=1,tmb%orbs%npsidim_orbs
-      !!    write(200+iproc,*) istat, lhphi(istat)
-      !!end do
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
-  end if
+  !call get_weighted_gradient(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call get_both_gradients(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt, gnrm_in, gnrm_out)
+  !!call plot_gradient(iproc, nproc, 1000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 2000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!!!tmbopt => tmb
+  !!!!lhphiopt => lhphi
+  !!!!lphioldopt => lphiold
+  !!!!lhphioldopt => lhphiold
+  !!if(.not.variable_locregs) then
+  !!    call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  !!    !call flatten_at_boundaries(tmb%lzd, tmb%orbs, lhphi)
+  !!    !!do istat=1,tmb%orbs%npsidim_orbs
+  !!    !!    write(200+iproc,*) istat, lhphi(istat)
+  !!    !!end do
+  !!    call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphi, lhphilarge2)
+  !!end if
 
-  call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 3000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 4000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
   ! Calculate trace (or band structure energy, resp.)
   if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -278,28 +337,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  ! TEST: Temple Criterium ###########################
-  gnrm_temple=0.d0
-  do iorb=1,tmbopt%orbs%norbp
-      iiorb=tmbopt%orbs%isorb+iorb
-      closesteval=1.d100
-      do jorb=1,tmbopt%orbs%norb
-          if(jorb/=iiorb) then
-              tt=abs(lagmat(iiorb,iiorb)-lagmat(jorb,jorb))
-              if(tt<=closesteval) then
-                  closesteval=tt
-              end if
-          end if
-      end do
-      !write(1000+iproc,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      !write(*,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      !!write(*,*) 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
-      gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
-  end do
-  call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
-  gnrm_temple = gnrm_temple/dble(tmbopt%orbs%norb)
-  !if(iproc==0) write(*,*) 'GNRM TEMPLE', gnrm_temple
-  ! ##################################################
+  !!! TEST: Temple Criterium ###########################
+  !!gnrm_temple=0.d0
+  !!do iorb=1,tmbopt%orbs%norbp
+  !!    iiorb=tmbopt%orbs%isorb+iorb
+  !!    closesteval=1.d100
+  !!    do jorb=1,tmbopt%orbs%norb
+  !!        if(jorb/=iiorb) then
+  !!            tt=abs(lagmat(iiorb,iiorb)-lagmat(jorb,jorb))
+  !!            if(tt<=closesteval) then
+  !!                closesteval=tt
+  !!            end if
+  !!        end if
+  !!    end do
+  !!    !write(1000+iproc,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    !write(*,'(a,4es14.5)') 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    !!write(*,*) 'iiorb, fnrmArr(iorb,i), closesteval, Temple', iiorb, fnrmArr(iorb,1), closesteval, fnrmArr(iorb,1)/closesteval
+  !!    gnrm_temple = gnrm_temple + fnrmArr(iorb,1)/closesteval
+  !!end do
+  !!call mpiallred(gnrm_temple, 1, mpi_sum, mpi_comm_world, ierr)
+  !!gnrm_temple = gnrm_temple/dble(tmbopt%orbs%norb)
+  !!!if(iproc==0) write(*,*) 'GNRM TEMPLE', gnrm_temple
+  !!! ##################################################
 
 
 
@@ -317,7 +376,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm=0.d0
   do iorb=1,tmbopt%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
-      write(1000+iorb+tmbopt%orbs%isorb,*) lagmat(iorb+tmbopt%orbs%isorb,iorb+tmbopt%orbs%isorb), fnrmArr(iorb,1)
+      !!write(1000+iorb+tmbopt%orbs%isorb,*) lagmat(iorb+tmbopt%orbs%isorb,iorb+tmbopt%orbs%isorb), fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       !if(it>1 .and. ldiis%isx==0) then
@@ -347,6 +406,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       write(*,'(a)') 'Preconditioning.'
   end if
 
+  !call cut_at_boundaries(tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !call flatten_at_boundaries(tmbopt%lzd, tmbopt%orbs, lhphiopt)
+
+  call get_both_gradients(iproc, nproc, tmbopt%lzd, tmbopt%orbs, lhphiopt, gnrm_in, gnrm_out)
 
   !!if(iproc==0) write(*,*) 'WARNING: set prefactor manually for preconditioning!'
   ind2=1
@@ -354,7 +417,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       iiorb=tmbopt%orbs%isorb+iorb
       ilr = tmbopt%orbs%inWhichLocreg(iiorb)
       ncnt=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
                tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
                tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
@@ -363,21 +426,23 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !!    call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
       !!         tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
       !!         tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-      !!         2.d-3, it, iorb, eval_zero)
+      !!         0.d-4, it, iorb, eval_zero)
       !!end if
       ind2=ind2+ncnt
   end do
 
-  call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
-  call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
+  !!call plot_gradient(iproc, nproc, 5000, tmbopt%lzd, tmbopt%orbs, lhphiopt)
+  !!call plot_gradient(iproc, nproc, 6000, tmbopt%lzd, tmbopt%orbs, tmbopt%psi)
 
-  tmbopt => tmb
-  lhphiopt => lhphi
-  lphioldopt => lphiold
-  lhphioldopt => lhphiold
-  if(.not.variable_locregs) then
-      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
-  end if
+  !!if(tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!    tmbopt => tmb
+  !!    lhphiopt => lhphi
+  !!    lphioldopt => lphiold
+  !!    lhphioldopt => lhphiold
+  !!    if(.not.variable_locregs) then
+  !!        call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
+  !!    end if
+  !!end if
 
 
   ! Determine the mean step size for steepest descent iterations.

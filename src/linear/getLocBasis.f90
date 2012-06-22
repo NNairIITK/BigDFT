@@ -143,7 +143,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
   tmblarge%lzd%doHamAppl=.true.
   call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
        proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
-  call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
+  !call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%Lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmblarge%comgp)
 
 
   !!call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
@@ -398,13 +398,13 @@ real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphila
 ! Local variables
 !real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, meanAlpha
+real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, variable_locregs, emergency_exit
+logical:: withConfinement, variable_locregs, emergency_exit, overlap_calculated
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
@@ -509,10 +509,10 @@ real(8),dimension(2):: reducearr
   end if
   call timing(iproc,'getlocbasinit','OF') !lr408t
   !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
-           tmbopt%can_use_transposed)
+!!!$$      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+!!!$$           tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
+!!!$$           tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
+!!!$$           tmbopt%can_use_transposed)
       !!if(tmbopt%can_use_transposed) then
       !!!if(associated(tmbopt%psit_c)) then
       !!    iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
@@ -527,6 +527,11 @@ real(8),dimension(2):: reducearr
       !!tmbopt%can_use_transposed=.false.
 
   !!end if
+
+
+  ! Not necessary here...
+  !!$$call reconstruct_kernel(iproc, nproc, orbs, tmb, kernel)
+
 
   if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       ! This is not the ideal place for this...
@@ -609,6 +614,8 @@ real(8),dimension(2):: reducearr
   !!write(*,*) 'ATTENTION: SET RHO TO ZERO'
   !!denspot%rhov=0.d0
 
+  trH_old=0.d0
+  overlap_calculated=.false.
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
       fnrmMax=0.d0
@@ -759,9 +766,10 @@ endif
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, meanAlpha, emergency_exit, &
+           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+           meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
@@ -805,14 +813,19 @@ endif
       end if
 
 
+      if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
+      trH_old=trH
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
       !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      if(fnrm<tmb%wfnmd%bs%conv_crit .or. it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(fnrm<tmb%wfnmd%bs%conv_crit) then
+      !if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) .or. &
+      if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
+          it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+          !if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) then
+          if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -861,6 +874,9 @@ endif
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
            alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
+
+      call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, kernel)
+
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
           lhphiopt => lhphi
@@ -3272,7 +3288,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   ! Determine wheter the trace is decreasing (as it should) or increasing.
   ! This is done by comparing the current value with diisLIN%energy_min, which is
   ! the minimal value of the trace so far.
-  if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
+  !if(iproc==0) write(*,*) 'trH, ldiis%trmin', trH, ldiis%trmin
   if(trH<=ldiis%trmin .and. .not.ldiis%resetDIIS) then
       ! Everything ok
       ldiis%trmin=trH
@@ -3375,7 +3391,7 @@ subroutine flatten_at_boundaries(lzd, orbs, psi)
   real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
 
   ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ii1, ii2, ii3
   real(8):: r0, r1, r2, r3, rr, tt
   real(8),dimension(:,:,:,:,:,:),allocatable:: psig
   character(len=*),parameter:: subname='flatten_at_boundaries'
@@ -3399,13 +3415,16 @@ subroutine flatten_at_boundaries(lzd, orbs, psi)
            lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
            psi(istc), psi(istf), psig)
 
-      r0=lzd%llr(ilr)%locrad**2/3.d0
+      r0=lzd%llr(ilr)%locrad**2/5.d0
       do i3=0,lzd%llr(ilr)%d%n3
-          r3 = (dble(i3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
           do i2=0,lzd%llr(ilr)%d%n2
-              r2 = (dble(i2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
               do i1=0,lzd%llr(ilr)%d%n1
-                  r1 = (dble(i1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
                   rr=r1+r2+r3
                   tt=exp(-(rr-lzd%llr(ilr)%locrad**2/2.d0)/r0)
                   tt=min(tt,1.d0)
@@ -3456,7 +3475,7 @@ subroutine get_weighted_gradient(iproc, nproc, lzd, orbs, psi)
   real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
 
   ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3
   real(8):: r0, r1, r2, r3, rr, tt, gnrm
   real(8),dimension(:,:,:,:,:,:),allocatable:: psig
   character(len=*),parameter:: subname='flatten_at_boundaries'
@@ -3483,11 +3502,14 @@ subroutine get_weighted_gradient(iproc, nproc, lzd, orbs, psi)
 
       r0=lzd%llr(ilr)%locrad**2/3.d0
       do i3=0,lzd%llr(ilr)%d%n3
-          r3 = (dble(i3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
           do i2=0,lzd%llr(ilr)%d%n2
-              r2 = (dble(i2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
               do i1=0,lzd%llr(ilr)%d%n1
-                  r1 = (dble(i1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
                   rr=r1+r2+r3
                   !tt=exp(-(rr-lzd%llr(ilr)%locrad**2/2.d0)/r0)
                   tt=exp(-rr/r0)
@@ -3593,3 +3615,526 @@ subroutine plot_gradient(iproc, nproc, num, lzd, orbs, psi)
   end do
 
 end subroutine plot_gradient
+
+
+
+
+
+subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => reconstruct_kernel
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(DFT_wavefunction),intent(inout):: tmb
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
+  logical,intent(out):: overlap_calculated
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+
+  ! Local variables
+  integer:: istat, iorb, jorb, ierr, iall
+  real(8):: ddot, tt, tt2, tt3
+  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  character(len=*),parameter:: subname='reconstruct_kernel'
+
+
+  allocate(coeff_tmp(tmb%orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+  allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+  allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
+  ! Calculate the overlap matrix between the TMBs.
+  if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      if(.not.tmb%can_use_transposed) then
+          if(associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if(associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          tmb%can_use_transposed=.true.
+      end if
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
+           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
+  else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+  end if
+  overlap_calculated=.true.
+
+  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+       tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  !!do iorb=1,orbs%norbp
+  !!    do jorb=1,orbs%norb
+  !!        ovrlp_tmp(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
+  !!        !!if(iproc==0) write(210,*) ovrlp_tmp(jorb,iorb)
+  !!    end do
+  !!end do
+  call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+       coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
+
+
+  ! Gather together the complete matrix
+  call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+
+  ! WARNING: this is the wrong mad, but it does not matter for iorder=0
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
+
+  ! Build the new linear combinations
+  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+       ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+
+  call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
+       tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+
+  !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+
+  !!! Check normalization
+  !!call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+  !!     tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
+  !!        tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+  !!        tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
+  !!        if(iproc==0) write(200,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
+  !!    end do
+  !!end do
+
+  ! Recalculate the kernel
+  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+
+
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+  deallocate(ovrlp_tmp,stat=istat)
+  call memocc(istat,iall,'ovrlp_tmp',subname)
+
+  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+  deallocate(ovrlp_coeff,stat=istat)
+  call memocc(istat,iall,'ovrlp_coeff',subname)
+
+
+end subroutine reconstruct_kernel
+
+
+
+subroutine cut_at_boundaries(lzd, orbs, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
+      call memocc(istat, psig, 'psig', subname)
+      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
+
+      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
+      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           psi(istc), psi(istf), psig)
+
+      r0 = (lzd%llr(ilr)%locrad-8.d0*lzd%hgrids(1))**2
+      !r0 = (lzd%llr(ilr)%locrad-2.d0)**2
+      do i3=0,lzd%llr(ilr)%d%n3
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          do i2=0,lzd%llr(ilr)%d%n2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              do i1=0,lzd%llr(ilr)%d%n1
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  rr=r1+r2+r3
+                  !write(999,'(5es14.3)') r1, r2, r3, rr, r0
+                  if(rr>=r0) then
+                      psig(i1,1,i2,1,i3,1)=0.d0
+                      psig(i1,2,i2,1,i3,1)=0.d0
+                      psig(i1,1,i2,2,i3,1)=0.d0
+                      psig(i1,2,i2,2,i3,1)=0.d0
+                      psig(i1,1,i2,1,i3,2)=0.d0
+                      psig(i1,2,i2,1,i3,2)=0.d0
+                      psig(i1,1,i2,2,i3,2)=0.d0
+                      psig(i1,2,i2,2,i3,2)=0.d0
+                  else
+                      !write(*,*) 'not zero'
+                  end if
+              end do
+          end do
+      end do
+
+      call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+           0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+           psig, psi(istc), psi(istf))
+
+      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+      iall=-product(shape(psig))*kind(psig)
+      deallocate(psig,stat=istat)
+      call memocc(istat,iall,'psig',subname)
+
+
+  end do
+
+end subroutine cut_at_boundaries
+
+
+
+
+
+
+subroutine cut_at_boundaries2(lr, orbs, hx, hy, hz, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in):: lr
+  type(orbitals_data),intent(in):: orbs
+  real(8),intent(in):: hx, hy, hz
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+
+  allocate(psig(0:lr%d%n1,2,0:lr%d%n2,2,0:lr%d%n3,2), stat=istat)
+  call memocc(istat, psig, 'psig', subname)
+  call to_zero(8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), psig(0,1,0,1,0,1))
+
+  istf = istf + lr%wfd%nvctr_c
+  call uncompress(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       psi(istc), psi(istf), psig)
+
+  r0 = (lr%locrad-8.d0*hx)**2
+  !r0 = (lr%locrad-2.d0)**2
+  do i3=0,lr%d%n3
+      ii3=lr%ns3+i3
+      r3 = (dble(ii3)*hz-lr%locregCenter(3))**2
+      do i2=0,lr%d%n2
+          ii2=lr%ns2+i2
+          r2 = (dble(ii2)*hy-lr%locregCenter(2))**2
+          do i1=0,lr%d%n1
+              ii1=lr%ns1+i1
+              r1 = (dble(ii1)*hx-lr%locregCenter(1))**2
+              rr=r1+r2+r3
+              !write(999,'(5es14.3)') r1, r2, r3, rr, r0
+              if(rr>=r0) then
+                  psig(i1,1,i2,1,i3,1)=0.d0
+                  psig(i1,2,i2,1,i3,1)=0.d0
+                  psig(i1,1,i2,2,i3,1)=0.d0
+                  psig(i1,2,i2,2,i3,1)=0.d0
+                  psig(i1,1,i2,1,i3,2)=0.d0
+                  psig(i1,2,i2,1,i3,2)=0.d0
+                  psig(i1,1,i2,2,i3,2)=0.d0
+                  psig(i1,2,i2,2,i3,2)=0.d0
+              else
+                  !write(*,*) 'not zero'
+              end if
+          end do
+      end do
+  end do
+
+  call compress(lr%d%n1, lr%d%n2, &
+       0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  &
+       psig, psi(istc), psi(istf))
+
+  istf = istf + 7*lr%wfd%nvctr_f
+  istc = istc + lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f
+
+  iall=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=istat)
+  call memocc(istat,iall,'psig',subname)
+
+
+
+end subroutine cut_at_boundaries2
+
+
+
+
+
+
+
+
+
+
+subroutine flatten_at_boundaries2(lr, orbs, hx, hy, hz, psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in):: lr
+  type(orbitals_data),intent(in):: orbs
+  real(8),intent(in):: hx, hy, hz
+  real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
+
+  ! Local variables
+  integer:: istc, istf, iorb, i1, i2, i3, istat, iall, ii1, ii2, ii3
+  real(8):: r0, r1, r2, r3, rr, tt
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+
+  allocate(psig(0:lr%d%n1,2,0:lr%d%n2,2,0:lr%d%n3,2), stat=istat)
+  call memocc(istat, psig, 'psig', subname)
+  call to_zero(8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), psig(0,1,0,1,0,1))
+
+  istf = istf + lr%wfd%nvctr_c
+  call uncompress(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       psi(istc), psi(istf), psig)
+
+  r0=lr%locrad**2/5.d0
+  !r0 = (lr%locrad-2.d0)**2
+  do i3=0,lr%d%n3
+      ii3=lr%ns3+i3
+      r3 = (dble(ii3)*hz-lr%locregCenter(3))**2
+      do i2=0,lr%d%n2
+          ii2=lr%ns2+i2
+          r2 = (dble(ii2)*hy-lr%locregCenter(2))**2
+          do i1=0,lr%d%n1
+              ii1=lr%ns1+i1
+              r1 = (dble(ii1)*hx-lr%locregCenter(1))**2
+              rr=r1+r2+r3
+              tt=exp(-(rr-lr%locrad**2/2.d0)/r0)
+              if(tt<1.d0) then
+                  psig(i1,1,i2,1,i3,1)=tt*psig(i1,1,i2,1,i3,1)
+                  psig(i1,2,i2,1,i3,1)=tt*psig(i1,2,i2,1,i3,1)
+                  psig(i1,1,i2,2,i3,1)=tt*psig(i1,1,i2,2,i3,1)
+                  psig(i1,2,i2,2,i3,1)=tt*psig(i1,2,i2,2,i3,1)
+                  psig(i1,1,i2,1,i3,2)=tt*psig(i1,1,i2,1,i3,2)
+                  psig(i1,2,i2,1,i3,2)=tt*psig(i1,2,i2,1,i3,2)
+                  psig(i1,1,i2,2,i3,2)=tt*psig(i1,1,i2,2,i3,2)
+                  psig(i1,2,i2,2,i3,2)=tt*psig(i1,2,i2,2,i3,2)
+              end if
+          end do
+      end do
+  end do
+
+  call compress(lr%d%n1, lr%d%n2, &
+       0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, &
+       lr%wfd%nseg_c, lr%wfd%nvctr_c, lr%wfd%keygloc, lr%wfd%keyvloc,  &
+       lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+       lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+       lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  &
+       psig, psi(istc), psi(istf))
+
+  istf = istf + 7*lr%wfd%nvctr_f
+  istc = istc + lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f
+
+  iall=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=istat)
+  call memocc(istat,iall,'psig',subname)
+
+
+
+end subroutine flatten_at_boundaries2
+
+
+
+
+
+subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+  real(8),intent(out):: gnrm_out, gnrm_in
+
+  ! Local variables
+  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii1, ii2, ii3, ipts_out, ipts_in
+  real(8):: r0, r1, r2, r3, rr, tt, pts_in, pts_out
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
+  character(len=*),parameter:: subname='flatten_at_boundaries'
+  
+
+  istc=1
+  istf=1
+  gnrm_out=0.d0
+  gnrm_in=0.d0
+  pts_in=0.d0
+  pts_out=0.d0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
+      call memocc(istat, psig, 'psig', subname)
+      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
+
+      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
+      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           psi(istc), psi(istf), psig)
+
+      ipts_in=0
+      ipts_out=0
+      !r0=(lzd%llr(ilr)%locrad-3.d0)**2
+      r0=(lzd%llr(ilr)%locrad-8.d0*lzd%hgrids(1))**2
+      do i3=0,lzd%llr(ilr)%d%n3
+          ii3=lzd%llr(ilr)%ns3+i3
+          r3 = (dble(ii3)*lzd%hgrids(3)-lzd%llr(ilr)%locregCenter(3))**2
+          do i2=0,lzd%llr(ilr)%d%n2
+              ii2=lzd%llr(ilr)%ns2+i2
+              r2 = (dble(ii2)*lzd%hgrids(2)-lzd%llr(ilr)%locregCenter(2))**2
+              do i1=0,lzd%llr(ilr)%d%n1
+                  ii1=lzd%llr(ilr)%ns1+i1
+                  r1 = (dble(ii1)*lzd%hgrids(1)-lzd%llr(ilr)%locregCenter(1))**2
+                  rr=r1+r2+r3
+                  if(rr>r0) then
+                      gnrm_out=gnrm_out+psig(i1,1,i2,1,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,1,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,2,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,2,i3,1)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,1,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,1,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,1,i2,2,i3,2)**2
+                      gnrm_out=gnrm_out+psig(i1,2,i2,2,i3,2)**2
+                      if(psig(i1,1,i2,1,i3,1)/=0.d0) then
+                          ! point carries scaling function
+                          pts_out=pts_out+1.d0
+                          ipts_out=ipts_out+1
+                      end if
+                      if(psig(i1,2,i2,1,i3,1)/=0.d0) then
+                          ! point carries wavelets
+                          pts_out=pts_out+7.d0
+                          ipts_out=ipts_out+7
+                      end if
+                  else
+                      gnrm_in=gnrm_in+psig(i1,1,i2,1,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,2,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,2,i3,1)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,1,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,1,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,1,i2,2,i3,2)**2
+                      gnrm_in=gnrm_in+psig(i1,2,i2,2,i3,2)**2
+                      if(psig(i1,1,i2,1,i3,1)/=0.d0) then
+                          ! point carries scaling function
+                          pts_in=pts_in+1.d0
+                          ipts_in=ipts_in+1
+                      end if
+                      if(psig(i1,2,i2,1,i3,1)/=0.d0) then
+                          ! point carries wavelets
+                          pts_in=pts_in+7.d0
+                          ipts_in=ipts_in+7
+                      end if
+                  end if
+              end do
+          end do
+      end do
+
+      if (ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f) then
+          write(*,'(2(a,i0))') 'ERROR: ',ipts_in+ipts_out,&
+                      ' = ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f = ',&
+                      lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          stop
+      end if
+
+      !!call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
+      !!     0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
+      !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+      !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+      !!     lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+      !!     lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+      !!     psig, psi(istc), psi(istf))
+
+      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+      iall=-product(shape(psig))*kind(psig)
+      deallocate(psig,stat=istat)
+      call memocc(istat,iall,'psig',subname)
+
+
+  end do
+
+  if(pts_in>0) gnrm_in=gnrm_in/pts_in
+  if(pts_out>0) gnrm_out=gnrm_out/pts_out
+  call mpiallred(gnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
+  gnrm_out=sqrt(gnrm_out/dble(orbs%norb))
+  gnrm_in=sqrt(gnrm_in/dble(orbs%norb))
+  if(iproc==0) write(*,'(a,5es14.4)') 'pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out', pts_in, pts_out, gnrm_in, &
+       gnrm_out, gnrm_in/gnrm_out
+
+end subroutine get_both_gradients

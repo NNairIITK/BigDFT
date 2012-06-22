@@ -657,11 +657,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
+             & ration of inner and outer gnrm'
   call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
   call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
@@ -685,13 +687,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
   call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
