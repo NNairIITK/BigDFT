@@ -434,65 +434,45 @@ subroutine communicate_shrink_bounds(iproc, root, sb)
    integer,dimension(ncount):: types, dspls, blocklengths
    integer:: addr_sb, addr_ibzzx_c, addr_ibyyzz_c, addr_ibxy_ff, addr_ibzzx_f, addr_ibyyzz_f, commtype
    integer,dimension(6,5):: ise
-   integer:: is1, ie1, is2, ie2, is3, ie3
 
 
    call getbounds_5(iproc, root, sb%ibzzx_c, sb%ibyyzz_c, sb%ibxy_ff, sb%ibzzx_f, sb%ibyyzz_f, ise)
+   call mpi_barrier(mpi_comm_world, ierr)
 
-   call getbounds(iproc, root, sb%ibzzx_c, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
-      !allocate(sb%ibzzx_c(is1:ie1,is2:ie2,is3:ie3), stat=istat)
       allocate(sb%ibzzx_c(ise(1,1):ise(2,1),ise(3,1):ise(4,1),ise(5,1):ise(6,1)), stat=istat)
       call memocc(istat, sb%ibzzx_c, 'sb%ibzzx_c', subname)
    end if
-   !blocklengths(1) = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
    blocklengths(1) = (ise(2,1)-ise(1,1)+1)*(ise(4,1)-ise(3,1)+1)*(ise(6,1)-ise(5,1)+1)
    types(1) = mpi_integer
-   !call mpi_bcast(sb%ibzzx_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   call getbounds(iproc, root, sb%ibyyzz_c, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
-      !allocate(sb%ibyyzz_c(is1:ie1,is2:ie2,is3:ie3), stat=istat)
       allocate(sb%ibyyzz_c(ise(1,2):ise(2,2),ise(3,2):ise(4,2),ise(5,2):ise(6,2)), stat=istat)
       call memocc(istat, sb%ibyyzz_c, 'sb%ibyyzz_c', subname)
    end if
-   !blocklengths(2) = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
    blocklengths(2) = (ise(2,2)-ise(1,2)+1)*(ise(4,2)-ise(3,2)+1)*(ise(6,2)-ise(5,2)+1)
    types(2) = mpi_integer
-   !call mpi_bcast(sb%ibyyzz_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   call getbounds(iproc, root, sb%ibxy_ff, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
-      !allocate(sb%ibxy_ff(is1:ie1,is2:ie2,is3:ie3), stat=istat)
       allocate(sb%ibxy_ff(ise(1,3):ise(2,3),ise(3,3):ise(4,3),ise(5,3):ise(6,3)), stat=istat)
       call memocc(istat, sb%ibxy_ff, 'sb%ibxy_ff', subname)
    end if
-   !blocklengths(3) = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
    blocklengths(3) = (ise(2,3)-ise(1,3)+1)*(ise(4,3)-ise(3,3)+1)*(ise(6,3)-ise(5,3)+1)
    types(3) = mpi_integer
-   !call mpi_bcast(sb%ibxy_ff, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   call getbounds(iproc, root, sb%ibzzx_f, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
-      !allocate(sb%ibzzx_f(is1:ie1,is2:ie2,is3:ie3), stat=istat)
       allocate(sb%ibzzx_f(ise(1,4):ise(2,4),ise(3,4):ise(4,4),ise(5,4):ise(6,4)), stat=istat)
       call memocc(istat, sb%ibzzx_f, 'sb%ibzzx_f', subname)
    end if
-   !blocklengths(4) = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
    blocklengths(4) = (ise(2,4)-ise(1,4)+1)*(ise(4,4)-ise(3,4)+1)*(ise(6,4)-ise(5,4)+1)
    types(4) = mpi_integer
-   !call mpi_bcast(sb%ibzzx_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   call getbounds(iproc, root, sb%ibyyzz_f, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
-      !allocate(sb%ibyyzz_f(is1:ie1,is2:ie2,is3:ie3), stat=istat)
       allocate(sb%ibyyzz_f(ise(1,5):ise(2,5),ise(3,5):ise(4,5),ise(5,5):ise(6,5)), stat=istat)
       call memocc(istat, sb%ibyyzz_f, 'sb%ibyyzz_f', subname)
    end if
-   !blocklengths(5) = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
    blocklengths(5) = (ise(2,5)-ise(1,5)+1)*(ise(4,5)-ise(3,5)+1)*(ise(6,5)-ise(5,5)+1)
    types(5) = mpi_integer
-   !call mpi_bcast(sb%ibyyzz_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
    call mpi_get_address(sb, addr_sb, ierr)
    call mpi_get_address(sb%ibzzx_c, addr_ibzzx_c, ierr)
@@ -506,15 +486,12 @@ subroutine communicate_shrink_bounds(iproc, root, sb)
    call mpi_get_address(sb%ibyyzz_f, addr_ibyyzz_f, ierr)
    dspls(5) = addr_ibyyzz_f - addr_sb
 
-   write(*,'(a,5i8)') 'bl',blocklengths
 
    call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
    call mpi_bcast(sb, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
 
-   !call mpi_barrier(mpi_comm_world, ierr)
-   !call mpi_finalize(ierr)
 
 END SUBROUTINE communicate_shrink_bounds
 
@@ -539,8 +516,10 @@ subroutine communicate_grow_bounds(iproc, root, gb)
    integer,dimension(ncount):: types, blocklengths, dspls
    integer:: addr_gb, addr_ibzxx_c, addr_ibxxyy_c, addr_ibyz_ff, addr_ibzxx_f, addr_ibxxyy_f
    integer,dimension(6,5):: ise
+   integer:: is1, ie1, is2, ie2, is3, ie3
 
    call getbounds_5(iproc, root, gb%ibzxx_c, gb%ibxxyy_c, gb%ibyz_ff, gb%ibzxx_f, gb%ibxxyy_f, ise)
+   call mpi_barrier(mpi_comm_world, ierr)
 
    !call getbounds(iproc, root, gb%ibzxx_c, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then

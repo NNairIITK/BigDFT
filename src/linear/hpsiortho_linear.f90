@@ -95,7 +95,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               call memocc(istat, tmbopt%psit_c, 'tmbopt%psit_c', subname)
               allocate(tmbopt%psit_f(7*sum(tmbopt%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmbopt%psit_f, 'tmbopt%psit_f', subname)
-              call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, tmbopt%lzd)
+              call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, &
+                   tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, tmbopt%lzd)
               tmbopt%can_use_transposed=.true.
           end if
           allocate(hpsit_c(sum(tmbopt%collcom%nrecvcounts_c)), stat=istat)
@@ -109,7 +110,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call transpose_localized(iproc, nproc, tmbopt%orbs, tmbopt%collcom, lhphiopt, hpsit_c, hpsit_f, tmbopt%lzd)
           call dcopy(sum(tmbopt%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
           call dcopy(7*sum(tmbopt%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-          call build_linear_combination_transposed(tmbopt%orbs%norb, kernel, tmbopt%collcom, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+          call build_linear_combination_transposed(tmbopt%orbs%norb, kernel, tmbopt%collcom, &
+               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
           deallocate(hpsittmp_c, stat=istat)
           call memocc(istat, iall, 'hpsittmp_c', subname)
@@ -689,7 +691,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
               !!call deallocate_auxiliary_basis_function(subname, tmb%psi, lhphi, lhphiold, lphiold)
               call update_locreg(iproc, nproc, tmblarge%lzd%nlr, locrad, &
                    inwhichlocreg_reference, locregCenter, tmblarge%lzd%glr, &
-                   tmblarge%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                   tmblarge%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, &
+                   tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                    tmblarge%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
                    tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
               call update_ldiis_arrays(tmb, subname, ldiis)

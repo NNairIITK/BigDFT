@@ -4104,7 +4104,8 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
       end do
 
       if (ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f) then
-          write(*,'(2(a,i0))') 'ERROR: ',ipts_in+ipts_out,' = ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f = ',&
+          write(*,'(2(a,i0))') 'ERROR: ',ipts_in+ipts_out,&
+                      ' = ipts_in+ipts_out /= lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f = ',&
                       lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           stop
       end if
@@ -4133,6 +4134,7 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
   call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
   gnrm_out=sqrt(gnrm_out/dble(orbs%norb))
   gnrm_in=sqrt(gnrm_in/dble(orbs%norb))
-  if(iproc==0) write(*,'(a,5es14.4)') 'pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out', pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out
+  if(iproc==0) write(*,'(a,5es14.4)') 'pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out', &
+      pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out
 
 end subroutine get_both_gradients
