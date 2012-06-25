@@ -274,6 +274,15 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
 
 
 
+!!!! TEST: CREATE PENALTY BASIS FUNCTION
+!!call create_penalty_basis_function(iproc, nproc, tmb%orbs, tmb%lzd, &
+!!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%confdatarr, tmb%psi)
+!!!! END TEST
+
+
+
+
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
       !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 

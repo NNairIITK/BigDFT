@@ -37,6 +37,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
   real(8),dimension(:,:),allocatable:: lagmat, epsmat
   real(8):: closesteval, gnrm_temple
+  integer:: owa, owanext
 
   nullify(hpsit_c)
   nullify(hpsit_f)
@@ -319,11 +320,24 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmbopt%orbs%norbp
       if(.not.variable_locregs .or. tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           iiorb=tmbopt%orbs%isorb+iorb
-          ilr=tmbopt%orbs%inWhichLocreg(iiorb)
-          ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
-          fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
-          write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
+          ilr=tmbopt%orbs%inwhichlocreg(iiorb)
+          owa=tmbopt%orbs%onwhichatom(iiorb)
+          if(iiorb<tmbopt%orbs%norb) then
+              owanext=tmbopt%orbs%onwhichatom(iiorb+1)
+          else
+              owanext=tmbopt%lzd%nlr+1
+          end if
+          !!if(owa==owanext) then
+              ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
+              fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
+              write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
+          !!else
+          !!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+          !!    if(it>1) fnrmOvrlpArr(iorb,1)=0.d0
+          !!    fnrmArr(iorb,1)=0.d0
+          !!    write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
+          !!end if
       else
           ! Here the angle between the current and the old gradient cannot be determined since
           ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0

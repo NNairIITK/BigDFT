@@ -423,10 +423,12 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3, iorb, jproc, jlr
-  integer :: ierr, ii, istat, root
-  integer,dimension(3) :: outofzone
+  integer :: ierr, ii, istat, root, iall, size_of_integer
+  integer,dimension(3) :: outofzone, ncount
   real(gp) :: rx,ry,rz,cutoff
   real(8):: tt1, tt2, tt3, tt4, t1, t2, tl1, tl2
+  integer,dimension(:,:,:,:),allocatable:: ab
+  integer,dimension(:,:),allocatable:: wins_bounds, wins_arrays, ifake
 tt1=0.d0
 tt2=0.d0
 tt3=0.d0
@@ -674,6 +676,18 @@ tl1=mpi_wtime()
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
 if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
+
+allocate(wins_bounds(3,nlr), stat=istat)
+call memocc(istat, wins_bounds, 'wins_bounds', subname)
+allocate(wins_arrays(3,nlr), stat=istat)
+call memocc(istat, wins_arrays, 'wins_arrays', subname)
+allocate(ab(6,6,3,nlr), stat=istat)
+call memocc(istat, ab, 'ab', subname)
+allocate(ifake(3,nlr), stat=istat)
+call memocc(istat, ifake, 'ifake', subname)
+
+call mpi_type_size(mpi_integer, size_of_integer, ierr)
+
 tl1=mpi_wtime()
   do ilr=1,nlr
      root=mod(ilr-1,nproc)
@@ -684,16 +698,203 @@ tl1=mpi_wtime()
            call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
         end if
         if(.not.calculateBounds(ilr)) then
-t1=mpi_wtime()
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
-t2=mpi_wtime()
-tt4=tt4+t2-t1
         end if
+
+        !!if(iproc==root) then
+        !!    !determine array boundaries
+        !!    ab(1,1,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_c,1)
+        !!    ab(2,1,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_c,1)
+        !!    ab(3,1,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_c,2)
+        !!    ab(4,1,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_c,2)
+        !!    ab(5,1,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_c,3)
+        !!    ab(6,1,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_c,3)
+
+        !!    ab(1,2,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_c,1)
+        !!    ab(2,2,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_c,1)
+        !!    ab(3,2,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_c,2)
+        !!    ab(4,2,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_c,2)
+        !!    ab(5,2,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_c,3)
+        !!    ab(6,2,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_c,3)
+
+        !!    ab(1,3,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_c,1)
+        !!    ab(2,3,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_c,1)
+        !!    ab(3,3,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_c,2)
+        !!    ab(4,3,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_c,2)
+        !!    ab(5,3,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_c,3)
+        !!    ab(6,3,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_c,3)
+
+        !!    ab(1,4,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_f,1)
+        !!    ab(2,4,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_f,1)
+        !!    ab(3,4,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_f,2)
+        !!    ab(4,4,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_f,2)
+        !!    ab(5,4,1,ilr)=lbound(llr(ilr)%bounds%kb%ibyz_f,3)
+        !!    ab(6,4,1,ilr)=ubound(llr(ilr)%bounds%kb%ibyz_f,3)
+
+        !!    ab(1,5,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_f,1)
+        !!    ab(2,5,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_f,1)
+        !!    ab(3,5,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_f,2)
+        !!    ab(4,5,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_f,2)
+        !!    ab(5,5,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxz_f,3)
+        !!    ab(6,5,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxz_f,3)
+
+        !!    ab(1,6,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_f,1)
+        !!    ab(2,6,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_f,1)
+        !!    ab(3,6,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_f,2)
+        !!    ab(4,6,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_f,2)
+        !!    ab(5,6,1,ilr)=lbound(llr(ilr)%bounds%kb%ibxy_f,3)
+        !!    ab(6,6,1,ilr)=ubound(llr(ilr)%bounds%kb%ibxy_f,3)
+
+        !!    ab(1,1,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_c,1)
+        !!    ab(2,1,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_c,1)
+        !!    ab(3,1,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_c,2)
+        !!    ab(4,1,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_c,2)
+        !!    ab(5,1,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_c,3)
+        !!    ab(6,1,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_c,3)
+
+        !!    ab(1,2,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_c,1)
+        !!    ab(2,2,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_c,1)
+        !!    ab(3,2,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_c,2)
+        !!    ab(4,2,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_c,2)
+        !!    ab(5,2,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_c,3)
+        !!    ab(6,2,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_c,3)
+
+        !!    ab(1,3,2,ilr)=lbound(llr(ilr)%bounds%sb%ibxy_ff,1)
+        !!    ab(2,3,2,ilr)=ubound(llr(ilr)%bounds%sb%ibxy_ff,1)
+        !!    ab(3,3,2,ilr)=lbound(llr(ilr)%bounds%sb%ibxy_ff,2)
+        !!    ab(4,3,2,ilr)=ubound(llr(ilr)%bounds%sb%ibxy_ff,2)
+        !!    ab(5,3,2,ilr)=lbound(llr(ilr)%bounds%sb%ibxy_ff,3)
+        !!    ab(6,3,2,ilr)=ubound(llr(ilr)%bounds%sb%ibxy_ff,3)
+
+        !!    ab(1,4,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_f,1)
+        !!    ab(2,4,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_f,1)
+        !!    ab(3,4,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_f,2)
+        !!    ab(4,4,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_f,2)
+        !!    ab(5,4,2,ilr)=lbound(llr(ilr)%bounds%sb%ibzzx_f,3)
+        !!    ab(6,4,2,ilr)=ubound(llr(ilr)%bounds%sb%ibzzx_f,3)
+
+        !!    ab(1,5,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_f,1)
+        !!    ab(2,5,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_f,1)
+        !!    ab(3,5,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_f,2)
+        !!    ab(4,5,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_f,2)
+        !!    ab(5,5,2,ilr)=lbound(llr(ilr)%bounds%sb%ibyyzz_f,3)
+        !!    ab(6,5,2,ilr)=ubound(llr(ilr)%bounds%sb%ibyyzz_f,3)
+
+        !!    ab(1,1,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_c,1)
+        !!    ab(2,1,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_c,1)
+        !!    ab(3,1,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_c,2)
+        !!    ab(4,1,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_c,2)
+        !!    ab(5,1,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_c,3)
+        !!    ab(6,1,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_c,3)
+
+        !!    ab(1,2,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_c,1)
+        !!    ab(2,2,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_c,1)
+        !!    ab(3,2,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_c,2)
+        !!    ab(4,2,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_c,2)
+        !!    ab(5,2,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_c,3)
+        !!    ab(6,2,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_c,3)
+
+        !!    ab(1,3,3,ilr)=lbound(llr(ilr)%bounds%gb%ibyz_ff,1)
+        !!    ab(2,3,3,ilr)=ubound(llr(ilr)%bounds%gb%ibyz_ff,1)
+        !!    ab(3,3,3,ilr)=lbound(llr(ilr)%bounds%gb%ibyz_ff,2)
+        !!    ab(4,3,3,ilr)=ubound(llr(ilr)%bounds%gb%ibyz_ff,2)
+        !!    ab(5,3,3,ilr)=lbound(llr(ilr)%bounds%gb%ibyz_ff,3)
+        !!    ab(6,3,3,ilr)=ubound(llr(ilr)%bounds%gb%ibyz_ff,3)
+
+        !!    ab(1,4,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_f,1)
+        !!    ab(2,4,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_f,1)
+        !!    ab(3,4,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_f,2)
+        !!    ab(4,4,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_f,2)
+        !!    ab(5,4,3,ilr)=lbound(llr(ilr)%bounds%gb%ibzxx_f,3)
+        !!    ab(6,4,3,ilr)=ubound(llr(ilr)%bounds%gb%ibzxx_f,3)
+
+        !!    ab(1,5,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_f,1)
+        !!    ab(2,5,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_f,1)
+        !!    ab(3,5,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_f,2)
+        !!    ab(4,5,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_f,2)
+        !!    ab(5,5,3,ilr)=lbound(llr(ilr)%bounds%gb%ibxxyy_f,3)
+        !!    ab(6,5,3,ilr)=ubound(llr(ilr)%bounds%gb%ibxxyy_f,3)
+
+        !!    !open windows
+        !!    call mpi_win_create(ab(1,1,1,ilr), size_of_integer*36, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(1,ilr), ierr)
+        !!    call mpi_win_create(ab(1,1,2,ilr), size_of_integer*30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(2,ilr), ierr)
+        !!    call mpi_win_create(ab(1,1,3,ilr), size_of_integer*30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(3,ilr), ierr)
+
+        !!    ncount(1) = (ab(2,1,1,ilr)-ab(1,1,1,ilr)+1)*(ab(4,1,1,ilr)-ab(3,1,1,ilr)+1)*(ab(6,1,1,ilr)-ab(5,1,1,ilr)+1) &
+        !!               +(ab(2,2,1,ilr)-ab(1,2,1,ilr)+1)*(ab(4,2,1,ilr)-ab(3,2,1,ilr)+1)*(ab(6,2,1,ilr)-ab(5,2,1,ilr)+1) &
+        !!               +(ab(2,3,1,ilr)-ab(1,3,1,ilr)+1)*(ab(4,3,1,ilr)-ab(3,3,1,ilr)+1)*(ab(6,3,1,ilr)-ab(5,3,1,ilr)+1) &
+        !!               +(ab(2,4,1,ilr)-ab(1,4,1,ilr)+1)*(ab(4,4,1,ilr)-ab(3,4,1,ilr)+1)*(ab(6,4,1,ilr)-ab(5,4,1,ilr)+1) &
+        !!               +(ab(2,5,1,ilr)-ab(1,5,1,ilr)+1)*(ab(4,5,1,ilr)-ab(3,5,1,ilr)+1)*(ab(6,5,1,ilr)-ab(5,5,1,ilr)+1) &
+        !!               +(ab(2,6,1,ilr)-ab(1,6,1,ilr)+1)*(ab(4,6,1,ilr)-ab(3,6,1,ilr)+1)*(ab(6,6,1,ilr)-ab(5,6,1,ilr)+1)
+
+        !!    ncount(2) = (ab(2,1,2,ilr)-ab(1,1,2,ilr)+1)*(ab(4,1,2,ilr)-ab(3,1,2,ilr)+1)*(ab(6,1,2,ilr)-ab(5,1,2,ilr)+1) &
+        !!               +(ab(2,2,2,ilr)-ab(1,2,2,ilr)+1)*(ab(4,2,2,ilr)-ab(3,2,2,ilr)+1)*(ab(6,2,2,ilr)-ab(5,2,2,ilr)+1) &
+        !!               +(ab(2,3,2,ilr)-ab(1,3,2,ilr)+1)*(ab(4,3,2,ilr)-ab(3,3,2,ilr)+1)*(ab(6,3,2,ilr)-ab(5,3,2,ilr)+1) &
+        !!               +(ab(2,4,2,ilr)-ab(1,4,2,ilr)+1)*(ab(4,4,2,ilr)-ab(3,4,2,ilr)+1)*(ab(6,4,2,ilr)-ab(5,4,2,ilr)+1) &
+        !!               +(ab(2,5,2,ilr)-ab(1,5,2,ilr)+1)*(ab(4,5,2,ilr)-ab(3,5,2,ilr)+1)*(ab(6,5,2,ilr)-ab(5,5,2,ilr)+1)
+
+        !!    ncount(3) = (ab(2,1,3,ilr)-ab(1,1,3,ilr)+1)*(ab(4,1,3,ilr)-ab(3,1,3,ilr)+1)*(ab(6,1,3,ilr)-ab(5,1,3,ilr)+1) &
+        !!               +(ab(2,2,3,ilr)-ab(1,2,3,ilr)+1)*(ab(4,2,3,ilr)-ab(3,2,3,ilr)+1)*(ab(6,2,3,ilr)-ab(5,2,3,ilr)+1) &
+        !!               +(ab(2,3,3,ilr)-ab(1,3,3,ilr)+1)*(ab(4,3,3,ilr)-ab(3,3,3,ilr)+1)*(ab(6,3,3,ilr)-ab(5,3,3,ilr)+1) &
+        !!               +(ab(2,4,3,ilr)-ab(1,4,3,ilr)+1)*(ab(4,4,3,ilr)-ab(3,4,3,ilr)+1)*(ab(6,4,3,ilr)-ab(5,4,3,ilr)+1) &
+        !!               +(ab(2,5,3,ilr)-ab(1,5,3,ilr)+1)*(ab(4,5,3,ilr)-ab(3,5,3,ilr)+1)*(ab(6,5,3,ilr)-ab(5,5,3,ilr)+1)
+
+        !!    call mpi_win_create(llr(ilr)%bounds%kb, size_of_integer*ncount(1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,ilr), ierr)
+        !!    call mpi_win_create(llr(ilr)%bounds%sb, size_of_integer*ncount(2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,ilr), ierr)
+        !!    call mpi_win_create(llr(ilr)%bounds%gb, size_of_integer*ncount(3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,ilr), ierr)
+
+        !!else
+        !!    call mpi_win_create(ab(1,1,1,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_bounds(1,ilr), ierr)
+        !!    call mpi_win_create(ab(1,1,2,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_bounds(2,ilr), ierr)
+        !!    call mpi_win_create(ab(1,1,3,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_bounds(3,ilr), ierr)
+
+        !!    !!call mpi_win_create(llr(ilr)%bounds%kb, 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,ilr), ierr)
+        !!    !!call mpi_win_create(llr(ilr)%bounds%sb, 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(2,ilr), ierr)
+        !!    !!call mpi_win_create(llr(ilr)%bounds%gb, 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(3,ilr), ierr)
+        !!    call mpi_win_create(ifake(1,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,ilr), ierr)
+        !!    call mpi_win_create(ifake(2,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(2,ilr), ierr)
+        !!    call mpi_win_create(ifake(3,ilr), 0, 1, mpi_info_null, mpi_comm_world, wins_arrays(3,ilr), ierr)
+        !!end if
+        !!call mpi_win_fence(0, wins_bounds(1,ilr), ierr)
+        !!call mpi_win_fence(0, wins_bounds(2,ilr), ierr)
+        !!call mpi_win_fence(0, wins_bounds(3,ilr), ierr)
+        !!call mpi_win_fence(0, wins_arrays(1,ilr), ierr)
+        !!call mpi_win_fence(0, wins_arrays(2,ilr), ierr)
+        !!call mpi_win_fence(0, wins_arrays(3,ilr), ierr)
+
+        !!if(calculateBounds(ilr) .and. iproc/=root) then
+        !!    !this process needs the bounds, so get them from root
+        !!    call mpi_get(ab(1,1,1,ilr), 36, mpi_integer, root, 0, 36, mpi_integer, wins_bounds(1,ilr), ierr)
+        !!    call mpi_get(ab(1,1,2,ilr), 30, mpi_integer, root, 0, 30, mpi_integer, wins_bounds(2,ilr), ierr)
+        !!    call mpi_get(ab(1,1,3,ilr), 30, mpi_integer, root, 0, 30, mpi_integer, wins_bounds(3,ilr), ierr)
+        !!end if
+
     end if
   end do
+  !!do ilr=1,nlr
+  !!    call mpi_win_fence(0, wins_bounds(1,ilr), ierr)
+  !!    call mpi_win_fence(0, wins_bounds(2,ilr), ierr)
+  !!    call mpi_win_fence(0, wins_bounds(3,ilr), ierr)
+  !!    call mpi_win_fence(0, wins_arrays(1,ilr), ierr)
+  !!    call mpi_win_fence(0, wins_arrays(2,ilr), ierr)
+  !!    call mpi_win_fence(0, wins_arrays(3,ilr), ierr)
+  !!end do
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
 if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 3: time',tl2-tl1
+
+iall = -product(shape(wins_bounds))*kind(wins_bounds)
+deallocate(wins_bounds,stat=istat)
+call memocc(istat,iall,'wins_bounds',subname)
+iall = -product(shape(wins_arrays))*kind(wins_arrays)
+deallocate(wins_arrays,stat=istat)
+call memocc(istat,iall,'wins_arrays',subname)
+iall = -product(shape(ab))*kind(ab)
+deallocate(ab,stat=istat)
+call memocc(istat,iall,'ab',subname)
+iall = -product(shape(ifake))*kind(ifake)
+deallocate(ifake,stat=istat)
+call memocc(istat,iall,'ifake',subname)
 
 if(iproc==0) then
     write(*,*) 'determine_locregSphere_parallel: time 1',tt1

@@ -618,6 +618,9 @@ real(8),dimension(2):: reducearr
   overlap_calculated=.false.
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
+  !!if(iproc==0) write(*,*) 'SET ALPHA MANUALLY!'
+  !!alpha=.5d0
+
       fnrmMax=0.d0
       fnrm=0.d0
   
@@ -1097,7 +1100,7 @@ real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
 real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
 
 ! Local variables
-integer:: istart, iorb, iiorb, ilr, ncount
+integer:: istart, iorb, iiorb, ilr, ncount, owa, owanext
 
 if (ldiis%isx > 0) then
     ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -1111,9 +1114,17 @@ if(ldiis%isx==0) then
     istart=1
     do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
-        ilr=tmb%orbs%inWhichLocreg(iiorb)
+        ilr=tmb%orbs%inwhichlocreg(iiorb)
+        owa=tmb%orbs%onwhichatom(iiorb)
         ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-        call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
+        if(iiorb<tmb%orbs%norb) then
+            owanext=tmb%orbs%onwhichatom(iiorb+1)
+        else
+            owanext=tmb%lzd%nlr+1
+        end if
+        !!if(owa==owanext) then
+            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
+        !!end if
         istart=istart+ncount
     end do
     call timing(iproc,'optimize_SD   ','OF')
@@ -4138,3 +4149,340 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
       pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out
 
 end subroutine get_both_gradients
+
+
+
+
+
+subroutine create_penalty_basis_function(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi)
+use module_base
+use module_types
+use module_interfaces, except_this_one => apply_position_operators
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+real(8),intent(in):: hx, hy, hz
+type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+
+! Local variables
+integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr, owa, owanext
+real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
+real(8),dimension(:,:),allocatable:: psir
+type(workarr_sumrho):: work_sr
+real(8),dimension(0:3),parameter:: scal=1.d0
+real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+character(len=*),parameter:: subname='apply_position_operators'
+integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
+!!interface
+!!subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+!!     hxh, hyh, hzh, dir, &
+!!     ibyyzz_r) !optional
+!!use module_base
+!!implicit none
+!!integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+!!real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+!!real(8),intent(in):: hxh, hyh, hzh
+!!character(len=1),intent(in):: dir
+!!integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+!!end subroutine
+!!end interface
+
+  ishift=(/0,0,0/)
+
+  oidx = 0
+  do iorb=1,orbs%norbp
+     iiorb=orbs%isorb+iorb
+     ilr = orbs%inwhichlocreg(iiorb)
+     owa = orbs%onwhichatom(iiorb)
+     if(iiorb<orbs%norb) then
+         owanext=orbs%onwhichatom(iiorb+1)
+     else
+         owanext=lzd%nlr+1
+     end if
+
+     if(owa/=owanext) then
+         ! last basis function
+
+  
+         !initialise the work arrays
+         call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+
+         ! Wavefunction in real space
+         allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+         call memocc(i_stat,psir,'psir',subname)
+         call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+
+         call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+
+         !!do i_stat=1,Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+         !!    write(1000+iproc,'(i9,es18.7,i9)') i_stat, psir(i_stat,1), Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+         !!end do
+         !apply the potential to the psir wavefunction and calculate potential energy
+         hxh=.5d0*hx
+         hyh=.5d0*hy
+         hzh=.5d0*hz
+         !icenter=confinementCenter(iorb)
+         !components of the potential
+         npot=orbs%nspinor
+         if (orbs%nspinor == 2) npot=1
+
+         !!call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+         !!     rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
+         !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
+         !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+         write(*,*) 'confdatarr(iorb)%prefac',confdatarr(iorb)%prefac
+        call penalty_basis_function(lzd%llr(ilr)%d%n1i,lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+             lzd%llr(ilr)%d%n1i,lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+             ishift,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,&
+             orbs%nspinor,psir(1,1),&
+             confdata=confdatarr(iorb),ibyyzz_r=lzd%llr(ilr)%bounds%ibyyzz_r)
+
+         call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
+
+
+
+         i_all=-product(shape(psir))*kind(psir)
+         deallocate(psir,stat=i_stat)
+         call memocc(i_stat,i_all,'psir',subname)
+
+
+         call deallocate_work_arrays_sumrho(work_sr)
+
+     end if
+
+     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+
+  enddo
+
+
+end subroutine create_penalty_basis_function
+
+
+
+subroutine penalty_basis_function(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+     confdata,ibyyzz_r) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+  integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+  real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
+  type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+  !local variables
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+
+
+  !write(*,*) 'present(confdata)', present(confdata)
+  !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
+  !write(*,*) 'n1ip*n2ip*n3ip', n1ip*n2ip*n3ip
+
+  !loop on wavefunction
+  !calculate the limits in all the directions
+  !regions in which both the potential and wavefunctions are defined
+  i3s=max(1,ishift(3)+1)
+  i3e=min(n3i,n3ip+ishift(3))
+  i2s=max(1,ishift(2)+1)
+  i2e=min(n2i,n2ip+ishift(2))
+  i1s=max(1,ishift(1)+1)
+  i1e=min(n1i,n1ip+ishift(1))
+
+
+  !$omp parallel default(none)&
+  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+
+!!$  !$omp parallel default(private)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
+  !case without bounds
+
+
+  !put to zero the external part of psir if the potential is more little than the wavefunction
+  !first part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=1,i3s-1
+        do i2=1,n2i
+           do i1=1,n1i
+             psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+     end do
+     !$omp end do
+  end do
+
+  !central part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=i3s,i3e
+
+        !first part
+        do i2=1,i2s-1
+           do i1=1,n1i
+              psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+        !central part
+        do i2=i2s,i2e
+           do i1=1,i1s-1
+              psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+           do i1=i1e+1,n1i
+              psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+        !last part
+        do i2=i2e+1,n2i
+           do i1=1,n1i
+              psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+
+     end do
+     !$omp end do
+  end do
+
+
+  !last part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=i3e+1,n3i
+        do i2=1,n2i
+           do i1=1,n1i
+              psir(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+     end do
+     !$omp end do
+  end do
+
+
+  !important part of the array
+  if (nspinor==4) then
+     stop 'not yet implemented for nspinor==4!'
+     !!!!$omp do
+     !!!do i3=i3s,i3e
+     !!!   do i2=i2s,i2e
+     !!!      !thanks to the optional argument the conditional is done at compile time
+     !!!      if (present(ibyyzz_r)) then
+     !!!         i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+     !!!         i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
+     !!!      else
+     !!!         i1st=i1s
+     !!!         i1et=i1e
+     !!!      end if
+     !!!      !no need of setting up to zero values outside wavefunction bounds
+     !!!      do i1=i1st,i1et
+     !!!         !wavefunctions
+     !!!         psir1=psir(i1,i2,i3,1)
+     !!!         psir2=psir(i1,i2,i3,2)
+     !!!         psir3=psir(i1,i2,i3,3)
+     !!!         psir4=psir(i1,i2,i3,4)
+     !!!         !potentials + confining term
+     !!!         pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
+     !!!         pot2=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),2)+cp(i1,i2,i3)
+     !!!         pot3=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),3)+cp(i1,i2,i3)
+     !!!         pot4=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),4)+cp(i1,i2,i3)
+
+     !!!         !diagonal terms
+     !!!         tt11=pot1*psir1 !p1
+     !!!         tt22=pot1*psir2 !p2
+     !!!         tt33=pot4*psir3 !p3
+     !!!         tt44=pot4*psir4 !p4
+     !!!         !Rab*Rb
+     !!!         tt13=pot2*psir3 !p1
+     !!!         !Iab*Ib
+     !!!         tt14=pot3*psir4 !p1
+     !!!         !Rab*Ib
+     !!!         tt23=pot2*psir4 !p2
+     !!!         !Iab*Rb
+     !!!         tt24=pot3*psir3 !p2
+     !!!         !Rab*Ra
+     !!!         tt31=pot2*psir1 !p3
+     !!!         !Iab*Ia
+     !!!         tt32=pot3*psir2 !p3
+     !!!         !Rab*Ia
+     !!!         tt41=pot2*psir2 !p4
+     !!!         !Iab*Ra
+     !!!         tt42=pot3*psir1 !p4
+
+     !!!         !value of the potential energy
+     !!!         epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+     !!!              2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+
+     !!!         !wavefunction update
+     !!!         !p1=h1p1+h2p3-h3p4
+     !!!         !p2=h1p2+h2p4+h3p3
+     !!!         !p3=h2p1+h3p2+h4p3
+     !!!         !p4=h2p2-h3p1+h4p4
+     !!!         psir(i1,i2,i3,1)=tt11+tt13-tt14
+     !!!         psir(i1,i2,i3,2)=tt22+tt23+tt24
+     !!!         psir(i1,i2,i3,3)=tt33+tt31+tt32
+     !!!         psir(i1,i2,i3,4)=tt44+tt41-tt42
+     !!!      end do
+     !!!   end do
+     !!!end do
+     !!!!$omp end do
+
+  else !case with nspinor /=4
+     do ispinor=1,nspinor
+        !$omp do
+        do i3=i3s,i3e
+           do i2=i2s,i2e
+              !thanks to the optional argument the conditional is done at compile time
+              if (present(ibyyzz_r)) then
+                 i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+                 i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
+              else
+                 i1st=i1s
+                 i1et=i1e
+              end if
+              !no need of setting up to zero values outside wavefunction bounds
+              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
+              do i1=i1st,i1et
+                 pot1=cp(i1,i2,i3)
+                 psir(i1,i2,i3,ispinor)=pot1
+              end do
+           end do
+        end do
+        !$omp end do
+     end do
+  end if
+  
+  
+  !$omp end parallel
+
+contains
+  
+  !inline the definition of the confining potential
+  real(wp) function cp(i1,i2,i3)
+    implicit none
+    integer, intent(in) :: i1,i2,i3
+    !local variables
+    real(wp) :: r2
+    !to be sure that the conditional is executed at compile time
+    if (present(confdata)) then
+       r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
+            (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
+            (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
+
+       cp=confdata%prefac*r2**(confdata%potorder/2)
+    else
+       cp=0.0_wp
+    end if
+
+  end function cp
+
+END SUBROUTINE penalty_basis_function

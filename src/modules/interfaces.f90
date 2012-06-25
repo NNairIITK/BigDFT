@@ -6362,6 +6362,19 @@ module module_interfaces
            real(gp),intent(in),optional:: quartic_prefactor
         end subroutine iguess_generator
 
+        subroutine penalty_basis_function(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+             confdata,ibyyzz_r) !optional
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+          integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+          !real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
+          real(wp), intent(inout) :: psir !< real-space wfn in lr
+          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+        end subroutine penalty_basis_function
+
    end interface
 
 END MODULE module_interfaces
