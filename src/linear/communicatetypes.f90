@@ -747,3 +747,510 @@ subroutine getbounds_6(iproc, root, arr1, arr2, arr3, arr4, arr5, arr6, ise)
 
 
 END SUBROUTINE getbounds_6
+
+
+subroutine get_convarrays_bounds(bounds, ab, mpi_ncounts)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(convolutions_bounds),intent(in):: bounds
+  integer,dimension(6,6,4),intent(out):: ab
+  integer(kind=mpi_address_kind),dimension(6,4),intent(out):: mpi_ncounts
+
+  ab(1,1,1)=lbound(bounds%kb%ibyz_c,1)
+  ab(2,1,1)=ubound(bounds%kb%ibyz_c,1)
+  ab(3,1,1)=lbound(bounds%kb%ibyz_c,2)
+  ab(4,1,1)=ubound(bounds%kb%ibyz_c,2)
+  ab(5,1,1)=lbound(bounds%kb%ibyz_c,3)
+  ab(6,1,1)=ubound(bounds%kb%ibyz_c,3)
+
+  ab(1,2,1)=lbound(bounds%kb%ibxz_c,1)
+  ab(2,2,1)=ubound(bounds%kb%ibxz_c,1)
+  ab(3,2,1)=lbound(bounds%kb%ibxz_c,2)
+  ab(4,2,1)=ubound(bounds%kb%ibxz_c,2)
+  ab(5,2,1)=lbound(bounds%kb%ibxz_c,3)
+  ab(6,2,1)=ubound(bounds%kb%ibxz_c,3)
+
+  ab(1,3,1)=lbound(bounds%kb%ibxy_c,1)
+  ab(2,3,1)=ubound(bounds%kb%ibxy_c,1)
+  ab(3,3,1)=lbound(bounds%kb%ibxy_c,2)
+  ab(4,3,1)=ubound(bounds%kb%ibxy_c,2)
+  ab(5,3,1)=lbound(bounds%kb%ibxy_c,3)
+  ab(6,3,1)=ubound(bounds%kb%ibxy_c,3)
+
+  ab(1,4,1)=lbound(bounds%kb%ibyz_f,1)
+  ab(2,4,1)=ubound(bounds%kb%ibyz_f,1)
+  ab(3,4,1)=lbound(bounds%kb%ibyz_f,2)
+  ab(4,4,1)=ubound(bounds%kb%ibyz_f,2)
+  ab(5,4,1)=lbound(bounds%kb%ibyz_f,3)
+  ab(6,4,1)=ubound(bounds%kb%ibyz_f,3)
+
+  ab(1,5,1)=lbound(bounds%kb%ibxz_f,1)
+  ab(2,5,1)=ubound(bounds%kb%ibxz_f,1)
+  ab(3,5,1)=lbound(bounds%kb%ibxz_f,2)
+  ab(4,5,1)=ubound(bounds%kb%ibxz_f,2)
+  ab(5,5,1)=lbound(bounds%kb%ibxz_f,3)
+  ab(6,5,1)=ubound(bounds%kb%ibxz_f,3)
+
+  ab(1,6,1)=lbound(bounds%kb%ibxy_f,1)
+  ab(2,6,1)=ubound(bounds%kb%ibxy_f,1)
+  ab(3,6,1)=lbound(bounds%kb%ibxy_f,2)
+  ab(4,6,1)=ubound(bounds%kb%ibxy_f,2)
+  ab(5,6,1)=lbound(bounds%kb%ibxy_f,3)
+  ab(6,6,1)=ubound(bounds%kb%ibxy_f,3)
+
+  ab(1,1,2)=lbound(bounds%sb%ibzzx_c,1)
+  ab(2,1,2)=ubound(bounds%sb%ibzzx_c,1)
+  ab(3,1,2)=lbound(bounds%sb%ibzzx_c,2)
+  ab(4,1,2)=ubound(bounds%sb%ibzzx_c,2)
+  ab(5,1,2)=lbound(bounds%sb%ibzzx_c,3)
+  ab(6,1,2)=ubound(bounds%sb%ibzzx_c,3)
+
+  ab(1,2,2)=lbound(bounds%sb%ibyyzz_c,1)
+  ab(2,2,2)=ubound(bounds%sb%ibyyzz_c,1)
+  ab(3,2,2)=lbound(bounds%sb%ibyyzz_c,2)
+  ab(4,2,2)=ubound(bounds%sb%ibyyzz_c,2)
+  ab(5,2,2)=lbound(bounds%sb%ibyyzz_c,3)
+  ab(6,2,2)=ubound(bounds%sb%ibyyzz_c,3)
+
+  ab(1,3,2)=lbound(bounds%sb%ibxy_ff,1)
+  ab(2,3,2)=ubound(bounds%sb%ibxy_ff,1)
+  ab(3,3,2)=lbound(bounds%sb%ibxy_ff,2)
+  ab(4,3,2)=ubound(bounds%sb%ibxy_ff,2)
+  ab(5,3,2)=lbound(bounds%sb%ibxy_ff,3)
+  ab(6,3,2)=ubound(bounds%sb%ibxy_ff,3)
+
+  ab(1,4,2)=lbound(bounds%sb%ibzzx_f,1)
+  ab(2,4,2)=ubound(bounds%sb%ibzzx_f,1)
+  ab(3,4,2)=lbound(bounds%sb%ibzzx_f,2)
+  ab(4,4,2)=ubound(bounds%sb%ibzzx_f,2)
+  ab(5,4,2)=lbound(bounds%sb%ibzzx_f,3)
+  ab(6,4,2)=ubound(bounds%sb%ibzzx_f,3)
+
+  ab(1,5,2)=lbound(bounds%sb%ibyyzz_f,1)
+  ab(2,5,2)=ubound(bounds%sb%ibyyzz_f,1)
+  ab(3,5,2)=lbound(bounds%sb%ibyyzz_f,2)
+  ab(4,5,2)=ubound(bounds%sb%ibyyzz_f,2)
+  ab(5,5,2)=lbound(bounds%sb%ibyyzz_f,3)
+  ab(6,5,2)=ubound(bounds%sb%ibyyzz_f,3)
+
+  ab(1,1,3)=lbound(bounds%gb%ibzxx_c,1)
+  ab(2,1,3)=ubound(bounds%gb%ibzxx_c,1)
+  ab(3,1,3)=lbound(bounds%gb%ibzxx_c,2)
+  ab(4,1,3)=ubound(bounds%gb%ibzxx_c,2)
+  ab(5,1,3)=lbound(bounds%gb%ibzxx_c,3)
+  ab(6,1,3)=ubound(bounds%gb%ibzxx_c,3)
+
+  ab(1,2,3)=lbound(bounds%gb%ibxxyy_c,1)
+  ab(2,2,3)=ubound(bounds%gb%ibxxyy_c,1)
+  ab(3,2,3)=lbound(bounds%gb%ibxxyy_c,2)
+  ab(4,2,3)=ubound(bounds%gb%ibxxyy_c,2)
+  ab(5,2,3)=lbound(bounds%gb%ibxxyy_c,3)
+  ab(6,2,3)=ubound(bounds%gb%ibxxyy_c,3)
+
+  ab(1,3,3)=lbound(bounds%gb%ibyz_ff,1)
+  ab(2,3,3)=ubound(bounds%gb%ibyz_ff,1)
+  ab(3,3,3)=lbound(bounds%gb%ibyz_ff,2)
+  ab(4,3,3)=ubound(bounds%gb%ibyz_ff,2)
+  ab(5,3,3)=lbound(bounds%gb%ibyz_ff,3)
+  ab(6,3,3)=ubound(bounds%gb%ibyz_ff,3)
+
+  ab(1,4,3)=lbound(bounds%gb%ibzxx_f,1)
+  ab(2,4,3)=ubound(bounds%gb%ibzxx_f,1)
+  ab(3,4,3)=lbound(bounds%gb%ibzxx_f,2)
+  ab(4,4,3)=ubound(bounds%gb%ibzxx_f,2)
+  ab(5,4,3)=lbound(bounds%gb%ibzxx_f,3)
+  ab(6,4,3)=ubound(bounds%gb%ibzxx_f,3)
+
+  ab(1,5,3)=lbound(bounds%gb%ibxxyy_f,1)
+  ab(2,5,3)=ubound(bounds%gb%ibxxyy_f,1)
+  ab(3,5,3)=lbound(bounds%gb%ibxxyy_f,2)
+  ab(4,5,3)=ubound(bounds%gb%ibxxyy_f,2)
+  ab(5,5,3)=lbound(bounds%gb%ibxxyy_f,3)
+  ab(6,5,3)=ubound(bounds%gb%ibxxyy_f,3)
+
+  ab(1,1,4)=lbound(bounds%ibyyzz_r,1)
+  ab(2,1,4)=ubound(bounds%ibyyzz_r,1)
+  ab(3,1,4)=lbound(bounds%ibyyzz_r,2)
+  ab(4,1,4)=ubound(bounds%ibyyzz_r,2)
+  ab(5,1,4)=lbound(bounds%ibyyzz_r,3)
+  ab(6,1,4)=ubound(bounds%ibyyzz_r,3)
+
+  mpi_ncounts(1,1) = (ab(2,1,1)-ab(1,1,1)+1)*(ab(4,1,1)-ab(3,1,1)+1)*(ab(6,1,1)-ab(5,1,1)+1)
+  mpi_ncounts(2,1) = (ab(2,2,1)-ab(1,2,1)+1)*(ab(4,2,1)-ab(3,2,1)+1)*(ab(6,2,1)-ab(5,2,1)+1)
+  mpi_ncounts(3,1) = (ab(2,3,1)-ab(1,3,1)+1)*(ab(4,3,1)-ab(3,3,1)+1)*(ab(6,3,1)-ab(5,3,1)+1)
+  mpi_ncounts(4,1) = (ab(2,4,1)-ab(1,4,1)+1)*(ab(4,4,1)-ab(3,4,1)+1)*(ab(6,4,1)-ab(5,4,1)+1)
+  mpi_ncounts(5,1) = (ab(2,5,1)-ab(1,5,1)+1)*(ab(4,5,1)-ab(3,5,1)+1)*(ab(6,5,1)-ab(5,5,1)+1)
+  mpi_ncounts(6,1) = (ab(2,6,1)-ab(1,6,1)+1)*(ab(4,6,1)-ab(3,6,1)+1)*(ab(6,6,1)-ab(5,6,1)+1)
+
+  mpi_ncounts(1,2) = (ab(2,1,2)-ab(1,1,2)+1)*(ab(4,1,2)-ab(3,1,2)+1)*(ab(6,1,2)-ab(5,1,2)+1)
+  mpi_ncounts(2,2) = (ab(2,2,2)-ab(1,2,2)+1)*(ab(4,2,2)-ab(3,2,2)+1)*(ab(6,2,2)-ab(5,2,2)+1)
+  mpi_ncounts(3,2) = (ab(2,3,2)-ab(1,3,2)+1)*(ab(4,3,2)-ab(3,3,2)+1)*(ab(6,3,2)-ab(5,3,2)+1)
+  mpi_ncounts(4,2) = (ab(2,4,2)-ab(1,4,2)+1)*(ab(4,4,2)-ab(3,4,2)+1)*(ab(6,4,2)-ab(5,4,2)+1)
+  mpi_ncounts(5,2) = (ab(2,5,2)-ab(1,5,2)+1)*(ab(4,5,2)-ab(3,5,2)+1)*(ab(6,5,2)-ab(5,5,2)+1)
+
+  mpi_ncounts(1,3) = (ab(2,1,3)-ab(1,1,3)+1)*(ab(4,1,3)-ab(3,1,3)+1)*(ab(6,1,3)-ab(5,1,3)+1)
+  mpi_ncounts(2,3) = (ab(2,2,3)-ab(1,2,3)+1)*(ab(4,2,3)-ab(3,2,3)+1)*(ab(6,2,3)-ab(5,2,3)+1)
+  mpi_ncounts(3,3) = (ab(2,3,3)-ab(1,3,3)+1)*(ab(4,3,3)-ab(3,3,3)+1)*(ab(6,3,3)-ab(5,3,3)+1)
+  mpi_ncounts(4,3) = (ab(2,4,3)-ab(1,4,3)+1)*(ab(4,4,3)-ab(3,4,3)+1)*(ab(6,4,3)-ab(5,4,3)+1)
+  mpi_ncounts(5,3) = (ab(2,5,3)-ab(1,5,3)+1)*(ab(4,5,3)-ab(3,5,3)+1)*(ab(6,5,3)-ab(5,5,3)+1)
+
+  mpi_ncounts(1,4) = (ab(2,1,4)-ab(1,1,4)+1)*(ab(4,1,4)-ab(3,1,4)+1)*(ab(6,1,4)-ab(5,1,4)+1)
+
+END SUBROUTINE get_convarrays_bounds
+
+
+
+
+subroutine create_convolutions_windows_root(ab, mpi_ncounts, bounds, wins_bounds, wins_arrays)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(6,6,4),intent(in):: ab
+  integer(kind=mpi_address_kind),dimension(6,4),intent(in):: mpi_ncounts
+  type(convolutions_bounds),intent(in):: bounds
+  integer,dimension(4),intent(out):: wins_bounds
+  integer,dimension(6,4),intent(out):: wins_arrays
+
+  ! Local variables
+  integer(kind=mpi_address_kind):: size_of_integer, mpi_6, mpi_30, mpi_36
+  integer:: ierr
+
+  call mpi_type_size(mpi_integer, size_of_integer, ierr)
+  mpi_6=6
+  mpi_30=30
+  mpi_36=36
+
+  call mpi_win_create(ab(1,1,1), size_of_integer*mpi_36, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(1), ierr)
+  call mpi_win_create(ab(1,1,2), size_of_integer*mpi_30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(2), ierr)
+  call mpi_win_create(ab(1,1,3), size_of_integer*mpi_30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(3), ierr)
+  call mpi_win_create(ab(1,1,4), size_of_integer*mpi_6, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(4), ierr)
+
+  call mpi_win_create(bounds%kb%ibyz_c, size_of_integer*mpi_ncounts(1,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,1), ierr)
+  call mpi_win_create(bounds%kb%ibxz_c, size_of_integer*mpi_ncounts(2,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,1), ierr)
+  call mpi_win_create(bounds%kb%ibxy_c, size_of_integer*mpi_ncounts(3,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,1), ierr)
+  call mpi_win_create(bounds%kb%ibyz_f, size_of_integer*mpi_ncounts(4,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,1), ierr)
+  call mpi_win_create(bounds%kb%ibxz_f, size_of_integer*mpi_ncounts(5,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,1), ierr)
+  call mpi_win_create(bounds%kb%ibxy_f, size_of_integer*mpi_ncounts(6,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(6,1), ierr)
+
+  call mpi_win_create(bounds%sb%ibzzx_c, size_of_integer*mpi_ncounts(1,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,2), ierr)
+  call mpi_win_create(bounds%sb%ibyyzz_c, size_of_integer*mpi_ncounts(2,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,2), ierr)
+  call mpi_win_create(bounds%sb%ibxy_ff, size_of_integer*mpi_ncounts(3,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,2), ierr)
+  call mpi_win_create(bounds%sb%ibzzx_f, size_of_integer*mpi_ncounts(4,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,2), ierr)
+  call mpi_win_create(bounds%sb%ibyyzz_f, size_of_integer*mpi_ncounts(5,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,2), ierr)
+
+  call mpi_win_create(bounds%gb%ibzxx_c, size_of_integer*mpi_ncounts(1,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,3), ierr)
+  call mpi_win_create(bounds%gb%ibxxyy_c, size_of_integer*mpi_ncounts(2,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,3), ierr)
+  call mpi_win_create(bounds%gb%ibyz_ff, size_of_integer*mpi_ncounts(3,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,3), ierr)
+  call mpi_win_create(bounds%gb%ibzxx_f, size_of_integer*mpi_ncounts(4,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,3), ierr)
+  call mpi_win_create(bounds%gb%ibxxyy_f, size_of_integer*mpi_ncounts(5,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,3), ierr)
+
+  call mpi_win_create(bounds%ibyyzz_r, size_of_integer*mpi_ncounts(1,4), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,4), ierr)
+
+END SUBROUTINE create_convolutions_windows_root
+
+
+
+subroutine create_convolutions_windows_else(ab, ifake, wins_bounds, wins_arrays)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(6,6,4),intent(in):: ab
+  integer,dimension(6,4),intent(in):: ifake
+  integer,dimension(4),intent(out):: wins_bounds
+  integer,dimension(6,4),intent(out):: wins_arrays
+
+  ! Local variables
+  integer(kind=mpi_address_kind):: mpi_0
+  integer:: ierr
+
+  mpi_0=0
+
+  call mpi_win_create(ab(1,1,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_bounds(1), ierr)
+  call mpi_win_create(ab(1,1,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_bounds(2), ierr)
+  call mpi_win_create(ab(1,1,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_bounds(3), ierr)
+  call mpi_win_create(ab(1,1,4), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_bounds(4), ierr)
+
+  call mpi_win_create(ifake(1,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,1), ierr)
+  call mpi_win_create(ifake(2,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(2,1), ierr)
+  call mpi_win_create(ifake(3,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(3,1), ierr)
+  call mpi_win_create(ifake(4,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(4,1), ierr)
+  call mpi_win_create(ifake(5,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(5,1), ierr)
+  call mpi_win_create(ifake(6,1), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(6,1), ierr)
+
+  call mpi_win_create(ifake(1,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,2), ierr)
+  call mpi_win_create(ifake(2,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(2,2), ierr)
+  call mpi_win_create(ifake(3,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(3,2), ierr)
+  call mpi_win_create(ifake(4,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(4,2), ierr)
+  call mpi_win_create(ifake(5,2), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(5,2), ierr)
+
+  call mpi_win_create(ifake(1,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,3), ierr)
+  call mpi_win_create(ifake(2,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(2,3), ierr)
+  call mpi_win_create(ifake(3,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(3,3), ierr)
+  call mpi_win_create(ifake(4,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(4,3), ierr)
+  call mpi_win_create(ifake(5,3), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(5,3), ierr)
+
+  call mpi_win_create(ifake(1,4), mpi_0, 1, mpi_info_null, mpi_comm_world, wins_arrays(1,4), ierr)
+
+END SUBROUTINE create_convolutions_windows_else
+
+
+subroutine convolutions_bounds_fences(wins_bounds)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(4),intent(inout):: wins_bounds
+
+  ! Local variables
+  integer:: ierr
+
+  call mpi_win_fence(0, wins_bounds(1), ierr)
+  call mpi_win_fence(0, wins_bounds(2), ierr)
+  call mpi_win_fence(0, wins_bounds(3), ierr)
+  call mpi_win_fence(0, wins_bounds(4), ierr)
+
+END SUBROUTINE convolutions_bounds_fences
+
+
+subroutine convolutions_arrays_fences(wins_arrays)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(6,4),intent(inout):: wins_arrays
+
+  ! Local variables
+  integer:: ierr
+
+  call mpi_win_fence(0, wins_arrays(1,1), ierr)
+  call mpi_win_fence(0, wins_arrays(2,1), ierr)
+  call mpi_win_fence(0, wins_arrays(3,1), ierr)
+  call mpi_win_fence(0, wins_arrays(4,1), ierr)
+  call mpi_win_fence(0, wins_arrays(5,1), ierr)
+  call mpi_win_fence(0, wins_arrays(6,1), ierr)
+
+  call mpi_win_fence(0, wins_arrays(1,2), ierr)
+  call mpi_win_fence(0, wins_arrays(2,2), ierr)
+  call mpi_win_fence(0, wins_arrays(3,2), ierr)
+  call mpi_win_fence(0, wins_arrays(4,2), ierr)
+  call mpi_win_fence(0, wins_arrays(5,2), ierr)
+
+  call mpi_win_fence(0, wins_arrays(1,3), ierr)
+  call mpi_win_fence(0, wins_arrays(2,3), ierr)
+  call mpi_win_fence(0, wins_arrays(3,3), ierr)
+  call mpi_win_fence(0, wins_arrays(4,3), ierr)
+  call mpi_win_fence(0, wins_arrays(5,3), ierr)
+
+  call mpi_win_fence(0, wins_arrays(1,4), ierr)
+
+END SUBROUTINE convolutions_arrays_fences
+
+
+subroutine allocate_convolutions_bounds(ab, subname, bounds)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(6,6,4),intent(in):: ab
+  character(len=*),intent(in):: subname
+  type(convolutions_bounds),intent(out):: bounds
+
+  ! Local variables
+  integer:: istat
+
+  allocate(bounds%kb%ibyz_c(ab(1,1,1):ab(2,1,1),ab(3,1,1):ab(4,1,1),ab(5,1,1):ab(6,1,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibyz_c, 'bounds%kb%ibyz_c', subname)
+  allocate(bounds%kb%ibxz_c(ab(1,2,1):ab(2,2,1),ab(3,2,1):ab(4,2,1),ab(5,2,1):ab(6,2,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibxz_c, 'bounds%kb%ibxz_c', subname)
+  allocate(bounds%kb%ibxy_c(ab(1,3,1):ab(2,3,1),ab(3,3,1):ab(4,3,1),ab(5,3,1):ab(6,3,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibxy_c, 'bounds%kb%ibxy_c', subname)
+  allocate(bounds%kb%ibyz_f(ab(1,4,1):ab(2,4,1),ab(3,4,1):ab(4,4,1),ab(5,4,1):ab(6,4,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibyz_f, 'bounds%kb%ibyz_f', subname)
+  allocate(bounds%kb%ibxz_f(ab(1,5,1):ab(2,5,1),ab(3,5,1):ab(4,5,1),ab(5,5,1):ab(6,5,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibxz_f, 'bounds%kb%ibxz_f', subname)
+  allocate(bounds%kb%ibxy_f(ab(1,6,1):ab(2,6,1),ab(3,6,1):ab(4,6,1),ab(5,6,1):ab(6,6,1)), stat=istat)
+  call memocc(istat, bounds%kb%ibxy_f, 'bounds%kb%ibxy_f', subname)
+
+  allocate(bounds%sb%ibzzx_c(ab(1,1,2):ab(2,1,2),ab(3,1,2):ab(4,1,2),ab(5,1,2):ab(6,1,2)), stat=istat)
+  call memocc(istat, bounds%sb%ibzzx_c, 'bounds%sb%ibzzx_c', subname)
+  allocate(bounds%sb%ibyyzz_c(ab(1,2,2):ab(2,2,2),ab(3,2,2):ab(4,2,2),ab(5,2,2):ab(6,2,2)), stat=istat)
+  call memocc(istat, bounds%sb%ibyyzz_c, 'bounds%sb%ibyyzz_c', subname)
+  allocate(bounds%sb%ibxy_ff(ab(1,3,2):ab(2,3,2),ab(3,3,2):ab(4,3,2),ab(5,3,2):ab(6,3,2)), stat=istat)
+  call memocc(istat, bounds%sb%ibxy_ff, 'bounds%sb%ibxy_ff', subname)
+  allocate(bounds%sb%ibzzx_f(ab(1,4,2):ab(2,4,2),ab(3,4,2):ab(4,4,2),ab(5,4,2):ab(6,4,2)), stat=istat)
+  call memocc(istat, bounds%sb%ibzzx_f, 'bounds%sb%ibzzx_f', subname)
+  allocate(bounds%sb%ibyyzz_f(ab(1,5,2):ab(2,5,2),ab(3,5,2):ab(4,5,2),ab(5,5,2):ab(6,5,2)), stat=istat)
+  call memocc(istat, bounds%sb%ibyyzz_f, 'bounds%sb%ibyyzz_f', subname)
+
+  allocate(bounds%gb%ibzxx_c(ab(1,1,3):ab(2,1,3),ab(3,1,3):ab(4,1,3),ab(5,1,3):ab(6,1,3)), stat=istat)
+  call memocc(istat, bounds%gb%ibzxx_c, 'bounds%gb%ibzxx_c', subname)
+  allocate(bounds%gb%ibxxyy_c(ab(1,2,3):ab(2,2,3),ab(3,2,3):ab(4,2,3),ab(5,2,3):ab(6,2,3)), stat=istat)
+  call memocc(istat, bounds%gb%ibxxyy_c, 'bounds%gb%ibxxyy_c', subname)
+  allocate(bounds%gb%ibyz_ff(ab(1,3,3):ab(2,3,3),ab(3,3,3):ab(4,3,3),ab(5,3,3):ab(6,3,3)), stat=istat)
+  call memocc(istat, bounds%gb%ibyz_ff, 'bounds%gb%ibyz_ff', subname)
+  allocate(bounds%gb%ibzxx_f(ab(1,4,3):ab(2,4,3),ab(3,4,3):ab(4,4,3),ab(5,4,3):ab(6,4,3)), stat=istat)
+  call memocc(istat, bounds%gb%ibzxx_f, 'bounds%gb%ibzxx_f', subname)
+  allocate(bounds%gb%ibxxyy_f(ab(1,5,3):ab(2,5,3),ab(3,5,3):ab(4,5,3),ab(5,5,3):ab(6,5,3)), stat=istat)
+  call memocc(istat, bounds%gb%ibxxyy_f, 'bounds%gb%ibxxyy_f', subname)
+
+  allocate(bounds%ibyyzz_r(ab(1,1,4):ab(2,1,4),ab(3,1,4):ab(4,1,4),ab(5,1,4):ab(6,1,4)), stat=istat)
+  call memocc(istat, bounds%ibyyzz_r, 'bounds%ibyyzz_r', subname)
+
+END SUBROUTINE allocate_convolutions_bounds
+
+
+subroutine get_convolutions_bounds(root, ab, wins_bounds)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: root
+  integer,dimension(6,6,4),intent(inout):: ab
+  integer,dimension(4),intent(inout):: wins_bounds
+  integer(kind=mpi_address_kind):: mpi_0
+
+  ! Local variables
+  integer:: ierr
+
+  mpi_0=0
+
+  call mpi_get(ab(1,1,1), 36, mpi_integer, root, mpi_0, 36, mpi_integer, wins_bounds(1), ierr)
+  call mpi_get(ab(1,1,2), 30, mpi_integer, root, mpi_0, 30, mpi_integer, wins_bounds(2), ierr)
+  call mpi_get(ab(1,1,3), 30, mpi_integer, root, mpi_0, 30, mpi_integer, wins_bounds(3), ierr)
+  call mpi_get(ab(1,1,4), 6, mpi_integer, root, mpi_0, 6, mpi_integer, wins_bounds(4), ierr)
+
+END SUBROUTINE get_convolutions_bounds
+
+
+
+subroutine get_convolutions_arrays(root, ab, bounds, wins_arrays)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: root
+  integer,dimension(6,6,4),intent(in):: ab
+  type(convolutions_bounds),intent(inout):: bounds
+  integer,dimension(6,4),intent(inout):: wins_arrays
+
+  ! Local variables
+  integer,dimension(6,4):: ncounts
+  integer:: ierr
+  integer(kind=mpi_address_kind):: mpi_0
+
+
+  ncounts(1,1) = (ab(2,1,1)-ab(1,1,1)+1)*(ab(4,1,1)-ab(3,1,1)+1)*(ab(6,1,1)-ab(5,1,1)+1)
+  ncounts(2,1) = (ab(2,2,1)-ab(1,2,1)+1)*(ab(4,2,1)-ab(3,2,1)+1)*(ab(6,2,1)-ab(5,2,1)+1)
+  ncounts(3,1) = (ab(2,3,1)-ab(1,3,1)+1)*(ab(4,3,1)-ab(3,3,1)+1)*(ab(6,3,1)-ab(5,3,1)+1)
+  ncounts(4,1) = (ab(2,4,1)-ab(1,4,1)+1)*(ab(4,4,1)-ab(3,4,1)+1)*(ab(6,4,1)-ab(5,4,1)+1)
+  ncounts(5,1) = (ab(2,5,1)-ab(1,5,1)+1)*(ab(4,5,1)-ab(3,5,1)+1)*(ab(6,5,1)-ab(5,5,1)+1)
+  ncounts(6,1) = (ab(2,6,1)-ab(1,6,1)+1)*(ab(4,6,1)-ab(3,6,1)+1)*(ab(6,6,1)-ab(5,6,1)+1)
+
+  ncounts(1,2) = (ab(2,1,2)-ab(1,1,2)+1)*(ab(4,1,2)-ab(3,1,2)+1)*(ab(6,1,2)-ab(5,1,2)+1)
+  ncounts(2,2) = (ab(2,2,2)-ab(1,2,2)+1)*(ab(4,2,2)-ab(3,2,2)+1)*(ab(6,2,2)-ab(5,2,2)+1)
+  ncounts(3,2) = (ab(2,3,2)-ab(1,3,2)+1)*(ab(4,3,2)-ab(3,3,2)+1)*(ab(6,3,2)-ab(5,3,2)+1)
+  ncounts(4,2) = (ab(2,4,2)-ab(1,4,2)+1)*(ab(4,4,2)-ab(3,4,2)+1)*(ab(6,4,2)-ab(5,4,2)+1)
+  ncounts(5,2) = (ab(2,5,2)-ab(1,5,2)+1)*(ab(4,5,2)-ab(3,5,2)+1)*(ab(6,5,2)-ab(5,5,2)+1)
+
+  ncounts(1,3) = (ab(2,1,3)-ab(1,1,3)+1)*(ab(4,1,3)-ab(3,1,3)+1)*(ab(6,1,3)-ab(5,1,3)+1)
+  ncounts(2,3) = (ab(2,2,3)-ab(1,2,3)+1)*(ab(4,2,3)-ab(3,2,3)+1)*(ab(6,2,3)-ab(5,2,3)+1)
+  ncounts(3,3) = (ab(2,3,3)-ab(1,3,3)+1)*(ab(4,3,3)-ab(3,3,3)+1)*(ab(6,3,3)-ab(5,3,3)+1)
+  ncounts(4,3) = (ab(2,4,3)-ab(1,4,3)+1)*(ab(4,4,3)-ab(3,4,3)+1)*(ab(6,4,3)-ab(5,4,3)+1)
+  ncounts(5,3) = (ab(2,5,3)-ab(1,5,3)+1)*(ab(4,5,3)-ab(3,5,3)+1)*(ab(6,5,3)-ab(5,5,3)+1)
+
+  ncounts(1,4) = (ab(2,1,4)-ab(1,1,4)+1)*(ab(4,1,4)-ab(3,1,4)+1)*(ab(6,1,4)-ab(5,1,4)+1)
+
+  mpi_0=0
+
+  call mpi_get(bounds%kb%ibyz_c, ncounts(1,1), mpi_integer, root, mpi_0, ncounts(1,1), mpi_integer, wins_arrays(1,1), ierr)
+  call mpi_get(bounds%kb%ibxz_c, ncounts(2,1), mpi_integer, root, mpi_0, ncounts(2,1), mpi_integer, wins_arrays(2,1), ierr)
+  call mpi_get(bounds%kb%ibxy_c, ncounts(3,1), mpi_integer, root, mpi_0, ncounts(3,1), mpi_integer, wins_arrays(3,1), ierr)
+  call mpi_get(bounds%kb%ibyz_f, ncounts(4,1), mpi_integer, root, mpi_0, ncounts(4,1), mpi_integer, wins_arrays(4,1), ierr)
+  call mpi_get(bounds%kb%ibxz_f, ncounts(5,1), mpi_integer, root, mpi_0, ncounts(5,1), mpi_integer, wins_arrays(5,1), ierr)
+  call mpi_get(bounds%kb%ibxy_f, ncounts(6,1), mpi_integer, root, mpi_0, ncounts(6,1), mpi_integer, wins_arrays(6,1), ierr)
+
+  call mpi_get(bounds%sb%ibzzx_c, ncounts(1,2), mpi_integer, root, mpi_0, ncounts(1,2), mpi_integer, wins_arrays(1,2), ierr)
+  call mpi_get(bounds%sb%ibyyzz_c, ncounts(2,2), mpi_integer, root, mpi_0, ncounts(2,2), mpi_integer, wins_arrays(2,2), ierr)
+  call mpi_get(bounds%sb%ibxy_ff, ncounts(3,2), mpi_integer, root, mpi_0, ncounts(3,2), mpi_integer, wins_arrays(3,2), ierr)
+  call mpi_get(bounds%sb%ibzzx_f, ncounts(4,2), mpi_integer, root, mpi_0, ncounts(4,2), mpi_integer, wins_arrays(4,2), ierr)
+  call mpi_get(bounds%sb%ibyyzz_f, ncounts(5,2), mpi_integer, root, mpi_0, ncounts(5,2), mpi_integer, wins_arrays(5,2), ierr)
+
+  call mpi_get(bounds%gb%ibzxx_c, ncounts(1,3), mpi_integer, root, mpi_0, ncounts(1,3), mpi_integer, wins_arrays(1,3), ierr)
+  call mpi_get(bounds%gb%ibxxyy_c, ncounts(2,3), mpi_integer, root, mpi_0, ncounts(2,3), mpi_integer, wins_arrays(2,3), ierr)
+  call mpi_get(bounds%gb%ibyz_ff, ncounts(3,3), mpi_integer, root, mpi_0, ncounts(3,3), mpi_integer, wins_arrays(3,3), ierr)
+  call mpi_get(bounds%gb%ibzxx_f, ncounts(4,3), mpi_integer, root, mpi_0, ncounts(4,3), mpi_integer, wins_arrays(4,3), ierr)
+  call mpi_get(bounds%gb%ibxxyy_f, ncounts(5,3), mpi_integer, root, mpi_0, ncounts(5,3), mpi_integer, wins_arrays(5,3), ierr)
+
+  call mpi_get(bounds%ibyyzz_r, ncounts(1,4), mpi_integer, root, mpi_0, ncounts(1,4), mpi_integer, wins_arrays(1,4), ierr)
+
+
+end subroutine get_convolutions_arrays
+
+
+
+
+
+subroutine free_convolutions_bounds_windows(wins_bounds)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(4),intent(inout):: wins_bounds
+
+  ! Local variables
+  integer:: ierr
+
+  call mpi_win_free(wins_bounds(1), ierr)
+  call mpi_win_free(wins_bounds(2), ierr)
+  call mpi_win_free(wins_bounds(3), ierr)
+  call mpi_win_free(wins_bounds(4), ierr)
+
+END SUBROUTINE 
+
+
+subroutine free_convolutions_arrays_windows(wins_arrays)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(6,4),intent(inout):: wins_arrays
+
+  ! Local variables
+  integer:: ierr
+
+  call mpi_win_free(wins_arrays(1,1), ierr)
+  call mpi_win_free(wins_arrays(2,1), ierr)
+  call mpi_win_free(wins_arrays(3,1), ierr)
+  call mpi_win_free(wins_arrays(4,1), ierr)
+  call mpi_win_free(wins_arrays(5,1), ierr)
+  call mpi_win_free(wins_arrays(6,1), ierr)
+
+  call mpi_win_free(wins_arrays(1,2), ierr)
+  call mpi_win_free(wins_arrays(2,2), ierr)
+  call mpi_win_free(wins_arrays(3,2), ierr)
+  call mpi_win_free(wins_arrays(4,2), ierr)
+  call mpi_win_free(wins_arrays(5,2), ierr)
+
+  call mpi_win_free(wins_arrays(1,3), ierr)
+  call mpi_win_free(wins_arrays(2,3), ierr)
+  call mpi_win_free(wins_arrays(3,3), ierr)
+  call mpi_win_free(wins_arrays(4,3), ierr)
+  call mpi_win_free(wins_arrays(5,3), ierr)
+
+  call mpi_win_free(wins_arrays(1,4), ierr)
+
+END SUBROUTINE free_convolutions_arrays_windows

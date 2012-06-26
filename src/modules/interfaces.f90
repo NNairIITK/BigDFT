@@ -6375,6 +6375,15 @@ module module_interfaces
           integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
         end subroutine penalty_basis_function
 
+subroutine allocate_convolutions_bounds(ab, subname, bounds)
+  use module_base
+  use module_types
+  implicit none
+  integer,intent(in):: ab
+  character(len=*),intent(in):: subname
+  type(convolutions_bounds),intent(out):: bounds
+end subroutine allocate_convolutions_bounds
+
    end interface
 
 END MODULE module_interfaces
