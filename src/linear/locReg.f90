@@ -700,71 +700,71 @@ tl1=mpi_wtime()
      if (Llr(ilr)%geocode=='F') then
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
-        !!if (nproc > 1) then
-        !!   call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
-        !!end if
-        !!if(.not.calculateBounds(ilr)) then
-        !!    call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
-        !!end if
-
-        if(iproc==root) then
-            !determine array boundaries
-            call get_convarrays_bounds(llr(ilr)%bounds, ab(1,1,1,ilr), mpi_ncounts)
-            call create_convolutions_windows_root(ab(1,1,1,ilr), mpi_ncounts, llr(ilr)%bounds, wins_bounds(1,ilr), wins_arrays(1,1,ilr))
-
-        else
-            ! Initialize the windows with a fake array, since the convolutions bounds are nullified and I don't
-            ! know what happens when a window is opened with a nullified pointer...
-            call create_convolutions_windows_else(ab(1,1,1,ilr), ifake(1,1,ilr), wins_bounds(1,ilr), wins_arrays(1,1,ilr))
+        if (nproc > 1) then
+           call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
+        end if
+        if(.not.calculateBounds(ilr)) then
+            call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
         end if
 
-        call convolutions_bounds_fences(wins_bounds(1,ilr))
-        call convolutions_arrays_fences(wins_arrays(1,1,ilr))
+        !!if(iproc==root) then
+        !!    !determine array boundaries
+        !!    call get_convarrays_bounds(llr(ilr)%bounds, ab(1,1,1,ilr), mpi_ncounts)
+        !!    call create_convolutions_windows_root(ab(1,1,1,ilr), mpi_ncounts, llr(ilr)%bounds, wins_bounds(1,ilr), wins_arrays(1,1,ilr))
 
-        if(calculateBounds(ilr) .and. iproc/=root) then
-            !this process needs the bounds, so get them from root
-            call get_convolutions_bounds(root, ab(1,1,1,ilr), wins_bounds(1,ilr))
-        end if
+        !!else
+        !!    ! Initialize the windows with a fake array, since the convolutions bounds are nullified and I don't
+        !!    ! know what happens when a window is opened with a nullified pointer...
+        !!    call create_convolutions_windows_else(ab(1,1,1,ilr), ifake(1,1,ilr), wins_bounds(1,ilr), wins_arrays(1,1,ilr))
+        !!end if
+
+        !!call convolutions_bounds_fences(wins_bounds(1,ilr))
+        !!call convolutions_arrays_fences(wins_arrays(1,1,ilr))
+
+        !!if(calculateBounds(ilr) .and. iproc/=root) then
+        !!    !this process needs the bounds, so get them from root
+        !!    call get_convolutions_bounds(root, ab(1,1,1,ilr), wins_bounds(1,ilr))
+        !!end if
     end if
   end do
 
-  ! Make sure the bounds arrived...
-  do ilr=1,nlr
-      call convolutions_bounds_fences(wins_bounds(1,ilr))
-  end do
+  !!! Make sure the bounds arrived...
+  !!do ilr=1,nlr
+  !!    call convolutions_bounds_fences(wins_bounds(1,ilr))
+  !!end do
 
-  do ilr=1,nlr
-      root=mod(ilr-1,nproc)
-      if(calculateBounds(ilr) .and. iproc/=root) then
-          call allocate_convolutions_bounds(ab(1,1,1,ilr), subname, llr(ilr)%bounds)
-          call get_convolutions_arrays(root, ab(1,1,1,ilr), llr(ilr)%bounds, wins_arrays(1,1,ilr))
-      end if
-  end do
+  !!do ilr=1,nlr
+  !!    root=mod(ilr-1,nproc)
+  !!    if(calculateBounds(ilr) .and. iproc/=root) then
+  !!        call allocate_convolutions_bounds(ab(1,1,1,ilr), subname, llr(ilr)%bounds)
+  !!        call get_convolutions_arrays(root, ab(1,1,1,ilr), llr(ilr)%bounds, wins_arrays(1,1,ilr))
+  !!    end if
+  !!end do
 
-  ! Make sure everything arrived
-  do ilr=1,nlr
-      call convolutions_arrays_fences(wins_arrays(1,1,ilr))
-      call free_convolutions_bounds_windows(wins_bounds(1,ilr))
-      call free_convolutions_arrays_windows(wins_arrays(1,1,ilr))
-      !!if(calculateBounds(ilr) .or. iproc==root) then
-      !!    if(calculateBounds(ilr)) write(*,'(3(a,i0))') 'locreg ',ilr,': process ',iproc, ' should receive bounds from process ',root
-      !!    if(iproc==root) write(*,'(2(a,i0))') 'locreg ',ilr,' was calculated by process ',iproc
-      !!    do i3=ab(5,4,2,ilr),ab(6,4,2,ilr)
-      !!      do i2=ab(3,4,2,ilr),ab(4,4,2,ilr)
-      !!        do i1=ab(1,4,2,ilr),ab(2,4,2,ilr)
-      !!          if(iproc==root) then
-      !!            write(1000*(iproc+1)+ilr,'(a,i5,6i8,3i8,i12)') 'r: values',ilr, ab(5,1,3,ilr),ab(6,1,3,ilr),ab(3,1,3,ilr),ab(4,1,3,ilr),ab(1,1,3,ilr),ab(2,1,3,ilr),i1, i2, i3, llr(ilr)%bounds%sb%ibzzx_f(i1,i2,i3)
-      !!          else
-      !!            write(1000*(iproc+1)+100+ilr,'(a,i5,6i8,3i8,i12)') 'e: values',ilr, ab(5,1,3,ilr),ab(6,1,3,ilr),ab(3,1,3,ilr),ab(4,1,3,ilr),ab(1,1,3,ilr),ab(2,1,3,ilr), i1, i2, i3, llr(ilr)%bounds%sb%ibzzx_f(i1,i2,i3)
-      !!          end if
-      !!        end do
-      !!      end do
-      !!    end do
-      !!end if
-      if(.not.calculateBounds(ilr)) then
-          call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
-      end if
-  end do
+  !!! Make sure everything arrived
+  !!do ilr=1,nlr
+  !!    call convolutions_arrays_fences(wins_arrays(1,1,ilr))
+  !!    call free_convolutions_bounds_windows(wins_bounds(1,ilr))
+  !!    call free_convolutions_arrays_windows(wins_arrays(1,1,ilr))
+  !!    !!if(calculateBounds(ilr) .or. iproc==root) then
+  !!    !!    if(calculateBounds(ilr)) write(*,'(3(a,i0))') 'locreg ',ilr,': process ',iproc, ' should receive bounds from process ',root
+  !!    !!    if(iproc==root) write(*,'(2(a,i0))') 'locreg ',ilr,' was calculated by process ',iproc
+  !!    !!    do i3=ab(5,4,2,ilr),ab(6,4,2,ilr)
+  !!    !!      do i2=ab(3,4,2,ilr),ab(4,4,2,ilr)
+  !!    !!        do i1=ab(1,4,2,ilr),ab(2,4,2,ilr)
+  !!    !!          if(iproc==root) then
+  !!    !!            write(1000*(iproc+1)+ilr,'(a,i5,6i8,3i8,i12)') 'r: values',ilr, ab(5,1,3,ilr),ab(6,1,3,ilr),ab(3,1,3,ilr),ab(4,1,3,ilr),ab(1,1,3,ilr),ab(2,1,3,ilr),i1, i2, i3, llr(ilr)%bounds%sb%ibzzx_f(i1,i2,i3)
+  !!    !!          else
+  !!    !!            write(1000*(iproc+1)+100+ilr,'(a,i5,6i8,3i8,i12)') 'e: values',ilr, ab(5,1,3,ilr),ab(6,1,3,ilr),ab(3,1,3,ilr),ab(4,1,3,ilr),ab(1,1,3,ilr),ab(2,1,3,ilr), i1, i2, i3, llr(ilr)%bounds%sb%ibzzx_f(i1,i2,i3)
+  !!    !!          end if
+  !!    !!        end do
+  !!    !!      end do
+  !!    !!    end do
+  !!    !!end if
+  !!    if(.not.calculateBounds(ilr)) then
+  !!        call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
+  !!    end if
+  !!end do
 call mpi_barrier(mpi_comm_world, ierr)
 !call mpi_finalize(ierr)
 tl2=mpi_wtime()
