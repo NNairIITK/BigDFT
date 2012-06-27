@@ -111,7 +111,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call dcopy(sum(tmbopt%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
           call dcopy(7*sum(tmbopt%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
           call build_linear_combination_transposed(tmbopt%orbs%norb, kernel, tmbopt%collcom, hpsittmp_c, hpsittmp_f, .true., &
-               hpsit_c, hpsit_f)
+               hpsit_c, hpsit_f, iproc)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
           deallocate(hpsittmp_c, stat=istat)
           call memocc(istat, iall, 'hpsittmp_c', subname)

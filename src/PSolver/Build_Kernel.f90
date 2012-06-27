@@ -1519,17 +1519,17 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
   !fourier transform, from mathematica
   real(dp), dimension(:), pointer :: fISF
-
-  include 'lazy_ISF_8_2048.inc'
-  include 'lazy_ISF_14_2048.inc'
-  include 'lazy_ISF_16_2048.inc'
-  include 'lazy_ISF_20_2048.inc'
-  include 'lazy_ISF_24_2048.inc'
-  include 'lazy_ISF_30_2048.inc'
-  include 'lazy_ISF_40_2048.inc'
-  include 'lazy_ISF_50_2048.inc'
-  include 'lazy_ISF_60_2048.inc'
-  include 'lazy_ISF_100_2048.inc'
+!commented since inc files do not fulfill fortran norm
+!  include 'lazy_ISF_8_2048.inc'
+!  include 'lazy_ISF_14_2048.inc'
+!  include 'lazy_ISF_16_2048.inc'
+!  include 'lazy_ISF_20_2048.inc'
+!  include 'lazy_ISF_24_2048.inc'
+!  include 'lazy_ISF_30_2048.inc'
+!  include 'lazy_ISF_40_2048.inc'
+!  include 'lazy_ISF_50_2048.inc'
+!  include 'lazy_ISF_60_2048.inc'
+!  include 'lazy_ISF_100_2048.inc'
 
   ! real(dp), dimension(0:nf) :: fISF = (/&
   !      1._dp,&
@@ -1601,31 +1601,31 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
 
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
-  select case(m)
-  case(8)
-     fISF => fISF8   
-  case(14)
-     fISF => fISF14
-  case(16)
-     fISF => fISF16
-  case(20)
-     fISF => fISF20    
-  case(24)
-     fISF => fISF24
-  case(30)
-     fISF => fISF30
-  case(40)
-     fISF => fISF40
-  case(50)
-     fISF => fISF50
-  case(60)
-     fISF => fISF60
-  case(100)
-     fISF => fISF100
-  case default
-     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     stop
-  end select
+!  select case(m)
+!  case(8)
+!     fISF => fISF8   
+!  case(14)
+!     fISF => fISF14
+!  case(16)
+!     fISF => fISF16
+!  case(20)
+!     fISF => fISF20    
+!  case(24)
+!     fISF => fISF24
+!  case(30)
+!     fISF => fISF30
+!  case(40)
+!     fISF => fISF40
+!  case(50)
+!     fISF => fISF50
+!  case(60)
+!     fISF => fISF60
+!  case(100)
+!     fISF => fISF100
+!  case default
+!     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+!     stop
+!  end select
 
 
   ! if(present(argument_nf)) then 

@@ -209,8 +209,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
-  !$omp firstprivate(before3, now3, after3, lot, maxIter)
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) !&
+!  !$omp firstprivate(before3, now3, after3, lot, maxIter)
   
   allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
   allocate( zt(2,lzt, n1+ndebug), stat=i_stat )

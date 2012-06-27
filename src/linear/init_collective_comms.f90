@@ -2596,7 +2596,8 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   integer, intent(in) :: iproc
   ! Local variables
   integer:: i0, ipt, ii, j, iiorb, jjorb, i
-  call timing(iproc,'lincombtrans','ON') !lr408t
+
+  call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
       !!psit_c=0.d0
       !!psit_f=0.d0
@@ -2635,7 +2636,7 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       end do
       i0=i0+ii
   end do
-  call timing(iproc,'lincombtrans','OF') !lr408t
+  call timing(iproc,'lincombtrans  ','OF') !lr408t
 end subroutine build_linear_combination_transposed
 
 
