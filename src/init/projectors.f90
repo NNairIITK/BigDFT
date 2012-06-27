@@ -34,9 +34,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
           'Type','Name','Number of atoms','Number of projectors'
   end if
   
-!!$  nlpspd%nseg_p(0)=0 
-!!$  nlpspd%nvctr_p(0)=0 
-
   istart=1
   nlpspd%nproj=0
   nlpspd%nprojel=0
@@ -72,22 +69,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
-!!$        nlpspd%plr(iat)%ns1=nl1     
-!!$        nlpspd%plr(iat)%ns2=nl2       
-!!$        nlpspd%plr(iat)%ns3=nl3       
-!!$                                    
-!!$        nlpspd%plr(iat)%d%n1=nu1-nl1
-!!$        nlpspd%plr(iat)%d%n2=nu2-nl2
-!!$        nlpspd%plr(iat)%d%n3=nu3-nl3
-
-!!$        nlpspd%nboxp_c(1,1,iat)=nl1
-!!$        nlpspd%nboxp_c(1,2,iat)=nl2       
-!!$        nlpspd%nboxp_c(1,3,iat)=nl3       
-!!$
-!!$        nlpspd%nboxp_c(2,1,iat)=nu1
-!!$        nlpspd%nboxp_c(2,2,iat)=nu2
-!!$        nlpspd%nboxp_c(2,3,iat)=nu3
-
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
              cpmult,hx,hy,hz,logrid)
@@ -95,9 +76,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
         nlpspd%plr(iat)%wfd%nseg_c=mseg
         nlpspd%plr(iat)%wfd%nvctr_c=mvctr
-        
-!!$        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
-!!$        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
+
         istart=istart+mvctr*mproj
 
         nprojelat=mvctr*mproj
@@ -111,22 +90,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
-!!$        nlpspd%plr(iat)%d%nfl1=nl1-nlpspd%plr(iat)%ns1
-!!$        nlpspd%plr(iat)%d%nfl2=nl2-nlpspd%plr(iat)%ns2       
-!!$        nlpspd%plr(iat)%d%nfl3=nl3-nlpspd%plr(iat)%ns3
-!!$                                                      
-!!$        nlpspd%plr(iat)%d%nfu1=nu1-nlpspd%plr(iat)%ns1
-!!$        nlpspd%plr(iat)%d%nfu2=nu2-nlpspd%plr(iat)%ns2
-!!$        nlpspd%plr(iat)%d%nfu3=nu3-nlpspd%plr(iat)%ns3
-
-!!$        nlpspd%nboxp_f(1,1,iat)=nl1
-!!$        nlpspd%nboxp_f(1,2,iat)=nl2
-!!$        nlpspd%nboxp_f(1,3,iat)=nl3
-!!$
-!!$        nlpspd%nboxp_f(2,1,iat)=nu1
-!!$        nlpspd%nboxp_f(2,2,iat)=nu2
-!!$        nlpspd%nboxp_f(2,3,iat)=nu3
-
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -134,9 +97,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
         nlpspd%plr(iat)%wfd%nseg_f=mseg
         nlpspd%plr(iat)%wfd%nvctr_f=mvctr
-
-!!$        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
-!!$        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) + mvctr
 
         istart=istart+7*mvctr*mproj
         nprojelat=nprojelat+7*mvctr*mproj
@@ -151,11 +111,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         nlpspd%plr(iat)%wfd%nseg_f=0
         nlpspd%plr(iat)%wfd%nvctr_f=0
 
-!!$        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
-!!$        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
-!!$        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) 
-!!$        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) 
-
         !! the following is necessary to the creation of preconditioning projectors
         !! coarse grid quantities ( when used preconditioners are applied to all atoms
         !! even H if present )
@@ -166,47 +121,12 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
-!!$        nlpspd%plr(iat)%ns1=nl1     
-!!$        nlpspd%plr(iat)%ns2=nl2       
-!!$        nlpspd%plr(iat)%ns3=nl3       
-!!$                                    
-!!$        nlpspd%plr(iat)%d%n1=nu1-nl1
-!!$        nlpspd%plr(iat)%d%n2=nu2-nl2
-!!$        nlpspd%plr(iat)%d%n3=nu3-nl3
-
-!!$        nlpspd%nboxp_c(1,1,iat)=nl1
-!!$        nlpspd%nboxp_c(1,2,iat)=nl2       
-!!$        nlpspd%nboxp_c(1,3,iat)=nl3       
-!!$
-!!$        nlpspd%nboxp_c(2,1,iat)=nu1
-!!$        nlpspd%nboxp_c(2,2,iat)=nu2
-!!$        nlpspd%nboxp_c(2,3,iat)=nu3
-
         ! fine grid quantities
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
-
-!!$
-!!$        nlpspd%plr(iat)%d%nfl1=nl1-nlpspd%plr(iat)%ns1
-!!$        nlpspd%plr(iat)%d%nfl2=nl2-nlpspd%plr(iat)%ns2       
-!!$        nlpspd%plr(iat)%d%nfl3=nl3-nlpspd%plr(iat)%ns3
-!!$                                                      
-!!$        nlpspd%plr(iat)%d%nfu1=nu1-nlpspd%plr(iat)%ns1
-!!$        nlpspd%plr(iat)%d%nfu2=nu2-nlpspd%plr(iat)%ns2
-!!$        nlpspd%plr(iat)%d%nfu3=nu3-nlpspd%plr(iat)%ns3
-
-!!$        nlpspd%nboxp_f(1,1,iat)=nl1
-!!$        nlpspd%nboxp_f(1,2,iat)=nl2
-!!$        nlpspd%nboxp_f(1,3,iat)=nl3
-!!$
-!!$        nlpspd%nboxp_f(2,1,iat)=nu1
-!!$        nlpspd%nboxp_f(2,2,iat)=nu2
-!!$        nlpspd%nboxp_f(2,3,iat)=nu3
-
-
      endif
   enddo
 
@@ -735,7 +655,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp end parallel do
 
      if (mvctr /=  mvctr_c) then
-        !$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !!$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
@@ -892,7 +812,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp end parallel do
 
      if (mvctr /=  mvctr_c) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
@@ -932,7 +852,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp end parallel do
 
      if (mvctr /= mvctr_f) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
@@ -1032,7 +952,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp enddo
      !$omp end parallel
      if (mvctr /=  mvctr_c) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
@@ -1074,7 +994,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !$omp end parallel
 
      if (mvctr /= mvctr_f) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !!$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if

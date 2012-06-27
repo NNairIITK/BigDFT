@@ -281,17 +281,22 @@ contains
 
 end subroutine forces_via_finite_differences
 
+<<<<<<< TREE
 
 !> Calculate atomic forces
 subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+=======
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+>>>>>>> MERGE-SOURCE
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
-  integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
+  integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize
   real(gp), intent(in) :: hx,hy,hz,psoffset
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
@@ -322,15 +327,21 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
+
+  !for a taksgroup Poisson Solver, multiply by the ratio.
+  !it is important that the forces are bitwise identical among the processors.
+  if (psolver_groupsize < nproc) call vscal(3*atoms%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
   
-  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
+  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
   call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
 
-  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-
-  if (atoms%geocode == 'P') then
+  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+  
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
+  
+  if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
@@ -365,6 +376,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
 
   if (atoms%geocode == 'P') then
      ucvol=atoms%alat1*atoms%alat2*atoms%alat3 !orthorombic cell
+     if (iproc==0) call yaml_open_map('Stress Tensor')
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
@@ -378,9 +390,14 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
+<<<<<<< TREE
         if (atoms%sym%symObj >= 0) &
            call symmetrize_stress((iproc==0).and.(verbose > 2),strtens(1,i),atoms%sym%symObj)
         if (iproc==0 .and. verbose > 2)&
+=======
+        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0 .and. i==1),strtens(1,i),atoms%sym%symObj)
+        if (iproc==0 .and. verbose>2)&
+>>>>>>> MERGE-SOURCE
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
            strten(j)=strten(j)+strtens(j,i)
@@ -389,6 +406,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      !final result
      pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
+     if (iproc==0) call yaml_close_map()
   end if
 
 !!$  if (iproc == 0) then
@@ -546,6 +564,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   end if
 end subroutine rhocore_forces
 
+<<<<<<< TREE
 
 !> Write information about the stress tensor
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
@@ -571,6 +590,8 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
 
 end subroutine write_strten_info
 
+=======
+>>>>>>> MERGE-SOURCE
 
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
@@ -3753,6 +3774,7 @@ subroutine symmetrize_stress(dump,tens,symobj)
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
+  use yaml_output
   implicit none
   !Arguments
   logical, intent(in) :: dump
@@ -3770,8 +3792,13 @@ subroutine symmetrize_stress(dump,tens,symobj)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
+<<<<<<< TREE
   if (dump)&
        write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, " symmetries."
+=======
+  if (dump) call yaml_map('Number of Symmetries',nsym,fmt='(i0)')
+  !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+>>>>>>> MERGE-SOURCE
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))

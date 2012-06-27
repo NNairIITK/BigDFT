@@ -7,8 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!>   Set to zero an array x(n)
 subroutine razero(n,x)
   implicit none
   !Arguments
@@ -16,10 +14,90 @@ subroutine razero(n,x)
   real(kind=8), intent(out) :: x(n)
   !Local variables
   integer :: i
-  do i=1,n
-     x(i)=0.d0
-  end do
-END SUBROUTINE razero
+  logical within_openmp,omp_in_parallel
+
+!$    within_openmp=omp_in_parallel()
+
+!$ if (within_openmp .or. n.le.128) then
+!!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"
+!$    do i=1,n
+!$    x(i)=0.d0
+!$    end do
+!$ else
+!$omp parallel shared(x,n) private(i)
+!$omp do
+      do i=1,n
+      x(i)=0.d0
+      end do
+!$omp enddo
+!$omp end parallel
+!$ endif 
+end subroutine razero
+
+!!!>   Set to zero an array x(n)
+!!subroutine razero(n,x)
+!!  implicit none
+!!  !Arguments
+!!  integer, intent(in) :: n
+!!  real(kind=8), intent(out) :: x(n)
+!!  !Local variables
+!!  real(kind=8) :: t1,t2
+!!  integer :: i,is
+!!  logical within_openmp,omp_in_parallel
+!!
+!!  if (n.le.128) then
+!!     !loop is unrolled by the compiler
+      !!     do i=1,n
+!!        x(i)=0.d0
+!!     end do
+!!  else
+!!
+!!   !!  call CPU_time(t1)
+!!     !loop for the non-unrollable part
+!!     is=modulo(n,8) !also bitwise shift could be considered
+!!     do i=1,is
+!!        x(i)=0.d0
+!!     end do
+!!!$    within_openmp=omp_in_parallel()
+!!
+!!!$ if (within_openmp) then
+!!!$ write(*,*) "RAZERO CALLED WITHIN OPENMP"
+!!!$    do i=is+1,n-7,8
+!!!$    x(i+0)=0.d0
+!!!$    x(i+1)=0.d0
+!!!$    x(i+2)=0.d0
+!!!$    x(i+3)=0.d0
+!!!$    x(i+4)=0.d0
+!!!$    x(i+5)=0.d0
+!!!$    x(i+6)=0.d0
+!!!$    x(i+7)=0.d0
+!!!!$    x(i+8)=0.d0
+!!!$    end do
+!!!$ else
+!!!$omp do
+!!      do i=is+1,n-7,8
+!!      x(i+0)=0.d0
+!!      x(i+1)=0.d0
+!!      x(i+2)=0.d0
+!!      x(i+3)=0.d0
+!!      x(i+4)=0.d0
+!!      x(i+5)=0.d0
+!!      x(i+6)=0.d0
+!!      x(i+7)=0.d0
+!!!      x(i+8)=0.d0
+!!      end do
+!!!$omp enddo
+!!!$ endif   
+!!!!$      is=i
+!!!!$      do i=is,n
+!!!!$      x(i)=0.d0
+!!!!$      end do            
+!!
+!!    !!  call CPU_time(t2)
+!!    !!  write(999,*) 'CPUTIMErazero ',n,t2-t1
+!!  endif
+!!
+!!END SUBROUTINE razero
 
 !>   Set to zero an array x(n)
 subroutine razero_simple(n,x)
@@ -47,22 +125,35 @@ subroutine razero_integer(n,x)
   end do
 END SUBROUTINE razero_integer
 
-!>   Set to zero an array x(n): omp version of razero
-subroutine omp_razero(n,x)
-  use module_base
-  implicit none
-  !Arguments
-  integer, intent(in) :: n
-  real(wp), intent(out) :: x(n)
-  !Local variables
-  integer :: i
-
-  !$omp do
-  do i=1,n
-     x(i)=0._wp
-  end do
-  !$omp enddo
-END SUBROUTINE omp_razero
+!!!>   Set to zero an array x(n): omp version of razero
+!!subroutine omp_razero(n,x)
+!!  use module_base
+!!  implicit none
+!!  !Arguments
+!!  integer, intent(in) :: n
+!!  real(kind=8), intent(out) :: x(n)
+!!  !Local variables
+!!  integer :: i,is
+!!
+!!
+!!!!!$omp do
+!!      do i=1,n-7,8
+!!      x(i+0)=0.d0
+!!      x(i+1)=0.d0
+!!      x(i+2)=0.d0
+!!      x(i+3)=0.d0
+!!      x(i+4)=0.d0
+!!      x(i+5)=0.d0
+!!      x(i+6)=0.d0
+!!      x(i+7)=0.d0
+!!      x(i+8)=0.d0
+!!      end do
+!!!!!$omp enddo
+!!      is=i
+!!      do i=is,n
+!!      x(i)=0.d0
+!!      end do
+!!END SUBROUTINE omp_razero
 
 
 !>   Set to 10^-20 an array x(n) for exchange-correlation function of ABINIT

@@ -17,11 +17,9 @@ program wvl
 
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
-  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   type(GPU_pointers)                   :: GPU
   
   integer :: i, j, ierr, iproc, nproc, nelec
-  integer :: n3d,n3p,n3pi,i3xcsh,i3s
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
   real(gp), allocatable :: radii_cf(:,:)
@@ -33,7 +31,7 @@ program wvl
   real(dp), dimension(:,:), pointer :: rho_p
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  real(dp), dimension(:), pointer :: pkernel
+  type(coulomb_operator) :: pkernel
 
   ! Start MPI in parallel version
   call MPI_INIT(ierr)
@@ -66,7 +64,7 @@ program wvl
   !grid spacings and box of the density
   call dpbox_set_box(dpcom,Lzd)
   !complete dpbox initialization
-  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
+  call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,inputs%ixc,inputs%nspin,&
        atoms%geocode,inputs%SIC%approach,dpcom)
 
 
@@ -179,29 +177,29 @@ program wvl
 !!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
 !!$       & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-  call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+  call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
-  allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3d))
+  allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3d))
   allocate(irrzon(1,2,1))
   allocate(phnons(2,1,1))
 
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
-  call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
-       GPU,atoms%sym,rhodsc,psi,rho_p)
-  call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
-       rhodsc,nscatterarr,rho_p,rhor,.false.)
+  call sumrho(dpcom,orbs,Lzd,GPU,atoms%sym,rhodsc,psi,rho_p)
+  call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  call createKernel(iproc,nproc,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,16,pkernel,.false.)
-  allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3p))
+  call createKernel(iproc,nproc,atoms%geocode,&
+       (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
+       ,16,pkernel,.false.)
+  allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-       & n3pi,i3s+i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
+       & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
@@ -218,7 +216,7 @@ program wvl
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
-  call free_full_potential(nproc,0,potential,"main")
+  call free_full_potential(dpcom%nproc,0,potential,"main")
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   deallocate(pot_ion)

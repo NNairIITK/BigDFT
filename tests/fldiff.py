@@ -163,7 +163,8 @@ else:
         return False
 
 #Check the last line
-end_line = "MEMORY CONSUMPTION REPORT"
+end_line = "Memory Consumption Report" 
+#end_line_old = "MEMORY CONSUMPTION REPORT"
 
 #Read the first file
 try:
@@ -258,7 +259,7 @@ for line in original1:
                 else:
                     time += float(line.split()[-2])
             #Test if memory remaining is 0
-            if "remaining memory" in line:
+            if "Remaining Memory" in line:
                 memory = int(line.split()[-1])
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()

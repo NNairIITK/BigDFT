@@ -37,6 +37,10 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
 
   integer :: ierr
 
+  !set name of the run
+  inputs%run_name=repeat(' ',len(inputs%run_name))
+  if (trim(radical) /= 'input') inputs%run_name=trim(radical)
+
   call set_inputfile(inputs%file_dft, radical,    "dft")
   call set_inputfile(inputs%file_geopt, radical,  "geopt")
   call set_inputfile(inputs%file_kpt, radical,    "kpt")
@@ -71,7 +75,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
-
+  use yaml_output
   implicit none
 
   !Arguments
@@ -83,10 +87,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-
+  
+  !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
-
+  !call yaml_close_map()
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
@@ -124,7 +129,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
   if(inputs%inputpsiid==100) DistProjApply=.true.
-  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+  if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
@@ -170,6 +175,7 @@ END SUBROUTINE read_input_parameters
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
@@ -178,7 +184,7 @@ subroutine check_for_data_writing_directory(iproc,in)
   integer :: i_stat,ierror,ierr
   character(len=100) :: dirname
 
-  if (iproc==0)write(*,'(1x,a)')'|'//repeat('-',82)
+  if (iproc==0) call yaml_comment('|',hfill='-')
 
   !initialize directory name
   shouldwrite=.false.
@@ -189,8 +195,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
-       in%gaussian_help                             !mulliken and local density of states
-  
+       in%gaussian_help .or. &                        !mulliken and local density of states
+       in%writing_directory /= '.'
+
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
@@ -205,9 +212,9 @@ subroutine check_for_data_writing_directory(iproc,in)
      end if
      call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      in%dir_output=dirname
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    ',trim(in%dir_output)
+     if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    not needed'
+     if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
@@ -244,6 +251,15 @@ subroutine default_input_variables(inputs)
   call sic_input_variables_default(inputs)
   ! Default for signaling
   inputs%gmainloop = 0.d0
+  ! Default for lin.
+  nullify(inputs%lin%potentialPrefac)
+  nullify(inputs%lin%potentialPrefac_lowaccuracy)
+  nullify(inputs%lin%potentialPrefac_highaccuracy)
+  nullify(inputs%lin%norbsPerType)
+  nullify(inputs%lin%locrad)
+  nullify(inputs%lin%locrad_lowaccuracy)
+  nullify(inputs%lin%locrad_highaccuracy)
+  nullify(inputs%lin%locrad_type)
 END SUBROUTINE default_input_variables
 
 
@@ -305,6 +321,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
   !does not maxes sense a DIIS history longer than the number of iterations
+  !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
@@ -630,14 +647,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppl, pph, lrl, lrh
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
-
-  ! Begin by nullifying all the pointers
-  nullify(in%lin%potentialPrefac)
-  nullify(in%lin%locrad)
-  nullify(in%lin%locrad_lowaccuracy)
-  nullify(in%lin%locrad_highaccuracy)
-  nullify(in%lin%norbsPerType)
-  nullify(in%lin%locrad_type)
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -1321,6 +1330,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   use module_base
   use module_types
   use module_input
+  use yaml_strings
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1329,12 +1340,13 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2)
+  integer :: ierr,blocks(2),lgt,ierror
+  character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
-  inputs%linear='OFF'
+  inputs%linear=INPUT_IG_OFF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1357,10 +1369,13 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
-  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
+       & "Linear Input Guess approach",inputs%linear)
   call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
@@ -1368,6 +1383,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)
+  inputs%writing_directory=repeat(' ',len(inputs%writing_directory))
+  call input_var("outdir", ".","Writing directory", inputs%writing_directory)
 
   !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
   call input_var("psp_onfly", .true., &
@@ -1376,10 +1393,80 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   if (inputs%verbosity == 0 ) then
      call memocc_set_state(0)
   end if
+  logfile=repeat(' ',len(logfile))
+  logfile_old=repeat(' ',len(logfile_old))
+  logfile_dir=repeat(' ',len(logfile_dir))
+  !open the logfile if needed, and set stdout
+  if (trim(inputs%writing_directory) /= '.') then
+     !add the output directory in the directory name
+     if (iproc == 0) then
+        call getdir(inputs%writing_directory,&
+             len_trim(inputs%writing_directory),logfile,len(logfile),ierr)
+        if (ierr /= 0) then
+           write(*,*) "ERROR: cannot create writing directory '"&
+                //trim(inputs%writing_directory) // "'."
+           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        end if
+     end if
+     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     lgt=min(len(inputs%writing_directory),len(logfile))
+     inputs%writing_directory(1:lgt)=logfile(1:lgt)
+     lgt=0
+     call buffer_string(inputs%dir_output,len(inputs%dir_output),&
+          trim(logfile),lgt,back=.true.)
+     if (iproc ==0) then
+        logfile=repeat(' ',len(logfile))
+        if (len_trim(inputs%run_name) >0) then
+           logfile='log-'//trim(inputs%run_name)//'.yaml'
+        else
+           logfile='log.yaml'
+        end if
+        !inquire for the existence of a logfile
+        call yaml_map('<BigDFT> Log of the run will be written in logfile',&
+             trim(inputs%writing_directory)//trim(logfile))
+        inquire(file=trim(inputs%writing_directory)//trim(logfile),exist=exists)
+        if (exists) then
+           logfile_old=trim(inputs%writing_directory)//'logfiles'
+           call getdir(logfile_old,&
+                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot create writing directory '"&
+                   //trim(logfile_dir) // "'."
+              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           end if
+           logfile_old=trim(logfile_dir)//trim(logfile)
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+           !change the name of the existing logfile
+           lgt=index(logfile_old,'.yaml')
+           call buffer_string(logfile_old,len(logfile_old),&
+                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
+              write(*,*) '                      into '//trim(logfile_old)// "'."
+              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           end if
+           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
+                trim(logfile_old))
 
-  call input_free(dump)
+        else
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+        end if
+        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
+        call input_set_stdout(unit=70)
+     end if
+  else
+     !use stdout
+     if (iproc==0) call yaml_set_stream(record_length=92)
+  end if
+  if (iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+  call input_free(iproc==0)
     
-
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
   inputs%orthpar%bsUp  = blocks(2)
@@ -1852,7 +1939,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
+subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -1864,17 +1951,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
    integer, intent(out), optional :: status
+   real(gp), intent(out), optional :: energy
+   real(gp), dimension(:,:), pointer, optional :: fxyz
+   character(len = 1024), intent(out), optional :: comment
    !Local variables
-   !n(c) character(len=*), parameter :: subname='read_atomic_file'
-   integer :: l, extract
+   character(len=*), parameter :: subname='read_atomic_file'
+   integer :: l, extract, i_all, i_stat
    logical :: file_exists, archive
    character(len = 128) :: filename
    character(len = 15) :: arFile
    character(len = 6) :: ext
+   real(gp) :: energy_
+   real(gp), dimension(:,:), pointer :: fxyz_
+   character(len = 1024) :: comment_
 
    file_exists = .false.
    archive = .false.
    if (present(status)) status = 0
+   nullify(fxyz_)
 
    ! Extract from archive
    if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
@@ -1919,6 +2013,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
          open(unit=99,file=trim(filename),status='old')
       end if
    end if
+   ! Test posinp.yaml
+   if (.not. file_exists) then
+      inquire(FILE = file//'.yaml', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+         write(atoms%format, "(A)") "yaml"
+      end if
+   end if
    ! Test the name directly
    if (.not. file_exists) then
       inquire(FILE = file, EXIST = file_exists)
@@ -1929,9 +2031,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
             write(atoms%format, "(A)") "xyz"
          else if (file(l-5:l) == ".ascii") then
             write(atoms%format, "(A)") "ascii"
+         else if (file(l-4:l) == ".yaml") then
+            write(atoms%format, "(A)") "yaml"
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-            write(*,*) " File should be *.ascii or *.xyz."
+            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
             if (present(status)) then
                status = 1
                return
@@ -1939,13 +2043,15 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
                stop
             end if
          end if
-         open(unit=99,file=trim(filename),status='old')
+         if (trim(atoms%format) /= "yaml") then
+            open(unit=99,file=trim(filename),status='old')
+         end if
       end if
    end if
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
@@ -1957,16 +2063,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    if (atoms%format == "xyz") then
       !read atomic positions
       if (.not.archive) then
-         call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_xyz_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (atoms%format == "ascii") then
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+         call read_ascii_positions(iproc,99,atoms,rxyz,comment_,energy_,fxyz_,archiveGetLine)
+      end if
+   else if (atoms%format == "yaml") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_yaml_positions(trim(filename),atoms,rxyz,comment_,energy_,fxyz_)
+      else
+         write(*,*) "Atomic input file in YAML not yet supported in archive file."
+         stop
       end if
    end if
 
@@ -1978,18 +2092,35 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    nullify(atoms%sym%irrzon)
    nullify(atoms%sym%phnons)
 
-   ! rm temporary file.
-   if (.not.archive) then
+   ! close open file.
+   if (.not.archive .and. trim(atoms%format) /= "yaml") then
       close(99)
       !!$  else
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
    end if
+   
+   ! We transfer optionals.
+   if (present(energy)) then
+      energy = energy_
+   end if
+   if (present(comment)) then
+      write(comment, "(A)") comment_
+   end if
+   if (present(fxyz)) then
+      fxyz => fxyz_
+   else if (associated(fxyz_)) then
+      i_all=-product(shape(fxyz_))*kind(fxyz_)
+      deallocate(fxyz_,stat=i_stat)
+      call memocc(i_stat,i_all,'fxyz_',subname)
+   end if
 END SUBROUTINE read_atomic_file
 
 !> Write an atomic file
+!Yaml output included
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
@@ -2006,6 +2137,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   else if (atoms%format == "ascii") then
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
+  else if (atoms%format == 'yaml') then
+     if (present(forces)) then
+        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+     else
+        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+     end if
   else
      write(*,*) "Error, unknown file format."
      stop

@@ -14,6 +14,7 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
+   use yaml_output
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -42,10 +43,11 @@ program BigDFT
 
    call memocc_set_memory_limit(memorylimit)
 
+
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
    if (istat > 0) then
-      write(radical, "(A)") "input"
+      write(radical, "(A)") "input"   
    end if
 
    ! find out which input files will be used
@@ -82,8 +84,6 @@ program BigDFT
    end if
 
    do iconfig=1,nconfig
-      !welcome screen
-      if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
@@ -158,7 +158,8 @@ program BigDFT
 
 !      call deallocate_lr(rst%Lzd%Glr,subname)    
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArraysInput(inputs%lin)
+      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
+           & call deallocateBasicArraysInput(inputs%lin)
 
       call free_restart_objects(rst,subname)
 

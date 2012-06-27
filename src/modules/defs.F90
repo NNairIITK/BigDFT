@@ -89,7 +89,7 @@ module module_defs
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
   end interface
 
   !initialize to zero an array
@@ -358,6 +358,15 @@ module module_defs
       uninitialized_int=-123456789
     end function uninitialized_int
 
+    function uninitialized_long(one) 
+      implicit none
+      integer(kind = 8), intent(in) :: one
+      integer(kind = 8) :: uninitialized_long
+      integer :: foo
+      foo = kind(one)
+      uninitialized_long=-123456789
+    end function uninitialized_long
+
     function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
@@ -623,7 +632,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_simple(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
     subroutine put_to_zero_double(n,da)
@@ -631,7 +642,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
     subroutine put_to_zero_integer(n,da)
@@ -639,7 +652,9 @@ module module_defs
       integer, intent(in) :: n
       integer, intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_integer(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)

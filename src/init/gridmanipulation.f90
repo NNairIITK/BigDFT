@@ -14,6 +14,7 @@
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    type(atoms_data), intent(inout) :: atoms
    integer, intent(in) :: iproc
@@ -205,19 +206,41 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    end if
 
    if (iproc == 0) then
-      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
+      call yaml_comment('Atom Positions',hfill='-')
+      call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
       do iat=1,atoms%nat
-         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),&
-            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
+         call yaml_sequence(advance='no')
+         call yaml_open_map(trim(atoms%atomnames(atoms%iatype(iat))),flow=.true.)
+          call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+          call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+         call yaml_close_map(advance='no')
+         call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
       enddo
-      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
-         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
-      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-         &   '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
-      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-         &   '      Extremes for the high resolution grid points:',&
-         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
+      call yaml_close_sequence()
+      call yaml_map('Rigid Shift Applied (AU)',(/-cxmin,-cymin,-czmin/),fmt='(1pg12.5)')
+      call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
+      call yaml_open_map('Sizes of the simulation domain')
+        call yaml_map('AU',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pg12.5)')
+        call yaml_map('Angstroem',(/atoms%alat1*bohr2ang,atoms%alat2*bohr2ang,atoms%alat3*bohr2ang/),fmt='(1pg12.5)')
+        call yaml_map('Grid Spacing Units',(/n1,n2,n3/),fmt='(i4)')
+        call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
+          call yaml_map('Lower',(/nfl1,nfl2,nfl3/),fmt='(i4)')
+          call yaml_map('Upper',(/nfu1,nfu2,nfu3/),fmt='(i4)')
+        call yaml_close_map()
+      call yaml_close_map()
+!!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
+!!$      do iat=1,atoms%nat
+!!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
+!!$            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),&
+!!$            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
+!!$      enddo
+!!$      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
+!!$         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
+!!$      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
+!!$         &   '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
+!!$      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
+!!$         &   '      Extremes for the high resolution grid points:',&
+!!$         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
    endif
 
    !assign the values
@@ -256,11 +279,12 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.
 
-   if (Glr%hybrid_on) then
-      if (iproc == 0) write(*,*)'wavelet localization is ON'
-   else
-      if (iproc == 0) write(*,*)'wavelet localization is OFF'
-   endif
+!!$   if (Glr%hybrid_on) then
+!!$      if (iproc == 0) write(*,*)'wavelet localization is ON'
+!!$   else
+!!$      if (iproc == 0) write(*,*)'wavelet localization is OFF'
+!!$   endif
+   if (iproc==0) call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
 END SUBROUTINE system_size
 
 
