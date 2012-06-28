@@ -1457,7 +1457,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      end if
   else
      !use stdout
-     if (iproc==0) call yaml_set_stream(record_length=92)
+!     if (iproc==0) call yaml_set_stream(record_length=92)
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
   end if
   if (iproc==0) then
      !start writing on logfile

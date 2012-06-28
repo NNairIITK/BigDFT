@@ -52,7 +52,7 @@ program MINHOP
   !call system('echo $HOSTNAME')
 
   !if (iproc ==0) call yaml_set_stream(unit=70,filename='global-logfile.yaml')
-  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+  !if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
