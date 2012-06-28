@@ -1763,6 +1763,8 @@ subroutine atoms_get_amu(atoms, amu)
 
   amu => atoms%amu
 END SUBROUTINE atoms_get_amu
+
+
 subroutine atoms_get_aocc(atoms, aocc)
   use module_types
   implicit none
@@ -1771,6 +1773,8 @@ subroutine atoms_get_aocc(atoms, aocc)
 
   aocc => atoms%aocc
 END SUBROUTINE atoms_get_aocc
+
+
 subroutine atoms_get_radii_cf(atoms, radii_cf)
   use module_types
   implicit none
@@ -1779,6 +1783,8 @@ subroutine atoms_get_radii_cf(atoms, radii_cf)
 
   radii_cf => atoms%radii_cf
 END SUBROUTINE atoms_get_radii_cf
+
+
 subroutine atoms_get_psppar(atoms, psppar)
   use module_types
   implicit none
@@ -1787,6 +1793,8 @@ subroutine atoms_get_psppar(atoms, psppar)
 
   psppar => atoms%psppar
 END SUBROUTINE atoms_get_psppar
+
+
 subroutine atoms_get_nlccpar(atoms, nlccpar)
   use module_types
   implicit none
@@ -1795,6 +1803,8 @@ subroutine atoms_get_nlccpar(atoms, nlccpar)
 
   nlccpar => atoms%nlccpar
 END SUBROUTINE atoms_get_nlccpar
+
+
 subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
   use module_types
   implicit none
@@ -1803,6 +1813,8 @@ subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
 
   ig_nlccpar => atoms%ig_nlccpar
 END SUBROUTINE atoms_get_ig_nlccpar
+
+
 subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
@@ -1815,6 +1827,8 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   write(format, "(5A1)") atoms%format
   write(units, "(20A1)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
+
+
 subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
   use module_types
   implicit none
@@ -1825,12 +1839,14 @@ subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
   natsc = atoms%natsc
   donlcc = atoms%donlcc
 END SUBROUTINE atoms_copy_psp_data
+
+
 subroutine atoms_copy_name(atoms, ityp, name, ln)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character, intent(out) :: name(20)
+  character(len=20), intent(out) :: name
   integer, intent(out) :: ln
 
   integer :: i
@@ -1844,6 +1860,8 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
      name(i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
+
+
 subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types
   implicit none
