@@ -6945,6 +6945,38 @@ module module_interfaces
           real(gp), intent(in) :: elecfield(3)
         end subroutine atoms_set_symmetries
 
+        subroutine denspot_set_history(denspot, iscf, nspin, &
+             & n1i, n2i) !to be removed arguments when denspot has dimensions
+          use module_types
+          implicit none
+          type(DFT_local_fields), intent(inout) :: denspot
+          integer, intent(in) :: iscf, n1i, n2i, nspin
+        end subroutine denspot_set_history
+
+        subroutine denspot_free_history(denspot)
+          use module_types
+          implicit none
+          type(DFT_local_fields), intent(inout) :: denspot
+        end subroutine denspot_free_history
+
+        subroutine kswfn_free_scf_data(KSwfn, freePsit)
+          use module_types
+          implicit none
+          type(DFT_wavefunction), intent(inout) :: KSwfn
+          logical, intent(in) :: freePsit
+        end subroutine kswfn_free_scf_data
+
+        subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
+          use module_base
+          use module_types
+          implicit none
+          logical, intent(in) :: filewrite
+          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: occopt      
+          real(gp), intent(in) :: wf
+          type(orbitals_data), intent(inout) :: orbs
+        end subroutine evaltoocc
+
    end interface
 
 END MODULE module_interfaces

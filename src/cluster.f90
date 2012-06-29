@@ -1475,9 +1475,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   ! Clean KSwfn parts only needed in the SCF loop.
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
-
-  if (opt%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-     call ab6_mixing_deallocate(denspot%mix)
-     deallocate(denspot%mix)
-  end if
+  ! Clean denspot parts only needed in the SCF loop.
+  call denspot_free_history(denspot)
 end subroutine kswfn_optimization_loop
