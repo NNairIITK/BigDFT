@@ -46,6 +46,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
+  use yaml_output
   use minpar
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -122,7 +123,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   else if(trim(parmin%approach)=='SDCG') then
 
      if (iproc ==0) write(*,*) '# ENTERING CG'
+!     call yaml_open_map('Geometry optimization')
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+!     call yaml_close_map()
 
   else if(trim(parmin%approach)=='VSSD') then
  
@@ -141,7 +144,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
 
   else if(trim(parmin%approach)=='AB6MD') then
 
-     if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamic (ABINIT implementation)'
+     if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
      call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
   else

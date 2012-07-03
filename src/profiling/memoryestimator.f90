@@ -178,6 +178,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
      call yaml_map('Density Construction',trim(MibdotKib(tmemden)))
      call yaml_map('Poisson Solver',trim(MibdotKib(tmemps)))
      call yaml_map('Hamiltonian application',trim(MibdotKib(tmemha)))
+!           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
   call yaml_close_map()
   call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(peakmem)))
 

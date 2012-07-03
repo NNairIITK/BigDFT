@@ -401,6 +401,7 @@ module yaml_output
 
   !parameter of the document
   type :: yaml_stream
+     logical :: document_closed=.true. !put the starting of the document if new_document is called
      logical :: pp_allowed=.true. !< Pretty printing allowed
      integer :: unit=6 !<unit for the stdout
      integer :: max_record_length=tot_max_record_length
@@ -427,7 +428,7 @@ module yaml_output
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv
   end interface
 
-  public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
+  public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
   public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
@@ -612,14 +613,30 @@ contains
     call get_stream(unt,strm)
 
     !check all indentation
-    if (streams(strm)%indent /= 1) then
-       call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
-       streams(strm)%indent=1
+    if (streams(strm)%document_closed) then
+       if (streams(strm)%indent /= 1) then
+          call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
+          streams(strm)%indent=1
+       end if
+       call dump(streams(strm),'---',event=DOCUMENT_START)
+       streams(strm)%flow_events=NONE
+       streams(strm)%document_closed=.false.
     end if
-    call dump(streams(strm),'---',event=DOCUMENT_START)
-    !write(stdout,'(3a)')'---'
-    streams(strm)%flow_events=NONE
   end subroutine yaml_new_document
+
+!> after this routine is called, the new_document will becode effective again
+  subroutine yaml_release_document(unit)
+    implicit none
+    integer, optional, intent(in) :: unit
+    !local variables
+    integer :: unt,strm
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    streams(strm)%document_closed=.true.
+  end subroutine yaml_release_document
 
   subroutine yaml_warning(message,level,unit)
     implicit none
@@ -1505,7 +1522,7 @@ contains
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
-          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
 

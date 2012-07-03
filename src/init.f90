@@ -1838,7 +1838,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
       !restore the occupations 
       call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
-
+      !associate the entropic energy contribution
+      orbs%eTS=orbse%eTS
+      
    end if
 
 !!$   !yaml output

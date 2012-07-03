@@ -274,6 +274,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   nvirt=in%nvirt
 
   if (iproc == 0) then
+     !start a new document in the beginning of the output, if the document is closed before
+     call yaml_new_document()
      write( *,'(1x,a,1x,i0)') &
           &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
           in%inputPsiId
@@ -432,7 +434,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      DoLastRunThings=(in%last_run == 1 .and. optLoop%nrepmax == 0) .or. &
           & (in%last_run == 1 .and. optLoop%itrep >= optLoop%nrepmax)
               !print the energies only if they are meaningful
-     energy = energs%eKS
+     energy = energs%energy
      !Davidson is set to false first because used in deallocate_before_exiting
      DoDavidson= .false.
 
@@ -976,7 +978,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'denspot%pot_work',subname)
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
-     energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp
+     energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
         write( *,'(1x,a,3(1x,1pe18.11))')&
@@ -1101,8 +1103,14 @@ contains
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    if (iproc == 0) &
-         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+    if (iproc == 0) then
+       call yaml_open_map('Timings for root process')
+       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
+       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
+       call yaml_close_map()
+    end if
+!       &
+!         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
     ! Stop signals
     if (in%signaling .and. iproc == 0) then
@@ -1122,6 +1130,9 @@ contains
 !!$        deallocate(atoms%rloc,stat=i_stat)
 !!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
 !!$    end if
+
+    !release the yaml document
+    call yaml_release_document()
 
   END SUBROUTINE deallocate_before_exiting
 
@@ -1169,11 +1180,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=KSwfn%diis%idsx
 
-
   gnrm_zero=0.0d0
   opt%gnrm=1.d10
   opt%rpnrm=1.d10
   endlooprp=.false.
+  energs%e_prev=0.0_gp
 
   !normal opt%infocode, if everything go through smoothly we should keep this
   opt%infocode=0
@@ -1188,7 +1199,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      if (iproc==0) then
         call yaml_sequence(advance='no')
         call yaml_open_sequence("Hamiltonian Optimization",label=&
-             'itrp'//adjustl(yaml_toa(opt%itrp,fmt='(i4.4)')))
+             'itrp'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)'))))
 
      end if
      !set the opt%infocode to the value it would have in the case of no convergence
@@ -1201,7 +1212,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         if (iproc==0) then
            call yaml_sequence(advance='no')
            call yaml_open_map("Subspace Optimization",label=&
-                'itrep'//adjustl(yaml_toa(opt%itrep,fmt='(i4.4)')))
+                'itrep'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)')))//'-'//&
+                trim(adjustl(yaml_toa(opt%itrep,fmt='(i2.2)'))))
         end if
 
         !yaml output
@@ -1218,8 +1230,14 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              if (endloop) then 
+              if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
+                   .and. opt%itrpmax==1) .or.&
+                   (endloop .and. &
+                   ((opt%itrpmax >1 .and. endlooprp) .or. opt%itrpmax == 1)) ) then 
                  call yaml_sequence(label='FINAL',advance='no')
+              else if (endloop .and. opt%itrep == opt%nrepmax) then
+                 call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
+                      advance='no')
               else
                  call yaml_sequence(advance='no')
               end if
@@ -1292,7 +1310,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !flush all writings on standart output
            if (iproc==0) then
               !yaml output
-              call yaml_close_map()
+              call yaml_close_map() !iteration
               call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
@@ -1305,7 +1323,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
-                 call yaml_close_map()
+                 !call yaml_close_map()
                  call yaml_close_sequence() !wfn iterations
                  call yaml_close_map()
                  call yaml_close_sequence() !itrep
@@ -1394,8 +1412,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (iproc==0) then
            call yaml_close_map()
-           !yaml output
-           !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',opt%itrep
         end if
 
         if (opt%infocode ==0) exit subd_loop
@@ -1417,8 +1433,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      if (opt%itrpmax > 1) then
 
-        !recalculate orbitals occupation numbers if the loop continues
-        if (.not.endlooprp) call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+        !recalculate orbitals occupation numbers 
+        call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 
         call eigensystem_info(iproc,nproc,opt%gnrm,&
              KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
@@ -1439,10 +1455,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         !yaml output
         !summarize the key elements in the opt%itrp element
         if (opt%itrp >1) then
-           call yaml_map('RhoPot Delta','*rpnrm')
-           call yaml_map('Energies','*FINAL',advance='no')
-           call yaml_comment('End RhoPot Iterations, itrp:'//&
-                yaml_toa(opt%itrp,fmt='(i6)'))
+           call yaml_map('RhoPot Delta','*rpnrm'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))))
+           call yaml_map('Energies','*final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))))
+!!$           call yaml_comment('End RhoPot Iterations, itrp:'//&
+!!$                yaml_toa(opt%itrp,fmt='(i6)'))
         end if
      end if
      if (opt%c_obj /= 0) then

@@ -1060,11 +1060,11 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 
      select case(atoms%npspcode(ityp))
      case(2)
-        call yaml_map('Pseudopotenial type','GTH')
+        call yaml_map('Pseudopotential type','GTH')
      case(3)
-        call yaml_map('Pseudopotenial type','HGH')
+        call yaml_map('Pseudopotential type','HGH')
      case(10)
-        call yaml_map('Pseudopotenial type','HGH-K')
+        call yaml_map('Pseudopotential type','HGH-K')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_open_map('Local PSeudo Potential (HGH convention)')
@@ -1085,7 +1085,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         end if
      end do verify_nl
      if (nonloc) then
-        call yaml_open_sequence('NonLocal PSP Paramters')
+        call yaml_open_sequence('NonLocal PSP Parameters')
         do l=1,3
            do i=3,0,-1
               j=i

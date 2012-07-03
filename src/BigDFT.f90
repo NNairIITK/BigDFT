@@ -110,7 +110,6 @@ program BigDFT
 
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
-
       if (inputs%ncount_cluster_x > 1) then
          open(unit=16,file='geopt.mon',status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'

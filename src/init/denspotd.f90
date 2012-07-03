@@ -522,7 +522,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
-  use module_interfaces
+  use module_interfaces, except_this_one => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: crmult,frmult
@@ -535,32 +535,33 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   !local variables
   integer :: ierr
 
-  !decide rho communication strategy
-  !old way
-!!$  if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then
-!!$     rhodsc%icomm=2
-!!$  else
-!!$     if (.not.xc_isgga()) then
-!!$        rhodsc%icomm=1
-!!$     else
-!!$        rhodsc%icomm=0
-!!$     endif
-!!$  end if
-  !deafult
   if (.not.xc_isgga()) then
      rhodsc%icomm=1
   else
      rhodsc%icomm=0
   endif
-  if ((atoms%geocode.eq.'F') .and. (nproc > 1)) then
-     rhodsc%icomm=2
-  end if
+
+  !decide rho communication strategy
+  !old way
   !override the  default
   if (rho_commun=='DBL') then
      rhodsc%icomm=0
   else if (rho_commun == 'RSC') then
      rhodsc%icomm=1
+  else if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then
+     rhodsc%icomm=2
   end if
+  
+!!$  !recent way
+!!$  if ((atoms%geocode.eq.'F') .and. (nproc > 1)) then
+!!$     rhodsc%icomm=2
+!!$  end if
+!!$  !override the  default
+!!$  if (rho_commun=='DBL') then
+!!$     rhodsc%icomm=0
+!!$  else if (rho_commun == 'RSC') then
+!!$     rhodsc%icomm=1
+!!$  end if
 
   !in the case of taskgroups the RSC scheme should be overrided
   if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
@@ -570,7 +571,6 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
         rhodsc%icomm=0
      end if
   end if
-rhodsc%icomm=2
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated

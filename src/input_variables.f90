@@ -1369,7 +1369,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
+       inputs%rho_commun)
   call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
   call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
@@ -1454,10 +1455,11 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
         end if
         call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
         call input_set_stdout(unit=70)
+        call memocc_set_stdout(unit=70)
      end if
   else
-     !use stdout
-     if (iproc==0) call yaml_set_stream(record_length=92)
+     !use stdout, do not crash if unit is present
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
   end if
   if (iproc==0) then
      !start writing on logfile

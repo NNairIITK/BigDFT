@@ -256,21 +256,26 @@ module module_types
   end type input_variables
 
   type, public :: energy_terms
-     real(gp) :: eh     =0.0_gp
-     real(gp) :: exc    =0.0_gp
-     real(gp) :: evxc   =0.0_gp
-     real(gp) :: eion   =0.0_gp
-     real(gp) :: edisp  =0.0_gp
-     real(gp) :: ekin   =0.0_gp
-     real(gp) :: epot   =0.0_gp
-     real(gp) :: eproj  =0.0_gp
-     real(gp) :: eexctX =0.0_gp
-     real(gp) :: ebs    =0.0_gp
-     real(gp) :: eKS    =0.0_gp
-     real(gp) :: trH    =0.0_gp
-     real(gp) :: evsum  =0.0_gp
-     real(gp) :: evsic  =0.0_gp 
-     real(gp) :: excrhoc=0.0_gp 
+     real(gp) :: eh      =0.0_gp
+     real(gp) :: exc     =0.0_gp
+     real(gp) :: evxc    =0.0_gp
+     real(gp) :: eion    =0.0_gp
+     real(gp) :: edisp   =0.0_gp
+     real(gp) :: ekin    =0.0_gp
+     real(gp) :: epot    =0.0_gp
+     real(gp) :: eproj   =0.0_gp
+     real(gp) :: eexctX  =0.0_gp
+     real(gp) :: ebs     =0.0_gp
+     real(gp) :: eKS     =0.0_gp
+     real(gp) :: trH     =0.0_gp
+     real(gp) :: evsum   =0.0_gp
+     real(gp) :: evsic   =0.0_gp 
+     real(gp) :: excrhoc =0.0_gp 
+     real(gp) :: eTS     =0.0_gp
+     real(gp) :: ePV     =0.0_gp !< pressure term
+     real(gp) :: energy  =0.0_gp !< the functional which is minimized
+     real(gp) :: e_prev  =0.0_gp !< the previous value, to show the delta
+     real(gp) :: trH_prev=0.0_gp !< the previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.

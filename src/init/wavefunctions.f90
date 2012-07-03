@@ -18,6 +18,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
+  !eTS value, updated in evaltocc
+  orbs%eTS=0.0_gp
+
   allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
