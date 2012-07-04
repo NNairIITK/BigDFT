@@ -1,0 +1,12 @@
+---
+Default tolerances:
+  Epsilon: 5.e-16
+  Hartree: 2.e-10
+Keys to ignore:
+  - Total No. of Taskgroups created
+  - Timings for root process
+  - MPI tasks*
+  - OpenMP threads per task
+  - Max. diff coordinates
+  - Original
+  - Result

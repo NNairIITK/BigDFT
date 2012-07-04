@@ -299,6 +299,7 @@ subroutine print_dft_parameters(in,atoms)
   !local variables
   character(len=500) :: name_xc
 
+  call yaml_comment('Input parameters',hfill='-')
   call yaml_open_map('DFT parameters')
      call yaml_open_map('eXchange Correlation')
      call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
@@ -334,21 +335,34 @@ subroutine print_dft_parameters(in,atoms)
      call yaml_close_map()
   call yaml_close_map()
 
-  write(*,'(1x,a)')&
-       '--- (file: input.dft) --------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',(in%rbuf > 0.0_gp)
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
-       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       'x',in%nrepmax,'| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
-       '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
+  if (atoms%geocode == 'F') then
+     call yaml_open_map('Post Optimization Parameters')
+
+     call yaml_open_map('Finite-Size Effect estimation')
+     call yaml_map('Scheduled',(in%rbuf > 0.0_gp))
+     if (in%rbuf > 0.0_gp) then
+        call yaml_map('Extension',in%rbuf,fmt='(f4.1)')
+        call yaml_map('No. of CG steps',in%ncongt)
+     end if
+     call yaml_close_map()
+     call yaml_close_map()
+  end if
+
+!!$  write(*,'(1x,a)')&
+!!$       '--- (file: input.dft) --------------------------------------------- Input Parameters'
+!!$  write(*,'(1x,a)')&
+!!$       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+!!$  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+!!$       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+!!$       '| Calculate=',(in%rbuf > 0.0_gp)
+!!$  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
+!!$       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+!!$       'x',in%nrepmax,'| Extension=',in%rbuf
+!!$  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
+!!$       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
+!!$       '|  CG Steps=',in%ncongt
+!!$  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
+!!$       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',in%mpol, '|'
@@ -472,6 +486,9 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
              call yaml_map('Edisp',energs%edisp,fmt='(1pe18.11)')
         if (energs%excrhoc /= 0.0_gp)&
              call yaml_map('Exc[rhoc]',energs%excrhoc,fmt='(1pe18.11)')
+        if (energs%eTS /= 0.0_gp)&
+             call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
+
      end if
      call yaml_close_map()
      call yaml_newline()
@@ -493,11 +510,23 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
       if (iscf > 1) then
          call yaml_map('tr(H)',energs%trH,fmt='(1pe24.17)')
       else
-         call yaml_map('EKS',energs%eKS,fmt='(1pe24.17)')
+         if (energs%eTS==0.0_gp) then
+            call yaml_map('EKS',energs%energy,fmt='(1pe24.17)')
+         else
+            call yaml_map('FKS',energs%energy,fmt='(1pe24.17)')
+         end if
       end if
       if (gnrm > 0.0_gp) call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
       if (gnrm_zero > 0.0_gp) &
-           call yaml_map('gnrm_0',gnrm_zero,fmt='(1pe9.2)')
+           call yaml_map('gnrm0',gnrm_zero,fmt='(1pe8.1)')
+      if (iscf > 1) then
+         if (energs%trH_prev /=0.0_gp) &
+              call yaml_map('D',energs%trH-energs%trH_prev,fmt='(1pe9.2)')
+      else
+         if (energs%e_prev /=0.0_gp) &
+              call yaml_map('D',energs%energy-energs%e_prev,fmt='(1pe9.2)')
+      end if
+
     end subroutine write_iter
 end subroutine write_energies
 
@@ -527,139 +556,145 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
      tolerance=etol
   end if
 
-  call yaml_comment('Kohn-Sham Eigenvalues and Occupation Numbers',hfill='-')
-  !write(*,'(1x,a)')&
-  !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-  ! Calculate and print the magnetisation
-  if (orbs%nspin == 2) then
-     mpol = 0._gp
-     do ikpt=1,orbs%nkpts
-        isorb = (ikpt - 1) * orbs%norb
-        do iorb = 1, orbs%norbu
-           mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+  if (verbose > 1) then
+     call yaml_comment('Eigenvalues and New Occupation Numbers',hfill='-')
+     !write(*,'(1x,a)')&
+     !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
+     ! Calculate and print the magnetisation
+     if (orbs%nspin == 2) then
+        mpol = 0._gp
+        do ikpt=1,orbs%nkpts
+           isorb = (ikpt - 1) * orbs%norb
+           do iorb = 1, orbs%norbu
+              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+           do iorb = orbs%norbu + 1, orbs%norb, 1
+              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
         end do
-        do iorb = orbs%norbu + 1, orbs%norb, 1
-           mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-        end do
-     end do
-     !write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
-     call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
-  end if
-  !if (orbs%nspinor ==4) then
-  !   write(*,'(1x,a)')&
-  !        &   '           Eigenvalue                                      m_x       m_y       m_z'
-  !end if
-
-  call yaml_open_sequence('Orbitals',flow=.true.)
-  call yaml_newline()
-
-  do ikpt=1,orbs%nkpts
-     if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
-        write(commentline,"(1x,A,I4.4,A,3F12.6)") &
-             &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
-        !write(*,'(a)')trim(commentline)
-        call yaml_comment(trim(commentline))
-        ikptw=ikpt
-     else
-        ikptw=UNINITIALIZED(1)
+        !write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
+        call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
      end if
-     preval=0.0_wp
-     nwrtmsg=0
-     ndegen=0
-     isorb = (ikpt - 1) * orbs%norb
-     if (orbs%nspin==1.or.orbs%nspinor==4) then
-        spinsignw=UNINITIALIZED(1.0_gp)
-        do iorb=1,orbs%norb
-           if (orbs%nspinor ==4 .and. associated(mom_vec)) then
-              mx=(mom_vec(2,iorb,1)/mom_vec(1,iorb,1))
-              my=(mom_vec(3,iorb,1)/mom_vec(1,iorb,1))
-              mz=(mom_vec(4,iorb,1)/mom_vec(1,iorb,1))
-           else
-              mx=UNINITIALIZED(1.0_gp)
-              my=UNINITIALIZED(1.0_gp)
-              mz=UNINITIALIZED(1.0_gp)
-           end if
-           degup = find_degeneracy_up(iorb+isorb)
-           call yaml_sequence()
-           call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                spinsignw,ikptw,mx,my,mz)
-           !yaml output (carriage return)
-           if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
-              call yaml_close_sequence(advance='no')
-              !print *,'there',nwrtmsg,message
-           end if
-           if (nwrtmsg==1) then
-              call yaml_comment(adjustl(message))
-           else
-              call yaml_newline()
-              !call yaml_stream_attributes()
-           end if
-        end do
-     else
-        mx=UNINITIALIZED(1.0_gp)
-        my=UNINITIALIZED(1.0_gp)
-        mz=UNINITIALIZED(1.0_gp)
-        
-        do iorb=1,min(orbs%norbu,orbs%norbd)
-           jorb=orbs%norbu+iorb
-           call yaml_sequence()
-           call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-                1.0_gp,ikptw,mx,my,mz)
-           call yaml_sequence()
-           call write_orbital_data(orbs%eval(isorb + jorb),orbs%occup(isorb+jorb),&
-                -1.0_gp,ikptw,mx,my,mz)
-           !yaml output (carriage return)
-           degup=find_degeneracy_up(iorb+isorb)
-           degdw=find_degeneracy_up(jorb+isorb)
-           nwrtmsg=0
-           if (degup .or. degdw) nwrtmsg=1
-           if (degup .and. degdw) message='  <-deg->  '
-           if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
-              call yaml_close_sequence(advance='no')
-           end if
-           if (nwrtmsg==1) then
-              call yaml_comment(adjustl(message))
-           else
+     !if (orbs%nspinor ==4) then
+     !   write(*,'(1x,a)')&
+     !        &   '           Eigenvalue                                      m_x       m_y       m_z'
+     !end if
 
-              call yaml_newline()
-           end if
+     call yaml_open_sequence('Orbitals',flow=.true.)
+     call yaml_newline()
 
-        end do
-        if (orbs%norbu > orbs%norbd) then
-           do iorb=orbs%norbd+1,orbs%norbu
-              call yaml_sequence()
-              call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
-                   1.0_gp,ikptw,mx,my,mz)
-              !yaml output (carriage return)
-              degup = find_degeneracy_up(iorb+isorb)
-              if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
-                 call yaml_close_sequence(advance='no')
+     do ikpt=1,orbs%nkpts
+        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
+           write(commentline,"(1x,A,I4.4,A,3F12.6)") &
+                &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
+           !write(*,'(a)')trim(commentline)
+           call yaml_comment(trim(commentline))
+           ikptw=ikpt
+        else
+           ikptw=UNINITIALIZED(1)
+        end if
+        preval=0.0_wp
+        nwrtmsg=0
+        ndegen=0
+        isorb = (ikpt - 1) * orbs%norb
+        if (orbs%nspin==1.or.orbs%nspinor==4) then
+           spinsignw=UNINITIALIZED(1.0_gp)
+           do iorb=1,orbs%norb
+              if (orbs%nspinor ==4 .and. associated(mom_vec)) then
+                 mx=(mom_vec(2,iorb,1)/mom_vec(1,iorb,1))
+                 my=(mom_vec(3,iorb,1)/mom_vec(1,iorb,1))
+                 mz=(mom_vec(4,iorb,1)/mom_vec(1,iorb,1))
+              else
+                 mx=UNINITIALIZED(1.0_gp)
+                 my=UNINITIALIZED(1.0_gp)
+                 mz=UNINITIALIZED(1.0_gp)
               end if
+              degup = find_degeneracy_up(iorb+isorb)
+              call yaml_sequence()
+              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
+                   spinsignw,ikptw,mx,my,mz)
+              !yaml output (carriage return)
+              if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
+                 call yaml_close_sequence(advance='no')
+                 !print *,'there',nwrtmsg,message
+              end if
+              call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
               if (nwrtmsg==1) then
                  call yaml_comment(adjustl(message))
               else
                  call yaml_newline()
+                 !call yaml_stream_attributes()
               end if
            end do
-        else if (orbs%norbd > orbs%norbu) then
-           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+        else
+           mx=UNINITIALIZED(1.0_gp)
+           my=UNINITIALIZED(1.0_gp)
+           mz=UNINITIALIZED(1.0_gp)
+
+           do iorb=1,min(orbs%norbu,orbs%norbd)
+              jorb=orbs%norbu+iorb
               call yaml_sequence()
-              call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
+              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
+                   1.0_gp,ikptw,mx,my,mz)
+              call yaml_sequence()
+              call write_orbital_data(orbs%eval(isorb + jorb),orbs%occup(isorb+jorb),&
                    -1.0_gp,ikptw,mx,my,mz)
               !yaml output (carriage return)
-              degdw = find_degeneracy_down(iorb+isorb)
-              if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
+              degup=find_degeneracy_up(iorb+isorb)
+              degdw=find_degeneracy_up(jorb+isorb)
+              nwrtmsg=0
+              if (degup .or. degdw) nwrtmsg=1
+              if (degup .and. degdw) message='  <-deg->  '
+              if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
                  call yaml_close_sequence(advance='no')
               end if
+              call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
               if (nwrtmsg==1) then
                  call yaml_comment(adjustl(message))
               else
+
                  call yaml_newline()
               end if
+
            end do
+           if (orbs%norbu > orbs%norbd) then
+              do iorb=orbs%norbd+1,orbs%norbu
+                 call yaml_sequence()
+                 call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
+                      1.0_gp,ikptw,mx,my,mz)
+                 !yaml output (carriage return)
+                 degup = find_degeneracy_up(iorb+isorb)
+                 if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
+                    call yaml_close_sequence(advance='no')
+                 end if
+                 call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
+                 if (nwrtmsg==1) then
+                    call yaml_comment(adjustl(message))
+                 else
+                    call yaml_newline()
+                 end if
+              end do
+           else if (orbs%norbd > orbs%norbu) then
+              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+                 call yaml_sequence()
+                 call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
+                      -1.0_gp,ikptw,mx,my,mz)
+                 !yaml output (carriage return)
+                 degdw = find_degeneracy_down(iorb+isorb)
+                 if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
+                    call yaml_close_sequence(advance='no')
+                 end if
+                 call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
+                 if (nwrtmsg==1) then
+                    call yaml_comment(adjustl(message))
+                 else
+                    call yaml_newline()
+                 end if
+              end do
+           end if
         end if
-     end if
-  end do
+     end do
+  end if
   !find fermi level
   if (orbs%efermi /= uninitialized(orbs%efermi)) then
      call yaml_map('Fermi Energy',orbs%efermi,fmt='(1pe21.14)')
@@ -1048,7 +1083,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
             if (inl == i) then
                iss=is
                if (scorb(l,inl)) then
-                  string(is:is)='['
+                  string(is:is)='('
                   is=is+1
                end if
                select case(l)
@@ -1065,7 +1100,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
                end select
                is=is+1
                if (scorb(l,inl)) then
-                  string(is:is)=']'
+                  string(is:is)=')'
                   is=is+1
                end if
                call yaml_open_sequence(string(iss:is))

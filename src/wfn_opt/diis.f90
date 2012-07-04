@@ -620,9 +620,13 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   end if
   if (diis%idiistol > idsx .and. .not. diis%switchSD) then
      !the energy has not decreasing for too much steps, switching to SD for next steps
-     if (iproc ==0) call yaml_warning('The energy value is growing (delta='//&
+     if (iproc ==0) then
+        call yaml_newline()
+        call yaml_warning('The energy value is growing (delta='//&
           trim(yaml_toa(diis%energy-diis%energy_min,fmt='(1pe9.2)'))//&
           ') switch to SD')
+        call yaml_newline()
+     end if
      !write(*,'(1x,a,1pe9.2,a)')&
      !     'WARNING: The energy value is growing (delta=',diis%energy-diis%energy_min,') switch to SD'
      diis%switchSD=.true.
@@ -636,8 +640,13 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   if (diis%idiistol > idsx .and. diis%switchSD) then
      !if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
      !restore the original DIIS
-     if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
-          'WARNING: The energy value is now decreasing again, coming back to DIIS'
+     if (iproc ==0) then
+        call yaml_newline()
+        !write(*,'(1x,a,1pe9.2)')&
+        !     'WARNING: The energy value is now decreasing again, coming back to DIIS'
+        call yaml_warning('The energy value is now decreasing again, coming back to DIIS')
+        call yaml_newline()
+     end if
      diis%switchSD=.false.
      diis%idsx=idsx
      diis%ids=0

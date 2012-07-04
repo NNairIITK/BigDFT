@@ -1015,7 +1015,7 @@ PosinpList* posinp_yaml_parse(const char *filename, char **message)
 
   return list;
 }
-void FC_FUNC_(posinp_yaml_parse, POSINP_YAML_PARSE)(PosinpList **self,
+void FC_FUNC_(f90_posinp_yaml_parse, F90_POSINP_YAML_PARSE)(PosinpList **self,
                                                     const char *filename, unsigned int *ln)
 {
   char *name;

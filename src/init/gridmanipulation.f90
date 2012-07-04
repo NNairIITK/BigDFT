@@ -224,8 +224,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
         call yaml_map('Angstroem',(/atoms%alat1*bohr2ang,atoms%alat2*bohr2ang,atoms%alat3*bohr2ang/),fmt='(1pg12.5)')
         call yaml_map('Grid Spacing Units',(/n1,n2,n3/),fmt='(i4)')
         call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
-          call yaml_map('Lower',(/nfl1,nfl2,nfl3/),fmt='(i4)')
-          call yaml_map('Upper',(/nfu1,nfu2,nfu3/),fmt='(i4)')
+          call yaml_map('From',(/nfl1,nfl2,nfl3/),fmt='(i4)')
+          call yaml_map('To',(/nfu1,nfu2,nfu3/),fmt='(i4)')
         call yaml_close_map()
       call yaml_close_map()
 !!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
