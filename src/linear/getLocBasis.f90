@@ -3685,7 +3685,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   end if
   overlap_calculated=.true.
 
-  write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
+  !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
        tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
