@@ -5586,7 +5586,7 @@ module module_interfaces
 
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  variable_locregs, tmbopt, kernel, &
+                  tmbopt, kernel, &
                   ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
@@ -5596,7 +5596,6 @@ module module_interfaces
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, it
-         logical,intent(in):: variable_locregs
          type(DFT_wavefunction),pointer,intent(inout):: tmbopt
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
@@ -5635,19 +5634,18 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, nproc, it, variable_locregs, tmb, ldiis, lhphi, alpha)
+       subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, it
-         logical,intent(in):: variable_locregs
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
-       subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
+       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
                    lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, alpha, &
                    locregCenter, locregCenterTemp, &
                    denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
@@ -5655,7 +5653,6 @@ module module_interfaces
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, it
-        logical,intent(in):: variable_locregs
         type(localizedDIISParameters),intent(inout):: ldiis
         type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
         type(DFT_wavefunction),pointer,intent(inout):: tmbopt
