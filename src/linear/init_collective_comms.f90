@@ -1056,6 +1056,14 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   integer,dimension(:),allocatable:: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
   character(len=*),parameter:: subname='determine_communication_arrays'
 
+
+  !!if(iproc==0) then
+  !!    do jproc=0,nproc-1
+  !!        write(*,'(a,i6,3i10)') 'iproc, istartend_c(:,jproc), lzd%glr%wfd%nvctr_c', iproc, istartend_c(:,jproc), lzd%glr%wfd%nvctr_c
+  !!        write(*,'(a,i6,3i10)') 'iproc, istartend_f(:,jproc), lzd%glr%wfd%nvctr_f', iproc, istartend_f(:,jproc), lzd%glr%wfd%nvctr_f
+  !!    end do
+  !!end if
+
   ! Determine values for mpi_alltoallv
   ! first nsendcounts
   nsendcounts_c=0
@@ -1130,8 +1138,11 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
 
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
   ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
-  if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) &
-      stop 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs'
+  if(orbs%npsidim_orbs>1 .and. sum(nsendcounts_c)+7*sum(nsendcounts_f)/=orbs%npsidim_orbs) then
+      write(*,'(a,2i10)') 'sum(nsendcounts_c)+sum(nsendcounts_f)/=orbs%npsidim_orbs', &
+                          sum(nsendcounts_c)+sum(nsendcounts_f), orbs%npsidim_orbs
+      stop
+  end if
 
   
   ! now nsenddspls

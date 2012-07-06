@@ -653,7 +653,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
       end if
       tmbopt%confdatarr => tmb%confdatarr
       !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized...'
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+      !if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+           call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
            tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
            tmbopt%can_use_transposed)

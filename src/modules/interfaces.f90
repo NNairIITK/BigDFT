@@ -6375,14 +6375,34 @@ module module_interfaces
           integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
         end subroutine penalty_basis_function
 
-subroutine allocate_convolutions_bounds(ab, subname, bounds)
-  use module_base
-  use module_types
-  implicit none
-  integer,intent(in):: ab
-  character(len=*),intent(in):: subname
-  type(convolutions_bounds),intent(out):: bounds
-end subroutine allocate_convolutions_bounds
+        subroutine allocate_convolutions_bounds(ab, subname, bounds)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: ab
+          character(len=*),intent(in):: subname
+          type(convolutions_bounds),intent(out):: bounds
+        end subroutine allocate_convolutions_bounds
+        
+        subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
+                   tmblarge, fpulay)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(input_variables),intent(in):: input
+          type(orbitals_data),intent(in):: orbs
+          type(atoms_data),intent(in):: at
+          real(8),dimension(at%nat),intent(in):: rxyz
+          type(nonlocal_psp_descriptors),intent(in):: nlpspd
+          real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+          type(SIC_data),intent(in):: SIC
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers),intent(inout):: GPU
+          type(DFT_wavefunction),intent(in):: tmb
+          type(DFT_wavefunction),intent(inout):: tmblarge
+          real(8),dimension(3,at%nat),intent(out):: fpulay
+        end subroutine pulay_correction
 
    end interface
 

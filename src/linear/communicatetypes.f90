@@ -925,31 +925,52 @@ subroutine create_convolutions_windows_root(ab, mpi_ncounts, bounds, wins_bounds
   mpi_30=30
   mpi_36=36
 
-  call mpi_win_create(ab(1,1,1), size_of_integer*mpi_36, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(1), ierr)
-  call mpi_win_create(ab(1,1,2), size_of_integer*mpi_30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(2), ierr)
-  call mpi_win_create(ab(1,1,3), size_of_integer*mpi_30, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(3), ierr)
-  call mpi_win_create(ab(1,1,4), size_of_integer*mpi_6, size_of_integer, mpi_info_null, mpi_comm_world, wins_bounds(4), ierr)
+  call mpi_win_create(ab(1,1,1), size_of_integer*mpi_36, size_of_integer, mpi_info_null, &
+       mpi_comm_world, wins_bounds(1), ierr)
+  call mpi_win_create(ab(1,1,2), size_of_integer*mpi_30, size_of_integer, mpi_info_null, &
+       mpi_comm_world, wins_bounds(2), ierr)
+  call mpi_win_create(ab(1,1,3), size_of_integer*mpi_30, size_of_integer, mpi_info_null, &
+       mpi_comm_world, wins_bounds(3), ierr)
+  call mpi_win_create(ab(1,1,4), size_of_integer*mpi_6, size_of_integer, mpi_info_null, &
+       mpi_comm_world, wins_bounds(4), ierr)
 
-  call mpi_win_create(bounds%kb%ibyz_c, size_of_integer*mpi_ncounts(1,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,1), ierr)
-  call mpi_win_create(bounds%kb%ibxz_c, size_of_integer*mpi_ncounts(2,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,1), ierr)
-  call mpi_win_create(bounds%kb%ibxy_c, size_of_integer*mpi_ncounts(3,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,1), ierr)
-  call mpi_win_create(bounds%kb%ibyz_f, size_of_integer*mpi_ncounts(4,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,1), ierr)
-  call mpi_win_create(bounds%kb%ibxz_f, size_of_integer*mpi_ncounts(5,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,1), ierr)
-  call mpi_win_create(bounds%kb%ibxy_f, size_of_integer*mpi_ncounts(6,1), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(6,1), ierr)
+  call mpi_win_create(bounds%kb%ibyz_c, size_of_integer*mpi_ncounts(1,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(1,1), ierr)
+  call mpi_win_create(bounds%kb%ibxz_c, size_of_integer*mpi_ncounts(2,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(2,1), ierr)
+  call mpi_win_create(bounds%kb%ibxy_c, size_of_integer*mpi_ncounts(3,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(3,1), ierr)
+  call mpi_win_create(bounds%kb%ibyz_f, size_of_integer*mpi_ncounts(4,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(4,1), ierr)
+  call mpi_win_create(bounds%kb%ibxz_f, size_of_integer*mpi_ncounts(5,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(5,1), ierr)
+  call mpi_win_create(bounds%kb%ibxy_f, size_of_integer*mpi_ncounts(6,1), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(6,1), ierr)
 
-  call mpi_win_create(bounds%sb%ibzzx_c, size_of_integer*mpi_ncounts(1,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,2), ierr)
-  call mpi_win_create(bounds%sb%ibyyzz_c, size_of_integer*mpi_ncounts(2,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,2), ierr)
-  call mpi_win_create(bounds%sb%ibxy_ff, size_of_integer*mpi_ncounts(3,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,2), ierr)
-  call mpi_win_create(bounds%sb%ibzzx_f, size_of_integer*mpi_ncounts(4,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,2), ierr)
-  call mpi_win_create(bounds%sb%ibyyzz_f, size_of_integer*mpi_ncounts(5,2), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,2), ierr)
+  call mpi_win_create(bounds%sb%ibzzx_c, size_of_integer*mpi_ncounts(1,2), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(1,2), ierr)
+  call mpi_win_create(bounds%sb%ibyyzz_c, size_of_integer*mpi_ncounts(2,2), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(2,2), ierr)
+  call mpi_win_create(bounds%sb%ibxy_ff, size_of_integer*mpi_ncounts(3,2), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(3,2), ierr)
+  call mpi_win_create(bounds%sb%ibzzx_f, size_of_integer*mpi_ncounts(4,2), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(4,2), ierr)
+  call mpi_win_create(bounds%sb%ibyyzz_f, size_of_integer*mpi_ncounts(5,2), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(5,2), ierr)
 
-  call mpi_win_create(bounds%gb%ibzxx_c, size_of_integer*mpi_ncounts(1,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,3), ierr)
-  call mpi_win_create(bounds%gb%ibxxyy_c, size_of_integer*mpi_ncounts(2,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(2,3), ierr)
-  call mpi_win_create(bounds%gb%ibyz_ff, size_of_integer*mpi_ncounts(3,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(3,3), ierr)
-  call mpi_win_create(bounds%gb%ibzxx_f, size_of_integer*mpi_ncounts(4,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(4,3), ierr)
-  call mpi_win_create(bounds%gb%ibxxyy_f, size_of_integer*mpi_ncounts(5,3), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(5,3), ierr)
+  call mpi_win_create(bounds%gb%ibzxx_c, size_of_integer*mpi_ncounts(1,3), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(1,3), ierr)
+  call mpi_win_create(bounds%gb%ibxxyy_c, size_of_integer*mpi_ncounts(2,3), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(2,3), ierr)
+  call mpi_win_create(bounds%gb%ibyz_ff, size_of_integer*mpi_ncounts(3,3), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(3,3), ierr)
+  call mpi_win_create(bounds%gb%ibzxx_f, size_of_integer*mpi_ncounts(4,3), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(4,3), ierr)
+  call mpi_win_create(bounds%gb%ibxxyy_f, size_of_integer*mpi_ncounts(5,3), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(5,3), ierr)
 
-  call mpi_win_create(bounds%ibyyzz_r, size_of_integer*mpi_ncounts(1,4), size_of_integer, mpi_info_null, mpi_comm_world, wins_arrays(1,4), ierr)
+  call mpi_win_create(bounds%ibyyzz_r, size_of_integer*mpi_ncounts(1,4), size_of_integer, &
+       mpi_info_null, mpi_comm_world, wins_arrays(1,4), ierr)
 
 END SUBROUTINE create_convolutions_windows_root
 
