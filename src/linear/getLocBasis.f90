@@ -854,7 +854,7 @@ endif
               infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
-          exit iterLoop
+          !exit iterLoop
       end if
 
       if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then

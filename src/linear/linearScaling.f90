@@ -280,7 +280,13 @@ integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_referenc
 !!!! END TEST
 
 
-
+  !!do iorb=1,tmb%orbs%norb
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    call plotGrid(iproc, nproc, tmb%orbs%norb, orbs%nspinor, orbs%nspin, iiorb, &
+  !!    tmb%lzd%llr(ilr), tmb%lzd%glr, at, rxyz, &
+  !!    tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
+  !!end do
 
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
