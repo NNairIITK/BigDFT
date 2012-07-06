@@ -539,11 +539,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   !!if(iproc==0) write(*,*) 'ldiis%switchSD',ldiis%switchSD
 
   ! Improve the orbitals, depending on the choice made above.
-  !if(.not.ldiis%switchSD) then
+  if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, nproc, it, variable_locregs, tmbopt, ldiis, lhphiopt, alpha)
-  !else
-  !    if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
-  !end if
+  else
+      if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+  end if
 
   ! The transposed quantities can now not be used any more...
   if(tmbopt%can_use_transposed) then

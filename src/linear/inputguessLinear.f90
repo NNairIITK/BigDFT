@@ -1038,13 +1038,13 @@ logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
-type(basis_performance_options),intent(inout):: bpo
+type(basis_performance_options),intent(in):: bpo
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
-integer:: istat, iorb, ilr, iall, ldim, gdim, iat, jproc, ilrold, iilr, communication_strategy_overlap
+integer:: istat, iorb, ilr, iall, ldim, gdim, iat, jproc, ilrold, iilr, ii
 integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, nshift
-integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag, ii
+integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
 type(overlapParameters):: op
 type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
@@ -1079,8 +1079,6 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-communication_strategy_overlap=bpo%communication_strategy_overlap
-bpo%communication_strategy_overlap=COMMUNICATION_P2P
 call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, &
      locregShape, bpo, op, comon)
 
@@ -1277,8 +1275,6 @@ do iat=1,lzd%nlr
      call timing(iproc,'ig_matric_comm','OF')
 
   end if
-
-bpo%communication_strategy_overlap=communication_strategy_overlap
 
 end do
 
