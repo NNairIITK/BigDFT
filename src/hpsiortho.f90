@@ -1565,7 +1565,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,comms,iter,diis,idsx,psi,psit,hpsi,orthpar
 
       !
       !Recalculate  hpsi,spsi and cprj with new psi
-      !PENDING: cprj should be updated before, so we avoid this call
+      !PENDING: Here we only should recalculate cprj, hpsi and spsi are already updated.
       write(*,*)'Recalculate hpsi,spsi and cprj with new psi'
       if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
       if (orbs%npsidim_orbs >0.and. paw%usepaw==1) call to_zero(orbs%npsidim_orbs,paw%spsi(1))
