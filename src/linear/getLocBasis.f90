@@ -521,14 +521,16 @@ endif
       lhphioldopt => lhphilargeold2
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           tmbopt, tmb%wfnmd%density_kernel, &
-           ldiis, lhphiopt, consecutive_rejections, fnrmArr, &
+           tmb%wfnmd%density_kernel, &
+           ldiis, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+      lhphiopt => lhphi
       lphioldopt => lphiold
       lhphioldopt => lhphiold
+      tmbopt => tmb
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))

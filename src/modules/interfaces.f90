@@ -5588,31 +5588,29 @@ module module_interfaces
 
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  tmbopt, kernel, &
-                  ldiis, lhphiopt, consecutive_rejections, fnrmArr, &
+                  kernel, &
+                  ldiis, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
-                  tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+                  tmblarge, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, it
-         type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
+         type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(:),pointer,intent(inout):: lhphiopt
          integer,intent(inout):: consecutive_rejections
-         real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
-         real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
-         real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
+         real(8),dimension(tmb%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
+         real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
+         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
          logical,intent(out):: emergency_exit
-         type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
          logical,intent(inout):: overlap_calculated
-         real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: ovrlp
+         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
        end subroutine calculate_energy_and_gradient_linear
 
 
