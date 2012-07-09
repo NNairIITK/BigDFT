@@ -680,11 +680,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !number of iterations in the preconditioner : lin%nItPrecond
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
   
-  !getCoeff: 'diag' or 'min'
-  comments="cubic ('c') or spheric ('s') localization region"
-  !call input_var(in%lin%getCoeff,'diag')
-  call input_var(in%lin%locregShape,'s',comment=comments)
-  
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
   call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
@@ -697,9 +692,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization'
-  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
-  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/),comment=comments)
+  comments = '0-> exact Loewdin, 1-> taylor expansion'
+  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/),comment=comments)
   
   !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
   comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
@@ -755,14 +749,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-  !transform to global orbitals in the end (T/F)
-  comments='transform to global orbitals in the end (T/F)'
-  call input_var(in%lin%transformToGlobal,'F',comment=comments)
-  
-  !number of orbitals per process for trace minimization during input guess.
-  comments='number of orbitals per process for trace minimization during input guess.'
-  call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
-
   !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
   !!                                               &F -> slow, needs little memory')
 
@@ -777,11 +763,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='decrease_amount, decrease_step'
   call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
-
-  ! whether the localization radii should be enlarged after some unsuccessful iterations
-  comments='increase locrad after n steps, amount that locrad is increased'
-  call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
-  call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

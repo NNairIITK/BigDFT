@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-09 15:26:59.430
+ Timestamp of this run                 :  2012-07-09 18:00:14.940
  Hostname                              : phys-comp-03
  #... (file:default.perf)................................................Performance Options
  #|debug F                   Debug option
@@ -94,10 +94,9 @@
  #|-1  1.0d0  4.d-5 4.d-5  .5diterations in the inner loop, enlargement factor for locreg, co
  #|0  5  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD            
  #|5              number of iterations in the preconditioner                                 
- #|s              cubic ('c') or spheric ('s') localization region                           
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the ortho
+ #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|102            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
@@ -109,12 +108,9 @@
  #|T  4           use the derivative basis functions, Order of confinement potential (4 or 6)
  #|50  100        number of iterations for the input guess, memory available for overlap comm
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              transform to global orbitals in the end (T/F)                              
- #|1              number of orbitals per process for trace minimization during input guess.  
  #|T              mixed mode (without and with derivatives)                                  
  #|1              confinement_decrease_mode: 0=linear, 1=abrupt                              
  #|.6d0  .1d0     decrease_amount, decrease_step                                             
- #|5  0.d0        increase locrad after n steps, amount that locrad is increased             
  #|C 4 1.0d-1 0.0d-4 2.8 3.3  Atom name, number of basis functions per atom, prefactor for co
  #|H 1 1.0d-1 0.0d-4 2.8 3.3  Atom name, number of basis functions per atom, prefactor for co
  #|----------------------------------------------------------------------------------
@@ -236,15 +232,6 @@
     | Processes from 0 to 7 treat 25 orbitals. |
  ------------------------------------------------------------------------------------
  Wavefunctions memory occupation for root MPI process:  1 MB 322 KB 128
- in determine_locregSphere_parallel, loop 1: time  9.223222732543945E-003
- in determine_locregSphere_parallel, loop 2: time  1.734972000122070E-003
- in determine_locregSphere_parallel, loop 3: time  1.329302787780762E-002
- determine_locregSphere_parallel: time 1  1.613140106201172E-003
- determine_locregSphere_parallel: time 2  5.074977874755859E-003
- determine_locregSphere_parallel: time 3  2.515077590942383E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  2.433395385742188E-002
- in lzd_init_llr: time  2.442193031311035E-002
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       C               8                    1
@@ -272,22 +259,6 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 37 MB
  WARNING: do not call check_communications in the linear scaling version!
-time for part 1: 2.268E-03
-time for part 2: 2.861E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   2.98023E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 9.084E-05
-time for part 4: 2.530E-04
-time for part 5: 1.621E-04
-time for part 6: 1.428E-03
-time for part 1: 2.372E-03
-time for part 2: 3.815E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   3.00407E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.199E-05
-time for part 4: 1.659E-04
-time for part 5: 3.471E-04
-time for part 6: 2.250E-03
  ion-ion interaction energy  2.19393979420974E+02
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -49.999987890247   0.000E+00
@@ -296,36 +267,6 @@ time for part 6: 2.250E-03
    Dimensions                          :  [  89,  93,  157 ]
    MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
- in determine_locregSphere_parallel, loop 1: time  9.176015853881836E-003
- in determine_locregSphere_parallel, loop 2: time  1.580953598022461E-003
- in determine_locregSphere_parallel, loop 3: time  1.138591766357422E-002
- determine_locregSphere_parallel: time 1  1.611232757568359E-003
- determine_locregSphere_parallel: time 2  5.007266998291016E-003
- determine_locregSphere_parallel: time 3  2.542495727539062E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  2.221608161926270E-002
- in determine_locregSphere_parallel, loop 1: time  4.138612747192383E-002
- in determine_locregSphere_parallel, loop 2: time  1.713037490844727E-003
- in determine_locregSphere_parallel, loop 3: time  2.542901039123535E-002
- determine_locregSphere_parallel: time 1  9.231567382812500E-004
- determine_locregSphere_parallel: time 2  2.772307395935059E-002
- determine_locregSphere_parallel: time 3  1.123595237731934E-002
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  6.861400604248047E-002
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-time for part 1: 2.521E-03
-in sub determine_num_orbs_per_gridpoint: iproc, total time   2.98023E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.199E-05
-time for part 4: 2.511E-04
-time for part 5: 1.099E-04
-time for part 6: 1.426E-03
 WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   5.14E+00   2.800E+00
 V3prb    1.8106E+03
@@ -336,38 +277,13 @@ V3prb    5.4876E+01
  Processes from 0 to 1 treat 7 inguess orbitals 
  Processes from 2 to 7 treat 6 inguess orbitals 
  Atomic Input Orbital Generation: [
- {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}quartic potential for AO: modify rprb from    2.900E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    1.495E+00
-}], 
+ {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  3.53E-04, 
              GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
       Total electronic charge:  49.999975100596, 
                      Electronic charge changed by rho compression:  1.007550807230E-07, 
  Poisson Solver: {BC: Isolated, Dimensions:  [  89,  93,  157 ], MPI tasks:  8}, 
- in determine_locregSphere_parallel, loop 1: time  2.899193763732910E-002
- in determine_locregSphere_parallel, loop 2: time  2.487897872924805E-003
- in determine_locregSphere_parallel, loop 3: time  2.263903617858887E-002
- determine_locregSphere_parallel: time 1  1.626968383789062E-003
- determine_locregSphere_parallel: time 2  1.637506484985352E-002
- determine_locregSphere_parallel: time 3  1.096844673156738E-002
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  5.420517921447754E-002
-time for part 1: 2.697E-03
-time for part 2: 4.053E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   2.69413E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 5.698E-05
-time for part 4: 9.990E-05
-time for part 5: 7.949E-04
-time for part 6: 5.040E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -397,22 +313,6 @@ time for part 6: 5.040E-03
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  Changing the confining potential to 100.00% of its initial value.
- in determine_locregSphere_parallel, loop 1: time  2.878403663635254E-002
- in determine_locregSphere_parallel, loop 2: time  2.487897872924805E-003
- in determine_locregSphere_parallel, loop 3: time  2.295303344726562E-002
- determine_locregSphere_parallel: time 1  1.612663269042969E-003
- determine_locregSphere_parallel: time 2  1.639270782470703E-002
- determine_locregSphere_parallel: time 3  1.075696945190430E-002
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  5.431008338928223E-002
-time for part 1: 2.674E-03
-time for part 2: 2.098E-05
-in sub determine_num_orbs_per_gridpoint: iproc, total time   5.50747E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 9.298E-05
-time for part 4: 1.271E-04
-time for part 5: 7.911E-04
-time for part 6: 5.057E-03
  calling orthonormalizeLocalized (exact)
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
@@ -465,9 +365,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  8.790801E-02 -1.185795E-01
    eval(33)=  8.12730E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -1.17606183960570     
-   275.440639655129       -23.1818387071544       -30.3508860586578     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998597931E+01
@@ -505,9 +402,6 @@ done.
    eval(33)=  6.72072E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -7.38759356199044     
-   262.365888755901       -22.6026382855365       -29.5854630189574     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998518890E+01
@@ -587,9 +481,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  7.738101E-02 -2.378788E-02
    eval(33)=  7.02749E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -6.38195517232957     
-   270.375618480868       -22.9750839698179       -30.0772599337332     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998464233E+01
@@ -627,9 +518,6 @@ done.
    eval(33)=  6.95336E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -6.65676362194075     
-   268.920904633458       -22.9125235167186       -29.9947180820402     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998459348E+01
@@ -659,54 +547,6 @@ done.
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
- in determine_locregSphere_parallel, loop 1: time  9.783983230590820E-003
- in determine_locregSphere_parallel, loop 2: time  1.819849014282227E-003
- in determine_locregSphere_parallel, loop 3: time  1.208996772766113E-002
- determine_locregSphere_parallel: time 1  1.611709594726562E-003
- determine_locregSphere_parallel: time 2  5.357980728149414E-003
- determine_locregSphere_parallel: time 3  2.797842025756836E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  2.377486228942871E-002
-time for part 1: 2.035E-03
-time for part 2: 4.053E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   3.00407E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.104E-05
-time for part 4: 1.051E-04
-time for part 5: 1.500E-04
-time for part 6: 1.465E-03
- in determine_locregSphere_parallel, loop 1: time  3.405094146728516E-002
- in determine_locregSphere_parallel, loop 2: time  2.764940261840820E-003
- in determine_locregSphere_parallel, loop 3: time  2.449584007263184E-002
- determine_locregSphere_parallel: time 1  1.629114151000977E-003
- determine_locregSphere_parallel: time 2  1.966691017150879E-002
- determine_locregSphere_parallel: time 3  1.273202896118164E-002
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  6.140804290771484E-002
-time for part 1: 2.525E-03
-time for part 2: 5.007E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   2.81334E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.008E-05
-time for part 4: 1.240E-04
-time for part 5: 9.360E-04
-time for part 6: 6.081E-03
- in determine_locregSphere_parallel, loop 1: time  3.378319740295410E-002
- in determine_locregSphere_parallel, loop 2: time  2.776145935058594E-003
- in determine_locregSphere_parallel, loop 3: time  2.417707443237305E-002
- determine_locregSphere_parallel: time 1  1.614093780517578E-003
- determine_locregSphere_parallel: time 2  1.966881752014160E-002
- determine_locregSphere_parallel: time 3  1.247310638427734E-002
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  6.083416938781738E-002
-time for part 1: 3.233E-03
-time for part 2: 5.007E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   3.29018E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.413E-05
-time for part 4: 2.460E-04
-time for part 5: 3.745E-03
-time for part 6: 2.433E-02
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -726,22 +566,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.899193E-01 -2.357574E+00
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.5182642E-01  1.9518537E-01  -5.6468818
  ============================= Basis functions created. =============================
- in determine_locregSphere_parallel, loop 1: time  9.778976440429688E-003
- in determine_locregSphere_parallel, loop 2: time  1.872062683105469E-003
- in determine_locregSphere_parallel, loop 3: time  1.216316223144531E-002
- determine_locregSphere_parallel: time 1  1.631975173950195E-003
- determine_locregSphere_parallel: time 2  5.349397659301758E-003
- determine_locregSphere_parallel: time 3  2.782344818115234E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  2.389502525329590E-002
-time for part 1: 1.922E-03
-time for part 2: 2.861E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   3.48091E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.604E-05
-time for part 4: 1.211E-04
-time for part 5: 5.052E-04
-time for part 6: 2.918E-03
  calculating derivative basis functions...done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -767,9 +591,6 @@ time for part 6: 2.918E-03
    eval(33)=  5.54851E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -11.8953293547502     
-   269.268736906682       -22.9334582815238       -30.0223718410337     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998885613E+01
@@ -807,9 +628,6 @@ done.
    eval(33)=  5.20890E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -13.3365574083258     
-   265.707578762439       -21.4243598888733       -28.0309917247961     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998847521E+01
@@ -847,9 +665,6 @@ done.
    eval(33)=  5.13768E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -13.5429867715802     
-   266.765091185705       -21.5060012590009       -28.1387863788562     
-  0.000000000000000E+000   219.393979420974       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   4.999998836203E+01
@@ -908,7 +723,7 @@ done.
  total average noise            :   5.76835326E-02
  clean forces norm (Ha/Bohr): maxval=  6.980639050870E-02  fnrm2=  5.202015572947E-02
  raw forces:                  maxval=  6.984166751167E-02  fnrm2=  5.535039005254E-02
- CPU time/ELAPSED time for root process     0        19.07        18.98
+ CPU time/ELAPSED time for root process     0        17.86        17.75
  Final values of the Forces for each atom
      1      C  5.39118E-03 -3.55733E-04  1.18612E-02
      2      C  6.43219E-03  1.85879E-02  6.70212E-03

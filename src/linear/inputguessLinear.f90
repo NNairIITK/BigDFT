@@ -193,7 +193,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! Determine the localization regions.
   call initLocregs(iproc, nproc, tmbig%lzd%nlr, locregCenter, hx, hy, hz, tmbig%lzd, &
-       tmbig%orbs, Glr, locrad, lin%locregShape)
+       tmbig%orbs, Glr, locrad, 's')
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
@@ -211,12 +211,12 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
        input%nspin, norbsPerAt, rxyz, tmbgauss%orbs%inwhichlocreg)
 
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
-       tmbgauss%orbs, Glr, locrad, lin%locregShape)
+       tmbgauss%orbs, Glr, locrad, 's')
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, &
-       lin%locregShape, tmbig%wfnmd%bpo, tmbig%op, tmbig%comon)
+       's', tmbig%wfnmd%bpo, tmbig%op, tmbig%comon)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
@@ -540,7 +540,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   ! Always use the exact Loewdin method.
   if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
-      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
+      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, 1, &
            tmbig%lzd, tmbig%orbs, tmbig%comon, &
            tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
   end if
@@ -802,7 +802,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       if(input%lin%nItInguess>0) then
           call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
                input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
-               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, &
+               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, 's', &
                tmbig%wfnmd%bpo, ham)
       end if
     
@@ -2836,7 +2836,7 @@ type(collective_comms):: collcom_vectors
   if(input%lin%nItInguess==0) then
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
-      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, 1, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &
@@ -2866,7 +2866,7 @@ type(collective_comms):: collcom_vectors
 
 
       ! Orthonormalize the coefficients.
-      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, 1, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &

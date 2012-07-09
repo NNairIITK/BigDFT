@@ -453,10 +453,11 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
-     call countOverlaps(iproc, nproc, orbs, lzd, op, comon)
-     allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
-     call memocc(istat, op%overlaps, 'op%overlaps', subname)
-     call determineOverlaps(iproc, nproc, orbs, lzd, op, comon)
+     stop "ERROR: locregShape=='c' is deprecated!"
+     !!call countOverlaps(iproc, nproc, orbs, lzd, op, comon)
+     !!allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
+     !!call memocc(istat, op%overlaps, 'op%overlaps', subname)
+     !!call determineOverlaps(iproc, nproc, orbs, lzd, op, comon)
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if

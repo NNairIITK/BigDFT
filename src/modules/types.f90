@@ -132,8 +132,8 @@ module module_types
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
     integer:: DIISHistMin, DIISHistMax, nItPrecond
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: nItSCCWhenOptimizing, confPotOrder, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
@@ -150,9 +150,8 @@ module module_types
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
+    logical:: useDerivativeBasisFunctions, mixedmode
     integer:: scf_mode
-    character(len=1):: locregShape
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0

@@ -1032,22 +1032,20 @@ real(8),dimension(3,at%nat):: fpulay
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
   ! Build global orbitals psi (the physical ones).
-  if(input%lin%transformToGlobal) then
-     if(nproc>1) then
-        allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-        call memocc(istat, psit, 'psit', subname)
-     else
-        psit => psi
-     end if
-     call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
-          tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
-     if(nproc>1) then
-        iall=-product(shape(psit))*kind(psit)
-        deallocate(psit, stat=istat)
-        call memocc(istat, iall, 'psit', subname)
-     else
-        nullify(psit)
-     end if
+  if(nproc>1) then
+     allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+     call memocc(istat, psit, 'psit', subname)
+  else
+     psit => psi
+  end if
+  call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
+       tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
+  if(nproc>1) then
+     iall=-product(shape(psit))*kind(psit)
+     deallocate(psit, stat=istat)
+     call memocc(istat, iall, 'psit', subname)
+  else
+     nullify(psit)
   end if
 
   nullify(rho,pot)
@@ -1377,21 +1375,21 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
-     input%lin%locrad_increase_amount>0.d0) then
-      lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
-      !lscv%increase_locreg=lscv%increase_locreg+0.d0
-      if(iproc==0) then
-          write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
-          write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',lscv%increase_locreg
-      end if
-      lscv%ifail=0
-      lscv%locrad=lscv%locrad+lscv%increase_locreg
-      if(lscv%withder) then
-          redefine_derivatives=.true.
-      end if
-      lscv%locreg_increased=.true.
-  end if
+  !!if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
+  !!   input%lin%locrad_increase_amount>0.d0) then
+  !!    lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
+  !!    !lscv%increase_locreg=lscv%increase_locreg+0.d0
+  !!    if(iproc==0) then
+  !!        write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
+  !!        write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',lscv%increase_locreg
+  !!    end if
+  !!    lscv%ifail=0
+  !!    lscv%locrad=lscv%locrad+lscv%increase_locreg
+  !!    if(lscv%withder) then
+  !!        redefine_derivatives=.true.
+  !!    end if
+  !!    lscv%locreg_increased=.true.
+  !!end if
 
   !redefine_derivatives=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then

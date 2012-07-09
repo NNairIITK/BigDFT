@@ -100,12 +100,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
 
      if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs, dlorbs)
-
-     if(.not.in%lin%transformToGlobal) then
-        ! psi and psit will not be calculated, so only allocate them with size 1
-        orbs%npsidim_orbs=1
-        orbs%npsidim_comp=1
-     end if
   end if
 
   if (iproc == 0) then

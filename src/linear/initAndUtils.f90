@@ -1713,11 +1713,11 @@ t1=mpi_wtime()
   if (withderorbs) then
      call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
           & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, input%lin%locregShape, derorbs)
+          & lzd%glr, input%lin%locrad, 's', derorbs)
   else
      call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
           & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, input%lin%locregShape)
+          & lzd%glr, input%lin%locrad, 's')
   end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
