@@ -784,6 +784,7 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
+    real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients

@@ -741,19 +741,19 @@ real(8),dimension(3,at%nat):: fpulay
               scf_mode=input%lin%scf_mode
           end if
 
-          allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
-          call memocc(istat, density_kernel, 'density_kernel', subname)
+          !!allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+          !!call memocc(istat, density_kernel, 'density_kernel', subname)
 
           ! Calculate the coefficients
           if(.not.lscv%withder) then
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
+                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,tmbmix%wfnmd%density_kernel,overlapmatrix,calculate_overlap_matrix,&
                    tmblarge, lhphilarge, lhphilargeold, lphilargeold, ldiis_coeff)
           else
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
+                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,tmbmix%wfnmd%density_kernel,overlapmatrix,calculate_overlap_matrix,&
                    tmblargeder, lhphilargeder, lhphilargeoldder, lphilargeoldder, ldiis_coeff)
           end if
 
@@ -773,12 +773,12 @@ real(8),dimension(3,at%nat):: fpulay
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
                tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-               density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+               tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
-          iall = -product(shape(density_kernel))*kind(density_kernel)
-          deallocate(density_kernel,stat=istat)
-          call memocc(istat,iall,'density_kernel',subname)
+          !!iall = -product(shape(density_kernel))*kind(density_kernel)
+          !!deallocate(density_kernel,stat=istat)
+          !!call memocc(istat,iall,'density_kernel',subname)
 
           ! Mix the density.
           !if(trim(input%lin%mixingMethod)=='dens') then

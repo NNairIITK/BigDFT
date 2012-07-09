@@ -835,8 +835,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, density_kernel, 'density_kernel', subname)
+  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, density_kernel, 'density_kernel', subname)
 
 
       !!allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
@@ -871,7 +871,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.,&
+       hx,hy,hz,input%SIC,tmb,tmb,fnrm,tmb%wfnmd%density_kernel,overlapmatrix,.true.,&
        tmblarge, lhphilarge, lhphilargeold, lphilargeold)
 
 
@@ -894,9 +894,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  iall = -product(shape(density_kernel))*kind(density_kernel)
-  deallocate(density_kernel,stat=istat)
-  call memocc(istat,iall,'density_kernel',subname)
+  !!iall = -product(shape(density_kernel))*kind(density_kernel)
+  !!deallocate(density_kernel,stat=istat)
+  !!call memocc(istat,iall,'density_kernel',subname)
   ! Deallocate the buffers needed for the communication of the potential.
   !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   

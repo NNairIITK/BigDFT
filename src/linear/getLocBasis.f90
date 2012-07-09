@@ -423,8 +423,8 @@ real(8),dimension(2):: reducearr
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
-  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp)
+  !!call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
+  !!     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp)
 
   !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
   !     tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, kernel(1,1), tmb%orbs%norb)
@@ -767,7 +767,7 @@ endif
       !!end if
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           tmbopt, kernel, &
+           tmbopt, tmb%wfnmd%density_kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
@@ -873,12 +873,12 @@ endif
       !!    lhphioldopt => lhphilargeold
       !!end if
 
-      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, rxyz, tmb%wfnmd%density_kernel, &
            lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
            alpha, locregCenter, locregCenterTemp, &
            denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
 
-      call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, kernel)
+      call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
 
       !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
           tmbopt => tmb
@@ -986,8 +986,8 @@ contains
       allocate(locregCenterTemp(3,tmb%lzd%nlr), stat=istat)
       call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
 
-      allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, kernel, 'kernel', subname)
+      !!allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !!call memocc(istat, kernel, 'kernel', subname)
 
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
@@ -1073,9 +1073,9 @@ contains
       deallocate(locregCenterTemp, stat=istat)
       call memocc(istat, iall, 'locregCenterTemp', subname)
 
-      iall=-product(shape(kernel))*kind(kernel)
-      deallocate(kernel, stat=istat)
-      call memocc(istat, iall, 'kernel', subname)
+      !!iall=-product(shape(kernel))*kind(kernel)
+      !!deallocate(kernel, stat=istat)
+      !!call memocc(istat, iall, 'kernel', subname)
 
 
     end subroutine deallocateLocalArrays
