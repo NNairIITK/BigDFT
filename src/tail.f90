@@ -12,7 +12,7 @@
 !!  Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
   use module_base
   use module_types
   use module_interfaces, except_this_one => CalculateTailCorrection
@@ -21,6 +21,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+  type(gaussian_basis),intent(in),dimension(at%ntypes)::proj_G
+  type(paw_objects),intent(inout)::paw
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
@@ -395,9 +397,13 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
         if (DistProjApply) then
            call applyprojectorsonthefly(0,orbsb,at,lr,&
-                txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+                txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj,proj_G,paw)
            !only the wavefunction descriptors must change
         else
+           if(paw%usepaw==1) then
+             write(*,*)'WVL+PAW: applyprojectorsone not yet implemented'
+             stop
+           end if
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
                 at%psppar,at%npspcode, &
                 nlpspd%nprojel,nlpspd%nproj,proj,nlpspd,&

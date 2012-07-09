@@ -73,9 +73,9 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
   call H_potential(geocode,'D',iproc,nproc,&
        Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,vh,&
        pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-  !in principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
 
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
   if (symObj%symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj%symObj)
 
 end subroutine density_and_hpot

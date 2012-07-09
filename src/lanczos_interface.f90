@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Interface for routines which handle diagonalization
+!> Interface for routines which handle diagonalization
 module lanczos_interface
    use module_base
    use module_types
@@ -512,6 +512,7 @@ nullify(Qvect,dumQvect)
         !!end if
      else
         STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        !!$       Note G%psiat and G%xp have now 2 dimenstions.
         !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%Lzd%Glr%geocode,ha%orbs,ha%Lzd%Glr%d,&
         !!$            ha%hx,ha%hy,ha%hz,ha%Lzd%Glr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
      endif
@@ -746,9 +747,7 @@ nullify(Qvect,dumQvect)
 
 
 
-  !>   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-  !!
-  !!
+  !> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
      ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
      use module_base
@@ -790,13 +789,9 @@ nullify(Qvect,dumQvect)
 
 
 
-  !!****f* BigDFT/prec_fft_fast_spectra
-  !! FUNCTION
-  !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
-  !!   x_c is the right hand side on input and the solution on output
-  !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-  !! SOURCE : adapted from prec_fft_fast
-  !! 
+  !> Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+  !! x_c is the right hand side on input and the solution on output
+  !! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
         &   ene, gamma,hx,hy,hz,hpsi,&
         &   kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -839,10 +834,6 @@ nullify(Qvect,dumQvect)
      call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
   END SUBROUTINE prec_fft_fast_spectra
-  !!***
-
-
-
 
 
   subroutine EP_precondition(p,i, ene, gamma)
@@ -991,11 +982,7 @@ nullify(Qvect,dumQvect)
         endif
      endif
 
-
-
      call deallocate_work_arrays('P',.true.,1,w)
-
-
 
   END SUBROUTINE EP_precondition
 
@@ -1007,8 +994,17 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: p,i
      real(gp) :: ene, gamma
      !Local variables
-     integer :: k
+     integer :: k,iatyp
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+     type(paw_objects)::paw
+
+     !Nullify PAW pointers:
+     paw%usepaw=0 !Not using PAW here
+     call nullify_paw_objects(paw)
+     do iatyp=1,ha%at%ntypes
+        call nullify_gaussian_basis(proj_G(iatyp))
+     end do
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1035,7 +1031,8 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,&
+          proj_G,paw)
 
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1044,7 +1041,9 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,&
+          proj_G,paw)
+
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
@@ -1112,6 +1111,16 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+     type(paw_objects)::paw
+
+     !nullify PAW objects:
+     paw%usepaw=0 !Not using PAW here
+     call nullify_paw_objects(paw)
+     do k=1,ha%at%ntypes
+        call nullify_gaussian_basis(proj_G(k))
+     end do    
+
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1142,7 +1151,8 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,&
+          proj_G,paw)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 
@@ -1434,7 +1444,7 @@ nullify(Qvect,dumQvect)
               end do loop_calc
               if (maycalc) then
                  call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    &   G%xp(iexpo),G%psiat(iexpo),&
+                    &   G%xp(1,iexpo),G%psiat(1,iexpo),&
                     &   rx,ry,rz,hx,hy,hz,&
                     &   0,grid%n1,0,grid%n2,0,grid%n3,&
                     &   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -1642,7 +1652,6 @@ END MODULE lanczos_interface
 subroutine applyPAWprojectors(orbs,at,&
       &   hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
       &   sup_iatom, sup_l, sup_arraym)
-
    use module_base
    use module_types
    use module_interfaces, except_this_one => applyPAWprojectors
@@ -1898,6 +1907,7 @@ subroutine applyPAWprojectors(orbs,at,&
                   else
                      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
                   endif
+
                end if
             end do
 

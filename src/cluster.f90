@@ -228,6 +228,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(DFT_wavefunction) :: tmb
   type(DFT_wavefunction) :: tmbder
   real(gp), dimension(3) :: shift
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
   real(gp), dimension(:,:), pointer :: fdisp,fion
@@ -246,7 +247,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
 
-  ! ----------------------------------
+  !Variables for WVL+PAW
+  integer:: iatyp
+  type(rholoc_objects)::rholoc_tmp
+  type(paw_objects)::paw
+
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -269,6 +274,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   case (WF_FORMAT_BINARY)
      write(wfformat, "(A)") ".bin"
   end select
+     
+  !proj_G is dummy here, it is only used for PAW
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -388,7 +400,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset,&
+       rholoc_tmp)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
@@ -607,7 +620,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
-        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%sym%symObj)
+        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0).and.(verbose>2),xcstr,atoms%sym%symObj)
      end if
 
      ! calculate dipole moment associated to the charge density
@@ -724,7 +737,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
-                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),nlpspd,proj) 
+                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+                KSwfn%Lzd%hgrids(3),nlpspd,proj_G,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
@@ -960,7 +974,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
           KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_work,KSwfn%Lzd%hgrids(1),&
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
-          proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
+          proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj,&
+          proj_G,paw)
 
      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
      deallocate(denspot%pot_work,stat=i_stat)
@@ -1149,6 +1164,21 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
+  !wvl+PAW objects
+  integer :: iatyp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(paw_objects)::paw
+
+  !nullify paw objects:
+  do iatyp=1,atoms%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
+
+
+
+
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
@@ -1238,7 +1268,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
-                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
+                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr,&
+                1,proj_G,paw)
 
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
 
@@ -1253,12 +1284,13 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !evaluate the functional of the wavefunctions and put it into the diis structure
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
-                energs,KSwfn,opt%gnrm,gnrm_zero)
+                energs,KSwfn,opt%gnrm,gnrm_zero,paw)
 
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
 
-           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn)
+           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn,&
+                paw,atoms,proj,rxyz,nlpspd,energs%eproj,proj_G)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &

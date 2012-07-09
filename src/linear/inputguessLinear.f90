@@ -287,6 +287,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction):: tmbig, tmbgauss
   type(GPU_pointers) :: GPUe
+  !wvl+PAW objects
+  integer::iatyp
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
+
+  !nullify paw objects:
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  paw%usepaw=0  !not using PAW
+  call nullify_paw_objects(paw)
 
   ! Initialize evrything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
@@ -686,7 +697,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                       pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
-                      proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
+                      proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj,&
+                      proj_G,paw)
                  ii_old=ii
              else
                  call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)

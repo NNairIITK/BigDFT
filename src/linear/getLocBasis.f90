@@ -41,6 +41,18 @@ character(len=1) :: num
 real(8),dimension(:),allocatable :: Gphi, Ghphi, work
 
 
+!wvl+PAW objects
+integer::iatyp
+type(gaussian_basis),dimension(at%ntypes)::proj_G
+type(paw_objects)::paw
+
+  !nullify paw objects:
+  paw%usepaw=0 !Not using paw
+  call nullify_paw_objects(paw)
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+
   ! Allocate the local arrays.  
   allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
@@ -99,6 +111,7 @@ real(8),dimension(:),allocatable :: Gphi, Ghphi, work
   call FullHamiltonianApplication(iproc,nproc,at,tmbmix%orbs,rxyz,&
        proj,lzd,nlpspd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmbmix%psi,lhphi,&
        energs,SIC,GPU,&
+       proj_G,paw,&
        pkernel=denspot%pkernelseq)
   deallocate(confdatarrtmp)
 !DEBUG
@@ -374,6 +387,17 @@ type(DFT_wavefunction),pointer:: tmbopt
 type(energy_terms) :: energs
 
 
+  !wvl+PAW objects
+  integer::iatyp
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
+
+  !nullify paw objects:
+  call nullify_paw_objects(paw)
+  paw%usepaw=0 !Not using PAW
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
 
   ! Allocate all local arrays.
@@ -583,6 +607,7 @@ type(energy_terms) :: energs
       call FullHamiltonianApplication(iproc,nproc,at,tmb%orbs,rxyz,&
            proj,tmb%lzd,nlpspd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhphi,&
            energs,SIC,GPU,&
+           proj_G,paw,&
            pkernel=denspot%pkernelseq)
 
       iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)

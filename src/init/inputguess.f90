@@ -433,12 +433,12 @@ subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,
   call memocc(i_stat,psigau,'psigau',subname)
   allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,iorbtolr,'iorbtolr',subname)
-
-  !fill just the interesting part of the orbital
+!
+!  !fill just the interesting part of the orbital
   call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
        iorbtolr)
-
+!
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)
   call memocc(i_stat,i_all,'scorb',subname)
@@ -617,7 +617,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
      end do
 
      norbe=norbe+norbat
-     !print *,'iat',iat,l,norbe,norbat,nl(:)
+     !print *,'iat',iat,norbe,norbat,nl(:)
      !calculate the localisation radius for the input orbitals 
      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,at%amu(ity))
@@ -643,7 +643,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
         end do
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
 
   end do
@@ -774,6 +774,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !assign shell IDs and count the number of exponents and coefficients
    !also calculate the wavefunctions 
+   G%ncplx=1 !2 only for PAW and projectors
    G%nexpo=0
    G%ncoeff=0
    ishell=0
@@ -843,10 +844,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
-   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-   allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%xp,'G%xp',subname)
 
    allocate(psiatn(ng+ndebug),stat=i_stat)
@@ -927,8 +928,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             call atomkin(l-1,ng,xp(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
             do ig=1,G%ndoc(ishell)
                iexpo=iexpo+1
-               G%psiat(iexpo)=psiatn(ig)
-               G%xp(iexpo)=xp(ig,ityx)
+               G%psiat(1,iexpo)=psiatn(ig)
+               G%xp(1,iexpo)=xp(ig,ityx)
             end do
 
             do ispin=1,nspin
@@ -1178,6 +1179,8 @@ subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
       write(*,'(1x,a)')'Calculating AIO wavefunctions: '
    end if
 
+   G%ncplx=1 !2 is only for PAW
+
    !gaussian basis structure informations
    !insert these things in the loops above
    !here we can create a gaussian basis structure for the input guess functions
@@ -1302,10 +1305,10 @@ subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
    call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
-   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-   allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+   allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
    call memocc(i_stat,G%xp,'G%xp',subname)
 
    allocate(psiatn(ng+ndebug),stat=i_stat)
@@ -1386,8 +1389,8 @@ subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
             call atomkin(l-1,ng,xp(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
             do ig=1,G%ndoc(ishell)
                iexpo=iexpo+1
-               G%psiat(iexpo)=psiatn(ig)
-               G%xp(iexpo)=xp(ig,ityx)
+               G%psiat(1,iexpo)=psiatn(ig)
+               G%xp(1,iexpo)=xp(ig,ityx)
             end do
 
             do ispin=1,nspin
@@ -1861,7 +1864,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
       deallocate(ofdcoef,stat=i_stat)
       call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10) then !HGH-K case
+   else if (npspcode == 10 .or. npspcode == 7 ) then !HGH-K case
+! For PAW this is just the initial guess
       do l=1,lpx+1
          hsep(1,l)=psppar(l,1) !h11
          hsep(2,l)=psppar(l,4) !h12
@@ -1972,13 +1976,6 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 END SUBROUTINE iguess_generator
 
 
-
-!!****f* BigDFT/iguess_generator_modified
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
    use module_base
@@ -2186,8 +2183,6 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator_modified
-!!***
-
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given

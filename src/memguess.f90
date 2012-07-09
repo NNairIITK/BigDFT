@@ -39,6 +39,7 @@ program memguess
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
    type(denspot_distribution) :: dpbox
+   type(gaussian_basis),dimension(:),allocatable :: proj_G !dummy here
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
@@ -49,8 +50,7 @@ program memguess
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
-   !! By Ali
-   integer :: ierror
+   integer :: ierror,iatyp
 
    ! Get arguments
    !call getarg(1,tatonam)
@@ -516,9 +516,16 @@ program memguess
    allocate(logrid(0:Lzd%Glr%d%n1,0:Lzd%Glr%d%n2,0:Lzd%Glr%d%n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
+   !proj_G only used for PAW. It is a dummy variable here.
+   allocate(proj_G(atoms%ntypes))
+   do iatyp=1,atoms%ntypes
+      call nullify_gaussian_basis(proj_G(iatyp))
+   end do
+
    call localize_projectors(0,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,&
       &   in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
    deallocate(nlpspd%plr)
+   deallocate(proj_G)
    !allocations for arrays holding the data descriptors
 !!$   !just for modularity
 !!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)

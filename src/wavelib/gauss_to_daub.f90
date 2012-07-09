@@ -447,21 +447,30 @@ end subroutine gauss_to_ISF
 !!@warning 
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
-subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
+subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
+     factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx,nstart
-  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kval
-  real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
+  integer, intent(in) :: n_gau,nmax,nwork,nstart
+  integer, intent(in) :: ncplx_w !size of the ww matrix
+  integer, intent(in) :: ncplx_g !1 or 2 for simple or complex gaussians, respectively.
+  integer, intent(in) :: ncplx_k !use 2 for k-points.
+  real(gp), intent(in) :: hgrid,gau_cen,kval
+  real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
+  real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
+  real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
   !local variables
+  character(len=*), parameter :: subname='gauss_to_daub_k'
+  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
-  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
-  real(wp) :: func,cval,sval
+  real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk
+  real(gp) :: fac(ncplx_g)
+  real(wp) :: func,cval,sval,cval2,sval2
+  real(wp), dimension(:,:,:), allocatable :: cc
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
@@ -469,23 +478,29 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
-  a=gau_a/hgrid
-
+  !when calculating "r2" in gauss_to_scf 
+  a1=gau_a(1)/hgrid
+  if(ncplx_g==2) then
+    a2=gau_a(2)*hgrid*hgrid
+    allocate(cc(ncplx_g,0:nmax,2),stat=i_stat)
+    call memocc(i_stat,cc,'cc',subname)
+  end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
   h=.125_gp*.5_gp
 
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
-  right_t= ceiling(15.d0*a)
+  right_t= ceiling(15.d0*a1)
 
-  !print *,'a,right_t',a,right_t,gau_a,hgrid
+  !print *,'a,right_t',a1,right_t,gau_a,hgrid
 
   !to rescale back the coefficients
-  fac=hgrid**n_gau*sqrt(hgrid)*factor
+  fac(:)=hgrid**n_gau*sqrt(hgrid)*factor(:)
 
   !initialise array
   c=0.0_gp
+  if(ncplx_g==2)cc=0.0_gp
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -511,14 +526,37 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
       n_left = n_left - nstart
      
      !loop for each complex component
-     do icplx=1,ncplx
-        ! non-periodic: no tails to fold
-        do i=0,length-1
-           c(icplx,i+n_left,1)=fac*ww(i       ,2,icplx)
-           c(icplx,i+n_left,2)=fac*ww(i+length,2,icplx) 
+     if(ncplx_g==1) then
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              c(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              c(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
         end do
-     end do
+     else !ncplx_g==2
+     !use a temporary array cc instead
+        do icplx=1,ncplx_w
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              cc(icplx,i+n_left,1)=ww(i       ,2,icplx)
+              cc(icplx,i+n_left,2)=ww(i+length,2,icplx) 
+           end do
+        end do
+     end if
   endif
+
+! Apply factor:
+  if(ncplx_g==1) then
+     c=fac(1)*c
+  else
+     c(1,:,:)=fac(1)*cc(1,:,:)-fac(2)*cc(2,:,:)
+     c(2,:,:)=fac(1)*cc(2,:,:)+fac(2)*cc(1,:,:)
+ 
+     i_all=-product(shape(cc))*kind(cc)
+     deallocate(cc,stat=i_stat)
+     call memocc(i_stat,i_all,'cc',subname)
+  end if
 
 
 contains
@@ -549,108 +587,150 @@ contains
        !STOP 'gaustodaub'
        return
     end if
+  
+   !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+   !corrected for avoiding 0**0 problem
+   if (ncplx_w==1) then
+      if (n_gau == 0) then
+         do i=leftx,rightx
+            x=real(i-i0*16,gp)*h
+            r=x-z0
+            !write(200,*)r*hgrid !DEBUG
+            r2=r/a1
+            r2=r2*r2
+            r2=0.5_gp*r2
+            func=real(dexp(-real(r2,kind=8)),wp)
+            ww(i-leftx,1,1)=func
+         enddo
+      else
+         do i=leftx,rightx
+            x=real(i-i0*16,gp)*h
+            r=x-z0
+            coeff=r**n_gau
+            r2=r/a1
+            r2=r2*r2
+            r2=0.5_gp*r2
+            func=real(dexp(-real(r2,kind=8)),wp)
+            func=real(coeff,wp)*func
+            ww(i-leftx,1,1)=func
+         enddo
+      end if
+   else
+!     k-points and real Gaussians
+      if (ncplx_k == 2 .and. ncplx_g == 1) then
+         if (n_gau == 0) then
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               rk=real(i,gp)*h
+               r2=r/a1
+               r2=r2*r2
+               r2=0.5_gp*r2
+               cval=real(cos(kval*rk),wp)
+               sval=real(sin(kval*rk),wp)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               ww(i-leftx,1,1)=func*cval
+               ww(i-leftx,1,2)=func*sval
+            enddo
+         else
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               rk=real(i,gp)*h
+               coeff=r**n_gau
+               r2=r/a1
+               r2=r2*r2
+               r2=0.5_gp*r2
+               cval=real(cos(kval*rk),wp)
+               sval=real(sin(kval*rk),wp)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               func=real(coeff,wp)*func
+               ww(i-leftx,1,1)=func*cval
+               ww(i-leftx,1,2)=func*sval
+            enddo
+         end if
+!     no k-points + complex Gaussians
+      else if (ncplx_k == 1 .and. ncplx_g == 2) then
+         if (n_gau == 0) then
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               r2=r*r
+               cval=real(cos(a2*r2),wp)
+               sval=real(sin(a2*r2),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               ww(i-leftx,1,1)=func*cval
+               ww(i-leftx,1,2)=func*sval
+            enddo
+         else
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               r2=r*r
+               cval=real(cos(a2*r2),wp)
+               sval=real(sin(a2*r2),wp)
+               coeff=r**n_gau
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               func=real(coeff,wp)*func
+               ww(i-leftx,1,1)=func*cval
+               ww(i-leftx,1,2)=func*sval
+            enddo
+         end if
 
-    !loop for each complex component
-    do icplx=1,ncplx
+      else !ncplx_k==2 .and. ncplx_g ==2
+!        k-points + complex gaussians
+         if (n_gau == 0) then
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               r2=r*r
+               cval=real(cos(a2*r2),wp)
+               sval=real(sin(a2*r2),wp)
+               rk=real(i,gp)*h
+               cval2=real(cos(kval*rk),wp)
+               sval2=real(sin(kval*rk),wp)
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+               ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+            enddo
+         else
+            do i=leftx,rightx
+               x=real(i-i0*16,gp)*h
+               r=x-z0
+               r2=r*r
+               cval=real(cos(a2*r2),wp)
+               sval=real(sin(a2*r2),wp)
+               rk=real(i,gp)*h
+               cval2=real(cos(kval*rk),wp)
+               sval2=real(sin(kval*rk),wp)
+               coeff=r**n_gau
+               r2=0.5_gp*r2/(a1**2)
+               func=real(dexp(-real(r2,kind=8)),wp)
+               func=real(coeff,wp)*func
+               ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+               ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+            enddo
+         end if
+      end if
+   end if
+      
+   do icplx=1,ncplx_w
+      !print *,'here',gau_a,gau_cen,n_gau
+      call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
+           leftx   ,rightx   ,lefts(4),rights(4),h)
 
-       !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+      call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
+           lefts(4),rights(4),lefts(3),rights(3)) 
+      call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
+           lefts(3),rights(3),lefts(2),rights(2)) 
+      call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
+           lefts(2),rights(2),lefts(1),rights(1)) 
 
-       !corrected for avoiding 0**0 problem
-       if (ncplx==1) then
-          if (n_gau == 0) then
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                func=real(dexp(-real(r2,kind=8)),wp)
-                ww(i-leftx,1,icplx)=func
-             enddo
-          else
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                coeff=r**n_gau
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                func=real(dexp(-real(r2,kind=8)),wp)
-                func=real(coeff,wp)*func
-                ww(i-leftx,1,icplx)=func
-             enddo
-          end if
-       else if (icplx == 1) then
-          if (n_gau == 0) then
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                rk=real(i,gp)*h
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                cval=real(cos(kval*rk),wp)
-                func=real(dexp(-real(r2,kind=8)),wp)
-                ww(i-leftx,1,icplx)=func*cval
-             enddo
-          else
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                rk=real(i,gp)*h
-                coeff=r**n_gau
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                cval=real(cos(kval*rk),wp)
-                func=real(dexp(-real(r2,kind=8)),wp)
-                func=real(coeff,wp)*func
-                ww(i-leftx,1,icplx)=func*cval
-             enddo
-          end if
-       else if (icplx == 2) then
-          if (n_gau == 0) then
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                rk=real(i,gp)*h
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                sval=real(sin(kval*rk),wp)
-                func=real(dexp(-real(r2,kind=8)),wp)
-                ww(i-leftx,1,icplx)=func*sval
-             enddo
-          else
-             do i=leftx,rightx
-                x=real(i-i0*16,gp)*h
-                r=x-z0
-                rk=real(i,gp)*h
-                coeff=r**n_gau
-                r2=r/a
-                r2=r2*r2
-                r2=0.5_gp*r2
-                sval=real(sin(kval*rk),wp)
-                func=real(dexp(-real(r2,kind=8)),wp)
-                func=real(coeff,wp)*func
-                ww(i-leftx,1,icplx)=func*sval
-             enddo
-          end if
-       end if
-
-       !print *,'here',gau_a,gau_cen,n_gau
-       call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
-            leftx   ,rightx   ,lefts(4),rights(4),h)
-
-       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-            lefts(4),rights(4),lefts(3),rights(3)) 
-       call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
-            lefts(3),rights(3),lefts(2),rights(2)) 
-       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
-            lefts(2),rights(2),lefts(1),rights(1)) 
-
-       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
-            lefts(1),rights(1),lefts(0),rights(0)) 
+      call forward(  ww(0,1,icplx),ww(0,2,icplx),&
+           lefts(1),rights(1),lefts(0),rights(0)) 
 
     end do
 
@@ -666,7 +746,7 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx
+    do icplx=1,ncplx_w
        do i=n_left,n_right
           j=modulo(i,nmax+1)
           c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
@@ -674,7 +754,6 @@ contains
        end do
     end do
 
-    c=fac*c
 
   END SUBROUTINE fold_tail
 

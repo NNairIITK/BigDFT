@@ -1,4 +1,5 @@
 !> @file
+!       Set to zero:
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -24,7 +25,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    real(dp), dimension(:), pointer :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -37,8 +38,20 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(energy_terms) :: energs
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
 
+   !wvl+PAW objects
+   integer :: iatyp
+   type(gaussian_basis),dimension(at%ntypes)::proj_G
+   type(paw_objects)::paw
+
    !supplementary messages
    msg=.false.
+
+   !nullify paw objects:
+   do iatyp=1,at%ntypes
+   call nullify_gaussian_basis(proj_G(iatyp))
+   end do
+   paw%usepaw=0 !Not using PAW
+   call nullify_paw_objects(paw)
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (KSwfn%orbs%nkpts /= VTwfn%orbs%nkpts) then
@@ -151,12 +164,12 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    !     nvirtep=VTwfn%orbs%norbp
 
    !this is the same also in serial
-   call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psi,in%orthpar)
+   call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psi,in%orthpar,paw)
 
    if (occorbs) then
       call orthon_virt_occup(iproc,nproc,KSwfn%orbs,VTwfn%orbs,KSwfn%comms,VTwfn%comms,KSwfn%psi,VTwfn%psi,msg)
       !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
-      call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psi,in%orthpar)
+      call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psi,in%orthpar,paw)
    end if
 
    !retranspose v
@@ -250,6 +263,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
            proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
            energs,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,KSwfn%orbs,psirocc)
 
       energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -275,13 +289,15 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
-     call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
-          VTwfn,gnrm,gnrm_zero)
+      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
+          VTwfn,gnrm,gnrm_zero,paw)
 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn)
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,&
+           paw,at,proj,rxyz,nlpspd,energs%eproj,proj_G)
+
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -290,7 +306,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
          if (nproc == 1) VTwfn%psit => VTwfn%psi
          !project psivirt such that they are orthogonal to all occupied psi
          call orthon_virt_occup(iproc,nproc,KSwfn%orbs,VTwfn%orbs,KSwfn%comms,VTwfn%comms,KSwfn%psi,VTwfn%psit,msg)
-         call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psit,in%orthpar)
+         call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psit,in%orthpar,paw)
          !retranspose the psivirt
          call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psit,&
             &   work=psiw,outadd=VTwfn%psi(1))
@@ -406,7 +422,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    real(dp), dimension(:), pointer :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -428,6 +444,19 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(energy_terms) :: energs
+
+   !wvl+PAW variables
+   integer::iatyp
+   type(gaussian_basis),dimension(at%ntypes)::proj_G
+   !type(gaussian_basis)::proj_G
+   type(paw_objects)::paw
+
+   !Nullify PAW objects
+   paw%usepaw=0  !Not using PAW
+   do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+   end do
+   call nullify_paw_objects(paw)
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -543,12 +572,12 @@ subroutine davidson(iproc,nproc,in,at,&
    !     nvirtep=orbsv%norbp
 
    !this is the same also in serial
-   call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+   call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
 
    if (occorbs) then
       call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
       !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
    end if
 
    !retranspose v
@@ -601,6 +630,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
         energs,in%SIC,GPU,&
+        proj_G,paw,&
         pkernel,orbs,psirocc)
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -875,6 +905,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
            energs,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
@@ -1123,12 +1154,12 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','OF')
 
       !these routines should work both in parallel or in serial
-      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
 
       if (occorbs) then
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
          !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-         call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
+         call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
       end if
 
       !retranspose v
@@ -1140,6 +1171,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
            energs,in%SIC,GPU,&
+           proj_G,paw,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv

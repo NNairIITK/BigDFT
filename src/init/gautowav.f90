@@ -92,7 +92,6 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-
   if (iproc==0) write(*,'(1x,a)',advance='no')&
        'Reading Basis Set information and wavefunctions coefficients...'
 
@@ -225,6 +224,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   call memocc(i_stat,CP2K%nam,'CP2K%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  CP2K%ncplx=1
   CP2K%nexpo=0
   CP2K%ncoeff=0
   ishell=0
@@ -240,9 +240,9 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(CP2K%xp(CP2K%nexpo+ndebug),stat=i_stat)
+  allocate(CP2K%xp(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,CP2K%xp,'CP2K%xp',subname)
-  allocate(CP2K%psiat(CP2K%nexpo+ndebug),stat=i_stat)
+  allocate(CP2K%psiat(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,CP2K%psiat,'CP2K%psiat',subname)
 
   ishell=0
@@ -253,8 +253,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
         ishell=ishell+1
         do ig=1,CP2K%ndoc(ishell)
            iexpo=iexpo+1
-           CP2K%psiat(iexpo)=contcoeff(ig,isat,ityp)
-           CP2K%xp(iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
+           CP2K%psiat(1,iexpo)=contcoeff(ig,isat,ityp)
+           CP2K%xp(1,iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
         end do
      end do
   end do
@@ -496,7 +496,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            end do loop_calc
            if (maycalc) then
               call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                   G%xp(iexpo),G%psiat(iexpo),&
+                   G%xp(1,iexpo),G%psiat(1,iexpo),&
                    rx,ry,rz,hx,hy,hz,&
                    0,grid%n1,0,grid%n2,0,grid%n3,&
                    grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -742,21 +742,21 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
               !gauss_to_daub are zero outside [ml:mr] 
               do ig=1,ng
                  do i=1,nterm
-                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
-                    gau_a=G%xp(iexpo+ig-1)
+                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(1,iexpo+ig-1)
+                    gau_a=G%xp(1,iexpo+ig-1)
                     n_gau=lx(i)
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
-                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,1,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,1,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,1,ncplx,G%psiat(:,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)
                     iterm=iterm+1
@@ -1597,7 +1597,7 @@ END SUBROUTINE segments_to_grid
 !!!           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !this kinetic energy is not reliable
 !!eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-!!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
+!!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(1,iexpo),G%psiat(1,iexpo),&
 !!!                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
 !!!                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
 !!!                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&

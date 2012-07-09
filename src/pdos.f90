@@ -151,6 +151,8 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   real(wp), dimension(3) :: mi
   real(wp), dimension(:,:), allocatable :: mchg,magn
   
+  
+
   !allocate both for spins up and down
   allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
   call memocc(i_stat,mchg,'mchg',subname)
@@ -265,9 +267,9 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
         rad=0.0_wp
         radnorm=0.0_wp
         do ig=1,ng
-           r=G%xp(iexpo)
-           rad=rad+(G%psiat(iexpo))**2*r
-           radnorm=radnorm+(G%psiat(iexpo))**2
+           r=G%xp(1,iexpo)
+           rad=rad+(G%psiat(1,iexpo))**2*r
+           radnorm=radnorm+(G%psiat(1,iexpo))**2
            iexpo=iexpo+1
         end do
         rad=rad/radnorm

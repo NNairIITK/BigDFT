@@ -32,8 +32,16 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
   integer :: nelec,nB,nKB,nMB
+  integer :: iatyp
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
+  !Note proj_G should be filled for PAW:
+  type(gaussian_basis),dimension(atoms%nat)::proj_G
+
+  !nullify dummy variables only used for PAW:
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
@@ -138,7 +146,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),nlpspd,proj_G,proj)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way

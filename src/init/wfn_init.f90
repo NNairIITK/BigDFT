@@ -283,9 +283,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    real(gp) :: tolerance
    type(orbitals_data), pointer :: orbsu
    type(communications_arrays), pointer :: commu
+   type(paw_objects)::paw
    integer, dimension(:,:), allocatable :: norbgrp
    real(wp), dimension(:,:,:), allocatable :: hamovr
    real(wp), dimension(:), pointer :: psiw
+
+   paw%usepaw=0 !Not using PAW
+   call nullify_paw_objects(paw)
 
    !performs some check of the arguments
    if (present(orbse) .neqv. present(commse)) then
@@ -611,7 +615,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
    !orthogonalise the orbitals in the case of semi-core atoms
    if (norbsc > 0) then
-      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
    end if
    if (minimal) then
       allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
@@ -670,11 +674,17 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
   type(communications_arrays), pointer :: commu
+  type(paw_objects) :: paw
   integer, dimension(:,:), allocatable :: norbgrp
   real(wp), dimension(:,:,:), allocatable :: hamovr
   real(wp), dimension(:), pointer :: psiw
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
      
+  !Not paw is now a dummy object.
+  !This routine has not been generalized to PAW:
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
+
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
      !if (iproc ==0) 
@@ -1035,7 +1045,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
-     call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+     call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
   end if
 
   if (minimal) then
@@ -1077,6 +1087,7 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    !local variables
    integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
      integer :: iorb, jorb, icplx
+
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
