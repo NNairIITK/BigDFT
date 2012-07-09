@@ -37,7 +37,7 @@ t1=mpi_wtime()
   call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
 
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
@@ -49,7 +49,7 @@ call mpi_barrier(mpi_comm_world, ierr)
 t1=mpi_wtime()
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
       call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
@@ -124,7 +124,7 @@ t1=mpi_wtime()
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
 call mpi_barrier(mpi_comm_world, ierr)
@@ -132,7 +132,7 @@ t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
 
 
 
@@ -169,7 +169,7 @@ t1=mpi_wtime()
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 
 
   !Now set some integers in the collcomm structure
@@ -222,7 +222,7 @@ t1=mpi_wtime()
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
+!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
@@ -862,8 +862,8 @@ t1tot=mpi_wtime()
   call memocc(istat, iall, 'iseg_start_f', subname)
 
 t2tot=mpi_wtime()
-if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
-if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
+!if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
+!if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
 
 end subroutine determine_num_orbs_per_gridpoint
 
@@ -1020,8 +1020,8 @@ t1tot=mpi_wtime()
   call memocc(istat, iall, 'iseg_start_f', subname)
 
 t2tot=mpi_wtime()
-if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
-if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
+!if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, total time', t2tot-t1tot
+!if(iproc==0) write(*,'(a,es14.5)') 'in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint', t_check_gridpoint
 
 end subroutine determine_num_orbs_per_gridpoint_new
 

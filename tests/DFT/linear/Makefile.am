@@ -4,7 +4,6 @@ TESTDIRS = Locreg \
 	   large \
            directmin \
 	   incdec \
-	   standardnew \
 	   withder \
 	   mix \
 	   water \

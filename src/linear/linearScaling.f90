@@ -763,11 +763,11 @@ real(8),dimension(3,at%nat):: fpulay
           !write(34,*) energy,energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energyDiff=energy-energyold
           energyold=energy
-!DEBUG
-if(iproc==0)then
-print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-end if
-!END DEBUG
+!!!DEBUG
+!!if(iproc==0)then
+!!print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+!!end if
+!!!END DEBUG
 
 
           ! Calculate the charge density.

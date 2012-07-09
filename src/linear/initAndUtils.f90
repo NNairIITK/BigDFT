@@ -367,7 +367,7 @@ t1=mpi_wtime()
           Glr, lzd%Llr, calculateBounds)
  end if
 t2=mpi_wtime()
-if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
+!if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)
@@ -1725,7 +1725,7 @@ t1=mpi_wtime()
   call memocc(istat, iall, 'locregCenter', subname)
   
 t2=mpi_wtime()
-if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
+!if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr

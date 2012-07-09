@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-06-20 15:15:57.810
+ Timestamp of this run                 :  2012-07-09 16:14:25.930
  Hostname                              : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                   Debug option
@@ -242,22 +242,6 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 15 MB
  WARNING: do not call check_communications in the linear scaling version!
-time for part 1: 6.239E-04
-time for part 2: 7.153E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   6.91414E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 6.294E-05
-time for part 4: 6.413E-05
-time for part 5: 1.419E-04
-time for part 6: 6.859E-04
-time for part 1: 5.720E-04
-time for part 2: 3.099E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   6.91414E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.099E-05
-time for part 4: 3.505E-05
-time for part 5: 9.012E-05
-time for part 6: 5.791E-04
  ion-ion interaction energy  6.88446996418391E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000027255083   0.000E+00
@@ -266,14 +250,6 @@ time for part 6: 5.791E-04
    Dimensions                          :  [  85,  83,  83 ]
    MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-time for part 1: 5.581E-04
-in sub determine_num_orbs_per_gridpoint: iproc, total time   7.15256E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.386E-05
-time for part 4: 3.004E-05
-time for part 5: 8.416E-05
-time for part 6: 5.372E-04
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   2.89E+01   5.000E+00
 V3prb    1.4641E+00
@@ -283,36 +259,13 @@ V3prb    5.4876E-02
  Processes from 0 to 5 treat 1 inguess orbitals 
  Processes from 6 to 7 treat 0 inguess orbitals 
  Atomic Input Orbital Generation: [
- {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    8.409E+00
-}], 
+ {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.23E-03, 
              GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
       Total electronic charge:  7.999970182359, 
                      Electronic charge changed by rho compression:  2.188170418194E-07, 
  Poisson Solver: {BC: Isolated, Dimensions:  [  85,  83,  83 ], MPI tasks:  8}, 
-time for part 1: 6.449E-04
-time for part 2: 3.099E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   5.96046E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.219E-05
-time for part 4: 3.195E-05
-time for part 5: 1.340E-04
-time for part 6: 7.870E-04
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -331,14 +284,6 @@ time for part 6: 7.870E-04
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  Changing the confining potential to 100.00% of its initial value.
-time for part 1: 7.272E-04
-time for part 2: 5.007E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   5.96046E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.219E-05
-time for part 4: 3.600E-05
-time for part 5: 1.380E-04
-time for part 6: 7.842E-04
  calling orthonormalizeLocalized (exact)
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
@@ -372,9 +317,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  6.531374E-01 -2.336088E-01
    eval(6)=  1.03916E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -5.06057092254814     
-   20.0402571987762       -3.90196568118295       -5.11345211214247     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999976552518E+00
@@ -386,7 +328,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.63E-06   -1.70048717261809159E+01   -1.7005E+01
+   it, Delta DENS, energy, energyDiff   1   3.63E-06   -1.70048717261809088E+01   -1.7005E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -401,9 +343,6 @@ done.
    eval(6)=  1.84460E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.87745841851467     
-   21.2086650653870       -4.09672686335972       -5.37051556915609     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999978478998E+00
@@ -415,7 +354,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.96E-06   -1.69278648139214312E+01    7.7007E-02
+   it, Delta DENS, energy, energyDiff   2   1.96E-06   -1.69278648139214205E+01    7.7007E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -430,9 +369,6 @@ done.
    eval(6)=  1.92748E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.77866941143772     
-   21.3106377296262       -4.11882174545602       -5.39956859905109     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999978473141E+00
@@ -444,10 +380,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.71E-07   -1.69240903232849611E+01    3.7745E-03
+   it, Delta DENS, energy, energyDiff   3   9.71E-07   -1.69240903232849682E+01    3.7745E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.7786694114E+00  2.1366758299E+01 -4.1315015713E+00 -5.4162525443E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   2.79E-06   -1.69240903232849611E+01   -1.6924E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   2.79E-06   -1.69240903232849682E+01   -1.6924E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -457,18 +393,10 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    9.71E-07   -1.69240903232849611E+01
+     FINAL values: it, Delta DENS, energy   1    9.71E-07   -1.69240903232849682E+01
    > energy difference to last iteration: -1.692409E+01
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
-time for part 1: 6.940E-04
-time for part 2: 4.053E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   5.96046E-06
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.409E-05
-time for part 4: 3.195E-05
-time for part 5: 1.268E-04
-time for part 6: 7.641E-04
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -501,9 +429,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  2.827563E-01 -3.769296E-02
    eval(6)=  2.07542E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.80381203017282     
-   21.3667582993776       -4.13150157131602       -5.41625254431678     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999981410009E+00
@@ -515,7 +440,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.70E-06   -1.70013493923657286E+01   -7.7259E-02
+   it, Delta DENS, energy, energyDiff   1   1.70E-06   -1.70013493923657393E+01   -7.7259E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -530,9 +455,6 @@ done.
    eval(6)=  1.88833E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04499183104067     
-   21.1006566216940       -4.08204703046885       -5.35080563972350     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999980852772E+00
@@ -544,7 +466,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.80E-07   -1.69924198792961434E+01    8.9295E-03
+   it, Delta DENS, energy, energyDiff   2   6.80E-07   -1.69924198792961505E+01    8.9295E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -559,9 +481,6 @@ done.
    eval(6)=  1.90463E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02533615790530     
-   21.1191965517852       -4.08132402003709       -5.34979087976274     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999980855600E+00
@@ -573,7 +492,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.37E-07   -1.69915958857809102E+01    8.2399E-04
+   it, Delta DENS, energy, energyDiff   3   3.37E-07   -1.69915958857809173E+01    8.2399E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -588,9 +507,6 @@ done.
    eval(6)=  1.91229E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.01712032987418     
-   21.1270508670852       -4.08088026926063       -5.34917360080186     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999980853396E+00
@@ -602,10 +518,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.68E-07   -1.69914079012342540E+01    1.8798E-04
+   it, Delta DENS, energy, energyDiff   4   1.68E-07   -1.69914079012342434E+01    1.8798E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0171203299E+00  2.1131116061E+01 -4.0807129535E+00 -5.3489366900E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   1.34E-06   -1.69914079012342540E+01   -6.7318E-02
+   itoutH, Delta DENSOUT, energy, energyDiff   2   1.34E-06   -1.69914079012342434E+01   -6.7318E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -615,7 +531,7 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.68E-07   -1.69914079012342540E+01
+     FINAL values: it, Delta DENS, energy   2    1.68E-07   -1.69914079012342434E+01
    > energy difference to last iteration: -6.731758E-02
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
@@ -651,9 +567,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  8.846609E-02 -5.511831E-03
    eval(6)=  1.97578E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02389221242656     
-   21.1311160614554       -4.08071295345810       -5.34893668995117     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999981545064E+00
@@ -665,7 +578,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.94E-07   -1.70023145732049485E+01   -1.0907E-02
+   it, Delta DENS, energy, energyDiff   1   2.94E-07   -1.70023145732049414E+01   -1.0907E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -680,9 +593,6 @@ done.
    eval(6)=  2.00674E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.00207116929181     
-   21.1541416827703       -4.08519320187620       -5.35481652045870     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999981526016E+00
@@ -694,7 +604,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.47E-07   -1.70021195692956937E+01    1.9500E-04
+   it, Delta DENS, energy, energyDiff   2   1.47E-07   -1.70021195692956901E+01    1.9500E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -709,9 +619,6 @@ done.
    eval(6)=  2.02524E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.98716934150376     
-   21.1699190471491       -4.08811583765875       -5.35865779286046     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999981524614E+00
@@ -723,7 +630,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.37E-08   -1.70020764692672017E+01    4.3100E-05
+   it, Delta DENS, energy, energyDiff   3   7.37E-08   -1.70020764692672159E+01    4.3100E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -738,9 +645,6 @@ done.
    eval(6)=  2.03448E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.97976137807948     
-   21.1777744915989       -4.08957152793936       -5.36057089132695     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999981524011E+00
@@ -752,10 +656,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.71E-08   -1.70020665421069346E+01    9.9272E-06
+   it, Delta DENS, energy, energyDiff   4   3.71E-08   -1.70020665421069239E+01    9.9272E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.9797613781E+00  2.1181668966E+01 -4.0902925404E+00 -5.3615183782E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   2.75E-07   -1.70020665421069346E+01   -1.0659E-02
+   itoutH, Delta DENSOUT, energy, energyDiff   3   2.75E-07   -1.70020665421069239E+01   -1.0659E-02
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -765,7 +669,7 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    3.71E-08   -1.70020665421069346E+01
+     FINAL values: it, Delta DENS, energy   3    3.71E-08   -1.70020665421069239E+01
    > energy difference to last iteration: -1.065864E-02
  ############################################################################################
    calculating the density kernel... 
@@ -797,16 +701,16 @@ done.
  average noise along y direction:   3.98078158E-02
  average noise along z direction:   2.71590806E-02
  total average noise            :   1.43488635E-01
- clean forces norm (Ha/Bohr): maxval=  1.528988464283E-01  fnrm2=  3.892066110436E-02
- raw forces:                  maxval=  2.518515814057E-01  fnrm2=  6.420766562657E-02
- CPU time/ELAPSED time for root process     0         1.91         1.89
+ clean forces norm (Ha/Bohr): maxval=  1.528988464282E-01  fnrm2=  3.892066110435E-02
+ raw forces:                  maxval=  2.518515814057E-01  fnrm2=  6.420766562656E-02
+ CPU time/ELAPSED time for root process     0         1.90         1.88
  Final values of the Forces for each atom
      1      O  1.52472E-01  1.07247E-02  3.91491E-03
      2      H -1.15863E-01  7.35556E-03  1.19985E-02
      3      H -3.66093E-02 -1.80802E-02 -1.59134E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 6467
-   Tot. No. of Deallocations: 6467
+   Tot. No. of Allocations  : 6464
+   Tot. No. of Deallocations: 6464
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 56

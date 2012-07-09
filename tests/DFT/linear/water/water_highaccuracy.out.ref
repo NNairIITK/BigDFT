@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-09 14:57:30.160
+ Timestamp of this run                 :  2012-07-09 16:24:09.200
  Hostname                              : phys-comp-03
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                   Debug option
@@ -215,15 +215,6 @@
     | processes from 6 to 7 treat 0 orbitals.       |
  ------------------------------------------------------------------------------------
  Wavefunctions memory occupation for root MPI process:  0 MB 167 KB 496
- in determine_locregSphere_parallel, loop 1: time  6.474018096923828E-003
- in determine_locregSphere_parallel, loop 2: time  5.879402160644531E-004
- in determine_locregSphere_parallel, loop 3: time  1.021313667297363E-002
- determine_locregSphere_parallel: time 1  1.268386840820312E-004
- determine_locregSphere_parallel: time 2  3.906011581420898E-003
- determine_locregSphere_parallel: time 3  2.424955368041992E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.736402511596680E-002
- in lzd_init_llr: time  1.740503311157227E-002
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
@@ -251,22 +242,6 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 28 MB
  WARNING: do not call check_communications in the linear scaling version!
-time for part 1: 1.426E-03
-time for part 2: 4.053E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.19209E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 4.102E-03
-time for part 4: 8.297E-05
-time for part 5: 2.480E-04
-time for part 6: 1.772E-03
-time for part 1: 1.418E-03
-time for part 2: 3.099E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.21593E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.791E-05
-time for part 4: 9.084E-05
-time for part 5: 2.010E-04
-time for part 6: 1.512E-03
  ion-ion interaction energy  6.88446996418391E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001328188   0.000E+00
@@ -275,34 +250,6 @@ time for part 6: 1.512E-03
    Dimensions                          :  [  101,  99,  99 ]
    MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
- in determine_locregSphere_parallel, loop 1: time  6.365776062011719E-003
- in determine_locregSphere_parallel, loop 2: time  3.349781036376953E-004
- in determine_locregSphere_parallel, loop 3: time  3.453969955444336E-003
- determine_locregSphere_parallel: time 1  1.249313354492188E-004
- determine_locregSphere_parallel: time 2  3.895998001098633E-003
- determine_locregSphere_parallel: time 3  2.335071563720703E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.022505760192871E-002
- in determine_locregSphere_parallel, loop 1: time  7.378101348876953E-003
- in determine_locregSphere_parallel, loop 2: time  2.069473266601562E-004
- in determine_locregSphere_parallel, loop 3: time  1.728057861328125E-003
- determine_locregSphere_parallel: time 1  1.239776611328125E-004
- determine_locregSphere_parallel: time 2  4.451990127563477E-003
- determine_locregSphere_parallel: time 3  2.789020538330078E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  9.373188018798828E-003
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-time for part 1: 1.533E-03
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.09673E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 4.196E-05
-time for part 4: 5.198E-05
-time for part 5: 2.131E-04
-time for part 6: 1.587E-03
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   7.69E+00   8.000E+00
 V3prb    2.9282E+02
@@ -312,40 +259,13 @@ V3prb    1.6463E+01
  Processes from 0 to 5 treat 1 inguess orbitals 
  Processes from 6 to 7 treat 0 inguess orbitals 
  Atomic Input Orbital Generation: [
- {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    2.750E+00 to    2.236E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-quartic potential for AO: modify rprb from    1.210E+00 to    2.021E+00
-}], 
+ {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.06E-04, 
              GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
       Total electronic charge:  7.999992573120, 
                      Electronic charge changed by rho compression:  1.643194913470E-09, 
  Poisson Solver: {BC: Isolated, Dimensions:  [  101,  99,  99 ], MPI tasks:  8}, 
- in determine_locregSphere_parallel, loop 1: time  7.867097854614258E-003
- in determine_locregSphere_parallel, loop 2: time  3.671646118164062E-004
- in determine_locregSphere_parallel, loop 3: time  3.744840621948242E-003
- determine_locregSphere_parallel: time 1  1.251697540283203E-004
- determine_locregSphere_parallel: time 2  4.446983337402344E-003
- determine_locregSphere_parallel: time 3  3.281831741333008E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.205706596374512E-002
-time for part 1: 1.707E-03
-time for part 2: 5.960E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.09673E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 4.196E-05
-time for part 4: 6.390E-05
-time for part 5: 2.329E-04
-time for part 6: 1.598E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -364,22 +284,6 @@ time for part 6: 1.598E-03
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  Changing the confining potential to 100.00% of its initial value.
- in determine_locregSphere_parallel, loop 1: time  7.973909378051758E-003
- in determine_locregSphere_parallel, loop 2: time  3.740787506103516E-004
- in determine_locregSphere_parallel, loop 3: time  3.716945648193359E-003
- determine_locregSphere_parallel: time 1  1.239776611328125E-004
- determine_locregSphere_parallel: time 2  4.426002502441406E-003
- determine_locregSphere_parallel: time 3  3.175973892211914E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.214003562927246E-002
-time for part 1: 1.841E-03
-time for part 2: 1.907E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.09673E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.910E-05
-time for part 4: 5.984E-05
-time for part 5: 2.351E-04
-time for part 6: 1.650E-03
  calling orthonormalizeLocalized (exact)
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
@@ -437,9 +341,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.068934E-01 -2.419784E-03
    eval(6)=  3.69176E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.11638473768306     
-   22.0680404955778       -4.29165573324851       -5.62701246748048     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992229477E+00
@@ -466,9 +367,6 @@ done.
    eval(6)=  4.04404E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.50597068012302     
-   22.6616351475289       -4.38793675380630       -5.75429845688216     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992742864E+00
@@ -495,9 +393,6 @@ done.
    eval(6)=  3.97577E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.55442621279749     
-   22.6073956460731       -4.38724949955188       -5.75337841755756     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992701806E+00
@@ -524,9 +419,6 @@ done.
    eval(6)=  3.97020E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.54198477848283     
-   22.6206134632893       -4.39337887726616       -5.76147918125114     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992712084E+00
@@ -553,9 +445,6 @@ done.
    eval(6)=  3.96424E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.53990457179754     
-   22.6232884070593       -4.39607091071639       -5.76503725013670     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992712964E+00
@@ -640,9 +529,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  4.398429E-02 -8.172502E-04
    eval(6)=  3.83749E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.59520357811749     
-   22.6254831420916       -4.39758914632032       -5.76704409713217     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993139123E+00
@@ -669,9 +555,6 @@ done.
    eval(6)=  3.77428E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.68193364968211     
-   22.5269553117452       -4.37414008901878       -5.73599902797966     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993058315E+00
@@ -698,9 +581,6 @@ done.
    eval(6)=  3.78178E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.66952372426871     
-   22.5375565734979       -4.37101934891691       -5.73185171274083     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993062630E+00
@@ -727,9 +607,6 @@ done.
    eval(6)=  3.78190E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.66884739081947     
-   22.5373141434299       -4.36873806715768       -5.72882478644353     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993060872E+00
@@ -756,9 +633,6 @@ done.
    eval(6)=  3.78221E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.66819928540360     
-   22.5375710857046       -4.36766264212343       -5.72739749340531     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993060405E+00
@@ -843,9 +717,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  9.338554E-03 -9.017183E-05
    eval(6)=  3.76965E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.65683784540364     
-   22.5376036061746       -4.36711272411407       -5.72666769096656     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992871925E+00
@@ -872,9 +743,6 @@ done.
    eval(6)=  3.80397E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.61099247238235     
-   22.5860905939924       -4.37731221660072       -5.74016553259768     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992911507E+00
@@ -901,9 +769,6 @@ done.
    eval(6)=  3.80206E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.61540384961550     
-   22.5819278632069       -4.37840462581737       -5.74161663375864     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992909058E+00
@@ -930,9 +795,6 @@ done.
    eval(6)=  3.80311E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.61478347031841     
-   22.5828469051884       -4.37939460568362       -5.74292891106638     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992909907E+00
@@ -959,9 +821,6 @@ done.
    eval(6)=  3.80349E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.61466756917736     
-   22.5831115975884       -4.37986744348448       -5.74355577379799     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992910089E+00
@@ -1046,9 +905,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  4.596135E-03 -1.254298E-05
    eval(6)=  3.79631E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62073703814302     
-   22.5833061905075       -4.38011471865596       -5.74388356228099     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992993201E+00
@@ -1075,9 +931,6 @@ done.
    eval(6)=  3.78477E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.63659460157743     
-   22.5661493494165       -4.37642673563245       -5.73900083779996     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978067E+00
@@ -1104,9 +957,6 @@ done.
    eval(6)=  3.78631E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.63404248377717     
-   22.5685891757171       -4.37614450095359       -5.73862420382186     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978981E+00
@@ -1133,9 +983,6 @@ done.
    eval(6)=  3.78634E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.63383973738803     
-   22.5686892363252       -4.37584314189367       -5.73822402572399     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978660E+00
@@ -1162,9 +1009,6 @@ done.
    eval(6)=  3.78640E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.63366880342667     
-   22.5688129903374       -4.37570207245416       -5.73803663701614     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978587E+00
@@ -1241,9 +1085,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.549285E-03 -1.312381E-06
    eval(6)=  3.78583E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.63155572792095     
-   22.5688533500685       -4.37562801797675       -5.73793828727500     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992948725E+00
@@ -1270,9 +1111,6 @@ done.
    eval(6)=  3.79152E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62427885327625     
-   22.5766438636274       -4.37726307328576       -5.74010192835480     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992954805E+00
@@ -1299,9 +1137,6 @@ done.
    eval(6)=  3.79142E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62486541749274     
-   22.5761176055989       -4.37745485688716       -5.74035648874198     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992954422E+00
@@ -1328,9 +1163,6 @@ done.
    eval(6)=  3.79167E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62472584378057     
-   22.5763092704758       -4.37761667023746       -5.74057092471757     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992954547E+00
@@ -1357,9 +1189,6 @@ done.
    eval(6)=  3.79178E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62468551747412     
-   22.5763745607222       -4.37769375467703       -5.74067309107189     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992954574E+00
@@ -1428,9 +1257,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.571103E-03 -1.212931E-06
    eval(6)=  3.79135E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62547369788737     
-   22.5764159271448       -4.37773375655313       -5.74072610469605     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960373E+00
@@ -1457,9 +1283,6 @@ done.
    eval(6)=  3.78941E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62792231940692     
-   22.5737878088687       -4.37718332172557       -5.73999771717218     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958345E+00
@@ -1486,9 +1309,6 @@ done.
    eval(6)=  3.78944E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62772569077465     
-   22.5739631591439       -4.37711909319555       -5.73991246075176     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958479E+00
@@ -1515,9 +1335,6 @@ done.
    eval(6)=  3.78935E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62777194796260     
-   22.5738993039800       -4.37706515506201       -5.73984097897234     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958439E+00
@@ -1544,9 +1361,6 @@ done.
    eval(6)=  3.78931E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62778491573500     
-   22.5738779945181       -4.37703956091489       -5.73980705531377     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958431E+00
@@ -1599,9 +1413,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.959972E-03 -2.931981E-02
    eval(6)=  3.78929E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62779399053165     
-   22.5738646073388       -4.37702631475990       -5.73978949955623     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958427E+00
@@ -1628,9 +1439,6 @@ done.
    eval(6)=  3.78928E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62779899291982     
-   22.5738574179105       -4.37701959387846       -5.73978059227988     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958425E+00
@@ -1657,9 +1465,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780176409144     
-   22.5738535362635       -4.37701618039042       -5.73977606846817     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1686,9 +1491,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780326274544     
-   22.5738514751135       -4.37701445104285       -5.73977377666061     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1715,9 +1517,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780406269897     
-   22.5738503906511       -4.37701357624073       -5.73977261735840     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1770,9 +1569,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.996145E-03 -2.932603E-02
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780448505783     
-   22.5738498245882       -4.37701313434266       -5.73977203175832     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1799,9 +1595,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780470618089     
-   22.5738495309665       -4.37701291138868       -5.73977173630605     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1828,9 +1621,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780482116548     
-   22.5738493794433       -4.37701279901653       -5.73977158739572     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1857,9 +1647,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780488062942     
-   22.5738493015810       -4.37701274242990       -5.73977151241070     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958423E+00
@@ -1886,9 +1673,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780491124207     
-   22.5738492617113       -4.37701271395695       -5.73977147468055     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1941,9 +1725,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.997095E-03 -2.932635E-02
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780492694262     
-   22.5738492413559       -4.37701269963977       -5.73977145570870     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1970,9 +1751,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780493496976     
-   22.5738492309897       -4.37701269244480       -5.73977144617467     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958424E+00
@@ -1999,9 +1777,6 @@ done.
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780493906286     
-   22.5738492257218       -4.37701268883090       -5.73977144138593     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958423E+00
@@ -2054,9 +1829,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.997119E-03 -2.932636E-02
    eval(6)=  3.78927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.62780494114524     
-   22.5738492230497       -4.37701268701653       -5.73977143898173     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958423E+00
@@ -2086,38 +1858,6 @@ done.
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
- in determine_locregSphere_parallel, loop 1: time  7.571935653686523E-003
- in determine_locregSphere_parallel, loop 2: time  3.888607025146484E-004
- in determine_locregSphere_parallel, loop 3: time  3.822088241577148E-003
- determine_locregSphere_parallel: time 1  1.249313354492188E-004
- determine_locregSphere_parallel: time 2  4.390001296997070E-003
- determine_locregSphere_parallel: time 3  3.046989440917969E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.185488700866699E-002
-time for part 1: 1.827E-03
-time for part 2: 3.099E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.19209E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 4.005E-05
-time for part 4: 5.889E-05
-time for part 5: 2.189E-04
-time for part 6: 1.660E-03
- in determine_locregSphere_parallel, loop 1: time  8.003950119018555E-003
- in determine_locregSphere_parallel, loop 2: time  4.169940948486328E-004
- in determine_locregSphere_parallel, loop 3: time  4.158020019531250E-003
- determine_locregSphere_parallel: time 1  1.249313354492188E-004
- determine_locregSphere_parallel: time 2  4.438877105712891E-003
- determine_locregSphere_parallel: time 3  3.430128097534180E-003
- determine_locregSphere_parallel: time 4  0.000000000000000E+000
- in initLocregs: time  1.266312599182129E-002
-time for part 1: 1.926E-03
-time for part 2: 4.053E-06
-in sub determine_num_orbs_per_gridpoint: iproc, total time   1.09673E-05
-in sub determine_num_orbs_per_gridpoint: iproc, time for check_gridpoint   0.00000E+00
-time for part 3: 3.886E-05
-time for part 4: 5.794E-05
-time for part 5: 2.248E-04
-time for part 6: 1.654E-03
    calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -2158,9 +1898,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  9.916346E-02 -2.885293E-02
    eval(6)=  3.79823E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -2.88936182803173     
-   22.5738492216963       -4.37701268610598       -5.73977143777518     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999994290202E+00
@@ -2187,9 +1924,6 @@ done.
    eval(6)=  2.63637E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.12263115332515     
-   21.1756843707522       -4.10788249556637       -5.38462468869636     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993744877E+00
@@ -2216,9 +1950,6 @@ done.
    eval(6)=  2.32531E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.35903382819569     
-   20.9100791075293       -4.04207266346443       -5.29786861657748     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993734532E+00
@@ -2245,9 +1976,6 @@ done.
    eval(6)=  2.18058E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.46840059841211     
-   20.7893776792183       -4.01283848604496       -5.25932962620110     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993732038E+00
@@ -2274,9 +2002,6 @@ done.
    eval(6)=  2.11142E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.52091625412141     
-   20.7320137291462       -3.99916211734824       -5.24130042240204     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993731263E+00
@@ -2303,9 +2028,6 @@ done.
    eval(6)=  2.07781E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.54651731131018     
-   20.7041972068611       -3.99258327380062       -5.23262781840122     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993731037E+00
@@ -2332,9 +2054,6 @@ done.
    eval(6)=  2.06129E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.55912612554224     
-   20.6905338745822       -3.98936425337855       -5.22838437180628     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993730978E+00
@@ -2403,9 +2122,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.058692E-01 -3.663134E-03
    eval(6)=  2.04783E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.61522428900435     
-   20.6837686432885       -3.98777339938289       -5.22628725877271     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993039166E+00
@@ -2432,9 +2148,6 @@ done.
    eval(6)=  2.63964E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.93081562568886     
-   21.3829086136260       -4.11754701882217       -5.39766299340689     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993336025E+00
@@ -2461,9 +2174,6 @@ done.
    eval(6)=  2.80394E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.79993330727901     
-   21.5214022995991       -4.15005636287613       -5.44054732812236     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993343631E+00
@@ -2490,9 +2200,6 @@ done.
    eval(6)=  2.88358E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.73984645197723     
-   21.5858858326219       -4.16601543993732       -5.46159632457168     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993342809E+00
@@ -2519,9 +2226,6 @@ done.
    eval(6)=  2.92399E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.70929751525035     
-   21.6188786797260       -4.17422208419156       -5.47242037279311     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993342550E+00
@@ -2548,9 +2252,6 @@ done.
    eval(6)=  2.94433E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.69390355991334     
-   21.6355555123759       -4.17838036243676       -5.47790487128549     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993342461E+00
@@ -2577,9 +2278,6 @@ done.
    eval(6)=  2.95452E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.68618105945070     
-   21.6439343837691       -4.18047233130139       -5.48066403463169     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993342426E+00
@@ -2648,9 +2346,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  6.870335E-02 -1.698802E-03
    eval(6)=  2.96086E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.69749053450442     
-   21.6481324187250       -4.18152120965338       -5.48204742930071     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993654371E+00
@@ -2677,9 +2372,6 @@ done.
    eval(6)=  2.69538E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -3.98660202489696     
-   21.3352958834323       -4.12287390992389       -5.40461390676927     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993528436E+00
@@ -2706,9 +2398,6 @@ done.
    eval(6)=  2.62199E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04240041545049     
-   21.2742923875260       -4.10823698589820       -5.38530932438573     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993526732E+00
@@ -2735,9 +2424,6 @@ done.
    eval(6)=  2.58651E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.06878714373925     
-   21.2455521300608       -4.10127344926501       -5.37612575976928     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993526729E+00
@@ -2764,9 +2450,6 @@ done.
    eval(6)=  2.56893E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.08184509457697     
-   21.2313670962140       -4.09784222781491       -5.37160069298199     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993526767E+00
@@ -2793,9 +2476,6 @@ done.
    eval(6)=  2.56018E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.08834197623459     
-   21.2243190316367       -4.09613918278672       -5.36935474808356     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993526791E+00
@@ -2822,9 +2502,6 @@ done.
    eval(6)=  2.55582E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.09158100277739     
-   21.2208075990001       -4.09529111863447       -5.36823634329567     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993526805E+00
@@ -2893,9 +2570,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  4.017968E-02 -7.019015E-05
    eval(6)=  2.55318E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.09363804079933     
-   21.2190557475583       -4.09486810236921       -5.36767848346039     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993456619E+00
@@ -2922,9 +2596,6 @@ done.
    eval(6)=  2.57981E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.06311734026058     
-   21.2514350554079       -4.10084352833050       -5.37556919820071     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993470687E+00
@@ -2951,9 +2622,6 @@ done.
    eval(6)=  2.58670E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05772135843328     
-   21.2572685018333       -4.10223110063712       -5.37739943828440     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993471030E+00
@@ -2980,9 +2648,6 @@ done.
    eval(6)=  2.58998E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05527728295809     
-   21.2599196948339       -4.10288474039505       -5.37826148590718     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993471029E+00
@@ -3009,9 +2674,6 @@ done.
    eval(6)=  2.59162E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05406153271444     
-   21.2612390816184       -4.10321080274441       -5.37869150633334     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993471024E+00
@@ -3038,9 +2700,6 @@ done.
    eval(6)=  2.59243E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05345403316375     
-   21.2618984759756       -4.10337382363815       -5.37890650218100     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993471022E+00
@@ -3067,9 +2726,6 @@ done.
    eval(6)=  2.59284E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05315045300881     
-   21.2622280161103       -4.10345531172745       -5.37901397023330     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993471021E+00
@@ -3138,9 +2794,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.363739E-02 -6.868343E-06
    eval(6)=  2.59462E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.05303434355890     
-   21.2623926910046       -4.10349603811968       -5.37906768078610     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993455732E+00
@@ -3167,9 +2820,6 @@ done.
    eval(6)=  2.60181E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04520372731208     
-   21.2707185267603       -4.10505339733456       -5.38112394511065     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459105E+00
@@ -3196,9 +2846,6 @@ done.
    eval(6)=  2.60385E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04365178483934     
-   21.2723960634694       -4.10544849172556       -5.38164504111841     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459183E+00
@@ -3225,9 +2872,6 @@ done.
    eval(6)=  2.60483E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04293430593122     
-   21.2731733961067       -4.10563657752426       -5.38189308158362     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459182E+00
@@ -3254,9 +2898,6 @@ done.
    eval(6)=  2.60532E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04257739072839     
-   21.2735601670427       -4.10573032224742       -5.38201670716426     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459180E+00
@@ -3283,9 +2924,6 @@ done.
    eval(6)=  2.60556E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04239918480726     
-   21.2737532917979       -4.10577714767345       -5.38207845768350     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459179E+00
@@ -3312,9 +2950,6 @@ done.
    eval(6)=  2.60568E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04231018872805     
-   21.2738497418218       -4.10580053883546       -5.38210930434995     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993459179E+00
@@ -3383,9 +3018,6 @@ fnrm*gnrm_in/gnrm_out, energy diff  3.565247E-03 -2.324211E-06
    eval(6)=  2.60618E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.04227590281508     
-   21.2738979131022       -4.10581222384984       -5.38212471366602     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993441831E+00
@@ -3412,9 +3044,6 @@ done.
    eval(6)=  2.61485E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.03261948449023     
-   21.2841603825304       -4.10772140907968       -5.38464550144210     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446062E+00
@@ -3441,9 +3070,6 @@ done.
    eval(6)=  2.61725E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.03075559616014     
-   21.2861747994880       -4.10819536428160       -5.38527057159102     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446158E+00
@@ -3470,9 +3096,6 @@ done.
    eval(6)=  2.61840E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02989410428178     
-   21.2871080473786       -4.10842098655572       -5.38556809566401     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446157E+00
@@ -3499,9 +3122,6 @@ done.
    eval(6)=  2.61898E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02946520017481     
-   21.2875727720435       -4.10853350716375       -5.38571647319873     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446156E+00
@@ -3528,9 +3148,6 @@ done.
    eval(6)=  2.61927E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02925090939846     
-   21.2878049724969       -4.10858973791721       -5.38579062270348     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446155E+00
@@ -3557,9 +3174,6 @@ done.
    eval(6)=  2.61941E-01
  -------------------------------------------------
    calculating the density kernel... 
- ebs,eh,exc,evxc,eexctX,eion,edisp  -4.02914383046391     
-   21.2879210038586       -4.10861783902314       -5.38582767850113     
-  0.000000000000000E+000   6.88446996418391       0.000000000000000E+000
  Calculating charge density...
 done.
    Calculation finished. TOTAL CHARGE =   7.999993446155E+00
@@ -3618,7 +3232,7 @@ done.
  total average noise            :   2.72997155E-02
  clean forces norm (Ha/Bohr): maxval=  3.037634757064E-02  fnrm2=  1.578847997455E-03
  raw forces:                  maxval=  5.040391269242E-02  fnrm2=  2.548457594149E-03
- CPU time/ELAPSED time for root process     0        19.59        19.52
+ CPU time/ELAPSED time for root process     0        19.62        19.54
  Final values of the Forces for each atom
      1      O -5.41066E-03 -2.16153E-02 -2.06453E-02
      2      H  1.01949E-02  6.34649E-03  5.69808E-03

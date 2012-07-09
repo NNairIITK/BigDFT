@@ -669,7 +669,7 @@ tt3=tt3+t2-t1
   end do !on ilr
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
-if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 1: time',tl2-tl1
+!if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 1: time',tl2-tl1
 
   ! Communicate the locregs
 tl1=mpi_wtime()
@@ -681,7 +681,7 @@ tl1=mpi_wtime()
  end do
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
-if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
+!if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
 
 allocate(wins_bounds(4,nlr), stat=istat)
 call memocc(istat, wins_bounds, 'wins_bounds', subname)
@@ -768,7 +768,7 @@ tl1=mpi_wtime()
 call mpi_barrier(mpi_comm_world, ierr)
 !call mpi_finalize(ierr)
 tl2=mpi_wtime()
-if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 3: time',tl2-tl1
+!if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 3: time',tl2-tl1
 
 iall = -product(shape(wins_bounds))*kind(wins_bounds)
 deallocate(wins_bounds,stat=istat)
@@ -783,12 +783,12 @@ iall = -product(shape(ifake))*kind(ifake)
 deallocate(ifake,stat=istat)
 call memocc(istat,iall,'ifake',subname)
 
-if(iproc==0) then
-    write(*,*) 'determine_locregSphere_parallel: time 1',tt1
-    write(*,*) 'determine_locregSphere_parallel: time 2',tt2
-    write(*,*) 'determine_locregSphere_parallel: time 3',tt3
-    write(*,*) 'determine_locregSphere_parallel: time 4',tt4
-end if
+!if(iproc==0) then
+!    write(*,*) 'determine_locregSphere_parallel: time 1',tt1
+!    write(*,*) 'determine_locregSphere_parallel: time 2',tt2
+!    write(*,*) 'determine_locregSphere_parallel: time 3',tt3
+!    write(*,*) 'determine_locregSphere_parallel: time 4',tt4
+!end if
 
 END SUBROUTINE determine_locregSphere_parallel
 

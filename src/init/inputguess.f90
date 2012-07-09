@@ -1905,7 +1905,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
            rprb=144.d0**.25d0*tt
        end if
        !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
-       write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
+       !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
    end if
 
    if (enlargerprb) then
