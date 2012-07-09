@@ -5589,7 +5589,7 @@ module module_interfaces
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   tmbopt, kernel, &
-                  ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+                  ldiis, lhphiopt, consecutive_rejections, fnrmArr, &
                   fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
                   tmb, lhphi, lphiold, lhphiold, &
@@ -5602,7 +5602,6 @@ module module_interfaces
          real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(:),pointer,intent(inout):: lhphiopt
-         real(8),dimension(:),pointer,intent(inout):: lphioldopt, lhphioldopt
          integer,intent(inout):: consecutive_rejections
          real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
          real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr

@@ -396,7 +396,6 @@ type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphilargeold2
 
 ! Local variables
-!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
 real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
 real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
@@ -404,7 +403,7 @@ integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_referenc
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, emergency_exit, overlap_calculated
+logical:: emergency_exit, overlap_calculated
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: locrad_tmp
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
@@ -468,11 +467,6 @@ real(8),dimension(2):: reducearr
       end if
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      withConfinement=.true.
-
-
-
-
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
       call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
@@ -528,11 +522,13 @@ endif
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt, tmb%wfnmd%density_kernel, &
-           ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           ldiis, lhphiopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+      lphioldopt => lphiold
+      lhphioldopt => lhphiold
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
@@ -565,12 +561,10 @@ endif
   
 
       ! to avoid that it points to something which was nullified... to be corrected
-      !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          tmbopt => tmb
-          lhphiopt => lhphi
-          lphioldopt => lphiold
-          lhphioldopt => lhphiold
-      !!end if
+      tmbopt => tmb
+      lhphiopt => lhphi
+      lphioldopt => lphiold
+      lhphioldopt => lhphiold
 
 
       if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
@@ -580,11 +574,8 @@ endif
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
-      !if(iproc==0) write(*,*) 'tmb%wfnmd%bs%conv_crit', tmb%wfnmd%bs%conv_crit
-      !if((fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) .or. &
       if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
           it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          !if(fnrm<tmb%wfnmd%bs%conv_crit .and. gnrm_in/gnrm_out<tmb%wfnmd%bs%conv_crit_ratio) then
           if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
@@ -701,9 +692,6 @@ contains
       allocate(locregCenterTemp(3,tmb%lzd%nlr), stat=istat)
       call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
 
-      !!allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!call memocc(istat, kernel, 'kernel', subname)
-
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
@@ -787,10 +775,6 @@ contains
       iall=-product(shape(locregCenterTemp))*kind(locregCenterTemp)
       deallocate(locregCenterTemp, stat=istat)
       call memocc(istat, iall, 'locregCenterTemp', subname)
-
-      !!iall=-product(shape(kernel))*kind(kernel)
-      !!deallocate(kernel, stat=istat)
-      !!call memocc(istat, iall, 'kernel', subname)
 
 
     end subroutine deallocateLocalArrays

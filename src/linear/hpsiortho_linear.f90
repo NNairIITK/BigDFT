@@ -1,6 +1,6 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmbopt, kernel, &
-           ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
+           ldiis, lhphiopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
            tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
@@ -15,7 +15,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: kernel
   type(localizedDIISParameters),intent(inout):: ldiis
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
-  real(8),dimension(:),pointer,intent(inout):: lphioldopt, lhphioldopt
   integer,intent(inout):: consecutive_rejections
   real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
   real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
@@ -125,8 +124,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   tmbopt => tmb
   lhphiopt => lhphi
-  lphioldopt => lphiold
-  lhphioldopt => lhphiold
+  !lphioldopt => lphiold
+  !lhphioldopt => lhphiold
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, lhphilarge2, lhphi)
 
 
@@ -210,7 +209,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!    owanext=tmbopt%lzd%nlr+1
           !!end if
           ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphioldopt(istart), 1)
+          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiold(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphiopt(istart), 1, lhphiopt(istart), 1)
           !!write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
       istart=istart+ncount
@@ -251,7 +250,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm=sqrt(fnrm/dble(tmbopt%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
-  call dcopy(tmbopt%orbs%npsidim_orbs, lhphiopt, 1, lhphioldopt, 1)
+  call dcopy(tmbopt%orbs%npsidim_orbs, lhphiopt, 1, lhphiold, 1)
   trHold=trH
 
   ! Precondition the gradient.
