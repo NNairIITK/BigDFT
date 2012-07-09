@@ -338,6 +338,7 @@ low_level = \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \

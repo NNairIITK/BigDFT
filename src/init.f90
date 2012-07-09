@@ -338,8 +338,8 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
               nl1,nl2,nl3,nu1,nu2,nu3)         
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
-            cpmult,hx,hy,hz,logrid)
+              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+              cpmult,hx,hy,hz,logrid)
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
               nlpspd%plr(iat)%wfd%nseg_c,&
@@ -1601,6 +1601,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call sumrho(denspot%dpbox,orbse,Lzde,GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
    call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
    call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
+
    orbse%nspin=nspin_ig
 
    !before creating the potential, save the density in the second part 
@@ -1616,9 +1617,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
       end do
    end if
-
    call updatePotential(ixc,nspin,denspot,energs%eh,energs%exc,energs%evxc)
-        
 !!$   !!!  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
 !!$     !in view of complete gaussian calculation
@@ -1707,7 +1706,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !change temporarily value of Lzd%npotddim
    allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
    call local_potential_dimensions(Lzde,orbse,denspot%dpbox%ngatherarr(0,1))
-   
+!   print *,'here',iproc   
    call default_confinement_data(confdatarr,orbse%norbp)
 
    !spin adaptation for the IG in the spinorial case
@@ -2061,6 +2060,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
           rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
+
+     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
+          call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

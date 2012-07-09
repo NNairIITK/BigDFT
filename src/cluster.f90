@@ -1232,8 +1232,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !yaml output
               if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
                    .and. opt%itrpmax==1) .or.&
-                   (endloop .and. &
-                   ((opt%itrpmax >1 .and. endlooprp) .or. opt%itrpmax == 1)) ) then 
+                   (endloop .and. opt%itrpmax >1 .and. endlooprp) ) then
+                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL',advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1397,7 +1397,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               
               !opt%gnrm =1.d10
               KSwfn%diis%energy_min=1.d10
-              KSwfn%diis%alpha=2.d0
+              !KSwfn%diis%alpha=2.d0
+              KSwfn%diis%alpha=in%alphadiis
            end if
         end if
 
@@ -1448,7 +1449,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
-        KSwfn%diis%alpha=2.d0
+        KSwfn%diis%alpha=in%alphadiis
      end if
 
      if (iproc == 0) then

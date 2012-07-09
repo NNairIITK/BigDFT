@@ -480,7 +480,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
-  real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
+  real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot,alphat,betat,gammat
   real(dp), dimension(6) :: strten
   real(wp), dimension(:,:,:,:), allocatable :: zfionxc
   real(dp), dimension(:,:,:), allocatable :: zf
@@ -505,8 +505,19 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      wrtmsg=.true.
   end if
 
+  if (present(alpha) .and. present(beta) .and. present(gamma)) then
+     alphat = alpha
+     betat = beta
+     gammat = gamma
+  else
+     alphat = 2.0_dp*datan(1.0_dp)
+     betat = 2.0_dp*datan(1.0_dp)
+     gammat = 2.0_dp*datan(1.0_dp)
+  end if
+
+
  
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  detg = 1.0_dp - dcos(alphat)**2 - dcos(betat)**2 - dcos(gammat)**2 + 2.0_dp*dcos(alphat)*dcos(betat)*dcos(gammat)
 
   
   !calculate the dimensions wrt the geocode
@@ -978,7 +989,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
   
-  
+
   if(nspin==4) then
      !Allocate diagonal spin-density in real space
      if (n3d >0) then
@@ -1012,7 +1023,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         rho_diag=0.0_dp
         m_norm=0.0_dp
      end if
-     
+     !print *,'ciao',iproc     
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
      !print *,'Psolver R',eh,exc,vxc

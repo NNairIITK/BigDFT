@@ -340,7 +340,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
-  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all
+  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
   character(len=27) :: filename
@@ -375,6 +375,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
+           call MPI_BARRIER(MPI_COMM_WORLD,ierr)
            if (verb) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &
