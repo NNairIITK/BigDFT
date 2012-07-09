@@ -4561,7 +4561,7 @@ module module_interfaces
 
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-                confpotorder, potentialprefac, it, iorb, eval_zero)
+                confpotorder, potentialprefac, it, iorb, eval_zero, tmb, kernel)
        use module_base
        use module_types
        implicit none
@@ -4573,6 +4573,8 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
        integer,intent(in):: it
        real(8),intent(in):: eval_zero
+       type(DFT_wavefunction),intent(inout):: tmb
+       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
      end subroutine choosePreconditioner2
 
 
@@ -4779,7 +4781,7 @@ module module_interfaces
          type(matrixDescriptors),intent(in):: mad
          integer,intent(in):: memoryForCommunOverlapIG
          character(len=1),intent(in):: locregShape
-         type(basis_performance_options),intent(in):: bpo
+         type(basis_performance_options),intent(inout):: bpo
          real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
        end subroutine get_hamiltonian_matrices
        

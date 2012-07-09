@@ -271,7 +271,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call choosePreconditioner2(iproc, nproc, tmbopt%orbs, tmbopt%lzd%llr(ilr), &
                tmbopt%lzd%hgrids(1), tmbopt%lzd%hgrids(2), tmbopt%lzd%hgrids(3), &
                tmbopt%wfnmd%bs%nit_precond, lhphiopt(ind2:ind2+ncnt-1), tmbopt%confdatarr(iorb)%potorder, &
-               tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero)
+               tmbopt%confdatarr(iorb)%prefac, it, iorb, eval_zero, tmbopt, kernel)
       ind2=ind2+ncnt
   end do
 
@@ -379,6 +379,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, 
       lhphiopt => lhphi
       lphioldopt => lphiold
       tmbopt%confdatarr => tmb%confdatarr
+      !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
       tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
       tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &

@@ -1,5 +1,5 @@
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it, tmb, kernel)
 !
 ! Purpose:
 ! ========
@@ -44,6 +44,8 @@ real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
 integer:: confPotOrder, it
+type(DFT_wavefunction),intent(inout):: tmb
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 ! Local variables
 character(len=*), parameter :: subname='precondition_residue'
@@ -52,6 +54,9 @@ real(wp) :: rmr_old,rmr_new,alpha,beta
 integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
+
+real(8),dimension(:),allocatable:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
+integer:: istat, iall
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -67,6 +72,59 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
        rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+
+
+  !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!    if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+  !!        allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !!        call memocc(istat, hpsit_c, 'hpsit_c', subname)
+  !!        allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !!        call memocc(istat, hpsit_f, 'hpsit_f', subname)
+  !!        allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !!        call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+  !!        allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !!        call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+  !!        call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, d, hpsit_c, hpsit_f, tmb%lzd)
+  !!        call dcopy(sum(tmb%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+  !!        call dcopy(7*sum(tmb%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+  !!        call build_linear_combination_transposed(tmb%orbs%norb, kernel, tmb%collcom, &
+  !!             hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+  !!        call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsit_c, hpsit_f, d, tmb%lzd)
+  !!        iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+  !!        deallocate(hpsittmp_c, stat=istat)
+  !!        call memocc(istat, iall, 'hpsittmp_c', subname)
+  !!        iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+  !!        deallocate(hpsittmp_f, stat=istat)
+  !!        call memocc(istat, iall, 'hpsittmp_f', subname)
+  !!        iall=-product(shape(hpsit_c))*kind(hpsit_c)
+  !!        deallocate(hpsit_c, stat=istat)
+  !!        call memocc(istat, iall, 'hpsit_c', subname)
+  !!        iall=-product(shape(hpsit_f))*kind(hpsit_f)
+  !!        deallocate(hpsit_f, stat=istat)
+  !!        call memocc(istat, iall, 'hpsit_f', subname)
+  !!    else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+  !!        stop 'p2p for precond not yet implemented'
+  !!        !!call allocateSendBufferOrtho(tmb%comon, subname)
+  !!        !!call allocateRecvBufferOrtho(tmb%comon, subname)
+  !!        !!! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
+  !!        !!call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
+  !!        !!     tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
+  !!        !!     d, tmb%comon%nsendBuf, tmb%comon%sendBuf)
+  !!        !!call timing(iproc,'eglincomms','ON') ! lr408t
+  !!        !!call post_p2p_communication(iproc, nproc, tmb%comon%nsendbuf, tmb%comon%sendbuf, &
+  !!        !!     tmb%comon%nrecvbuf, tmb%comon%recvbuf, tmb%comon)
+  !!        !!call wait_p2p_communication(iproc, nproc, tmb%comon)
+  !!        !!call timing(iproc,'eglincomms','OF') ! lr408t
+  !!        !!call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, &
+  !!        !!     tmb%comon%recvbuf, kernel, .true., lhphiopt)
+  !!        !!call deallocateRecvBufferOrtho(tmb%comon, subname)
+  !!        !!call deallocateSendBufferOrtho(tmb%comon, subname)
+  !!    end if
+  !!end if
+
+
+
+
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
@@ -90,6 +148,53 @@ real(wp), dimension(:), allocatable :: b,r,d
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
           rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+     !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+     !!    if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+     !!        allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+     !!        call memocc(istat, hpsit_c, 'hpsit_c', subname)
+     !!        allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+     !!        call memocc(istat, hpsit_f, 'hpsit_f', subname)
+     !!        allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+     !!        call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+     !!        allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+     !!        call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+     !!        call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, d, hpsit_c, hpsit_f, tmb%lzd)
+     !!        call dcopy(sum(tmb%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+     !!        call dcopy(7*sum(tmb%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+     !!        call build_linear_combination_transposed(tmb%orbs%norb, kernel, tmb%collcom, &
+     !!             hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+     !!        call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsit_c, hpsit_f, d, tmb%lzd)
+     !!        iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+     !!        deallocate(hpsittmp_c, stat=istat)
+     !!        call memocc(istat, iall, 'hpsittmp_c', subname)
+     !!        iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+     !!        deallocate(hpsittmp_f, stat=istat)
+     !!        call memocc(istat, iall, 'hpsittmp_f', subname)
+     !!        iall=-product(shape(hpsit_c))*kind(hpsit_c)
+     !!        deallocate(hpsit_c, stat=istat)
+     !!        call memocc(istat, iall, 'hpsit_c', subname)
+     !!        iall=-product(shape(hpsit_f))*kind(hpsit_f)
+     !!        deallocate(hpsit_f, stat=istat)
+     !!        call memocc(istat, iall, 'hpsit_f', subname)
+     !!    else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+     !!        stop 'p2p for precond not yet implemented'
+     !!        !!call allocateSendBufferOrtho(tmb%comon, subname)
+     !!        !!call allocateRecvBufferOrtho(tmb%comon, subname)
+     !!        !!! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
+     !!        !!call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
+     !!        !!     tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
+     !!        !!     d, tmb%comon%nsendBuf, tmb%comon%sendBuf)
+     !!        !!call timing(iproc,'eglincomms','ON') ! lr408t
+     !!        !!call post_p2p_communication(iproc, nproc, tmb%comon%nsendbuf, tmb%comon%sendbuf, &
+     !!        !!     tmb%comon%nrecvbuf, tmb%comon%recvbuf, tmb%comon)
+     !!        !!call wait_p2p_communication(iproc, nproc, tmb%comon)
+     !!        !!call timing(iproc,'eglincomms','OF') ! lr408t
+     !!        !!call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, &
+     !!        !!     tmb%comon%recvbuf, kernel, .true., lhphiopt)
+     !!        !!call deallocateRecvBufferOrtho(tmb%comon, subname)
+     !!        !!call deallocateSendBufferOrtho(tmb%comon, subname)
+     !!    end if
+     !!end if
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -452,7 +557,7 @@ END SUBROUTINE applyOperator
 
 
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, it, iorb, eval_zero)
+           confpotorder, potentialprefac, it, iorb, eval_zero, tmb, kernel)
 !
 ! Purpose:
 ! ========
@@ -494,6 +599,8 @@ real(8),intent(in):: eval_zero
 integer :: inds, ncplx, ikpt, ierr, iiAt
 real(wp) :: cprecr,scpr!,eval_zero,evalmax 
 real(gp) :: kx,ky,kz
+type(DFT_wavefunction),intent(inout):: tmb
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 
 
@@ -569,7 +676,7 @@ real(gp) :: kx,ky,kz
               !!write(*,*) 'cprecr',cprecr
               call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder, it)
+                   potentialPrefac, confPotOrder, it, tmb, kernel)
 
            end if
 

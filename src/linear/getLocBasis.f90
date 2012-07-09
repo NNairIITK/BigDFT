@@ -3651,9 +3651,9 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   character(len=*),parameter:: subname='reconstruct_kernel'
 
 
-  allocate(coeff_tmp(tmb%orbs%norb,orbs%norbp), stat=istat)
+  allocate(coeff_tmp(tmb%orbs%norb,max(orbs%norbp,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
-  allocate(ovrlp_tmp(orbs%norb,orbs%norbp), stat=istat)
+  allocate(ovrlp_tmp(orbs%norb,max(orbs%norbp,1)), stat=istat)
   call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
@@ -3687,16 +3687,20 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
 
   !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
-  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-       tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  if (orbs%norbp>0 )then
+      call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+           tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  end if
   !!do iorb=1,orbs%norbp
   !!    do jorb=1,orbs%norb
   !!        ovrlp_tmp(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
   !!        !!if(iproc==0) write(210,*) ovrlp_tmp(jorb,iorb)
   !!    end do
   !!end do
-  call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-       coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
+  if (orbs%norbp>0 )then
+      call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+           coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
+  end if
 
 
   ! Gather together the complete matrix
@@ -3707,8 +3711,10 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
 
   ! Build the new linear combinations
-  call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-       ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  if (orbs%norbp>0 )then
+      call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+           ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  end if
 
   call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
        tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
