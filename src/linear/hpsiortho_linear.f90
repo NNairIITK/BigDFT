@@ -3,7 +3,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
            fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, orbs, overlap_calculated, ovrlp)
+           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -25,7 +25,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(DFT_wavefunction),target,intent(inout):: tmblarge2, tmb
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
-  type(orbitals_data),intent(in):: orbs
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(inout):: ovrlp
 
@@ -291,10 +290,10 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, rxyz, kernel, &
-           lhphilarge, lphilargeold, lhphilargeold, lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
-           alpha, locregCenter, locregCenterTemp, &
-           denspot, locrad, inwhichlocreg_reference, factor, trH, meanAlpha, alphaDIIS)
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
+           lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
+           alpha, &
+           trH, meanAlpha, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -303,21 +302,12 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmblarge, tmb, tmbopt, at, 
   ! Calling arguments
   integer,intent(in):: iproc, nproc, it
   type(localizedDIISParameters),intent(inout):: ldiis
-  type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+  type(DFT_wavefunction),target,intent(inout):: tmb
   type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-  type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
-  real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
   real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
   real(8),dimension(:),pointer,intent(inout):: lhphiopt
   real(8),dimension(:),pointer,intent(out):: lphioldopt
-  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenter
-  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenterTemp
-  type(DFT_local_fields),intent(inout):: denspot
-  real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-  integer,dimension(tmb%orbs%norb),intent(in):: inwhichlocreg_reference
-  real(8),intent(in):: factor, trH, meanAlpha
+  real(8),intent(in):: trH, meanAlpha
   real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
   
   ! Local variables
