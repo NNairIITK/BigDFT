@@ -13,7 +13,7 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized
+  use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
   implicit none
 
   !> Input wf parameters.
@@ -164,7 +164,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output
+          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output,run_name
      integer :: files ! existing files.
      !miscellaneous variables
      logical :: gaussian_help
@@ -220,6 +220,7 @@ module module_types
      !!        1: CUDA acceleration with CUBLAS
      !!        2: OpenCL acceleration (with CUBLAS one day)
      integer :: iacceleration
+     integer :: Psolver_igpu !< acceleration of the Poisson solver
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -230,6 +231,7 @@ module module_types
      logical :: signaling  !< Expose results on DBus or Inet.
      integer :: signalTimeout !< Timeout for inet connection.
      character(len = 64) :: domain !< Domain to get the IP from hostname.
+     character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
      double precision :: gmainloop !< Internal C pointer on the signaling structure.
 
      !orthogonalisation data
@@ -256,21 +258,26 @@ module module_types
   end type input_variables
 
   type, public :: energy_terms
-     real(gp) :: eh     =0.0_gp
-     real(gp) :: exc    =0.0_gp
-     real(gp) :: evxc   =0.0_gp
-     real(gp) :: eion   =0.0_gp
-     real(gp) :: edisp  =0.0_gp
-     real(gp) :: ekin   =0.0_gp
-     real(gp) :: epot   =0.0_gp
-     real(gp) :: eproj  =0.0_gp
-     real(gp) :: eexctX =0.0_gp
-     real(gp) :: ebs    =0.0_gp
-     real(gp) :: eKS    =0.0_gp
-     real(gp) :: trH    =0.0_gp
-     real(gp) :: evsum  =0.0_gp
-     real(gp) :: evsic  =0.0_gp 
-     real(gp) :: excrhoc=0.0_gp 
+     real(gp) :: eh      =0.0_gp
+     real(gp) :: exc     =0.0_gp
+     real(gp) :: evxc    =0.0_gp
+     real(gp) :: eion    =0.0_gp
+     real(gp) :: edisp   =0.0_gp
+     real(gp) :: ekin    =0.0_gp
+     real(gp) :: epot    =0.0_gp
+     real(gp) :: eproj   =0.0_gp
+     real(gp) :: eexctX  =0.0_gp
+     real(gp) :: ebs     =0.0_gp
+     real(gp) :: eKS     =0.0_gp
+     real(gp) :: trH     =0.0_gp
+     real(gp) :: evsum   =0.0_gp
+     real(gp) :: evsic   =0.0_gp 
+     real(gp) :: excrhoc =0.0_gp 
+     real(gp) :: eTS     =0.0_gp
+     real(gp) :: ePV     =0.0_gp !< pressure term
+     real(gp) :: energy  =0.0_gp !< the functional which is minimized
+     real(gp) :: e_prev  =0.0_gp !< the previous value, to show the delta
+     real(gp) :: trH_prev=0.0_gp !< the previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
@@ -331,12 +338,11 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-!     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
-     real(8),dimension(3):: locregCenter !< center of the locreg 
-     real(8):: locrad !< cutoff radius of the localization region
+     real(gp),dimension(3):: locregCenter !< center of the locreg 
+     real(gp):: locrad !< cutoff radius of the localization region
   end type locreg_descriptors
 
 !>  Non local pseudopotential descriptors
@@ -824,12 +830,16 @@ end type linear_scaling_control_variables
   !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
      !variables with physical meaning
-     character(len=1) :: geocode !< Code for the boundary conditions
+     integer :: itype_scf !< order of the ISF family to be used
      real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+     character(len=1) :: geocode !< Code for the boundary conditions
      integer, dimension(3) :: ndims !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+     real(dp) :: work1_GPU,work2_GPU,k_GPU
+     integer, dimension(5) :: plan
+     integer, dimension(3) :: geo
      !variables with computational meaning
      integer :: iproc_world !iproc in the general communicator
      integer :: iproc,nproc
@@ -953,6 +963,112 @@ end type linear_scaling_control_variables
 
 contains
 
+  function pkernel_null() result(k)
+    type(coulomb_operator) :: k
+    k%itype_scf=0
+    k%geocode='F'
+    k%mu=0.0_gp
+    k%ndims=(/0,0,0/)
+    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(k%kernel)
+    k%work1_GPU=0.d0
+    k%work2_GPU=0.d0
+    k%k_GPU=0.d0
+    k%plan=(/0,0,0,0,0/)
+    k%geo=(/0,0,0/)
+    k%iproc_world=0
+    k%iproc=0
+    k%nproc=1
+    k%mpi_comm=MPI_COMM_WORLD
+    k%igpu=0
+  end function pkernel_null
+
+  function default_grid() result(g)
+    type(grid_dimensions) :: g
+    g%n1   =0
+    g%n2   =0
+    g%n3   =0
+    g%nfl1 =0
+    g%nfu1 =0
+    g%nfl2 =0
+    g%nfu2 =0
+    g%nfl3 =0
+    g%nfu3 =0
+    g%n1i  =0
+    g%n2i  =0
+    g%n3i  =0
+  end function default_grid
+
+  function default_wfd() result(wfd)
+    type(wavefunctions_descriptors) :: wfd
+    wfd%nvctr_c=0
+    wfd%nvctr_f=0
+    wfd%nseg_c=0
+    wfd%nseg_f=0
+    nullify(wfd%keyglob)
+    nullify(wfd%keygloc)
+    nullify(wfd%keyvglob)
+    nullify(wfd%keyvloc)
+  end function default_wfd
+
+  function default_kb() result(kb)
+    type(kinetic_bounds) :: kb
+    nullify(&
+         kb%ibyz_c,kb%ibxz_c,kb%ibxy_c, &
+         kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)
+  end function default_kb
+
+  function default_sb() result(sb)
+    type(shrink_bounds) :: sb
+    nullify(sb%ibzzx_c,sb%ibyyzz_c,sb%ibxy_ff,sb%ibzzx_f,sb%ibyyzz_f)
+  end function default_sb
+  
+  function default_gb() result(gb)
+    type(grow_bounds) :: gb
+    nullify(gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f)
+  end function default_gb
+
+  function default_bounds() result(b)
+    type(convolutions_bounds) :: b
+    b%kb=default_kb()
+    b%sb=default_sb()
+    b%gb=default_gb()
+    nullify(b%ibyyzz_r)
+  end function default_bounds
+
+  function default_locreg() result(lr)
+    type(locreg_descriptors) :: lr
+
+    lr%geocode='F'
+    lr%hybrid_on=.false.   
+    lr%ns1=0
+    lr%ns2=0
+    lr%ns3=0 
+    lr%nsi1=0
+    lr%nsi2=0
+    lr%nsi3=0  
+    lr%Localnorb=0  
+    lr%outofzone=(/0,0,0/) 
+    lr%d=default_grid()
+    lr%wfd=default_wfd()
+    lr%bounds=default_bounds()
+    lr%locregCenter=(/0.0_gp,0.0_gp,0.0_gp/) 
+    lr%locrad=0 
+
+  end function default_locreg
+
+  function default_lzd() result(lzd)
+    type(local_zone_descriptors) :: lzd
+    lzd%linear=.false.
+    lzd%nlr=0
+    lzd%lintyp=0
+    lzd%ndimpotisf=0
+    lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(lzd%doHamAppl)
+    lzd%Glr=default_locreg()
+    nullify(lzd%Llr)
+  end function default_lzd
 
 !!$!> Allocate communications_arrays
 !!$  subroutine allocate_comms(nproc,orbs,comms,subname)
@@ -1071,22 +1187,6 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
 END SUBROUTINE deallocate_orbs
-
-
-subroutine deallocate_coulomb_operator(kernel,subname)
-  use module_base
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(coulomb_operator), intent(inout) :: kernel
-  !local variables
-  integer :: i_all,i_stat
-
-  if (associated(kernel%kernel)) then
-     i_all=-product(shape(kernel%kernel))*kind(kernel%kernel)
-     deallocate(kernel%kernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
-  end if
-end subroutine deallocate_coulomb_operator
 
 !> Allocate and nullify restart objects
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)

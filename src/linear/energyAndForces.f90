@@ -73,6 +73,7 @@ if(nspin==4) then
         denspot%dpbox%n3d,ixc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+
 else
    if (.not. associated(denspot%V_XC)) then   
       !Allocate XC potential

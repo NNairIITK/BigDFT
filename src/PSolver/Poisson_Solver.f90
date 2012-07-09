@@ -64,7 +64,7 @@ module Poisson_Solver
   !calculate the allocation dimensions
   public :: PS_dim4allocation
   !routine that creates the kernel
-  public :: createKernel
+  public :: pkernel_init, pkernel_set, pkernel_free
   !calculate the poisson solver
   public :: PSolver
   !wrapper to the poisson solver for allowing non-collinear densities

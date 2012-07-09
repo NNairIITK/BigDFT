@@ -1,25 +1,59 @@
+---
+  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
+ Code logo:
+         TTTT         F       DDDDD
+        T    T               D
+       T     T        F     D
+       T    T         F     D        D
+       TTTTT          F     D         D
+       T    T         F     D         D
+       T     T        F     D         D
+       T      T       F     D         D
+       T     T     FFFF     D         D
+       T TTTT         F      D        D
+       T             F        D      D
+   TTTTTTTTT    FFFFF          DDDDDD
+     gggggg          iiiii    BBBBBBBBB
+    g      g        i             B
+   g        g      i         BBBB B
+   g         g     iiii     B     B
+   g         g     i       B      B
+   g         g     i        B     B
+   g         g     i         B    B
+   g         g     i          BBBBB
+    g        g     i         B    B
+             g     i        B     B
+            g               B    B
+       ggggg       i         BBBB
+
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7-dev.13
+ Timestamp of this run                 :  2012-07-01 23:32:10.229
+ Root process Hostname                 : localhos
  #... (file:input.perf.. not present)...................................Performance Options 
- #|debug F                   Debug option
- #|fftcache 8192             Cache size for the FFT
- #|accel NO                  Acceleration (NO, CUDAGPU, OCLGPU)
- #|blas F                    CUBLAS acceleration
- #|projrad  1.50E+01         Radius of the projector as a function of the maxrad
- #|exctxpar OP2P             Exact exchange parallelisation scheme
- #|ig_diag T                 Input guess: (T:Direct, F:Iterative) diag. of Ham.
- #|ig_norbp 5                Input guess: Orbitals per process for iterative diag.
- #|ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
- #|ig_tol  1.00E-04          Input guess: Tolerance criterion
- #|methortho 0               Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- #|rho_commun DEF            Density communication scheme
- #|psolver_groupsize 0       Size of Poisson Solver taskgroups (0=nproc)
- #|unblock_comms OFF         Overlap Communications of fields (OFF,DEN,POT)
- #|linear OFF                Linear Input Guess approach (OFF, LIG, FUL, TMO)
- #|tolsym -1.00E+00          Tolerance for symmetry detection
- #|signaling F               Expose calculation results on Network
- #|signalTimeout 0           Time out on startup for signal connection
- #|domain                    Domain to add to the hostname to find the IP 
- #|verbosity 2               verbosity of the output 0=low, 2=high
- #|psp_onfly T               Calculate pseudopotential projectors on the fly
+ #|debug F                      Debug option                                                 
+ #|fftcache 8192                Cache size for the FFT                                       
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|blas F                       CUBLAS acceleration                                          
+ #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
+ #|exctxpar OP2P                Exact exchange parallelisation scheme                        
+ #|ig_diag T                    Input guess: (T:Direct, F:Iterative) diag. of Ham.           
+ #|ig_norbp 5                   Input guess: Orbitals per process for iterative diag.        
+ #|ig_blocks 300 800            Input guess: Block sizes for orthonormalisation              
+ #|ig_tol  1.00E-04             Input guess: Tolerance criterion                             
+ #|methortho 0                  Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)           
+ #|rho_commun DEF               Density communication scheme (DBL, RSC, MIX)                 
+ #|psolver_groupsize 0          Size of Poisson Solver taskgroups (0=nproc)                  
+ #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
+ #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
+ #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
+ #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|signaling F                  Expose calculation results on Network                        
+ #|signalTimeout 0              Time out on startup for signal connection                    
+ #|domain                       Domain to add to the hostname to find the IP                 
+ #|verbosity 2                  verbosity of the output 0=low, 2=high                        
+ #|outdir .                     Writing directory                                            
+ #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.450 0.450 0.450 hhx,hy,hz: grid spacing in the three directions                         
  #|5.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -56,8 +90,8 @@
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
- #|----------------------------------------------------------------------------------
- Data Writing directory                : None
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -76,6 +110,7 @@
 
  Number of MPI processes 1
  Number of maximal OpenMP threads per MPI process 2
+  #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
@@ -92,62 +127,76 @@
      Max. Subspace Diagonalizations    :  10
    Density/Potential:
      Max. Iterations                   :  1
- --- (file: input.dft) --------------------------------------------- Input Parameters
-     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
-   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
-        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 5.0
- total charge=      0 |                    | CG Prec.Steps=       7 |  CG Steps=  30
-  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
  Polarisation=      1 |
    Geom. Code=    P   |   Box Sizes (Bohr) =  1.40000E+01  1.40000E+01  1.40000E+01
    Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                                   (XC: Teter 93)
                                                     XC functional provided by ABINIT.
- ------------------------------------------------------------------ System Properties
-  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
-      H          1       2            1.36000  0.15000  0.00000                   X    
- ------------------------------------ Pseudopotential coefficients (Upper Triangular)
- Atom Name    rloc      C1        C2        C3        C4  
-        H   0.20000  -4.06633   0.67783
- Total Number of Electrons        1
- Spin-polarized calculation
- Total Number of Orbitals         1
- occup(1)= 1.0000
- Shifted atomic positions, Atomic Units:                   grid spacing units:
-     1      H  7.00000E+00  7.00000E+00  7.00000E+00       16.000    16.000    16.000
-    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4375  0.4375  0.4375
-   Box Sizes=  1.40000E+01  1.40000E+01  1.40000E+01           31        31        31
-       Extremes for the high resolution grid points:        14<18     14<18     14<18
- wavelet localization is ON
- ------------------------------------------------- Wavefunctions Descriptors Creation
- Coarse resolution grid: Number of segments=        757 points=     15659
-   Fine resolution grid: Number of segments=         21 points=        81
- ------------------------------------------------------------ PSP Projectors Creation
- Type    Name Number of atoms Number of projectors
-    1       H               1                    0
-                                            ------  On-the-fly projectors application
- Total number of projectors =                    0
- Total number of components =                    0
- Percent of zero components =                    0
- ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    31   31   31
- Estimation performed for 1 processors.
- Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     0 MB   281 KB
-              Poisson Solver Density (D):     4 MB     0 KB
-     Single Wavefunction for one orbital:     0 MB   127 KB
-    All Wavefunctions for each processor:     0 MB   254 KB
-       Wavefunctions + DIIS per proc (W):     1 MB   751 KB
-     Nonlocal Pseudopotential Arrays (P):     0 MB     0 KB
-    Arrays of full uncompressed grid (U):     4 MB     0 KB
- Estimation of Memory requirements for principal code sections:
-  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |   W+~1*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~2*U+~ 3*D+K+P 
-         3MB         |        19MB          |       34MB     |            20MB
- The overall memory requirement needed for this calculation is thus: 34 MB
- By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 19 MB
+  #----------------------------------------------------------------------- System Properties
+ Properties of atoms in the system:
+ - Symbol                              : H #---------------------------------- Type No.  01
+   No. of Electrons                    :  1
+   No. of Atoms                        :  1
+   Radii of active regions (AU):
+     Coarse                            :  1.36000
+     Fine                              :  0.15000
+     Coarse PSP                        :  0.00000
+     Source                            : PSP File
+   Grid Spacing threshold (AU)         :  0.50
+   Pseudopotential type                : GTH
+   Local PSeudo Potential (HGH convention):
+     Rloc                              :  0.20000
+     Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.00000,  0.00000 ]
+   No. of projectors                   :  0
+   PSP XC                              : "XC: Teter 93"
+  #---------------------------------------------------------------------- Occupation numbers
+ Total Number of Electrons             :  1
+ Spin treatment                        : Collinear
+ Occupation numbers come from          : System properties
+ Occupation Numbers:
+   Total Number of Orbitals            :  1
+   Orbital No.  1                      :  1.0000
+  #-------------------------------------------------------------------------- Atom Positions
+ Atomic positions within the cell (Atomic and Grid Units):
+ - H: {AU:  [  7.0000,  7.0000,  7.0000 ], GU:  [  16.000,  16.000,  16.000 ]} # 0001
+ Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Box Grid spacings                     :  [  0.4375,  0.4375,  0.4375 ]
+ Sizes of the simulation domain:
+   AU                                  :  [  14.000,  14.000,  14.000 ]
+   Angstroem                           :  [  7.4085,  7.4085,  7.4085 ]
+   Grid Spacing Units                  :  [  31,  31,  31 ]
+   High resolution region boundaries (GU):
+     From                              :  [  14,  14,  14 ]
+     To                                :  [  18,  18,  18 ]
+ High Res. box is treated separately   :  Yes
+ Wavefunctions Descriptors, full simulation domain:
+   Coarse resolution grid:
+     No. of segments                   :  757
+     No. of points                     :  15659
+   Fine resolution grid:
+     No. of segments                   :  21
+     No. of points                     :  81
+ NonLocal PSP Projectors Descriptors:
+   Creation strategy                   : On-the-fly
+   Total number of projectors          :  0
+   Total number of components          :  0
+   Percent of zero components          :  0
+  #-------------------------------------------------------- Estimation of Memory Consumption
+ Memory requirements for principal quantities (MiB.KiB):
+   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 1)
+   Single orbital                      : 0.127 #  (Number of Components: 16226)
+   All (distributed) orbitals          : 0.254 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 1.751 #  (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.0
+   Full Uncompressed (ISF) grid        : 4.0
+   Workspaces storage size             : 0.263
+ Memory requirements for principal code sections (MiB.KiB):
+   Kernel calculation                  : 3.17
+   Density Construction                : 19.815
+   Poisson Solver                      : 34.8
+   Hamiltonian application             : 20.57
+ Estimated Memory Peak (MB)            :  34
  Memory Consumption Report:
    Tot. No. of Allocations  : 74
    Tot. No. of Deallocations: 74
@@ -156,4 +205,4 @@
       Peak Value (MB): 1
       for the array: logrid_big
       in the routine:  make_all_ib
- CPU time/ELAPSED time          0.00         0.01
+ CPU time/ELAPSED time          0.01         0.01

@@ -101,7 +101,8 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/structDef_kinetic.h \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
-	CUDA/cpp_utils.h
+	CUDA/cpp_utils.h \
+	PSolver/cufft.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else
@@ -193,7 +194,7 @@ endif
 EXTRA_DIST += lib/bindings_dbus.xml
 if HAVE_GDBUS
 bindings_files += lib/bindings_signals_dbus.c
-nodist_bindings_files = bindings_dbus.c bindings_dbus.h
+nodist_bindings_files = bindings_dbus.c bindings_dbus.h 
 
 bindings_dbus.h: bindings_dbus.c
 bindings_dbus.c: lib/bindings_dbus.xml
@@ -232,7 +233,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -Imodules -I$(srcdir)/modules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@ @LIB_YAML_CFLAGS@
 
@@ -337,6 +338,7 @@ low_level = \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
@@ -477,6 +479,8 @@ check:
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
+
+abscalc.o : esatto.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 

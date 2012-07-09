@@ -326,7 +326,8 @@ logical,dimension(:),allocatable:: calculateBounds
 allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
-    call nullify_locreg_descriptors(lzd%Llr(ilr))
+   lzd%Llr(ilr)=default_locreg()
+   call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
@@ -1105,7 +1106,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 
   if(linType /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug))
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
      Lzd%doHamAppl = .true. 
@@ -1829,9 +1830,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   end if
 
 end subroutine redefine_locregs_quantities
-
-
-
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &

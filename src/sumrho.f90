@@ -60,7 +60,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   end if
 
   !calculate electrostatic potential
-  call dcopy(dpbox%ndimpot,rho,1,vh,1) 
+  call dcopy(dpbox%ndimpot,rho,1,vh,1)
   call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
   !already symmetrized
@@ -229,7 +229,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-         call mpiallred(rhotot_dbl,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -357,24 +357,15 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
            charge=charge+tmred(ispin,1)
         end do
      end if
-     !write(*,'(1x,a,f21.12)')&
-     !     &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
 
      !yaml output
      call yaml_map('Total electronic charge',real(charge,gp)*product(dpbox%hgrids),fmt='(f21.12)')
 
-     !call yaml_stream_attributes()
-     !write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
-     if (rhodsc%icomm==2) then
-!!$        write(*,'(1x,a,f21.12)') &
-!!$             'Electronic charge changed by rho compression=                  ',&
-!!$             abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
+     if (rhodsc%icomm==2 .and. dpbox%nproc_world > 1) then
         call yaml_map('Electronic charge changed by rho compression',&
              abs(rhotot_dbl-real(charge,gp)*product(dpbox%hgrids)),fmt='(1pe21.12)')
      endif
      if(nspin == 4 .and. tt > 0._dp) then
-!!$        write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
-!!$             (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
         call yaml_map('Magnetic density orientation',&
              (/(tmred(ispin,1)/tmred(1,1),ispin=2,nspin)/),fmt='(f10.4)')
      end if
@@ -1147,23 +1138,34 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
    logical,intent(in) :: iprint
    type(rho_descriptors),intent(inout) :: rhodsc
-   !local variable
+   !local variables
    real(gp), parameter :: epsilon=1.e-10_gp
    integer :: i1,i2,i3,iseg,irho,i_stat,iat !n(c) ispin, i_all,jrho, nseg
    integer :: reg_c,reg_l
-   integer(4),dimension(n1i*n2i*n3i) :: reg
-   integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
-   integer :: n_fsegs,n_csegs
+   !these give stack overflow!!!!
+   !integer, dimension(n1i*n2i*n3i) :: reg
+   !integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
+   integer :: n_fsegs,n_csegs,ierr
    character(len=*), parameter :: subname='rhokey'
-   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
+   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat,i_all
    real(gp) :: dpmult,dsq,spadd
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
    integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
    integer,dimension(at%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax!,dsq_cr,dsq_fr
    real(gp), dimension(at%nat) :: dsq_cr,dsq_fr
    integer :: csegstot,fsegstot,corx,cory,corz,ithread,nthreads
+   integer, dimension(:), allocatable :: reg
+   integer, dimension(:,:), allocatable :: dpkey,spkey
    !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
    !$ integer :: omp_get_thread_num,omp_get_num_threads
+
+   allocate(reg(n1i*n2i*n3i+ndebug),stat=i_stat)
+   call memocc(i_stat,reg,'reg',subname)
+   allocate(dpkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
+   call memocc(i_stat,dpkey,'dpkey',subname)
+   allocate(spkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
+   call memocc(i_stat,spkey,'spkey',subname)
+
 
    ithread=0
    nthreads=1
@@ -1370,13 +1372,13 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    rhodsc%n_fsegs=n_fsegs
    rhodsc%n_csegs=n_csegs
 
-   allocate(rhodsc%dpkey(n_fsegs,2),stat=i_stat)
+   allocate(rhodsc%dpkey(n_fsegs,2+ndebug),stat=i_stat)
    call memocc(i_stat,rhodsc%dpkey,'dpkey',subname)
-   allocate(rhodsc%spkey(n_csegs,2),stat=i_stat)
+   allocate(rhodsc%spkey(n_csegs,2+ndebug),stat=i_stat)
    call memocc(i_stat,rhodsc%spkey,'spkey',subname)
-   allocate(rhodsc%cseg_b(n_csegs),stat=i_stat)
+   allocate(rhodsc%cseg_b(n_csegs+ndebug),stat=i_stat)
    call memocc(i_stat,rhodsc%cseg_b,'csegb',subname)
-   allocate(rhodsc%fseg_b(n_fsegs),stat=i_stat)
+   allocate(rhodsc%fseg_b(n_fsegs+ndebug),stat=i_stat)
    call memocc(i_stat,rhodsc%fseg_b,'fsegb',subname)
 
    csegstot=1
@@ -1393,6 +1395,17 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       rhodsc%spkey(iseg,2)=spkey(iseg,2)
       csegstot=csegstot+spkey(iseg,2)-spkey(iseg,1)+1
    enddo
+
+   i_all=-product(shape(reg))*kind(reg)
+   deallocate(reg,stat=i_stat)
+   call memocc(i_stat,i_all,'reg',subname)
+   i_all=-product(shape(dpkey))*kind(dpkey)
+   deallocate(dpkey,stat=i_stat)
+   call memocc(i_stat,i_all,'dpkey',subname)
+   i_all=-product(shape(spkey))*kind(spkey)
+   deallocate(spkey,stat=i_stat)
+   call memocc(i_stat,i_all,'spkey',subname)
+
 
    if (iprint) then
       if (iproc.eq.0) then

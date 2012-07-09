@@ -228,17 +228,17 @@ for line in original2:
     if end_right:
         break
 
-if bigdft:
-    #Do not compare if a file is not properly finished
-    if not end_left:
-        print "WARNING: The file '%s' is not properly finished!" % file1
-    if not end_right:
-        print "WARNING: The file '%s' is not properly finished!" % file2
-    if not (end_left and end_right): 
-        start = start_fail
-        message = "failed    < "
-        print "%sMax discrepancy : %s (%s%s)%s" % (start,"Nan",message,max_discrepancy,end)
-        sys.exit(1)
+#if bigdft:
+#    #Do not compare if a file is not properly finished
+#    if not end_left:
+#        print "WARNING: The file '%s' is not properly finished!" % file1
+#    if not end_right:
+#        print "WARNING: The file '%s' is not properly finished!" % file2
+#    if not (end_left and end_right): 
+#        start = start_fail
+#        message = "failed    < "
+#        print "%sMax discrepancy : %s (%s%s)%s" % (start,"Nan",message,max_discrepancy,end)
+#        sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
 memory = 0
@@ -404,7 +404,7 @@ while not EOF:
             #    maximum = 99
 
 if context_lines is not None:
-    print context_lines,
+    print context_lines
 else:
     print
 

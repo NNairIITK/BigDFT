@@ -1,12 +1,12 @@
 !> @file
 !! Define the module module_interfaces containing all interfaces
 !!
-!! @author 
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group (LG,DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 !>  Modules which contains all interfaces
 !!  Interfaces of:
@@ -119,7 +119,7 @@ module module_interfaces
          integer, intent(out) :: nelec
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(inout) :: at
-         type(orbitals_data), intent(out) :: orbs
+         type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
@@ -930,6 +930,19 @@ module module_interfaces
          real(dp), intent(out) :: gnrm,gnrm_zero
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
+
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc,nproc,ncong
+        real(gp), intent(in) :: hx,hy,hz
+        type(local_zone_descriptors), intent(in) :: Lzd
+        type(orbitals_data), intent(in) :: orbs
+        real(dp), intent(out) :: gnrm,gnrm_zero
+        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+      end subroutine preconditionall2
 
       subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
             &   work,outadd) !optional
