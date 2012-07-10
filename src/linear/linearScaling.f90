@@ -178,8 +178,6 @@ real(8),dimension(3,at%nat):: fpulay
 
 
 
-
-
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -330,8 +328,6 @@ real(8),dimension(3,at%nat):: fpulay
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
-              !allocate(denspot%pot_work(tmblarge%lzd%ndimpotisf+ndebug),stat=istat)
-              !call memocc(istat,denspot%pot_work,'denspot%pot_work',subname)
 
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
@@ -340,7 +336,6 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
 
-              !!write(*,*) 'nit_highaccur',nit_highaccur
               if(nit_highaccur<=1) then
                   call deallocateDIIS(ldiis)
                   call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
@@ -357,7 +352,8 @@ real(8),dimension(3,at%nat):: fpulay
                   ldiis%trmin=1.d100
                   ldiis%trold=1.d100
               else
-                  ! Since the potential changes, the values of ldiis%trmin should be reset.
+                  ! Keep the history in the high accuracy case.
+                  ! Since the potential changes, the values of ldiis%trmin must be reset.
                   ldiis%switchSD=.false.
                   ldiis%trmin=1.d100
                   ldiis%trold=1.d100
@@ -367,10 +363,6 @@ real(8),dimension(3,at%nat):: fpulay
                   ldiis%icountDIISFailureCons=0
               end if
           end if
-
-          ! Initialize DIIS...
-          ! Keep the history in the high accuracy case.
-          !if(.not.lscv%lowaccur_converged) then
 
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
               .and. tmb%wfnmd%bs%update_phi) then
@@ -424,11 +416,6 @@ real(8),dimension(3,at%nat):: fpulay
                   call dcopy(tmb%wfnmd%nphi, tmb%psi(1), 1, tmbmix%psi(1), 1)
               end if
 
-              !!! Allocate the transposed TMBs
-              !!allocate(tmbmix%psit_c(tmbmix%collcom%ndimind_c), stat=istat)
-              !!call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
-              !!allocate(tmbmix%psit_f(7*tmbmix%collcom%ndimind_f), stat=istat)
-              !!call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
               allocate(overlapmatrix(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
               call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
 
@@ -455,9 +442,6 @@ real(8),dimension(3,at%nat):: fpulay
               scf_mode=input%lin%scf_mode
           end if
 
-          !!allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
-          !!call memocc(istat, density_kernel, 'density_kernel', subname)
-
           ! Calculate the coefficients
           if(.not.lscv%withder) then
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
@@ -472,14 +456,8 @@ real(8),dimension(3,at%nat):: fpulay
 
           ! Calculate the total energy.
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-          !write(34,*) energy,energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energyDiff=energy-energyold
           energyold=energy
-!!!DEBUG
-!!if(iproc==0)then
-!!print *,'ebs,eh,exc,evxc,eexctX,eion,edisp',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-!!end if
-!!!END DEBUG
 
 
           ! Calculate the charge density.
@@ -488,12 +466,7 @@ real(8),dimension(3,at%nat):: fpulay
                tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
-          !!iall = -product(shape(density_kernel))*kind(density_kernel)
-          !!deallocate(density_kernel,stat=istat)
-          !!call memocc(istat,iall,'density_kernel',subname)
-
           ! Mix the density.
-          !if(trim(input%lin%mixingMethod)=='dens') then
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
@@ -505,7 +478,6 @@ real(8),dimension(3,at%nat):: fpulay
           call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
           ! Mix the potential
-          !if(trim(input%lin%mixingMethod)=='pot') then
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &

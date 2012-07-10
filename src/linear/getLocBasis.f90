@@ -1,8 +1,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmbmix,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
-    tmblarge, lhphilarge,  &
-    ldiis_coeff)
+    tmblarge, lhphilarge, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -194,9 +193,6 @@ real(8),dimension(:,:),allocatable:: locregCenter
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       do iorb=1,tmbmix%orbs%norb
-        !!do jorb=1,tmbmix%orbs%norb
-        !!  write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
-        !!end do
       end do
       if(tmbmix%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
@@ -247,12 +243,9 @@ real(8),dimension(:,:),allocatable:: locregCenter
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do jorb=1,tmbmix%orbs%norb
-      !do korb=1,tmbmix%orbs%norb
       do korb=1,jorb
           tt = tmbmix%wfnmd%density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           if(korb/=jorb) tt=2.d0*tt
-          !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          !!tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           ebs = ebs + tt
       end do
   end do
