@@ -401,7 +401,7 @@ real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
+real(8),dimension(:,:),allocatable:: Umat, locregCenterTemp
 real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
 logical:: emergency_exit, overlap_calculated
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -522,11 +522,11 @@ endif
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
-           ldiis, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+           ldiis, consecutive_rejections, &
+           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
-           tmb, lhphi, lphiold, lhphiold, &
-           tmblarge2, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+           tmb, lhphi, lhphiold, &
+           tmblarge2, lhphilarge2, overlap_calculated, ovrlp)
       lhphiopt => lhphi
       lphioldopt => lphiold
       lhphioldopt => lhphiold
@@ -670,14 +670,8 @@ contains
       allocate(alphaDIIS(tmb%orbs%norbp), stat=istat)
       call memocc(istat, alphaDIIS, 'alphaDIIS', subname)
 
-      allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
-      call memocc(istat, fnrmArr, 'fnrmArr', subname)
-
       allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
-
-      allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
-      call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
       allocate(lhphi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
@@ -726,17 +720,9 @@ contains
       deallocate(alphaDIIS, stat=istat)
       call memocc(istat, iall, 'alphaDIIS', subname)
 
-      iall=-product(shape(fnrmArr))*kind(fnrmArr)
-      deallocate(fnrmArr, stat=istat)
-      call memocc(istat, iall, 'fnrmArr', subname)
-
       iall=-product(shape(fnrmOldArr))*kind(fnrmOldArr)
       deallocate(fnrmOldArr, stat=istat)
       call memocc(istat, iall, 'fnrmOldArr', subname)
-
-      iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
-      deallocate(fnrmOvrlpArr, stat=istat)
-      call memocc(istat, iall, 'fnrmOvrlpArr', subname)
 
       iall=-product(shape(lhphi))*kind(lhphi)
       deallocate(lhphi, stat=istat)

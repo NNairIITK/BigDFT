@@ -1,9 +1,8 @@
-subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           kernel, &
-           ldiis, consecutive_rejections, fnrmArr, &
-           fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
-           tmb, lhphi, lphiold, lhphiold, &
-           tmblarge, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
+           ldiis, consecutive_rejections, &
+           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
+           tmb, lhphi, lhphiold, &
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -15,13 +14,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
   type(localizedDIISParameters),intent(inout):: ldiis
   integer,intent(inout):: consecutive_rejections
-  real(8),dimension(tmb%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
   real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
   logical,intent(out):: emergency_exit
   real(8),dimension(:),target,intent(inout):: lhphilarge2
-  real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
+  real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
 
@@ -30,7 +28,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-  real(8),dimension(:,:),allocatable:: lagmat, epsmat
+  real(8),dimension(:,:),allocatable:: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
   real(8):: closesteval, gnrm_temple
   integer:: owa, owanext
 
@@ -43,6 +41,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
+  allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
+  allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
+  call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! by default no quick exit
   emergency_exit=.false.
@@ -120,10 +122,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call memocc(istat, iall, 'hpsit_f', subname)
   end if
 
-  !tmbopt => tmb
-  !lhphiopt => lhphi
-  !lphioldopt => lphiold
-  !lhphioldopt => lhphiold
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge2, lhphi)
 
 
@@ -146,47 +144,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-  !if(ldiis%isx==0) then
-       if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
-       !if(trH > trHold + 1.d-8*abs(trHold)) then
-       if(trH > ldiis%trmin) then
-           consecutive_rejections=consecutive_rejections+1
-           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-           !!if(consecutive_rejections<=3) then
-           !!    ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
-           !!    alpha=alpha*.6d0
-           !!    if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-           !!        call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    else if(.not.variable_locregs) then
-           !!        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-           !!        call dcopy(size(tmb%psi), lphioldopt, 1, tmb%psi, 1)
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    else 
-           !!        ! It is not possible to use the old orbitals since the locregs might have changed.
-           !!        !if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
-           !!        if(iproc==0) write(*,'(1x,a)') 'Energy grows, will exit...'
-           !!        emergency_exit=.true.
-           !!        if(.not.variable_locregs) then
-           !!            call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-           !!        end if
-           !!    end if
-           !!else
-               consecutive_rejections=0
-               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
-               emergency_exit=.true.
-               !!if(.not.variable_locregs) then
-                   call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
-               !!end if
-           !end if
-       else
-           consecutive_rejections=0
-       end if
+      if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
+      if(trH > ldiis%trmin) then
+          consecutive_rejections=consecutive_rejections+1
+          if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
+              consecutive_rejections=0
+              if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+              emergency_exit=.true.
+              call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
+      else
+          consecutive_rejections=0
+      end if
   end if
 
 
@@ -197,19 +165,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! of the previous iteration (fnrmOvrlpArr).
   istart=1
   do iorb=1,tmb%orbs%norbp
-      !!if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          iiorb=tmb%orbs%isorb+iorb
-          ilr=tmb%orbs%inwhichlocreg(iiorb)
-          !!owa=tmb%orbs%onwhichatom(iiorb)
-          !!if(iiorb<tmb%orbs%norb) then
-          !!    owanext=tmb%orbs%onwhichatom(iiorb+1)
-          !!else
-          !!    owanext=tmb%lzd%nlr+1
-          !!end if
-          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
-          fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
-          !!write(1000+iiorb,'(2es14.5)') lagmat(iiorb,iiorb), fnrmArr(iorb,1)
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
+      fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
+      fnrmOldArr(iorb)=ddot(ncount, lhphiold(istart), 1, lhphiold(istart), 1)
       istart=istart+ncount
   end do
 
@@ -218,10 +179,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  ! Keep the gradient for the next iteration.
-  if(it>1) then
-      call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
-  end if
+  !!! Keep the gradient for the next iteration.
+  !!if(it>1) then
+  !!    call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+  !!end if
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
   ! step size for the steepest descent minimization (depending on the angle 
@@ -267,7 +228,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-               tmb%confdatarr(iorb)%prefac, it, iorb, eval_zero, tmb, kernel)
+               tmb%confdatarr(iorb)%prefac, iorb, eval_zero, tmb, kernel)
       ind2=ind2+ncnt
   end do
 
@@ -281,6 +242,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
   call memocc(istat, iall, 'lagmat', subname)
+
+  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
+  deallocate(fnrmOvrlpArr, stat=istat)
+  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
+
+  iall=-product(shape(fnrmArr))*kind(fnrmArr)
+  deallocate(fnrmArr, stat=istat)
+  call memocc(istat, iall, 'fnrmArr', subname)
 
 
 end subroutine calculate_energy_and_gradient_linear

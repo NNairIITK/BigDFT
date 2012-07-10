@@ -4561,7 +4561,7 @@ module module_interfaces
 
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-                confpotorder, potentialprefac, it, iorb, eval_zero, tmb, kernel)
+                confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
        use module_base
        use module_types
        implicit none
@@ -4571,7 +4571,6 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        real(8),intent(in):: potentialprefac
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-       integer,intent(in):: it
        real(8),intent(in):: eval_zero
        type(DFT_wavefunction),intent(inout):: tmb
        real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
@@ -5589,11 +5588,11 @@ module module_interfaces
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   kernel, &
-                  ldiis, consecutive_rejections, fnrmArr, &
-                  fnrmOvrlpArr, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+                  ldiis, consecutive_rejections, &
+                  fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
-                  tmb, lhphi, lphiold, lhphiold, &
-                  tmblarge, lhphilarge2, lphilargeold2, lhphilargeold2, overlap_calculated, ovrlp)
+                  tmb, lhphi, lhphiold, &
+                  tmblarge, lhphilarge2, overlap_calculated, ovrlp)
          use module_base
          use module_types
          implicit none
@@ -5602,13 +5601,12 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
          integer,intent(inout):: consecutive_rejections
-         real(8),dimension(tmb%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
          real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
          logical,intent(out):: emergency_exit
          real(8),dimension(:),target,intent(inout):: lhphilarge2
-         real(8),dimension(:),target,intent(inout):: lphilargeold2, lhphilargeold2, lhphi, lphiold, lhphiold
+         real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
        end subroutine calculate_energy_and_gradient_linear

@@ -1,5 +1,5 @@
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it, tmb, kernel)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, tmb, kernel)
 !
 ! Purpose:
 ! ========
@@ -36,14 +36,13 @@ use module_types
 ! x is the right hand side on input and the solution on output
 ! Calling arguments
 implicit none
-integer, intent(in) :: iproc,nproc,ncong,ncplx
+integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
 real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
 type(locreg_descriptors), intent(in) :: lr
 real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
-integer:: confPotOrder, it
 type(DFT_wavefunction),intent(inout):: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
@@ -71,7 +70,7 @@ integer:: istat, iall
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
-       rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+       rxyzParab, orbs, potentialPrefac, confPotOrder)
 
 
   !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -147,7 +146,7 @@ integer:: istat, iall
      !call flatten_at_boundaries2(lr, orbs, hx, hy, hz, x)
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
-          rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+          rxyzParab, orbs, potentialPrefac, confPotOrder)
      !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
      !!    if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
      !!        allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
@@ -236,7 +235,7 @@ END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, it)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -250,7 +249,7 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in) :: orbs
 real(8):: parabPrefac
-integer:: confPotOrder, it
+integer:: confPotOrder
   !local variables
   integer :: idx,nf
 
@@ -557,7 +556,7 @@ END SUBROUTINE applyOperator
 
 
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, it, iorb, eval_zero, tmb, kernel)
+           confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
 !
 ! Purpose:
 ! ========
@@ -593,7 +592,6 @@ type(orbitals_data), intent(in) :: orbs
 real(8),intent(in):: potentialprefac
 !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-integer,intent(in):: it
 real(8),intent(in):: eval_zero
 !local variables
 integer :: inds, ncplx, ikpt, ierr, iiAt
@@ -676,7 +674,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
               !!write(*,*) 'cprecr',cprecr
               call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder, it, tmb, kernel)
+                   potentialPrefac, confPotOrder, tmb, kernel)
 
            end if
 
