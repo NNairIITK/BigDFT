@@ -256,47 +256,8 @@ real(8),dimension(3,at%nat):: fpulay
 
 
       if(itout==1 .or. nit_highaccur==1) then
-
-      call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-           tmblarge, lhphilarge, lhphilargeold, lphilargeold)
-          !!do iorb=1,tmb%orbs%norb
-          !!    ilr=tmb%orbs%inwhichlocreg(iorb)
-          !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-          !!end do
-          !!do ilr=1,tmb%lzd%nlr
-          !!    locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-          !!end do
-
-          !!call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-          !!     tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-          !!     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-          !!     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-          !!call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-          !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-          !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-          !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-          !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-          !!tmblarge%can_use_transposed=.false.
-          !!nullify(tmblarge%psit_c)
-          !!nullify(tmblarge%psit_f)
-          !!allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
-
-          !!call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
-
-          !!if(.not.lscv%lowaccur_converged) then
-          !!    call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-          !!         tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-          !!         input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          !!else
-          !!    call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-          !!         tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-          !!         input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          !!end if
-          !!!write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
-
-          !!! take the eigenvalues from the input guess for the preconditioning
-          !!call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
-
+          call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+               tmblarge, lhphilarge, lhphilargeold, lphilargeold)
       end if
 
 
