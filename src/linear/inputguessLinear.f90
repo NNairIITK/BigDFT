@@ -870,9 +870,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'locrad_tmp', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm,tmb%wfnmd%density_kernel,overlapmatrix,.true.,&
-       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+       input%SIC,tmb,tmb,fnrm,overlapmatrix,.true.,&
+       tmblarge, lhphilarge)
 
 
   !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)

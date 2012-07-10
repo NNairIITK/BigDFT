@@ -2140,15 +2140,14 @@ module module_interfaces
     !!!end subroutine getLinearPsi
 
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
-               GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-               hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
-               tmblarge, lhphilarge, lhphilargeold, lphilargeold, &
+               GPU, infoCoeff,ebs,nlpspd,proj,&
+               SIC,tmbmix,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+               tmblarge, lhphilarge, &
                ldiis_coeff)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, scf_mode
-      integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs
       type(atoms_data),intent(in):: at
@@ -2157,16 +2156,14 @@ module module_interfaces
       type(GPU_pointers),intent(inout):: GPU
       integer,intent(out):: infoCoeff
       real(8),intent(out):: ebs, fnrm
-      real(8),intent(in):: hx, hy, hz
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(SIC_data),intent(in):: SIC
       type(DFT_wavefunction),intent(inout):: tmbmix,tmb
-      real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
       real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(:),pointer,intent(inout):: lhphilarge, lhphilargeold, lphilargeold
+      real(8),dimension(:),pointer,intent(inout):: lhphilarge
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 

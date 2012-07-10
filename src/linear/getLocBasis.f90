@@ -1,7 +1,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
-    GPU, infoCoeff,ebs,nlpspd,proj,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,tmbmix,tmb,fnrm,density_kernel,overlapmatrix,calculate_overlap_matrix,&
-    tmblarge, lhphilarge, lhphilargeold, lphilargeold, &
+    GPU, infoCoeff,ebs,nlpspd,proj,&
+    SIC,tmbmix,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+    tmblarge, lhphilarge,  &
     ldiis_coeff)
 use module_base
 use module_types
@@ -11,7 +11,6 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, scf_mode
-integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
 type(atoms_data),intent(in):: at
@@ -20,16 +19,14 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
 integer,intent(out):: infoCoeff
 real(8),intent(out):: ebs, fnrm
-real(8),intent(in):: hx, hy, hz
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(SIC_data),intent(in):: SIC
 type(DFT_wavefunction),intent(inout):: tmbmix, tmb
-real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(out):: density_kernel
 real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(:),pointer,intent(inout):: lhphilarge, lhphilargeold, lphilargeold
+real(8),dimension(:),pointer,intent(inout):: lhphilarge
 type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
 
 ! Local variables 
@@ -47,7 +44,6 @@ character(len=1) :: num
 real(8),dimension(:),allocatable :: locrad_tmp
 !!type(DFT_wavefunction):: tmblarge
 real(8),dimension(:,:),allocatable:: locregCenter
-!!real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
@@ -202,12 +198,12 @@ real(8),dimension(:,:),allocatable:: locregCenter
         !!  write(200+iproc,*) matrixElements(jorb,iorb,2), ovrlp(jorb,iorb)
         !!end do
       end do
-      if(blocksize_pdsyev<0) then
+      if(tmbmix%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
+          call dsygv_parallel(iproc, nproc, tmbmix%wfnmd%bpo%blocksize_pdsyev, tmbmix%wfnmd%bpo%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
                matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
@@ -245,7 +241,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
   end if
 
   call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel, ovrlp)
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
@@ -253,7 +249,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
   do jorb=1,tmbmix%orbs%norb
       !do korb=1,tmbmix%orbs%norb
       do korb=1,jorb
-          tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          tt = tmbmix%wfnmd%density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           if(korb/=jorb) tt=2.d0*tt
           !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           !!tt = density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
@@ -311,11 +307,8 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,fnrm,&
-    infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, &
-    tmb,&
-    tmblarge2, lhphilarge2)
+    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
+    SIC, tmb, tmblarge2, lhphilarge2)
 !
 ! Purpose:
 ! ========
@@ -347,25 +340,17 @@ type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2
 
 ! Local variables
-real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
+real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
-integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
-real(8),dimension(:,:),allocatable:: Umat, locregCenterTemp
-real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
+real(8),dimension(:,:),allocatable:: ovrlp
 logical:: emergency_exit, overlap_calculated
 character(len=*),parameter:: subname='getLocalizedBasis'
-real(8),dimension(:),allocatable:: locrad_tmp
-real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
-real(8),dimension(:),pointer:: lhphiopt
-type(local_zone_descriptors):: lzdlarge
-type(DFT_wavefunction),target:: tmblarge
-type(DFT_wavefunction),pointer:: tmbopt
-type(energy_terms) :: energs!, energs2
+real(8),dimension(:),pointer:: lhphi, lhphiold, lphiold
+type(energy_terms) :: energs
 character(len=3):: num
 integer :: i,j , k, ncount, ist, iiorb, sdim, ldim
-real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, phiplot
+real(8),dimension(:),allocatable:: phiplot
 real(8),dimension(2):: reducearr
 
 
@@ -376,7 +361,6 @@ real(8),dimension(2):: reducearr
 
   call timing(iproc,'getlocbasinit','ON') !lr408t
   tmb%can_use_transposed=.false.
-  tmblarge%can_use_transposed=.false.
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   alpha=ldiis%alphaSD
@@ -388,14 +372,7 @@ real(8),dimension(2):: reducearr
   consecutive_rejections=0
   trHold=1.d100
  
-  ! ratio of large locreg and standard locreg
-  factor=tmb%wfnmd%bs%locreg_enlargement
 
-  ! always use the same inwhichlocreg
-  call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
-
-
-  tmbopt => tmb
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
   trH_old=0.d0
@@ -420,8 +397,8 @@ real(8),dimension(2):: reducearr
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,tmblarge2%psi(1))
-      call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
-           tmbopt%psi, tmblarge2%psi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, &
+           tmb%psi, tmblarge2%psi)
       if(it==1) then
           call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -466,8 +443,6 @@ endif
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
-      tmbopt => tmblarge2
-      lhphiopt => lhphilarge2
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
@@ -476,8 +451,6 @@ endif
            meanAlpha, emergency_exit, &
            tmb, lhphi, lhphiold, &
            tmblarge2, lhphilarge2, overlap_calculated, ovrlp)
-      lhphiopt => lhphi
-      tmbopt => tmb
 
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
@@ -510,8 +483,6 @@ endif
   
 
       ! to avoid that it points to something which was nullified... to be corrected
-      tmbopt => tmb
-      lhphiopt => lhphi
 
 
       if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
@@ -552,16 +523,12 @@ endif
           exit iterLoop
       end if
 
-      tmbopt => tmb
-      lhphiopt => lhphi
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
 
       call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
 
-      tmbopt => tmb
-      lhphiopt => lhphi
 
   end do iterLoop
 
@@ -618,29 +585,12 @@ contains
       allocate(lhphiold(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
-      allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
-      call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
-
       allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, ovrlp, 'ovrlp', subname)
-
-      allocate(locregCenterTemp(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
 
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
-      allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, Umat, 'Umat', subname)
-
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenter, 'locregCenter', subname)
-
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
-
-      allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
-      call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
 
     end subroutine allocateLocalArrays
 
@@ -675,33 +625,9 @@ contains
       deallocate(lphiold, stat=istat)
       call memocc(istat, iall, 'lphiold', subname)
 
-      iall=-product(shape(Umat))*kind(Umat)
-      deallocate(Umat, stat=istat)
-      call memocc(istat, iall, 'Umat', subname)
-
-      iall=-product(shape(locregCenter))*kind(locregCenter)
-      deallocate(locregCenter, stat=istat)
-      call memocc(istat, iall, 'locregCenter', subname)
-
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
-
-      iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
-      deallocate(inwhichlocreg_reference, stat=istat)
-      call memocc(istat, iall, 'inwhichlocreg_reference', subname)
-
-      iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
-      deallocate(onwhichatom_reference, stat=istat)
-      call memocc(istat, iall, 'onwhichatom_reference', subname)
-
       iall=-product(shape(ovrlp))*kind(ovrlp)
       deallocate(ovrlp, stat=istat)
       call memocc(istat, iall, 'ovrlp', subname)
-
-      iall=-product(shape(locregCenterTemp))*kind(locregCenterTemp)
-      deallocate(locregCenterTemp, stat=istat)
-      call memocc(istat, iall, 'locregCenterTemp', subname)
 
 
     end subroutine deallocateLocalArrays

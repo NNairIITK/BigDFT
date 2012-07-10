@@ -461,14 +461,12 @@ real(8),dimension(3,at%nat):: fpulay
           ! Calculate the coefficients
           if(.not.lscv%withder) then
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,tmbmix%wfnmd%density_kernel,overlapmatrix,calculate_overlap_matrix,&
-                   tmblarge, lhphilarge, lhphilargeold, lphilargeold, ldiis_coeff)
+                   input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   tmblarge, lhphilarge, ldiis_coeff)
           else
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   tmbmix%wfnmd%bpo%blocksize_pdsyev,tmbder%wfnmd%bpo%nproc_pdsyev,&
-                   hx,hy,hz,input%SIC,tmbmix,tmb,pnrm,tmbmix%wfnmd%density_kernel,overlapmatrix,calculate_overlap_matrix,&
-                   tmblargeder, lhphilargeder, lhphilargeoldder, lphilargeoldder, ldiis_coeff)
+                   input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   tmblargeder, lhphilargeder, ldiis_coeff)
           end if
 
 
