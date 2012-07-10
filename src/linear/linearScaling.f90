@@ -60,101 +60,7 @@ real(8),dimension(3,at%nat):: fpulay
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
-  ! Initialize everything related to the linear scaling version ###########################################################
-  ! Initialize the tags for the p2p communication
 
-  ! Now all initializations are done ######################################################################################
-
-
-     !!!! Allocate the transposed TMBs
-     !!!allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=istat)
-     !!!call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-     !!!allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=istat)
-     !!!call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-     !!!allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-     !!!call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-     !!!! Deallocate the transposed TMBs
-     !!!iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-     !!!deallocate(tmb%psit_c, stat=istat)
-     !!!call memocc(istat, iall, 'tmb%psit_c', subname)
-     !!!iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-     !!!deallocate(tmb%psit_f, stat=istat)
-     !!!call memocc(istat, iall, 'tmb%psit_f', subname)
-     !!!iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-     !!!deallocate(overlapmatrix, stat=istat)
-     !!!call memocc(istat, iall, 'overlapmatrix', subname)
-     !!!!!call random_seed()
-     !!!!!call random_number(tmb%psi)
-     !!!call memocc(istat, density_kernel, 'density_kernel', subname)
-     !!!call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-     !!!     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
-     !!!call sumrhoForLocalizedBasis2(iproc, nproc, &
-     !!!iall = -product(shape(density_kernel))*kind(density_kernel)
-     !!!deallocate(density_kernel,stat=istat)
-     !!!call memocc(istat,iall,'density_kernel',subname)
-! DEBUG (SEE IF HAMILTONIAN IS GOOD)
-!!     call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-!!     call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-!!          tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-!!     call full_local_potential(iproc,nproc,tmb%orbs,tmb%lzd,2,&
-!!          denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%comgp)
-!!     call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-!!     allocate(confdatarr(tmb%orbs%norbp))
-!!     call define_confinement_data(confdatarr,tmb%orbs,rxyz,at,hx,hy,hz,input%lin%confpotorder,&
-!!          input%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
-!!     allocate(lhchi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)),stat=istat)
-!!     call memocc(istat, lhchi, 'lhchi', subname)
-!!     call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),lhchi(1))
-!!     allocate(tmb%lzd%doHamAppl(tmb%lzd%nlr))
-!!     tmb%lzd%doHamAppl = .true.
-!!     call LocalHamiltonianApplication(iproc,nproc,at,tmb%orbs,&
-!!          tmb%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%psi,lhchi(1),&
-!!          energs,input%SIC,GPU,.false.,&
-!!          pkernel=denspot%pkernelseq)
-!!     call NonLocalHamiltonianApplication(iproc,at,tmb%orbs,&
-!!          rxyz,proj,tmb%lzd,nlpspd,tmb%psi,lhchi(1),energs%eproj)
-!!    call total_energies(energs,1)
-!!    print *,'ebs,ekin,epot,eproj',energs%ebs,energs%ekin,energs%epot,energs%eproj
-!!    print *,'eKS,ehart,exc,evxc',energs%ebs-energs%eh+energs%exc-energs%evxc-eexctX+eion+edisp,energs%eh,energs%exc,energs%evxc
-!!    print *,'Wavefunction coefficients:'
-!!    do iall = 1, orbs%norb
-!!       do istat = 1, tmb%orbs%norb
-!!          print *,iall,istat,tmb%wfnmd%coeff(istat,iall)
-!!       end do
-!!    end do
-!!    ind1 = 1
-!!    print *,'Hamiltonian matrix:'
-!!    do iall = 1, tmb%lzd%nlr
-!!       ind2 = 1
-!!       do istat = 1, tmb%lzd%nlr
-!!          call wpdot_wrap(1,tmb%lzd%Llr(iall)%wfd%nvctr_c,tmb%Lzd%Llr(iall)%wfd%nvctr_f,tmb%Lzd%Llr(iall)%wfd%nseg_c,&
-!!               tmb%Lzd%Llr(iall)%wfd%nseg_f,tmb%Lzd%Llr(iall)%wfd%keyvglob,tmb%Lzd%Llr(iall)%wfd%keyglob,tmb%psi(ind1),&
-!!               tmb%Lzd%Llr(istat)%wfd%nvctr_c,tmb%Lzd%Llr(istat)%wfd%nvctr_f,tmb%Lzd%Llr(istat)%wfd%nseg_c,&
-!!               tmb%Lzd%Llr(istat)%wfd%nseg_f,tmb%Lzd%Llr(istat)%wfd%keyvglob,tmb%Lzd%Llr(istat)%wfd%keyglob,tmb%psi(ind2),overlap)
-!!          call wpdot_wrap(1,tmb%lzd%Llr(iall)%wfd%nvctr_c,tmb%Lzd%Llr(iall)%wfd%nvctr_f,tmb%Lzd%Llr(iall)%wfd%nseg_c,&
-!!               tmb%Lzd%Llr(iall)%wfd%nseg_f,tmb%Lzd%Llr(iall)%wfd%keyvglob,tmb%Lzd%Llr(iall)%wfd%keyglob,tmb%psi(ind1),&
-!!               tmb%Lzd%Llr(istat)%wfd%nvctr_c,tmb%Lzd%Llr(istat)%wfd%nvctr_f,tmb%Lzd%Llr(istat)%wfd%nseg_c,&
-!!               tmb%Lzd%Llr(istat)%wfd%nseg_f,tmb%Lzd%Llr(istat)%wfd%keyvglob,tmb%Lzd%Llr(istat)%wfd%keyglob,lhchi(ind2),hamil)
-!!          ind2 = ind2 + tmb%Lzd%Llr(istat)%wfd%nvctr_c + 7*tmb%Lzd%Llr(istat)%wfd%nvctr_f
-!!          print *,iall,istat,overlap,hamil
-!!       end do
-!!       ind1 = ind1+tmb%lzd%Llr(iall)%wfd%nvctr_c+7*tmb%Lzd%Llr(iall)%wfd%nvctr_f
-!!    end do
-!!stop
-!END DEBUG
-
-
-
-
-
-
-  !! Now one could calculate the charge density like this. It is not done since we would in this way overwrite
-  !! the potential from the input guess.     
-  !call allocateCommunicationbufferSumrho(iproc, with_auxarray, tmb%comsr, subname)
-  !call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  !call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, tmb%lzd, input, hx, hy, hz, tmb%orbs, tmb%comsr, &
-  !     tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov, at,denspot%dpbox%nscatterarr)
-  !call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
   allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
   call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
@@ -172,18 +78,15 @@ real(8),dimension(3,at%nat):: fpulay
           lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
       end do
 
-      !if(trim(input%lin%mixingMethod)=='dens') then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
           rhopotold_out=rhopotold
       end if
 
-      !if(trim(input%lin%mixingMethod)=='pot') then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
-      !if(trim(input%lin%mixingMethod)=='pot') then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
@@ -275,45 +178,17 @@ real(8),dimension(3,at%nat):: fpulay
 
 
 
-!!!! TEST: CREATE PENALTY BASIS FUNCTION
-!!call create_penalty_basis_function(iproc, nproc, tmb%orbs, tmb%lzd, &
-!!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%confdatarr, tmb%psi)
-!!!! END TEST
-
-
-
 
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
-      !!if(iproc==0) write(*,*) 'START LOOP: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       ! First to some initialization and determine the value of some control parameters.
-
-      !!! Initialize DIIS...
-      !!! Keep the history in the high accuracy case.
-      !!if(.not.lscv%lowaccur_converged) then
-      !!    if(itout>1) call deallocateDIIS(ldiis)
-      !!    call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-      !!    ldiis%DIISHistMin=input%lin%DIISHistMin
-      !!    ldiis%DIISHistMax=input%lin%DIISHistMax
-      !!    ldiis%alphaSD=input%lin%alphaSD
-      !!    ldiis%alphaDIIS=input%lin%alphaDIIS
-      !!    ldiis%icountSDSatur=0
-      !!    ldiis%icountSwitch=0
-      !!    ldiis%icountDIISFailureTot=0
-      !!    ldiis%icountDIISFailureCons=0
-      !!    ldiis%is=0
-      !!    ldiis%switchSD=.false.
-      !!    ldiis%trmin=1.d100
-      !!    ldiis%trold=1.d100
-      !!end if
 
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency loop
       lscv%self_consistent=input%lin%convCritMix
-
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, input, lscv)
@@ -343,17 +218,12 @@ real(8),dimension(3,at%nat):: fpulay
       if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
       if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
-      !!if(iproc==0) write(*,*) 'MIDDLE 1: ldiis%hphiHist(1)',ldiis%hphiHist(1)
       ! Adjust the confining potential if required.
       call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
            input, tmb, tmbder, denspot, ldiis, lscv)
-      !!if(iproc==0) write(*,*) 'MIDDLE 2: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
-      !!if(lscv%exit_outer_loop) exit outerLoop
-
-      !!if(iproc==0) write(*,*) 'MIDDLE: ldiis%hphiHist(1)',ldiis%hphiHist(1)
 
       if(lscv%withder) then
           call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
@@ -363,112 +233,11 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! Now all initializations are done...
 
+
       allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
       call memocc(istat, locregCenter, 'locregCenter', subname)
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
-      !!$$allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
-      !!$$call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
-      !!$$allocate(inwhichlocreg_reference(tmb%orbs%norb), stat=istat)
-      !!$$call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
-      !!$$allocate(locregCenterTemp(3,tmb%lzd%nlr), stat=istat)
-      !!$$call memocc(istat, locregCenterTemp, 'locregCenterTemp', subname)
-      !!$$allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!$$call memocc(istat, kernel, 'kernel', subname)
-      !!$$allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!$$call memocc(istat, Umat, 'Umat', subname)
-
-
-!!$$      !## TEST ###################################################
-!!$$
-!!$$  call vcopy(tmb%orbs%norb, tmb%orbs%inwhichlocreg(1), 1, inwhichlocreg_reference(1), 1)
-!!$$
-!!$$
-!!$$  ! Initialize largestructures if required
-!!$$      do iorb=1,tmb%orbs%norb
-!!$$          ilr=tmb%orbs%inwhichlocreg(iorb)
-!!$$          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-!!$$      end do
-!!$$      locregCenterTemp=locregCenter
-!!$$      do ilr=1,tmb%lzd%nlr
-!!$$          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+4.d0
-!!$$      end do
-!!$$      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmb%lzd%glr, &
-!!$$           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!$$           tmb%orbs, tmblarge2%lzd, tmblarge2%orbs, tmblarge2%op, tmblarge2%comon, &
-!!$$           tmblarge2%comgp, tmblarge2%comsr, tmblarge2%mad, tmblarge2%collcom)
-!!$$      call update_ldiis_arrays(tmblarge2, subname, ldiis)
-!!$$      call allocate_auxiliary_basis_function(tmblarge2%orbs%npsidim_orbs, subname, tmblarge2%psi, &
-!!$$           lhphilarge2, lhphilarge2old, lphilarge2old)
-!!$$      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge2%wfnmd%bpo, subname)
-!!$$      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
-!!$$      tmblarge2%wfnmd%nphi=tmblarge2%orbs%npsidim_orbs
-!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-!!$$      !call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmblarge2%orbs%onwhichatom(1), 1)
-!!$$
-!!$$      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmb%psi, tmblarge2%psi)
-!!$$      allocate(tmblarge2%confdatarr(tmblarge2%orbs%norbp), stat=istat)
-!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge2%orbs%onwhichatom(1), 1)
-!!$$      if(.not.lscv%lowaccur_converged) then
-!!$$          call define_confinement_data(tmblarge2%confdatarr,tmblarge2%orbs,rxyz,at,&
-!!$$               tmblarge2%lzd%hgrids(1),tmblarge2%lzd%hgrids(2),tmblarge2%lzd%hgrids(3),&
-!!$$               input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge2%lzd,tmblarge2%orbs%onwhichatom)
-!!$$      else
-!!$$          call define_confinement_data(tmblarge2%confdatarr,tmblarge2%orbs,rxyz,at,&
-!!$$               tmblarge2%lzd%hgrids(1),tmblarge2%lzd%hgrids(2),tmblarge2%lzd%hgrids(3),&
-!!$$               input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge2%lzd,tmblarge2%orbs%onwhichatom)
-!!$$      end if
-!!$$
-!!$$      call MLWFnew(iproc, nproc, tmblarge2%lzd, tmblarge2%orbs, at, tmblarge2%op, &
-!!$$           tmblarge2%comon, tmblarge2%mad, rxyz, 0, kernel, &
-!!$$           tmblarge2%confdatarr, tmb%lzd%hgrids(1), locregCenterTemp, 3.d0, tmblarge2%psi, Umat, locregCenter)
-!!$$      deallocate(tmblarge2%confdatarr, stat=istat)
-!!$$
-!!$$      call check_locregCenters(iproc, tmb%lzd, locregCenter, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
-!!$$
-!!$$      call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
-!!$$      do ilr=1,tmb%lzd%nlr
-!!$$          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad
-!!$$      end do
-!!$$      call destroy_new_locregs(iproc, nproc, tmb)
-!!$$      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, inwhichlocreg_reference, locregCenter, tmblarge2%lzd%glr, &
-!!$$           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!$$           tmblarge2%orbs, tmb%lzd, tmb%orbs, tmb%op, tmb%comon, &
-!!$$           tmb%comgp, tmb%comsr, tmb%mad, tmb%collcom)
-!!$$      call update_ldiis_arrays(tmb, subname, ldiis)
-!!$$
-!!$$      allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
-!!$$      call memocc(istat, tmb%psi, 'tmb%psi', subname)
-!!$$
-!!$$      !!call update_auxiliary_basis_function(subname, tmb%orbs%npsidim_orbs, tmb%psi, lhphi, lhphiold, lphiold)
-!!$$      call copy_basis_performance_options(tmblarge2%wfnmd%bpo, tmb%wfnmd%bpo, subname)
-!!$$      call copy_orthon_data(tmblarge2%orthpar, tmb%orthpar, subname)
-!!$$      call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
-!!$$      tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-!!$$
-!!$$      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, tmblarge2%psi, tmb%psi)
-!!$$      call destroy_new_locregs(iproc, nproc, tmblarge2)
-!!$$
-!!$$      iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
-!!$$      deallocate(onwhichatom_reference, stat=istat)
-!!$$      call memocc(istat, iall, 'onwhichatom_reference', subname)
-!!$$      iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
-!!$$      deallocate(inwhichlocreg_reference, stat=istat)
-!!$$      call memocc(istat, iall, 'inwhichlocreg_reference', subname)
-!!$$      iall=-product(shape(locregCenterTemp))*kind(locregCenterTemp)
-!!$$      deallocate(locregCenterTemp, stat=istat)
-!!$$      call memocc(istat, iall, 'locregCenterTemp', subname)
-!!$$      iall=-product(shape(kernel))*kind(kernel)
-!!$$      deallocate(kernel, stat=istat)
-!!$$      call memocc(istat, iall, 'kernel', subname)
-!!$$      iall=-product(shape(Umat))*kind(Umat)
-!!$$      deallocate(Umat, stat=istat)
-!!$$      call memocc(istat, iall, 'Umat', subname)
-!!$$
-!!$$      !## END TEST ###################################################
-
-
-
 
 
       if(nit_highaccur==1) then
@@ -488,44 +257,45 @@ real(8),dimension(3,at%nat):: fpulay
 
       if(itout==1 .or. nit_highaccur==1) then
 
-          do iorb=1,tmb%orbs%norb
-              ilr=tmb%orbs%inwhichlocreg(iorb)
-              locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-          end do
-          do ilr=1,tmb%lzd%nlr
-              locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-          end do
+      call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+           tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+          !!do iorb=1,tmb%orbs%norb
+          !!    ilr=tmb%orbs%inwhichlocreg(iorb)
+          !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+          !!end do
+          !!do ilr=1,tmb%lzd%nlr
+          !!    locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+          !!end do
 
-          call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-               tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-               tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-          call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-               tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
-          call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-          call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-          tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-          tmblarge%can_use_transposed=.false.
-          nullify(tmblarge%psit_c)
-          nullify(tmblarge%psit_f)
-          allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
-          !call memocc(istat, tmblarge%confdatarr, 'tmblarge%confdatarr', subname)
-          ! copy onwhichatom... maybe to be done somewhere else
+          !!call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+          !!     tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+          !!     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+          !!     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+          !!call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+          !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+          !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+          !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+          !!tmblarge%can_use_transposed=.false.
+          !!nullify(tmblarge%psit_c)
+          !!nullify(tmblarge%psit_f)
+          !!allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
 
-          call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
-          if(.not.lscv%lowaccur_converged) then
-              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          else
-              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          end if
-          !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
+          !!call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
 
-          ! take the eigenvalues from the input guess for the preconditioning
-          call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+          !!if(.not.lscv%lowaccur_converged) then
+          !!    call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+          !!         tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+          !!         input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          !!else
+          !!    call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+          !!         tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+          !!         input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          !!end if
+          !!!write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
+
+          !!! take the eigenvalues from the input guess for the preconditioning
+          !!call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
 
       end if
 
@@ -545,8 +315,6 @@ real(8),dimension(3,at%nat):: fpulay
           nullify(tmblargeder%psit_c)
           nullify(tmblargeder%psit_f)
           allocate(tmblargeder%confdatarr(tmblargeder%orbs%norbp), stat=istat)
-          !call memocc(istat, tmblargeder%confdatarr, 'tmblargeder%confdatarr', subname)
-          ! copy onwhichatom... maybe to be done somewhere else
           call vcopy(tmb%orbs%norb, tmbder%orbs%onwhichatom(1), 1, tmblargeder%orbs%onwhichatom(1), 1)
           if(.not.lscv%lowaccur_converged) then
               call define_confinement_data(tmblargeder%confdatarr,tmblargeder%orbs,rxyz,at,&
@@ -559,7 +327,6 @@ real(8),dimension(3,at%nat):: fpulay
           end if
       end if
 
-      !if(itout==1 .or. nit_highaccur==1) then
       if(itout==1) then
           ! Orthonormalize the TMBs
           ! just to be sure...
@@ -573,25 +340,11 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%can_use_transposed)
       end if
 
-!!!! ATTENTION: EXPERIMENTAL
-!!if(itout>3) then
-!!    if(iproc==0) write(*,*) 'WARNING: SET PREFAC TO ZERO MANUALLY!!'
-!!    tmb%confdatarr(:)%prefac=0.d0
-!!    tmblarge%confdatarr(:)%prefac=0.d0
-!!end if
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
-          !!if(lscv%withder .and. .not.first_time_with_der) then
-          !!    first_time_with_der=.true.
-          !!    !scf_mode=LINEAR_MIXDENS_SIMPLE
-          !!    scf_mode=input%lin%scf_mode
-          !!    call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
-          !!else
-          !!    scf_mode=input%lin%scf_mode
-          !!end if
           scf_mode=input%lin%scf_mode
 
           ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
@@ -867,52 +620,11 @@ real(8),dimension(3,at%nat):: fpulay
 
       call deallocateDIIS(ldiis_coeff)
 
-!! call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-!!      tmb%confdatarr, tmb%wfnmd, lscv)
-!!
-!!
-!!
-!!
-!!write(*,*) 'allocated(overlapmatrix)',allocated(overlapmatrix)
-!!      write(*,*) 'tmb%confdatarr(1)%prefac', tmb%confdatarr(1)%prefac
-!!!!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-!!!!     tmb%confdatarr, tmb%wfnmd, lscv)
       iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
       deallocate(overlapmatrix, stat=istat)
       call memocc(istat, iall, 'overlapmatrix', subname)
 
 
-! TEST
-      !!do iorb=1,tmb%orbs%norbp
-      !!    !!ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-      !!    !!iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-      !!!!    tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-      !!    !tmb%confdatarr(iorb)%prefac=1.d0
-      !!    write(*,*) 'tmb%confdatarr(iorb)%prefac', tmb%confdatarr(iorb)%prefac
-      !!end do
-      !!tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
-      !!tmb%wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-      !!tmb%wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
-      !!lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
-      !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
-      !!lscv%mix_hist=input%lin%mixHist_lowaccuracy
-      !!do ilr=1,tmb%lzd%nlr
-      !!    lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-      !!end do
-      !!if(tmb%wfnmd%bs%update_phi) then
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
-      !!else
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
-      !!end if
-
-
-
-
-!      ! Deallocate the transposed TMBs
-!      write(*,*) 'associated(tmbmix%psit_c)',associated(tmbmix%psit_c)
-!      write(*,*) 'associated(tmbmix%psit_f)',associated(tmbmix%psit_f)
-!      write(*,*) 'tmbmix%can_use_transposed',tmbmix%can_use_transposed
-!      write(*,*) 'associated(tmb%confdatarr)',associated(tmb%confdatarr)
       if(tmbmix%can_use_transposed) then
           iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
           deallocate(tmbmix%psit_c, stat=istat)
@@ -921,9 +633,6 @@ real(8),dimension(3,at%nat):: fpulay
           deallocate(tmbmix%psit_f, stat=istat)
           call memocc(istat, iall, 'tmbmix%psit_f', subname)
       end if
-  !write(*,*) 'allocated(overlapmatrix)',allocated(overlapmatrix)
-!!call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-!!     tmb%confdatarr, tmb%wfnmd, lscv)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -962,9 +671,6 @@ real(8),dimension(3,at%nat):: fpulay
            fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
 
       energyoldout=energy
-
-      !!! Deallocate DIIS structures.
-      !!call deallocateDIIS(ldiis)
 
 
       call check_for_exit(input, lscv)

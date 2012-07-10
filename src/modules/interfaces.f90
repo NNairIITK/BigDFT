@@ -6387,6 +6387,23 @@ module module_interfaces
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
+        subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
+                   tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc
+          type(DFT_Wavefunction),intent(in):: tmb
+          real(8),dimension(tmb%orbs%norb),intent(in):: eval
+          type(DFT_local_fields),intent(in):: denspot
+          type(input_variables),intent(in):: input
+          type(atoms_data),intent(in):: at
+          real(8),dimension(3,at%nat),intent(in):: rxyz
+          logical,intent(in):: lowaccur_converged
+          type(DFT_Wavefunction),intent(out):: tmblarge
+          real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
+        end subroutine create_large_tmbs
+
    end interface
 
 END MODULE module_interfaces

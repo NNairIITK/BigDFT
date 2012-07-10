@@ -50,10 +50,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   emergency_exit=.false.
 
 
-
-
- 
-
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           if(.not. tmblarge%can_use_transposed) then
@@ -175,14 +171,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end do
 
 
-
-
-
-
-  !!! Keep the gradient for the next iteration.
-  !!if(it>1) then
-  !!    call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
-  !!end if
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
   ! step size for the steepest descent minimization (depending on the angle 

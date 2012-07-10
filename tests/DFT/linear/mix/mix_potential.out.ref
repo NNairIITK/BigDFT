@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-09 18:00:14.940
+ Timestamp of this run                 :  2012-07-10 08:55:51.310
  Hostname                              : phys-comp-03
  #... (file:default.perf)................................................Performance Options
  #|debug F                   Debug option
@@ -105,10 +105,10 @@
  #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
  #|1.d-11         convergence criterion for the low accuracy part                            
  #|1.d-11         convergence criterion for the high accuracy part                           
- #|T  4           use the derivative basis functions, Order of confinement potential (4 or 6)
+ #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
  #|50  100        number of iterations for the input guess, memory available for overlap comm
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              mixed mode (without and with derivatives)                                  
+ #|F              mixed mode (without and with derivatives)                                  
  #|1              confinement_decrease_mode: 0=linear, 1=abrupt                              
  #|.6d0  .1d0     decrease_amount, decrease_step                                             
  #|C 4 1.0d-1 0.0d-4 2.8 3.3  Atom name, number of basis functions per atom, prefactor for co
@@ -229,7 +229,8 @@
     | processes from 2 to 7 treat 6 orbitals. |
  -----------------------------------------------
  >>>> Partition of the basis functions including the derivatives among the processes.
-    | Processes from 0 to 7 treat 25 orbitals. |
+    | Processes from 0 to 1 treat 7 orbitals, |
+    | processes from 2 to 7 treat 6 orbitals. |
  ------------------------------------------------------------------------------------
  Wavefunctions memory occupation for root MPI process:  1 MB 322 KB 128
  ------------------------------------------------------------ PSP Projectors Creation
@@ -314,7 +315,6 @@ V3prb    5.4876E+01
  ****************************** LINEAR SCALING VERSION ******************************
  Changing the confining potential to 100.00% of its initial value.
  calling orthonormalizeLocalized (exact)
-   calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.88603151796E+02 -1.31738398262E+02  9.67612103142E+00  6.65408745655E+01
@@ -413,10 +413,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   5.24E-06   -4.33766781634968197E+01    6.6770E+00
+   it, Delta POT, energy, energyDiff   2   5.24E-06   -4.33766781634969334E+01    6.6770E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.3875935620E+00  2.7037561848E+02 -2.2975083970E+01 -3.0077259934E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutL, Delta POTOUT, energy energyDiff   1   1.58E-05   -4.33766781634968197E+01   -4.3377E+01
+   itoutL, Delta POTOUT, energy energyDiff   1   1.58E-05   -4.33766781634969334E+01   -4.3377E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -426,11 +426,10 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   1    5.24E-06   -4.33766781634968197E+01
+     FINAL values: it, Delta POT, energy   1    5.24E-06   -4.33766781634969334E+01
    > energy difference to last iteration: -4.337668E+01
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
-   calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.92759403745E+02 -1.51111282294E+02  1.19602353100E+01  5.36083567613E+01
@@ -492,7 +491,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   1.72E-06   -5.02614182683079207E+01   -6.8847E+00
+   it, Delta POT, energy, energyDiff   1   1.72E-06   -5.02614182683065565E+01   -6.8847E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -547,7 +546,6 @@ done.
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
-   calculating the density kernel... 
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.94293755844E+02 -1.77946494817E+02  1.22191293914E+01  2.85663904184E+01
@@ -566,34 +564,33 @@ fnrm*gnrm_in/gnrm_out, energy diff  1.899193E-01 -2.357574E+00
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.5182642E-01  1.9518537E-01  -5.6468818
  ============================= Basis functions created. =============================
- calculating derivative basis functions...done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -1.32102E-01
-   eval(18)= -1.23419E-01
-   eval(19)= -1.12593E-01
-   eval(20)= -1.10236E-01
-   eval(21)= -9.87766E-02
-   eval(22)= -9.86478E-02
-   eval(23)= -9.55714E-02
-   eval(24)= -8.44986E-02
-   eval(25)= -6.16614E-02  <-- last occupied orbital
-   eval(26)=  4.88128E-01  <-- first virtual orbital
-   eval(27)=  4.90581E-01
-   eval(28)=  5.03006E-01
-   eval(29)=  5.24882E-01
-   eval(30)=  5.34525E-01
-   eval(31)=  5.48670E-01
-   eval(32)=  5.51016E-01
-   eval(33)=  5.54851E-01
+   eval(17)= -1.23647E-01
+   eval(18)= -1.11809E-01
+   eval(19)= -1.03169E-01
+   eval(20)= -9.19582E-02
+   eval(21)= -9.06934E-02
+   eval(22)= -8.85357E-02
+   eval(23)= -8.46778E-02
+   eval(24)= -6.69429E-02
+   eval(25)= -3.90899E-02  <-- last occupied orbital
+   eval(26)=  5.67582E-01  <-- first virtual orbital
+   eval(27)=  5.85589E-01
+   eval(28)=  5.93879E-01
+   eval(29)=  6.11829E-01
+   eval(30)=  6.25850E-01
+   eval(31)=  6.42044E-01
+   eval(32)=  6.54892E-01
+   eval(33)=  6.69786E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   4.999998885613E+01
+   Calculation finished. TOTAL CHARGE =   4.999998753110E+01
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -602,35 +599,35 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   1.00E-05   -5.46811732809478031E+01   -5.5797E+00
+   it, Delta POT, energy, energyDiff   1   1.19E-05   -5.41752542231649272E+01   -5.0738E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -1.58058E-01
-   eval(18)= -1.53701E-01
-   eval(19)= -1.46682E-01
-   eval(20)= -1.36380E-01
-   eval(21)= -1.29116E-01
-   eval(22)= -1.24498E-01
-   eval(23)= -1.21056E-01
-   eval(24)= -1.15617E-01
-   eval(25)= -9.93711E-02  <-- last occupied orbital
-   eval(26)=  4.55265E-01  <-- first virtual orbital
-   eval(27)=  4.59464E-01
-   eval(28)=  4.74265E-01
-   eval(29)=  4.95528E-01
-   eval(30)=  5.01389E-01
-   eval(31)=  5.07477E-01
-   eval(32)=  5.16860E-01
-   eval(33)=  5.20890E-01
+   eval(17)= -1.56609E-01
+   eval(18)= -1.50857E-01
+   eval(19)= -1.37519E-01
+   eval(20)= -1.35509E-01
+   eval(21)= -1.23919E-01
+   eval(22)= -1.23608E-01
+   eval(23)= -1.19796E-01
+   eval(24)= -1.06365E-01
+   eval(25)= -8.93489E-02  <-- last occupied orbital
+   eval(26)=  5.26623E-01  <-- first virtual orbital
+   eval(27)=  5.43176E-01
+   eval(28)=  5.44249E-01
+   eval(29)=  5.69824E-01
+   eval(30)=  5.79185E-01
+   eval(31)=  5.98995E-01
+   eval(32)=  6.07717E-01
+   eval(33)=  6.19907E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   4.999998847521E+01
+   Calculation finished. TOTAL CHARGE =   4.999998738687E+01
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -639,35 +636,35 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   3.87E-06   -5.30435249138682252E+01    1.6376E+00
+   it, Delta POT, energy, energyDiff   2   4.07E-06   -5.21517772517631215E+01    2.0235E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -1.63828E-01
-   eval(18)= -1.58527E-01
-   eval(19)= -1.49892E-01
-   eval(20)= -1.42456E-01
-   eval(21)= -1.33946E-01
-   eval(22)= -1.30701E-01
-   eval(23)= -1.27066E-01
-   eval(24)= -1.20112E-01
-   eval(25)= -1.01786E-01  <-- last occupied orbital
-   eval(26)=  4.51068E-01  <-- first virtual orbital
-   eval(27)=  4.53119E-01
-   eval(28)=  4.67538E-01
-   eval(29)=  4.88578E-01
-   eval(30)=  4.94940E-01
-   eval(31)=  5.02977E-01
-   eval(32)=  5.11778E-01
-   eval(33)=  5.13768E-01
+   eval(17)= -1.64523E-01
+   eval(18)= -1.57960E-01
+   eval(19)= -1.43727E-01
+   eval(20)= -1.43312E-01
+   eval(21)= -1.32078E-01
+   eval(22)= -1.30839E-01
+   eval(23)= -1.28002E-01
+   eval(24)= -1.13360E-01
+   eval(25)= -9.48351E-02  <-- last occupied orbital
+   eval(26)=  5.17231E-01  <-- first virtual orbital
+   eval(27)=  5.34688E-01
+   eval(28)=  5.34990E-01
+   eval(29)=  5.60114E-01
+   eval(30)=  5.69946E-01
+   eval(31)=  5.89245E-01
+   eval(32)=  5.98459E-01
+   eval(33)=  6.11298E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   4.999998836203E+01
+   Calculation finished. TOTAL CHARGE =   4.999998739320E+01
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -676,10 +673,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   3   1.97E-06   -5.42813134164560438E+01   -1.2378E+00
+   it, Delta POT, energy, energyDiff   3   2.08E-06   -5.36995532185917455E+01   -1.5478E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.3542986772E+01  2.6666212781E+02 -2.1505658917E+01 -2.8138350011E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutH, Delta POTOUT, energy energyDiff   3   7.64E-06   -5.42813134164560438E+01   -5.1798E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.3607222132E+01  2.6606545186E+02 -2.1536343996E+01 -2.8179009149E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
+   itoutH, Delta POTOUT, energy energyDiff   3   8.67E-06   -5.36995532185917455E+01   -4.5981E+00
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -689,13 +686,13 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   3    1.97E-06   -5.42813134164560438E+01
-   > energy difference to last iteration: -5.179819E+00
+     FINAL values: it, Delta POT, energy   3    2.08E-06   -5.36995532185917455E+01
+   > energy difference to last iteration: -4.598059E+00
  ############################################################################################
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   4.999998836203E+01
+   Calculation finished. TOTAL CHARGE =   4.999998739320E+01
  ------------------------------------- Building linear combinations... done.
  ---------------------------------------------------------- Gaussian Basis Projection
  Generation of input wavefunction data for atom      C:
@@ -710,52 +707,52 @@ done.
    Dimensions                          :  [  89,  93,  157 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.4876E-01, -1.8004E-01, -1.6743E-01 ]
-   |P|                                 :  2.873674E-01
+   P vector                            :  [ -1.4315E-01, -1.8910E-01, -1.6147E-01 ]
+   |P|                                 :  2.869145E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -3.7811E-01, -4.5763E-01, -4.2558E-01 ]
-   |P|                                 :  7.304151E-01
+   P vector                            :  [ -3.6384E-01, -4.8064E-01, -4.1041E-01 ]
+   |P|                                 :  7.292638E-01
  Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:   3.43202601E-02
- average noise along y direction:   3.73775445E-02
- average noise along z direction:   2.74304365E-02
- total average noise            :   5.76835326E-02
- clean forces norm (Ha/Bohr): maxval=  6.980639050870E-02  fnrm2=  5.202015572947E-02
- raw forces:                  maxval=  6.984166751167E-02  fnrm2=  5.535039005254E-02
- CPU time/ELAPSED time for root process     0        17.86        17.75
+ average noise along x direction:   4.34291394E-02
+ average noise along y direction:   5.87447852E-02
+ average noise along z direction:   4.32329816E-02
+ total average noise            :   8.48889312E-02
+ clean forces norm (Ha/Bohr): maxval=  1.483475562840E-01  fnrm2=  1.385820266559E-01
+ raw forces:                  maxval=  1.609816541759E-01  fnrm2=  1.458652188359E-01
+ CPU time/ELAPSED time for root process     0         9.12         9.05
  Final values of the Forces for each atom
-     1      C  5.39118E-03 -3.55733E-04  1.18612E-02
-     2      C  6.43219E-03  1.85879E-02  6.70212E-03
-     3      C  6.18291E-03 -8.64221E-03  1.03939E-02
-     4      C  7.52398E-03  1.46901E-02  7.72469E-03
-     5      C  6.57715E-03  3.05701E-03  7.95026E-03
-     6      C  7.58543E-03  1.41585E-02  7.10873E-03
-     7      C  7.12827E-03 -4.33697E-03  1.40111E-02
-     8      C  5.55306E-03  1.66750E-02 -4.15168E-03
-     9      H -2.96864E-03 -4.64059E-02  5.20636E-02
-    10      H -3.94682E-02  3.69531E-02 -1.18919E-02
-    11      H  3.37569E-02  3.91373E-02 -1.22989E-02
-    12      H -3.61187E-02 -3.49396E-02  1.57546E-03
-    13      H  3.00810E-02 -3.74444E-02  1.82139E-03
-    14      H -3.25275E-02  3.06453E-02 -1.08323E-03
-    15      H  2.74234E-02  3.30451E-02 -1.15861E-03
-    16      H -3.35228E-02 -3.95428E-02 -1.30378E-02
-    17      H  2.81315E-02 -4.22581E-02 -1.30737E-02
-    18      H -3.68557E-02  3.16835E-02  4.96539E-03
-    19      H  3.09887E-02  3.41851E-02  5.06763E-03
-    20      H -3.34850E-02 -3.38638E-02 -1.70382E-03
-    21      H  2.76509E-02 -3.65339E-02 -1.71008E-03
-    22      H -3.72363E-02  3.11922E-02 -8.88971E-03
-    23      H  3.10741E-02  3.37224E-02 -8.97452E-03
-    24      H -3.69247E-02 -4.50577E-02  9.18119E-04
-    25      H  3.11053E-02 -4.74758E-02  1.52482E-03
-    26      H -3.47839E-03  3.91244E-02 -5.57145E-02
+     1      C  1.14326E-02 -4.54238E-02 -7.68999E-02
+     2      C  1.67672E-02  1.30589E-01  2.81663E-02
+     3      C  1.31298E-02 -1.19334E-01 -2.19546E-03
+     4      C  1.71846E-02  1.47311E-01  3.33276E-03
+     5      C  1.68655E-02 -9.75278E-02  1.85223E-02
+     6      C  1.43601E-02  1.32595E-01  1.34527E-02
+     7      C  1.58416E-02 -1.12416E-01  7.93520E-03
+     8      C  1.08165E-02  8.55868E-02  9.00288E-02
+     9      H -6.06261E-03  5.55897E-03 -1.02347E-02
+    10      H  2.38492E-02 -1.53907E-02 -1.09713E-02
+    11      H -3.78687E-02 -2.22844E-02 -1.22013E-02
+    12      H  1.44977E-02  8.19944E-03  4.58550E-03
+    13      H -2.78053E-02  1.62466E-02  4.16452E-03
+    14      H  2.99230E-02 -1.86987E-02 -5.56135E-03
+    15      H -4.19197E-02 -2.62507E-02 -5.30527E-03
+    16      H  1.48606E-02  2.32774E-03 -1.52410E-02
+    17      H -2.78771E-02  1.04418E-02 -1.48232E-02
+    18      H  2.66290E-02 -1.92653E-02  5.63153E-03
+    19      H -3.92112E-02 -2.70108E-02  5.40819E-03
+    20      H  1.46246E-02  6.62246E-03 -6.56139E-03
+    21      H -2.77784E-02  1.48887E-02 -6.05933E-03
+    22      H  2.62834E-02 -2.10691E-02 -1.22030E-02
+    23      H -3.90446E-02 -2.85727E-02 -1.17998E-02
+    24      H  1.14006E-02 -3.63978E-03 -9.34700E-04
+    25      H -2.53117E-02  3.36616E-03  1.37470E-04
+    26      H -5.58662E-03 -6.84962E-03  9.62648E-03
  Memory Consumption Report:
-   Tot. No. of Allocations  : 73358
-   Tot. No. of Deallocations: 73356
-   Remaining Memory (B)     : 91072
+   Tot. No. of Allocations  : 37892
+   Tot. No. of Deallocations: 37892
+   Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 591
+      Peak Value (MB): 191
       for the array: pot
       in the routine: full_local_potential
