@@ -244,10 +244,8 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
-           lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
-           alpha, &
-           trH, meanAlpha, alphaDIIS)
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -257,10 +255,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
   integer,intent(in):: iproc, nproc, it
   type(localizedDIISParameters),intent(inout):: ldiis
   type(DFT_wavefunction),target,intent(inout):: tmb
-  type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-  real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
-  real(8),dimension(:),pointer,intent(inout):: lhphiopt
-  real(8),dimension(:),pointer,intent(out):: lphioldopt
+  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
   real(8),intent(in):: trH, meanAlpha
   real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
   
@@ -286,7 +281,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
   call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
 
-  call DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+  call DIISorSD(iproc, nproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then
       if(ldiis%isx>0) then
           write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
@@ -299,35 +294,34 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
 
   ! Improve the orbitals, depending on the choice made above.
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, nproc, it, tmbopt, ldiis, lhphiopt, alpha)
+      call improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
 
   ! The transposed quantities can now not be used any more...
-  if(tmbopt%can_use_transposed) then
-      iall=-product(shape(tmbopt%psit_c))*kind(tmbopt%psit_c)
-      deallocate(tmbopt%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmbopt%psit_c', subname)
-      iall=-product(shape(tmbopt%psit_f))*kind(tmbopt%psit_f)
-      deallocate(tmbopt%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmbopt%psit_f', subname)
-      tmbopt%can_use_transposed=.false.
+  if(tmb%can_use_transposed) then
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
+      tmb%can_use_transposed=.false.
   end if
 
 
 
   do_ortho_if2: if(.not.ldiis%switchSD) then
 
-      tmbopt => tmb
-      lhphiopt => lhphi
-      lphioldopt => lphiold
-      tmbopt%confdatarr => tmb%confdatarr
+      !tmbopt => tmb
+      !lhphiopt => lhphi
+      !tmbopt%confdatarr => tmb%confdatarr
       !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-      tmbopt%orbs, tmbopt%op, tmbopt%comon, tmbopt%lzd, &
-      tmbopt%mad, tmbopt%collcom, tmbopt%orthpar, tmbopt%wfnmd%bpo, tmbopt%psi, tmbopt%psit_c, tmbopt%psit_f, &
-      tmbopt%can_use_transposed)
+           tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+           tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%can_use_transposed)
 
   end if do_ortho_if2
 

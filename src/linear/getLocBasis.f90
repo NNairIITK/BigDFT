@@ -612,8 +612,8 @@ endif
       lphioldopt => lphiold
       lhphioldopt => lhphiold
 
-      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
-           lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, &
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+           lhphi, lphiold, &
            alpha, &
            trH, meanAlpha, alphaDIIS)
 

@@ -5641,8 +5641,8 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
-       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmbopt, &
-                  lhphi, lphiold, lhphiold, lhphiopt, lphioldopt, alpha, &
+       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+                  lhphi, lphiold, alpha, &
                   trH, meanAlpha, alphaDIIS)
         use module_base
         use module_types
@@ -5650,10 +5650,7 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, it
         type(localizedDIISParameters),intent(inout):: ldiis
         type(DFT_wavefunction),target,intent(inout):: tmb
-        type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-        real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
-        real(8),dimension(:),pointer,intent(inout):: lhphiopt
-        real(8),dimension(:),pointer,intent(out):: lphioldopt
+        real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha 
         real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
