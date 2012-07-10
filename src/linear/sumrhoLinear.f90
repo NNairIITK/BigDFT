@@ -406,7 +406,7 @@ ie=is+nscatterarr(iproc,1)-1
 
 ! This sum is "symmetric", so only do the second loop (jorb) only up to iorb and multiply by two if iorb/=jorb.
 totalCharge=0.d0
-print*,'comsr%noverlaps(iproc)',iproc,comsr%noverlaps(iproc)
+!print*,'comsr%noverlaps(iproc)',iproc,comsr%noverlaps(iproc)
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
     ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
