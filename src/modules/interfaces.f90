@@ -1900,8 +1900,8 @@ module module_interfaces
 
 
         subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
-                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,locrad,tmb,&
-                   tmblarge2, lhphilarge2, lhphilargeold2, lphilargeold2)
+                   infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
+                   tmblarge2, lhphilarge2)
           use module_base
           use module_types
           implicit none
@@ -1918,9 +1918,8 @@ module module_interfaces
           type(localizedDIISParameters),intent(inout):: ldiis
           type(DFT_wavefunction),target,intent(inout):: tmb
           type(SIC_data) :: SIC !<parameters for the SIC methods
-          real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
           type(DFT_wavefunction),target,intent(inout):: tmblarge2
-          real(8),dimension(:),pointer,intent(inout):: lhphilarge2, lhphilargeold2, lphilargeold2
+          real(8),dimension(:),pointer,intent(inout):: lhphilarge2
         end subroutine getLocalizedBasis
 
 

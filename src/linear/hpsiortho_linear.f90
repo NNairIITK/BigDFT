@@ -261,24 +261,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   
   ! Local variables
   integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
-  real(8):: tt, dnrm2
-  real(8),dimension(:,:),allocatable:: Umat, ovrlp
-  integer,dimension(:),allocatable:: onwhichatom_reference
-  real(8),dimension(:),allocatable:: locrad_tmp
+  real(8):: tt
+  real(8),dimension(:,:),allocatable:: ovrlp
   character(len=*),parameter:: subname='hpsitopsi_linear'
 
 
-  allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, Umat, 'Umat', subname)
-
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
-
-  allocate(onwhichatom_reference(tmb%orbs%norb), stat=istat)
-  call memocc(istat, onwhichatom_reference, 'onwhichatom_reference', subname)
-
-  allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
 
   call DIISorSD(iproc, nproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
@@ -325,21 +314,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
 
   end if do_ortho_if2
 
-  iall=-product(shape(Umat))*kind(Umat)
-  deallocate(Umat, stat=istat)
-  call memocc(istat, iall, 'Umat', subname)
-
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
   call memocc(istat, iall, 'ovrlp', subname)
-
-  iall=-product(shape(onwhichatom_reference))*kind(onwhichatom_reference)
-  deallocate(onwhichatom_reference, stat=istat)
-  call memocc(istat, iall, 'onwhichatom_reference', subname)
-
-  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-  deallocate(locrad_tmp, stat=istat)
-  call memocc(istat, iall, 'locrad_tmp', subname)
 
   ! Emit that new wavefunctions are ready.
   if (tmb%c_obj /= 0) then

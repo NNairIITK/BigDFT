@@ -327,7 +327,7 @@ real(8),dimension(3,at%nat):: fpulay
               end if
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-                  nlpspd,proj,ldiis,input%SIC,lscv%locrad,tmb, tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
               !allocate(denspot%pot_work(tmblarge%lzd%ndimpotisf+ndebug),stat=istat)
