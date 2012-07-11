@@ -84,7 +84,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call allocateSendBufferOrtho(tmblarge%comon, subname)
           call allocateRecvBufferOrtho(tmblarge%comon, subname)
           ! Extract the overlap region from the orbitals phi and store them in tmblarge%comon%sendBuf.
-          call extractOrbital3(iproc, nproc, tmblarge%orbs, tmblarge%orbs, max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), &
+          call extractOrbital3(iproc, nproc, tmblarge%orbs, tmblarge%orbs, &
+               max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), &
                tmblarge%lzd, tmblarge%lzd, tmblarge%op, tmblarge%op, &
                lhphilarge2, tmblarge%comon%nsendBuf, tmblarge%comon%sendBuf)
           !!call postCommsOverlapNew(iproc, nproc, tmblarge%orbs, tmblarge%op, tmblarge%lzd, lhphilarge2, tmblarge%comon, tt1, tt2)
