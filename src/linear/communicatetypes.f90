@@ -129,9 +129,10 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
 
    ! Local variables
    integer:: ierr, ncount, mpi_tmptype
-   integer:: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
-   integer:: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_llr
-   integer,dimension(12):: blocklengths, dspls, types
+   integer,dimension(12):: blocklengths, types
+   integer(kind=mpi_address_kind),dimension(12):: dspls
+   integer(kind=mpi_address_kind):: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
+   integer(kind=mpi_address_kind):: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_llr
 
    
    !!! Copy data to datatype
@@ -181,8 +182,8 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    types = (/mpi_character, mpi_logical, mpi_integer, mpi_integer, mpi_integer, mpi_integer, &
              mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision/)
 
-   call mpi_type_struct(ncount, blocklengths, dspls, types, mpi_tmptype, ierr)
-   !call mpi_type_struct(1, 1, 0, mpi_character, mpi_tmptype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, mpi_tmptype, ierr)
+   !call mpi_type_create_struct(1, 1, 0, mpi_character, mpi_tmptype, ierr)
    call mpi_type_commit(mpi_tmptype, ierr)
    call mpi_bcast(llr, 1, mpi_tmptype, root, mpi_comm_world, ierr)
    call mpi_type_free(mpi_tmptype, ierr)
@@ -232,10 +233,12 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    type(wavefunctions_descriptors),intent(inout):: wfd
 
    ! Local variables
-   integer:: ierr, ncount, commtype, addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
-   integer:: addr_keyglob, addr_keygloc, addr_keyvloc, addr_keyvglob
+   integer:: ierr, ncount, commtype
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors'
-   integer,dimension(4):: blocklengths, dspls, types
+   integer,dimension(4):: blocklengths,types
+   integer(kind=mpi_address_kind):: addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
+   integer(kind=mpi_address_kind):: addr_keyglob, addr_keygloc, addr_keyvloc, addr_keyvglob
+   integer(kind=mpi_address_kind),dimension(4):: dspls
 
    ncount=4 
    blocklengths=(/1,1,1,1/)
@@ -252,7 +255,7 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
    types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
    
-   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
    call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
@@ -275,14 +278,13 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
    types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
 
-   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
 
 
    ! Communicate the arrays
    call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
-
 
 
 END SUBROUTINE communicate_wavefunctions_descriptors
@@ -337,9 +339,10 @@ subroutine communicate_kinetic_bounds(iproc, root, kb)
    character(len=*),parameter:: subname='communicate_kinetic_bounds'
    integer:: commtype
    integer,parameter:: ncount=6
-   integer,dimension(ncount):: types, blocklengths, dspls
-   integer:: addr_kb, addr_ibyz_c, addr_ibxz_c, addr_ibxy_c, addr_ibyz_f, addr_ibxz_f, addr_ibxy_f
+   integer,dimension(ncount):: types, blocklengths
    integer,dimension(6,6):: ise
+   integer(kind=mpi_address_kind):: addr_kb, addr_ibyz_c, addr_ibxz_c, addr_ibxy_c, addr_ibyz_f, addr_ibxz_f, addr_ibxy_f
+   integer(kind=mpi_address_kind),dimension(ncount):: dspls
 
    call getbounds_6(iproc, root, kb%ibyz_c, kb%ibxz_c, kb%ibxy_c, kb%ibyz_f, kb%ibxz_f, kb%ibxy_f, ise)
    call mpi_barrier(mpi_comm_world, ierr)
@@ -409,7 +412,7 @@ subroutine communicate_kinetic_bounds(iproc, root, kb)
    dspls(6) = addr_ibxy_f - addr_kb
 
 
-   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
    call mpi_bcast(kb, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
@@ -438,12 +441,13 @@ subroutine communicate_shrink_bounds(iproc, root, sb)
    type(shrink_bounds),intent(inout):: sb
 
    ! Local variables
-   integer:: ierr, istat
+   integer:: ierr, istat, commtype
    character(len=*),parameter:: subname='communicate_shrink_bounds'
    integer,parameter:: ncount=5
-   integer,dimension(ncount):: types, dspls, blocklengths
-   integer:: addr_sb, addr_ibzzx_c, addr_ibyyzz_c, addr_ibxy_ff, addr_ibzzx_f, addr_ibyyzz_f, commtype
+   integer,dimension(ncount):: types, blocklengths
    integer,dimension(6,5):: ise
+   integer(kind=mpi_address_kind):: addr_sb, addr_ibzzx_c, addr_ibyyzz_c, addr_ibxy_ff, addr_ibzzx_f, addr_ibyyzz_f
+   integer(kind=mpi_address_kind),dimension(ncount):: dspls
 
 
    call getbounds_5(iproc, root, sb%ibzzx_c, sb%ibyyzz_c, sb%ibxy_ff, sb%ibzzx_f, sb%ibyyzz_f, ise)
@@ -497,7 +501,7 @@ subroutine communicate_shrink_bounds(iproc, root, sb)
    dspls(5) = addr_ibyyzz_f - addr_sb
 
 
-   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
    call mpi_bcast(sb, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
@@ -523,10 +527,11 @@ subroutine communicate_grow_bounds(iproc, root, gb)
    character(len=*),parameter:: subname='communicate_shrink_bounds'
    integer:: commtype
    integer,parameter:: ncount=5
-   integer,dimension(ncount):: types, blocklengths, dspls
-   integer:: addr_gb, addr_ibzxx_c, addr_ibxxyy_c, addr_ibyz_ff, addr_ibzxx_f, addr_ibxxyy_f
+   integer,dimension(ncount):: types, blocklengths
    integer,dimension(6,5):: ise
    integer:: is1, ie1, is2, ie2, is3, ie3
+   integer(kind=mpi_address_kind):: addr_gb, addr_ibzxx_c, addr_ibxxyy_c, addr_ibyz_ff, addr_ibzxx_f, addr_ibxxyy_f
+   integer(kind=mpi_address_kind),dimension(ncount):: dspls
 
    call getbounds_5(iproc, root, gb%ibzxx_c, gb%ibxxyy_c, gb%ibyz_ff, gb%ibzxx_f, gb%ibxxyy_f, ise)
    call mpi_barrier(mpi_comm_world, ierr)
@@ -589,7 +594,7 @@ subroutine communicate_grow_bounds(iproc, root, gb)
    call mpi_get_address(gb%ibxxyy_f, addr_ibxxyy_f, ierr)
    dspls(5) = addr_ibxxyy_f - addr_gb
 
-   call mpi_type_struct(ncount, blocklengths, dspls, types, commtype, ierr)
+   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
    call mpi_bcast(gb, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
