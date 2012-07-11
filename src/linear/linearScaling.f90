@@ -331,7 +331,9 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
 
-              if(nit_highaccur<=1) then
+              ! Reset DIIS if we are at the first iteration of the high accuracy regime
+              ! or if DIIS became unstable in the previous optimization of the TMBs.
+              if(nit_highaccur<=1 .or. ldiis%isx<input%lin%DIISHistMax) then
                   call deallocateDIIS(ldiis)
                   call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
                   ldiis%DIISHistMin=input%lin%DIISHistMin

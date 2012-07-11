@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-11 13:25:06.290
+ Timestamp of this run                 :  2012-07-11 14:44:54.190
  Hostname                              : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                   Debug option
@@ -230,7 +230,7 @@
  Expected kinetic energy:  5.0225194919, 
  Energies: {Ekin:  5.02378127043E+00, Epot: -7.89137341895E+00, Enl:  8.74950283601E-01, 
               EH:  1.12186349112E+01,  EXC: -2.67140758968E+00, EvXC: -3.44314794525E+00}, 
- EKS: -5.42785453750121061E+00, 
+ EKS: -5.42785453750120883E+00, 
  IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
@@ -251,139 +251,139 @@
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999919017, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999919552, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.53502731972E+00, Epot: -7.31527391520E+00, Enl:  8.93896453342E-01, 
-              EH:  1.10415377862E+01,  EXC: -2.48832672038E+00, EvXC: -3.21435774895E+00}, 
- iter:  1, EKS: -6.19017501668667780E+00, gnrm:  1.34E-01, 
+ Energies: {Ekin:  3.53502731972E+00, Epot: -7.31527391412E+00, Enl:  8.93896453342E-01, 
+              EH:  1.10415377873E+01,  EXC: -2.48832672052E+00, EvXC: -3.21435774913E+00}, 
+ iter:  1, EKS: -6.19017501668669201E+00, gnrm:  1.34E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999933466, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999932674, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.63946088724E+00, Epot: -7.36141317130E+00, Enl:  8.14439260975E-01, 
-              EH:  1.10858937091E+01,  EXC: -2.52211003382E+00, EvXC: -3.25625206516E+00}, 
- iter:  2, EKS: -6.24758281779774638E+00, gnrm:  5.87E-02, 
+ Energies: {Ekin:  3.63946088716E+00, Epot: -7.36141317304E+00, Enl:  8.14439260969E-01, 
+              EH:  1.10858937072E+01,  EXC: -2.52211003355E+00, EvXC: -3.25625206481E+00}, 
+ iter:  2, EKS: -6.24758281779577640E+00, gnrm:  5.87E-02, 
  DIIS weights: [-5.79E-01,  1.58E+00, -1.89E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999915176, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999915011, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.75306272959E+00, Epot: -7.42713290206E+00, Enl:  7.97952908388E-01, 
-              EH:  1.11449800321E+01,  EXC: -2.55838245893E+00, EvXC: -3.30183392594E+00}, 
- iter:  3, EKS: -6.26596394611772300E+00, gnrm:  2.70E-02, 
+ Energies: {Ekin:  3.75306272978E+00, Epot: -7.42713290236E+00, Enl:  7.97952908418E-01, 
+              EH:  1.11449800321E+01,  EXC: -2.55838245899E+00, EvXC: -3.30183392601E+00}, 
+ iter:  3, EKS: -6.26596394611671403E+00, gnrm:  2.70E-02, 
  DIIS weights: [ 8.49E-02, -5.35E-01,  1.45E+00, -1.91E-04], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911417, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910580, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.79600226793E+00, Epot: -7.44877417163E+00, Enl:  7.82288627301E-01, 
-              EH:  1.11572209907E+01,  EXC: -2.57140989773E+00, EvXC: -3.31820971301E+00}, 
- iter:  4, EKS: -6.26922256875013506E+00, gnrm:  1.17E-02, 
+ Energies: {Ekin:  3.79600226792E+00, Epot: -7.44877417332E+00, Enl:  7.82288627317E-01, 
+              EH:  1.11572209890E+01,  EXC: -2.57140989752E+00, EvXC: -3.31820971274E+00}, 
+ iter:  4, EKS: -6.26922256874818640E+00, gnrm:  1.17E-02, 
  DIIS weights: [ 1.73E-02,  1.64E-02, -4.96E-01,  1.46E+00, -1.79E-05], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910712, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910577, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.80894427073E+00, Epot: -7.45579637668E+00, Enl:  7.79517626246E-01, 
-              EH:  1.11619798195E+01,  EXC: -2.57548291583E+00, EvXC: -3.32335676373E+00}, 
- iter:  5, EKS: -6.26975856824681177E+00, gnrm:  4.05E-03, 
+ Energies: {Ekin:  3.80894427090E+00, Epot: -7.45579637693E+00, Enl:  7.79517626257E-01, 
+              EH:  1.11619798195E+01,  EXC: -2.57548291587E+00, EvXC: -3.32335676378E+00}, 
+ iter:  5, EKS: -6.26975856824685795E+00, gnrm:  4.05E-03, 
  DIIS weights: [-9.28E-03,  1.31E-02,  1.21E-01, -7.15E-01,  1.59E+00, -1.46E-06], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910073, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911020, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.81231174447E+00, Epot: -7.45689248070E+00, Enl:  7.78350630983E-01, 
-              EH:  1.11633771789E+01,  EXC: -2.57636123728E+00, EvXC: -3.32446738708E+00}, 
- iter:  6, EKS: -6.26981925125157158E+00, gnrm:  1.15E-03, 
+ Energies: {Ekin:  3.81231174445E+00, Epot: -7.45689247870E+00, Enl:  7.78350630984E-01, 
+              EH:  1.11633771810E+01,  EXC: -2.57636123752E+00, EvXC: -3.32446738740E+00}, 
+ iter:  6, EKS: -6.26981925125154316E+00, gnrm:  1.15E-03, 
  DIIS weights: [ 8.26E-04, -2.80E-03,  2.55E-03,  6.44E-02, -3.77E-01,  1.31E+00, -1.86E-07], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911232, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911307, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.81239342786E+00, Epot: -7.45706148134E+00, Enl:  7.78553857411E-01, 
-              EH:  1.11634917965E+01,  EXC: -2.57634800403E+00, EvXC: -3.32444973717E+00}, 
- iter:  7, EKS: -6.26982237635908657E+00, gnrm:  3.30E-04, 
+ Energies: {Ekin:  3.81239342765E+00, Epot: -7.45706148124E+00, Enl:  7.78553857395E-01, 
+              EH:  1.11634917964E+01,  EXC: -2.57634800397E+00, EvXC: -3.32444973709E+00}, 
+ iter:  7, EKS: -6.26982237635910966E+00, gnrm:  3.30E-04, 
  DIIS weights: [-5.53E-04, -1.76E-03,  3.57E-03,  6.18E-02, -5.61E-01,  1.50E+00, -1.81E-08], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910900, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911416, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.81231601625E+00, Epot: -7.45710833991E+00, Enl:  7.78588554738E-01, 
-              EH:  1.11633903930E+01,  EXC: -2.57630581639E+00, EvXC: -3.32439536598E+00}, 
- iter:  8, EKS: -6.26982272922385153E+00, gnrm:  1.26E-04, 
+ Energies: {Ekin:  3.81231601629E+00, Epot: -7.45710833892E+00, Enl:  7.78588554762E-01, 
+              EH:  1.11633903941E+01,  EXC: -2.57630581649E+00, EvXC: -3.32439536611E+00}, 
+ iter:  8, EKS: -6.26982272922372186E+00, gnrm:  1.26E-04, 
  DIIS weights: [ 2.63E-03, -1.26E-02,  1.75E-02,  7.16E-02, -5.34E-01,  1.45E+00, -2.41E-09], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911380, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911535, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  3.81228375437E+00, Epot: -7.45713849257E+00, Enl:  7.78633703603E-01, 
-              EH:  1.11633706325E+01,  EXC: -2.57629597977E+00, EvXC: -3.32438299006E+00}, 
- iter:  9, EKS: -6.26982277373199626E+00, gnrm:  5.66E-05, 
+ Energies: {Ekin:  3.81228375428E+00, Epot: -7.45713849207E+00, Enl:  7.78633703562E-01, 
+              EH:  1.11633706329E+01,  EXC: -2.57629597983E+00, EvXC: -3.32438299015E+00}, 
+ iter:  9, EKS: -6.26982277373200514E+00, gnrm:  5.66E-05, 
  DIIS weights: [ 1.05E-03, -3.43E-03,  1.76E-02,  2.48E-02, -4.60E-01,  1.42E+00, -1.92E-10], 
  Orthogonalization Method:  0}
        -  &FINAL  { #------------------------------------------------------------- iter: 10
  GPU acceleration:  No, 
   #WARNING:Using fake local mapping array. Check whether this is correct!
- Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910750, 
+ Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911137, 
 , 
  Poisson Solver: {BC: Isolated, Dimensions:  [  111,  111,  111 ], MPI tasks:  8}, 
  Hamiltonian Applied:  Yes, 
- iter:  10, EKS: -6.26982277959444279E+00, gnrm:  5.66E-05,  #FINAL
- Energies: {Ekin:  3.81227576338E+00, Epot: -7.45714041423E+00, Enl:  7.78636818179E-01, 
-              EH:  1.11633631139E+01,  EXC: -2.57629319641E+00, EvXC: -3.32437948034E+00, 
+ iter:  10, EKS: -6.26982277959467726E+00, gnrm:  5.66E-05,  #FINAL
+ Energies: {Ekin:  3.81227576321E+00, Epot: -7.45714041348E+00, Enl:  7.78636818184E-01, 
+              EH:  1.11633631145E+01,  EXC: -2.57629319644E+00, EvXC: -3.32437948039E+00, 
             Eion:  7.01168188308E+00}, 
  SCF criterion:  0}
         #-------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
        Orbitals: [
- {e: -4.951184766714E-01, f:  2.0000}, 
- {e: -3.126666838952E-01, f:  2.0000}, 
- {e: -3.126643778951E-01, f:  2.0000}, 
- {e: -3.126643778749E-01, f:  2.0000}]
+ {e: -4.951184766003E-01, f:  2.0000}, 
+ {e: -3.126666838500E-01, f:  2.0000}, 
+ {e: -3.126643778231E-01, f:  2.0000}, 
+ {e: -3.126643777711E-01, f:  2.0000}]
  Write wavefunctions to file: data/wavefunction.*
 - WRITE WAVES TIME   4  0.000E+00  0.000E+00
 - WRITE WAVES TIME   5  0.000E+00  0.000E+00
 - WRITE WAVES TIME   6  0.000E+00  0.000E+00
 - WRITE WAVES TIME   7  0.000E+00  0.000E+00
- 4th wavefunction written
-- WRITE WAVES TIME   3  1.600E-01  1.591E-01
  2th wavefunction written
-- WRITE WAVES TIME   1  1.700E-01  1.702E-01
+- WRITE WAVES TIME   1  1.900E-01  1.857E-01
  3th wavefunction written
-- WRITE WAVES TIME   2  1.700E-01  1.692E-01
+- WRITE WAVES TIME   2  1.900E-01  1.860E-01
+ 4th wavefunction written
+- WRITE WAVES TIME   3  1.800E-01  1.854E-01
  1th wavefunction written
-- WRITE WAVES TIME   0  1.700E-01  1.694E-01
+- WRITE WAVES TIME   0  1.800E-01  1.851E-01
  ----------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
   #WARNING:Using fake local mapping array. Check whether this is correct!
@@ -395,25 +395,25 @@
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
    P vector                            :  [ -3.9870E-04, -3.9870E-04, -3.9870E-04 ]
-   |P|                                 :  6.905653E-04
+   |P|                                 :  6.905649E-04
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.0134E-03, -1.0134E-03, -1.0134E-03 ]
-   |P|                                 :  1.755242E-03
+   |P|                                 :  1.755241E-03
  Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:   1.33629989E-05
- average noise along y direction:   1.33629995E-05
- average noise along z direction:   1.33630550E-05
- total average noise            :   2.31454258E-05
- clean forces norm (Ha/Bohr): maxval=  9.298754830552E-05  fnrm2=  3.385591789813E-08
- raw forces:                  maxval=  9.698730656099E-05  fnrm2=  3.439162863256E-08
- CPU time/ELAPSED time for root process     0         4.22         4.15
+ average noise along x direction:   1.33627809E-05
+ average noise along y direction:   1.33627419E-05
+ average noise along z direction:   1.33627816E-05
+ total average noise            :   2.31449933E-05
+ clean forces norm (Ha/Bohr): maxval=  9.298756970628E-05  fnrm2=  3.385589863193E-08
+ raw forces:                  maxval=  9.698726923840E-05  fnrm2=  3.439158934651E-08
+ CPU time/ELAPSED time for root process     0         4.61         4.60
  Final values of the Forces for each atom
-     1     Si -3.35210E-06 -3.35208E-06 -3.35202E-06
-     2      H -5.12580E-05 -5.12581E-05 -5.12581E-05
-     3      H  5.39166E-05  5.39166E-05 -5.32230E-05
-     4      H -5.32230E-05  5.39166E-05  5.39166E-05
-     5      H  5.39166E-05 -5.32230E-05  5.39166E-05
+     1     Si -3.35256E-06 -3.35260E-06 -3.35254E-06
+     2      H -5.12579E-05 -5.12579E-05 -5.12579E-05
+     3      H  5.39167E-05  5.39167E-05 -5.32229E-05
+     4      H -5.32228E-05  5.39167E-05  5.39167E-05
+     5      H  5.39167E-05 -5.32228E-05  5.39167E-05
  Memory Consumption Report:
    Tot. No. of Allocations  : 1825
    Tot. No. of Deallocations: 1825

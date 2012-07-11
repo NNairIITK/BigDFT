@@ -338,7 +338,7 @@ type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2
 
 ! Local variables
-real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, trH_old
+real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: ovrlp
@@ -350,6 +350,7 @@ character(len=3):: num
 integer :: i,j , k, ncount, ist, iiorb, sdim, ldim
 real(8),dimension(:),allocatable:: phiplot
 real(8),dimension(2):: reducearr
+real(8),save:: trH_old
 
 
 
@@ -373,7 +374,7 @@ real(8),dimension(2):: reducearr
 
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
-  trH_old=0.d0
+  if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
   overlap_calculated=.false.
   iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
 
@@ -483,13 +484,14 @@ endif
       ! to avoid that it points to something which was nullified... to be corrected
 
 
-      if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
-      trH_old=trH
+      !if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, diff/fnrm', &
+          it, fnrm, fnrmMax, trH, trH-trH_old, (trH-trH_old)/fnrm
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, ebs', it, fnrm, fnrmMax, trH
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, diff/fnrm', &
+          it, fnrm, fnrmMax, trH, trH-trH_old, (trH-trH_old)/fnrm
       if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
           it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
           if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
@@ -520,6 +522,7 @@ endif
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
       end if
+      trH_old=trH
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
@@ -3696,10 +3699,12 @@ subroutine get_both_gradients(iproc, nproc, lzd, orbs, psi, gnrm_in, gnrm_out)
 
   end do
 
-  if(pts_in>0) gnrm_in=gnrm_in/pts_in
-  if(pts_out>0) gnrm_out=gnrm_out/pts_out
+  !if(pts_in>0) gnrm_in=gnrm_in/pts_in
+  !if(pts_out>0) gnrm_out=gnrm_out/pts_out
   call mpiallred(gnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(gnrm_in, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(pts_in, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(pts_out, 1, mpi_sum, mpi_comm_world, ierr)
   gnrm_out=sqrt(gnrm_out/dble(orbs%norb))
   gnrm_in=sqrt(gnrm_in/dble(orbs%norb))
   if(iproc==0) write(*,'(a,5es14.4)') 'pts_in, pts_out, gnrm_in, gnrm_out, gnrm_in/gnrm_out', &

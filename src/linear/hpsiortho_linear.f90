@@ -206,7 +206,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end if
 
 
-  call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
+  !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
   ind2=1
   do iorb=1,tmb%orbs%norbp
