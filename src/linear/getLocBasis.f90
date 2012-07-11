@@ -2908,6 +2908,9 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
               ldiis%immediateSwitchToSD=.true.
               ldiis%trmin=1.d100
           end if
+          ! Otherwise there could be problems due to the orthonormalization (which sligtly increases 
+          ! value of the target function)
+          ldiis%trmin=1.d100
           ! Try to get back the orbitals of the best iteration. This is possible if
           ! these orbitals are still present in the DIIS history.
           if(it-ldiis%itBest<ldiis%isx) then
