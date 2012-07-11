@@ -2198,8 +2198,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      call memocc(i_stat, density_kernel, 'density_kernel', subname)
-     call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, KSwfn%orbs%norb, KSwfn%orbs%norbp, KSwfn%orbs%isorb, &
-       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
+     call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+          tmb%wfnmd%coeff, density_kernel)
      call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           tmb%orbs, tmb%comsr, density_kernel, &

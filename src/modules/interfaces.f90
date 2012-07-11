@@ -6270,14 +6270,15 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmbder
         end subroutine transform_coeffs_to_derivatives
 
-        subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel,ovrlp)
+        subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
-          real(8),dimension(ld_coeff,norb),intent(in):: coeff
-          real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
-          real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
+          integer,intent(in):: iproc, nproc, ld_coeff
+          type(orbitals_data),intent(in):: orbs, orbs_tmb
+          real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
         end subroutine calculate_density_kernel
 
         subroutine calculate_norm_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)

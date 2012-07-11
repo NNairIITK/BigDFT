@@ -661,8 +661,8 @@ real(8),dimension(3,at%nat):: fpulay
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel)
+  call calculate_density_kernel(iproc, nproc, tmbmix%wfnmd%ld_coeff, orbs, tmbmix%orbs, &
+       tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
        tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)

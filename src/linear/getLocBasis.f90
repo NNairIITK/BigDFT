@@ -241,8 +241,8 @@ real(8),dimension(:,:),allocatable:: locregCenter
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel, ovrlp)
+  call calculate_density_kernel(iproc, nproc, tmbmix%wfnmd%ld_coeff, orbs, tmbmix%orbs, &
+       tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
@@ -3285,8 +3285,8 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   !!end do
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+       tmb%wfnmd%coeff, kernel, ovrlp_tmb)
 
 
 
