@@ -344,7 +344,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       ! Determine the size of the matrix (lnrow x lncol):
       lnrow = max(numroc(n, mbrow, irow, 0, nprocrow),1)
       lncol = max(numroc(n, mbcol, icol, 0, nproccol),1)
-      write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)

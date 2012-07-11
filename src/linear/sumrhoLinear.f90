@@ -637,7 +637,7 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
 
   ! Local variables
   integer:: istat, iall, ierr, iorb, jorb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, coeff_tmp
+  real(8),dimension(:,:),allocatable:: density_kernel_partial
   character(len=*),parameter:: subname='calculate_density_kernel'
 !!  integer :: i, j, lwork, k
 !!  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
@@ -650,22 +650,13 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   call timing(iproc,'calc_kernel','ON') !lr408t
 
   if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
-  !call timing(iproc,'sumrho_TMB    ','ON')
   allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
   call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-  allocate(coeff_tmp(orbs%norb,max(orbs_tmb%norbp,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
-  do iorb=1,orbs_tmb%norbp
-      do jorb=1,orbs%norb
-          coeff_tmp(jorb,iorb)=coeff(orbs_tmb%isorb+iorb,jorb)
-      end do
-  end do
-  call dgemm('n', 'n', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-       coeff_tmp(1,1), orbs%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+       coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
   call timing(iproc,'calc_kernel','OF') !lr408t
 
   call timing(iproc,'commun_kernel','ON') !lr408t
-  !call mpiallred(kernel(1,1), orbs_tmb%norb**2, mpi_sum, mpi_comm_world, ierr)
   call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
        kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
        mpi_comm_world, ierr)
@@ -674,9 +665,6 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
   deallocate(density_kernel_partial,stat=istat)
   call memocc(istat,iall,'density_kernel_partial',subname)
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
 
 !!$  ! calculate kernelij and print
 !!!  if (present(ovrlp)) then

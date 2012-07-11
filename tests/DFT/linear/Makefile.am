@@ -1,8 +1,7 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
 	   base \
-	   large \
-           directmin \
+       directmin \
 	   incdec \
 	   withder \
 	   mix \

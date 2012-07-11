@@ -659,8 +659,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   ! Convergence criterion
   comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
              & ration of inner and outer gnrm'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
-  call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)

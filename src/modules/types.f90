@@ -136,7 +136,7 @@ module module_types
     integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
-    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
@@ -145,7 +145,7 @@ module module_types
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step 
+    real(8):: lowaccuray_converged, convCritMix, decrease_amount, decrease_step 
     real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
@@ -761,12 +761,12 @@ end type linear_scaling_control_variables
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
     real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
-    real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
+    !real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
+    !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
   end type basis_specifications

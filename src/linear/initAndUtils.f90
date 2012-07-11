@@ -2159,9 +2159,9 @@ subroutine init_basis_specifications(input, bs)
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond
-  bs%locreg_enlargement=input%lin%factor_enlarge
+  !bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  bs%nit_unitary_loop=input%lin%nItInnerLoop
+  !bs%nit_unitary_loop=input%lin%nItInnerLoop
   bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
 

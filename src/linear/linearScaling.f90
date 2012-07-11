@@ -125,12 +125,12 @@ real(8),dimension(3,at%nat):: fpulay
       tmbmix => tmb
   end if
 
-  ! Check whether it is possible to have variable localization regions or not.
-  if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
+  !!! Check whether it is possible to have variable localization regions or not.
+  !!if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
       lscv%variable_locregs=.false.
-  else
-      lscv%variable_locregs=.true.
-  end if
+  !!else
+  !!    lscv%variable_locregs=.true.
+  !!end if
 
 
   !!! Allocate the communication arrays for the calculation of the charge density.
@@ -1080,10 +1080,10 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
           !!call deallocateDIIS(ldiis)
           !!lscv%exit_outer_loop=.true.
       end if
-      ! only use steepest descent if the localization regions may change
-      if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
-          ldiis%isx=0
-      end if
+      !!! only use steepest descent if the localization regions may change
+      !!if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
+      !!    ldiis%isx=0
+      !!end if
   
       if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
