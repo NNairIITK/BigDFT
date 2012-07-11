@@ -199,7 +199,8 @@ real(8),dimension(:,:),allocatable:: locregCenter
           call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          call dsygv_parallel(iproc, nproc, tmbmix%wfnmd%bpo%blocksize_pdsyev, tmbmix%wfnmd%bpo%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb,&
+          call dsygv_parallel(iproc, nproc, tmbmix%wfnmd%bpo%blocksize_pdsyev, tmbmix%wfnmd%bpo%nproc_pdsyev, &
+               mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb, &
                matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
