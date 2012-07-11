@@ -493,18 +493,21 @@ endif
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, diff/fnrm', &
           it, fnrm, fnrmMax, trH, trH-trH_old, (trH-trH_old)/fnrm
-      if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
-          it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
-          if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-              if(iproc==0) then
-                  write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
-              end if
-              infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+      !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
+      !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+      !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+          !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
+          !!    if(iproc==0) then
+          !!        write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+          !!            write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+          !!            write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+          !!    end if
+          !!    infoBasisFunctions=it
+          !!else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+          if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &

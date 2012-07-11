@@ -435,15 +435,23 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer,dimension(:,:),allocatable:: wins_bounds
   integer,dimension(:,:,:),allocatable::  wins_arrays, ifake
   integer:: i1, i2, i3
+  integer,dimension(:),allocatable:: rootarr
 tt1=0.d0
 tt2=0.d0
 tt3=0.d0
 tt4=0.d0
 
+
+  allocate(rootarr(nlr), stat=istat)
+  call memocc(istat, rootarr, 'rootarr', subname)
+
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
 tl1=mpi_wtime()
   !determine the limits of the different localisation regions
+
+  rootarr=1000000000
+
   do ilr=1,nlr
      !initialize out of zone and logicals
      outofzone (:) = 0     
@@ -454,7 +462,11 @@ tl1=mpi_wtime()
      yperiodic = .false.
      zperiodic = .false. 
 
-     if(mod(ilr-1,nproc)==iproc) then
+     !if(mod(ilr-1,nproc)==iproc) then
+     if(calculateBounds(ilr)) then 
+         ! This makes sure that each locreg is only handled once by one specific processor.
+
+         rootarr(ilr)=iproc
     
          rx=cxyz(1,ilr)
          ry=cxyz(2,ilr)
@@ -668,13 +680,18 @@ tt3=tt3+t2-t1
      end if
   end do !on ilr
 call mpi_barrier(mpi_comm_world, ierr)
+
+!call mpiallred(rootarr(1), nlr, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(rootarr(1), nlr, mpi_min, mpi_comm_world, ierr)
+
 tl2=mpi_wtime()
 !if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 1: time',tl2-tl1
 
   ! Communicate the locregs
 tl1=mpi_wtime()
   do ilr=1,nlr
-     root=mod(ilr-1,nproc)
+     !root=mod(ilr-1,nproc)
+     root=rootarr(ilr)
      if (nproc > 1) then
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
      end if
@@ -695,38 +712,38 @@ call memocc(istat, ifake, 'ifake', subname)
 call mpi_type_size(mpi_integer, size_of_integer, ierr)
 
 tl1=mpi_wtime()
-  do ilr=1,nlr
-     root=mod(ilr-1,nproc)
-     if (Llr(ilr)%geocode=='F') then
-        ! Check whether the bounds shall be calculated. Do this only if the currect process handles
-        ! orbitals in the current localization region.
-        if (nproc > 1) then
-           call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
-        end if
-        if(.not.calculateBounds(ilr)) then
-            call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
-        end if
+  !!do ilr=1,nlr
+  !!   root=mod(ilr-1,nproc)
+  !!   if (Llr(ilr)%geocode=='F') then
+  !!      ! Check whether the bounds shall be calculated. Do this only if the currect process handles
+  !!      ! orbitals in the current localization region.
+  !!      if (nproc > 1) then
+  !!         call communicate_convolutions_bounds(iproc, root, llr(ilr)%bounds)
+  !!      end if
+  !!      if(.not.calculateBounds(ilr)) then
+  !!          call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
+  !!      end if
 
-        !!if(iproc==root) then
-        !!    !determine array boundaries
-        !!    call get_convarrays_bounds(llr(ilr)%bounds, ab(1,1,1,ilr), mpi_ncounts)
-        !!    call create_convolutions_windows_root(ab(1,1,1,ilr), mpi_ncounts, llr(ilr)%bounds, wins_bounds(1,ilr), wins_arrays(1,1,ilr))
+  !!      !!if(iproc==root) then
+  !!      !!    !determine array boundaries
+  !!      !!    call get_convarrays_bounds(llr(ilr)%bounds, ab(1,1,1,ilr), mpi_ncounts)
+  !!      !!    call create_convolutions_windows_root(ab(1,1,1,ilr), mpi_ncounts, llr(ilr)%bounds, wins_bounds(1,ilr), wins_arrays(1,1,ilr))
 
-        !!else
-        !!    ! Initialize the windows with a fake array, since the convolutions bounds are nullified and I don't
-        !!    ! know what happens when a window is opened with a nullified pointer...
-        !!    call create_convolutions_windows_else(ab(1,1,1,ilr), ifake(1,1,ilr), wins_bounds(1,ilr), wins_arrays(1,1,ilr))
-        !!end if
+  !!      !!else
+  !!      !!    ! Initialize the windows with a fake array, since the convolutions bounds are nullified and I don't
+  !!      !!    ! know what happens when a window is opened with a nullified pointer...
+  !!      !!    call create_convolutions_windows_else(ab(1,1,1,ilr), ifake(1,1,ilr), wins_bounds(1,ilr), wins_arrays(1,1,ilr))
+  !!      !!end if
 
-        !!call convolutions_bounds_fences(wins_bounds(1,ilr))
-        !!call convolutions_arrays_fences(wins_arrays(1,1,ilr))
+  !!      !!call convolutions_bounds_fences(wins_bounds(1,ilr))
+  !!      !!call convolutions_arrays_fences(wins_arrays(1,1,ilr))
 
-        !!if(calculateBounds(ilr) .and. iproc/=root) then
-        !!    !this process needs the bounds, so get them from root
-        !!    call get_convolutions_bounds(root, ab(1,1,1,ilr), wins_bounds(1,ilr))
-        !!end if
-    end if
-  end do
+  !!      !!if(calculateBounds(ilr) .and. iproc/=root) then
+  !!      !!    !this process needs the bounds, so get them from root
+  !!      !!    call get_convolutions_bounds(root, ab(1,1,1,ilr), wins_bounds(1,ilr))
+  !!      !!end if
+  !!  end if
+  !!end do
 
   !!! Make sure the bounds arrived...
   !!do ilr=1,nlr
@@ -782,6 +799,10 @@ call memocc(istat,iall,'ab',subname)
 iall = -product(shape(ifake))*kind(ifake)
 deallocate(ifake,stat=istat)
 call memocc(istat,iall,'ifake',subname)
+
+iall = -product(shape(rootarr))*kind(rootarr)
+deallocate(rootarr,stat=istat)
+call memocc(istat,iall,'rootarr',subname)
 
 !if(iproc==0) then
 !    write(*,*) 'determine_locregSphere_parallel: time 1',tt1
