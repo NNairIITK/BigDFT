@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
-     rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-     energs,scpot,psi,energy)
+           rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
+           energs,scpot,psi,energy)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -31,7 +31,7 @@ type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,ist,iiorb,ncnt,p2p_tag,scf_mode,info_scf
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -41,15 +41,11 @@ type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
 integer:: jorb, jjorb, iiat,nit_highaccur
-real(8),dimension(:,:),allocatable:: density_kernel, overlapmatrix
-!FOR DEBUG ONLY
-!integer,dimension(:),allocatable:: debugarr
+real(8),dimension(:,:),allocatable:: overlapmatrix
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge, tmblargeder, tmblarge2
 real(8),dimension(:,:),allocatable:: locregCenter, locregCenterTemp, kernel, Umat
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilargeder, lhphilargeoldder, lphilargeoldder
-real(8),dimension(:),pointer:: lhphilarge2, lhphilarge2old, lphilarge2old
-integer,dimension(:),allocatable:: onwhichatom_reference, inwhichlocreg_reference
 real(8),dimension(3,at%nat):: fpulay
 
 
@@ -195,7 +191,6 @@ real(8),dimension(3,at%nat):: fpulay
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
       if(lscv%withder .and. lscv%lowaccur_converged .and. .not.coeffs_copied) then
-          !!tmbder%wfnmd%coeff=0.d0
           call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
           do iorb=1,orbs%norb
               jjorb=0
@@ -453,6 +448,17 @@ real(8),dimension(3,at%nat):: fpulay
                    tmblargeder, lhphilargeder, ldiis_coeff)
           end if
 
+          !!if(itout==1 .or. itout==15) then
+          !!    if(Iproc==0) WRITE(*,*) 'WRITE KERNEL TO FILE'
+          !!    do iorb=1,tmb%orbs%norb
+          !!        do jorb=1,tmb%orbs%norb
+          !!        if(itout==1) write(200,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
+          !!        if(itout==15) write(300,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
+          !!        end do
+          !!    end do
+          !!end if
+              
+
 
           ! Calculate the total energy.
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
@@ -655,16 +661,11 @@ real(8),dimension(3,at%nat):: fpulay
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  allocate(density_kernel(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
-  call memocc(istat, density_kernel, 'density_kernel', subname)
   call calculate_density_kernel(iproc, nproc, tmbmix%orbs%norb, orbs%norb, orbs%norbp, orbs%isorb, &
-       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, density_kernel)
+       tmbmix%wfnmd%ld_coeff, tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
-       tmbmix%orbs, tmbmix%comsr, density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+       tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
-  iall = -product(shape(density_kernel))*kind(density_kernel)
-  deallocate(density_kernel,stat=istat)
-  call memocc(istat,iall,'density_kernel',subname)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
@@ -1483,3 +1484,29 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call deallocate_p2pComms(tmbder%comrp, subname)
 
 end subroutine pulay_correction
+
+
+
+subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(out):: tmbder
+
+  ! Local variables
+  integer:: iorb, jorb, jjorb
+
+  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
+  do iorb=1,orbs%norb
+      jjorb=0
+      do jorb=1,tmbder%orbs%norb,4
+          jjorb=jjorb+1
+          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
+      end do
+  end do
+
+end subroutine derivative_coeffs_from_standard_coeffs

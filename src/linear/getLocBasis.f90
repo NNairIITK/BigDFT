@@ -204,9 +204,14 @@ real(8),dimension(:,:),allocatable:: locregCenter
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
-      do iorb=1,orbs%norb
-          call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
-      end do
+      !if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !    if(iproc==0) write(*,*) 'copy coeffs'
+          do iorb=1,orbs%norb
+              call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
+          end do
+      !else
+      !    if(iproc==0) write(*,*) "don't copy coeffs"
+      !end if
       infoCoeff=0
  
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -520,6 +525,7 @@ endif
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
 
+      !if(Iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
       call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
 
 
