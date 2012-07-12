@@ -556,8 +556,8 @@ endif
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS, ortho_performed)
 
-      !if(Iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
-      call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+      if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
+      !call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
 
 
   end do iterLoop

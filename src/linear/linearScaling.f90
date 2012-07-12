@@ -12,7 +12,7 @@ type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
-type(input_variables),intent(in):: input
+type(input_variables),intent(inout):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 type(DFT_local_fields), intent(inout) :: denspot
@@ -295,6 +295,18 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%can_use_transposed, ortho_performed)
       end if
 
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    tmb%wfnmd%bs%maxdev_ortho=1.d-20
+      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    tmb%wfnmd%bs%maxdev_ortho=1.d0
+      !!end if
+
+      if(iproc==0) write(*,*) 'WARNING: input has wrong intent!'
+      if(lscv%lowaccur_converged) then
+          if(iproc==0) write(*,*) 'WARNING: set DIIS history to 0!'
+          input%lin%DIISHistMax=0
+      end if
+
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
@@ -349,7 +361,7 @@ real(8),dimension(3,at%nat):: fpulay
 
               ! Reset DIIS if we are at the first iteration of the high accuracy regime
               ! or if DIIS became unstable in the previous optimization of the TMBs.
-              if(nit_highaccur<=1 .or. ldiis%isx<input%lin%DIISHistMax) then
+              !!$if(nit_highaccur<=1 .or. ldiis%isx<input%lin%DIISHistMax) then
                   call deallocateDIIS(ldiis)
                   call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
                   ldiis%DIISHistMin=input%lin%DIISHistMin
@@ -364,17 +376,17 @@ real(8),dimension(3,at%nat):: fpulay
                   ldiis%switchSD=.false.
                   ldiis%trmin=1.d100
                   ldiis%trold=1.d100
-              else
-                  ! Keep the history in the high accuracy case.
-                  ! Since the potential changes, the values of ldiis%trmin must be reset.
-                  ldiis%switchSD=.false.
-                  ldiis%trmin=1.d100
-                  ldiis%trold=1.d100
-                  ldiis%icountSDSatur=0
-                  ldiis%icountSwitch=0
-                  ldiis%icountDIISFailureTot=0
-                  ldiis%icountDIISFailureCons=0
-              end if
+              !!$else
+              !!$    ! Keep the history in the high accuracy case.
+              !!$    ! Since the potential changes, the values of ldiis%trmin must be reset.
+              !!$    ldiis%switchSD=.false.
+              !!$    ldiis%trmin=1.d100
+              !!$    ldiis%trold=1.d100
+              !!$    ldiis%icountSDSatur=0
+              !!$    ldiis%icountSwitch=0
+              !!$    ldiis%icountDIISFailureTot=0
+              !!$    ldiis%icountDIISFailureCons=0
+              !!$end if
           end if
 
           if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
