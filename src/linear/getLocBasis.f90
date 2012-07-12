@@ -339,8 +339,8 @@ type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2
 
 ! Local variables
-real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out
-integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb
+real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, ediff
+integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: ovrlp
 logical:: emergency_exit, overlap_calculated
@@ -371,6 +371,8 @@ real(8),save:: trH_old
   ldiis%immediateSwitchToSD=.false.
   consecutive_rejections=0
   trHold=1.d100
+
+  nsatur=0
  
 
   call timing(iproc,'getlocbasinit','OF') !lr408t
@@ -482,32 +484,40 @@ endif
 
   
 
-      ! to avoid that it points to something which was nullified... to be corrected
+      ediff=trH-trH_old
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. &
+          !(trH-trH_old)/fnrm <0.d0 .and. abs((trH-trH_old)/fnrm)<2.0d-2) then
+          ediff<0.d0 .and. abs(ediff) < 3.d-5*fnrm*tmb%orbs%norb) then
+          nsatur=nsatur+1
+      else
+          nsatur=0
+      end if
 
 
       !if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, diff/fnrm', &
-          it, fnrm, fnrmMax, trH, trH-trH_old, (trH-trH_old)/fnrm
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
+          it, fnrm, fnrmMax, trH, ediff, 3.d-5*fnrm*tmb%orbs%norb
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, diff/fnrm', &
-          it, fnrm, fnrmMax, trH, trH-trH_old, (trH-trH_old)/fnrm
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
+          it, fnrm, fnrmMax, trH, ediff, 3.d-5*fnrm*tmb%orbs%norb
       !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
       !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
       !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit .or. nsatur>=2) then
           !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-          !!    if(iproc==0) then
-          !!        write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          !!            write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          !!            write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
-          !!    end if
-          !!    infoBasisFunctions=it
-          !!else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
-          if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+          if(nsatur>=2) then
+              if(iproc==0) then
+                  write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=it
+          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+          !!if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
