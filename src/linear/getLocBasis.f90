@@ -339,7 +339,7 @@ type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2
 
 ! Local variables
-real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, ediff
+real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, ediff, noise
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: ovrlp
@@ -485,9 +485,10 @@ endif
   
 
       ediff=trH-trH_old
+      noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
       if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. &
           !(trH-trH_old)/fnrm <0.d0 .and. abs((trH-trH_old)/fnrm)<2.0d-2) then
-          ediff<0.d0 .and. abs(ediff) < 2.d-5*fnrm*tmb%orbs%norb) then
+          ediff<0.d0 .and. abs(ediff) < noise) then
           nsatur=nsatur+1
       else
           nsatur=0
@@ -498,16 +499,16 @@ endif
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff, 2.d-5*fnrm*tmb%orbs%norb
+          it, fnrm, fnrmMax, trH, ediff, noise
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff,2.d-5*fnrm*tmb%orbs%norb
+          it, fnrm, fnrmMax, trH, ediff,noise
       !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
       !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
       !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit .or. nsatur>=2) then
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit .or. nsatur>=tmb%wfnmd%bs%nsatur_inner) then
           !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-          if(nsatur>=2) then
+          if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &

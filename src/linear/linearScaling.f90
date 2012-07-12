@@ -306,7 +306,7 @@ real(8),dimension(3,at%nat):: fpulay
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=4) then
+          if(nsatur>=tmb%wfnmd%bs%nsatur_outer) then
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
@@ -332,7 +332,11 @@ real(8),dimension(3,at%nat):: fpulay
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
-              if(lscv%info_basis_functions>0) nsatur=nsatur+1
+              if(lscv%info_basis_functions>0) then
+                  nsatur=nsatur+1
+              else
+                  nsatur=0
+              end if
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
 
@@ -525,7 +529,7 @@ real(8),dimension(3,at%nat):: fpulay
               lscv%reduce_convergence_tolerance=.false.
           end if
 
-          if(nsatur<4 .and. it_scc<lscv%nit_scc_when_optimizing) then
+          if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<lscv%nit_scc_when_optimizing) then
               ! Deallocate the transposed TMBs
               if(tmbmix%can_use_transposed) then
                   iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)

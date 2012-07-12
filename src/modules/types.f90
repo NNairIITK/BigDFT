@@ -131,7 +131,7 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItPrecond
+    integer:: DIISHistMin, DIISHistMax, nItPrecond, nsatur_inner, nsatur_outer
     integer :: nItSCCWhenOptimizing, confPotOrder, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
@@ -141,7 +141,7 @@ module module_types
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
-    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
+    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
@@ -769,6 +769,9 @@ end type linear_scaling_control_variables
     !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
+    integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
+    integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
+    real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
   type,public:: basis_performance_options

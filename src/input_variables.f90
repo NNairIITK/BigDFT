@@ -662,6 +662,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+
+  ! New convergence criteria
+  comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
+  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/))
+  call input_var(in%lin%nsatur_inner,'2',ranges=(/1,10/))
+  call input_var(in%lin%nsatur_outer,'4',ranges=(/1,10/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'

@@ -2164,6 +2164,9 @@ subroutine init_basis_specifications(input, bs)
   !bs%nit_unitary_loop=input%lin%nItInnerLoop
   bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
+  bs%gnrm_mult=input%lin%gnrm_mult
+  bs%nsatur_inner=input%lin%nsatur_inner
+  bs%nsatur_outer=input%lin%nsatur_outer
 
 end subroutine init_basis_specifications
 
