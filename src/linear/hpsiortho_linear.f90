@@ -248,7 +248,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
+           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS, ortho_performed)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -261,6 +261,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
   real(8),intent(in):: trH, meanAlpha
   real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+  logical,intent(out):: ortho_performed
   
   ! Local variables
   integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
@@ -313,7 +314,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%wfnmd%bs%maxdev_ortho, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+           tmb%can_use_transposed, ortho_performed)
 
   end if do_ortho_if2
 

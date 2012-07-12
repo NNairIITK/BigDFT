@@ -1,5 +1,6 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, maxdev_ortho, &
-           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed)
+           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed, &
+           ortho_performed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -18,7 +19,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(basis_performance_options),intent(in):: bpo
   real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(8),dimension(:),pointer,intent(out):: psit_c, psit_f
-  logical,intent(out):: can_use_transposed
+  logical,intent(out):: can_use_transposed, ortho_performed
 
   ! Local variables
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
@@ -96,6 +97,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           if(iproc==0) then
               write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => full orthogonalization required'
           end if
+          ortho_performed=.true.
       else
           if(iproc==0) then
               write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
@@ -106,6 +108,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
               stop 'ERROR: this part is not yet implemented for p2p communication'
           end if
+          ortho_performed=.false.
           return
       end if
 

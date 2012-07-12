@@ -39,7 +39,7 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix,ortho_performed
 integer:: jorb, jjorb, iiat,nit_highaccur
 real(8),dimension(:,:),allocatable:: overlapmatrix
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -292,7 +292,7 @@ real(8),dimension(3,at%nat):: fpulay
           call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, 1.d-20, &
                tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed)
+               tmb%can_use_transposed, ortho_performed)
       end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.

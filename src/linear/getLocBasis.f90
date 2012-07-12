@@ -343,7 +343,7 @@ real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, ediff, noise
 integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: ovrlp
-logical:: emergency_exit, overlap_calculated
+logical:: emergency_exit, overlap_calculated, ortho_performed
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),pointer:: lhphi, lhphiold, lphiold
 type(energy_terms) :: energs
@@ -366,6 +366,7 @@ real(8),save:: trH_old
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
+  ortho_performed=.false.
 
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
@@ -374,11 +375,11 @@ real(8),save:: trH_old
 
   nsatur=0
  
-  ! Always do this orthonormalization, therefore put 1.d-20 as maxdev_ortho
-  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-       1.d-20, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-       tmb%can_use_transposed)
+  !!! Always do this orthonormalization, therefore put 1.d-20 as maxdev_ortho
+  !!call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+  !!     1.d-20, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+  !!     tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+  !!     tmb%can_use_transposed)
 
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -539,6 +540,13 @@ endif
               end if
               infoBasisFunctions=-1
           end if
+          if(.not.ortho_performed) then
+              ! Always do this orthonormalization, therefore put 1.d-20 as maxdev_ortho
+              call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+                   1.d-20, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+                   tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+                   tmb%can_use_transposed, ortho_performed)
+          end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
       end if
@@ -546,7 +554,7 @@ endif
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
+           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS, ortho_performed)
 
       !if(Iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
       call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
