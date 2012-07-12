@@ -306,7 +306,14 @@ real(8),dimension(3,at%nat):: fpulay
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=3) tmb%wfnmd%bs%update_phi=.false.
+          if(nsatur>=3) then
+              tmb%wfnmd%bs%update_phi=.false.
+              if(it_scc==1) then
+                  tmb%can_use_transposed=.false.
+                  allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+                  call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+              end if
+          end if
 
           !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
           !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
@@ -518,7 +525,7 @@ real(8),dimension(3,at%nat):: fpulay
               lscv%reduce_convergence_tolerance=.false.
           end if
 
-          if(it_scc<lscv%nit_scc_when_optimizing) then
+          if(nsatur<3 .and. it_scc<lscv%nit_scc_when_optimizing) then
               ! Deallocate the transposed TMBs
               if(tmbmix%can_use_transposed) then
                   iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)

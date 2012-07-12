@@ -501,7 +501,7 @@ endif
           it, fnrm, fnrmMax, trH, ediff, 3.d-5*fnrm*tmb%orbs%norb
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff, 3.d-5*fnrm*tmb%orbs%norb
+          it, fnrm, fnrmMax, trH, ediff,3.d-5*fnrm*tmb%orbs%norb
       !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
       !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
       !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then

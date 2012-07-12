@@ -70,8 +70,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
-          call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-          call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+          if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
+              call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+          if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
+              call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
                hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
