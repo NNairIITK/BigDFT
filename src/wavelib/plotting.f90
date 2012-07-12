@@ -1095,12 +1095,12 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      tmpdip=dipole_cores+dipole_el
      call yaml_open_map('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
-       call yaml_map('|P|',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
+       call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_close_map()
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
      call yaml_open_map('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
-       call yaml_map('|P|',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
+       call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_close_map()
 
 !!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'

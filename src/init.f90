@@ -15,6 +15,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr,output_denspot)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    !Arguments
    type(atoms_data), intent(in) :: atoms
@@ -34,8 +35,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call timing(iproc,'CrtDescriptors','ON')
 
    if (iproc == 0) then
-      write(*,'(1x,a)')&
-         &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+      call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
+      !write(*,'(1x,a)')&
+      !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
    end if
 
    !assign the dimensions to improve (a little) readability
@@ -66,8 +68,14 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
    call wfd_from_grids(logrid_c,logrid_f,Glr)
 
-   if (iproc == 0) write(*,'(2(1x,a,i10))') &
-      &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
+   if (iproc == 0) then
+      !write(*,'(2(1x,a,i10))') &
+      !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
+      call yaml_open_map('Coarse resolution grid')!,flow=.true.)
+      call yaml_map('No. of segments',Glr%wfd%nseg_c)
+      call yaml_map('No. of points',Glr%wfd%nvctr_c)
+      call yaml_close_map()
+   end if
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0)then
@@ -88,8 +96,15 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       end if
    end if
 
-   if (iproc == 0) write(*,'(2(1x,a,i10))') & 
-   '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
+   if (iproc == 0) then
+      !write(*,'(2(1x,a,i10))')
+      !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
+      call yaml_open_map('Fine resolution grid')!,flow=.true.)
+        call yaml_map('No. of segments',Glr%wfd%nseg_f)
+        call yaml_map('No. of points',Glr%wfd%nvctr_f)
+      call yaml_close_map()
+      call yaml_close_map()
+   end if
 
    ! Create the file grid.xyz to visualize the grid of functions
    my_output_denspot = .false.
@@ -1823,7 +1838,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
       !restore the occupations 
       call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
-
+      !associate the entropic energy contribution
+      orbs%eTS=orbse%eTS
+      
    end if
 
 !!$   !yaml output

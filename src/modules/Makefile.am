@@ -32,6 +32,7 @@ bindings_headers =
 bindings_headers_nodist =
 endif
 
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -80,6 +81,7 @@ libmodules_a_SOURCES = base.f90 \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
+
 
 CLEANFILES = mpif.h $(mod_bigdft)
 

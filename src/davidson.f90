@@ -275,8 +275,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
-     call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
-          VTwfn,gnrm,gnrm_zero)
+      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
+           VTwfn,gnrm,gnrm_zero)
 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx

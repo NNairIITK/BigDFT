@@ -72,6 +72,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
   !calculate the self-consistent potential
   if (scf) then
+     !update the entropic energy
+     energs%eTS=wfn%orbs%eTS
+     !safe the previous value of the energy
+     energs%e_prev=energs%energy
      !print *,'here',savefields,correcth,energs%ekin,energs%epot,dot(wfn%orbs%npsidim_orbs,wfn%psi(1),1,wfn%psi(1),1)
      ! Potential from electronic charge density 
      call sumrho(denspot%dpbox,wfn%orbs,wfn%Lzd,GPU,atoms%sym,denspot%rhod,wfn%psi,denspot%rho_psi)
@@ -133,10 +137,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
                 rpnrm,denspot%dpbox%nscatterarr)
            
            if (iproc == 0 .and. itrp > 1) then
-              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                   &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
-              !yaml output
-              !write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+              call yaml_newline()
+              call yaml_map('itrp',itrp,fmt='(i4)')
+              call yaml_map('Mixing on','Density')
+              call yaml_map('RhoPot delta per volume unit',rpnrm,fmt='(1pe9.2)',&
+                   label='rpnrm'//trim(adjustl(yaml_toa(itrp,fmt='(i4.4)'))))
+              call yaml_newline()
+              !write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+              !     &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
            end if
            ! xc_init_rho should be put in the mixing routines
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
@@ -202,10 +210,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
                 atoms%alat1*atoms%alat2*atoms%alat3,&!volume should be used 
                 rpnrm,denspot%dpbox%nscatterarr)
            if (iproc == 0 .and. itrp > 1) then
-              write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                   &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-              !yaml output
-              !write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+              call yaml_newline()
+              call yaml_map('itrp',itrp,fmt='(i4)')
+              call yaml_map('Mixing on','Potential')
+              call yaml_map('RhoPot delta per volume unit',rpnrm,fmt='(1pe9.2)',&
+                   label='rpnrm'//trim(adjustl(yaml_toa(itrp,fmt='(i4.4)'))))
+              call yaml_newline()
+              !write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+              !     &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
            end if
         end if
      end if
@@ -1090,6 +1102,9 @@ subroutine total_energies(energs, iter, iproc)
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
        energs%eexctX-energs%evsic+energs%eion+energs%edisp!-energs%excrhoc
 
+  ! Gibbs Free Energy
+  energs%energy=energs%eKS-energs%eTS+energs%ePV
+
   if (energs%c_obj /= 0) then
      call timing(iproc,'energs_signals','ON')
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
@@ -1133,11 +1148,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 !!$  energy=energy-eTS
 !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-!!$  !band structure energy calculated with occupation numbers
-!!$  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
-!!$  !this is the Kohn-Sham energy
-!!$  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX-energs%evsic+energs%eion+energs%edisp
-
   !calculate orbital polarisation directions
   if(wfn%orbs%nspinor==4) then
      allocate(mom_vec(4,wfn%orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
@@ -1170,6 +1180,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
+  energs%trH_prev=energs%trH
   call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,energs%trH) !n(m)
 
   !retranspose the hpsi wavefunction
@@ -1866,8 +1877,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    end if
 
  END SUBROUTINE evaltoocc
-
-
 
 subroutine eFermi_nosmearing(iproc,orbs)
    use module_base

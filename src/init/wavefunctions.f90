@@ -14,9 +14,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb,mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
+
+  !eTS value, updated in evaltocc
+  orbs%eTS=0.0_gp
 
   allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
@@ -223,8 +226,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%isorb_par(jproc)=orbs%isorb
       end if
   end do
-  !call MPI_Initialized(mpiflag,ierr)
-  if(nproc >1) &!mpiflag /= 0) 
+  !this mpiflag is added to make memguess working
+  call MPI_Initialized(mpiflag,ierr)
+  if(nproc >1 .and. mpiflag /= 0) &
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,mpi_comm_world,ierr)
 
 END SUBROUTINE orbitals_descriptors

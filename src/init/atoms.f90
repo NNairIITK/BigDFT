@@ -808,7 +808,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   double precision :: acell(3), angdeg(3), gnrm, fnrm, maxval
   integer, allocatable :: igspin(:), igchrg(:)
 
-  call posinp_yaml_parse(lst, filename, len(filename))
+  call f90_posinp_yaml_parse(lst, filename, len(filename))
 
   call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
   if (bc == 3) then

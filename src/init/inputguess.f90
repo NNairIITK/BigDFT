@@ -90,7 +90,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
         nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
-        basedist=orbs%norb_par(0:,1))
+        basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -831,9 +831,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          stop 
       end if
    end do
-
-   call yaml_close_sequence()
-   call yaml_newline()
+   if (iproc == 0 .and. verbose > 1) then
+      call yaml_close_sequence()
+      call yaml_newline()
+   end if
 
    !print *,'nl',nl,norbe,G%ncoeff
    if (norbe /= G%ncoeff) then

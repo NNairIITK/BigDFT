@@ -42,8 +42,10 @@ program PS_Check
    integer :: iproc,nproc,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
+   integer, dimension(3) :: ndims
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(6) :: xcstr
+   real(dp), dimension(3) :: hgrids
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -112,9 +114,11 @@ program PS_Check
    end if
 
    !calculate the kernel in parallel for each processor
-          
+   ndims=(/n01,n02,n03/)
+   hgrids=(/hx,hy,hz/)
+
    pkernel=pkernel_init(iproc,nproc,nproc/2,0,&
-        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf)
+        geocode,ndims,hgrids,itype_scf)
    call pkernel_set(pkernel,.true.)
    !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
 
@@ -141,7 +145,8 @@ program PS_Check
          call xc_init(ixc, XC_ABINIT, ispden)
       end if
       if (iproc == 0) then
-         call yaml_map('Number of Spins',ispden)
+         call yaml_map('Number of Spins',ispden,advance='no')
+         call yaml_comment('nspden:'//trim(yaml_toa(ispden)),hfill='-')
       end if
 
       !if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
@@ -223,10 +228,10 @@ program PS_Check
    if (ixc == 0) then
       if (pkernel%iproc_world==0) call yaml_open_map('Complex run')
       !compare the calculations in complex
-      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,&
+      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,offset,&
       density,potential,pkernel)
 
-      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,&
+      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,offset,&
       density,potential,pkernel)
       if (pkernel%iproc_world==0)call yaml_close_map()
    end if
@@ -256,7 +261,7 @@ program PS_Check
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
        pkernelseq=pkernel_init(0,1,1,0,&
-            geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf)
+            geocode,ndims,hgrids,itype_scf)
        call pkernel_set(pkernelseq,.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
@@ -326,14 +331,14 @@ program PS_Check
 
    contains
 
-   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,&
+   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,offset,&
       density,potential,pkernel)
       use module_base
       use Poisson_Solver
       implicit none
       character(len=1), intent(in) :: geocode,distcode
       integer, intent(in) :: iproc,nproc,n01,n02,n03
-      real(kind=8), intent(in) :: hx,hy,hz,ehref
+      real(kind=8), intent(in) :: hx,hy,hz,ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
       type(coulomb_operator), intent(in) :: pkernel
@@ -341,10 +346,10 @@ program PS_Check
       character(len=*), parameter :: subname='compare_cplx_calculations'
       character(len=20) :: message
       integer :: n3d,n3p,n3pi,i3xcsh,i3s,i3sd,i3,i2,i1,istden,istpot,isp,i
-      real(kind=8) :: ehartree,offset
+      real(kind=8) :: ehartree
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
 
-      offset=0.d0
+!      offset=0.d0
 
       !this is performed always without XC since a complex
       !charge density makes no sense

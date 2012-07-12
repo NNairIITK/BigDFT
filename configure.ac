@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.13],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.14],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -411,6 +411,12 @@ if test x"$ac_use_ocl" = "xyes" ; then
        LIBS="-L$ac_ocl_path/lib $LIBS"
     fi
     AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
+    if test "$withlibocl" = "no"; then
+      if test -n "$ac_ocl_path" ; then
+        LIBS="-L$ac_ocl_path/lib64 $LIBS"
+      fi
+      AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
+    fi
     if test "$withlibocl" = "no"; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"

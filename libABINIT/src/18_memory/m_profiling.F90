@@ -37,6 +37,7 @@
     real :: memorylimit = 0.e0
     logical :: meminit = .false.
     integer, parameter :: mallocFile = 98
+    integer :: stdout=6
     type(memstat), save :: memloc,memtot
     integer :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
@@ -56,6 +57,7 @@
     public :: ndebug
     public :: memocc
     public :: memocc_set_state
+    public :: memocc_set_stdout
     public :: memocc_set_memory_limit
     public :: memocc_report
     public :: d_nan,r_nan
@@ -133,6 +135,13 @@
       !end if
     end subroutine memocc_open_file
 
+    subroutine memocc_set_stdout(unit)
+      implicit none
+      integer, intent(in) :: unit
+
+      stdout=unit
+
+    end subroutine memocc_set_stdout
 
 
     !!****f* ABINIT/memory_occupation
@@ -215,14 +224,14 @@
                close(unit=mallocFile)
             end if
 	    !write it in Yaml Format without yaml module
-            write(*,'(1x,a)')'Memory Consumption Report:'
-            write(*,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
-            write(*,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
-            write(*,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
-            write(*,'(1x,a)')   '  Memory occupation: '
-            write(*,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
-            write(*,'(1x,a)')   '     for the array: '//trim(memtot%array)       
-            write(*,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
+            write(stdout,'(1x,a)')'Memory Consumption Report:'
+            write(stdout,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
+            write(stdout,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
+            write(stdout,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
+            write(stdout,'(1x,a)')   '  Memory occupation: '
+            write(stdout,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
+            write(stdout,'(1x,a)')   '     for the array: '//trim(memtot%array)       
+            write(stdout,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
 !!$            write(*,'(1x,a)')&
 !!$                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
 !!$            write(*,'(1x,2(i0,a,1x),i0)')&

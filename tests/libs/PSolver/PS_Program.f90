@@ -31,7 +31,7 @@ program PSolver_Program
   !Order of interpolating scaling function
   !integer, parameter :: itype_scf=8
   character(len=*), parameter :: subname='Poisson_Solver'
-  real(kind=8), parameter :: a_gauss = 1.0d0, a2 = a_gauss**2
+  real(kind=8), parameter :: a_gauss = 1.0d-2, a2 = a_gauss**2
   !Length of the box
   real(kind=8), parameter :: acell = 10.0d0
   real(kind=8), parameter :: EulerGamma = 0.5772156649015328d0
@@ -65,7 +65,8 @@ program PSolver_Program
 
   !mode = "charged_thin_wire"
   !mode="cylindrical_capacitor"
-  mode="monopolar"
+  !mode="monopolar"
+  mode="zigzag_model_wire"
     
 
   !Use arguments
@@ -270,6 +271,8 @@ program PSolver_Program
      call H_potential(datacode,karray,density(1,1,i3sd),pot_ion(1,1,i3s+i3xcsh),ehartree,offset,.false.)
 !!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
+
+     print *,'potential integral',sum(density)
 
      i3=n03/2
      do i2=1,n02
@@ -564,6 +567,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   real(kind=8) :: x,x1,x2,x3,y,z,length,denval,pi,a2,derf,factor,r,r2,r0
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac,fxy
   real(kind=8) :: monopole
+  real(kind=8), dimension(3) :: dipole
  
   !non-orthorhombic lattice
   real(kind=8), dimension(3,3) :: gu,gd
@@ -600,7 +604,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   gu(3,2) = gu(2,3)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
- 
+  if (ixc==0) denval=0.d0
 
   if (trim(geocode) == 'P') then
      !parameters for the test functions
@@ -1015,6 +1019,36 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            end do
         end do
 
+     case("zigzag_model_wire")
+
+        density = 0.d0
+        potential = 0.d0
+
+!!$        density(n01/4,n02/2,n03/4) = -1.0d0
+!!$        density(3*n01/4,n02/2,3*n03/4) = 1.0d0
+        density(n01/2,n02/2,n03/2) = 1.0d0
+
+        !factor=(16.d0/acell)**2
+        !r0 = acell/4.d0
+        !the following is evaluated analytically by imposing that
+        !\int_0^\infty r*(-exp(-factor(r-r0)^2)+denval*exp(-factor*r^2)) = 0
+        !denval=sqrt(4.d0*datan(1.d0)*factor)*r0*(1.d0+derf(sqrt(factor)*r0))
+        !do i3=1,n03
+        ! x3 = hz*real(i3-n03/2-1,kind=8)
+        ! do i2=1,n02
+        ! x2 = hy*real(i2-n02/2-1,kind=8)
+        ! do i1=1,n01
+        ! x1 = hx*real(i1-n01/2-1,kind=8)
+        ! !r2 = x1*x1+x2*x2+x3*x3
+        ! !r = sqrt(r2)
+        ! !in this configuration denval is used so as to achieve zero monopole
+        ! density(i1,i2,i3) = -1.d0*dexp(-factor*(x1-r0)**2)*dexp(-factor*x2**2)*dexp(-factor*(x3-r0)**2) &
+        ! + 1.0d0*dexp(-factor*(x1+r0)**2)*dexp(-factor*x2**2)*dexp(-factor*(x3+r0)**2)
+        ! density(i1,i2,i3) = density(i1,i2,i3)*(factor/4.d0/datan(1.d0))**(3.d0/2.d0)
+        ! end do
+        ! end do
+        !end do
+
      case ("charged_thin_wire")
         do i3=1,n03
            do i2=1,n02
@@ -1148,15 +1182,21 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   !!! evaluation of the monopolar contribution !!!
   monopole = 0.d0
+  dipole=0.0d0
   do i3 = 1, n03
      do i2 = 1, n02
         do i1 = 1, n01
            monopole = monopole + density(i1,i2,i3)
+           dipole(1) = dipole(1) + density(i1,i2,i3)*real(i1-n01/2*hx,kind=8)
+           dipole(2) = dipole(2) + density(i1,i2,i3)*real(i2-n02/2*hy,kind=8)
+           dipole(3) = dipole(3) + density(i1,i2,i3)*real(i3-n03/2*hz,kind=8)
         end do
      end do
   end do
   write(*,*) 'monopole = ', monopole
+  write(*,*) 'dipole = ', dipole
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
   ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
   ! possible. In that case the only possible comparison is between the serial and the parallel case

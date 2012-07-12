@@ -455,7 +455,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !print *,'okcomm',kernel%mpi_comm,kernel%iproc
 !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-  call yaml_close_map() !kernel
+  if (dump) call yaml_close_map() !kernel
 
   call timing(kernel%iproc_world,'PSolvKernel   ','OF')
 

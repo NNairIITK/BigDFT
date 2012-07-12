@@ -113,7 +113,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      nB=modulo(nB,1024)
      call yaml_map('Wavefunctions memory occupation for root MPI process',&
           trim(yaml_toa(nMB,fmt='(i5)'))//' MB'//trim(yaml_toa(nKB,fmt='(i5)'))//&
-          ' KB'//trim(yaml_toa(nB,fmt='(i5)')))
+          ' KB'//trim(yaml_toa(nB,fmt='(i5)'))//' B')
 !!$     write(*,'(1x,a,3(i5,a))') &
 !!$       'Wavefunctions memory occupation for root MPI process: ',&
 !!$       nMB,' MB ',nKB,' KB ',nB,' B'
@@ -617,6 +617,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
   use module_types
   use module_interfaces
+  use yaml_output
   implicit none
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
@@ -663,24 +664,30 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   enddo
   nelec=nelec-in%ncharge
   if (verb) then
-     write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
+     call yaml_comment('Occupation numbers',hfill='-')
+     call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
   end if
 
   ! Number of orbitals
   if (in%nspin==1) then
+     if (verb) call yaml_map('Spin treatment','Averaged')
      norb=(nelec+1)/2
      norbu=norb
      norbd=0
      if (mod(nelec,2).ne.0 .and. verb) then
-        write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+        call yaml_warning('Odd number of electrons, no closed shell system')
+        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
      end if
   else if(in%nspin==4) then
-     if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     if (verb) call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
+     !if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
      norb=nelec
      norbu=norb
      norbd=0
   else 
-     if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
+     if (verb) call yaml_map('Spin treatment','Collinear')
+     !if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      if (mod(norb+in%mpol,2) /=0) then
         write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
@@ -728,8 +735,9 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
         if (iproc==0 .and. in%norbsempty == 0) &
-             write(*,'(1x,a)')&
-             'WARNING: Found no input polarisation, add it for a correct input guess'
+             call yaml_warning('Found no input polarisation, add it for a correct input guess')
+        !write(*,'(1x,a)')&
+        !     'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
 
@@ -740,6 +748,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   norbdempty=0
 
   ! Test if the file 'input.occ exists
+  !this access is performed at each call_bigdft run
   inquire(file=trim(in%file_occnum),exist=exists)
   iunit=0
   if (exists) then
@@ -845,19 +854,21 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
   if (verb .and. nproc > 1) then
+     call yaml_open_map('Orbitals Repartition')
      jpst=0
      do jproc=0,nproc-1
         norbme=orbs%norb_par(jproc,0)
         norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
-           !this is a screen output that must be modified
-           write(*,'(3(a,i0),a)')&
-                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+           call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+           !write(*,'(3(a,i0),a)')&
+           !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
            jpst=jproc+1
         end if
      end do
      !write(*,'(3(a,i0),a)')&
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+     call yaml_close_map()
   end if
 
   !assign to each k-point the same occupation number
@@ -1049,11 +1060,11 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 
      select case(atoms%npspcode(ityp))
      case(2)
-        call yaml_map('Pseudopotenial type','GTH')
+        call yaml_map('Pseudopotential type','GTH')
      case(3)
-        call yaml_map('Pseudopotenial type','HGH')
+        call yaml_map('Pseudopotential type','HGH')
      case(10)
-        call yaml_map('Pseudopotenial type','HGH-K')
+        call yaml_map('Pseudopotential type','HGH-K')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_open_map('Local PSeudo Potential (HGH convention)')
@@ -1074,7 +1085,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         end if
      end do verify_nl
      if (nonloc) then
-        call yaml_open_sequence('NonLocal PSP Paramters')
+        call yaml_open_sequence('NonLocal PSP Parameters')
         do l=1,3
            do i=3,0,-1
               j=i
@@ -1566,7 +1577,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
       end if
   end do
   call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
 END SUBROUTINE orbitals_descriptors_forLinear
 
