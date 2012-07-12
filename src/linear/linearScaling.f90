@@ -289,7 +289,7 @@ real(8),dimension(3,at%nat):: fpulay
           nullify(tmb%psit_c)
           nullify(tmb%psit_f)
           if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, 1.d-20, &
                tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                tmb%can_use_transposed)

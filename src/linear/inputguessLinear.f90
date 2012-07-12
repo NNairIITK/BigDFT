@@ -994,7 +994,7 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 nullify(psit_c)
 nullify(psit_f)
 
-call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, 1.d-3, &
      orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
 
 if(can_use_transposed) then

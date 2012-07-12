@@ -374,6 +374,10 @@ real(8),save:: trH_old
 
   nsatur=0
  
+  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+       tmb%wfnmd%bs%maxdev_ortho, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+       tmb%can_use_transposed)
 
   call timing(iproc,'getlocbasinit','OF') !lr408t
 

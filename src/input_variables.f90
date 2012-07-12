@@ -682,7 +682,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
   
   !number of iterations in the preconditioner : lin%nItPrecond
-  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
+  comments='number of iterations in the preconditioner, max deviation from unity for orthogonalization'
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/))
+  call input_var(in%lin%maxdev_ortho,'5',ranges=(/0.d0,1.d-1/),comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'

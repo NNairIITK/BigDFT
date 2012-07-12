@@ -2842,12 +2842,13 @@ module module_interfaces
        real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
      end subroutine globalLoewdin
 
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, maxdev_ortho, &
                 orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
+       real(8),intent(in):: maxdev_ortho
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op
        type(p2pComms),intent(inout):: comon

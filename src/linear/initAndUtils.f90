@@ -2167,6 +2167,7 @@ subroutine init_basis_specifications(input, bs)
   bs%gnrm_mult=input%lin%gnrm_mult
   bs%nsatur_inner=input%lin%nsatur_inner
   bs%nsatur_outer=input%lin%nsatur_outer
+  bs%maxdev_ortho=input%lin%maxdev_ortho
 
 end subroutine init_basis_specifications
 

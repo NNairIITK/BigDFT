@@ -141,7 +141,7 @@ module module_types
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
-    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult
+    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult, maxdev_ortho
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
@@ -772,6 +772,7 @@ end type linear_scaling_control_variables
     integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
     integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
     real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
+    real(8):: maxdev_ortho !< max deviation from unity that is accepted before doing an orthogonalization
   end type basis_specifications
 
   type,public:: basis_performance_options

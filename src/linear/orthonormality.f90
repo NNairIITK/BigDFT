@@ -1,4 +1,4 @@
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, maxdev_ortho, &
            orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
   use module_types
@@ -7,6 +7,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Calling arguments
   integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
+  real(8),intent(in):: maxdev_ortho
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op
   type(p2pComms),intent(inout):: comon
@@ -23,7 +24,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
   real(8),dimension(:),allocatable:: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt
+  real(8):: maxError, tt, deviation
   real(8),dimension(:,:),allocatable:: ovrlp
 
 
@@ -89,6 +90,24 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       !!    end do
       !!end do
       !!! END EXPERIMENTAL #######################################################
+
+      call deviation_from_unity(iproc, orbs%norb, ovrlp, deviation)
+      if(deviation>maxdev_ortho) then
+          if(iproc==0) then
+              write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => full orthogonalization required'
+          end if
+      else
+          if(iproc==0) then
+              write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
+          end if
+          if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+              call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+              call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+          else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+              stop 'ERROR: this part is not yet implemented for p2p communication'
+          end if
+          return
+      end if
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
@@ -2012,3 +2031,37 @@ end subroutine getStartingIndicesGlobal
 !!  call memocc(istat, iall, 'overlaps_tmp', subname)
 !!
 !!end subroutine determine_overlapParameters_fast
+
+
+
+
+subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, norb
+  real(8),dimension(norb,norb),intent(in):: ovrlp
+  real(8),intent(out):: deviation
+
+  ! Local variables
+  integer:: iorb, jorb
+  real(8):: error
+
+  deviation=0.d0
+  do iorb=1,norb
+     do jorb=1,norb
+        if(iorb==jorb) then
+           error=abs(ovrlp(jorb,iorb)-1.d0)
+        else
+           error=abs(ovrlp(jorb,iorb))
+        end if
+        if(error>deviation) then
+           deviation=error
+        end if
+     end do
+  end do
+
+end subroutine deviation_from_unity
+
