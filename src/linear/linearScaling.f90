@@ -12,7 +12,7 @@ type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
-type(input_variables),intent(inout):: input
+type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 type(DFT_local_fields), intent(inout) :: denspot
@@ -308,7 +308,6 @@ real(8),dimension(3,at%nat):: fpulay
       !!end if
 
       if(itout>1) call deallocateDIIS(ldiis)
-      if(iproc==0) write(*,*) 'input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_converged',input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_converged
       if (lscv%lowaccur_converged) then
           call initializeDIIS(input%lin%DIIS_hist_highaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
       else
@@ -327,6 +326,14 @@ real(8),dimension(3,at%nat):: fpulay
       ldiis%icountSwitch=0
       ldiis%icountDIISFailureTot=0
       ldiis%icountDIISFailureCons=0
+      ldiis%is=0
+      ldiis%switchSD=.false.
+      ldiis%trmin=1.d100
+      ldiis%trold=1.d100
+      if(itout==1) then
+          ldiis%alphaSD=input%lin%alphaSD
+          ldiis%alphaDIIS=input%lin%alphaDIIS
+      end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
@@ -363,13 +370,12 @@ real(8),dimension(3,at%nat):: fpulay
                   end do
               end if
 
-              if(iproc==0) write(*,*) 'LDIIS%ISX',LDIIS%ISX
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
               else
-                  nsatur=0
+                  !!nsatur=0
               end if
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
