@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-11 14:47:19.360
+ Timestamp of this run                 :  2012-07-12 09:25:23.870
  Hostname                              : phys-comp-03
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                   Debug option
@@ -92,6 +92,7 @@
  #|15 6           iterations with low accuracy, high accuracy                                
  #|5  3           iterations to optimize the basis functions for low accuracy and high accura
  #|5.d-3  1.d-3  .5d0iterations in the inner loop, enlargement factor for locreg, convergence
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
  #|0  8  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD            
  #|8              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -285,31 +286,31 @@ V3prb    1.6463E+01
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.59112229111E+01 -2.76233370161E+01  1.41553977523E+00 -2.96574329787E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  4.1339661E-01  5.3105397E-01    -0.1482871649  -1.4829E-01  -3.5870E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1339661E-01  5.3105397E-01    -0.1482871649  -1.4829E-01   4.9608E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.56993164778E+01 -2.79422923950E+01  1.69694712341E+00 -5.46028793843E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  1.5821822E-01  2.3190783E-01    -0.2730143969  -1.2473E-01  -7.8832E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.5821822E-01  2.3190783E-01    -0.2730143969  -1.2473E-01   1.8986E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.54504878077E+01 -2.76323302967E+01  1.59948013857E+00 -5.82362350410E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  5.9444718E-02  7.8245805E-02    -0.2911811752  -1.8167E-02  -3.0561E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  5.9444718E-02  7.8245805E-02    -0.2911811752  -1.8167E-02   7.1334E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.52539057192E+01 -2.74233454135E+01  1.57162337277E+00 -5.97816321573E-01
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.52539057192E+01 -2.74233454135E+01  1.57162337277E+00 -5.97816321572E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  3.9610120E-02  5.2589359E-02    -0.2989081608  -7.7270E-03  -1.9508E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  3.9610120E-02  5.2589359E-02    -0.2989081608  -7.7270E-03   4.7532E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.51641416141E+01 -2.73293600987E+01  1.56256259526E+00 -6.02655889318E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  3.2719204E-02  3.9947226E-02    -0.3013279447  -2.4198E-03  -7.3956E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.2719204E-02  3.9947226E-02    -0.3013279447  -2.4198E-03   3.9263E-06
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   3.2719204E-02  3.9947226E-02  -0.3013279
  ============================= Basis functions created. =============================
@@ -337,7 +338,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.43E-06   -1.69645985348449813E+01   -1.6965E+01
+   it, Delta DENS, energy, energyDiff   1   2.43E-06   -1.69645985348449777E+01   -1.6965E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -363,7 +364,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.41E-06   -1.69167741603921513E+01    4.7824E-02
+   it, Delta DENS, energy, energyDiff   2   1.41E-06   -1.69167741603921762E+01    4.7824E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -389,7 +390,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   6.46E-07   -1.69112229766810529E+01    5.5512E-03
+   it, Delta DENS, energy, energyDiff   3   6.46E-07   -1.69112229766810565E+01    5.5512E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -415,7 +416,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.26E-07   -1.69100279736032242E+01    1.1950E-03
+   it, Delta DENS, energy, energyDiff   4   3.26E-07   -1.69100279736032206E+01    1.1950E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -462,31 +463,31 @@ done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.51641416141E+01 -2.67135922727E+01  1.56256259526E+00  1.31119366743E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  7.4467736E-02  1.0153908E-01     0.0065559683   6.5560E-03   8.8038E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  7.4467736E-02  1.0153908E-01     0.0065559683   6.5560E-03   8.9361E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.47127998388E+01 -2.62378090965E+01  1.51684252330E+00 -8.16673442354E-03
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.47127998388E+01 -2.62378090965E+01  1.51684252330E+00 -8.16673442356E-03
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  4.2970859E-02  5.8670213E-02    -0.0040833672  -1.0639E-02  -2.4759E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  4.2970859E-02  5.8670213E-02    -0.0040833672  -1.0639E-02   5.1565E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44461146030E+01 -2.59785491790E+01  1.51645218026E+00 -1.59823958133E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44461146030E+01 -2.59785491790E+01  1.51645218026E+00 -1.59823958135E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  2.4928775E-02  3.0492194E-02    -0.0079911979  -3.9078E-03  -1.5676E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4928775E-02  3.0492194E-02    -0.0079911979  -3.9078E-03   2.9915E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42949341786E+01 -2.58220479671E+01  1.50694703458E+00 -2.01667538989E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42949341786E+01 -2.58220479671E+01  1.50694703458E+00 -2.01667538990E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  2.1537944E-02  2.8081975E-02    -0.0100833769  -2.0922E-03  -9.7139E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1537944E-02  2.8081975E-02    -0.0100833769  -2.0922E-03   2.5846E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.57652831398E+01  1.50056693632E+00 -2.18012543477E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.57652831398E+01  1.50056693632E+00 -2.18012543478E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  1.2382447E-02  1.6622883E-02    -0.0109006272  -8.1725E-04  -6.6001E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.2382447E-02  1.6622883E-02    -0.0109006272  -8.1725E-04   1.4859E-06
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2382447E-02  1.6622883E-02  -0.0109006
  ============================= Basis functions created. =============================
@@ -514,7 +515,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   7.93E-07   -1.69667618052132987E+01   -5.7005E-02
+   it, Delta DENS, energy, energyDiff   1   7.93E-07   -1.69667618052133022E+01   -5.7005E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -540,7 +541,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.89E-07   -1.69625600582825129E+01    4.2017E-03
+   it, Delta DENS, energy, energyDiff   2   3.89E-07   -1.69625600582824987E+01    4.2017E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -566,7 +567,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.87E-07   -1.69617779697587814E+01    7.8209E-04
+   it, Delta DENS, energy, energyDiff   3   1.87E-07   -1.69617779697587920E+01    7.8209E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -592,7 +593,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   9.24E-08   -1.69616048507796435E+01    1.7312E-04
+   it, Delta DENS, energy, energyDiff   4   9.24E-08   -1.69616048507796329E+01    1.7312E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -618,10 +619,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.57E-08   -1.69615655556423874E+01    3.9295E-05
+   it, Delta DENS, energy, energyDiff   5   4.57E-08   -1.69615655556423803E+01    3.9295E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6681992854E+00  2.2537603606E+01 -4.3671127241E+00 -5.7266676910E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   7.37E-07   -1.69615655556423874E+01   -5.1809E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   2   7.37E-07   -1.69615655556423803E+01   -5.1809E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -631,39 +632,39 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    4.57E-08   -1.69615655556423874E+01
+     FINAL values: it, Delta DENS, energy   2    4.57E-08   -1.69615655556423803E+01
    > energy difference to last iteration: -5.180888E-02
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.58354138654E+01  1.50056693632E+00 -9.19319799591E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.58354138654E+01  1.50056693632E+00 -9.19319799594E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  2.8254018E-02  3.5909813E-02    -0.0459659900  -4.5966E-02  -1.6269E+00
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.8254018E-02  3.5909813E-02    -0.0459659900  -4.5966E-02   3.3905E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43720867064E+01 -2.59935876090E+01  1.52687871961E+00 -9.46221830603E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43720867064E+01 -2.59935876090E+01  1.52687871961E+00 -9.46221830606E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  1.7036423E-02  2.1489918E-02    -0.0473110915  -1.3451E-03  -7.8954E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7036423E-02  2.1489918E-02    -0.0473110915  -1.3451E-03   2.0444E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44543017417E+01 -2.60733619123E+01  1.52347937256E+00 -9.55807980054E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44543017417E+01 -2.60733619123E+01  1.52347937256E+00 -9.55807980066E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  9.6062509E-03  1.1255224E-02    -0.0477903990  -4.7931E-04  -4.9895E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  9.6062509E-03  1.1255224E-02    -0.0477903990  -4.7931E-04   1.1528E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44824275839E+01 -2.61018705685E+01  1.52367580359E+00 -9.57671809965E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44824275839E+01 -2.61018705685E+01  1.52367580359E+00 -9.57671809967E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  5.4081042E-03  7.8055570E-03    -0.0478835905  -9.3191E-05  -1.7232E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  5.4081042E-03  7.8055570E-03    -0.0478835905  -9.3191E-05   6.4897E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.61002519664E+01  1.52266434636E+00 -9.59475246573E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.61002519664E+01  1.52266434636E+00 -9.59475246574E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  3.6646837E-03  4.7499053E-03    -0.0479737623  -9.0172E-05  -2.4606E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.6646837E-03  4.7499053E-03    -0.0479737623  -9.0172E-05   4.3976E-07
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   3.6646837E-03  4.7499053E-03  -0.0479738
  ============================= Basis functions created. =============================
@@ -691,7 +692,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.07E-07   -1.69504165205419675E+01    1.1149E-02
+   it, Delta DENS, energy, energyDiff   1   3.07E-07   -1.69504165205418431E+01    1.1149E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -717,7 +718,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.51E-07   -1.69497597861939866E+01    6.5673E-04
+   it, Delta DENS, energy, energyDiff   2   1.51E-07   -1.69497597861938054E+01    6.5673E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -743,7 +744,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.11E-08   -1.69496497406973106E+01    1.1005E-04
+   it, Delta DENS, energy, energyDiff   3   7.11E-08   -1.69496497406971862E+01    1.1005E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -769,7 +770,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.49E-08   -1.69496261059402791E+01    2.3635E-05
+   it, Delta DENS, energy, energyDiff   4   3.49E-08   -1.69496261059401263E+01    2.3635E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -795,10 +796,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.72E-08   -1.69496208722684329E+01    5.2337E-06
+   it, Delta DENS, energy, energyDiff   5   1.72E-08   -1.69496208722683406E+01    5.2337E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6146675692E+00  2.2583306191E+01 -4.3801147187E+00 -5.7438835623E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   3   2.81E-07   -1.69496208722684329E+01    1.1945E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   3   2.81E-07   -1.69496208722683406E+01    1.1945E-02
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -808,39 +809,39 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    1.72E-08   -1.69496208722684329E+01
+     FINAL values: it, Delta DENS, energy   3    1.72E-08   -1.69496208722683406E+01
    > energy difference to last iteration:  1.194468E-02
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.60545620544E+01  1.52266434636E+00 -5.02576126615E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.60545620544E+01  1.52266434636E+00 -5.02576126588E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  1.0541540E-02  1.3414105E-02    -0.0251288063  -2.5129E-02  -2.3838E+00
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.0541540E-02  1.3414105E-02    -0.0251288063  -2.5129E-02   1.2650E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44272299797E+01 -2.59901811362E+01  1.51229819972E+00 -5.06529567400E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44272299797E+01 -2.59901811362E+01  1.51229819972E+00 -5.06529567377E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  6.0703847E-03  7.7753179E-03    -0.0253264784  -1.9767E-04  -3.2563E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  6.0703847E-03  7.7753179E-03    -0.0253264784  -1.9767E-04   7.2845E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923867295E+01 -2.59561961977E+01  1.51302910290E+00 -5.07803653019E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923867295E+01 -2.59561961977E+01  1.51302910290E+00 -5.07803653011E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  3.1101073E-03  3.7185676E-03    -0.0253901826  -6.3704E-05  -2.0483E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  3.1101073E-03  3.7185676E-03    -0.0253901826  -6.3704E-05   3.7321E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43746361789E+01 -2.59375790943E+01  1.51211689978E+00 -5.08260155780E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43746361789E+01 -2.59375790943E+01  1.51211689977E+00 -5.08260155767E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  2.1008003E-03  2.7475635E-03    -0.0254130078  -2.2825E-05  -1.0865E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1008003E-03  2.7475635E-03    -0.0254130078  -2.2825E-05   2.5210E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59288844977E+01  1.51145086971E+00 -5.08511015360E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59288844977E+01  1.51145086972E+00 -5.08511015328E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  1.3596131E-03  1.9867021E-03    -0.0254255508  -1.2543E-05  -9.2254E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.3596131E-03  1.9867021E-03    -0.0254255508  -1.2543E-05   1.6315E-07
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3596131E-03  1.9867021E-03  -0.0254256
  ============================= Basis functions created. =============================
@@ -859,7 +860,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999992993202E+00
+   Calculation finished. TOTAL CHARGE =   7.999992993201E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -868,7 +869,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.22E-07   -1.69558044208416376E+01   -6.1835E-03
+   it, Delta DENS, energy, energyDiff   1   1.22E-07   -1.69558044208415630E+01   -6.1835E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -894,7 +895,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.82E-08   -1.69556998846424598E+01    1.0454E-04
+   it, Delta DENS, energy, energyDiff   2   5.82E-08   -1.69556998846424847E+01    1.0454E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -920,7 +921,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.77E-08   -1.69556819924421021E+01    1.7892E-05
+   it, Delta DENS, energy, energyDiff   3   2.77E-08   -1.69556819924419884E+01    1.7892E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -946,7 +947,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.36E-08   -1.69556781256991798E+01    3.8667E-06
+   it, Delta DENS, energy, energyDiff   4   1.36E-08   -1.69556781256991442E+01    3.8667E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -972,10 +973,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.69E-09   -1.69556772650182523E+01    8.6068E-07
+   it, Delta DENS, energy, energyDiff   5   6.69E-09   -1.69556772650181813E+01    8.6068E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6336688034E+00  2.2568853350E+01 -4.3756280180E+00 -5.7379382873E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   4   1.10E-07   -1.69556772650182523E+01   -6.0564E-03
+   itoutL, Delta DENSOUT, energy, energyDiff   4   1.10E-07   -1.69556772650181813E+01   -6.0564E-03
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -985,39 +986,39 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    6.69E-09   -1.69556772650182523E+01
+     FINAL values: it, Delta DENS, energy   4    6.69E-09   -1.69556772650181813E+01
    > energy difference to last iteration: -6.056393E-03
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59416829664E+01  1.51145086971E+00 -6.36495702866E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59416829664E+01  1.51145086972E+00 -6.36495702855E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  4.1382146E-03  5.2253420E-03    -0.0318247851  -3.1825E-02  -7.6905E+00
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1382146E-03  5.2253420E-03    -0.0318247851  -3.1825E-02   4.9659E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43880110767E+01 -2.59671855635E+01  1.51546684409E+00 -6.37076427432E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43880110767E+01 -2.59671855635E+01  1.51546684409E+00 -6.37076427481E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  2.4147094E-03  3.0154768E-03    -0.0318538214  -2.9036E-05  -1.2025E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  2.4147094E-03  3.0154768E-03    -0.0318538214  -2.9036E-05   2.8977E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44015016344E+01 -2.59802376729E+01  1.51501110880E+00 -6.37249297285E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44015016344E+01 -2.59802376729E+01  1.51501110880E+00 -6.37249297279E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  1.2031541E-03  1.4541837E-03    -0.0318624649  -8.6435E-06  -7.1840E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  1.2031541E-03  1.4541837E-03    -0.0318624649  -8.6435E-06   1.4438E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44054145370E+01 -2.59842255436E+01  1.51508345206E+00 -6.37275544978E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44054145370E+01 -2.59842255436E+01  1.51508345206E+00 -6.37275544996E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  6.1108921E-04  8.9282727E-04    -0.0318637772  -1.3124E-06  -2.1476E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  6.1108921E-04  8.9282727E-04    -0.0318637772  -1.3124E-06   7.3331E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59849496438E+01  1.51501684234E+00 -6.37290132243E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59849496438E+01  1.51501684234E+00 -6.37290132296E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  3.3769935E-04  4.9805227E-04    -0.0318645066  -7.2936E-07  -2.1598E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3769935E-04  4.9805227E-04    -0.0318645066  -7.2936E-07   4.0524E-08
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   3.3769935E-04  4.9805227E-04  -0.0318645
  ============================= Basis functions created. =============================
@@ -1045,7 +1046,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.70E-08   -1.69536399343105089E+01    2.0373E-03
+   it, Delta DENS, energy, energyDiff   1   4.70E-08   -1.69536399343102566E+01    2.0373E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1071,7 +1072,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.29E-08   -1.69536245856438939E+01    1.5349E-05
+   it, Delta DENS, energy, energyDiff   2   2.29E-08   -1.69536245856437660E+01    1.5349E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1097,7 +1098,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.08E-08   -1.69536220410351319E+01    2.5446E-06
+   it, Delta DENS, energy, energyDiff   3   1.08E-08   -1.69536220410349898E+01    2.5446E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1123,7 +1124,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   5.30E-09   -1.69536214944959802E+01    5.4654E-07
+   it, Delta DENS, energy, energyDiff   4   5.30E-09   -1.69536214944958417E+01    5.4654E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1149,10 +1150,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.60E-09   -1.69536213733854915E+01    1.2111E-07
+   it, Delta DENS, energy, energyDiff   5   2.60E-09   -1.69536213733852783E+01    1.2111E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6247142540E+00  2.2576397180E+01 -4.3777359089E+00 -5.7407290180E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   5   4.28E-08   -1.69536213733854915E+01    2.0559E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6247142541E+00  2.2576397180E+01 -4.3777359089E+00 -5.7407290180E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   5   4.28E-08   -1.69536213733852783E+01    2.0559E-03
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1162,41 +1163,41 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    2.60E-09   -1.69536213733854915E+01
+     FINAL values: it, Delta DENS, energy   5    2.60E-09   -1.69536213733852783E+01
    > energy difference to last iteration:  2.055892E-03
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59772531326E+01  1.51501684234E+00 -5.60325020203E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59772531326E+01  1.51501684234E+00 -5.60325020316E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  1.4827053E-03  1.9107488E-03    -0.0280162510  -2.8016E-02  -1.8895E+01
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.4827053E-03  1.9107488E-03    -0.0280162510  -2.8016E-02   1.7792E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43974569773E+01 -2.59669080511E+01  1.51341049882E+00 -5.60405750428E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43974569773E+01 -2.59669080512E+01  1.51341049882E+00 -5.60405750476E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  8.5002727E-04  1.1092977E-03    -0.0280202875  -4.0365E-06  -4.7487E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  8.5002727E-04  1.1092977E-03    -0.0280202875  -4.0365E-06   1.0200E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43920507353E+01 -2.59616061194E+01  1.51351242563E+00 -5.60429585298E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43920507354E+01 -2.59616061195E+01  1.51351242565E+00 -5.60429584904E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  4.1691659E-04  5.2364055E-04    -0.0280214793  -1.1917E-06  -2.8585E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  4.1691659E-04  5.2364055E-04    -0.0280214792  -1.1917E-06   5.0030E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43896987131E+01 -2.59591187317E+01  1.51337639746E+00 -5.60436210708E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43896987131E+01 -2.59591187316E+01  1.51337639748E+00 -5.60436210755E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  2.8365485E-04  4.0414360E-04    -0.0280218105  -3.3127E-07  -1.1679E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.8365484E-04  4.0414359E-04    -0.0280218105  -3.3129E-07   3.4039E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710759E+01 -2.59581462976E+01  1.51333132929E+00 -5.60438924404E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710758E+01 -2.59581462975E+01  1.51333132928E+00 -5.60438924360E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  1.6217062E-04  2.3811349E-04    -0.0280219462  -1.3568E-07  -8.3668E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.6217060E-04  2.3811341E-04    -0.0280219462  -1.3568E-07   1.9460E-08
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.6217062E-04  2.3811349E-04  -0.0280219
+ Final values for fnrm, fnrmMax, trace:   1.6217060E-04  2.3811341E-04  -0.0280219
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1222,7 +1223,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.80E-08   -1.69545159319314287E+01   -8.9456E-04
+   it, Delta DENS, energy, energyDiff   1   1.80E-08   -1.69545159319275598E+01   -8.9456E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1248,7 +1249,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.60E-09   -1.69545136927305258E+01    2.2392E-06
+   it, Delta DENS, energy, energyDiff   2   8.60E-09   -1.69545136927266213E+01    2.2392E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1274,7 +1275,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.07E-09   -1.69545133224548010E+01    3.7028E-07
+   it, Delta DENS, energy, energyDiff   3   4.07E-09   -1.69545133224509961E+01    3.7028E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1300,7 +1301,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.00E-09   -1.69545132422905489E+01    8.0164E-08
+   it, Delta DENS, energy, energyDiff   4   2.00E-09   -1.69545132422867759E+01    8.0164E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1326,10 +1327,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.86E-10   -1.69545132243798591E+01    1.7911E-08
+   it, Delta DENS, energy, energyDiff   5   9.86E-10   -1.69545132243760293E+01    1.7911E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6280335804E+00  2.2573688092E+01 -4.3769603465E+00 -5.7397019131E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   6   1.62E-08   -1.69545132243798591E+01   -8.9185E-04
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6280335804E+00  2.2573688092E+01 -4.3769603465E+00 -5.7397019130E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   6   1.62E-08   -1.69545132243760293E+01   -8.9185E-04
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
@@ -1339,41 +1340,41 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    9.86E-10   -1.69545132243798591E+01
+     FINAL values: it, Delta DENS, energy   6    9.86E-10   -1.69545132243760293E+01
    > energy difference to last iteration: -8.918510E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710759E+01 -2.59608553523E+01  1.51333132929E+00 -5.87529471348E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710758E+01 -2.59608553523E+01  1.51333132928E+00 -5.87529472071E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  5.8018747E-04  7.3319752E-04    -0.0293764736  -2.9376E-02  -5.0633E+01
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  5.8018746E-04  7.3319751E-04    -0.0293764736  -2.9376E-02   6.9622E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43921681564E+01 -2.59648632730E+01  1.51394099497E+00 -5.87541216398E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43921681564E+01 -2.59648632730E+01  1.51394099495E+00 -5.87541217246E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  3.4089420E-04  4.2815527E-04    -0.0293770608  -5.8725E-07  -1.7227E-03
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  3.4089419E-04  4.2815526E-04    -0.0293770609  -5.8726E-07   4.0907E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43942056363E+01 -2.59668358229E+01  1.51387573562E+00 -5.87544509744E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43942056362E+01 -2.59668358229E+01  1.51387573561E+00 -5.87544510534E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  1.7129403E-04  2.1421616E-04    -0.0293772255  -1.6467E-07  -9.6131E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  1.7129401E-04  2.1421616E-04    -0.0293772255  -1.6466E-07   2.0555E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43948094078E+01 -2.59674580303E+01  1.51389412436E+00 -5.87544981782E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43948094078E+01 -2.59674580303E+01  1.51389412435E+00 -5.87544982333E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  7.7768374E-05  1.0481201E-04    -0.0293772491  -2.3602E-08  -3.0349E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  7.7768367E-05  1.0481198E-04    -0.0293772491  -2.3590E-08   9.3322E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59675993950E+01  1.51388487853E+00 -5.87545214504E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59675993950E+01  1.51388487851E+00 -5.87545214785E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  4.2035223E-05  5.6822552E-05    -0.0293772607  -1.1636E-08  -2.7683E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  4.2035207E-05  5.6822511E-05    -0.0293772607  -1.1623E-08   5.0442E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   4.2035223E-05  5.6822552E-05  -0.0293773
+ Final values for fnrm, fnrmMax, trace:   4.2035207E-05  5.6822511E-05  -0.0293773
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1399,7 +1400,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.83E-09   -1.69541952663550752E+01    3.1796E-04
+   it, Delta DENS, energy, energyDiff   1   6.83E-09   -1.69541952663598394E+01    3.1796E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1425,7 +1426,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.31E-09   -1.69541949536539285E+01    3.1270E-07
+   it, Delta DENS, energy, energyDiff   2   3.31E-09   -1.69541949536587246E+01    3.1270E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1451,7 +1452,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.56E-09   -1.69541949026550824E+01    5.0999E-08
+   it, Delta DENS, energy, energyDiff   3   1.56E-09   -1.69541949026599674E+01    5.0999E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1477,7 +1478,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   7.69E-10   -1.69541948916142147E+01    1.1041E-08
+   it, Delta DENS, energy, energyDiff   4   7.69E-10   -1.69541948916189824E+01    1.1041E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1503,10 +1504,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   3.78E-10   -1.69541948891452705E+01    2.4689E-09
+   it, Delta DENS, energy, energyDiff   5   3.78E-10   -1.69541948891501733E+01    2.4688E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6266260240E+00  2.2574893131E+01 -4.3772892613E+00 -5.7401373238E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   7   6.19E-09   -1.69541948891452705E+01    3.1834E-04
+   itoutL, Delta DENSOUT, energy, energyDiff   7   6.19E-09   -1.69541948891501733E+01    3.1834E-04
  ############################################################################################
  at iteration 7 of the outer loop:
    > basis functions optimization:
@@ -1516,41 +1517,41 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   7    3.78E-10   -1.69541948891452705E+01
+     FINAL values: it, Delta DENS, energy   7    3.78E-10   -1.69541948891501733E+01
    > energy difference to last iteration:  3.183352E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59663208507E+01  1.51388487853E+00 -5.74759771907E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59663208506E+01  1.51388487851E+00 -5.74759771378E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  2.0871730E-04  2.6981350E-04    -0.0287379886  -2.8738E-02  -1.3769E+02
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.0871729E-04  2.6981349E-04    -0.0287379886  -2.8738E-02   2.5046E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43936185253E+01 -2.59647376015E+01  1.51364293819E+00 -5.74761379856E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43936185253E+01 -2.59647376015E+01  1.51364293819E+00 -5.74761379660E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  1.1929527E-04  1.5656935E-04    -0.0287380690  -8.0397E-08  -6.7393E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.1929526E-04  1.5656932E-04    -0.0287380690  -8.0414E-08   1.4315E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43927863586E+01 -2.59639203357E+01  1.51365779301E+00 -5.74761840743E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43927863587E+01 -2.59639203357E+01  1.51365779302E+00 -5.74761840145E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  5.7905746E-05  7.5812455E-05    -0.0287380920  -2.3045E-08  -3.9797E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  5.7905747E-05  7.5812467E-05    -0.0287380920  -2.3024E-08   6.9487E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43924601321E+01 -2.59635747492E+01  1.51363842138E+00 -5.74761957228E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43924601314E+01 -2.59635747490E+01  1.51363842167E+00 -5.74761959346E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  3.8241469E-05  5.2949544E-05    -0.0287380979  -5.8245E-09  -1.5231E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  3.8241457E-05  5.2949561E-05    -0.0287380980  -5.9603E-09   4.5890E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227016E+01 -2.59634326979E+01  1.51363379604E+00 -5.74762002979E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227017E+01 -2.59634326982E+01  1.51363379610E+00 -5.74762003484E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  2.3337827E-05  3.7480565E-05    -0.0287381001  -2.2887E-09  -9.8069E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  2.3337813E-05  3.7479811E-05    -0.0287381002  -2.2081E-09   2.8005E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   2.3337827E-05  3.7480565E-05  -0.0287381
+ Final values for fnrm, fnrmMax, trace:   2.3337813E-05  3.7479811E-05  -0.0287381
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1576,7 +1577,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.61E-09   -1.69543260330412089E+01   -1.3114E-04
+   it, Delta DENS, energy, energyDiff   1   2.61E-09   -1.69543260330320962E+01   -1.3114E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1602,7 +1603,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.24E-09   -1.69543259878697050E+01    4.5172E-08
+   it, Delta DENS, energy, energyDiff   2   1.24E-09   -1.69543259878606030E+01    4.5171E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1628,7 +1629,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.89E-10   -1.69543259805162521E+01    7.3535E-09
+   it, Delta DENS, energy, energyDiff   3   5.89E-10   -1.69543259805071713E+01    7.3534E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1654,7 +1655,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.90E-10   -1.69543259789104255E+01    1.6058E-09
+   it, Delta DENS, energy, energyDiff   4   2.90E-10   -1.69543259789012488E+01    1.6059E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1680,10 +1681,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.43E-10   -1.69543259785480345E+01    3.6239E-10
+   it, Delta DENS, energy, energyDiff   5   1.43E-10   -1.69543259785388614E+01    3.6239E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6271442383E+00  2.2574459301E+01 -4.3771687170E+00 -5.7399777075E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   8   2.34E-09   -1.69543259785480345E+01   -1.3109E-04
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6271442382E+00  2.2574459301E+01 -4.3771687171E+00 -5.7399777076E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   8   2.34E-09   -1.69543259785388614E+01   -1.3109E-04
  ############################################################################################
  at iteration 8 of the outer loop:
    > basis functions optimization:
@@ -1693,41 +1694,41 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   8    1.43E-10   -1.69543259785480345E+01
+     FINAL values: it, Delta DENS, energy   8    1.43E-10   -1.69543259785388614E+01
    > energy difference to last iteration: -1.310894E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227016E+01 -2.59638875396E+01  1.51363379604E+00 -5.79310419200E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227017E+01 -2.59638875397E+01  1.51363379610E+00 -5.79310418908E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  8.2492068E-05  1.0368442E-04    -0.0289655210  -2.8966E-02  -3.5113E+02
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  8.2492051E-05  1.0368438E-04    -0.0289655209  -2.8966E-02   9.8990E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928456592E+01 -2.59645011546E+01  1.51372442983E+00 -5.79310656670E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928456596E+01 -2.59645011549E+01  1.51372442985E+00 -5.79310653828E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  4.8650103E-05  6.0679232E-05    -0.0289655328  -1.1873E-08  -2.4405E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  4.8650103E-05  6.0679170E-05    -0.0289655327  -1.1745E-08   5.8380E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43931598196E+01 -2.59648056013E+01  1.51371470950E+00 -5.79310722346E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43931598189E+01 -2.59648056006E+01  1.51371470957E+00 -5.79310720983E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  2.4249599E-05  3.0429513E-05    -0.0289655361  -3.2840E-09  -1.3542E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4249559E-05  3.0429518E-05    -0.0289655360  -3.3579E-09   2.9099E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932541670E+01 -2.59649031429E+01  1.51371790275E+00 -5.79310731576E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932541665E+01 -2.59649031424E+01  1.51371790262E+00 -5.79310732024E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  1.1516093E-05  1.5520383E-05    -0.0289655366  -4.6226E-10  -4.0140E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1515867E-05  1.5520156E-05    -0.0289655366  -5.5284E-10   1.3819E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738436E+01 -2.59649215664E+01  1.51371664932E+00 -5.79310734852E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738462E+01 -2.59649215671E+01  1.51371664860E+00 -5.79310723608E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  6.0793678E-06  8.1148458E-06    -0.0289655367  -1.6436E-10  -2.7035E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  6.0794007E-06  8.1150164E-06    -0.0289655362   4.2026E-10   7.2953E-10
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   6.0793678E-06  8.1148458E-06  -0.0289655
+ Final values for fnrm, fnrmMax, trace:   6.0794007E-06  8.1150164E-06  -0.0289655
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1753,7 +1754,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.88E-10   -1.69542785840722061E+01    4.7394E-05
+   it, Delta DENS, energy, energyDiff   1   9.88E-10   -1.69542785841130907E+01    4.7394E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1770,7 +1771,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999992959643E+00
+   Calculation finished. TOTAL CHARGE =   7.999992959642E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -1779,7 +1780,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.77E-10   -1.69542785777547280E+01    6.3175E-09
+   it, Delta DENS, energy, energyDiff   2   4.77E-10   -1.69542785777955345E+01    6.3176E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1805,7 +1806,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.26E-10   -1.69542785767367938E+01    1.0179E-09
+   it, Delta DENS, energy, energyDiff   3   2.26E-10   -1.69542785767775150E+01    1.0180E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1831,7 +1832,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.11E-10   -1.69542785765141062E+01    2.2269E-10
+   it, Delta DENS, energy, energyDiff   4   1.11E-10   -1.69542785765550370E+01    2.2248E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1848,7 +1849,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999992959637E+00
+   Calculation finished. TOTAL CHARGE =   7.999992959636E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -1857,10 +1858,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   5.49E-11   -1.69542785764638921E+01    5.0214E-11
+   it, Delta DENS, energy, energyDiff   5   5.49E-11   -1.69542785765045991E+01    5.0438E-11
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6269294509E+00  2.2574645396E+01 -4.3772186418E+00 -5.7400437932E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   9   8.94E-10   -1.69542785764638921E+01    4.7402E-05
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6269294510E+00  2.2574645396E+01 -4.3772186418E+00 -5.7400437932E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   9   8.94E-10   -1.69542785765045991E+01    4.7402E-05
  ############################################################################################
  at iteration 9 of the outer loop:
    > basis functions optimization:
@@ -1870,41 +1871,41 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   9    5.49E-11   -1.69542785764638921E+01
-   > energy difference to last iteration:  4.740208E-05
+     FINAL values: it, Delta DENS, energy   9    5.49E-11   -1.69542785765045991E+01
+   > energy difference to last iteration:  4.740203E-05
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738436E+01 -2.59647184900E+01  1.51371664932E+00 -5.77279970653E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738462E+01 -2.59647184908E+01  1.51371664860E+00 -5.77279960088E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  2.9782714E-05  3.8292434E-05    -0.0288639985  -2.8864E-02  -9.6915E+02
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.9782696E-05  3.8292375E-05    -0.0288639980  -2.8864E-02   3.5739E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930685172E+01 -2.59644767821E+01  1.51368026453E+00 -5.77280003750E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930685163E+01 -2.59644767810E+01  1.51368026429E+00 -5.77280003994E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  1.7122064E-05  2.2602105E-05    -0.0288640002  -1.6544E-09  -9.6621E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7122106E-05  2.2602071E-05    -0.0288640002  -2.1948E-09   2.0547E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929431758E+01 -2.59643536373E+01  1.51368246014E+00 -5.77280014028E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929431790E+01 -2.59643536409E+01  1.51368246019E+00 -5.77280017440E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  8.4501924E-06  1.1087525E-05    -0.0288640007  -5.1423E-10  -6.0854E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  8.4502197E-06  1.1087587E-05    -0.0288640009  -6.7244E-10   1.0140E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928923607E+01 -2.59642999920E+01  1.51367963033E+00 -5.77280009360E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928923573E+01 -2.59642999892E+01  1.51367963028E+00 -5.77280015823E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  5.5031534E-06  7.8131160E-06    -0.0288640005   2.3334E-10   4.2401E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  5.5029758E-06  7.8125820E-06    -0.0288640008   8.0678E-11   6.6036E-10
  DIIS informations: history length=8, consecutive failures=1, total failures=1
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725868E+01 -2.59642795053E+01  1.51367891598E+00 -5.77280024935E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59642795058E+01  1.51367891585E+00 -5.77280028192E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  3.3908023E-06  5.6666331E-06    -0.0288640012  -7.7892E-10  -2.2972E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3898699E-06  5.6627468E-06    -0.0288640014  -6.1870E-10   4.0678E-10
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.3908023E-06  5.6666331E-06  -0.0288640
+ Final values for fnrm, fnrmMax, trace:   3.3898699E-06  5.6627468E-06  -0.0288640
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1930,7 +1931,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.79E-10   -1.69542979270927248E+01   -1.9351E-05
+   it, Delta DENS, energy, energyDiff   1   3.79E-10   -1.69542979269589118E+01   -1.9350E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1956,7 +1957,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.80E-10   -1.69542979261735773E+01    9.1915E-10
+   it, Delta DENS, energy, energyDiff   2   1.80E-10   -1.69542979260398106E+01    9.1910E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1973,7 +1974,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999992959848E+00
+   Calculation finished. TOTAL CHARGE =   7.999992959849E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -1982,7 +1983,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.56E-11   -1.69542979260257418E+01    1.4784E-10
+   it, Delta DENS, energy, energyDiff   3   8.56E-11   -1.69542979258920354E+01    1.4778E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1999,7 +2000,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999992959848E+00
+   Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2008,7 +2009,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.22E-11   -1.69542979259932949E+01    3.2447E-11
+   it, Delta DENS, energy, energyDiff   4   4.22E-11   -1.69542979258594038E+01    3.2632E-11
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2034,10 +2035,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.08E-11   -1.69542979259856388E+01    7.6561E-12
+   it, Delta DENS, energy, energyDiff   5   2.08E-11   -1.69542979258519715E+01    7.4323E-12
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6270087987E+00  2.2574577995E+01 -4.3772002804E+00 -5.7400194820E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   10   3.40E-10   -1.69542979259856388E+01   -1.9350E-05
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6270087994E+00  2.2574577994E+01 -4.3772002802E+00 -5.7400194818E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   10   3.40E-10   -1.69542979258519715E+01   -1.9349E-05
  #############################################################################################
  at iteration 10 of the outer loop:
    > basis functions optimization:
@@ -2047,45 +2048,45 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   10    2.08E-11   -1.69542979259856388E+01
-   > energy difference to last iteration: -1.934952E-05
+     FINAL values: it, Delta DENS, energy   10    2.08E-11   -1.69542979258519715E+01
+   > energy difference to last iteration: -1.934935E-05
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725868E+01 -2.59643523293E+01  1.51367891598E+00 -5.78008265269E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59643523313E+01  1.51367891585E+00 -5.78008282867E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     1  1.1812369E-05  1.4799007E-05    -0.0289004133  -2.8900E-02  -2.4466E+03
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.1811946E-05  1.4798311E-05    -0.0289004141  -2.8900E-02   1.4174E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929525448E+01 -2.59644458409E+01  1.51369247139E+00 -5.78008247342E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929525443E+01 -2.59644458421E+01  1.51369247068E+00 -5.78008271038E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     2  7.0026732E-06  8.7095162E-06    -0.0289004124   8.9631E-10   1.2799E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  7.0024608E-06  8.7094680E-06    -0.0289004136   5.9150E-10   8.4030E-10
  DIIS informations: history length=8, consecutive failures=1, total failures=1
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930005155E+01 -2.59644923967E+01  1.51369105616E+00 -5.78008250882E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930005196E+01 -2.59644924031E+01  1.51369105651E+00 -5.78008269599E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     3  3.6258137E-06  4.5201768E-06    -0.0289004125  -1.7679E-10  -4.8759E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  3.6255392E-06  4.5199568E-06    -0.0289004135   7.2153E-11   4.3506E-10
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  Recover the orbitals from iteration 1 which are the best so far.
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725868E+01 -2.59643523293E+01  1.51367891598E+00 -5.78008265269E-02
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59643523313E+01  1.51367891585E+00 -5.78008282867E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     4  1.1812369E-05  1.4799007E-05    -0.0289004133  -7.1952E-10  -6.0912E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1811946E-05  1.4798311E-05    -0.0289004141  -6.6366E-10   1.4174E-09
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720700E+01 -2.59643523026E+01  1.51367894605E+00 -5.78012865784E-02
- Orthoconstraint...  trH, trHold -2.890064328861497E-002 -2.890041326285625E-002
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720644E+01 -2.59643521882E+01  1.51367900896E+00 -5.78011148463E-02
+ Orthoconstraint...  trH, trHold -2.890055742260089E-002 -2.890041414278793E-002
 Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, diff/fnrm     5  1.1803215E-05  1.4787235E-05    -0.0289006433  -2.3003E-07  -1.9488E-02
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.1802783E-05  1.4797210E-05    -0.0289005574  -1.4328E-07   1.4163E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.1803215E-05  1.4787235E-05  -0.0289006
+ Final values for fnrm, fnrmMax, trace:   1.1802783E-05  1.4797210E-05  -0.0289006
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2111,7 +2112,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.03E-11   -1.69542979254634005E+01    5.2224E-10
+   it, Delta DENS, energy, energyDiff   1   1.03E-11   -1.69542979253299535E+01    5.2202E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2137,7 +2138,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.13E-12   -1.69542979254628357E+01    5.6488E-13
+   it, Delta DENS, energy, energyDiff   2   5.13E-12   -1.69542979253293673E+01    5.8620E-13
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2163,7 +2164,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.56E-12   -1.69542979254629209E+01   -8.5265E-14
+   it, Delta DENS, energy, energyDiff   3   2.56E-12   -1.69542979253291612E+01    2.0606E-13
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2189,7 +2190,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.28E-12   -1.69542979254628996E+01    2.1316E-14
+   it, Delta DENS, energy, energyDiff   4   1.28E-12   -1.69542979253291328E+01    2.8422E-14
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2215,43 +2216,43 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.37E-13   -1.69542979254630168E+01   -1.1724E-13
+   it, Delta DENS, energy, energyDiff   5   6.37E-13   -1.69542979253292856E+01   -1.5277E-13
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6270094085E+00  2.2574577559E+01 -4.3771999371E+00 -5.7400190270E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   11   9.95E-12   -1.69542979254630168E+01    5.2262E-10
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6270094093E+00  2.2574577558E+01 -4.3771999369E+00 -5.7400190268E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   11   9.95E-12   -1.69542979253292856E+01    5.2269E-10
  #############################################################################################
  at iteration 11 of the outer loop:
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.890064E-02    1.18E-05
+     Final values: target function, fnrm  -2.890056E-02    1.18E-05
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   11    6.37E-13   -1.69542979254630168E+01
-   > energy difference to last iteration:  5.226219E-10
+     FINAL values: it, Delta DENS, energy   11    6.37E-13   -1.69542979253292856E+01
+   > energy difference to last iteration:  5.226859E-10
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720700E+01 -2.71144394879E+01  1.51367894605E+00 -1.20788847181E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720644E+01 -2.71144394148E+01  1.51367900896E+00 -1.20788834152E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  1.3275135E-01  1.6255838E-01    -1.3135045988  -1.2846E+00  -9.6768E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.3275135E-01  1.6255838E-01    -1.3135046805  -1.2846E+00   1.5930E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.28537951314E+01 -2.56550107631E+01  1.39003146493E+00 -1.41118416685E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.28537951932E+01 -2.56550107901E+01  1.39003144882E+00 -1.41118414808E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  5.9967802E-02  8.7168940E-02    -1.4153217775  -1.0182E-01  -1.6979E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  5.9967802E-02  8.7168925E-02    -1.4153217790  -1.0182E-01   7.1961E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795168453E+01 -2.43149611335E+01  1.36985835731E+00 -1.46558593094E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795168499E+01 -2.43149611507E+01  1.36985837117E+00 -1.46558592957E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  3.2354618E-02  4.9442428E-02    -1.4442157277  -2.8894E-02  -8.9304E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  3.2354619E-02  4.9442412E-02    -1.4442157231  -2.8894E-02   3.8826E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   3.2354618E-02  4.9442428E-02  -1.4442157
+ Final values for fnrm, fnrmMax, ebs:   3.2354619E-02  4.9442412E-02  -1.4442157
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2277,7 +2278,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.86E-06   -1.72160980964641652E+01   -2.6180E-01
+   it, Delta DENS, energy, energyDiff   1   2.86E-06   -1.72160980959321819E+01   -2.6180E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2303,7 +2304,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.29E-06   -1.71370776997057241E+01    7.9020E-02
+   it, Delta DENS, energy, energyDiff   2   1.29E-06   -1.71370777023032304E+01    7.9020E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2320,7 +2321,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993734517E+00
+   Calculation finished. TOTAL CHARGE =   7.999993734518E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2329,7 +2330,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   6.56E-07   -1.71288075817052814E+01    8.2701E-03
+   it, Delta DENS, energy, energyDiff   3   6.56E-07   -1.71288075842931988E+01    8.2701E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2355,7 +2356,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.30E-07   -1.71267745255860291E+01    2.0331E-03
+   it, Delta DENS, energy, energyDiff   4   3.30E-07   -1.71267745281659458E+01    2.0331E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2381,7 +2382,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.66E-07   -1.71262783181173468E+01    4.9621E-04
+   it, Delta DENS, energy, energyDiff   5   1.66E-07   -1.71262783206942579E+01    4.9621E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2407,7 +2408,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   8.31E-08   -1.71261564358106497E+01    1.2188E-04
+   it, Delta DENS, energy, energyDiff   6   8.31E-08   -1.71261564383865448E+01    1.2188E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2433,10 +2434,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   4.16E-08   -1.71261263009831097E+01    3.0135E-05
+   it, Delta DENS, energy, energyDiff   7   4.16E-08   -1.71261263035587916E+01    3.0135E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.5593635598E+00  2.0683467873E+01 -3.9877102643E+00 -5.2262039172E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   12   2.41E-06   -1.71261263009831097E+01   -1.7183E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.5593635201E+00  2.0683467918E+01 -3.9877102723E+00 -5.2262039277E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   12   2.41E-06   -1.71261263035587916E+01   -1.7183E-01
  #############################################################################################
  at iteration 12 of the outer loop:
    > basis functions optimization:
@@ -2446,29 +2447,29 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   12    4.16E-08   -1.71261263009831097E+01
+     FINAL values: it, Delta DENS, energy   12    4.16E-08   -1.71261263035587916E+01
    > energy difference to last iteration: -1.718284E-01
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795168453E+01 -2.66522096895E+01  1.36985835731E+00 -3.80283448686E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795168499E+01 -2.66522096472E+01  1.36985837117E+00 -3.80283442609E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  7.4862730E-02  9.2957109E-02    -2.2828072688  -8.6749E-01  -1.1588E+01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  7.4862729E-02  9.2957110E-02    -2.2828072489  -8.6749E-01   8.9835E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24573597553E+01 -2.78066367795E+01  1.50320477950E+00 -3.84607224467E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24573596394E+01 -2.78066366145E+01  1.50320479171E+00 -3.84607218340E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  3.8974588E-02  5.1035946E-02    -2.3040250899  -2.1218E-02  -5.4440E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  3.8974585E-02  5.1035916E-02    -2.3040250692  -2.1218E-02   4.6770E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142518084E+01 -2.83762306150E+01  1.50673791489E+00 -3.85524089174E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142518057E+01 -2.83762305634E+01  1.50673792676E+00 -3.85524083093E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  1.9073617E-02  2.7275081E-02    -2.3076940149  -3.6689E-03  -1.9236E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.9073617E-02  2.7275089E-02    -2.3076940008  -3.6689E-03   2.2888E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.9073617E-02  2.7275081E-02  -2.3076940
+ Final values for fnrm, fnrmMax, ebs:   1.9073617E-02  2.7275089E-02  -2.3076940
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2494,7 +2495,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.62E-06   -1.71760344348372627E+01   -4.9908E-02
+   it, Delta DENS, energy, energyDiff   1   1.62E-06   -1.71760344334815684E+01   -4.9908E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2520,7 +2521,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   7.12E-07   -1.71491340615304537E+01    2.6900E-02
+   it, Delta DENS, energy, energyDiff   2   7.12E-07   -1.71491340608172393E+01    2.6900E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2546,7 +2547,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.62E-07   -1.71463688367290885E+01    2.7652E-03
+   it, Delta DENS, energy, energyDiff   3   3.62E-07   -1.71463688359280724E+01    2.7652E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2572,7 +2573,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.81E-07   -1.71456751535997469E+01    6.9368E-04
+   it, Delta DENS, energy, energyDiff   4   1.81E-07   -1.71456751527810383E+01    6.9368E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2598,7 +2599,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.03E-08   -1.71455015463709799E+01    1.7361E-04
+   it, Delta DENS, energy, energyDiff   5   9.03E-08   -1.71455015455483881E+01    1.7361E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2615,7 +2616,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993342590E+00
+   Calculation finished. TOTAL CHARGE =   7.999993342589E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2624,7 +2625,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   4.52E-08   -1.71454581745434744E+01    4.3372E-05
+   it, Delta DENS, energy, energyDiff   6   4.52E-08   -1.71454581737199376E+01    4.3372E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2650,10 +2651,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   2.26E-08   -1.71454473436802104E+01    1.0831E-05
+   it, Delta DENS, energy, energyDiff   7   2.26E-08   -1.71454473428564249E+01    1.0831E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6861507986E+00  2.1648159199E+01 -4.1815306584E+00 -5.4820599069E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   13   1.37E-06   -1.71454473436802104E+01   -1.9321E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6861507821E+00  2.1648159216E+01 -4.1815306617E+00 -5.4820599113E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   13   1.37E-06   -1.71454473428564249E+01   -1.9321E-02
  #############################################################################################
  at iteration 13 of the outer loop:
    > basis functions optimization:
@@ -2663,29 +2664,29 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   13    2.26E-08   -1.71454473436802104E+01
+     FINAL values: it, Delta DENS, energy   13    2.26E-08   -1.71454473428564249E+01
    > energy difference to last iteration: -1.932104E-02
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142518084E+01 -2.70935794729E+01  1.50673791489E+00 -2.57258974958E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142518057E+01 -2.70935794591E+01  1.50673792676E+00 -2.57258972664E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  4.1613828E-02  5.1145536E-02    -1.8411423306   4.6288E-01   1.1123E+01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  4.1613830E-02  5.1145537E-02    -1.8411423224   4.6288E-01   4.9937E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.25557521560E+01 -2.66094876654E+01  1.46988432223E+00 -2.58385118721E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.25557521007E+01 -2.66094875987E+01  1.46988433022E+00 -2.58385116771E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  2.2622194E-02  2.8367879E-02    -1.8470308039  -5.8885E-03  -2.6030E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.2622193E-02  2.8367881E-02    -1.8470311402  -5.8888E-03   2.7147E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23115060489E+01 -2.63516998043E+01  1.45293595720E+00 -2.58725779815E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23115054674E+01 -2.63516991808E+01  1.45293593416E+00 -2.58725777917E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  1.4944300E-02  1.9639417E-02    -1.8487307285  -1.6999E-03  -1.1375E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.4944288E-02  1.9639383E-02    -1.8487307199  -1.6996E-03   1.7933E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.4944300E-02  1.9639417E-02  -1.8487307
+ Final values for fnrm, fnrmMax, ebs:   1.4944288E-02  1.9639383E-02  -1.8487307
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2711,7 +2712,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   7.07E-07   -1.71606302731728313E+01   -1.5183E-02
+   it, Delta DENS, energy, energyDiff   1   7.07E-07   -1.71606302796361092E+01   -1.5183E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2737,7 +2738,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.17E-07   -1.71556876676399845E+01    4.9426E-03
+   it, Delta DENS, energy, energyDiff   2   3.17E-07   -1.71556876662310636E+01    4.9426E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2746,7 +2747,7 @@ done.
  some selected eigenvalues:
    eval(1)= -9.22975E-01
    eval(2)= -4.82779E-01
-   eval(3)= -3.44704E-01
+   eval(3)= -3.44705E-01
    eval(4)= -2.70776E-01  <-- last occupied orbital
    eval(5)=  2.28178E-01  <-- first virtual orbital
    eval(6)=  2.62127E-01
@@ -2763,7 +2764,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.60E-07   -1.71551499712891307E+01    5.3770E-04
+   it, Delta DENS, energy, energyDiff   3   1.60E-07   -1.71551499690460787E+01    5.3770E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2789,7 +2790,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   8.01E-08   -1.71550164058715851E+01    1.3357E-04
+   it, Delta DENS, energy, energyDiff   4   8.01E-08   -1.71550164034224295E+01    1.3357E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2815,7 +2816,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.01E-08   -1.71549831519889331E+01    3.3254E-05
+   it, Delta DENS, energy, energyDiff   5   4.01E-08   -1.71549831494885510E+01    3.3254E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2832,7 +2833,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993526873E+00
+   Calculation finished. TOTAL CHARGE =   7.999993526874E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2841,7 +2842,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   2.01E-08   -1.71549748648393852E+01    8.2871E-06
+   it, Delta DENS, energy, energyDiff   6   2.01E-08   -1.71549748623263199E+01    8.2872E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2867,10 +2868,10 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.01E-08   -1.71549727983443887E+01    2.0665E-06
+   it, Delta DENS, energy, energyDiff   7   1.01E-08   -1.71549727958278453E+01    2.0665E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0916414911E+00  2.1218990559E+01 -4.0948545114E+00 -5.3676605434E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   14   6.04E-07   -1.71549727983443887E+01   -9.5255E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0916417914E+00  2.1218990234E+01 -4.0948544470E+00 -5.3676604584E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   14   6.04E-07   -1.71549727958278453E+01   -9.5255E-03
  #############################################################################################
  at iteration 14 of the outer loop:
    > basis functions optimization:
@@ -2880,29 +2881,29 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   14    1.01E-08   -1.71549727983443887E+01
-   > energy difference to last iteration: -9.525455E-03
+     FINAL values: it, Delta DENS, energy   14    1.01E-08   -1.71549727958278453E+01
+   > energy difference to last iteration: -9.525453E-03
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23115060489E+01 -2.69040066850E+01  1.45293595720E+00 -3.13956467884E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23115054674E+01 -2.69040064935E+01  1.45293593416E+00 -3.13956509187E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  9.8857705E-03  1.8393465E-02    -2.0466288608  -1.9960E-01  -2.0190E+01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  9.8857999E-03  1.8393505E-02    -2.0466290116  -1.9960E-01   1.1863E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23654957734E+01 -2.69578928857E+01  1.45229440908E+00 -3.14010270320E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23654954299E+01 -2.69578929499E+01  1.45229440309E+00 -3.14010311693E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  6.3414837E-03  1.1180965E-02    -2.0467793396  -1.5048E-04  -2.3729E-02
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  6.3415087E-03  1.1181009E-02    -2.0467798577  -1.5085E-04   7.6098E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23945297959E+01 -2.69874736443E+01  1.45286544943E+00 -3.14007839896E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23945310029E+01 -2.69874767108E+01  1.45286679208E+00 -3.14007891579E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  4.9042149E-03  7.6525633E-03    -2.0468494010  -7.0061E-05  -1.4286E-02
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  4.9042256E-03  7.6542098E-03    -2.0468495481  -6.9690E-05   5.8851E-07
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   4.9042149E-03  7.6525633E-03  -2.0468494
+ Final values for fnrm, fnrmMax, ebs:   4.9042256E-03  7.6542098E-03  -2.0468495
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2919,7 +2920,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993456540E+00
+   Calculation finished. TOTAL CHARGE =   7.999993456539E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2928,7 +2929,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.43E-08   -1.71554138963949541E+01   -4.4110E-04
+   it, Delta DENS, energy, energyDiff   1   8.43E-08   -1.71554138843341448E+01   -4.4109E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2936,7 +2937,7 @@ done.
  -------------------------------------------------
  some selected eigenvalues:
    eval(1)= -9.25756E-01
-   eval(2)= -4.86217E-01
+   eval(2)= -4.86216E-01
    eval(3)= -3.46818E-01
    eval(4)= -2.72754E-01  <-- last occupied orbital
    eval(5)=  2.23923E-01  <-- first virtual orbital
@@ -2945,7 +2946,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993470653E+00
+   Calculation finished. TOTAL CHARGE =   7.999993470652E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2954,7 +2955,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.83E-08   -1.71553568960760430E+01    5.7000E-05
+   it, Delta DENS, energy, energyDiff   2   3.83E-08   -1.71553568812803654E+01    5.7003E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2962,7 +2963,7 @@ done.
  -------------------------------------------------
  some selected eigenvalues:
    eval(1)= -9.25043E-01
-   eval(2)= -4.85520E-01
+   eval(2)= -4.85519E-01
    eval(3)= -3.46178E-01
    eval(4)= -2.72098E-01  <-- last occupied orbital
    eval(5)=  2.24584E-01  <-- first virtual orbital
@@ -2971,7 +2972,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993470996E+00
+   Calculation finished. TOTAL CHARGE =   7.999993470995E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -2980,7 +2981,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.94E-08   -1.71553516629648541E+01    5.2331E-06
+   it, Delta DENS, energy, energyDiff   3   1.94E-08   -1.71553516478570423E+01    5.2334E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2997,7 +2998,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993470995E+00
+   Calculation finished. TOTAL CHARGE =   7.999993470994E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3006,7 +3007,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   9.70E-09   -1.71553503651217056E+01    1.2978E-06
+   it, Delta DENS, energy, energyDiff   4   9.70E-09   -1.71553503499329665E+01    1.2979E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3023,7 +3024,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993470990E+00
+   Calculation finished. TOTAL CHARGE =   7.999993470989E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3032,7 +3033,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.85E-09   -1.71553500417078624E+01    3.2341E-07
+   it, Delta DENS, energy, energyDiff   5   4.85E-09   -1.71553500264984962E+01    3.2343E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3058,7 +3059,7 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   2.43E-09   -1.71553499610903302E+01    8.0618E-08
+   it, Delta DENS, energy, energyDiff   6   2.43E-09   -1.71553499458760825E+01    8.0622E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3084,42 +3085,42 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.21E-09   -1.71553499409895664E+01    2.0101E-08
+   it, Delta DENS, energy, energyDiff   7   1.21E-09   -1.71553499257740221E+01    2.0102E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0530942658E+00  2.1262453176E+01 -4.1035078102E+00 -5.3790832106E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   15   7.35E-08   -1.71553499409895664E+01   -3.7714E-04
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0530932811E+00  2.1262454230E+01 -4.1035080525E+00 -5.3790835308E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   15   7.35E-08   -1.71553499257740221E+01   -3.7713E-04
  #############################################################################################
  at iteration 15 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.046849E+00    4.90E-03
+     Final values: target function, fnrm  -2.046850E+00    4.90E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   15    1.21E-09   -1.71553499409895664E+01
-   > energy difference to last iteration: -3.771426E-04
+     FINAL values: it, Delta DENS, energy   15    1.21E-09   -1.71553499257740221E+01
+   > energy difference to last iteration: -3.771299E-04
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23945297959E+01 -2.69314567038E+01  1.45286544943E+00 -3.08406145846E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23945310029E+01 -2.69314579207E+01  1.45286679208E+00 -3.08406012569E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  2.9515582E-03  4.9377269E-03    -2.0264710626   2.0308E-02   6.8805E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.9516145E-03  4.9391933E-03    -2.0264705669   2.0309E-02   3.5419E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24047043932E+01 -2.69413073051E+01  1.45288347465E+00 -3.08371943725E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24047227029E+01 -2.69413235515E+01  1.45288266382E+00 -3.08371818479E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  2.3588578E-03  3.7319407E-03    -2.0264817737  -1.0711E-05  -4.5408E-03
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.3584123E-03  3.7303668E-03    -2.0264817856  -1.1219E-05   2.8301E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24113350802E+01 -2.69484148961E+01  1.45373519420E+00 -3.08334462168E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24113544998E+01 -2.69484313643E+01  1.45373285252E+00 -3.08334401193E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  1.9295412E-03  2.9504832E-03    -2.0264888492  -7.0755E-06  -3.6670E-03
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.9293913E-03  2.9487221E-03    -2.0264883637  -6.5781E-06   2.3153E-07
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.9295412E-03  2.9504832E-03  -2.0264888
+ Final values for fnrm, fnrmMax, ebs:   1.9293913E-03  2.9487221E-03  -2.0264884
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3136,7 +3137,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993455657E+00
+   Calculation finished. TOTAL CHARGE =   7.999993455647E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3145,24 +3146,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.10E-08   -1.71553855711816610E+01   -3.5630E-05
+   it, Delta DENS, energy, energyDiff   1   2.10E-08   -1.71553855791399883E+01   -3.5653E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.23379E-01
-   eval(2)= -4.84013E-01
-   eval(3)= -3.44652E-01
-   eval(4)= -2.70525E-01  <-- last occupied orbital
+   eval(1)= -9.23378E-01
+   eval(2)= -4.84012E-01
+   eval(3)= -3.44651E-01
+   eval(4)= -2.70524E-01  <-- last occupied orbital
    eval(5)=  2.26053E-01  <-- first virtual orbital
    eval(6)=  2.60121E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459039E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459032E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3171,16 +3172,16 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   9.70E-09   -1.71553818726319420E+01    3.6985E-06
+   it, Delta DENS, energy, energyDiff   2   9.71E-09   -1.71553818767391171E+01    3.7024E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.23168E-01
+   eval(1)= -9.23167E-01
    eval(2)= -4.83807E-01
-   eval(3)= -3.44475E-01
+   eval(3)= -3.44474E-01
    eval(4)= -2.70341E-01  <-- last occupied orbital
    eval(5)=  2.26248E-01  <-- first virtual orbital
    eval(6)=  2.60325E-01
@@ -3188,7 +3189,7 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459117E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459110E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3197,24 +3198,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.91E-09   -1.71553814642390421E+01    4.0839E-07
+   it, Delta DENS, energy, energyDiff   3   4.92E-09   -1.71553814679936920E+01    4.0875E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.23071E-01
-   eval(2)= -4.83711E-01
-   eval(3)= -3.44393E-01
-   eval(4)= -2.70258E-01  <-- last occupied orbital
+   eval(1)= -9.23070E-01
+   eval(2)= -4.83710E-01
+   eval(3)= -3.44392E-01
+   eval(4)= -2.70257E-01  <-- last occupied orbital
    eval(5)=  2.26342E-01  <-- first virtual orbital
    eval(6)=  2.60423E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459116E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459109E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3223,24 +3224,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.46E-09   -1.71553813630465619E+01    1.0119E-07
+   it, Delta DENS, energy, energyDiff   4   2.46E-09   -1.71553813667147637E+01    1.0128E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.23023E-01
-   eval(2)= -4.83663E-01
-   eval(3)= -3.44352E-01
-   eval(4)= -2.70217E-01  <-- last occupied orbital
+   eval(1)= -9.23022E-01
+   eval(2)= -4.83662E-01
+   eval(3)= -3.44351E-01
+   eval(4)= -2.70216E-01  <-- last occupied orbital
    eval(5)=  2.26389E-01  <-- first virtual orbital
    eval(6)=  2.60472E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459114E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459107E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3249,24 +3250,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.23E-09   -1.71553813378582447E+01    2.5188E-08
+   it, Delta DENS, energy, energyDiff   5   1.23E-09   -1.71553813415048353E+01    2.5210E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.22999E-01
-   eval(2)= -4.83639E-01
-   eval(3)= -3.44332E-01
-   eval(4)= -2.70196E-01  <-- last occupied orbital
-   eval(5)=  2.26412E-01  <-- first virtual orbital
+   eval(1)= -9.22998E-01
+   eval(2)= -4.83638E-01
+   eval(3)= -3.44331E-01
+   eval(4)= -2.70195E-01  <-- last occupied orbital
+   eval(5)=  2.26413E-01  <-- first virtual orbital
    eval(6)=  2.60496E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459114E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459106E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3275,24 +3276,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   6.17E-10   -1.71553813315829018E+01    6.2753E-09
+   it, Delta DENS, energy, energyDiff   6   6.17E-10   -1.71553813352240745E+01    6.2808E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.22987E-01
-   eval(2)= -4.83627E-01
-   eval(3)= -3.44322E-01
-   eval(4)= -2.70186E-01  <-- last occupied orbital
+   eval(1)= -9.22986E-01
+   eval(2)= -4.83626E-01
+   eval(3)= -3.44321E-01
+   eval(4)= -2.70185E-01  <-- last occupied orbital
    eval(5)=  2.26424E-01  <-- first virtual orbital
-   eval(6)=  2.60508E-01
+   eval(6)=  2.60509E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993459113E+00
+   Calculation finished. TOTAL CHARGE =   7.999993459106E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3301,59 +3302,59 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   3.09E-10   -1.71553813300188693E+01    1.5640E-09
+   it, Delta DENS, energy, energyDiff   7   3.09E-10   -1.71553813336590011E+01    1.5651E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0422413717E+00  2.1273971507E+01 -4.1058267339E+00 -5.3821438635E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   16   1.86E-08   -1.71553813300188693E+01   -3.1389E-05
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0422341286E+00  2.1273979257E+01 -4.1058282323E+00 -5.3821458398E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   16   1.86E-08   -1.71553813336590011E+01   -3.1408E-05
  #############################################################################################
  at iteration 16 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.026489E+00    1.93E-03
+     Final values: target function, fnrm  -2.026488E+00    1.93E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   16    3.09E-10   -1.71553813300188693E+01
-   > energy difference to last iteration: -3.138903E-05
+     FINAL values: it, Delta DENS, energy   16    3.09E-10   -1.71553813336590011E+01
+   > energy difference to last iteration: -3.140788E-05
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24113350802E+01 -2.69333798251E+01  1.45373519420E+00 -3.06830955068E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24113544998E+01 -2.69333875266E+01  1.45373285252E+00 -3.06830017421E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     1  1.4869910E-03  2.2854318E-03    -2.0210984581   5.3833E-03   3.6203E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.4867436E-03  2.2832559E-03    -2.0210948238   5.3870E-03   1.7841E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24222122476E+01 -2.69442855598E+01  1.45386846499E+00 -3.06820484720E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24222246268E+01 -2.69442866287E+01  1.45386657540E+00 -3.06819542654E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     2  1.2069865E-03  1.9028349E-03    -2.0211024289  -3.9708E-06  -3.2898E-03
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.2063619E-03  1.9031211E-03    -2.0210976223  -2.7985E-06   1.4476E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
    calculating the density kernel... 
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24352439434E+01 -2.69583652693E+01  1.45508943607E+00 -3.06803188989E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24352135367E+01 -2.69583133958E+01  1.45507834687E+00 -3.06802151220E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, diff/fnrm     3  9.7487586E-04  1.2840931E-03    -2.0211034270  -9.9810E-07  -1.0238E-03
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  9.7444760E-04  1.2827532E-03    -2.0210997871  -2.1648E-06   1.1693E-07
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   9.7487586E-04  1.2840931E-03  -2.0211034
+ Final values for fnrm, fnrmMax, ebs:   9.7444760E-04  1.2827532E-03  -2.0210998
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.22982E-01
-   eval(2)= -4.83620E-01
-   eval(3)= -3.44317E-01
-   eval(4)= -2.70184E-01  <-- last occupied orbital
-   eval(5)=  2.26532E-01  <-- first virtual orbital
-   eval(6)=  2.60555E-01
+   eval(1)= -9.22981E-01
+   eval(2)= -4.83619E-01
+   eval(3)= -3.44316E-01
+   eval(4)= -2.70183E-01  <-- last occupied orbital
+   eval(5)=  2.26533E-01  <-- first virtual orbital
+   eval(6)=  2.60556E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993441733E+00
+   Calculation finished. TOTAL CHARGE =   7.999993441749E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3362,24 +3363,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.45E-08   -1.71553912980859309E+01   -9.9681E-06
+   it, Delta DENS, energy, energyDiff   1   2.44E-08   -1.71553912905258841E+01   -9.9569E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21709E-01
-   eval(2)= -4.82540E-01
-   eval(3)= -3.43097E-01
-   eval(4)= -2.68921E-01  <-- last occupied orbital
-   eval(5)=  2.27301E-01  <-- first virtual orbital
-   eval(6)=  2.61423E-01
+   eval(1)= -9.21711E-01
+   eval(2)= -4.82542E-01
+   eval(3)= -3.43099E-01
+   eval(4)= -2.68923E-01  <-- last occupied orbital
+   eval(5)=  2.27300E-01  <-- first virtual orbital
+   eval(6)=  2.61422E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993445973E+00
+   Calculation finished. TOTAL CHARGE =   7.999993445979E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3388,24 +3389,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.12E-08   -1.71553857262534208E+01    5.5718E-06
+   it, Delta DENS, energy, energyDiff   2   1.12E-08   -1.71553857458328949E+01    5.5447E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21462E-01
-   eval(2)= -4.82299E-01
-   eval(3)= -3.42876E-01
-   eval(4)= -2.68698E-01  <-- last occupied orbital
-   eval(5)=  2.27529E-01  <-- first virtual orbital
-   eval(6)=  2.61664E-01
+   eval(1)= -9.21465E-01
+   eval(2)= -4.82301E-01
+   eval(3)= -3.42878E-01
+   eval(4)= -2.68700E-01  <-- last occupied orbital
+   eval(5)=  2.27527E-01  <-- first virtual orbital
+   eval(6)=  2.61662E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446068E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446074E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3414,24 +3415,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.67E-09   -1.71553851375425026E+01    5.8871E-07
+   it, Delta DENS, energy, energyDiff   3   5.66E-09   -1.71553851602297058E+01    5.8560E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21349E-01
-   eval(2)= -4.82185E-01
-   eval(3)= -3.42774E-01
-   eval(4)= -2.68596E-01  <-- last occupied orbital
-   eval(5)=  2.27639E-01  <-- first virtual orbital
-   eval(6)=  2.61779E-01
+   eval(1)= -9.21352E-01
+   eval(2)= -4.82188E-01
+   eval(3)= -3.42777E-01
+   eval(4)= -2.68598E-01  <-- last occupied orbital
+   eval(5)=  2.27637E-01  <-- first virtual orbital
+   eval(6)=  2.61777E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446068E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446074E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3440,24 +3441,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.84E-09   -1.71553849911552412E+01    1.4639E-07
+   it, Delta DENS, energy, energyDiff   4   2.83E-09   -1.71553850146162041E+01    1.4561E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21292E-01
-   eval(2)= -4.82128E-01
-   eval(3)= -3.42723E-01
-   eval(4)= -2.68545E-01  <-- last occupied orbital
-   eval(5)=  2.27694E-01  <-- first virtual orbital
-   eval(6)=  2.61837E-01
+   eval(1)= -9.21295E-01
+   eval(2)= -4.82131E-01
+   eval(3)= -3.42726E-01
+   eval(4)= -2.68548E-01  <-- last occupied orbital
+   eval(5)=  2.27692E-01  <-- first virtual orbital
+   eval(6)=  2.61834E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446067E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446072E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3466,24 +3467,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.42E-09   -1.71553849546363679E+01    3.6519E-08
+   it, Delta DENS, energy, energyDiff   5   1.42E-09   -1.71553849782907655E+01    3.6325E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21264E-01
-   eval(2)= -4.82100E-01
-   eval(3)= -3.42697E-01
-   eval(4)= -2.68520E-01  <-- last occupied orbital
-   eval(5)=  2.27722E-01  <-- first virtual orbital
-   eval(6)=  2.61865E-01
+   eval(1)= -9.21267E-01
+   eval(2)= -4.82103E-01
+   eval(3)= -3.42701E-01
+   eval(4)= -2.68523E-01  <-- last occupied orbital
+   eval(5)=  2.27720E-01  <-- first virtual orbital
+   eval(6)=  2.61863E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446066E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446072E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3492,24 +3493,24 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   7.11E-10   -1.71553849455242649E+01    9.1121E-09
+   it, Delta DENS, energy, energyDiff   6   7.10E-10   -1.71553849692270290E+01    9.0637E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -9.21250E-01
-   eval(2)= -4.82086E-01
-   eval(3)= -3.42685E-01
-   eval(4)= -2.68507E-01  <-- last occupied orbital
-   eval(5)=  2.27736E-01  <-- first virtual orbital
-   eval(6)=  2.61880E-01
+   eval(1)= -9.21253E-01
+   eval(2)= -4.82089E-01
+   eval(3)= -3.42688E-01
+   eval(4)= -2.68510E-01  <-- last occupied orbital
+   eval(5)=  2.27733E-01  <-- first virtual orbital
+   eval(6)=  2.61877E-01
  -------------------------------------------------
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446066E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446071E+00
  ---------------------------------------------------------------- Updating potential.
  Poisson Solver:
    BC                                  : Isolated
@@ -3518,26 +3519,26 @@ done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   3.56E-10   -1.71553849432505352E+01    2.2737E-09
+   it, Delta DENS, energy, energyDiff   7   3.55E-10   -1.71553849669651015E+01    2.2619E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0290547031E+00  2.1288074334E+01 -4.1086513724E+00 -5.3858719282E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   17   2.13E-08   -1.71553849432505352E+01   -3.6132E-06
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0290801145E+00  2.1288047024E+01 -4.1086458156E+00 -5.3858645930E+00  0.0000000000E+00  6.8844699642E+00  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   17   2.13E-08   -1.71553849669651015E+01   -3.6333E-06
  #############################################################################################
  at iteration 17 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.021103E+00    9.75E-04
+     Final values: target function, fnrm  -2.021100E+00    9.74E-04
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   17    3.56E-10   -1.71553849432505352E+01
-   > energy difference to last iteration: -3.613232E-06
+     FINAL values: it, Delta DENS, energy   17    3.55E-10   -1.71553849669651015E+01
+   > energy difference to last iteration: -3.633306E-06
  #############################################################################################
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   7.999993446066E+00
+   Calculation finished. TOTAL CHARGE =   7.999993446071E+00
  ------------------------------------- Building linear combinations... done.
  ---------------------------------------------------------- Gaussian Basis Projection
  Generation of input wavefunction data for atom      O:
@@ -3552,27 +3553,27 @@ done.
    Dimensions                          :  [  101,  99,  99 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.3736E-01,  3.3411E-01,  3.4344E-01 ]
-   |P|                                 :  7.199532E-01
+   P vector                            :  [ -5.3737E-01,  3.3411E-01,  3.4345E-01 ]
+   |P|                                 :  7.199658E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3658E+00,  8.4922E-01,  8.7293E-01 ]
-   |P|                                 :  1.829938E+00
+   P vector                            :  [ -1.3659E+00,  8.4923E-01,  8.7296E-01 ]
+   |P|                                 :  1.829970E+00
  Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:  -8.04391711E-03
- average noise along y direction:  -2.11218634E-02
- average noise along z direction:  -1.53073729E-02
- total average noise            :   2.72974977E-02
- clean forces norm (Ha/Bohr): maxval=  3.037649798263E-02  fnrm2=  1.578950550334E-03
- raw forces:                  maxval=  5.040422036743E-02  fnrm2=  2.548506256251E-03
- CPU time/ELAPSED time for root process     0        25.15        25.08
+ average noise along x direction:  -8.03927469E-03
+ average noise along y direction:  -2.11258028E-02
+ average noise along z direction:  -1.53090366E-02
+ total average noise            :   2.73001114E-02
+ clean forces norm (Ha/Bohr): maxval=  3.037918511651E-02  fnrm2=  1.579180951935E-03
+ raw forces:                  maxval=  5.040812591393E-02  fnrm2=  2.548894729204E-03
+ CPU time/ELAPSED time for root process     0        26.56        26.43
  Final values of the Forces for each atom
-     1      O -5.42131E-03 -2.16142E-02 -2.06438E-02
-     2      H  1.02025E-02  6.34542E-03  5.69673E-03
-     3      H -4.78118E-03  1.52688E-02  1.49471E-02
+     1      O -5.41587E-03 -2.16168E-02 -2.06465E-02
+     2      H  1.01989E-02  6.34633E-03  5.69776E-03
+     3      H -4.78300E-03  1.52704E-02  1.49488E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 50468
-   Tot. No. of Deallocations: 50468
+   Tot. No. of Allocations  : 49931
+   Tot. No. of Deallocations: 49931
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 90
