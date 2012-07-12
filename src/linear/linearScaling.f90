@@ -306,7 +306,7 @@ real(8),dimension(3,at%nat):: fpulay
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=3) then
+          if(nsatur>=4) then
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
@@ -525,7 +525,7 @@ real(8),dimension(3,at%nat):: fpulay
               lscv%reduce_convergence_tolerance=.false.
           end if
 
-          if(nsatur<3 .and. it_scc<lscv%nit_scc_when_optimizing) then
+          if(nsatur<4 .and. it_scc<lscv%nit_scc_when_optimizing) then
               ! Deallocate the transposed TMBs
               if(tmbmix%can_use_transposed) then
                   iall=-product(shape(tmbmix%psit_c))*kind(tmbmix%psit_c)
