@@ -3,7 +3,7 @@
 4.d-5  4.d-5  .5d0     convergence criterion for low and high accuracy, ratio of inner and outer gnrm 
 5.d-3   2   2          gnrm multiplier, nsatur inner loop, nsatur outer loop
 0  5  1.d0  1.d0       DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
-5                      number of iterations in the preconditioner
+5   1.d-3              number of iterations in the preconditioner, max deviation from unity for orthogonalization
 -8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
 1  1                   max number of process uses for pdsyev/pdsygv, pdgemm
 0                      0-> exact Loewdin, 1-> taylor expansion
