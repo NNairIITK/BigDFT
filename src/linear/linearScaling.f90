@@ -31,7 +31,7 @@ type(DFT_wavefunction),intent(inout),target:: tmbder
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf
+integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
@@ -172,6 +172,7 @@ real(8),dimension(3,at%nat):: fpulay
   first_time_with_der=.false.
   nit_highaccur=0
 
+  nsatur=0
 
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
@@ -304,6 +305,9 @@ real(8),dimension(3,at%nat):: fpulay
           ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
+          ! Stop the optimization if it seems to saturate
+          if(nsatur>=3) tmb%wfnmd%bs%update_phi=.false.
+
           !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
           !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
@@ -321,6 +325,7 @@ real(8),dimension(3,at%nat):: fpulay
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
+              if(lscv%info_basis_functions>0) nsatur=nsatur+1
               tmb%can_use_transposed=.false. !since basis functions have changed...
               tmbder%can_use_transposed=.false. !since basis functions have changed...
 
