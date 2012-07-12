@@ -95,19 +95,20 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call deviation_from_unity(iproc, orbs%norb, ovrlp, deviation)
       if(deviation>maxdev_ortho) then
           if(iproc==0) then
-              write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => full orthogonalization required'
+              write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is larger than ',maxdev_ortho,' => full orthogonalization required'
           end if
           ortho_performed=.true.
       else
           if(iproc==0) then
-              write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
+              !!write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
+              write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is smaller than ',maxdev_ortho,' => no orthogonalization required'
           end if
-          if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-              call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
-              call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
-          else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-              stop 'ERROR: this part is not yet implemented for p2p communication'
-          end if
+          !!if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+          !!    call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+          !!    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+          !!else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+          !!    stop 'ERROR: this part is not yet implemented for p2p communication'
+          !!end if
           ortho_performed=.false.
           return
       end if

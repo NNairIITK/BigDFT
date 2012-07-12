@@ -131,7 +131,7 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItPrecond, nsatur_inner, nsatur_outer
+    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
     integer :: nItSCCWhenOptimizing, confPotOrder, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev

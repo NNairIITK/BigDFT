@@ -669,12 +669,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nsatur_inner,'2',ranges=(/1,10/))
   call input_var(in%lin%nsatur_outer,'4',ranges=(/1,10/),comment=comments)
   
-  ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
-  comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
-  call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
-  call input_var(in%lin%DIISHistMax,'5',ranges=(/0,100/))
-  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  ! DIIS History, Step size for DIIS, Step size for SD
+  comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
+  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
+  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/))
+  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
   
   ! lin%startWithSD, lin%startDIIS
   !comments = 'start with SD, start criterion for DIIS'
