@@ -496,7 +496,7 @@ endif
           ediff<0.d0 .and. abs(ediff) < noise) then
           nsatur=nsatur+1
       else
-          !!nsatur=0
+          nsatur=0
       end if
 
 
