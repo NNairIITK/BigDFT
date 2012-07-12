@@ -2842,14 +2842,13 @@ module module_interfaces
        real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
      end subroutine globalLoewdin
 
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, maxdev_ortho, &
-                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed, &
-                ortho_performed)
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
+                can_use_transposed)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
-       real(8),intent(in):: maxdev_ortho
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op
        type(p2pComms),intent(inout):: comon
@@ -2860,7 +2859,7 @@ module module_interfaces
        type(basis_performance_options),intent(in):: bpo
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer,intent(out):: psit_c, psit_f
-       logical,intent(out):: can_use_transposed, ortho_performed
+       logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
@@ -5641,7 +5640,7 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lhphi, lphiold, alpha, &
-                  trH, meanAlpha, alphaDIIS, ortho_performed)
+                  trH, meanAlpha, alphaDIIS)
         use module_base
         use module_types
         implicit none
@@ -5651,7 +5650,6 @@ module module_interfaces
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha 
         real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
-        logical,intent(out):: ortho_performed
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)

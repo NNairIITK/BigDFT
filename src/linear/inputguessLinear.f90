@@ -984,7 +984,6 @@ logical,intent(inout):: can_use_transposed
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
 real(8),dimension(:,:),allocatable:: ovrlp
 real(8),dimension(:),pointer:: psit_c, psit_f
-logical:: ortho_performed
 character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
@@ -995,9 +994,8 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 nullify(psit_c)
 nullify(psit_f)
 
-call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, 1.d-3, &
-     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed, &
-     ortho_performed)
+call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
 
 if(can_use_transposed) then
     iall=-product(shape(psit_c))*kind(psit_c)

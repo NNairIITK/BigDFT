@@ -2,8 +2,8 @@
 15  25                 iterations to optimize the basis functions for low accuracy and high accuracy
 1.d-3  1.d-5  .5d0     convergence criterion for low and high accuracy, ratio of inner and outer gnrm
 2.d-5   2   4          gnrm multiplier, nsatur inner loop, nsatur outer loop
-0  8  1.d0  1.d-4      DIISHistMin, DIISHistMax, step size for DIIS, step size for SD
-5  1.d-20              number of iterations in the preconditioner, max deviation from unity for orthogonalization
+8  8  1.d0  1.d-4      DIIS history for low and high accuracy, step size for DIIS, step size for SD
+5                      number of iterations in the preconditioner
 -8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
 1  1                   max number of process uses for pdsyev/pdsygv, pdgemm
 0  1                   0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization

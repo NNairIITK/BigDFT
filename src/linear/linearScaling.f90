@@ -39,7 +39,7 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix,ortho_performed
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
 integer:: jorb, jjorb, iiat,nit_highaccur
 real(8),dimension(:,:),allocatable:: overlapmatrix
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -289,10 +289,10 @@ real(8),dimension(3,at%nat):: fpulay
           nullify(tmb%psit_c)
           nullify(tmb%psit_f)
           if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, 1.d-20, &
+          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed, ortho_performed)
+               tmb%can_use_transposed)
       end if
 
       !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -320,16 +320,13 @@ real(8),dimension(3,at%nat):: fpulay
       else
           ldiis%DIISHistMax=input%lin%DIIS_hist_lowaccur
       end if
-      ldiis%alphaSD=input%lin%alphaSD
-      ldiis%alphaDIIS=input%lin%alphaDIIS
+      ldiis%switchSD=.false.
+      ldiis%trmin=1.d100
+      ldiis%trold=1.d100
       ldiis%icountSDSatur=0
       ldiis%icountSwitch=0
       ldiis%icountDIISFailureTot=0
       ldiis%icountDIISFailureCons=0
-      ldiis%is=0
-      ldiis%switchSD=.false.
-      ldiis%trmin=1.d100
-      ldiis%trold=1.d100
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining

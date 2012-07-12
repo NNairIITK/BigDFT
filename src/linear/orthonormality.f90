@@ -1,6 +1,6 @@
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, maxdev_ortho, &
-           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, can_use_transposed, &
-           ortho_performed)
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
+           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
+           can_use_transposed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -8,7 +8,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Calling arguments
   integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
-  real(8),intent(in):: maxdev_ortho
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op
   type(p2pComms),intent(inout):: comon
@@ -19,7 +18,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(basis_performance_options),intent(in):: bpo
   real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(8),dimension(:),pointer,intent(out):: psit_c, psit_f
-  logical,intent(out):: can_use_transposed, ortho_performed
+  logical,intent(out):: can_use_transposed
 
   ! Local variables
   integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
@@ -92,26 +91,26 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       !!end do
       !!! END EXPERIMENTAL #######################################################
 
-      call deviation_from_unity(iproc, orbs%norb, ovrlp, deviation)
-      if(deviation>maxdev_ortho) then
-          if(iproc==0) then
-              write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is larger than ',maxdev_ortho,' => full orthogonalization required'
-          end if
-          ortho_performed=.true.
-      else
-          if(iproc==0) then
-              !!write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
-              write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is smaller than ',maxdev_ortho,' => no orthogonalization required'
-          end if
-          !!if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          !!    call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
-          !!    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
-          !!else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          !!    stop 'ERROR: this part is not yet implemented for p2p communication'
-          !!end if
-          ortho_performed=.false.
-          return
-      end if
+      !!call deviation_from_unity(iproc, orbs%norb, ovrlp, deviation)
+      !!if(deviation>maxdev_ortho) then
+      !!    if(iproc==0) then
+      !!        write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is larger than ',maxdev_ortho,' => full orthogonalization required'
+      !!    end if
+      !!    ortho_performed=.true.
+      !!else
+      !!    if(iproc==0) then
+      !!        !!write(*,'(a,es9.2,a)') 'deviation from unity:',deviation,' => only normalization required'
+      !!        write(*,'(2(a,es9.2),a)') 'deviation from unity:',deviation,' is smaller than ',maxdev_ortho,' => no orthogonalization required'
+      !!    end if
+      !!    !!if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      !!    !!    call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+      !!    !!    call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+      !!    !!else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      !!    !!    stop 'ERROR: this part is not yet implemented for p2p communication'
+      !!    !!end if
+      !!    ortho_performed=.false.
+      !!    return
+      !!end if
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
