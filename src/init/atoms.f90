@@ -1846,7 +1846,7 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character(len=20), intent(out) :: name
+  character, intent(out) :: name(20)
   integer, intent(out) :: ln
 
   integer :: i

@@ -519,8 +519,9 @@ void FC_FUNC_(bigdft_signals_init, BIGDFT_SIGNALS_INIT)(gpointer *self, guint *k
           {
             sockaddr = g_inet_socket_address_new((GInetAddress*)tmp->data, (guint16)91691);
             bind = g_socket_bind(bmain->socket, sockaddr, TRUE, &error);
-            g_print(" |   try to bind to '%s' -> %d.\n",
-                    g_inet_address_to_string((GInetAddress*)tmp->data), bind);
+            g_print(" |   try to bind to '%s:%d' -> %d.\n",
+                    g_inet_address_to_string((GInetAddress*)tmp->data),
+                    g_inet_socket_address_get_port((GInetSocketAddress*)sockaddr), bind);
             if (!bind)
               {
                 g_warning("%s", error->message);

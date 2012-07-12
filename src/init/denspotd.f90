@@ -247,10 +247,17 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         irhoxcsh = 0
      end if     
      do irhodim = 1, denspot%dpbox%nrhodim, 1
-        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
-             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
-             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-             mpidtypd,0,MPI_COMM_WORLD,ierr)
+        if (iproc == 0) then
+           call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+                nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+                mpidtypd,0,MPI_COMM_WORLD,ierr)
+        else
+           call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+                nslice,mpidtypd,rho_full(1),&
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+                mpidtypd,0,MPI_COMM_WORLD,ierr)
+        end if
      end do
   else
      rho_full => denspot%rhov

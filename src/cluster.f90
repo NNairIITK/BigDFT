@@ -620,7 +620,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
-        if (atoms%sym%symObj >= 0) call symmetrize_stress((iproc==0).and.(verbose>2),xcstr,atoms%sym%symObj)
+        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%sym%symObj)
      end if
 
      ! calculate dipole moment associated to the charge density

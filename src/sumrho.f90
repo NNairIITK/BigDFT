@@ -60,26 +60,13 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   end if
 
   !calculate electrostatic potential
-<<<<<<< TREE
-  call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,rho,1,vh,1) 
-  call H_potential(geocode,'D',iproc,nproc,&
-       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,vh,&
-       pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-
-  !In principle symmetrization of the stress tensor is not needed since the density has been 
-=======
   call dcopy(dpbox%ndimpot,rho,1,vh,1)
   call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
->>>>>>> MERGE-SOURCE
   !already symmetrized
-<<<<<<< TREE
-  if (symObj%symObj >= 0 .and. geocode=='P') call symmetrize_stress((iproc==0),hstrten,symObj%symObj)
-=======
 
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
        call symm_stress((dpbox%iproc_world==0),hstrten,symObj%symObj)
->>>>>>> MERGE-SOURCE
 
 end subroutine density_and_hpot
 

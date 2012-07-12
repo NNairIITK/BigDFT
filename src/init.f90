@@ -2200,13 +2200,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
 END SUBROUTINE input_wf
 
-subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc)
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
-  use yaml_output
   implicit none
   integer, intent(out) :: input_wf_format
   integer, intent(inout) :: inputpsi
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   character(len = *), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
 
@@ -2223,7 +2222,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
@@ -2237,7 +2236,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'

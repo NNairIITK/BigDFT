@@ -281,13 +281,7 @@ contains
 
 end subroutine forces_via_finite_differences
 
-<<<<<<< TREE
-
-!> Calculate atomic forces
-subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
-=======
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
->>>>>>> MERGE-SOURCE
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
   use module_base
@@ -303,7 +297,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -390,14 +384,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-<<<<<<< TREE
-        if (atoms%sym%symObj >= 0) &
-           call symmetrize_stress((iproc==0).and.(verbose > 2),strtens(1,i),atoms%sym%symObj)
-        if (iproc==0 .and. verbose > 2)&
-=======
         if (atoms%sym%symObj >= 0) call symm_stress((iproc==0 .and. i==1),strtens(1,i),atoms%sym%symObj)
         if (iproc==0 .and. verbose>2)&
->>>>>>> MERGE-SOURCE
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
            strten(j)=strten(j)+strtens(j,i)
@@ -421,9 +409,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 !!$  endif
 
   ! Apply symmetries when needed
-  if (atoms%sym%symObj >= 0) call symmetrize_forces(iproc,fxyz,atoms)
+  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
-
 
 !> calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
@@ -564,34 +551,6 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   end if
 end subroutine rhocore_forces
 
-<<<<<<< TREE
-
-!> Write information about the stress tensor
-subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
-  use module_base
-  implicit none
-  logical, intent(in) :: fullinfo
-  real(gp), intent(in) :: volume,pressure
-  character(len=*), intent(in) :: message
-  real(gp), dimension(6), intent(in) :: strten
-  !local variables
-  
-  write(*,'(1x,a)')'Stress Tensor, '//trim(message)//' contribution (Ha/Bohr^3):'
-  write(*,'(1x,t10,10x,a,t30,10x,a,t50,10x,a)')'x','y','z'
-  write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(6),strten(5)
-  write(*,'(1x,a,t30,1pe20.12,t50,1pe20.12)')'y',strten(2),strten(4)
-  write(*,'(1x,a,t50,1pe20.12)')'z',strten(3)
-
-  if (fullinfo) then
-     write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
-          ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
-  end if
-  
-
-end subroutine write_strten_info
-
-=======
->>>>>>> MERGE-SOURCE
 
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
@@ -3769,7 +3728,7 @@ END SUBROUTINE clean_forces
 
 !> Symmetrize stress (important with special k points)
 !@todo: modifiy the arguments of this routine
-subroutine symmetrize_stress(dump,tens,symobj)
+subroutine symm_stress(dump,tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
@@ -3792,13 +3751,8 @@ subroutine symmetrize_stress(dump,tens,symobj)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-<<<<<<< TREE
-  if (dump)&
-       write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, " symmetries."
-=======
   if (dump) call yaml_map('Number of Symmetries',nsym,fmt='(i0)')
   !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
->>>>>>> MERGE-SOURCE
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3833,11 +3787,15 @@ subroutine symmetrize_stress(dump,tens,symobj)
   tens(5)=symtens(1,3)
   tens(6)=symtens(1,2)
 
-end subroutine symmetrize_stress
+!  if (iproc == 0 .and. verbose > 2) then
+!     write(*,*) '=== SYMMETRISED ==='
+!     write(*,*) tens(:)
+!  end if
 
+end subroutine symm_stress
 
-!> Symmetrize the atomic forces (needed with special k points)
-subroutine symmetrize_forces(iproc, fxyz, at)
+!> Symmetrise the atomic forces (needed with special k points)
+subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
   use module_types
@@ -3861,7 +3819,7 @@ subroutine symmetrize_forces(iproc, fxyz, at)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrize forces with ", nsym, " symmetries."
+  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3902,7 +3860,7 @@ subroutine symmetrize_forces(iproc, fxyz, at)
   do ia = 1, at%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
-end subroutine symmetrize_forces
+end subroutine symmetrise_forces
 
 
 subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&

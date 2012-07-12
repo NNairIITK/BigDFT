@@ -558,7 +558,7 @@ if test x"$ac_use_libyaml" != x"no" ; then
          fi
          echo "[[build_ext]]" > PyYAML-3.10/setup.cfg
          echo "define=YAML_DECLARE_STATIC" >> PyYAML-3.10/setup.cfg
-         echo "include_dirs=$PWD/${srcdir}/yaml-0.1.4/include" >> PyYAML-3.10/setup.cfg
+         echo "include_dirs=${ac_abs_top_srcdir}/yaml-0.1.4/include" >> PyYAML-3.10/setup.cfg
          echo "library_dirs=$PWD/yaml-0.1.4/src/.libs" >> PyYAML-3.10/setup.cfg
       else
          AC_MSG_WARN([libyaml is not available.])
@@ -567,6 +567,8 @@ if test x"$ac_use_libyaml" != x"no" ; then
       ac_build_libyaml="no"
    fi
    AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+else
+   ac_build_libyaml="no"
 fi
 AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
 AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
@@ -732,9 +734,8 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 
-AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
-
 fi # End of the if library compilation
+AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 
 dnl Test the libXC library
 ac_internal_libxc="yes"

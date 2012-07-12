@@ -24,7 +24,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   !Local variables
   !n(c) logical :: cmplxprojs
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp
+  integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
   if (iproc.eq.0) then
@@ -51,11 +51,14 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      end do
   end if
 
+  !Pb of inout
+  izero=0
+
   do iat=1,at%nat
 
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj == 0) call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
-                          0,0,0,0,0,0)
+                          izero,izero,izero,izero,izero,izero)
      if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&

@@ -126,7 +126,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)
-     if (at%sym%symObj >= 0) call symmetrize_stress((iproc==0),ewaldstr,at%sym%symObj)
+     if (at%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%sym%symObj)
      !PSP core correction of the stress tensor (diag.)
      ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
