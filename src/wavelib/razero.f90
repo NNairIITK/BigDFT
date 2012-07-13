@@ -13,7 +13,7 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i
+  integer :: i,m
   logical within_openmp,omp_in_parallel
 
 !$    within_openmp=omp_in_parallel()
@@ -41,9 +41,26 @@ subroutine razero_simple(n,x)
   integer, intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0.e0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0.e0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0.e0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0.e0
+      x(i+1)=0.e0
+      x(i+2)=0.e0
+      x(i+3)=0.e0
+      x(i+4)=0.e0
+      x(i+5)=0.e0
+      x(i+6)=0.e0
   end do
 END SUBROUTINE razero_simple
 
@@ -54,9 +71,26 @@ subroutine razero_integer(n,x)
   integer, intent(in) :: n
   integer, dimension(n), intent(out) :: x
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0
+      x(i+1)=0
+      x(i+2)=0
+      x(i+3)=0
+      x(i+4)=0
+      x(i+5)=0
+      x(i+6)=0
   end do
 END SUBROUTINE razero_integer
 

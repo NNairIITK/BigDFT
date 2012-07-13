@@ -26,14 +26,15 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR       = 100
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_LINEAR_LCAO  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(11), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_LINEAR_LCAO /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -139,12 +140,13 @@ module module_types
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
     real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step 
+    real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -702,7 +704,7 @@ type:: linear_scaling_control_variables
   integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
   real(8):: pnrm_out, decrease_factor_total, alpha_mix, increase_locreg, self_consistent
   logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop, variable_locregs, compare_outer_loop
-  logical:: reduce_convergence_tolerance
+  logical:: reduce_convergence_tolerance, enlarge_locreg
   real(8),dimension(:),allocatable:: locrad
 end type linear_scaling_control_variables
 
@@ -765,6 +767,7 @@ end type linear_scaling_control_variables
     logical:: use_derivative_basis !<use derivatives or not
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
+    real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
     real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
@@ -772,6 +775,7 @@ end type linear_scaling_control_variables
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
+    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
   end type basis_specifications
 
   type,public:: basis_performance_options
@@ -786,6 +790,7 @@ end type linear_scaling_control_variables
     integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
@@ -882,7 +887,7 @@ end type linear_scaling_control_variables
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
-     real(wp), dimension(:), pointer :: psi,hpsi,psit !< orbitals, or support functions, in wavelet basis
+     real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
@@ -890,6 +895,7 @@ end type linear_scaling_control_variables
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
 
      !data properties
+     logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
      type(communications_arrays) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
@@ -1288,13 +1294,13 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_stat
 
-    allocate(wfd%keyglob(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyglob(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-    allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keygloc(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvloc(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvglob(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
@@ -1703,7 +1709,9 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. in mem."
     case(INPUT_PSI_DISK_GAUSS)
        write(input_psi_names, "(A)") "gauss. on disk"
-    case(INPUT_PSI_LINEAR)
+    case(INPUT_PSI_LINEAR_AO)
+       write(input_psi_names, "(A)") "Linear AO"
+    case(INPUT_PSI_LINEAR_LCAO)
        write(input_psi_names, "(A)") "Linear LCAO"
     case(INPUT_PSI_MEMORY_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"

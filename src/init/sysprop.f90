@@ -83,7 +83,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Create global orbs data structure.
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   ! Create linear orbs data structure.
-  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      in%inputpsiId == INPUT_PSI_LINEAR_LCAO) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
           & .false., rxyz, lorbs)
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
@@ -93,7 +94,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      in%inputpsiId == INPUT_PSI_LINEAR_LCAO) then
      call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
      call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
 
@@ -129,10 +131,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+      inputpsi == INPUT_PSI_LINEAR_LCAO) then
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     if (inputpsi == INPUT_PSI_LINEAR) then
+     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_LINEAR_LCAO) then
         call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
@@ -166,7 +169,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+     inputpsi /= INPUT_PSI_LINEAR_LCAO) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong

@@ -665,7 +665,7 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      integer, intent(in) :: nl1,nl2,nl3
+      integer, intent(out) :: nl1,nl2,nl3
       character(len=1), intent(in) :: geocode
       !local variables
       logical :: perx,pery,perz

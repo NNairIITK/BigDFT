@@ -1,6 +1,6 @@
 4  1                  iterations with low accuracy, high accuracy
 8  4                  iterations to optimize the basis functions for low accuracy and high accuracy
-0  1.2d0  1.d-1 1.d-1 iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy
+0  1.2d0  1.d-1 1.d-1  .5d0  iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy, ratio of inner and outer gnrm
 0  5  1.d0  1.d0      DIISHistMin, DIISHistMax, step size for DIIS, step size for SD
 5                     number of iterations in the preconditioner
 s                     cubic ('c') or spheric ('s') localization region
@@ -14,6 +14,7 @@ s                     cubic ('c') or spheric ('s') localization region
 0.5d0 0.5d0  1.d-13   low accuracy: mixing parameter (when optimized / not optimized), convergence criterion
 0.5d0 0.5d0           high accuracy:  mixing parameter (when optimized / not optimized)
 1.d-11                convergence criterion for the low accuracy part
+1.d-11                convergence criterion for the high accuracy part
 F  4                  use the derivative basis functions, order of confinement potential
 50  100               number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
 0                     Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF 

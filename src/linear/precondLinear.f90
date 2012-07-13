@@ -1,4 +1,3 @@
-
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 !
@@ -83,6 +82,11 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
+
+     !!if(it>0) then
+     !!    call cut_at_boundaries2(lr, orbs, hx, hy, hz, x)
+     !!end if
+     !call flatten_at_boundaries2(lr, orbs, hx, hy, hz, x)
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
           rxyzParab, orbs, potentialPrefac, confPotOrder, it)
@@ -560,6 +564,7 @@ real(gp) :: kx,ky,kz
 !!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 !!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
 !!!     potentialPrefac, confPotOrder, it)
+              !!write(*,*) 'cprecr',cprecr
            call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                 hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
                 potentialPrefac, confPotOrder, it)

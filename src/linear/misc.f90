@@ -35,7 +35,8 @@ unit3=10*iproc+9
 
 !write(*,*) 'write, orbs%nbasisp', orbs%norbp
     orbLoop: do iorb=1,orbs%norbp
-        phir=0.d0
+        !!phir=0.d0
+        call to_zero(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, phir(1))
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
         iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
@@ -233,7 +234,8 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   ! Local variables
   integer:: iseg, jj, jorb, iiorb, jjorb
   
-  mat=0.d0
+  !!mat=0.d0
+  call to_zero(norb**2, mat(1))
   
   jj=0
   do iseg=1,mad%nseg
@@ -277,7 +279,8 @@ logical:: iistop, jjstop
 
 
 
-c=0.d0
+!!c=0.d0
+call to_zero(norb**2, c(1,1))
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
@@ -357,6 +360,7 @@ call memocc(istat, c_loc, 'c_loc', subname)
 
 !c=0.d0
 c_loc=0.d0
+if(norbp>0) call to_zero(norb*norbp, c_loc(1,1))
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
@@ -473,7 +477,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     allocate(lphi(ldim), stat=istat)
     allocate(phi(gdim), stat=istat)
     lphi=1.d0
-    phi=0.d0
+    !!phi=0.d0
+    call to_zero(gdim, phi(1))
     call Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
   
     write(num,'(i0)') orbitalNumber

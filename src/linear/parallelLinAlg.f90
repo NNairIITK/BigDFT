@@ -53,7 +53,7 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) c=0.d0
+  if(irow==-1) call to_zero(ldc*n, c(1,1))
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -194,7 +194,7 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) c=0.d0
+  if(irow==-1) call to_zero(ldc*n, c(1,1))
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -337,7 +337,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) a=0.d0
+  if(irow==-1) call to_zero(lda*n, a(1,1))
   
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
@@ -529,7 +529,7 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) a=0.d0
+  if(irow==-1) call to_zero(lda*n, a(1,1))
   
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then

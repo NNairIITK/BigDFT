@@ -8,6 +8,7 @@ TESTDIRS = Locreg \
 	   withder \
 	   mix \
 	   water \
+	   cleanup \
 	   moreIGorbs
 
 EXTRA_DIST = README

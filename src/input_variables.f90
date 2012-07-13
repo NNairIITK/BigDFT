@@ -328,7 +328,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -654,19 +654,21 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
+             & ration of inner and outer gnrm'
   call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
   call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
@@ -690,13 +692,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
   call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
@@ -741,6 +743,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   call input_var(in%lin%lowaccuray_converged,'1.d-11',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
+  call input_var(in%lin%highaccuracy_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the high accuracy part') !lr408
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
@@ -783,7 +787,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='increase locrad after n steps, amount that locrad is increased'
   call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
   call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
-  
+
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)

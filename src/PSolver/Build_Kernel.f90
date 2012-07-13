@@ -1429,11 +1429,11 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         fwork(0:n_range) = fwork_tmp(0:n_range)
      end if
 
-!     open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
-!     do j= 0,n_range
-!        write (52,*) j,fwork(j)
-!      end do
-!     close(52)
+     !!open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
+     !!do j= 0,n_range
+     !!   write (52,*) j,fwork(j)
+     !! end do
+     !!close(52)
 
      do idir=1,3
         n=ndims(idir)
@@ -1524,7 +1524,7 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
   !fourier transform, from mathematica
   real(dp), dimension(:), pointer :: fISF
-
+!commented since inc files do not fulfill fortran norm
 !commenting it out, these include files do not fulfill fortran norm!!!
 !!$  include 'lazy_ISF_8_2048.inc'
 !!$  include 'lazy_ISF_14_2048.inc'

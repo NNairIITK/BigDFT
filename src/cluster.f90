@@ -329,7 +329,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+      inputpsi == INPUT_PSI_LINEAR_LCAO) then
      call init_p2p_tags(nproc)
      tag=0
 
@@ -422,7 +423,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+                     inputpsi /= INPUT_PSI_LINEAR_LCAO) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -444,14 +446,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         return
      end if
   else
-     KSwfn%orbs%eval=-.5d0  ! I don't think this is usefull...
+
+     ! I don't think this is usefull...
+     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
+     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
+     !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
           KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
           atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,&
+          nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
           energy)
 
      i_all=-product(shape(denspot0))*kind(denspot0)
@@ -486,6 +492,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
+     call timing(iproc,'gauss_proj','ON') !lr408t
      if (iproc == 0) then
         write( *,'(1x,a)')&
              &   '---------------------------------------------------------- Gaussian Basis Projection'
@@ -528,7 +535,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
      call memocc(i_stat,i_all,'thetaphi',subname)
-
+     call timing(iproc,'gauss_proj','OF') !lr408t
   end if
 
   !  write all the wavefunctions into files
@@ -898,7 +905,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
   if (in%gaussian_help .and. DoLastRunThings .and.&
-&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
+&    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR .and. &
+      .not.inputpsi==INPUT_PSI_LINEAR_LCAO)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -1079,7 +1087,8 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+        inputpsi /= INPUT_PSI_LINEAR_LCAO) then
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
@@ -1344,6 +1353,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            opt%iter = opt%iter + 1
         end do wfn_loop
+
+
         if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if

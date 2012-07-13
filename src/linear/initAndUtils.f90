@@ -235,7 +235,7 @@ subroutine deallocateBasicArraysInput(lin)
   if(associated(lin%potentialPrefac)) then
 !    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    !print *,'i_all',i_all
+!    print *,'i_all',i_all,shape(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
@@ -970,8 +970,8 @@ subroutine initCompressedMatmul3(iproc, norb, mad)
   allocate(mat3(norb**2), stat=istat)
   call memocc(istat, mat2, 'mat2', subname)
 
-  mat1=0.d0
-  mat2=0.d0
+  call to_zero(norb**2, mat1(1))
+  call to_zero(norb**2, mat2(1))
   do iseg=1,mad%nseg
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
@@ -1863,7 +1863,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
   character(len=*),parameter:: subname='update_locreg'
 
-
+  call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_orbitals_data(llborbs)
   call nullify_overlapParameters(lbop)
   call nullify_p2pComms(lbcomon)
@@ -1914,6 +1914,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
+
+  call timing(iproc,'updatelocreg1','OF') !lr408t
+
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
@@ -1922,13 +1925,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 
-
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-
 
 end subroutine update_locreg
 
@@ -1987,10 +1988,10 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphi
   allocate(lhphiold(npsidim), stat=istat)
   call memocc(istat, lhphiold, 'lhphiold', subname)
 
-  lphi=0.d0
-  lhphi=0.d0
-  lphiold=0.d0
-  lhphiold=0.d0
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
 
 end subroutine allocate_auxiliary_basis_function
 
@@ -2051,7 +2052,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
 end subroutine destroy_new_locregs
 
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
+subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_DFT_wavefunction
@@ -2059,7 +2060,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, norb
+  integer,intent(in):: nphi, lnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(out):: wfn
 
@@ -2067,7 +2068,7 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   integer:: istat
   character(len=*),parameter:: subname='create_DFT_wavefunction'
 
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
+  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, input, wfn%wfnmd)
 
   allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
   call memocc(istat, wfn%psi, 'wfn%psi', subname)
@@ -2144,6 +2145,7 @@ subroutine init_basis_specifications(input, bs)
   bs%communicate_phi_for_lsumrho=.false.
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
+  bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond
@@ -2151,6 +2153,7 @@ subroutine init_basis_specifications(input, bs)
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
   bs%nit_unitary_loop=input%lin%nItInnerLoop
   bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
+  bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
 
 end subroutine init_basis_specifications
 
@@ -2173,14 +2176,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, llbnorb, norb
+  integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp
   type(input_variables),intent(in):: input
   type(wfn_metadata),intent(out):: wfnmd
 
@@ -2200,13 +2203,17 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
       allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
 
+      allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
+      call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
+
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
       wfnmd%alpha_coeff=0.2d0 !default value, must check whether this is a good choice
 
-      allocate(wfnmd%grad_coeff_old(llbnorb,norb), stat=istat)
+      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
-      wfnmd%grad_coeff_old=0.d0 !default value
+      !!wfnmd%grad_coeff_old=0.d0 !default value
+      if(norbp>0) call to_zero(llbnorb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
 
       wfnmd%it_coeff_opt=0
 
@@ -2260,9 +2267,9 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
   allocate(lhphiold(npsidim), stat=istat)
   call memocc(istat, lhphiold, 'lhphiold', subname)
 
-  lphi=0.d0
-  lhphi=0.d0
-  lphiold=0.d0
-  lhphiold=0.d0
+  call to_zero(npsidim, lphi(1))
+  call to_zero(npsidim, lhphi(1))
+  call to_zero(npsidim, lphiold(1))
+  call to_zero(npsidim, lhphiold(1))
 
 end subroutine update_auxiliary_basis_function

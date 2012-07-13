@@ -578,7 +578,8 @@ subroutine inputs_get_linear(linear, inputPsiId)
   integer, intent(in) :: inputPsiId
 
   linear = 0
-  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+  if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      inputPsiId == INPUT_PSI_LINEAR_LCAO) linear = 1
 END SUBROUTINE inputs_get_linear
 
 subroutine orbs_new(orbs)
