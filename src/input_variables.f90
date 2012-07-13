@@ -718,14 +718,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
               &where the potential is mixed (when optimized / not optimized)'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenOptimizing_lowaccuracy,'1',ranges=(/1,1000/))
-  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/1,1000/),comment=comments)
+  call input_var(in%lin%nItSCCWhenOptimizing_lowaccuracy,'1',ranges=(/0,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/),comment=comments)
 
   comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
               &where the potential is mixed (when optimized / not optimized)'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenOptimizing_highaccuracy,'1',ranges=(/1,1000/))
-  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/1,1000/),comment=comments)
+  call input_var(in%lin%nItSCCWhenOptimizing_highaccuracy,'1',ranges=(/0,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
 
   comments = 'low accuracy: mixing parameter (when optimized / not optimized), convergence criterion'
   call input_var(in%lin%alphaMixWhenOptimizing_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
