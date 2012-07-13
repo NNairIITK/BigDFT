@@ -459,6 +459,11 @@ endif
            tmb, lhphi, lhphiold, &
            tmblarge2, lhphilarge2, overlap_calculated, ovrlp)
 
+           if (emergency_exit) then
+               call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+           end if 
+
+
       !!!plot gradient
       !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
       !!ist=1
