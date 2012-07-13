@@ -2132,6 +2132,7 @@ integer:: npsidim, ilr, iorb
   npsidim = 0
   do iorb=1,orbs%norbp
    ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+!print*,iorb,orbs%norbp,ilr,orbs%isorb
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   orbs%npsidim_orbs=max(npsidim,1)
