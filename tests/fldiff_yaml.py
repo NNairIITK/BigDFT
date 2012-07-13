@@ -203,7 +203,12 @@ if __name__ == "__main__":
 #print args.ref,args.data,args.output
 
 references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
-datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+try:
+  datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+except:
+  datas = []
+  #document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
+  sys.exit(0)
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
 
 # take default value for the tolerances
@@ -244,7 +249,6 @@ if len(patterns_to_ignore) > 0:
 #print 'Epsilon tolerance',epsilon
 #print 'Ignore',keys_to_ignore,'Patterns',patterns_to_ignore
 
-
 options = Pouet()
 failed_documents=0
 reports = open(args.output, "w")
@@ -264,16 +268,18 @@ for i in range(len(references)):
   data = datas[i]
   reference = references[i]
   #sys.stdout.write(yaml.dump(data).encode('utf8'))
-#  print '# Parsing Document',i
+  #  print '# Parsing Document',i
   compare(data, reference, tols)
-  doctime = data["Timings for root process"]["Elapsed time (s)"]
+  try:
+    doctime = data["Timings for root process"]["Elapsed time (s)"]
+  except:
+    doctime = 0
   try:
     docleaks = data["Memory Consumption Report"]["Remaining Memory (B)"]
   except:
     docleaks = 0
-  
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
-                   (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
+                  (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
 #  print "failed checks",failed_checks,"max diff",discrepancy
   max_discrepancy=max(discrepancy,max_discrepancy)
   #print total time
@@ -282,10 +288,11 @@ for i in range(len(references)):
   leak_memory += docleaks
   total_misses +=docmiss
   total_missed_items.append(docmiss_it)
-  newreport = open("report", "w")
 #  sys.stdout.write("#Document: %d, failed_checks: %d, memory_leaks (B): %d\n" % (i, failed_checks,docleaks))
   if failed_checks > 0 or docleaks > 0:
     failed_documents+=1
+
+  newreport = open("report", "w")
   newreport.write(yaml.dump(document_report(biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
                             default_flow_style=False,explicit_start=True))
   newreport.close()

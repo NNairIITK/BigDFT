@@ -48,9 +48,9 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   integer :: maxIter
 
   !initialize stress tensor no matter of the BC
-  call to_zero(6,strten(1))
+  !call to_zero(6,strten(1))
 
-!strten=0.d0
+  strten=0.d0
 
   !conditions for periodicity in the three directions
   !perx=(geocode /= 'F' .and. geocode /= 'W' .and. geocode /= 'H')
@@ -209,8 +209,9 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) !&
-!  !$omp firstprivate(before3, now3, after3, lot, maxIter)
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  !$omp firstprivate(lot, maxIter)
+!  !$omp firstprivate(before3, now3, after3)
   
   allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
   allocate( zt(2,lzt, n1+ndebug), stat=i_stat )
@@ -497,7 +498,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
      !endif
   end do
   !$omp end do
-  
+
   deallocate(zw, stat=i_stat)
   deallocate(zt, stat=i_stat)
   

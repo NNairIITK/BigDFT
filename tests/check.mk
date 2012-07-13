@@ -104,7 +104,16 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
+	name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	   cat accel.perf >> $$file ; \
+	fi ; \
+	echo $$file ; \
+	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
