@@ -128,6 +128,43 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
 end subroutine wait_p2p_communication
 
 
+!< Test whether the p2p communication hs completed. This is only called to make
+!< sure that the communications really starts to execute.
+subroutine test_p2p_communication(iproc, nproc, comm)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(p2pComms),intent(inout):: comm
+  
+  ! Local variables
+  logical:: completed
+  integer:: ierr
+  
+  
+  if(.not.comm%communication_complete) then
+
+      if(.not.comm%messages_posted) stop 'ERROR: trying to test for messages which have never been posted!'
+
+      ! Tests the sends.
+      if(comm%nsend>0) then
+          call mpi_testall(comm%nsend, comm%requests(1,1), completed, mpi_statuses_ignore, ierr)
+      end if
+ 
+ 
+      ! Test the receives.
+      if(comm%nrecv>0) then
+          call mpi_testall(comm%nrecv, comm%requests(1,2), completed, mpi_statuses_ignore, ierr)
+      end if
+
+  end if
+
+
+end subroutine test_p2p_communication
+
+
 
 module p2p_tags_data
   use module_base

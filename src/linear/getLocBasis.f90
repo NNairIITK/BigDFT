@@ -100,6 +100,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+  call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
   call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
   tmblarge%lzd%doHamAppl=.true.
@@ -410,8 +411,9 @@ real(8),save:: trH_old
           call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
           call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-          call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,&
-               denspot%pot_work,tmblarge2%comgp)
+          call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
+          !!call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%Lzd,2,denspot%dpbox,denspot%rhov,&
+          !!     denspot%pot_work,tmblarge2%comgp)
       end if
 
       allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
