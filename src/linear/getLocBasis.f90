@@ -496,12 +496,16 @@ endif
 
       ediff=trH-trH_old
       noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. &
-          !(trH-trH_old)/fnrm <0.d0 .and. abs((trH-trH_old)/fnrm)<2.0d-2) then
-          ediff<0.d0 .and. abs(ediff) < noise) then
-          nsatur=nsatur+1
-      else
-          nsatur=0
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
+          if (ediff<0.d0 .and. abs(ediff) < noise) then
+              if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
+              nsatur=nsatur+1
+          else if (abs(ediff) < noise) then
+              if(iproc==0) write(*,'(a)') 'target function increases, but smaller than noise. Consider convergence.'
+              nsatur=tmb%wfnmd%bs%nsatur_inner
+          else
+              nsatur=0
+          end if
       end if
 
 
