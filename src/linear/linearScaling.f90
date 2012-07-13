@@ -174,6 +174,9 @@ real(8),dimension(3,at%nat):: fpulay
 
   nsatur=0
 
+  ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+  ! that the outer part is not modified!
+  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
