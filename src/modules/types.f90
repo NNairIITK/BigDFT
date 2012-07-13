@@ -131,28 +131,27 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItPrecond
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
+    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
+    integer :: nItSCCWhenOptimizing, confPotOrder, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
-    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
-    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
+    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step 
+    real(8):: lowaccuray_converged, convCritMix, decrease_amount, decrease_step 
     real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: useDerivativeBasisFunctions, transformToGlobal, mixedmode
+    logical:: useDerivativeBasisFunctions, mixedmode
     integer:: scf_mode
-    character(len=1):: locregShape
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
@@ -338,11 +337,11 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
+     real(8),dimension(3):: locregCenter !< center of the locreg 
+     real(8):: locrad !< cutoff radius of the localization region
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
-     real(gp),dimension(3):: locregCenter !< center of the locreg 
-     real(gp):: locrad !< cutoff radius of the localization region
   end type locreg_descriptors
 
 !>  Non local pseudopotential descriptors
@@ -768,14 +767,17 @@ end type linear_scaling_control_variables
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
     real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
-    real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
+    !real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
+    !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
+    integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
+    integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
+    real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
   type,public:: basis_performance_options
@@ -791,6 +793,7 @@ end type linear_scaling_control_variables
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
     real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
+    real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients

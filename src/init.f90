@@ -1944,12 +1944,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
       inputpsi == INPUT_PSI_LINEAR_LCAO) then
      tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-     tmb%orthpar%nItOrtho = in%lin%nItOrtho
+     tmb%orthpar%nItOrtho = 1
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
      tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-     tmbder%orthpar%nItOrtho = in%lin%nItOrtho
+     tmbder%orthpar%nItOrtho = 1
      tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
      tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
   end if
@@ -2159,8 +2159,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      call memocc(i_stat, density_kernel, 'density_kernel', subname)
-     call calculate_density_kernel(iproc, nproc, tmb%orbs%norb, KSwfn%orbs%norb, KSwfn%orbs%norbp, KSwfn%orbs%isorb, &
-       tmb%wfnmd%ld_coeff, tmb%wfnmd%coeff, density_kernel)
+     call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+          tmb%wfnmd%coeff, density_kernel)
      call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           tmb%orbs, tmb%comsr, density_kernel, &

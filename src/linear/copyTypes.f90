@@ -1081,12 +1081,12 @@ subroutine copy_basis_specifications(bsin, bsout, subname)
   bsout%use_derivative_basis=bsin%use_derivative_basis
   bsout%communicate_phi_for_lsumrho=bsin%communicate_phi_for_lsumrho
   bsout%conv_crit=bsin%conv_crit
-  bsout%locreg_enlargement=bsin%locreg_enlargement
+  !bsout%locreg_enlargement=bsin%locreg_enlargement
   bsout%target_function=bsin%target_function
   bsout%meth_transform_overlap=bsin%meth_transform_overlap
   bsout%nit_precond=bsin%nit_precond
   bsout%nit_basis_optimization=bsin%nit_basis_optimization
-  bsout%nit_unitary_loop=bsin%nit_unitary_loop
+  !bsout%nit_unitary_loop=bsin%nit_unitary_loop
   bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
   bsout%correction_orthoconstraint=bsin%correction_orthoconstraint
 

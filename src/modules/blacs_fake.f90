@@ -62,3 +62,8 @@ integer function numroc()
   stop 'FAKE NUMROC'
 end function numroc
 
+subroutine pdgesv()
+  implicit none
+  stop 'FAKE PDGESV'
+END SUBROUTINE pdgesv
+
