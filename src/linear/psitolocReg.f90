@@ -98,42 +98,75 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
  logical:: z_inside, y_inside, x_inside
- integer:: iz, iy
+ integer:: iz, iy, m
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
 ! store it in a local region (Lrho).
- indSmall=0
- indSpin=0
- do ispin=1,nspin
-     ! WARNING: I added the factors 2.
-     do ii3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
-         i3 = mod(ii3-1,Glr%d%n3i)+1
-         z_inside = (i3>0 .and. i3<=Glr%d%n3i+1)
-         iz=(i3-1)*Glr%d%n2i*Glr%d%n1i
-         do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
-             i2 = mod(ii2-1,Glr%d%n2i)+1
-             y_inside = (i2>0 .and. i2<=Glr%d%n2i+1)
-             iy=(i2-1)*Glr%d%n1i
-             do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
-                 i1 = mod(ii1-1,Glr%d%n1i)+1 
-                 x_inside = (i1 > 0 .and. i1 <= Glr%d%n1i+1)
-                 ! indSmall is the index in the local localization region
-                 indSmall=indSmall+1
-                 !!if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
-                 !!    i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
-                 !!   ! indLarge is the index in the global localization region. 
-                 !!   indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
-                 if(z_inside .and. y_inside .and. x_inside) then
-                    indLarge=iz+iy+i1
-                    Lrho(indSmall)=rho(indLarge+indSpin)
-                 else
-                    Lrho(indSmall)= 0.0_wp
-                 end if
+
+ if(Glr%geocode == 'F') then
+     ! Use loop unrolling here
+     indSmall=0
+     indSpin=0
+     do ispin=1,nspin
+         ! WARNING: I added the factors 2.
+         do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
+             iz=(i3-1)*Glr%d%n2i*Glr%d%n1i
+             do i2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+                 iy=(i2-1)*Glr%d%n1i
+                 m=mod(Llr%d%n1i+Llr%nsi1-Llr%nsi1,4)
+                 if(m/=0) then
+                     do i1=Llr%nsi1+1,Llr%nsi1+m
+                        indSmall=indSmall+1
+                        indLarge=iz+iy+i1
+                        Lrho(indSmall)=rho(indLarge+indSpin)
+                     end do
+                  end if
+                  do i1=Llr%nsi1+1+m,Llr%d%n1i+Llr%nsi1,4
+                     Lrho(indSmall+1)=rho(iz+iy+i1+0+indSpin)
+                     Lrho(indSmall+2)=rho(iz+iy+i1+1+indSpin)
+                     Lrho(indSmall+3)=rho(iz+iy+i1+2+indSpin)
+                     Lrho(indSmall+4)=rho(iz+iy+i1+3+indSpin)
+                     indSmall=indSmall+4
+                  end do
              end do
          end do
+         indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
      end do
-     indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
- end do
+ else
+     ! General case
+     indSmall=0
+     indSpin=0
+     do ispin=1,nspin
+         ! WARNING: I added the factors 2.
+         do ii3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
+             i3 = mod(ii3-1,Glr%d%n3i)+1
+             z_inside = (i3>0 .and. i3<=Glr%d%n3i+1)
+             iz=(i3-1)*Glr%d%n2i*Glr%d%n1i
+             do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+                 i2 = mod(ii2-1,Glr%d%n2i)+1
+                 y_inside = (i2>0 .and. i2<=Glr%d%n2i+1)
+                 iy=(i2-1)*Glr%d%n1i
+                 do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
+                     i1 = mod(ii1-1,Glr%d%n1i)+1 
+                     x_inside = (i1 > 0 .and. i1 <= Glr%d%n1i+1)
+                     ! indSmall is the index in the local localization region
+                     indSmall=indSmall+1
+                     !!if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     !!    i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
+                     !!   ! indLarge is the index in the global localization region. 
+                     !!   indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+                     if(z_inside .and. y_inside .and. x_inside) then
+                        indLarge=iz+iy+i1
+                        Lrho(indSmall)=rho(indLarge+indSpin)
+                     else
+                        Lrho(indSmall)= 0.0_wp
+                     end if
+                 end do
+             end do
+         end do
+         indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
+     end do
+ end if
 
 END SUBROUTINE global_to_local
 
