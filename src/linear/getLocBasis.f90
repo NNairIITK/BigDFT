@@ -500,7 +500,8 @@ endif
   
 
       ediff=trH-trH_old
-      noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
+      !noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
+      noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
       if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
           if (ediff<0.d0 .and. abs(ediff) < noise) then
               if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
