@@ -714,14 +714,17 @@ void bigdft_signals_free_main(gpointer self)
 #endif
 }
 
-void bigdft_signals_client_free(BigDFT_SignalsClient *client)
-{
-  bigdft_signals_free_main((gpointer)client);
-}
-
 void FC_FUNC_(bigdft_signals_free, BIGDFT_SIGNALS_FREE)(gpointer *self)
 {
   BigDFT_Main *bmain = (BigDFT_Main*)(*self);
 
   bigdft_signals_free_main(bmain);
 }
+
+#ifdef GLIB_MAJOR_VERSION
+void bigdft_signals_client_free(BigDFT_SignalsClient *client)
+{
+  bigdft_signals_free_main((gpointer)client);
+}
+#endif
+
