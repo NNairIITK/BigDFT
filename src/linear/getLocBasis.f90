@@ -81,6 +81,10 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
+  call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+  call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
   allocate(lhphi(max(tmbmix%orbs%npsidim_orbs,tmbmix%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
@@ -93,22 +97,15 @@ real(8),dimension(:,:),allocatable:: locregCenter
 
   !if (tmbmix%orbs%npsidim_orbs > 0) call to_zero(tmbmix%orbs%npsidim_orbs,lhphi(1))
   !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-  call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
 
-  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
   call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmbmix%orbs, tmblarge%orbs, tmbmix%psi, tmblarge%psi)
 
-  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-  call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
   allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
   call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
   tmblarge%lzd%doHamAppl=.true.
   call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
        proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
-
-
-
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
        energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
