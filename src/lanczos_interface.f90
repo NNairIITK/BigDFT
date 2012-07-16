@@ -1650,12 +1650,13 @@ subroutine applyPAWprojectors(orbs,at,&
       &   mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
       &   jseg_c, iproj_old, iorb, ncplx, l, jorb, lsign, ncplx_global
    real(gp) :: eproj_spinor
+   real(gp) :: kx,ky,kz
 
    integer , parameter :: dotbuffersize = 1000
    real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
    integer :: ibuffer, ichannel, nchannels, imatrix
    logical :: lfound_sup
-   integer :: iat, old_istart_c, iatat , kx,ky, kz,m, nspinor
+   integer :: iat, old_istart_c, iatat , m, nspinor
 
    if (orbs%norbp.gt.0) then
 

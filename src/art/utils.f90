@@ -288,7 +288,7 @@ subroutine convert_to_chain( init_number, length, chain )
      end do 
      return
   else
-     decades = log10( 1.0d0 * number) + 1
+     decades = int(log10( 1.0d0 * real(number,kind=8))) + 1
   end if
 
   if ( decades > length ) then   ! WARNING: chain will be is zero. 

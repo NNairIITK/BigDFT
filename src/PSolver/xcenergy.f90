@@ -21,7 +21,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
-  logical :: gox,goy,goz,perx,pery,perz
+  logical :: gox,goy,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
   integer :: i1,i2,i3,j1,j2,j3,ind
@@ -297,7 +297,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   integer :: ndvxc,order
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
-  real(dp), dimension(:), allocatable :: rho_G,work
+  real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
@@ -753,9 +753,9 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:), allocatable :: exci
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rhov,sfactor,t1,t2
+  real(dp) :: elocal,vlocal,rhov,sfactor
   integer :: npts,i_all,offset,i_stat,ispden
-  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2,l
+  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
   !check for the dimensions

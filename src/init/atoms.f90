@@ -1844,11 +1844,12 @@ END SUBROUTINE atoms_copy_psp_data
 subroutine atoms_copy_name(atoms, ityp, name, ln)
   use module_types
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character, intent(out) :: name(20)
+  character(len=1), dimension(20), intent(out) :: name
   integer, intent(out) :: ln
-
+  !Local variables 
   integer :: i
 
   ln=min(len(trim(atoms%atomnames(ityp))),20)

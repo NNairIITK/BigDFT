@@ -382,7 +382,7 @@ subroutine get_solution( maxter, error_vector, solution )
                    ! We find the best size for "work" array.
   allocate(work(100))
   call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,-1,i_err)
-  lwork=work(1)
+  lwork=int(work(1))
   deallocate(work)
   allocate(work(lwork))
   
