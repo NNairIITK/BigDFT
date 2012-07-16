@@ -2530,7 +2530,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall
+  integer:: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m
   real(8),dimension(:),allocatable:: ovrlp_compr
   character(len=*),parameter:: subname='calculate_overlap_transposed'
 
@@ -2543,10 +2543,27 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       ii=collcom%norb_per_gridpoint_c(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
-          do j=1,ii
-              jjorb=collcom%indexrecvorbital_c(i0+j)
-              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
+          m=mod(ii,4)
+          if(m/=0) then
+              do j=1,m
+                  jjorb=collcom%indexrecvorbital_c(i0+j)
+                  ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
+              end do
+          end if
+          do j=m+1,ii,4
+              jjorb=collcom%indexrecvorbital_c(i0+j+0)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+0)
+              jjorb=collcom%indexrecvorbital_c(i0+j+1)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+1)
+              jjorb=collcom%indexrecvorbital_c(i0+j+2)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+2)
+              jjorb=collcom%indexrecvorbital_c(i0+j+3)
+              ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+3)
           end do
+          !!do j=1,ii
+          !!    jjorb=collcom%indexrecvorbital_c(i0+j)
+          !!    ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
+          !!end do
       end do
       i0=i0+ii
   end do
