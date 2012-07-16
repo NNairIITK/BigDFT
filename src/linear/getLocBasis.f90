@@ -550,13 +550,6 @@ endif
               end if
               infoBasisFunctions=-1
           end if
-          !!if(.not.ortho_performed) then
-          !!    !!! Always do this orthonormalization, therefore put 1.d-20 as maxdev_ortho
-          !!    !!call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-          !!    !!     1.d-20, tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-          !!    !!     tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-          !!    !!     tmb%can_use_transposed)
-          !!end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           exit iterLoop
       end if
