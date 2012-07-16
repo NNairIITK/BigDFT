@@ -2,7 +2,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, consecutive_rejections, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp)
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -22,6 +22,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
+  type(energy_terms),intent(in) :: energs
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
@@ -140,10 +141,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       end do
   end if
 
+  ! trH is now the total energy (name is misleading, correct this)
+  if(tmb%orbs%nspin==1) trH=2.d0*trH
+  trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+
+
 
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-      if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
+      if(iproc==0) write(*,*) 'trH, trHold,ldiis%trmin',trH, trHold,ldiis%trmin
       if(trH > ldiis%trmin) then
           consecutive_rejections=consecutive_rejections+1
           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'

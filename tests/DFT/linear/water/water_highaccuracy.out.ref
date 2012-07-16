@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-12 16:51:03.220
+ Timestamp of this run                 :  2012-07-16 15:02:15.850
  Hostname                              : phys-comp-03
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                   Debug option
@@ -115,7 +115,7 @@
  #|O 4 2.0d-2 0.0d0 8.0 9.0  Atom name, number of basis functions per atom, prefactor for con
  #|H 1 3.0d-2 0.0d0 7.0 8.0  Atom name, number of basis functions per atom, prefactor for con
  #|----------------------------------------------------------------------------------
- Data Writing directory                : data-highaccuracy/
+ Data Writing directory                : None
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -282,40 +282,37 @@ V3prb    1.6463E+01
  ****************************** LINEAR SCALING VERSION ******************************
  Changing the confining potential to 100.00% of its initial value.
  calling orthonormalizeLocalized (exact)
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.59112229111E+01 -2.76233370161E+01  1.41553977523E+00 -2.96574329787E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1339661E-01  5.3105397E-01    -0.1482871649  -1.4829E-01   4.9608E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1339661E-01  5.3105397E-01   -14.1447881269  -1.4145E+01   1.1695E-04
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.56993164778E+01 -2.79422923950E+01  1.69694712341E+00 -5.46028793843E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.5821822E-01  2.3190783E-01    -0.2730143969  -1.2473E-01   1.8986E-05
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.5821822E-01  2.3190783E-01   -14.3942425910  -2.4945E-01   4.5549E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.54504878077E+01 -2.76323302967E+01  1.59948013857E+00 -5.82362350410E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  5.9444718E-02  7.8245805E-02    -0.2911811752  -1.8167E-02   7.1334E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  5.9444718E-02  7.8245805E-02   -14.4305761476  -3.6334E-02   1.7156E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.52539057192E+01 -2.74233454135E+01  1.57162337277E+00 -5.97816321572E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  3.9610120E-02  5.2589359E-02    -0.2989081608  -7.7270E-03   4.7532E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  3.9610120E-02  5.2589359E-02   -14.4460301187  -1.5454E-02   1.1444E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.51641416141E+01 -2.73293600987E+01  1.56256259526E+00 -6.02655889318E-01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  3.2719204E-02  3.9947226E-02    -0.3013279447  -2.4198E-03   3.9263E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.2719204E-02  3.9947226E-02   -14.4508696865  -4.8396E-03   9.4564E-06
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.2719204E-02  3.9947226E-02  -0.3013279
+ Final values for fnrm, fnrmMax, trace:   3.2719204E-02  3.9947226E-02 -14.4508697
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -454,7 +451,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -3.013279E-01    3.27E-02
+     Final values: target function, fnrm  -1.445087E+01    3.27E-02
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -462,40 +459,37 @@ done.
    > energy difference to last iteration: -1.690976E+01
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.51641416141E+01 -2.67135922727E+01  1.56256259526E+00  1.31119366743E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  7.4467736E-02  1.0153908E-01     0.0065559683   6.5560E-03   8.9361E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  7.4467736E-02  1.0153908E-01   -14.3584462904  -1.4358E+01   2.1385E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.47127998388E+01 -2.62378090965E+01  1.51684252330E+00 -8.16673442356E-03
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  4.2970859E-02  5.8670213E-02    -0.0040833672  -1.0639E-02   5.1565E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  4.2970859E-02  5.8670213E-02   -14.3797249615  -2.1279E-02   1.2358E-05
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44461146030E+01 -2.59785491790E+01  1.51645218026E+00 -1.59823958135E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4928775E-02  3.0492194E-02    -0.0079911979  -3.9078E-03   2.9915E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4928775E-02  3.0492194E-02   -14.3875406229  -7.8157E-03   7.1733E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42949341786E+01 -2.58220479671E+01  1.50694703458E+00 -2.01667538990E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1537944E-02  2.8081975E-02    -0.0100833769  -2.0922E-03   2.5846E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1537944E-02  2.8081975E-02   -14.3917249810  -4.1844E-03   6.1994E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.57652831398E+01  1.50056693632E+00 -2.18012543478E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  1.2382447E-02  1.6622883E-02    -0.0109006272  -8.1725E-04   1.4859E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.2382447E-02  1.6622883E-02   -14.3933594814  -1.6345E-03   3.5645E-06
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.2382447E-02  1.6622883E-02  -0.0109006
+ Final values for fnrm, fnrmMax, trace:   1.2382447E-02  1.6622883E-02 -14.3933595
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -634,7 +628,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.090063E-02    1.24E-02
+     Final values: target function, fnrm  -1.439336E+01    1.24E-02
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -642,40 +636,37 @@ done.
    > energy difference to last iteration: -5.180888E-02
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.42429149491E+01 -2.58354138654E+01  1.50056693632E+00 -9.19319799594E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  2.8254018E-02  3.5909813E-02    -0.0459659900  -4.5966E-02   3.3905E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.8254018E-02  3.5909813E-02   -14.3855106551  -1.4386E+01   8.1290E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43720867064E+01 -2.59935876090E+01  1.52687871961E+00 -9.46221830606E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7036423E-02  2.1489918E-02    -0.0473110915  -1.3451E-03   2.0444E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7036423E-02  2.1489918E-02   -14.3882008582  -2.6902E-03   4.9025E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44543017417E+01 -2.60733619123E+01  1.52347937256E+00 -9.55807980066E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  9.6062509E-03  1.1255224E-02    -0.0477903990  -4.7931E-04   1.1528E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  9.6062509E-03  1.1255224E-02   -14.3891594731  -9.5861E-04   2.7645E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44824275839E+01 -2.61018705685E+01  1.52367580359E+00 -9.57671809967E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  5.4081042E-03  7.8055570E-03    -0.0478835905  -9.3191E-05   6.4897E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  5.4081042E-03  7.8055570E-03   -14.3893458561  -1.8638E-04   1.5564E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.61002519664E+01  1.52266434636E+00 -9.59475246574E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  3.6646837E-03  4.7499053E-03    -0.0479737623  -9.0172E-05   4.3976E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.6646837E-03  4.7499053E-03   -14.3895261998  -1.8034E-04   1.0547E-06
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.6646837E-03  4.7499053E-03  -0.0479738
+ Final values for fnrm, fnrmMax, trace:   3.6646837E-03  4.7499053E-03 -14.3895262
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -814,7 +805,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -4.797376E-02    3.66E-03
+     Final values: target function, fnrm  -1.438953E+01    3.66E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -822,40 +813,37 @@ done.
    > energy difference to last iteration:  1.194468E-02
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44816400954E+01 -2.60545620544E+01  1.52266434636E+00 -5.02576126588E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  1.0541540E-02  1.3414105E-02    -0.0251288063  -2.5129E-02   1.2650E-06
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.0541540E-02  1.3414105E-02   -14.3853249954  -1.4385E+01   3.0329E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44272299797E+01 -2.59901811362E+01  1.51229819972E+00 -5.06529567377E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  6.0703847E-03  7.7753179E-03    -0.0253264784  -1.9767E-04   7.2845E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  6.0703847E-03  7.7753179E-03   -14.3857203394  -3.9534E-04   1.7465E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923867295E+01 -2.59561961977E+01  1.51302910290E+00 -5.07803653011E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  3.1101073E-03  3.7185676E-03    -0.0253901826  -6.3704E-05   3.7321E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  3.1101073E-03  3.7185676E-03   -14.3858477480  -1.2741E-04   8.9483E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43746361789E+01 -2.59375790943E+01  1.51211689977E+00 -5.08260155767E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1008003E-03  2.7475635E-03    -0.0254130078  -2.2825E-05   2.5210E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.1008003E-03  2.7475635E-03   -14.3858933983  -4.5650E-05   6.0444E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59288844977E+01  1.51145086972E+00 -5.08511015328E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  1.3596131E-03  1.9867021E-03    -0.0254255508  -1.2543E-05   1.6315E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.3596131E-03  1.9867021E-03   -14.3859184842  -2.5086E-05   3.9119E-07
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.3596131E-03  1.9867021E-03  -0.0254256
+ Final values for fnrm, fnrmMax, trace:   1.3596131E-03  1.9867021E-03 -14.3859185
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -994,7 +982,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.542555E-02    1.36E-03
+     Final values: target function, fnrm  -1.438592E+01    1.36E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1002,40 +990,37 @@ done.
    > energy difference to last iteration: -6.056393E-03
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43665825264E+01 -2.59416829664E+01  1.51145086972E+00 -6.36495702855E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1382146E-03  5.2253420E-03    -0.0318247851  -3.1825E-02   4.9659E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  4.1382146E-03  5.2253420E-03   -14.3857226869  -1.4386E+01   1.1906E-06
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43880110767E+01 -2.59671855635E+01  1.51546684409E+00 -6.37076427481E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  2.4147094E-03  3.0154768E-03    -0.0318538214  -2.9036E-05   2.8977E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  2.4147094E-03  3.0154768E-03   -14.3857807593  -5.8072E-05   6.9475E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44015016344E+01 -2.59802376729E+01  1.51501110880E+00 -6.37249297279E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  1.2031541E-03  1.4541837E-03    -0.0318624649  -8.6435E-06   1.4438E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  1.2031541E-03  1.4541837E-03   -14.3857980463  -1.7287E-05   3.4617E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44054145370E+01 -2.59842255436E+01  1.51508345206E+00 -6.37275544996E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  6.1108921E-04  8.9282727E-04    -0.0318637772  -1.3124E-06   7.3331E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  6.1108921E-04  8.9282727E-04   -14.3858006711  -2.6248E-06   1.7582E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59849496438E+01  1.51501684234E+00 -6.37290132296E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3769935E-04  4.9805227E-04    -0.0318645066  -7.2936E-07   4.0524E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3769935E-04  4.9805227E-04   -14.3858021298  -1.4587E-06   9.7162E-08
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.3769935E-04  4.9805227E-04  -0.0318645
+ Final values for fnrm, fnrmMax, trace:   3.3769935E-04  4.9805227E-04 -14.3858021
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1174,7 +1159,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -3.186451E-02    3.38E-04
+     Final values: target function, fnrm  -1.438580E+01    3.38E-04
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1182,40 +1167,37 @@ done.
    > energy difference to last iteration:  2.055892E-03
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.44062037883E+01 -2.59772531326E+01  1.51501684234E+00 -5.60325020316E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  1.4827053E-03  1.9107488E-03    -0.0280162510  -2.8016E-02   1.7792E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.4827053E-03  1.9107488E-03   -14.3849666089  -1.4385E+01   4.2657E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43974569773E+01 -2.59669080512E+01  1.51341049882E+00 -5.60405750476E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  8.5002727E-04  1.1092977E-03    -0.0280202875  -4.0365E-06   1.0200E-07
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  8.5002727E-04  1.1092977E-03   -14.3849746819  -8.0730E-06   2.4455E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43920507354E+01 -2.59616061195E+01  1.51351242565E+00 -5.60429584904E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  4.1691659E-04  5.2364055E-04    -0.0280214792  -1.1917E-06   5.0030E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  4.1691659E-04  5.2364055E-04   -14.3849770653  -2.3834E-06   1.1995E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43896987131E+01 -2.59591187316E+01  1.51337639748E+00 -5.60436210755E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  2.8365484E-04  4.0414359E-04    -0.0280218105  -3.3129E-07   3.4039E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  2.8365484E-04  4.0414359E-04   -14.3849777279  -6.6259E-07   8.1607E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710758E+01 -2.59581462975E+01  1.51333132928E+00 -5.60438924360E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  1.6217060E-04  2.3811341E-04    -0.0280219462  -1.3568E-07   1.9460E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.6217060E-04  2.3811341E-04   -14.3849779993  -2.7136E-07   4.6656E-08
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.6217060E-04  2.3811341E-04  -0.0280219
+ Final values for fnrm, fnrmMax, trace:   1.6217060E-04  2.3811341E-04 -14.3849780
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1354,7 +1336,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.802195E-02    1.62E-04
+     Final values: target function, fnrm  -1.438498E+01    1.62E-04
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1362,40 +1344,37 @@ done.
    > energy difference to last iteration: -8.918510E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43887710758E+01 -2.59608553523E+01  1.51333132928E+00 -5.87529472071E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  5.8018746E-04  7.3319751E-04    -0.0293764736  -2.9376E-02   6.9622E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  5.8018746E-04  7.3319751E-04   -14.3852295084  -1.4385E+01   1.6692E-07
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43921681564E+01 -2.59648632730E+01  1.51394099495E+00 -5.87541217246E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  3.4089419E-04  4.2815526E-04    -0.0293770609  -5.8726E-07   4.0907E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  3.4089419E-04  4.2815526E-04   -14.3852306829  -1.1745E-06   9.8077E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43942056362E+01 -2.59668358229E+01  1.51387573561E+00 -5.87544510534E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  1.7129401E-04  2.1421616E-04    -0.0293772255  -1.6466E-07   2.0555E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  1.7129401E-04  2.1421616E-04   -14.3852310122  -3.2933E-07   4.9282E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43948094078E+01 -2.59674580303E+01  1.51389412435E+00 -5.87544982333E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  7.7768367E-05  1.0481198E-04    -0.0293772491  -2.3590E-08   9.3322E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  7.7768367E-05  1.0481198E-04   -14.3852310594  -4.7180E-08   2.2374E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59675993950E+01  1.51388487851E+00 -5.87545214785E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  4.2035207E-05  5.6822511E-05    -0.0293772607  -1.1623E-08   5.0442E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  4.2035207E-05  5.6822511E-05   -14.3852310827  -2.3246E-08   1.2094E-08
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   4.2035207E-05  5.6822511E-05  -0.0293773
+ Final values for fnrm, fnrmMax, trace:   4.2035207E-05  5.6822511E-05 -14.3852311
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1534,7 +1513,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.937726E-02    4.20E-05
+     Final values: target function, fnrm  -1.438523E+01    4.20E-05
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1542,40 +1521,37 @@ done.
    > energy difference to last iteration:  3.183352E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43949599950E+01 -2.59663208506E+01  1.51388487851E+00 -5.74759771378E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  2.0871729E-04  2.6981349E-04    -0.0287379886  -2.8738E-02   2.5046E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.0871729E-04  2.6981349E-04   -14.3850510817  -1.4385E+01   6.0048E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43936185253E+01 -2.59647376015E+01  1.51364293819E+00 -5.74761379660E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.1929526E-04  1.5656932E-04    -0.0287380690  -8.0414E-08   1.4315E-08
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.1929526E-04  1.5656932E-04   -14.3850512425  -1.6083E-07   3.4321E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43927863587E+01 -2.59639203357E+01  1.51365779302E+00 -5.74761840145E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  5.7905747E-05  7.5812467E-05    -0.0287380920  -2.3024E-08   6.9487E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  5.7905747E-05  7.5812467E-05   -14.3850512886  -4.6049E-08   1.6660E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43924601314E+01 -2.59635747490E+01  1.51363842167E+00 -5.74761959346E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  3.8241457E-05  5.2949561E-05    -0.0287380980  -5.9603E-09   4.5890E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  3.8241457E-05  5.2949561E-05   -14.3850513005  -1.1921E-08   1.1002E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227017E+01 -2.59634326982E+01  1.51363379610E+00 -5.74762003484E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  2.3337813E-05  3.7479811E-05    -0.0287381002  -2.2081E-09   2.8005E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  2.3337813E-05  3.7479811E-05   -14.3850513049  -4.4161E-09   6.7143E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   2.3337813E-05  3.7479811E-05  -0.0287381
+ Final values for fnrm, fnrmMax, trace:   2.3337813E-05  3.7479811E-05 -14.3850513
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1714,7 +1690,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.873810E-02    2.33E-05
+     Final values: target function, fnrm  -1.438505E+01    2.33E-05
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1722,40 +1698,37 @@ done.
    > energy difference to last iteration: -1.310894E-04
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43923227017E+01 -2.59638875397E+01  1.51363379610E+00 -5.79310418908E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  8.2492051E-05  1.0368438E-04    -0.0289655209  -2.8966E-02   9.8990E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  8.2492051E-05  1.0368438E-04   -14.3851113886  -1.4385E+01   2.3733E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928456596E+01 -2.59645011549E+01  1.51372442985E+00 -5.79310653828E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  4.8650103E-05  6.0679170E-05    -0.0289655327  -1.1745E-08   5.8380E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  4.8650103E-05  6.0679170E-05   -14.3851114120  -2.3491E-08   1.3997E-08
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43931598189E+01 -2.59648056006E+01  1.51371470957E+00 -5.79310720983E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4249559E-05  3.0429518E-05    -0.0289655360  -3.3579E-09   2.9099E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  2.4249559E-05  3.0429518E-05   -14.3851114188  -6.7157E-09   6.9767E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932541665E+01 -2.59649031424E+01  1.51371790262E+00 -5.79310732024E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1515867E-05  1.5520156E-05    -0.0289655366  -5.5284E-10   1.3819E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1515867E-05  1.5520156E-05   -14.3851114199  -1.1057E-09   3.3131E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738462E+01 -2.59649215671E+01  1.51371664860E+00 -5.79310723608E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  6.0794007E-06  8.1150164E-06    -0.0289655362   4.2026E-10   7.2953E-10
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  6.0794007E-06  8.1150164E-06   -14.3851114190   8.4052E-10   1.7491E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   6.0794007E-06  8.1150164E-06  -0.0289655
+ Final values for fnrm, fnrmMax, trace:   6.0794007E-06  8.1150164E-06 -14.3851114
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -1894,7 +1867,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.896554E-02    6.08E-06
+     Final values: target function, fnrm  -1.438511E+01    6.08E-06
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -1902,40 +1875,37 @@ done.
    > energy difference to last iteration:  4.740203E-05
  ############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43932738462E+01 -2.59647184908E+01  1.51371664860E+00 -5.77279960088E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  2.9782696E-05  3.8292375E-05    -0.0288639980  -2.8864E-02   3.5739E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  2.9782696E-05  3.8292375E-05   -14.3850782763  -1.4385E+01   8.5685E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930685163E+01 -2.59644767810E+01  1.51368026429E+00 -5.77280003994E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7122106E-05  2.2602071E-05    -0.0288640002  -2.1948E-09   2.0547E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7122106E-05  2.2602071E-05   -14.3850782807  -4.3896E-09   4.9261E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929431790E+01 -2.59643536409E+01  1.51368246019E+00 -5.77280017440E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  8.4502197E-06  1.1087587E-05    -0.0288640009  -6.7244E-10   1.0140E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  8.4502197E-06  1.1087587E-05   -14.3850782820  -1.3449E-09   2.4311E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928923573E+01 -2.59642999892E+01  1.51367963028E+00 -5.77280015823E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  5.5029758E-06  7.8125820E-06    -0.0288640008   8.0678E-11   6.6036E-10
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  5.5029758E-06  7.8125820E-06   -14.3850782819   1.6136E-10   1.5832E-09
  DIIS informations: history length=8, consecutive failures=1, total failures=1
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59642795058E+01  1.51367891585E+00 -5.77280028192E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3898699E-06  5.6627468E-06    -0.0288640014  -6.1870E-10   4.0678E-10
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  3.3898699E-06  5.6627468E-06   -14.3850782831  -1.2374E-09   9.7527E-10
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   3.3898699E-06  5.6627468E-06  -0.0288640
+ Final values for fnrm, fnrmMax, trace:   3.3898699E-06  5.6627468E-06 -14.3850783
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2074,7 +2044,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.886400E-02    3.39E-06
+     Final values: target function, fnrm  -1.438508E+01    3.39E-06
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -2082,26 +2052,23 @@ done.
    > energy difference to last iteration: -1.934935E-05
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 F
- LDIIS%ISX           8
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59643523313E+01  1.51367891585E+00 -5.78008282867E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  1.1811946E-05  1.4798311E-05    -0.0289004141  -2.8900E-02   1.4174E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  1.1811946E-05  1.4798311E-05   -14.3850896566  -1.4385E+01   3.3983E-09
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43929525443E+01 -2.59644458421E+01  1.51369247068E+00 -5.78008271038E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  7.0024608E-06  8.7094680E-06    -0.0289004136   5.9150E-10   8.4030E-10
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  7.0024608E-06  8.7094680E-06   -14.3850896554   1.1830E-09   2.0146E-09
  DIIS informations: history length=8, consecutive failures=1, total failures=1
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43930005196E+01 -2.59644924031E+01  1.51369105651E+00 -5.78008269599E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  3.6255392E-06  4.5199568E-06    -0.0289004135   7.2153E-11   4.3506E-10
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  3.6255392E-06  4.5199568E-06   -14.3850896553   1.4430E-10   1.0431E-09
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  Recover the orbitals from iteration 1 which are the best so far.
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
@@ -2110,16 +2077,17 @@ done.
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928725871E+01 -2.59643523313E+01  1.51367891585E+00 -5.78008282867E-02
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1811946E-05  1.4798311E-05    -0.0289004141  -6.6366E-10   1.4174E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  1.1811946E-05  1.4798311E-05   -14.3850896566  -1.3273E-09   3.3983E-09
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720644E+01 -2.59643521882E+01  1.51367900896E+00 -5.78011148463E-02
- Orthoconstraint...  trH, trHold -2.890055742260089E-002 -2.890041414278793E-002
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -14.3850899431600     
+  -14.3850896566004       -14.3850896566004     
 Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  1.1802783E-05  1.4797210E-05    -0.0289005574  -1.4328E-07   1.4163E-09
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.1802783E-05  1.4797210E-05   -14.3850899432  -2.8656E-07   3.3957E-09
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.1802783E-05  1.4797210E-05  -0.0289006
+ Final values for fnrm, fnrmMax, trace:   1.1802783E-05  1.4797210E-05 -14.3850899
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2258,7 +2226,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.890056E-02    1.18E-05
+     Final values: target function, fnrm  -1.438509E+01    1.18E-05
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -2267,28 +2235,25 @@ done.
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.43928720644E+01 -2.71144394148E+01  1.51367900896E+00 -1.20788834152E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.3275135E-01  1.6255838E-01    -1.3135046805  -1.2846E+00   1.5930E-05
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.3275135E-01  1.6255838E-01   -16.9542978646  -2.5692E+00   4.5014E-05
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.28537951932E+01 -2.56550107901E+01  1.39003144882E+00 -1.41118414808E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  5.9967797E-02  8.7168917E-02    -1.4153217035  -1.0182E-01   7.1961E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  5.9967797E-02  8.7168917E-02   -17.1579319107  -2.0363E-01   2.0578E-05
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795170707E+01 -2.43149613696E+01  1.36985837181E+00 -1.46558592710E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  3.2354613E-02  4.9442407E-02    -1.4442156481  -2.8894E-02   3.8826E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  3.2354613E-02  4.9442407E-02   -17.2157197999  -5.7788E-02   1.1140E-05
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   3.2354613E-02  4.9442407E-02  -1.4442156
+ Final values for fnrm, fnrmMax, ebs:   3.2354613E-02  4.9442407E-02 -17.2157198
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2479,7 +2444,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.444216E+00    3.24E-02
+     Final values: target function, fnrm  -1.721572E+01    3.24E-02
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -2487,28 +2452,25 @@ done.
    > energy difference to last iteration: -1.718284E-01
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.14795170707E+01 -2.66522096793E+01  1.36985837181E+00 -3.80283423684E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  7.4862716E-02  9.2957100E-02    -2.2828071805  -8.6749E-01   8.9835E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  7.4862716E-02  9.2957100E-02   -17.1261188072   3.1813E-02   2.5642E-05
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24573596666E+01 -2.78066364226E+01  1.50320477895E+00 -3.84607197712E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  3.8974576E-02  5.1035902E-02    -2.3040248277  -2.1218E-02   4.6769E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  3.8974576E-02  5.1035902E-02   -17.1685541015  -4.2435E-02   1.3383E-05
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142516541E+01 -2.83762301916E+01  1.50673791692E+00 -3.85524062055E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.9073611E-02  2.7275078E-02    -2.3076938846  -3.6691E-03   2.2888E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.9073611E-02  2.7275078E-02   -17.1758922153  -7.3381E-03   6.5521E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.9073611E-02  2.7275078E-02  -2.3076939
+ Final values for fnrm, fnrmMax, ebs:   1.9073611E-02  2.7275078E-02 -17.1758922
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2699,7 +2661,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.307694E+00    1.91E-02
+     Final values: target function, fnrm  -1.717589E+01    1.91E-02
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -2707,28 +2669,25 @@ done.
    > energy difference to last iteration: -1.932103E-02
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.30142516541E+01 -2.70935794171E+01  1.50673791692E+00 -2.57258984609E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  4.1613820E-02  5.1145527E-02    -1.8411423661   4.6288E-01   4.9937E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  4.1613820E-02  5.1145527E-02   -17.1454446519   2.3109E-02   1.4270E-05
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.23712167781E+01 -2.63859979950E+01  1.42851095296E+00 -2.58627026401E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.9292007E-02  2.5233306E-02    -1.8485704856  -7.4281E-03   2.3150E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.9292007E-02  2.5233306E-02   -17.1603008909  -1.4856E-02   6.6211E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.20372503488E+01 -2.60532086601E+01  1.42818648399E+00 -2.58777182730E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  9.3905169E-03  1.3502057E-02    -1.8496871435  -1.1167E-03   1.1269E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  9.3905169E-03  1.3502057E-02   -17.1625342066  -2.2333E-03   3.2233E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   9.3905169E-03  1.3502057E-02  -1.8496871
+ Final values for fnrm, fnrmMax, ebs:   9.3905169E-03  1.3502057E-02 -17.1625342
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -2919,7 +2878,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.849687E+00    9.39E-03
+     Final values: target function, fnrm  -1.716253E+01    9.39E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -2927,28 +2886,25 @@ done.
    > energy difference to last iteration: -5.567132E-03
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.20372503488E+01 -2.68477266728E+01  1.42818648399E+00 -3.38228983998E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.7436892E-02  3.3824708E-02    -2.1333955624  -2.8483E-01   3.2924E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.7436892E-02  3.3824708E-02   -17.1510134079   9.2875E-03   9.4114E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24544505664E+01 -2.73187769904E+01  1.47493885155E+00 -3.38938757247E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.4413141E-02  1.9502952E-02    -2.1366868400  -3.2913E-03   1.7296E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.4413141E-02  1.9502952E-02   -17.1575959632  -6.5826E-03   4.9459E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.26815700717E+01 -2.75489920230E+01  1.47634279430E+00 -3.39107915708E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  7.0575664E-03  1.0335849E-02    -2.1372467067  -5.5987E-04   8.4691E-07
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  7.0575664E-03  1.0335849E-02   -17.1587156964  -1.1197E-03   2.4220E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   7.0575664E-03  1.0335849E-02  -2.1372467
+ Final values for fnrm, fnrmMax, ebs:   7.0575664E-03  1.0335849E-02 -17.1587157
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3139,7 +3095,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.137247E+00    7.06E-03
+     Final values: target function, fnrm  -1.715872E+01    7.06E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -3147,28 +3103,25 @@ done.
    > energy difference to last iteration: -2.566766E-03
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.26815700717E+01 -2.70073890069E+01  1.47634279430E+00 -2.84947614098E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.7675616E-02  2.1439359E-02    -1.9420917913   1.9460E-01   2.1211E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.7675616E-02  2.1439359E-02   -17.1535807835   4.0152E-03   6.0640E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24094182154E+01 -2.67059745207E+01  1.44481278783E+00 -2.85174351755E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  8.5431633E-03  1.1183219E-02    -1.9434499987  -1.3582E-03   1.0252E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  8.5431633E-03  1.1183219E-02   -17.1562971983  -2.7164E-03   2.9314E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.22653070678E+01 -2.65614748216E+01  1.44433941895E+00 -2.85182833482E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  4.1469847E-03  6.0424553E-03    -1.9436623480  -2.1235E-04   4.9764E-07
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  4.1469847E-03  6.0424553E-03   -17.1567218969  -4.2470E-04   1.4230E-06
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   4.1469847E-03  6.0424553E-03  -1.9436623
+ Final values for fnrm, fnrmMax, ebs:   4.1469847E-03  6.0424553E-03 -17.1567219
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3359,7 +3312,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.943662E+00    4.15E-03
+     Final values: target function, fnrm  -1.715672E+01    4.15E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -3367,28 +3320,25 @@ done.
    > energy difference to last iteration: -1.025794E-03
  #############################################################################################
  Changing the confining potential to 100.00% of its initial value.
- input%lin%DIIS_hist_highaccur,input%lin%DIIS_hist_lowaccur,lscv%lowaccur_conver
- ged           4           8 T
- LDIIS%ISX           4
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.22653070678E+01 -2.69053421058E+01  1.44433941895E+00 -3.19569561904E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.1626358E-02  1.4248073E-02    -2.0666578244  -1.2321E-01   1.3952E-06
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.1626358E-02  1.4248073E-02   -17.1546068407   1.6904E-03   3.9889E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.24432462181E+01 -2.71047435846E+01  1.46437280618E+00 -3.19712456032E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  5.9479412E-03  8.0070024E-03    -2.0672488976  -5.9107E-04   7.1375E-07
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  5.9479412E-03  8.0070024E-03   -17.1557889871  -1.1821E-03   2.0408E-06
  DIIS informations: history length=4, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  2.25388428967E+01 -2.72012681263E+01  1.46487450242E+00 -3.19755072726E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  2.8950063E-03  4.2214930E-03    -2.0673460071  -9.7109E-05   3.4740E-07
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  2.8950063E-03  4.2214930E-03   -17.1559832060  -1.9422E-04   9.9333E-07
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   2.8950063E-03  4.2214930E-03  -2.0673460
+ Final values for fnrm, fnrmMax, ebs:   2.8950063E-03  4.2214930E-03 -17.1559832
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -3579,7 +3529,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -2.067346E+00    2.90E-03
+     Final values: target function, fnrm  -1.715598E+01    2.90E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -3591,13 +3541,6 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999993423962E+00
  ------------------------------------- Building linear combinations... done.
- ---------------------------------------------------------- Gaussian Basis Projection
- Generation of input wavefunction data for atom      O:
- Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}
- done.
- Generation of input wavefunction data for atom      H:
- Electronic configuration: {s: [ 1.00]}
- done.
  ----------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Isolated
@@ -3617,16 +3560,16 @@ done.
  total average noise            :   2.61855236E-02
  clean forces norm (Ha/Bohr): maxval=  2.705396350754E-02  fnrm2=  1.323462721892E-03
  raw forces:                  maxval=  4.716103745093E-02  fnrm2=  2.243857073504E-03
- CPU time/ELAPSED time for root process     0        26.23        26.06
+ CPU time/ELAPSED time for root process     0        25.72        25.49
  Final values of the Forces for each atom
      1      O -1.82168E-02 -1.47670E-02 -1.34908E-02
      2      H  1.83960E-02  3.87971E-03  2.96941E-03
      3      H -1.79180E-04  1.08873E-02  1.05214E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 49479
-   Tot. No. of Deallocations: 49479
+   Tot. No. of Allocations  : 49417
+   Tot. No. of Deallocations: 49417
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 89
-      for the array: ilrtable
+      for the array: pot
       in the routine: full_local_potential

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-13 10:21:28.431
+ Timestamp of this run                 :  2012-07-16 15:09:56.080
  Hostname                              : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                   Debug option
@@ -591,15 +591,15 @@ max deviation from unity, position:  1.005851E-02  12  14
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.54659121269E+02 -1.45702889668E+02  7.25126519948E+00  1.62074968008E+01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     1  4.6616252E-01  5.6888197E-01     8.1037484004   8.1037E+00   4.8481E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     1  4.6616252E-01  5.6888197E-01   -33.3412581931  -3.3341E+01   3.1085E-04
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53815506076E+02 -1.49878583167E+02  9.53583151759E+00  1.34727544265E+01
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.6218298E-01  2.3716625E-01     6.7363772132  -1.3674E+00   1.6867E-04
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.6218298E-01  2.3716625E-01   -36.0760005675  -2.7347E+00   1.1702E-04
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.6218298E-01  2.3716625E-01   6.7363772
+ Final values for fnrm, fnrmMax, trace:   1.6218298E-01  2.3716625E-01 -36.0760006
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -719,7 +719,7 @@ done.
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm   6.736377E+00    1.62E-01
+     Final values: target function, fnrm  -3.607600E+01    1.62E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -731,20 +731,22 @@ done.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53815506076E+02 -1.70847848854E+02  9.53583151759E+00 -7.49651126063E+00
- Orthoconstraint...  trH, trHold  -11.0825900027925       1.000000000000000E+100
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -66.2985403030689     
+  1.000000000000000E+100  1.000000000000000E+100
 Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -11.0825900028  -1.9186E+01   2.2647E-04
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985403031  -3.2957E+01   2.8874E-04
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53903643829E+02 -1.70877695402E+02  9.53074335000E+00 -7.44330822323E+00
- Orthoconstraint...  trH, trHold  -11.0777348262711       -11.0825900027925     
- WARNING: the trace increased by  4.38E-02%.
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -66.2888299500261     
+  -66.2985403030689       -66.2985403030689     
+ WARNING: the trace increased by  1.46E-02%.
  Energy grows in spite of decreased step size, will exit...
 Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.1684066E-01  3.6619106E-01   -11.0777348263   4.8552E-03   2.2551E-04
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.1684066E-01  3.6619106E-01   -66.2888299500   9.7104E-03   2.8748E-04
  WARNING: emergency exit after 2 iterations to keep presumably good TMBs before they deteriorate too much.
- >>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace:   2.1684066E-01  3.6619106E-01 -11.0777348
+ >>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace:   2.1684066E-01  3.6619106E-01 -66.2888300
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  done.
@@ -864,7 +866,7 @@ done.
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.107773E+01    2.17E-01
+     Final values: target function, fnrm  -6.628883E+01    2.17E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
@@ -895,7 +897,7 @@ done.
  total average noise            :   3.11362448E-01
  clean forces norm (Ha/Bohr): maxval=  6.840498355440E-01  fnrm2=  2.852141613338E+00
  raw forces:                  maxval=  7.426966983223E-01  fnrm2=  3.002470660085E+00
- CPU time/ELAPSED time for root process     0        12.02        12.00
+ CPU time/ELAPSED time for root process     0        11.81        11.76
  Final values of the Forces for each atom
      1      C -1.36513E-01 -5.44731E-02 -1.58404E-01
      2      C -2.58441E-01  5.21626E-01  5.18427E-02
@@ -930,8 +932,8 @@ done.
     31      H -1.44862E-01  5.21663E-02 -2.90492E-03
     32      H -9.00715E-02  1.07511E-02  1.16231E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 33896
-   Tot. No. of Deallocations: 33896
+   Tot. No. of Allocations  : 33894
+   Tot. No. of Deallocations: 33894
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 281

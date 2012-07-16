@@ -457,16 +457,16 @@ endif
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
            meanAlpha, emergency_exit, &
            tmb, lhphi, lhphiold, &
-           tmblarge2, lhphilarge2, overlap_calculated, ovrlp)
+           tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base)
 
            if (emergency_exit) then
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
            end if 
 
 
-      ! trH is now the total energy (name is missleading, correct this)
-      if(orbs%nspin==1) trH=2.d0*trH
-      trH=trH-energs_base%eh+energs_base%exc-energs_base%evxc-energs_base%eexctX+energs_base%eion+energs_base%edisp
+      !!!! trH is now the total energy (name is misleading, correct this)
+      !!!if(orbs%nspin==1) trH=2.d0*trH
+      !!!trH=trH-energs_base%eh+energs_base%exc-energs_base%evxc-energs_base%eexctX+energs_base%eion+energs_base%edisp
 
 
       !!!plot gradient

@@ -5590,7 +5590,7 @@ module module_interfaces
                   fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
                   tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge2, overlap_calculated, ovrlp)
+                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs)
          use module_base
          use module_types
          implicit none
@@ -5607,6 +5607,7 @@ module module_interfaces
          real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
+         type(energy_terms),intent(in) :: energs
        end subroutine calculate_energy_and_gradient_linear
 
 
