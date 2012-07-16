@@ -148,6 +148,17 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
 end subroutine denspot_set_history
 
+subroutine denspot_free_history(denspot)
+  use module_types
+  use m_ab6_mixing
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  
+  if (associated(denspot%mix)) then
+     call ab6_mixing_deallocate(denspot%mix)
+     deallocate(denspot%mix)
+  end if
+end subroutine denspot_free_history
 
 subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
      ixc,nspin,geocode,SICapproach,dpbox)
