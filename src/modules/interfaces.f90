@@ -1901,7 +1901,7 @@ module module_interfaces
 
         subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                    infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
-                   tmblarge2, lhphilarge2)
+                   tmblarge2, lhphilarge2, energs_base)
           use module_base
           use module_types
           implicit none
@@ -1920,6 +1920,7 @@ module module_interfaces
           type(SIC_data) :: SIC !<parameters for the SIC methods
           type(DFT_wavefunction),target,intent(inout):: tmblarge2
           real(8),dimension(:),pointer,intent(inout):: lhphilarge2
+          type(energy_terms),intent(inout) :: energs_base
         end subroutine getLocalizedBasis
 
 

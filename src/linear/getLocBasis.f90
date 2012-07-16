@@ -305,7 +305,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, tmb, tmblarge2, lhphilarge2)
+    SIC, tmb, tmblarge2, lhphilarge2, energs_base)
 !
 ! Purpose:
 ! ========
@@ -335,6 +335,7 @@ type(DFT_wavefunction),target,intent(inout):: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout):: tmblarge2
 real(8),dimension(:),pointer,intent(inout):: lhphilarge2
+type(energy_terms),intent(inout) :: energs_base
 
 ! Local variables
 real(8):: trHold, fnrmMax, meanAlpha, gnrm_in, gnrm_out, ediff, noise
@@ -461,6 +462,11 @@ endif
            if (emergency_exit) then
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
            end if 
+
+
+      ! trH is now the total energy (name is missleading, correct this)
+      if(orbs%nspin==1) trH=2.d0*trH
+      trH=trH-energs_base%eh+energs_base%exc-energs_base%evxc-energs_base%eexctX+energs_base%eion+energs_base%edisp
 
 
       !!!plot gradient

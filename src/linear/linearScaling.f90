@@ -374,7 +374,7 @@ real(8),dimension(3,at%nat):: fpulay
               end if
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
+                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
               else
