@@ -1,91 +1,5 @@
-                             TTTT         F       DDDDD    
-                            T    T               D         
-                           T     T        F     D          
-                           T    T         F     D        D 
-                           TTTTT          F     D         D
-                           T    T         F     D         D
-                           T     T        F     D         D
-                           T      T       F     D         D
-                           T     T     FFFF     D         D
-                           T TTTT         F      D        D
-                           T             F        D      D 
-                       TTTTTTTTT    FFFFF          DDDDDD  
-                         gggggg          iiiii    BBBBBBBBB
-                        g      g        i             B    
-                       g        g      i         BBBB B    
-                       g         g     iiii     B     B    
-                       g         g     i       B      B    
-                       g         g     i        B     B    
-                       g         g     i         B    B    
-                       g         g     i          BBBBB    
-                        g        g     i         B    B    
-                                 g     i        B     B    
-                                g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
- ------------------------------------------------------------------------------------
- |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
- ------------------------------------------------------------------------------------
-                                   The Journal of Chemical Physics 129, 014109 (2008)
-
- |... (file:input.perf)...........................................Performance Options
- |debug F                    Debug option
- |fftcache 8192              Cache size for the FFT
- |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
- |blas F                     CUBLAS acceleration
- |projrad  1.50E+01          Radius of the projector as a function of the maxrad
- |exctxpar OP2P              Exact exchange parallelisation scheme
- |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
- |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
- |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
- |ig_tol  1.00E-04           Input guess: Tolerance criterion
- |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |rho_commun DBL             Density communication scheme
- |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
- |tolsym -1.00E+00           Tolerance for symmetry detection
- |signaling F                Expose calculation results on Network
- |signalTimeout 0            Time out on startup for signal connection
- |domain                     Domain to add to the hostname to find the IP
- |verbosity 3                verbosity of the output 0=low, 2=high
- |psp_onfly F                Calculate pseudopotential projectors on the fly
- |... (file:input.dft).....................................DFT Calculation Parameters
- |0.450 0.450 0.450 hhx,hy,hz: grid spacing in the three directions                  
- |6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
- |11             ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
- |0 0.0  0.0 0.0 charge of the system, Electric field (Ex,Ey,Ez)                     
- |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
- |1.E-04         gnrm_cv: convergence criterion gradient                             
- |50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
- |2  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
- |0              dispersion correction potential (values 1,2,3), 0=none              
- |0 0            InputPsiId, output_wf, output_denspot                               
- |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
- |-3 3  0        Davidson subspace dim., # of opt. orbs, # of plotted orbs           
- |T              disable the symmetry detection                                      
- |... (file:input.mix.. not present)...............................Mixing Parameters 
- |0              Mixing parameters                                                   
- |1              Maximum number of diagonalisation iterations                        
- |1.e-4          Stop criterion on the residue of potential or density               
- |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
- |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
- |... (file:input.geopt.. not present)...........................Geometry Parameters 
- |BFGS           Geometry optimisation method                                        
- |1              Maximum number of force evaluations                                 
- |1.0 0.0        fract_fluct,forcemax                                                
- |0.0            random displacement amplitude                                       
- |4.0            Stepsize for the geometry optimisation                              
- |... (file:input.tddft.. not present).............................TD-DFT Parameters 
- |NONE           TDDFT Method                                                        
- |... (file:input.sic.. not present)..................................SIC Parameters 
- |NONE           SIC method: NONE, PZ, NK                                            
- |0.0            SIC downscaling parameter                                           
- |0.0            Reference occupation fref (NK case only)                            
- |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
- |manual         K-point sampling method                                             
- |1              Number of K-points                                                  
- |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
- |----------------------------------------------------------------------------------
- |  Data Writing directory:    not needed
+ <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.00:25:13.947.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -107,574 +21,328 @@
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- DFT parameters:
-   eXchange Correlation:
-     XC ID                             : &ixc  11
-     Name                              : "XC: Perdew, Burke & Ernzerhof"
- Basis set definition:
-   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
-   Coarse and Fine Radii Multipliers   :  [  6.0,  8.0 ]
- Ground State Optimization:
-   Wavefunction:
-     Gradient Norm Threshold           : &gnrm_cv  1.0E-04
-     CG Steps for Preconditioner       :  2
-     DIIS History length               :  6
-     Max. Wfn Iterations               : &itermax  50
-     Max. Subspace Diagonalizations    :  10
-   Density/Potential:
-     Max. Iterations                   :  1
- --- (file: input.dft) --------------------------------------------- Input Parameters
-     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
-   Max. hgrid=  0.450 |  Coarse Wfs.= 6.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
-        XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
- total charge=      0 |                    | CG Prec.Steps=       2 |  CG Steps=  30
-  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
    Geom. Code=    P   |   Box Sizes (Bohr) =  1.02609E+01  1.02609E+01  1.02609E+01
    Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                  (XC: Perdew, Burke & Ernzerhof)
                                                     XC functional provided by ABINIT.
- ------------------------------------------------------------------ System Properties
-  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
-     Si          4      10            1.80603  0.43563  0.93364                   X    
- ------------------------------------ Pseudopotential coefficients (Upper Triangular)
- Atom Name    rloc      C1        C2        C3        C4  
-       Si   0.44000  -6.26929
-     l=0      rl        h1j       h2j       h3j 
-            0.43563   8.95174  -2.70627
-                                3.49378
-     l=1      rl        h1j       h2j       h3j 
-            0.49794   2.43128
- Shifted atomic positions, Atomic Units:                   grid spacing units:
-     1     Si  0.00000E+00  0.00000E+00  0.00000E+00        0.000     0.000     0.000
-     2     Si  5.13043E+00  5.13043E+00  0.00000E+00       12.000    12.000     0.000
-     3     Si  5.13043E+00  0.00000E+00  5.13043E+00       12.000     0.000    12.000
-     4     Si  0.00000E+00  5.13043E+00  5.13043E+00        0.000    12.000    12.000
-     5     Si  2.56521E+00  2.56521E+00  2.56521E+00        6.000     6.000     6.000
-     6     Si  7.69564E+00  7.69564E+00  2.56521E+00       18.000    18.000     6.000
-     7     Si  7.69564E+00  2.56521E+00  7.69564E+00       18.000     6.000    18.000
-     8     Si  2.56521E+00  7.69564E+00  7.69564E+00        6.000    18.000    18.000
-    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4275  0.4275  0.4275
-   Box Sizes=  1.02609E+01  1.02609E+01  1.02609E+01           23        23        23
-       Extremes for the high resolution grid points:         0<23      0<23      0<23
- wavelet localization is OFF
- ------------------------------------------------------------ Poisson Kernel Creation
- Poisson solver for periodic BC, no kernel calculation...done.
- Memory occ. per proc. (Bytes):  Density=442368  Kernel=65000
-                                 Full Grid Arrays=884736
- Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  1 work at 100%
- Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ------------------------------------------------- Wavefunctions Descriptors Creation
- Coarse resolution grid: Number of segments=        576 points=     13824
-   Fine resolution grid: Number of segments=        954 points=     11832
- Total Number of Electrons       32
- Processes from 0 to 1 treat 8 orbitals 
- Total Number of Orbitals        16
- occup(1:16)= 2.0000
- Wavefunctions memory occupation for root MPI process:     5 MB   920 KB   512 B
- ------------------------------------------------------------ PSP Projectors Creation
- Type    Name Number of atoms Number of projectors
-    1      Si               8                    5
-                                            ------
- Total number of projectors =                   40
- Total number of components =              1184160
- Percent of zero components =                   22
  Calculating wavelets expansion of projectors... done.
- ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    8 Number of orbitals=    16 Sim. Box Dimensions=    23   23   23
- Estimation performed for 2 processors.
- Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     0 MB   469 KB
-              Poisson Solver Density (D):     0 MB   432 KB
-     Single Wavefunction for one orbital:     0 MB   756 KB
-    All Wavefunctions for each processor:    17 MB   714 KB
-       Wavefunctions + DIIS per proc (W):    88 MB   496 KB
-     Nonlocal Pseudopotential Arrays (P):     9 MB    36 KB
-    Arrays of full uncompressed grid (U):     0 MB   864 KB
- Estimation of Memory requirements for principal code sections:
-  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~4*U+~ 3*D+K+P 
-         8MB         |       101MB          |      103MB     |           102MB
- The overall memory requirement needed for this calculation is thus: 103 MB
- By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 15 MB
  ion-ion interaction energy -3.44391784683729E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -31.999999999999   0.000E+00
- Poisson Solver:
-   BC                                  : Periodic
-   Dimensions                          :  [  48,  48,  48 ]
-   MPI tasks                           :  2
- Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
- Total No. of Atomic Input Orbitals:  32,  #WARNING:A bigger number of virtual orbitals may be needed for better convergence
- Suggested nvirt:  32, 
- Inputguess Orbitals Repartition: {MPI tasks  0- 1:  16}, 
- Atomic Input Orbital Generation: [
- {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  7.19E-02, 
-             GPU acceleration:  No, Total electronic charge:  31.999999999968, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Energies: {Ekin:  1.12616943616E+01, Epot: -1.77050496694E+01, Enl:  7.95401383374E+00, 
-              EH:  1.76221755481E+00,  EXC: -9.45701258580E+00, EvXC: -1.23056709533E+01}, 
- EKS: -3.18420791297024728E+01, 
- IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
-  #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- Orbitals: [
- {e: -1.872071032998E-01, f:  2.0000}, 
- {e: -3.637525640436E-02, f:  2.0000}, 
- {e: -3.637525640436E-02, f:  2.0000}, 
- {e: -3.637525640436E-02, f:  2.0000}, 
- {e: -3.637525640030E-02, f:  2.0000}, 
- {e: -3.637525640030E-02, f:  2.0000}, 
- {e: -3.637525640030E-02, f:  2.0000}, 
- {e:  1.449535201580E-01, f:  2.0000}, 
- {e:  1.449535201580E-01, f:  2.0000}, 
- {e:  1.449535201580E-01, f:  2.0000}, 
- {e:  1.449535201713E-01, f:  2.0000}, 
- {e:  1.449535201713E-01, f:  2.0000}, 
- {e:  1.449535201713E-01, f:  2.0000}, 
- {e:  2.640466203666E-01, f:  2.0000}, 
- {e:  2.640466203742E-01, f:  2.0000}, 
- {e:  2.640466203742E-01, f:  2.0000}, 
- {e:  3.687744083664E-01, f:  0.0000}, 
- {e:  3.687744083664E-01, f:  0.0000}, 
- {e:  3.687744083916E-01, f:  0.0000}, 
- {e:  3.781545982824E-01, f:  0.0000}, 
- {e:  3.781545982824E-01, f:  0.0000}, 
- {e:  3.781545982824E-01, f:  0.0000}, 
- {e:  3.781545983090E-01, f:  0.0000}, 
- {e:  3.781545983090E-01, f:  0.0000}, 
- {e:  3.781545983090E-01, f:  0.0000}, 
- {e:  3.870661032295E-01, f:  0.0000}, 
- {e:  6.497036829481E-01, f:  0.0000}, 
- {e:  6.497036829481E-01, f:  0.0000}, 
- {e:  6.497036829481E-01, f:  0.0000}, 
- {e:  6.497036829562E-01, f:  0.0000}, 
- {e:  6.497036829562E-01, f:  0.0000}, 
- {e:  6.497036829562E-01, f:  0.0000}], 
- IG wavefunctions defined:  Yes}
- Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization:&itrep0001
-       Wavefunctions Iterations:
-       -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  31.999999999981, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.26840774612E+01, Epot: -1.70950769285E+01, Enl:  7.17396852041E+00, 
-              EH:  2.04468314636E+00,  EXC: -9.58247928911E+00, EvXC: -1.24637977139E+01}, 
- iter:  1, EKS: -3.08395741368807350E+01, gnrm:  1.05E-01, 
- DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 2
- GPU acceleration:  No, Total electronic charge:  31.999999999865, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.32216915972E+01, Epot: -1.67778207471E+01, Enl:  6.41012034264E+00, 
-              EH:  2.39319074711E+00,  EXC: -9.75525502256E+00, EvXC: -1.26797386926E+01}, 
- iter:  2, EKS: -3.10538943527109588E+01, gnrm:  4.84E-02, 
- DIIS weights: [-3.31E-01,  1.33E+00, -5.97E-03], Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 3
- GPU acceleration:  No, Total electronic charge:  31.999999999728, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33235537410E+01, Epot: -1.68241130762E+01, Enl:  6.42635496929E+00, 
-              EH:  2.53874950760E+00,  EXC: -9.81908115745E+00, EvXC: -1.27605553198E+01}, 
- iter:  3, EKS: -3.11106581795085191E+01, gnrm:  2.78E-02, 
- DIIS weights: [-1.76E-02, -3.84E-01,  1.40E+00, -1.39E-03], Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 4
- GPU acceleration:  No, Total electronic charge:  31.999999999728, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33620889860E+01, Epot: -1.67043250640E+01, Enl:  6.26077254797E+00, 
-              EH:  2.55263775710E+00,  EXC: -9.82937030355E+00, EvXC: -1.27737837780E+01}, 
- iter:  4, EKS: -3.11288662810391585E+01, gnrm:  1.44E-02, 
- DIIS weights: [ 7.93E-02, -1.94E-01, -5.48E-01,  1.66E+00, -5.13E-05], 
- Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 5
- GPU acceleration:  No, Total electronic charge:  31.999999999680, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33684777601E+01, Epot: -1.66688473424E+01, Enl:  6.21359526309E+00, 
-              EH:  2.55262810775E+00,  EXC: -9.83031408439E+00, EvXC: -1.27752611342E+01}, 
- iter:  5, EKS: -3.11336338454911399E+01, gnrm:  3.91E-03, 
- DIIS weights: [-3.49E-02,  9.20E-02,  2.30E-01, -8.28E-01,  1.54E+00, -3.23E-06], 
- Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 6
- GPU acceleration:  No, Total electronic charge:  31.999999999691, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33738462114E+01, Epot: -1.66724406607E+01, Enl:  6.21242747897E+00, 
-              EH:  2.55348690616E+00,  EXC: -9.83062237557E+00, EvXC: -1.27756628484E+01}, 
- iter:  6, EKS: -3.11337918720264213E+01, gnrm:  1.12E-03, 
- DIIS weights: [ 7.79E-03, -2.09E-02, -2.22E-02,  1.26E-01, -5.31E-01,  1.44E+00, -2.50E-07], 
- Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 7
- GPU acceleration:  No, Total electronic charge:  31.999999999697, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33742151861E+01, Epot: -1.66763283330E+01, Enl:  6.21600630298E+00, 
-              EH:  2.55352893067E+00,  EXC: -9.83048550691E+00, EvXC: -1.27754960966E+01}, 
- iter:  7, EKS: -3.11338036532175266E+01, gnrm:  3.49E-04, 
- DIIS weights: [-1.11E-03, -9.15E-03,  2.51E-02,  5.78E-02, -5.26E-01,  1.45E+00, -1.38E-08], 
- Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 8
- GPU acceleration:  No, Total electronic charge:  31.999999999696, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33745798076E+01, Epot: -1.66770168189E+01, Enl:  6.21655794196E+00, 
-              EH:  2.55378119135E+00,  EXC: -9.83057389168E+00, EvXC: -1.27756080888E+01}, 
- iter:  8, EKS: -3.11338045319653993E+01, gnrm:  1.05E-04, 
- DIIS weights: [ 8.70E-04, -1.99E-03,  9.99E-04,  2.88E-02, -2.18E-01,  1.19E+00, -1.67E-09], 
- Orthogonalization Method:  0}
-       -  { #---------------------------------------------------------------------- iter: 9
- GPU acceleration:  No, Total electronic charge:  31.999999999697, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, Orthocostraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  1.33745168348E+01, Epot: -1.66769459610E+01, Enl:  6.21654401926E+00, 
-              EH:  2.55377503342E+00,  EXC: -9.83057199798E+00, EvXC: -1.27756060258E+01}, 
- iter:  9, EKS: -3.11338045808025541E+01, gnrm:  5.60E-05, 
- DIIS weights: [ 2.19E-04, -1.53E-03,  2.52E-04,  2.83E-02, -3.63E-01,  1.34E+00, -3.29E-10], 
- Orthogonalization Method:  0}
-       -  &FINAL  { #------------------------------------------------------------- iter: 10
- GPU acceleration:  No, Total electronic charge:  31.999999999697, 
- Poisson Solver: {BC: Periodic, Dimensions:  [  48,  48,  48 ], MPI tasks:  2}, 
- Hamiltonian Applied:  Yes, 
- iter:  10, EKS: -3.11338045857184156E+01, gnrm:  5.60E-05,  #FINAL
- Energies: {Ekin:  1.33744807283E+01, Epot: -1.66768936497E+01, Enl:  6.21651739603E+00, 
-              EH:  2.55376370632E+00,  EXC: -9.83056819547E+00, EvXC: -1.27756013098E+01, 
-            Eion: -3.44391784684E+01}, 
- SCF criterion:  0}
-        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
-       Orbitals: [
- {e: -1.744892221398E-01, f:  2.0000}, 
- {e: -2.142378836209E-02, f:  2.0000}, 
- {e: -2.142378836208E-02, f:  2.0000}, 
- {e: -2.142378836207E-02, f:  2.0000}, 
- {e: -2.142375089349E-02, f:  2.0000}, 
- {e: -2.142375089345E-02, f:  2.0000}, 
- {e: -2.142375089343E-02, f:  2.0000}, 
- {e:  1.598589224006E-01, f:  2.0000}, 
- {e:  1.598589224006E-01, f:  2.0000}, 
- {e:  1.598589224006E-01, f:  2.0000}, 
- {e:  1.598589474659E-01, f:  2.0000}, 
- {e:  1.598589474659E-01, f:  2.0000}, 
- {e:  1.598589474659E-01, f:  2.0000}, 
- {e:  2.669767778673E-01, f:  2.0000}, 
- {e:  2.669768448894E-01, f:  2.0000}, 
- {e:  2.669768448895E-01, f:  2.0000}]
+ iorb,gnrm,ilr           9  7.21409805751175998E-002           1
+  
+ iorb,gnrm,ilr           1  0.14814846052707806                1
+ iorb,gnrm,ilr          10  7.21409805751174193E-002           1
+ iorb,gnrm,ilr           2  0.11235770669665347                1
+ iorb,gnrm,ilr          11  7.21409814124565063E-002           1
+ iorb,gnrm,ilr           3  0.11235770669665127                1
+ iorb,gnrm,ilr          12  7.21409814124565202E-002           1
+ iorb,gnrm,ilr           4  0.11235770669665140                1
+ iorb,gnrm,ilr           5  0.11235770610906833                1
+ iorb,gnrm,ilr          13  7.21409814124562010E-002           1
+ iorb,gnrm,ilr           6  0.11235770610907522                1
+ iorb,gnrm,ilr          14  0.12435984084461349                1
+ iorb,gnrm,ilr           7  0.11235770610907959                1
+ iorb,gnrm,ilr          15  0.12435984039973137                1
+ iorb,gnrm,ilr           8  7.21409805751175720E-002           1
+ iorb,gnrm,ilr          16  0.12435984039973134                1
+  
+ iorb,gnrm,ilr           1  2.33568410715253479E-002           1
+ iorb,gnrm,ilr           9  3.17890201179496998E-002           1
+ iorb,gnrm,ilr           2  3.93109686851191020E-002           1
+ iorb,gnrm,ilr          10  3.17890201179549248E-002           1
+ iorb,gnrm,ilr           3  3.93109686851051340E-002           1
+ iorb,gnrm,ilr          11  3.17888894007364031E-002           1
+ iorb,gnrm,ilr           4  3.93109686850912562E-002           1
+ iorb,gnrm,ilr          12  3.17888894007015838E-002           1
+ iorb,gnrm,ilr           5  3.93109597942729733E-002           1
+ iorb,gnrm,ilr          13  3.17888894007366529E-002           1
+ iorb,gnrm,ilr           6  3.93109597943419042E-002           1
+ iorb,gnrm,ilr          14  8.49957816964395929E-002           1
+ iorb,gnrm,ilr           7  3.93109597943682443E-002           1
+ iorb,gnrm,ilr          15  8.49958840088786693E-002           1
+ iorb,gnrm,ilr           8  3.17890201179544668E-002           1
+ iorb,gnrm,ilr          16  8.49958840088775730E-002           1
+  
+ iorb,gnrm,ilr           1  1.06227248073899223E-002           1
+ iorb,gnrm,ilr           9  1.67128351948391610E-002           1
+ iorb,gnrm,ilr           2  1.74235910622662464E-002           1
+ iorb,gnrm,ilr          10  1.67128351947368123E-002           1
+ iorb,gnrm,ilr           3  1.74235910626330225E-002           1
+ iorb,gnrm,ilr          11  1.67127865172256133E-002           1
+ iorb,gnrm,ilr           4  1.74235910629747699E-002           1
+ iorb,gnrm,ilr          12  1.67127865173173178E-002           1
+ iorb,gnrm,ilr           5  1.74236996733597924E-002           1
+ iorb,gnrm,ilr          13  1.67127865172244303E-002           1
+ iorb,gnrm,ilr           6  1.74236996718017192E-002           1
+ iorb,gnrm,ilr          14  5.41351823792220674E-002           1
+ iorb,gnrm,ilr           7  1.74236996702706072E-002           1
+ iorb,gnrm,ilr          15  5.41351957173965767E-002           1
+ iorb,gnrm,ilr           8  1.67128351947461971E-002           1
+ iorb,gnrm,ilr          16  5.41351957173413431E-002           1
+  
+ iorb,gnrm,ilr           1  4.93897015649179261E-003           1
+ iorb,gnrm,ilr           9  8.56988983616916757E-003           1
+ iorb,gnrm,ilr           2  7.18867484098587896E-003           1
+ iorb,gnrm,ilr          10  8.56988983611426530E-003           1
+ iorb,gnrm,ilr           3  7.18867484139801716E-003           1
+ iorb,gnrm,ilr          11  8.56988846722680185E-003           1
+ iorb,gnrm,ilr           4  7.18867484191584166E-003           1
+ iorb,gnrm,ilr          12  8.56988846727235916E-003           1
+ iorb,gnrm,ilr           5  7.18881473439807617E-003           1
+ iorb,gnrm,ilr          13  8.56988846722944557E-003           1
+ iorb,gnrm,ilr           6  7.18881473196037509E-003           1
+ iorb,gnrm,ilr          14  2.90287945739269165E-002           1
+ iorb,gnrm,ilr           7  7.18881472976118895E-003           1
+ iorb,gnrm,ilr          15  2.90289085182506290E-002           1
+ iorb,gnrm,ilr           8  8.56988983612559478E-003           1
+ iorb,gnrm,ilr          16  2.90289085181650898E-002           1
+  
+ iorb,gnrm,ilr           1  1.94917234975823853E-003           1
+ iorb,gnrm,ilr           9  2.67434450134432277E-003           1
+ iorb,gnrm,ilr           2  2.77544917639552247E-003           1
+ iorb,gnrm,ilr          10  2.67434450045475613E-003           1
+ iorb,gnrm,ilr           3  2.77544917635669675E-003           1
+ iorb,gnrm,ilr          11  2.67446432900509019E-003           1
+ iorb,gnrm,ilr           4  2.77544917590347856E-003           1
+ iorb,gnrm,ilr          12  2.67446432989341823E-003           1
+ iorb,gnrm,ilr           5  2.77524714525574081E-003           1
+ iorb,gnrm,ilr          13  2.67446432901484411E-003           1
+ iorb,gnrm,ilr           6  2.77524714728566392E-003           1
+ iorb,gnrm,ilr          14  7.11842184894921973E-003           1
+ iorb,gnrm,ilr           7  2.77524714930025684E-003           1
+ iorb,gnrm,ilr           8  2.67434450050841850E-003           1
+ iorb,gnrm,ilr          15  7.11830830366499794E-003           1
+ iorb,gnrm,ilr          16  7.11830830344132963E-003           1
+  
+ iorb,gnrm,ilr           1  5.50075224512456390E-004           1
+ iorb,gnrm,ilr           9  8.20339675829334452E-004           1
+ iorb,gnrm,ilr           2  1.25576618440466576E-003           1
+ iorb,gnrm,ilr          10  8.20339675188466342E-004           1
+ iorb,gnrm,ilr           3  1.25576618609736447E-003           1
+ iorb,gnrm,ilr          11  8.20553806308245014E-004           1
+ iorb,gnrm,ilr          12  8.20553806736230135E-004           1
+ iorb,gnrm,ilr           4  1.25576618811215298E-003           1
+ iorb,gnrm,ilr          13  8.20553806349553659E-004           1
+ iorb,gnrm,ilr           5  1.25649299992426394E-003           1
+ iorb,gnrm,ilr          14  1.45535958212021058E-003           1
+ iorb,gnrm,ilr           6  1.25649299084400787E-003           1
+ iorb,gnrm,ilr          15  1.45479093732473245E-003           1
+ iorb,gnrm,ilr           7  1.25649298249235842E-003           1
+ iorb,gnrm,ilr          16  1.45479093682100084E-003           1
+ iorb,gnrm,ilr           8  8.20339675296757865E-004           1
+ iorb,gnrm,ilr           9  1.67565898018091203E-004           1
+  
+ iorb,gnrm,ilr           1  1.00221719726207060E-004           1
+ iorb,gnrm,ilr          10  1.67565894564549036E-004           1
+ iorb,gnrm,ilr           2  5.03096686738748735E-004           1
+ iorb,gnrm,ilr          11  1.66934507732486925E-004           1
+ iorb,gnrm,ilr           3  5.03096686549086214E-004           1
+ iorb,gnrm,ilr          12  1.66934509347511174E-004           1
+ iorb,gnrm,ilr           4  5.03096686108695109E-004           1
+ iorb,gnrm,ilr          13  1.66934508025606891E-004           1
+ iorb,gnrm,ilr           5  5.03801804993203291E-004           1
+ iorb,gnrm,ilr          14  2.88209019658042709E-004           1
+ iorb,gnrm,ilr           6  5.03801806830043324E-004           1
+ iorb,gnrm,ilr          15  2.88736143519498364E-004           1
+ iorb,gnrm,ilr           7  5.03801808832713381E-004           1
+ iorb,gnrm,ilr          16  2.88736140821488851E-004           1
+ iorb,gnrm,ilr           8  1.67565895239642454E-004           1
+ iorb,gnrm,ilr           9  5.82042594804705376E-005           1
+  
+ iorb,gnrm,ilr           1  7.03355537546765093E-005           1
+ iorb,gnrm,ilr          10  5.82042543815144902E-005           1
+ iorb,gnrm,ilr           2  1.24107466769789903E-004           1
+ iorb,gnrm,ilr          11  5.74143518914928762E-005           1
+ iorb,gnrm,ilr           3  1.24107464841896050E-004           1
+ iorb,gnrm,ilr          12  5.74143699377218771E-005           1
+ iorb,gnrm,ilr           4  1.24107458805666944E-004           1
+ iorb,gnrm,ilr          13  5.74143410585015323E-005           1
+ iorb,gnrm,ilr           5  1.24627306928348823E-004           1
+ iorb,gnrm,ilr          14  1.39061888106062137E-004           1
+ iorb,gnrm,ilr           6  1.24627321246782469E-004           1
+ iorb,gnrm,ilr          15  1.39618602498914709E-004           1
+ iorb,gnrm,ilr           7  1.24627336946482852E-004           1
+ iorb,gnrm,ilr           8  5.82042527263029117E-005           1
+ iorb,gnrm,ilr          16  1.39618593708008392E-004           1
+  
+ iorb,gnrm,ilr           1  3.49763096691485986E-005           1
+ iorb,gnrm,ilr           9  5.49504205463289560E-005           1
+ iorb,gnrm,ilr           2  4.74049883279313922E-005           1
+ iorb,gnrm,ilr          10  5.49504060203881488E-005           1
+ iorb,gnrm,ilr           3  4.74050014739508147E-005           1
+ iorb,gnrm,ilr          11  5.52280129357583135E-005           1
+ iorb,gnrm,ilr           4  4.74050200275648160E-005           1
+ iorb,gnrm,ilr          12  5.52280347266692742E-005           1
+ iorb,gnrm,ilr           5  4.97233035872955866E-005           1
+ iorb,gnrm,ilr          13  5.52280058725128579E-005           1
+ iorb,gnrm,ilr           6  4.97232367581404414E-005           1
+ iorb,gnrm,ilr          14  7.46336941518797365E-005           1
+ iorb,gnrm,ilr           7  4.97231847495703088E-005           1
+ iorb,gnrm,ilr          15  7.41676133513225410E-005           1
+ iorb,gnrm,ilr           8  5.49504064074667897E-005           1
+ iorb,gnrm,ilr          16  7.41675895335072537E-005           1
  ----------------------------------------------------------------- Forces Calculation
- GPU acceleration                      :  No
- Total electronic charge               :  31.999999999697
- Poisson Solver:
-   BC                                  : Periodic
-   Dimensions                          :  [  48,  48,  48 ]
-   MPI tasks                           :  2
- ------------------------------------------------------------- Electric Dipole Moment
-  |P| =   6.578607E+01 (AU)       (Px,Py,Pz)=   -3.7982E+01  -3.7982E+01  -3.7982E+01
-  |P| =   1.672115E+02 (Debye)    (Px,Py,Pz)=   -9.6540E+01  -9.6540E+01  -9.6540E+01
  Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate nonlocal forces... Calculating wavelets expansion of projectors... done.
- done.
- average noise along x direction:   2.86505489E-06
- average noise along y direction:   2.86505227E-06
- average noise along z direction:   2.86505391E-06
- total average noise            :   4.96241855E-06
- clean forces norm (Ha/Bohr): maxval=  4.474149368767E-06  fnrm2=  8.379840585291E-11
- Stress Tensor, Ewald contribution (Ha/Bohr^3):
-                   x                   y                   z
- x         1.114471283469E-02 -4.043787514409E-19 -3.770533623490E-19
- y                             1.114471283469E-02 -5.209496544659E-19
- z                                                 1.114471283469E-02
- Stress Tensor, Hartree contribution (Ha/Bohr^3):
-                   x                   y                   z
- x        -7.879686797675E-04  2.945161566964E-10  2.945159427689E-10
- y                            -7.879686797675E-04  2.945162778644E-10
- z                                                -7.879686797675E-04
- Stress Tensor, XC contribution (Ha/Bohr^3):
-                   x                   y                   z
- x         2.796292661180E-03  1.197324046515E-12  1.197320464338E-12
- y                             2.796292661180E-03  1.197325275185E-12
- z                                                 2.796292661180E-03
- Stress Tensor, PSP Short Range contribution (Ha/Bohr^3):
-                   x                   y                   z
- x         4.470604021427E-04  3.475920832482E-10  3.475919285650E-10
- y                             4.470604021429E-04  3.475922363789E-10
- z                                                 4.470604021428E-04
- Stress Tensor, PSP Projectors contribution (Ha/Bohr^3):
-                   x                   y                   z
- x        -8.774327097548E-03 -3.055635243069E-09 -3.055633761507E-09
- y                            -8.774327097548E-03 -3.055636411392E-09
- z                                                -8.774327097548E-03
- Stress Tensor, Kinetic contribution (Ha/Bohr^3):
-                   x                   y                   z
- x        -8.253443256876E-03  0.000000000000E+00  0.000000000000E+00
- y                            -8.253443256876E-03  0.000000000000E+00
- z                                                -8.253443256876E-03
- Stress Tensor, PSP Long Range contribution (Ha/Bohr^3):
-                   x                   y                   z
- x         3.071753897542E-03 -1.741004023267E-09 -1.741003343418E-09
- y                             3.071753897542E-03 -1.741004723607E-09
- z                                                 3.071753897542E-03
- Stress Tensor, Total contribution (Ha/Bohr^3):
-                   x                   y                   z
- x        -3.559192386386E-04 -4.153333702749E-09 -4.153331913503E-09
- y                            -3.559192386384E-04 -4.153335296001E-09
- z                                                -3.559192386385E-04
- Pressure: -3.55919238638510E-04 ( -1.047150E+01 GPa), P V: -3.84504975669181E-01
+ Calculating wavelets expansion of projectors... done.
+ average noise along x direction:   2.86505460E-06
+ average noise along y direction:   2.86505202E-06
+ average noise along z direction:   2.86505450E-06
+ total average noise            :   4.96241858E-06
+ clean forces norm (Ha/Bohr): maxval=  4.474149712126E-06  fnrm2=  8.379840589391E-11
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals (Direct Minimization).
  Generation of input wavefunction data for atom     Si:
- Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
  done.
- Wavelet conversion succeeded          :  Yes
- Deviation from normalization          :  8.74E+00
  Orthogonality to occupied psi... done.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 1
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  3.08329725171E+01, Epot: -1.74578702012E+00, Enl:  9.87424606061E-01}
- iter                                  :  1
- EKS                                   :  3.00746101030782356E+01
- gnrm                                  :  2.01E+01
- DIIS weights: [ 1.00E+00,  1.00E+00]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3   8.7092498487986134                1
+  
+ iorb,gnrm,ilr           1   24.670890427565883                1
+ iorb,gnrm,ilr           2   22.862403870737214                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 2
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.64180270691E+00, Epot: -8.37780407031E-01, Enl:  5.07777349720E-01}
- iter                                  :  2
- EKS                                   :  1.31179964959866835E+00
- gnrm                                  :  7.26E-01
- DIIS weights: [-5.64E-03,  1.01E+00, -1.41E-01]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  0.23464482645337073                1
+  
+ iorb,gnrm,ilr           1  0.49129024642233821                1
+ iorb,gnrm,ilr           2   1.1339358512199047                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 3
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.47631023369E+00, Epot: -7.88874511668E-01, Enl:  3.76561985649E-01}
- iter                                  :  3
- EKS                                   :  1.06399770766763124E+00
- gnrm                                  :  1.61E-01
- DIIS weights: [ 3.88E-03, -2.95E-01,  1.29E+00, -3.80E-02]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  0.13683138736601630                1
+  
+ iorb,gnrm,ilr           1  0.15935462861831340                1
+ iorb,gnrm,ilr           2  0.18221643808401572                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 4
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.47764488125E+00, Epot: -8.57197044851E-01, Enl:  3.59323937029E-01}
- iter                                  :  4
- EKS                                   :  9.79771773427548176E-01
- gnrm                                  :  1.00E-01
- DIIS weights: [ 4.16E-03, -1.43E-01, -6.31E-01,  1.77E+00, -1.09E-02]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  8.55847157024738209E-002           1
+  
+ iorb,gnrm,ilr           1  9.29374949092652419E-002           1
+ iorb,gnrm,ilr           2  0.11875856565092856                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 5
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.51187982413E+00, Epot: -9.33788210679E-01, Enl:  3.53644546324E-01}
- iter                                  :  5
- EKS                                   :  9.31736159777664441E-01
- gnrm                                  :  6.24E-02
- DIIS weights: [-3.89E-04,  2.50E-02,  1.87E-01, -7.29E-01,  1.52E+00, -3.18E-03]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  4.94921002076715438E-002           1
+  
+ iorb,gnrm,ilr           1  4.68778613000878017E-002           1
+ iorb,gnrm,ilr           2  8.39444816634773161E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 6
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.50746247751E+00, Epot: -9.36645366826E-01, Enl:  3.48962909344E-01}
- iter                                  :  6
- EKS                                   :  9.19780020025565581E-01
- gnrm                                  :  3.08E-02
- DIIS weights: [ 3.65E-04, -2.25E-02, -1.44E-03,  1.42E-01, -5.98E-01,  1.48E+00, -2.65E-03]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.70353427782054573E-002           1
+  
+ iorb,gnrm,ilr           1  2.69941415804888611E-002           1
+ iorb,gnrm,ilr           2  2.73585564627844627E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 7
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.48973077441E+00, Epot: -9.19147860924E-01, Enl:  3.42471174142E-01}
- iter                                  :  7
- EKS                                   :  9.13054087627526267E-01
- gnrm                                  :  2.60E-02
- DIIS weights: [ 3.54E-04,  6.59E-02, -1.96E-01,  5.79E-01, -1.18E+00,  1.73E+00, -2.56E-03]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.39695358309311107E-002           1
+  
+ iorb,gnrm,ilr           1  1.93100581962069445E-002           1
+ iorb,gnrm,ilr           2  2.23885154101764912E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 8
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.47004563901E+00, Epot: -8.99986602628E-01, Enl:  3.37170190298E-01}
- iter                                  :  8
- EKS                                   :  9.07229226678196055E-01
- gnrm                                  :  2.49E-02
- DIIS weights: [ 1.10E-01, -2.71E-01,  1.48E-01,  1.10E+00, -3.38E+00,  3.30E+00, -2.37E-03]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.36125875242448760E-002           1
+  
+ iorb,gnrm,ilr           1  1.66885708101029671E-002           1
+ iorb,gnrm,ilr           2  2.11116882323136197E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 9
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.43884922751E+00, Epot: -8.71538625414E-01, Enl:  3.29244985320E-01}
- iter                                  :  9
- EKS                                   :  8.96555587420259203E-01
- gnrm                                  :  2.39E-02
- DIIS weights: [ 2.39E-01, -1.66E+00,  3.11E+00,  3.78E+00, -1.05E+01,  6.06E+00, -1.31E-03]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.27564973196940584E-002           1
+  
+ iorb,gnrm,ilr           1  1.42968408916777194E-002           1
+ iorb,gnrm,ilr           2  2.09035574072216450E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 10
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.39838964560E+00, Epot: -8.42293580629E-01, Enl:  3.21225911654E-01}
- iter                                  :  10
- EKS                                   :  8.77321976625905831E-01
- gnrm                                  :  2.05E-02
- DIIS weights: [ 1.00E+00, -3.47E+00,  1.98E+00,  3.34E+00, -4.30E+00,  2.45E+00, -3.35E-04]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  2.59226278629889409E-002           1
+  
+ iorb,gnrm,ilr           1  1.46422374820240290E-002           1
+ iorb,gnrm,ilr           2  1.94054918813776935E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 11
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.38040804802E+00, Epot: -8.27112277579E-01, Enl:  3.16883949959E-01}
- iter                                  :  11
- EKS                                   :  8.70179720397351253E-01
- gnrm                                  :  1.19E-02
- DIIS weights: [-1.04E-01, -1.14E-01,  5.29E-01, -3.42E-01, -5.22E-01,  1.55E+00, -1.20E-04]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  1.25815414261158196E-002           1
+  
+ iorb,gnrm,ilr           1  1.06777259058699146E-002           1
+ iorb,gnrm,ilr           2  1.23582810623019245E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 12
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37730922715E+00, Epot: -8.24168377111E-01, Enl:  3.15558929527E-01}
- iter                                  :  12
- EKS                                   :  8.68699779562962848E-01
- gnrm                                  :  7.15E-03
- DIIS weights: [ 2.05E-01, -9.70E-01,  8.44E-01,  3.94E-01, -1.74E+00,  2.27E+00, -1.71E-05]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  7.27370774879573800E-003           1
+  
+ iorb,gnrm,ilr           1  6.86949938787380626E-003           1
+ iorb,gnrm,ilr           2  7.30012726934428733E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 13
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37535692448E+00, Epot: -8.20896017901E-01, Enl:  3.14212644860E-01}
- iter                                  :  13
- EKS                                   :  8.68673551436953018E-01
- gnrm                                  :  3.59E-03
- DIIS weights: [-3.81E-01,  3.99E-01,  2.48E-01, -6.51E-01,  8.13E-01,  5.72E-01, -1.26E-05]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  5.12032353664052756E-003           1
+  
+ iorb,gnrm,ilr           1  2.46179513423636304E-003           1
+ iorb,gnrm,ilr           2  2.51776182135067658E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 14
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37453478754E+00, Epot: -8.20019711986E-01, Enl:  3.14042095382E-01}
- iter                                  :  14
- EKS                                   :  8.68557170935060352E-01
- gnrm                                  :  2.67E-03
- DIIS weights: [ 7.22E-02,  1.15E-02, -6.94E-01,  9.49E-01, -3.73E+00,  4.39E+00, -7.31E-06]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.71581971463841917E-003           1
+  
+ iorb,gnrm,ilr           1  2.03884186814003599E-003           1
+ iorb,gnrm,ilr           2  1.83279092667361821E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 15
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37299993050E+00, Epot: -8.18201250119E-01, Enl:  3.13628370155E-01}
- iter                                  :  15
- EKS                                   :  8.68427050532114109E-01
- gnrm                                  :  1.60E-03
- DIIS weights: [ 2.52E-02, -1.34E-01,  9.05E-02,  7.67E-01, -8.52E-01,  1.10E+00, -5.19E-06]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  1.00667275854275933E-003           1
+  
+ iorb,gnrm,ilr           1  1.70897960776933530E-003           1
+ iorb,gnrm,ilr           2  1.93640852116699837E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 16
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37341007235E+00, Epot: -8.18633715240E-01, Enl:  3.13624027582E-01}
- iter                                  :  16
- EKS                                   :  8.68400384695745098E-01
- gnrm                                  :  1.26E-03
- DIIS weights: [ 2.05E-01, -2.29E-01, -6.01E-01,  5.49E-01, -2.11E+00,  3.19E+00, -3.06E-06]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  1.14517536849834491E-003           1
+  
+ iorb,gnrm,ilr           1  1.37915979534760529E-003           1
+ iorb,gnrm,ilr           2  1.23624825577546191E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 17
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37364809639E+00, Epot: -8.18898216387E-01, Enl:  3.13628226571E-01}
- iter                                  :  17
- EKS                                   :  8.68378106573206132E-01
- gnrm                                  :  9.15E-04
- DIIS weights: [ 5.70E-02, -3.84E-01,  5.22E-01, -3.35E-01, -1.16E+00,  2.30E+00, -1.11E-06]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  7.23107036708352572E-004           1
+  
+ iorb,gnrm,ilr           1  9.92621547808033482E-004           1
+ iorb,gnrm,ilr           2  1.00047363169767441E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 18
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37399721500E+00, Epot: -8.19337060559E-01, Enl:  3.13701695840E-01}
- iter                                  :  18
- EKS                                   :  8.68361850285016335E-01
- gnrm                                  :  6.45E-04
- DIIS weights: [-3.14E-03,  5.85E-02,  1.71E-01,  2.50E-01, -1.30E+00,  1.82E+00, -4.14E-07]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  5.79239114422527065E-004           1
+  
+ iorb,gnrm,ilr           1  6.61906383338689975E-004           1
+ iorb,gnrm,ilr           2  6.89873850244901205E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 19
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37390875987E+00, Epot: -8.19300486419E-01, Enl:  3.13750198231E-01}
- iter                                  :  19
- EKS                                   :  8.68358471682503241E-01
- gnrm                                  :  4.15E-04
- DIIS weights: [-7.23E-02, -3.08E-01,  3.12E-01,  4.29E-01, -1.25E+00,  1.89E+00, -1.46E-07]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  3.88933108035572836E-004           1
+  
+ iorb,gnrm,ilr           1  4.60441991516386646E-004           1
+ iorb,gnrm,ilr           2  3.92122276334627609E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 20
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37374849125E+00, Epot: -8.19101571261E-01, Enl:  3.13710420837E-01}
- iter                                  :  20
- EKS                                   :  8.68357340826666713E-01
- gnrm                                  :  2.44E-04
- DIIS weights: [ 4.64E-02, -3.15E-01,  5.25E-01, -2.45E-01, -6.57E-01,  1.65E+00, -8.73E-08]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  2.07772841860978473E-004           1
+  
+ iorb,gnrm,ilr           1  3.16879600744819721E-004           1
+ iorb,gnrm,ilr           2  1.87682928069421114E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 21
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37362925888E+00, Epot: -8.18950662732E-01, Enl:  3.13678330920E-01}
- iter                                  :  21
- EKS                                   :  8.68356927070914386E-01
- gnrm                                  :  1.93E-04
- DIIS weights: [ 4.12E-01, -7.88E-01,  4.12E-01,  8.19E-01, -3.49E+00,  3.64E+00, -3.33E-08]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  1.68640250380768241E-004           1
+  
+ iorb,gnrm,ilr           1  2.52368945210024339E-004           1
+ iorb,gnrm,ilr           2  1.40561516421155498E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 22
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37356004714E+00, Epot: -8.18870822508E-01, Enl:  3.13667222597E-01}
- iter                                  :  22
- EKS                                   :  8.68356447232558004E-01
- gnrm                                  :  1.25E-04
- DIIS weights: [-2.04E-02,  1.89E-01, -6.37E-01,  1.80E+00, -2.39E+00,  2.06E+00, -8.75E-09]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  1.35900093211119456E-004           1
+  
+ iorb,gnrm,ilr           1  1.32634268111050496E-004           1
+ iorb,gnrm,ilr           2  1.04505671681562871E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 23
- Orthocostraint                        :  Yes
- Preconditioning                       :  Yes
- Energies: {Ekin:  1.37362027820E+00, Epot: -8.18954928655E-01, Enl:  3.13690968310E-01}
- iter                                  :  23
- EKS                                   :  8.68356317857109317E-01
- gnrm                                  :  6.21E-05
- DIIS weights: [ 4.08E-02, -1.17E-01,  2.60E-02,  2.24E-01, -7.59E-01,  1.59E+00, -1.51E-09]
- Orthogonalization Method              :  0
+ iorb,gnrm,ilr           3  7.63872828173842839E-005           1
+  
+ iorb,gnrm,ilr           1  4.80892227557883089E-005           1
+ iorb,gnrm,ilr           2  5.84000650880690456E-005           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 24
  done. 24 minimization iterations required
  ------------------------------------------- End of Virtual Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.37365489710E+00 -8.18995069575E-01  3.13696465621E-01
- FINAL iter,total "energy",gnrm    24   8.68356293146574254E-01  6.21E-05
- WARNING!! HLgap is negative, convergence problem?
+ final  ekin,  epot,  eproj   1.37365489710E+00 -8.18995069574E-01  3.13696465619E-01
+ FINAL iter,total "energy",gnrm    24   8.68356293146583025E-01  6.21E-05
  Complete list of energy eigenvalues
- e_occupied(   1)= -1.74489222139784E-01
- e_occupied(   2)= -2.14237883620856E-02
- e_occupied(   3)= -2.14237883620777E-02
- e_occupied(   4)= -2.14237883620675E-02
- e_occupied(   5)= -2.14237508934882E-02
- e_occupied(   6)= -2.14237508934463E-02
- e_occupied(   7)= -2.14237508934306E-02
- e_occupied(   8)=  1.59858922400577E-01
- e_occupied(   9)=  1.59858922400588E-01
- e_occupied(  10)=  1.59858922400604E-01
- e_occupied(  11)=  1.59858947465867E-01
- e_occupied(  12)=  1.59858947465880E-01
- e_occupied(  13)=  1.59858947465888E-01
- e_occupied(  14)=  2.66976777867252E-01
- e_occupied(  15)=  2.66976844889441E-01
- e_occupied(  16)=  2.66976844889462E-01
- HOMO LUMO gap   = 2.24752425054209E-02 (  0.6116 eV)
- e_virtual(   1)=  2.89452087394883E-01
- e_virtual(   2)=  2.89452101681116E-01
- e_virtual(   3)=  2.89452104070576E-01
- CPU time/ELAPSED time for root process     0        28.13        52.13
+ e_occupied(   1)= -1.74489222139785E-01
+ e_occupied(   2)= -2.14237883621037E-02
+ e_occupied(   3)= -2.14237883620851E-02
+ e_occupied(   4)= -2.14237883620447E-02
+ e_occupied(   5)= -2.14237508935434E-02
+ e_occupied(   6)= -2.14237508934636E-02
+ e_occupied(   7)= -2.14237508933594E-02
+ e_occupied(   8)=  1.59858922400548E-01
+ e_occupied(   9)=  1.59858922400582E-01
+ e_occupied(  10)=  1.59858922400638E-01
+ e_occupied(  11)=  1.59858947465844E-01
+ e_occupied(  12)=  1.59858947465885E-01
+ e_occupied(  13)=  1.59858947465907E-01
+ e_occupied(  14)=  2.66976777867250E-01
+ e_occupied(  15)=  2.66976844889440E-01
+ e_occupied(  16)=  2.66976844889461E-01
+ HOMO LUMO gap   = 2.24752425054158E-02 (  0.6116 eV)
+ e_virtual(   1)=  2.89452087394877E-01
+ e_virtual(   2)=  2.89452101681098E-01
+ e_virtual(   3)=  2.89452104070612E-01
  Final values of the Forces for each atom
-     1     Si -5.57254E-07 -5.57253E-07 -5.57253E-07
-     2     Si -5.57252E-07 -5.57251E-07 -5.57252E-07
-     3     Si -5.57252E-07 -5.57252E-07 -5.57252E-07
-     4     Si -5.57253E-07 -5.57252E-07 -5.57253E-07
+     1     Si -5.57252E-07 -5.57251E-07 -5.57251E-07
+     2     Si -5.57249E-07 -5.57249E-07 -5.57249E-07
+     3     Si -5.57254E-07 -5.57254E-07 -5.57255E-07
+     4     Si -5.57255E-07 -5.57254E-07 -5.57255E-07
      5     Si  2.58315E-06  2.58315E-06  2.58315E-06
      6     Si  2.58315E-06  2.58315E-06  2.58315E-06
      7     Si  2.58315E-06  2.58315E-06  2.58315E-06
      8     Si  2.58315E-06  2.58315E-06  2.58315E-06
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 4594 allocations and 4594 deallocations, remaining memory(B): 0
- memory occupation peak: 106 MB
- for the array  f_i in the routine vxcpostprocessing

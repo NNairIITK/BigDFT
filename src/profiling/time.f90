@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=74,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=75,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -96,10 +96,11 @@ module timeData
        'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
+       'Init to Zero  ','Other         ' ,'Memset        ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
-  integer :: ncounters, ncaton,nproc = 0,nextra
+  integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
   real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
@@ -155,7 +156,66 @@ module timeData
 
          !calculate the summary of the category
          call sort_positions(ncat,timesum,isort)
+!!$         iunit=60
          open(unit=60,file=trim(filename_time),status='unknown',position='append')
+!!$                  
+!!$         !first get the default stream
+!!$         call yaml_get_default_stream(iunit_def)
+!!$         if (iunit_def /= iunit) then
+!!$            call yaml_set_stream(unit=iunit,tabbing=0,record_length=100,istat=iostat)
+!!$            if (iostat /=0) then
+!!$               call yaml_set_default_stream(iunit,ierr)
+!!$            end if
+!!$            !if the stream was not already present just set back the default to iunit_def
+!!$         end if
+!!$         if (newfile) then
+!!$            !start the writing of the file
+!!$            call yaml_new_document()
+!!$            newfile=.false.
+!!$         end if
+!!$         call yaml_open_map(trim(message),advance='no')
+!!$         if (.not. parallel) then
+!!$            call yaml_comment('     % ,  Time (s)')
+!!$         else if (debugmode) then
+!!$            call yaml_comment('     % ,  Time (s), Load per MPI proc (relative) ')
+!!$         else
+!!$            call yaml_comment('     % ,  Time (s), Max, Min Load (relative) ')
+!!$         end if
+!!$         call yaml_open_map('Classes')
+!!$         total_pc=0.d0
+!!$         do icls=1,ncls
+!!$            pc=0.0d0
+!!$            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+!!$            total_pc=total_pc+pc
+!!$            call yaml_open_sequence(trim(clss(icls)),flow=.true.)
+!!$              call yaml_sequence(yaml_toa(pc,fmt='(f5.1)'))
+!!$              call yaml_sequence(yaml_toa(timecls(icls,nproc),fmt='(1pg9.2)'))
+!!$              do iextra=0,nextra-1
+!!$                 call yaml_sequence(yaml_toa(timecls(icls,iextra),fmt='(f5.2)'))
+!!$              end do
+!!$            call yaml_close_sequence()
+!!$         end do
+!!$         total_pc=0.d0
+!!$         do icls=1,ncls
+!!$            pc=0.0d0
+!!$            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+!!$            total_pc=total_pc+pc
+!!$            write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
+!!$                 pc,',',timecls(icls,nproc),&
+!!$                 (',',timecls(icls,iextra),iextra=0,nextra-1),']'
+!!$         end do
+!!$         write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
+!!$              total_pc,',',timesum(ncat+1),&
+!!$              (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
+!!$         call yaml_close_map() !classes
+!!$
+!!$
+!!$         call yaml_close_map() !counter
+!!$         !restore the default stream
+!!$         if (iostat==0) then
+!!$            call yaml_set_default_stream(iunit_def,ierr)
+!!$         end if
+
          if (newfile) then
             write(60,'(a)')'---'
             newfile=.false.
@@ -260,7 +320,7 @@ subroutine timing(iproc,category,action)
         nextra=0
         formatstring='1x,f5.1,a,1x,1pe9.2,a'
      end if
-
+     ncat_stopped=0 !no stopped category
      ncounters=0
 
   else if (action.eq.'PR') then !stop partial counters and restart from the beginning
@@ -381,8 +441,43 @@ subroutine timing(iproc,category,action)
         timesum(ii)=timesum(ii)+t1-t0
         init=.false.
      else if (action == 'OF' .and. ii/=ncaton) then
+        if (ncat_stopped /=0) stop 'INTERRUPTS SHOULD NOT BE HALTED BY OF'
         !some other category was initalized before, taking that one
         return
+    !interrupt the active category and replace it by the proposed one
+     else if (action == 'IR') then
+        if (ncat_stopped /=0) then
+           print *, cats(1,ncat_stopped), 'already exclusively initialized'
+           stop
+        end if
+        !time
+        t1=real(itns,kind=8)*1.d-9
+        if (init) then !there is already something active
+           !stop the active counter
+           timesum(ncaton)=timesum(ncaton)+t1-t0
+           ncat_stopped=ncaton
+        else
+           init=.true.
+           ncat_stopped=-1
+        end if
+        ncaton=ii
+        t0=t1
+
+     else if (action == 'RS') then !resume the interrupted category
+        if (ncat_stopped ==0) then
+           stop 'NOTHING TO RESUME'
+        end if
+        if (ii /= ncaton) stop 'WRONG RESUMED CATEGORY'
+        !time
+        t1=real(itns,kind=8)*1.d-9
+        timesum(ii)=timesum(ii)+t1-t0
+        if (ncat_stopped == -1) then
+           init =.false. !restore normal counter
+        else
+           ncaton=ncat_stopped
+           t0=t1
+        end if       
+        ncat_stopped=0
      else
         print *,action,ii,ncaton,trim(category)
         stop 'TIMING ACTION UNDEFINED'

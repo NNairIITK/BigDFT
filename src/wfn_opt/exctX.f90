@@ -24,7 +24,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   type(orbitals_data), intent(in) :: orbs
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eexctX
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
   !local variables
@@ -199,9 +199,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
                  write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
                       nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
               end if
-              call H_potential(geocode,'D',iproc,nproc,&
-                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+              call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
                    quiet='YES')
 
 !!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -437,7 +435,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb)), intent(in) :: psirocc
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbsvirt%nspinor,orbsvirt%norbp), intent(in) :: psivirt
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb)), intent(out) :: psirvirt
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_virt'
@@ -601,9 +599,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
               if (iproc == 0 .and. verbose > 1) then
                  write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
-              call H_potential(geocode,'D',iproc,nproc,&
-                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+              call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
                    quiet='YES')
 
 !!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -707,7 +703,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eexctX
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
   !local variables
@@ -1176,9 +1172,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
                        !write(*,*)'Exact exchange calculation: spin, orbitals:',igrpr(igroup),iorb,jorb
                     end if
 
-                    call H_potential(geocode,'D',0,1,&
-                         lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-                         rp_ij,pkernel,rp_ij,ehart,0.0_dp,.false.,&
+                    call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
                          quiet='YES')
                     
                     !this factor is only valid with one k-point

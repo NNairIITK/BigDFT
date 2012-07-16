@@ -479,7 +479,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
                  'SD EXIT because fmax < forcemax_sw ', fmax , forcemax_sw
             if (fmax < fluct*in%frac_fluct ) write(16,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < fluctuation ' ,fmax , fluct*in%frac_fluct
-            if (fmax < fluct*in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
+!            if (fmax < fluct*in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
+            if (fmax < in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < forcemax ' ,fmax , in%forcemax
         endif
 

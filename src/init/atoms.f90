@@ -808,7 +808,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   double precision :: acell(3), angdeg(3), gnrm, fnrm, maxval
   integer, allocatable :: igspin(:), igchrg(:)
 
-  call posinp_yaml_parse(lst, filename, len(filename))
+  call f90_posinp_yaml_parse(lst, filename, len(filename))
 
   call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
   if (bc == 3) then
@@ -1464,6 +1464,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   call yaml_close_sequence() !values
   call yaml_close_map() !positions
   call yaml_open_map('Properties')
+  call yaml_map('Timestamp',yaml_date_and_time_toa())
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
      call yaml_map("Energy (Ha)", energy)
   end if

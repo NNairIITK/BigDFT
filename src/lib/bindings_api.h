@@ -75,7 +75,7 @@ void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
                                              void *denspotd);
 void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
      (const guint *iproc, const guint *nproc, const guint *verb,
-      const gchar *geocode, const void *d, const void *in, void *denspot, int geocode_ln);
+      const gchar *geocode, const void *in, void *denspot, int geocode_ln);
 
 
 void FC_FUNC_(glr_new, GLR_NEW)(void *glr);

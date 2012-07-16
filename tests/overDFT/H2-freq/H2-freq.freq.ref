@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
+                           ggggg       i         BBBB                (Ver 1.7-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
  |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
+ |linear OFF                 Linear Input Guess approach (OFF, LIG, FUL, TMO)
  |tolsym -1.00E+00           Tolerance for symmetry detection
  |signaling F                Expose calculation results on Network
  |signalTimeout 0            Time out on startup for signal connection
@@ -164,12 +164,12 @@
  Total No. of Atomic Input Orbitals:  4, 
  Inputguess Orbitals Repartition: {MPI tasks  0- 1:  2}]
  Deviation from normalization          :  1.62E-06
- EKS                                   : -8.16171562260891603E-01
+ EKS                                   : -8.16171562261001737E-01
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Total magnetization                   :  2.000000
  Orbitals: [
- {e: -2.277408595988E-01, f:  1.0000, s:  1},  {e: -2.277317297272E-01, f:  0.0000, s: -1},  #<-deg
- {e:  4.962187188217E-01, f:  1.0000, s:  1},  {e:  4.962110176571E-01, f:  0.0000, s: -1}] #<-deg
+ {e: -2.277408595988E-01, f:  1.0000, s:  1},  {e: -2.277317297272E-01, f:  0.0000, s: -1}, 
+ {e:  4.962187188217E-01, f:  1.0000, s:  1},  {e:  4.962110176571E-01, f:  0.0000, s: -1}]
  Accuracy estimation for this run:
    Energy                              :  1.71E-04
    Convergence Criterion               :  8.54E-05
@@ -177,19 +177,19 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.02716489510760467E+00, gnrm:  2.41E-01}
-      -  {iter:  2, EKS: -1.12482970029157414E+00, gnrm:  1.15E-01}
-      -  {iter:  3, EKS: -1.13318025969455127E+00, gnrm:  4.88E-02}
-      -  {iter:  4, EKS: -1.13527714764300991E+00, gnrm:  2.76E-02}
-      -  {iter:  5, EKS: -1.13677110526395286E+00, gnrm:  1.28E-02}
-      -  {iter:  6, EKS: -1.13691647497216164E+00, gnrm:  1.67E-03}
-      -  {iter:  7, EKS: -1.13691727730353342E+00, gnrm:  3.05E-04}
-      -  {iter:  8, EKS: -1.13691730846234540E+00, gnrm:  8.92E-05}
-      -  &FINAL  {iter:  9, EKS: -1.13691731037247235E+00, gnrm:  8.92E-05}
+      -  {iter:  1, EKS: -1.02716489510768461E+00, gnrm:  2.41E-01}
+      -  {iter:  2, EKS: -1.12482970029161744E+00, gnrm:  1.15E-01}
+      -  {iter:  3, EKS: -1.13318025969459346E+00, gnrm:  4.88E-02}
+      -  {iter:  4, EKS: -1.13527714764305698E+00, gnrm:  2.76E-02}
+      -  {iter:  5, EKS: -1.13677110526399594E+00, gnrm:  1.28E-02}
+      -  {iter:  6, EKS: -1.13691647497220605E+00, gnrm:  1.67E-03}
+      -  {iter:  7, EKS: -1.13691727730358560E+00, gnrm:  3.05E-04}
+      -  {iter:  8, EKS: -1.13691730846238492E+00, gnrm:  8.92E-05}
+      -  &FINAL  {iter:  9, EKS: -1.13691731037252475E+00, gnrm:  8.92E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722686302976E-01, f:  1.0000, s:  1},  {e: -3.722667770744E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722686302976E-01, f:  1.0000, s:  1},  {e: -3.722667770744E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -199,13 +199,13 @@ Poisson Solver:
  average noise along y direction:   2.22049690E-04
  average noise along z direction:   2.22049690E-04
  total average noise            :   3.61692123E-04
- clean forces norm (Ha/Bohr): maxval=  9.539517667725E-04  fnrm2=  1.820047946657E-06
- raw forces:                  maxval=  1.105470382173E-03  fnrm2=  1.951066502810E-06
- CPU time/ELAPSED time for root process     0         6.35        11.24
+ clean forces norm (Ha/Bohr): maxval=  9.539517667728E-04  fnrm2=  1.820047946658E-06
+ raw forces:                  maxval=  1.105470382173E-03  fnrm2=  1.951066502811E-06
+ CPU time/ELAPSED time for root process     0         6.98        11.93
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
-     1      H -9.53952E-04  1.43996E-20  1.69407E-21
-     2      H  9.53952E-04  1.27055E-20 -1.69407E-21
+     1      H -9.53952E-04  8.47033E-22  8.47033E-22
+     2      H  9.53952E-04 -8.47033E-22 -8.47033E-22
 
  =Frequencies calculation ===========================================================
  =F Move the atom 1 in the direction -1*x by    -7.0312500000E-03 bohr
@@ -282,15 +282,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13689474829935766E+00, gnrm:  8.83E-03}
-      -  {iter:  2, EKS: -1.13691440152039358E+00, gnrm:  1.95E-03}
-      -  {iter:  3, EKS: -1.13691563081051172E+00, gnrm:  2.46E-04}
-      -  {iter:  4, EKS: -1.13691563693306907E+00, gnrm:  3.81E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691563711067412E+00, gnrm:  3.81E-05}
+      -  {iter:  1, EKS: -1.13689474829940940E+00, gnrm:  8.83E-03}
+      -  {iter:  2, EKS: -1.13691440152043000E+00, gnrm:  1.95E-03}
+      -  {iter:  3, EKS: -1.13691563081055769E+00, gnrm:  2.46E-04}
+      -  {iter:  4, EKS: -1.13691563693311259E+00, gnrm:  3.81E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691563711071297E+00, gnrm:  3.81E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.729057970720E-01, f:  1.0000, s:  1},  {e: -3.729057150330E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.729057970720E-01, f:  1.0000, s:  1},  {e: -3.729057150330E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -300,9 +300,9 @@ Poisson Solver:
  average noise along y direction:   2.21811205E-04
  average noise along z direction:   2.21811205E-04
  total average noise            :   3.57413952E-04
- clean forces norm (Ha/Bohr): maxval=  1.442530450179E-03  fnrm2=  4.161788199386E-06
- raw forces:                  maxval=  1.578005093938E-03  fnrm2=  4.289713955079E-06
- CPU time/ELAPSED time for root process     0         3.29         6.04
+ clean forces norm (Ha/Bohr): maxval=  1.442530450179E-03  fnrm2=  4.161788199389E-06
+ raw forces:                  maxval=  1.578005093938E-03  fnrm2=  4.289713955082E-06
+ CPU time/ELAPSED time for root process     0         3.62         6.34
  =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -377,15 +377,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13681883183108479E+00, gnrm:  1.77E-02}
-      -  {iter:  2, EKS: -1.13689745950723431E+00, gnrm:  3.89E-03}
-      -  {iter:  3, EKS: -1.13690229966687717E+00, gnrm:  4.81E-04}
-      -  {iter:  4, EKS: -1.13690232607580199E+00, gnrm:  7.95E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13690232680478553E+00, gnrm:  7.95E-05}
+      -  {iter:  1, EKS: -1.13681883183112387E+00, gnrm:  1.77E-02}
+      -  {iter:  2, EKS: -1.13689745950727961E+00, gnrm:  3.89E-03}
+      -  {iter:  3, EKS: -1.13690229966691980E+00, gnrm:  4.81E-04}
+      -  {iter:  4, EKS: -1.13690232607585218E+00, gnrm:  7.95E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13690232680481751E+00, gnrm:  7.95E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.716328823831E-01, f:  1.0000, s:  1},  {e: -3.716328789058E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.716328823831E-01, f:  1.0000, s:  1},  {e: -3.716328789058E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -397,7 +397,7 @@ Poisson Solver:
  total average noise            :   3.64452421E-04
  clean forces norm (Ha/Bohr): maxval=  3.294701831289E-03  fnrm2=  2.171012031420E-05
  raw forces:                  maxval=  3.435167656302E-03  fnrm2=  2.184316241223E-05
- CPU time/ELAPSED time for root process     0         3.26         5.97
+ CPU time/ELAPSED time for root process     0         3.52         6.51
  =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -472,15 +472,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13688517077909945E+00, gnrm:  1.20E-02}
-      -  {iter:  2, EKS: -1.13691515456824832E+00, gnrm:  2.52E-03}
-      -  {iter:  3, EKS: -1.13691704599466159E+00, gnrm:  3.09E-04}
-      -  {iter:  4, EKS: -1.13691705947417110E+00, gnrm:  6.32E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691705994334380E+00, gnrm:  6.32E-05}
+      -  {iter:  1, EKS: -1.13688517077912921E+00, gnrm:  1.20E-02}
+      -  {iter:  2, EKS: -1.13691515456829406E+00, gnrm:  2.52E-03}
+      -  {iter:  3, EKS: -1.13691704599471488E+00, gnrm:  3.09E-04}
+      -  {iter:  4, EKS: -1.13691705947421773E+00, gnrm:  6.32E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691705994338155E+00, gnrm:  6.32E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722659203511E-01, f:  1.0000, s:  1},  {e: -3.722659201983E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722659203511E-01, f:  1.0000, s:  1},  {e: -3.722659201983E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -490,9 +490,9 @@ Poisson Solver:
  average noise along y direction:   2.21336251E-04
  average noise along z direction:   2.21094799E-04
  total average noise            :   3.59678379E-04
- clean forces norm (Ha/Bohr): maxval=  9.630204508093E-04  fnrm2=  1.854816777354E-06
- raw forces:                  maxval=  1.103014902768E-03  fnrm2=  1.995142216749E-06
- CPU time/ELAPSED time for root process     0         3.28         6.01
+ clean forces norm (Ha/Bohr): maxval=  9.630204508095E-04  fnrm2=  1.854816777355E-06
+ raw forces:                  maxval=  1.103014902768E-03  fnrm2=  1.995142216750E-06
+ CPU time/ELAPSED time for root process     0         3.48         6.48
  =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -567,16 +567,16 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13687231673589029E+00, gnrm:  1.62E-02}
-      -  {iter:  2, EKS: -1.13691425912190724E+00, gnrm:  3.13E-03}
-      -  {iter:  3, EKS: -1.13691692965884239E+00, gnrm:  4.17E-04}
-      -  {iter:  4, EKS: -1.13691695983781726E+00, gnrm:  1.12E-04}
-      -  {iter:  5, EKS: -1.13691696089509731E+00, gnrm:  8.02E-06}
-      -  &FINAL  {iter:  6, EKS: -1.13691696091541439E+00, gnrm:  8.02E-06}
+      -  {iter:  1, EKS: -1.13687231673593003E+00, gnrm:  1.62E-02}
+      -  {iter:  2, EKS: -1.13691425912195432E+00, gnrm:  3.13E-03}
+      -  {iter:  3, EKS: -1.13691692965888902E+00, gnrm:  4.17E-04}
+      -  {iter:  4, EKS: -1.13691695983787056E+00, gnrm:  1.12E-04}
+      -  {iter:  5, EKS: -1.13691696089514838E+00, gnrm:  8.02E-06}
+      -  &FINAL  {iter:  6, EKS: -1.13691696091545746E+00, gnrm:  8.02E-06}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722659907321E-01, f:  1.0000, s:  1},  {e: -3.722659907362E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722659907321E-01, f:  1.0000, s:  1},  {e: -3.722659907362E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -586,9 +586,9 @@ Poisson Solver:
  average noise along y direction:   2.21375322E-04
  average noise along z direction:   2.21180248E-04
  total average noise            :   3.60554956E-04
- clean forces norm (Ha/Bohr): maxval=  9.628606150122E-04  fnrm2=  1.854201127883E-06
- raw forces:                  maxval=  1.129141337975E-03  fnrm2=  1.999719977659E-06
- CPU time/ELAPSED time for root process     0         3.73         6.86
+ clean forces norm (Ha/Bohr): maxval=  9.628606150120E-04  fnrm2=  1.854201127882E-06
+ raw forces:                  maxval=  1.129141337974E-03  fnrm2=  1.999719977658E-06
+ CPU time/ELAPSED time for root process     0         4.16         7.70
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -663,15 +663,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13689473895813120E+00, gnrm:  1.14E-02}
-      -  {iter:  2, EKS: -1.13691570530486774E+00, gnrm:  2.22E-03}
-      -  {iter:  3, EKS: -1.13691704421660944E+00, gnrm:  2.97E-04}
-      -  {iter:  4, EKS: -1.13691705941069499E+00, gnrm:  7.99E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691705994599546E+00, gnrm:  7.99E-05}
+      -  {iter:  1, EKS: -1.13689473895817494E+00, gnrm:  1.14E-02}
+      -  {iter:  2, EKS: -1.13691570530491126E+00, gnrm:  2.22E-03}
+      -  {iter:  3, EKS: -1.13691704421664030E+00, gnrm:  2.97E-04}
+      -  {iter:  4, EKS: -1.13691705941073562E+00, gnrm:  7.99E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691705994603920E+00, gnrm:  7.99E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722660270684E-01, f:  1.0000, s:  1},  {e: -3.722660270714E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722660270684E-01, f:  1.0000, s:  1},  {e: -3.722660270714E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -681,9 +681,9 @@ Poisson Solver:
  average noise along y direction:   2.21456568E-04
  average noise along z direction:   2.21485498E-04
  total average noise            :   3.60287174E-04
- clean forces norm (Ha/Bohr): maxval=  9.622008110668E-04  fnrm2=  1.851660801635E-06
- raw forces:                  maxval=  1.102812094774E-03  fnrm2=  1.992214056082E-06
- CPU time/ELAPSED time for root process     0         3.29         6.05
+ clean forces norm (Ha/Bohr): maxval=  9.622008110670E-04  fnrm2=  1.851660801636E-06
+ raw forces:                  maxval=  1.102812094774E-03  fnrm2=  1.992214056083E-06
+ CPU time/ELAPSED time for root process     0         3.59         6.66
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -758,16 +758,16 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13687230590234578E+00, gnrm:  1.62E-02}
-      -  {iter:  2, EKS: -1.13691425840224247E+00, gnrm:  3.13E-03}
-      -  {iter:  3, EKS: -1.13691692964856483E+00, gnrm:  4.17E-04}
-      -  {iter:  4, EKS: -1.13691695983736030E+00, gnrm:  1.12E-04}
-      -  {iter:  5, EKS: -1.13691696089510619E+00, gnrm:  8.03E-06}
-      -  &FINAL  {iter:  6, EKS: -1.13691696091540728E+00, gnrm:  8.03E-06}
+      -  {iter:  1, EKS: -1.13687230590238797E+00, gnrm:  1.62E-02}
+      -  {iter:  2, EKS: -1.13691425840228599E+00, gnrm:  3.13E-03}
+      -  {iter:  3, EKS: -1.13691692964860214E+00, gnrm:  4.17E-04}
+      -  {iter:  4, EKS: -1.13691695983739716E+00, gnrm:  1.12E-04}
+      -  {iter:  5, EKS: -1.13691696089514349E+00, gnrm:  8.03E-06}
+      -  &FINAL  {iter:  6, EKS: -1.13691696091545391E+00, gnrm:  8.03E-06}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722659907227E-01, f:  1.0000, s:  1},  {e: -3.722659907230E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722659907227E-01, f:  1.0000, s:  1},  {e: -3.722659907230E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -777,9 +777,9 @@ Poisson Solver:
  average noise along y direction:   2.21180530E-04
  average noise along z direction:   2.21375488E-04
  total average noise            :   3.60555698E-04
- clean forces norm (Ha/Bohr): maxval=  9.628606704872E-04  fnrm2=  1.854201341542E-06
- raw forces:                  maxval=  1.129142078816E-03  fnrm2=  1.999720720682E-06
- CPU time/ELAPSED time for root process     0         3.73         6.88
+ clean forces norm (Ha/Bohr): maxval=  9.628606704873E-04  fnrm2=  1.854201341542E-06
+ raw forces:                  maxval=  1.129142078816E-03  fnrm2=  1.999720720683E-06
+ CPU time/ELAPSED time for root process     0         3.98         7.39
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -854,15 +854,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13687039479411034E+00, gnrm:  1.20E-02}
-      -  {iter:  2, EKS: -1.13690045669758089E+00, gnrm:  2.49E-03}
-      -  {iter:  3, EKS: -1.13690231324045365E+00, gnrm:  2.88E-04}
-      -  {iter:  4, EKS: -1.13690232638167865E+00, gnrm:  6.25E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13690232682236525E+00, gnrm:  6.25E-05}
+      -  {iter:  1, EKS: -1.13687039479415652E+00, gnrm:  1.20E-02}
+      -  {iter:  2, EKS: -1.13690045669763595E+00, gnrm:  2.49E-03}
+      -  {iter:  3, EKS: -1.13690231324049895E+00, gnrm:  2.88E-04}
+      -  {iter:  4, EKS: -1.13690232638171240E+00, gnrm:  6.25E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13690232682241232E+00, gnrm:  6.25E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.716328481447E-01, f:  1.0000, s:  1},  {e: -3.716328481447E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.716328481447E-01, f:  1.0000, s:  1},  {e: -3.716328481447E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -874,7 +874,7 @@ Poisson Solver:
  total average noise            :   3.63034808E-04
  clean forces norm (Ha/Bohr): maxval=  3.294738942137E-03  fnrm2=  2.171060939367E-05
  raw forces:                  maxval=  3.433893372015E-03  fnrm2=  2.184260711909E-05
- CPU time/ELAPSED time for root process     0         3.28         6.01
+ CPU time/ELAPSED time for root process     0         4.68         7.97
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -949,15 +949,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13683237654881775E+00, gnrm:  1.76E-02}
-      -  {iter:  2, EKS: -1.13691068035872944E+00, gnrm:  3.91E-03}
-      -  {iter:  3, EKS: -1.13691561249215534E+00, gnrm:  4.95E-04}
-      -  {iter:  4, EKS: -1.13691563639004456E+00, gnrm:  7.45E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691563709080157E+00, gnrm:  7.45E-05}
+      -  {iter:  1, EKS: -1.13683237654886549E+00, gnrm:  1.76E-02}
+      -  {iter:  2, EKS: -1.13691068035876541E+00, gnrm:  3.91E-03}
+      -  {iter:  3, EKS: -1.13691561249220086E+00, gnrm:  4.95E-04}
+      -  {iter:  4, EKS: -1.13691563639008852E+00, gnrm:  7.45E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691563709084575E+00, gnrm:  7.45E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.729057169619E-01, f:  1.0000, s:  1},  {e: -3.729057169619E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.729057169619E-01, f:  1.0000, s:  1},  {e: -3.729057169619E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -969,7 +969,7 @@ Poisson Solver:
  total average noise            :   3.56444231E-04
  clean forces norm (Ha/Bohr): maxval=  1.442054435262E-03  fnrm2=  4.159041988520E-06
  raw forces:                  maxval=  1.576597783010E-03  fnrm2=  4.286276163322E-06
- CPU time/ELAPSED time for root process     0         3.24         5.95
+ CPU time/ELAPSED time for root process     0         4.82         7.93
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -1044,15 +1044,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13688483086401271E+00, gnrm:  1.20E-02}
-      -  {iter:  2, EKS: -1.13691506464503678E+00, gnrm:  2.52E-03}
-      -  {iter:  3, EKS: -1.13691694627572359E+00, gnrm:  3.03E-04}
-      -  {iter:  4, EKS: -1.13691696042938450E+00, gnrm:  6.45E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691696090234262E+00, gnrm:  6.45E-05}
+      -  {iter:  1, EKS: -1.13688483086405578E+00, gnrm:  1.20E-02}
+      -  {iter:  2, EKS: -1.13691506464508318E+00, gnrm:  2.52E-03}
+      -  {iter:  3, EKS: -1.13691694627577156E+00, gnrm:  3.03E-04}
+      -  {iter:  4, EKS: -1.13691696042942980E+00, gnrm:  6.45E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691696090239192E+00, gnrm:  6.45E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722660608571E-01, f:  1.0000, s:  1},  {e: -3.722660608571E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722660608571E-01, f:  1.0000, s:  1},  {e: -3.722660608571E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -1062,9 +1062,9 @@ Poisson Solver:
  average noise along y direction:   2.21338767E-04
  average noise along z direction:   2.21299159E-04
  total average noise            :   3.61100953E-04
- clean forces norm (Ha/Bohr): maxval=  9.623470202667E-04  fnrm2=  1.852223574832E-06
+ clean forces norm (Ha/Bohr): maxval=  9.623470202666E-04  fnrm2=  1.852223574832E-06
  raw forces:                  maxval=  1.129369597019E-03  fnrm2=  1.998208348300E-06
- CPU time/ELAPSED time for root process     0         3.26         5.99
+ CPU time/ELAPSED time for root process     0         4.77         8.28
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -1139,16 +1139,16 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13687241781285375E+00, gnrm:  1.62E-02}
-      -  {iter:  2, EKS: -1.13691435846666433E+00, gnrm:  3.13E-03}
-      -  {iter:  3, EKS: -1.13691702868073086E+00, gnrm:  4.17E-04}
-      -  {iter:  4, EKS: -1.13691705886769667E+00, gnrm:  1.13E-04}
-      -  {iter:  5, EKS: -1.13691705993611158E+00, gnrm:  8.05E-06}
-      -  &FINAL  {iter:  6, EKS: -1.13691705995643710E+00, gnrm:  8.05E-06}
+      -  {iter:  1, EKS: -1.13687241781290216E+00, gnrm:  1.62E-02}
+      -  {iter:  2, EKS: -1.13691435846671030E+00, gnrm:  3.13E-03}
+      -  {iter:  3, EKS: -1.13691702868078637E+00, gnrm:  4.17E-04}
+      -  {iter:  4, EKS: -1.13691705886773620E+00, gnrm:  1.13E-04}
+      -  {iter:  5, EKS: -1.13691705993614733E+00, gnrm:  8.05E-06}
+      -  &FINAL  {iter:  6, EKS: -1.13691705995647774E+00, gnrm:  8.05E-06}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722660122965E-01, f:  1.0000, s:  1},  {e: -3.722660122965E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722660122965E-01, f:  1.0000, s:  1},  {e: -3.722660122965E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -1158,9 +1158,9 @@ Poisson Solver:
  average noise along y direction:   2.21314533E-04
  average noise along z direction:   2.21227912E-04
  total average noise            :   3.60234086E-04
- clean forces norm (Ha/Bohr): maxval=  9.622401243867E-04  fnrm2=  1.851812113959E-06
- raw forces:                  maxval=  1.102943719248E-03  fnrm2=  1.992514480372E-06
- CPU time/ELAPSED time for root process     0         3.74         6.89
+ clean forces norm (Ha/Bohr): maxval=  9.622401243869E-04  fnrm2=  1.851812113960E-06
+ raw forces:                  maxval=  1.102943719248E-03  fnrm2=  1.992514480373E-06
+ CPU time/ELAPSED time for root process     0         5.21         8.76
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -1235,15 +1235,15 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13689463984568406E+00, gnrm:  1.14E-02}
-      -  {iter:  2, EKS: -1.13691560620720788E+00, gnrm:  2.22E-03}
-      -  {iter:  3, EKS: -1.13691694518707154E+00, gnrm:  2.97E-04}
-      -  {iter:  4, EKS: -1.13691696037518786E+00, gnrm:  7.91E-05}
-      -  &FINAL  {iter:  5, EKS: -1.13691696090499272E+00, gnrm:  7.91E-05}
+      -  {iter:  1, EKS: -1.13689463984572536E+00, gnrm:  1.14E-02}
+      -  {iter:  2, EKS: -1.13691560620724852E+00, gnrm:  2.22E-03}
+      -  {iter:  3, EKS: -1.13691694518711905E+00, gnrm:  2.97E-04}
+      -  {iter:  4, EKS: -1.13691696037523227E+00, gnrm:  7.91E-05}
+      -  &FINAL  {iter:  5, EKS: -1.13691696090504002E+00, gnrm:  7.91E-05}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722659772127E-01, f:  1.0000, s:  1},  {e: -3.722659772127E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722659772127E-01, f:  1.0000, s:  1},  {e: -3.722659772127E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -1253,9 +1253,9 @@ Poisson Solver:
  average noise along y direction:   2.20945164E-04
  average noise along z direction:   2.21188866E-04
  total average noise            :   3.60497870E-04
- clean forces norm (Ha/Bohr): maxval=  9.629156542994E-04  fnrm2=  1.854413114590E-06
- raw forces:                  maxval=  1.129173553940E-03  fnrm2=  1.999624470328E-06
- CPU time/ELAPSED time for root process     0         3.28         6.03
+ clean forces norm (Ha/Bohr): maxval=  9.629156542996E-04  fnrm2=  1.854413114591E-06
+ raw forces:                  maxval=  1.129173553940E-03  fnrm2=  1.999624470329E-06
+ CPU time/ELAPSED time for root process     0         3.95         6.81
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
@@ -1330,16 +1330,16 @@ Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
   - Subspace Optimization:&itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.13687240491298946E+00, gnrm:  1.62E-02}
-      -  {iter:  2, EKS: -1.13691435754737058E+00, gnrm:  3.13E-03}
-      -  {iter:  3, EKS: -1.13691702866612454E+00, gnrm:  4.17E-04}
-      -  {iter:  4, EKS: -1.13691705886705141E+00, gnrm:  1.13E-04}
-      -  {iter:  5, EKS: -1.13691705993609404E+00, gnrm:  8.06E-06}
-      -  &FINAL  {iter:  6, EKS: -1.13691705995642511E+00, gnrm:  8.06E-06}
+      -  {iter:  1, EKS: -1.13687240491303654E+00, gnrm:  1.62E-02}
+      -  {iter:  2, EKS: -1.13691435754741721E+00, gnrm:  3.13E-03}
+      -  {iter:  3, EKS: -1.13691702866616962E+00, gnrm:  4.17E-04}
+      -  {iter:  4, EKS: -1.13691705886708849E+00, gnrm:  1.13E-04}
+      -  {iter:  5, EKS: -1.13691705993613867E+00, gnrm:  8.06E-06}
+      -  &FINAL  {iter:  6, EKS: -1.13691705995646775E+00, gnrm:  8.06E-06}
        #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Total magnetization              :  0.000000
       Orbitals: [
- {e: -3.722660123108E-01, f:  1.0000, s:  1},  {e: -3.722660123108E-01, f:  1.0000, s: -1}] #<-deg
+ {e: -3.722660123108E-01, f:  1.0000, s:  1},  {e: -3.722660123108E-01, f:  1.0000, s: -1}]
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
@@ -1349,23 +1349,27 @@ Poisson Solver:
  average noise along y direction:   2.21227622E-04
  average noise along z direction:   2.21314373E-04
  total average noise            :   3.60233341E-04
- clean forces norm (Ha/Bohr): maxval=  9.622400713468E-04  fnrm2=  1.851811909811E-06
+ clean forces norm (Ha/Bohr): maxval=  9.622400713466E-04  fnrm2=  1.851811909810E-06
  raw forces:                  maxval=  1.102942977600E-03  fnrm2=  1.992513731770E-06
- CPU time/ELAPSED time for root process     0         3.71         6.83
+ CPU time/ELAPSED time for root process     0         4.37         7.38
 
  =F =================================================================================
 
- =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -1.1489234629E-22    6.4004895956E-23   -5.4210108624E-20
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -1.0718784739E-11    8.0003059914E-12   -2.3283064365E-10
- =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00         0.00        -0.00
+ =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -1.3005092087E-23   -1.3005092087E-23    0.0000000000E+00
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -1.0026552834E-22    1.0026552834E-22    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -3.6062573517E-12   -3.6062573517E-12    0.0000000000E+00
+ =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00        -0.00         0.00
  =F =================================================================================
  =F: Zero-point energy   =      2101.32 cm-1         9.5743351076E-03 Hartree
  =F: Vibrational entropy =      4.5058946542E-02 at 300.0K
  =F: Vibrational  energy =      2101.32 cm-1         9.5743351414E-03 Hartree at 300.0K
  =F: Total energy        =      9.5743351414E-03 Hartree at 300.0K
- =F: CPU time/ELAPSED time for root process     0         0.07         0.07
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9224 allocations and 9224 deallocations, remaining memory(B): 0
- memory occupation peak: 69 MB
- for the array  wz in the routine gaussians_to_wavelets_orb
+ =F: CPU time/ELAPSED time for root process     0         0.03         0.05
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 8024
+   Tot. No. of Deallocations: 8024
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 69
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

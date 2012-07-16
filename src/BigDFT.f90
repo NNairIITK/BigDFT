@@ -49,13 +49,6 @@ program BigDFT
    if (istat > 0) then
       write(radical, "(A)") "input"   
    end if
-   !open unit for yaml output
-!!$   if (istat > 0) then
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
-!!$   else
-!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
-!!$   end if
-   if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
 
    ! find out which input files will be used
    inquire(file="list_posinp",exist=exist_list)
@@ -91,8 +84,6 @@ program BigDFT
    end if
 
    do iconfig=1,nconfig
-      !welcome screen
-      if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
@@ -118,7 +109,6 @@ program BigDFT
       end if
 
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-
 
       if (inputs%ncount_cluster_x > 1) then
          open(unit=16,file='geopt.mon',status='unknown',position='append')

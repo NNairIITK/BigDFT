@@ -632,7 +632,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_simple(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
     subroutine put_to_zero_double(n,da)
@@ -640,7 +642,9 @@ module module_defs
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
     subroutine put_to_zero_integer(n,da)
@@ -648,7 +652,9 @@ module module_defs
       integer, intent(in) :: n
       integer, intent(out) :: da
       !call to custom routine
+      call timing(0,'Init to Zero  ','IR') 
       call razero_integer(n,da)
+      call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)

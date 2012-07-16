@@ -14,4 +14,4 @@ maintainer-clean-local:
 	-rm -rf $(top_builddir)/doc/html
 
 dist-hook: html
-	cp -a $(top_builddir)/doc/html $(top_distdir)/doc
+	cp -a $(top_srcdir)/doc/html $(top_distdir)/doc

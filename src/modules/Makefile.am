@@ -32,6 +32,7 @@ bindings_headers =
 bindings_headers_nodist =
 endif
 
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -81,6 +82,7 @@ libmodules_a_SOURCES = base.f90 \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
 
+
 CLEANFILES = mpif.h $(mod_bigdft)
 
 # Hack for XLF strange DEFS option.
@@ -94,7 +96,7 @@ mpif.h:
 	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=1, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
         echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
         echo "integer, parameter :: mpi_tag_ub=1" >> mpif.h &&\
         echo "real(kind=8), external :: mpi_wtime" >> mpif.h
@@ -104,7 +106,7 @@ mpif.h:
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 types.o: base.o
-input.o: base.o
+input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o

@@ -224,8 +224,7 @@ void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
   guint verb = 0;
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &lzd->parent.parent.geocode, lzd->parent.d,
-     in->data, localfields->data, 1);
+    (&iproc, &nproc, &verb, &lzd->parent.parent.geocode,in->data, localfields->data, 1);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
 }

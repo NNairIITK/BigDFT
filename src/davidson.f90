@@ -25,7 +25,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-   real(dp), dimension(:), pointer :: pkernel
+   type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
    !local variables
@@ -275,8 +275,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
-     call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
-          VTwfn,gnrm,gnrm_zero)
+      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
+           VTwfn,gnrm,gnrm_zero)
 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
@@ -332,7 +332,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(nproc,0,pot,subname)
+   call free_full_potential(dpcom%nproc,0,pot,subname)
 
    if (GPUconv) then
       call free_gpu(GPU,VTwfn%orbs%norbp)
@@ -407,7 +407,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-   real(dp), dimension(:), pointer :: pkernel
+   type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU
@@ -1158,7 +1158,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(nproc,0,pot,subname)
+   call free_full_potential(dpcom%nproc,0,pot,subname)
 
    i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
    deallocate(ndimovrlp,stat=i_stat)
@@ -1947,7 +1947,7 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
    end if
 
    !warning if gap is negative
-   if (orbs%HLgap < 0.0_gp) then
+   if (orbs%HLgap < 0.0_gp .and. orbs%HLgap/=uninitialized(orbs%HLgap)) then
       if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
    end if
 

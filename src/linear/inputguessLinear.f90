@@ -501,11 +501,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Create the potential. First calculate the charge density.
-  call sumrho(iproc,nproc,tmbgauss%orbs,tmbgauss%lzd,&
-       hxh,hyh,hzh,denspot%dpbox%nscatterarr,&
-       GPUe,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
-  call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+  call sumrho(denspot%dpbox,tmbgauss%orbs,tmbgauss%lzd,GPUe,at%sym,denspot%rhod,&
+       lchi2,denspot%rho_psi,inversemapping)
+  call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
+       denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !restore wavefunction dimension
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
@@ -524,8 +523,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call deallocate_local_zone_descriptors(tmbgauss%lzd, subname)
 
-  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,&
-       energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
 !!$  
 !!$  if(orbs%nspinor==4) then

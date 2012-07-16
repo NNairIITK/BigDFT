@@ -15,6 +15,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use vdwcorrection
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc 
   integer, intent(out) :: inputpsi, input_wf_format
@@ -31,21 +32,21 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB
+  integer :: nelec,nB,nKB,nMB,ierr
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
 
-  if (iproc==0) then
-     write( *,'(1x,a)')&
-          &   '------------------------------------------------------------------ System Properties'
-  end if
+!!$  if (iproc==0) then
+!!$     write( *,'(1x,a)')&
+!!$          &   '------------------------------------------------------------------ System Properties'
+!!$  end if
   call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
-  call nullify_locreg_descriptors(Lzd%Glr)
+  Lzd=default_lzd()
 
   !grid spacings of the zone descriptors (not correct, the set is done by system size)
   h_input=(/ in%hx, in%hy, in%hz /)
@@ -67,12 +68,13 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   !grid spacings and box of the density
   call dpbox_set_box(denspot%dpbox,Lzd)
-  !complete dpbox initialization
-  call denspot_communications(iproc,nproc,in%ixc,in%nspin,&
-       atoms%geocode,in%SIC%approach,denspot%dpbox)
-
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,Lzd%Glr%d,in,denspot)
+  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,in,denspot)
+  !print *,'here',iproc,nproc,denspot%pkernel%iproc,denspot%pkernel%nproc
+  !complete dpbox initialization (use kernel processes)
+  call denspot_communications(denspot%pkernel%iproc_world,nproc,denspot%pkernel%iproc,&
+       denspot%pkernel%nproc,denspot%pkernel%mpi_comm,&
+       in%ixc,in%nspin,atoms%geocode,in%SIC%approach,denspot%dpbox)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
@@ -109,9 +111,12 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      nMB=nB/1024/1024
      nKB=(nB-nMB*1024*1024)/1024
      nB=modulo(nB,1024)
-     write(*,'(1x,a,3(i5,a))') &
-       'Wavefunctions memory occupation for root MPI process: ',&
-       nMB,' MB ',nKB,' KB ',nB,' B'
+     call yaml_map('Wavefunctions memory occupation for root MPI process',&
+          trim(yaml_toa(nMB,fmt='(i5)'))//' MB'//trim(yaml_toa(nKB,fmt='(i5)'))//&
+          ' KB'//trim(yaml_toa(nB,fmt='(i5)'))//' B')
+!!$     write(*,'(1x,a,3(i5,a))') &
+!!$       'Wavefunctions memory occupation for root MPI process: ',&
+!!$       nMB,' MB ',nKB,' KB ',nB,' B'
   end if
   ! Done orbs
 
@@ -120,6 +125,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+  lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
   if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
@@ -139,7 +145,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),nlpspd,proj)
-
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
   if (iproc==0 .and. verbose > 0) then
@@ -148,11 +153,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
   
-!!$  !calculate the descriptors for rho and the potentials.
-!!$  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
-!!$       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-!!$       in,atoms,rxyz,radii_cf,denspot%dpbox,denspot%rhod)
-
   !here dpbox can be put as input
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
        denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
@@ -175,7 +175,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
+subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
@@ -183,27 +183,27 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, d, in, denspot)
   integer, intent(in) :: iproc, nproc
   logical, intent(in) :: verb
   character, intent(in) :: geocode
-  type(grid_dimensions), intent(in) :: d
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
   integer, parameter :: ndegree_ip = 16
 
-  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  call createKernel(iproc,nproc,geocode,&
-       d%n1i,d%n2i,d%n3i,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       ndegree_ip,denspot%pkernel,verb)
+  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%PSolver_igpu,&
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+
+  call pkernel_set(denspot%pkernel,verb)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
-     call createKernel(0,1,geocode,&
-          d%n1i,d%n2i,d%n3i,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-          ndegree_ip,denspot%pkernelseq,.false.)
+
+     denspot%pkernelseq=pkernel_init(0,1,1,in%PSolver_igpu,&
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+
+     call pkernel_set(denspot%pkernelseq,.false.)
+
   else 
-     denspot%pkernelseq => denspot%pkernel
+     denspot%pkernelseq = denspot%pkernel
   end if
 END SUBROUTINE system_createKernels
 
@@ -616,6 +616,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
   use module_types
   use module_interfaces
+  use yaml_output
   implicit none
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
@@ -662,24 +663,30 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   enddo
   nelec=nelec-in%ncharge
   if (verb) then
-     write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
+     call yaml_comment('Occupation numbers',hfill='-')
+     call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
   end if
 
   ! Number of orbitals
   if (in%nspin==1) then
+     if (verb) call yaml_map('Spin treatment','Averaged')
      norb=(nelec+1)/2
      norbu=norb
      norbd=0
      if (mod(nelec,2).ne.0 .and. verb) then
-        write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+        call yaml_warning('Odd number of electrons, no closed shell system')
+        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
      end if
   else if(in%nspin==4) then
-     if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     if (verb) call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
+     !if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
      norb=nelec
      norbu=norb
      norbd=0
   else 
-     if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
+     if (verb) call yaml_map('Spin treatment','Collinear')
+     !if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      if (mod(norb+in%mpol,2) /=0) then
         write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
@@ -727,8 +734,9 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
         if (iproc==0 .and. in%norbsempty == 0) &
-             write(*,'(1x,a)')&
-             'WARNING: Found no input polarisation, add it for a correct input guess'
+             call yaml_warning('Found no input polarisation, add it for a correct input guess')
+        !write(*,'(1x,a)')&
+        !     'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
 
@@ -739,6 +747,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   norbdempty=0
 
   ! Test if the file 'input.occ exists
+  !this access is performed at each call_bigdft run
   inquire(file=trim(in%file_occnum),exist=exists)
   iunit=0
   if (exists) then
@@ -844,19 +853,21 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
   if (verb .and. nproc > 1) then
+     call yaml_open_map('Orbitals Repartition')
      jpst=0
      do jproc=0,nproc-1
         norbme=orbs%norb_par(jproc,0)
         norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
-           !this is a screen output that must be modified
-           write(*,'(3(a,i0),a)')&
-                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+           call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+           !write(*,'(3(a,i0),a)')&
+           !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
            jpst=jproc+1
         end if
      end do
      !write(*,'(3(a,i0),a)')&
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+     call yaml_close_map()
   end if
 
   !assign to each k-point the same occupation number
@@ -919,6 +930,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   use module_base
   use module_types
   use module_xc
+  use yaml_output
   implicit none
   type(atoms_data), intent(inout) :: atoms
   real(gp), intent(in) :: hmax
@@ -926,44 +938,45 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='print_atomic_variables'
+  logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   character(len=24) :: message
   character(len=50) :: format
-  integer :: i,j,k,l,ityp
+  integer :: i,j,k,l,ityp,iat,natyp,mproj
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   character(len=500) :: name_xc1, name_xc2
 
-  write(*,'(1x,a)')&
-       ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
+!!$  write(*,'(1x,a)')&
+!!$       ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
 
-  do ityp=1,atoms%ntypes
-     !control the hardest gaussian
-     minrad=1.e10_gp
-     do i=0,4
-        if (atoms%psppar(i,0,ityp)/=0._gp) then
-           minrad=min(minrad,atoms%psppar(i,0,ityp))
-        end if
-     end do
-     !control whether the grid spacing is too high
-     if (hmax > 2.5_gp*minrad) then
-        write(*,'(1x,a)')&
-             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-        write(*,'(1x,a,f5.2,a)')&
-             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-             '. At your own risk!'
-     end if
-
-     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-        message='         X              '
-     else
-        message='                   X ' 
-     end if
-     write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
-          trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
-          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
-  end do
+!!$  do ityp=1,atoms%ntypes
+!!$     !control the hardest gaussian
+!!$     minrad=1.e10_gp
+!!$     do i=0,4
+!!$        if (atoms%psppar(i,0,ityp)/=0._gp) then
+!!$           minrad=min(minrad,atoms%psppar(i,0,ityp))
+!!$        end if
+!!$     end do
+!!$     !control whether the grid spacing is too high
+!!$     if (hmax > 2.5_gp*minrad) then
+!!$        write(*,'(1x,a)')&
+!!$             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+!!$        write(*,'(1x,a,f5.2,a)')&
+!!$             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
+!!$             '. At your own risk!'
+!!$     end if
+!!$
+!!$     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+!!$        message='         X              '
+!!$     else
+!!$        message='                   X ' 
+!!$     end if
+!!$     write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
+!!$          trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
+!!$          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
+!!$  end do
   !print *,'iatsctype',atOMS%iasctype(:)
 
   !print the pseudopotential matrices
@@ -997,27 +1010,90 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      end do
   end do
 
-  write(*,'(1x,a)')&
-       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+!  write(*,'(1x,a)')&
+  !       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+  call yaml_comment('System Properties',hfill='-')
+  call yaml_open_sequence('Properties of atoms in the system')
   do ityp=1,atoms%ntypes
-     write(*,'(1x,a)')&
-          'Atom Name    rloc      C1        C2        C3        C4  '
-     do l=0,4
-        if (l==0) then
-           do i=4,0,-1
-              j=i
-              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
-           end do
-           write(*,'(3x,a6,5(1x,f9.5))')&
-                trim(atoms%atomnames(ityp)),(atoms%psppar(l,i,ityp),i=0,j)
-        else
+     call yaml_sequence(advance='no')
+     call yaml_map('Symbol',trim(atoms%atomnames(ityp)),advance='no')
+     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')),hfill='-')
+     call yaml_map('No. of Electrons',atoms%nelpsp(ityp))
+     natyp=0
+     do iat=1,atoms%nat
+        if (atoms%iatype(iat) == ityp) natyp=natyp+1
+     end do
+     call yaml_map('No. of Atoms',natyp)
+
+     call yaml_open_map('Radii of active regions (AU)')!,flow=.true.)
+       call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
+       call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
+       call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
+       if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+          call yaml_map('Source','Hard-Coded')
+       else
+          call yaml_map('Source','PSP File')
+       end if
+     call yaml_close_map()
+
+     minrad=1.e10_gp
+     do i=0,4
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+     if (radii_cf(ityp,2) /=0.0_gp) then
+        call yaml_map('Grid Spacing threshold (AU)',2.5_gp*minrad,fmt='(f5.2)')
+     else
+        call yaml_map('Grid Spacing threshold (AU)',1.25_gp*minrad,fmt='(f5.2)')
+     end if
+     !control whether the grid spacing is too high
+     if (hmax > 2.5_gp*minrad) then
+        call yaml_warning('Chosen Grids spacings seem too high for this atom. At you own risk!')
+!!$        write(*,'(1x,a)')&
+!!$             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+!!$        write(*,'(1x,a,f5.2,a)')&
+!!$             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
+!!$             '. At your own risk!'
+     end if
+
+     select case(atoms%npspcode(ityp))
+     case(2)
+        call yaml_map('Pseudopotential type','GTH')
+     case(3)
+        call yaml_map('Pseudopotential type','HGH')
+     case(10)
+        call yaml_map('Pseudopotential type','HGH-K')
+     end select
+     if (atoms%psppar(0,0,ityp)/=0) then
+        call yaml_open_map('Local PSeudo Potential (HGH convention)')
+          call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
+          call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+        call yaml_close_map()
+     end if
+     !see if nonlocal terms are present
+     nonloc=.false.
+     verify_nl: do l=1,3
+        do i=3,0,-1
+           j=i
+           if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+        end do
+        if (j /=0) then
+           nonloc=.true.
+           exit verify_nl
+        end if
+     end do verify_nl
+     if (nonloc) then
+        call yaml_open_sequence('NonLocal PSP Parameters')
+        do l=1,3
            do i=3,0,-1
               j=i
               if (atoms%psppar(l,i,ityp) /= 0._gp) exit
            end do
            if (j /=0) then
-              write(*,'(1x,a,i0,a)')&
-                   '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+              call yaml_sequence(advance='no')
+              call yaml_map('Channel (l)',l-1)
+              call yaml_map('Rloc',atoms%psppar(l,0,ityp),fmt='(f9.5)')
               hij=0._gp
               do i=1,j
                  hij(i,i)=atoms%psppar(l,i,ityp)
@@ -1031,20 +1107,63 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)
               end if
-              do i=1,j
-                 if (i==1) then
-                    write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
-                    write(*,format)atoms%psppar(l,0,ityp),(hij(i,k),k=i,j)
-                 else
-                    write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
-                    write(*,format)(hij(i,k),k=i,j)
-                 end if
-
-              end do
+              call yaml_open_sequence('h_ij matrix')
+                call yaml_sequence(trim(yaml_toa(hij(1,1:3),fmt='(f9.5)')))
+                call yaml_sequence(trim(yaml_toa((/hij(1,2),hij(2,2),hij(2,3)/),fmt='(f9.5)')))
+                call yaml_sequence(trim(yaml_toa((/hij(1,3),hij(2,3),hij(3,3)/),fmt='(f9.5)')))
+              call yaml_close_sequence()
            end if
-        end if
-     end do
-     !control if the PSP is calculated with the same XC value
+        end do
+        call yaml_close_sequence()
+     end if
+     call numb_proj(ityp,atoms%ntypes,atoms%psppar,atoms%npspcode,mproj)
+     call yaml_map('No. of projectors',mproj)
+
+!!$     write(*,'(1x,a)')&
+!!$          'Atom Name    rloc      C1        C2        C3        C4  '
+!!$     do l=0,4
+!!$        if (l==0) then
+!!$           do i=4,0,-1
+!!$              j=i
+!!$              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+!!$           end do
+!!$           write(*,'(3x,a6,5(1x,f9.5))')&
+!!$                trim(atoms%atomnames(ityp)),(atoms%psppar(l,i,ityp),i=0,j)
+!!$        else
+!!$           do i=3,0,-1
+!!$              j=i
+!!$              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+!!$           end do
+!!$           if (j /=0) then
+!!$              write(*,'(1x,a,i0,a)')&
+!!$                   '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+!!$              hij=0._gp
+!!$              do i=1,j
+!!$                 hij(i,i)=atoms%psppar(l,i,ityp)
+!!$              end do
+!!$              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+!!$                 hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
+!!$                 hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
+!!$                 hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
+!!$              else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
+!!$                 hij(1,2)=atoms%psppar(l,4,ityp)
+!!$                 hij(1,3)=atoms%psppar(l,5,ityp)
+!!$                 hij(2,3)=atoms%psppar(l,6,ityp)
+!!$              end if
+!!$              do i=1,j
+!!$                 if (i==1) then
+!!$                    write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
+!!$                    write(*,format)atoms%psppar(l,0,ityp),(hij(i,k),k=i,j)
+!!$                 else
+!!$                    write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
+!!$                    write(*,format)(hij(i,k),k=i,j)
+!!$                 end if
+!!$
+!!$              end do
+!!$           end if
+!!$        end if
+!!$     end do
+!!$     !control if the PSP is calculated with the same XC value
      if (atoms%ixcpsp(ityp) < 0) then
         call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
      else
@@ -1055,15 +1174,17 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      else
         call xc_get_name(name_xc2, ixc, XC_ABINIT)
      end if
+     call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
-        write(*,'(1x,a)')&
-             'WARNING: The pseudopotential file psppar."'//trim(atoms%atomnames(ityp))//'"'
-        write(*,'(1x,a,i0,a,i0)')&
-             '         contains a PSP generated with an XC id=',&
-             atoms%ixcpsp(ityp),' while for this run ixc=',ixc
+        call yaml_warning('Input ixc parameter corresponds to '//trim(name_xc2)//' XC functional')
+!!$        write(*,'(1x,a)')&
+!!$             'WARNING: The pseudopotential file psppar."'//trim(atoms%atomnames(ityp))//'"'
+!!$        write(*,'(1x,a,i0,a,i0)')&
+!!$             '         contains a PSP generated with an XC id=',&
+!!$             atoms%ixcpsp(ityp),' while for this run ixc=',ixc
      end if
   end do
-
+  call yaml_close_sequence()
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (verb.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
@@ -1455,7 +1576,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
       end if
   end do
   call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
 END SUBROUTINE orbitals_descriptors_forLinear
 
