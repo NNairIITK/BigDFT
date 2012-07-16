@@ -2606,7 +2606,7 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
   integer, intent(in) :: iproc
   ! Local variables
-  integer:: i0, ipt, ii, j, iiorb, jjorb, i
+  integer:: i0, ipt, ii, j, iiorb, jjorb, i, m
   call timing(iproc,'lincombtrans','ON') !lr408t
   if(reset) then
       if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
@@ -2618,10 +2618,27 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       ii=collcom%norb_per_gridpoint_c(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
-          do j=1,ii
-              jjorb=collcom%indexrecvorbital_c(i0+j)
-              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
+          m=mod(ii,4)
+          if(m/=0) then
+              do j=1,m
+                  jjorb=collcom%indexrecvorbital_c(i0+j)
+                  psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
+              end do
+          end if
+          do j=m+1,ii,4
+              jjorb=collcom%indexrecvorbital_c(i0+j+0)
+              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+0)
+              jjorb=collcom%indexrecvorbital_c(i0+j+1)
+              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+1)
+              jjorb=collcom%indexrecvorbital_c(i0+j+2)
+              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+2)
+              jjorb=collcom%indexrecvorbital_c(i0+j+3)
+              psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+3)
           end do
+          !!do j=1,ii
+          !!    jjorb=collcom%indexrecvorbital_c(i0+j)
+          !!    psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
+          !!end do
       end do
       i0=i0+ii
   end do
