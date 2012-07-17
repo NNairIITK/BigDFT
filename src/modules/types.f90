@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!>  Modules which contains the Fortran data structures
-!!  and the routines of allocations and de-allocations
+!> Modules which contains the Fortran data structures
+!! and the routines of allocations and de-allocations
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
@@ -128,7 +128,7 @@ module module_types
   integer, parameter, public :: INPUTS_FREQ  = 128
   integer, parameter, public :: INPUTS_LIN   = 256
 
-!> Contains all parameters related to the linear scaling version.
+  !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
     integer:: DIISHistMin, DIISHistMax, nItPrecond
     integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
@@ -158,12 +158,15 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
-!> Structure of the variables read by input.* files (*.dft, *.geopt...)
+
+  !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output,run_name
-     integer :: files ! existing files.
+                           file_mix,file_sic,file_occnum,file_igpop,file_lin
+     character(len=100) :: dir_output !< Strings of the directory which contains all data output files
+     character(len=100) :: run_name
+     integer :: files                 !< Existing files.
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
@@ -176,7 +179,7 @@ module module_types
      logical :: disableSym
 
      ! For absorption calculations
-     integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
+     integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
      !! integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
      integer :: iat_absorber,  L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
@@ -188,9 +191,9 @@ module module_types
      character(len=1000) :: xabs_res_prefix
    
      ! Frequencies calculations (finite difference)
-     real(gp) :: freq_alpha
-     integer :: freq_order
-     integer :: freq_method
+     real(gp) :: freq_alpha  !< Factor for the finite difference step (step = alpha * hgrid)
+     integer :: freq_order   !< Order of the finite difference scheme
+     integer :: freq_method  !< Method to calculate the frequencies
 
      ! kpoints related input variables
      integer :: nkpt, nkptv,ngroups_kptv
@@ -255,13 +258,14 @@ module module_types
      integer :: PSolver_groupsize
   end type input_variables
 
+  !> Contains all energy terms
   type, public :: energy_terms
-     real(gp) :: eh      =0.0_gp
-     real(gp) :: exc     =0.0_gp
+     real(gp) :: eh      =0.0_gp !< Hartree energy
+     real(gp) :: exc     =0.0_gp !< Exchange-correlation
      real(gp) :: evxc    =0.0_gp
-     real(gp) :: eion    =0.0_gp
-     real(gp) :: edisp   =0.0_gp
-     real(gp) :: ekin    =0.0_gp
+     real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
+     real(gp) :: edisp   =0.0_gp !< Dispersion force
+     real(gp) :: ekin    =0.0_gp !< Kinetic term
      real(gp) :: epot    =0.0_gp
      real(gp) :: eproj   =0.0_gp
      real(gp) :: eexctX  =0.0_gp
@@ -281,32 +285,32 @@ module module_types
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
-!>  Bounds for coarse and fine grids for kinetic operations
-!!  Useful only for isolated systems AND in CPU
+  !> Bounds for coarse and fine grids for kinetic operations
+  !! Useful only for isolated systems AND in CPU
   type, public :: kinetic_bounds
      integer, dimension(:,:,:), pointer :: ibyz_c,ibxz_c,ibxy_c
      integer, dimension(:,:,:), pointer :: ibyz_f,ibxz_f,ibxy_f
   end type kinetic_bounds
 
 
-!>  Bounds to compress the wavefunctions
-!!  Useful only for isolated systems AND in CPU
+  !> Bounds to compress the wavefunctions
+  !! Useful only for isolated systems AND in CPU
   type, public :: shrink_bounds
      integer, dimension(:,:,:), pointer :: ibzzx_c,ibyyzz_c
      integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
   end type shrink_bounds
 
 
-!>  Bounds to uncompress the wavefunctions
-!!  Useful only for isolated systems AND in CPU
+  !> Bounds to uncompress the wavefunctions
+  !! Useful only for isolated systems AND in CPU
   type, public :: grow_bounds
      integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
 
 
-!>  Bounds for convolutions operations
-!!  Useful only for isolated systems AND in CPU
+  !> Bounds for convolutions operations
+  !! Useful only for isolated systems AND in CPU
   type, public :: convolutions_bounds
      type(kinetic_bounds) :: kb
      type(shrink_bounds) :: sb
@@ -314,7 +318,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyyzz_r !< real space border
   end type convolutions_bounds
 
-!>  Used for lookup table for compressed wavefunctions
+  !> Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
      integer, dimension(:,:), pointer :: keyglob
@@ -322,13 +326,13 @@ module module_types
      integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
-!>  Grid dimensions in old different wavelet basis
+  !> Grid dimensions in old different wavelet basis
   type, public :: grid_dimensions
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 
-!> Contains the information needed for describing completely a
-!! wavefunction localisation region
+  !> Contains the information needed for describing completely a
+  !! wavefunction localisation region
   type, public :: locreg_descriptors
      character(len=1) :: geocode
      logical :: hybrid_on   !< interesting for global, periodic, localisation regions
@@ -343,7 +347,7 @@ module module_types
      real(gp):: locrad !< cutoff radius of the localization region
   end type locreg_descriptors
 
-!>  Non local pseudopotential descriptors
+  !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
      type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
@@ -355,7 +359,7 @@ module module_types
   end type nonlocal_psp_descriptors
 
 
-!> Used to split between points to be treated in simple or in double precision
+  !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
      character(len=1) :: geocode
      integer :: icomm !< method for communicating the density
@@ -365,14 +369,14 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
-!> Quantities used for the symmetry operators.
+  !> Quantities used for the symmetry operators.
   type, public :: symmetry_data
      integer :: symObj    !< The symmetry object from ABINIT
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
 
-!>  Atomic data (name, polarisation, ...)
+  !> Atomic data (name, polarisation, ...)
   type, public :: atoms_data
      character(len=1) :: geocode
      character(len=5) :: format
@@ -409,7 +413,7 @@ module module_types
 
   end type atoms_data
 
-!> Structure to store the density / potential distribution among processors.
+  !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
@@ -420,7 +424,7 @@ module module_types
      integer :: iproc_world,nproc_world,iproc,nproc,mpi_comm
   end type denspot_distribution
 
-!>  Structures of basis of gaussian functions
+  !> Structures of basis of gaussian functions
   type, public :: gaussian_basis
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -428,7 +432,7 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
 
-!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+  !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -436,7 +440,7 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis_c
 
-!>   contains all array necessary to apply preconditioning projectors 
+  !> Contains all array necessary to apply preconditioning projectors 
   type, public :: pcproj_data_type
      type(nonlocal_psp_descriptors) :: pc_nlpspd
      real(gp), pointer :: pc_proj(:)
@@ -451,7 +455,7 @@ module module_types
      logical :: DistProjApply
   end type pcproj_data_type
 
-!>   contains all array necessary to apply preconditioning projectors 
+  !> Contains all array necessary to apply preconditioning projectors 
   type, public :: PAWproj_data_type
      type(nonlocal_psp_descriptors) :: paw_nlpspd
 
@@ -467,8 +471,8 @@ module module_types
   end type PAWproj_data_type
 
 
-!> All the parameters which are important for describing the orbitals
-!! Add also the objects related to k-points sampling, after symmetries applications
+  !> All the parameters which are important for describing the orbitals
+  !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data 
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
      integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
@@ -481,19 +485,19 @@ module module_types
      real(gp), dimension(:,:), pointer :: kpts
   end type orbitals_data
 
-!> Contains the information needed for communicating the wavefunctions
-!! between processors for the transposition
+  !> Contains the information needed for communicating the wavefunctions
+  !! between processors for the transposition
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
   end type communications_arrays
 
 
-!> Contains the pointers to be handled to control GPU information
-!! Given that they are pointers on GPU address, they are C pointers
-!! which take 8 bytes
-!! So they are declared as kind=8 variables either if the GPU works in simple precision
-!! Also other information concerning the GPU runs can be stored in this structure
+  !> Contains the pointers to be handled to control GPU information
+  !! Given that they are pointers on GPU address, they are C pointers
+  !! which take 8 bytes
+  !! So they are declared as kind=8 variables either if the GPU works in simple precision
+  !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
      integer :: id_proc,ndevices
@@ -529,15 +533,15 @@ module module_types
     !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
-!> Contains the work arrays needed for expressing wavefunction in real space
-!!  with all the BC
+  !> Contains the work arrays needed for expressing wavefunction in real space
+  !! with all the BC
   type, public :: workarr_sumrho
      integer :: nw1,nw2,nxc,nxf
      real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
   end type workarr_sumrho
 
 
-!> Contains the work arrays needed for hamiltonian application with all the BC
+  !> Contains the work arrays needed for hamiltonian application with all the BC
   type, public :: workarr_locham
      integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
      real(wp), dimension(:), pointer :: w1,w2
@@ -547,8 +551,8 @@ module module_types
   end type workarr_locham
 
 
-!> Contains the work arrays needed for th preconditioner with all the BC
-!! Take different pointers depending on the boundary conditions
+  !> Contains the work arrays needed for th preconditioner with all the BC
+  !! Take different pointers depending on the boundary conditions
   type, public :: workarr_precond
      integer, dimension(:), pointer :: modul1,modul2,modul3
      real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
@@ -559,7 +563,7 @@ module module_types
   end type workarr_precond
 
 
-!> Contains the arguments needed for the application of the hamiltonian
+  !> Contains the arguments needed for the application of the hamiltonian
   type, public :: lanczos_args
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin, in_iat_absorber, Labsorber
@@ -597,7 +601,7 @@ module module_types
     logical:: communication_complete, messages_posted
   end type p2pComms
 
-!! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
+  !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp, nsubmax
       integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
@@ -794,7 +798,7 @@ end type linear_scaling_control_variables
   end type wfn_metadata
 
 
-!> Contains the arguments needed for the diis procedure
+  !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
@@ -804,7 +808,7 @@ end type linear_scaling_control_variables
      real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
-!> Contains the information needed for the preconditioner
+  !> Contains the information needed for the preconditioner
   type, public :: precond_data
     integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
     integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
@@ -812,8 +816,8 @@ end type linear_scaling_control_variables
     real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
-!> Information for the confining potential to be used in TMB scheme
-!! The potential is supposed to be defined as prefac*(r-rC)**potorder
+  !> Information for the confining potential to be used in TMB scheme
+  !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
      integer :: potorder !< order of the confining potential
      integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region

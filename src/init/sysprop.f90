@@ -7,7 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>Initialize the objects needed for the computation: basis sets, allocate required space
+
+!> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
      orbs,lorbs,dlorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
   use module_base
@@ -32,7 +33,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB,ierr
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
@@ -122,7 +123,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   inputpsi = in%inputPsiId
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
@@ -924,9 +925,9 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   end if
 end subroutine read_atomic_variables
 
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
+!> Assign some of the physical system variables
+!! Performs also some cross-checks with other variables
+!! The pointer in atoms structure have to be associated or nullified.
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   use module_base
   use module_types
@@ -941,9 +942,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   character(len=*), parameter :: subname='print_atomic_variables'
   logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
-  character(len=24) :: message
-  character(len=50) :: format
-  integer :: i,j,k,l,ityp,iat,natyp,mproj
+  integer :: i,j,l,ityp,iat,natyp,mproj
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr

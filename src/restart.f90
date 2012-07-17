@@ -399,6 +399,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
+!> Verify the presence of a given file
 subroutine verify_file_presence(filerad,orbs,iformat,nproc)
   use module_base
   use module_types
