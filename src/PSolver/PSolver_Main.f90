@@ -101,9 +101,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp) :: scal,ehartreeLOC,pot
   real(dp), dimension(6) :: strten
   real(dp), dimension(:,:,:), allocatable :: zf
+  real(dp), dimension(:), allocatable :: zf1
   integer, dimension(:,:), allocatable :: gather_arr
   integer, dimension(3) :: n
-  integer :: size1,switch_alg
+  integer :: size1,switch_alg,kernelnproc
 
 
   cudasolver=.false.
@@ -125,30 +126,33 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   ! rewrite
   if (wrtmsg) call yaml_open_map('Poisson Solver')
 
+  kernelnproc=kernel%nproc
+  !if (kernel%igpu == 1) kernelnproc=1
+
   call timing(kernel%iproc,'PSolv_comput  ','ON')
   !calculate the dimensions wrt the geocode
   if (kernel%geocode == 'P') then
      if (wrtmsg) &
           call yaml_map('BC','Periodic')
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
+          md1,md2,md3,nd1,nd2,nd3,kernelnproc)
   else if (kernel%geocode == 'S') then
      if (wrtmsg) &
           call yaml_map('BC','Surface')
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%nproc,kernel%igpu)
+          kernelnproc,kernel%igpu)
   else if (kernel%geocode == 'F') then
      if (wrtmsg) &
           call yaml_map('BC','Free')
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,&
-          kernel%nproc,kernel%igpu)
+          kernelnproc,kernel%igpu)
   else if (kernel%geocode == 'W') then
      if (wrtmsg) &
           call yaml_map('BC','Wires')
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -182,9 +186,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
   !array allocations
   allocate(zf(md1,md3,md2/kernel%nproc+ndebug),stat=i_stat)
+  !allocate(zf(md1,md3,md2+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
   call to_zero(md1*md3*md2/kernel%nproc,zf(1,1,1))
+
 
   istart=kernel%iproc*(md2/kernel%nproc)
   iend=min((kernel%iproc+1)*md2/kernel%nproc,m2)
@@ -222,7 +228,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   end do
 
   if (.not. cudasolver) then !CPU case
-
      call timing(kernel%iproc,'PSolv_comput  ','OF')
      call G_PoissonSolver(kernel%iproc,kernel%nproc,kernel%mpi_comm,kernel%geocode,1,&
           n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
@@ -236,14 +241,44 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      end if
 
   else !GPU case
-
      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
 
-     !fill the GPU memory 
+    if (kernel%nproc > 1) then
+     allocate(zf1(md1*md3*md2),stat=i_stat)
+     call memocc(i_stat,zf1,'zf1',subname)
+
+     call mpi_gather(zf,size1/kernel%nproc,MPI_DOUBLE_PRECISION,zf1,size1/kernel%nproc, &
+          MPI_DOUBLE_PRECISION,0,kernel%mpi_comm,ierr)
+
+     if (kernel%iproc == 0) then
+      !fill the GPU memory
+
+      call reset_gpu_data(size1,zf1,kernel%work1_GPU)
+
+      switch_alg=0
+
+      call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,switch_alg,kernel%geo,scal)
+
+      !take data from GPU
+      call get_gpu_data(size1,zf1,kernel%work1_GPU)
+      endif
+   
+      call MPI_Scatter(zf1,size1/kernel%nproc,MPI_DOUBLE_PRECISION,zf,size1/kernel%nproc, &
+          MPI_DOUBLE_PRECISION,0,kernel%mpi_comm,ierr)
+
+      i_all=-product(shape(zf1))*kind(zf1)
+      deallocate(zf1,stat=i_stat)
+      call memocc(i_stat,i_all,'zf1',subname)
+
+   else
+
+     !fill the GPU memory
+
      call reset_gpu_data(size1,zf,kernel%work1_GPU)
 
      switch_alg=0
@@ -253,6 +288,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      !take data from GPU
      call get_gpu_data(size1,zf,kernel%work1_GPU)
+
+   endif
 
   endif
 
@@ -314,6 +351,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   deallocate(zf,stat=i_stat)
   call memocc(i_stat,i_all,'zf',subname)
 
+  !call MPI_BARRIER(kernel%mpi_comm,ierr)
+
   call timing(kernel%iproc,'PSolv_comput  ','OF')
 
   !gathering the data to obtain the distribution array
@@ -367,8 +406,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      end if
   end if
-
-
 
 END SUBROUTINE H_potential
 
