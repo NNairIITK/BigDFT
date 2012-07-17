@@ -74,6 +74,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           !if(iproc==0) write(*,*) 'deviation from unity:', maxError
       end if
 
+
       !!! EXPERIMENTAL ###########################################################
       !!do iorb=1,orbs%norb
       !!    ilr=orbs%inwhichlocreg(iorb)
@@ -176,6 +177,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   call memocc(istat, iall, 'ovrlp', subname)
 
 
+
 end subroutine orthonormalizeLocalized
 
 
@@ -208,7 +210,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   ! Local variables
   integer:: istat, iall, ierr, iorb, jorb
   real(8),dimension(:),allocatable:: lphiovrlp
-  real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, lagmat_tmp
   character(len=*),parameter:: subname='orthoconstraintNonorthogonal'
   !integer :: i, j
   !real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
@@ -216,6 +218,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
   allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  allocate(lagmat_tmp(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, lagmat_tmp, 'lagmat_tmp', subname)
 
   if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
       if(.not. can_use_transposed) then
@@ -280,9 +284,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !end if
 
 
-
+  call dcopy(orbs%norb**2, lagmat(1,1), 1, lagmat_tmp(1,1), 1)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-       bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
+       bs%correction_orthoconstraint, orbs, lagmat_tmp, ovrlp, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
   !!call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, 1, &
   !!     orbs, lagmat, ovrlp, mad, &
@@ -312,13 +316,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       !!iall=-product(shape(hpsit_f))*kind(hpsit_f)
       !!deallocate(hpsit_f, stat=istat)
       !!call memocc(istat, iall, 'hpsit_f', subname)
-      iall=-product(shape(psit_c))*kind(psit_c)
-      deallocate(psit_c, stat=istat)
-      call memocc(istat, iall, 'psit_c', subname)
-      iall=-product(shape(psit_f))*kind(psit_f)
-      deallocate(psit_f, stat=istat)
-      call memocc(istat, iall, 'psit_f', subname)
-      can_use_transposed=.false.
+
+      !!iall=-product(shape(psit_c))*kind(psit_c)
+      !!deallocate(psit_c, stat=istat)
+      !!call memocc(istat, iall, 'psit_c', subname)
+      !!iall=-product(shape(psit_f))*kind(psit_f)
+      !!deallocate(psit_f, stat=istat)
+      !!call memocc(istat, iall, 'psit_f', subname)
+      !!can_use_transposed=.false.
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
@@ -348,6 +353,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
   deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
   call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+  iall=-product(shape(lagmat_tmp))*kind(lagmat_tmp)
+  deallocate(lagmat_tmp, stat=istat)
+  call memocc(istat, iall, 'lagmat_tmp', subname)
 
   !!if (verbose > 2) then
   !!   timeComput=timeExtract+timeExpand+timeApply+timecalcmatrix

@@ -1901,7 +1901,7 @@ module module_interfaces
 
         subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                    infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
-                   tmblarge2, lhphilarge2, energs_base)
+                   tmblarge2, lhphilarge2, energs_base, ham)
           use module_base
           use module_types
           implicit none
@@ -1921,6 +1921,7 @@ module module_interfaces
           type(DFT_wavefunction),target,intent(inout):: tmblarge2
           real(8),dimension(:),pointer,intent(inout):: lhphilarge2
           type(energy_terms),intent(inout) :: energs_base
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
         end subroutine getLocalizedBasis
 
 
@@ -2144,7 +2145,7 @@ module module_interfaces
                GPU, infoCoeff,ebs,nlpspd,proj,&
                SIC,tmbmix,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
                tmblarge, lhphilarge, &
-               ldiis_coeff)
+               ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -2165,6 +2166,7 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(:),pointer,intent(inout):: lhphilarge
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 
@@ -5590,7 +5592,7 @@ module module_interfaces
                   fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
                   meanAlpha, emergency_exit, &
                   tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs)
+                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, ham, hpsit_c, hpsit_f)
          use module_base
          use module_types
          implicit none
@@ -5608,6 +5610,8 @@ module module_interfaces
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
          type(energy_terms),intent(in) :: energs
+         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
+         real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
        end subroutine calculate_energy_and_gradient_linear
 
 

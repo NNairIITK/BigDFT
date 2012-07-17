@@ -2,7 +2,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, consecutive_rejections, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs)
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, ham, hpsit_c, hpsit_f)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -23,20 +23,24 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
+  real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
   real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
   character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-  real(8),dimension(:,:),allocatable:: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
+  real(8),dimension(:),pointer:: hpsittmp_c, hpsittmp_f
+  real(8),dimension(:,:),allocatable:: epsmat, fnrmOvrlpArr, fnrmArr, lagmat
   real(8):: closesteval, gnrm_temple
   integer:: owa, owanext
 
-  nullify(hpsit_c)
-  nullify(hpsit_f)
-  nullify(hpsittmp_c)
-  nullify(hpsittmp_f)
+  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE .and. &
+      (.not.present(hpsit_c) .or. .not.present(hpsit_f))) stop 'ERROR: transposed quantities must be present!'
+  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      nullify(hpsittmp_c)
+      nullify(hpsittmp_f)
+  end if
 
 
 
@@ -50,6 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! by default no quick exit
   emergency_exit=.false.
 
+  call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -62,19 +67,21 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                    tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
               tmblarge%can_use_transposed=.true.
           end if
-          allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, hpsit_c, 'hpsit_c', subname)
-          allocate(hpsit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, hpsit_f, 'hpsit_f', subname)
+          !!allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+          !!call memocc(istat, hpsit_c, 'hpsit_c', subname)
+          !!allocate(hpsit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+          !!call memocc(istat, hpsit_f, 'hpsit_f', subname)
           allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
           call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
           allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+          !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
           if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
               call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
           if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
               call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+          !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+          !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
                hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
@@ -111,16 +118,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge2, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  if(associated(hpsit_c)) then
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-  end if
-  if(associated(hpsit_f)) then
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
-  end if
+  !!if(associated(hpsit_c)) then
+  !!    iall=-product(shape(hpsit_c))*kind(hpsit_c)
+  !!    deallocate(hpsit_c, stat=istat)
+  !!    call memocc(istat, iall, 'hpsit_c', subname)
+  !!end if
+  !!if(associated(hpsit_f)) then
+  !!    iall=-product(shape(hpsit_f))*kind(hpsit_f)
+  !!    deallocate(hpsit_f, stat=istat)
+  !!    call memocc(istat, iall, 'hpsit_f', subname)
+  !!end if
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge2, lhphi)
 

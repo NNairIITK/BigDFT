@@ -39,9 +39,9 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
-integer:: jorb, jjorb, iiat,nit_highaccur
-real(8),dimension(:,:),allocatable:: overlapmatrix
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, can_use
+integer:: jorb, jjorb, iiat,nit_highaccur, itype
+real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge, tmblargeder, tmblarge2
 real(8),dimension(:,:),allocatable:: locregCenter, locregCenterTemp, kernel, Umat
@@ -61,6 +61,8 @@ real(8),dimension(3,at%nat):: fpulay
   allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
   call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
 
+  allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, ham, 'ham', subname)
 
   ! Allocate the old charge density (used to calculate the variation in the charge density)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
@@ -374,7 +376,7 @@ real(8),dimension(3,at%nat):: fpulay
               end if
 
               call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs)
+                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
               else
@@ -499,14 +501,38 @@ real(8),dimension(3,at%nat):: fpulay
           end if
 
           ! Calculate the coefficients
+          if(Iproc==0) write(*,*) 'tmb%wfnmd%bs%update_phi',tmb%wfnmd%bs%update_phi
+          ! Check whether we can use the Hamiltonian matrix from the TMB optimization
+          can_use=.true.
+          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+              do itype=1,at%ntypes
+                  if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
+                      can_use=.false.
+                      exit
+                  end if
+              end do
+          else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+              do itype=1,at%ntypes
+                  if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
+                      can_use=.false.
+                      exit
+                  end if
+              end do
+          end if
           if(.not.lscv%withder) then
-              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblarge, lhphilarge, ldiis_coeff)
+              if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                       input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                       tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
+              else
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                       input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                       tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
+              end if
           else
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblargeder, lhphilargeder, ldiis_coeff)
+                   tmblargeder, lhphilargeder, ldiis_coeff=ldiis_coeff)
           end if
 
           !!if(itout==1 .or. itout==15) then
@@ -757,6 +783,10 @@ real(8),dimension(3,at%nat):: fpulay
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
 
+  iall=-product(shape(ham))*kind(ham)
+  deallocate(ham, stat=istat)
+  call memocc(istat, iall, 'ham', subname)
+
   call timing(iproc,'WFN_OPT','PR')
 
 end subroutine linearScaling
@@ -844,7 +874,7 @@ real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
       else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
           write(*,'(5x,a)') '- target function is energy'
       end if
-      if(info_tmb<0) then
+      if(info_tmb<=0) then
           write(*,'(5x,a)') '- WARNING: basis functions not converged!'
       else
           write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_tmb, ' iterations.'
