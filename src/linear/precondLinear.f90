@@ -83,6 +83,11 @@ real(wp), dimension(:), allocatable :: b,r,d
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
+     !!if(it>0) then
+     !!    call cut_at_boundaries2(lr, orbs, hx, hy, hz, x)
+     !!end if
+     !call flatten_at_boundaries2(lr, orbs, hx, hy, hz, x)
+
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
           rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 

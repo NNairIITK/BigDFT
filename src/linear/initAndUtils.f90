@@ -235,7 +235,7 @@ subroutine deallocateBasicArraysInput(lin)
   if(associated(lin%potentialPrefac)) then
 !    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    !print *,'i_all',i_all
+!    print *,'i_all',i_all,shape(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
@@ -1865,7 +1865,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
   character(len=*),parameter:: subname='update_locreg'
 
-
+  call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_orbitals_data(llborbs)
   call nullify_overlapParameters(lbop)
   call nullify_p2pComms(lbcomon)
@@ -1916,6 +1916,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
+
+  call timing(iproc,'updatelocreg1','OF') !lr408t
+
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
@@ -1924,13 +1927,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
 
-
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-
 
 end subroutine update_locreg
 
@@ -2146,6 +2147,7 @@ subroutine init_basis_specifications(input, bs)
   bs%communicate_phi_for_lsumrho=.false.
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
+  bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond
@@ -2153,6 +2155,7 @@ subroutine init_basis_specifications(input, bs)
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
   bs%nit_unitary_loop=input%lin%nItInnerLoop
   bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
+  bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
 
 end subroutine init_basis_specifications
 

@@ -71,7 +71,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
-
+  use yaml_output
   implicit none
 
   !Arguments
@@ -83,10 +83,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-
+  
+  !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
-
+  !call yaml_close_map()
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
@@ -170,6 +171,7 @@ END SUBROUTINE read_input_parameters
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
@@ -178,7 +180,7 @@ subroutine check_for_data_writing_directory(iproc,in)
   integer :: i_stat,ierror,ierr
   character(len=100) :: dirname
 
-  if (iproc==0)write(*,'(1x,a)')'|'//repeat('-',82)
+  if (iproc==0)write(*,'(1x,a)')'#|'//repeat('-',82)
 
   !initialize directory name
   shouldwrite=.false.
@@ -205,9 +207,10 @@ subroutine check_for_data_writing_directory(iproc,in)
      end if
      call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      in%dir_output=dirname
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    ',trim(in%dir_output)
+     if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))!,write(*,'(1x,2a)')'#|  Data Writing directory:    ',trim(in%dir_output)
   else
-     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    not needed'
+     if (iproc==0) call yaml_map('Data Writing directory','None')
+     !if (iproc==0) write(*,'(1x,2a)')'#|  Data Writing directory:    not needed'
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
@@ -320,7 +323,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -654,11 +657,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
+             & ration of inner and outer gnrm'
   call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
   call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
@@ -682,13 +687,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
   call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
@@ -733,6 +738,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   call input_var(in%lin%lowaccuray_converged,'1.d-11',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
+  call input_var(in%lin%highaccuracy_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the high accuracy part') !lr408
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
@@ -775,7 +782,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='increase locrad after n steps, amount that locrad is increased'
   call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
   call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
-  
+
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -1358,7 +1365,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &

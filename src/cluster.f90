@@ -327,7 +327,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+      inputpsi == INPUT_PSI_LINEAR_LCAO) then
      call init_p2p_tags(nproc)
      tag=0
 
@@ -371,7 +372,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !use Vxc and other quantities as local variables
      call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
      denspot%rhov=1.d-16
-     call XC_potential(atoms%geocode,'D',iproc,nproc,&
+     call XC_potential(atoms%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
+          denspot%pkernel%mpi_comm,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
           denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
@@ -419,7 +421,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+                     inputpsi /= INPUT_PSI_LINEAR_LCAO) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -487,6 +490,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
+     call timing(iproc,'gauss_proj','ON') !lr408t
      if (iproc == 0) then
         write( *,'(1x,a)')&
              &   '---------------------------------------------------------- Gaussian Basis Projection'
@@ -529,7 +533,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
      call memocc(i_stat,i_all,'thetaphi',subname)
-
+     call timing(iproc,'gauss_proj','OF') !lr408t
   end if
 
   !  write all the wavefunctions into files
@@ -594,19 +598,31 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
              &   '----------------------------------------------------------------- Forces Calculation'
      end if
 
+
      !manipulate scatter array for avoiding the GGA shift
-     do jproc=0,nproc-1
+!!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%geocode,'D',1,denspot%dpbox)
+     do jproc=0,denspot%dpbox%nproc-1
         !n3d=n3p
+        denspot%dpbox%n3d=denspot%dpbox%n3p
         denspot%dpbox%nscatterarr(jproc,1)=denspot%dpbox%nscatterarr(jproc,2)
         !i3xcsh=0
         denspot%dpbox%nscatterarr(jproc,4)=0
+        denspot%dpbox%i3s=denspot%dpbox%i3s+denspot%dpbox%i3xcsh
+        denspot%dpbox%i3xcsh=0
+        !the same for the density
+        denspot%dpbox%ngatherarr(:,3)=denspot%dpbox%ngatherarr(:,1)
      end do
      !change communication scheme to LDA case
-     denspot%rhod%icomm=1
+     !only in the case of no PSolver tasks
+     if (denspot%dpbox%nproc < nproc) then
+        denspot%rhod%icomm=0
+        denspot%rhod%nrhotot=denspot%dpbox%ndims(3)
+     else
+        denspot%rhod%icomm=1
+        denspot%rhod%nrhotot=sum(denspot%dpbox%nscatterarr(:,1))
+     end if
 
-     call density_and_hpot(iproc,nproc,atoms%geocode,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-          denspot%dpbox%nscatterarr,&
+     call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
 
      !xc stress, diagonal for the moment
@@ -616,10 +632,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      ! calculate dipole moment associated to the charge density
      if (DoLastRunThings) then 
-        call calc_dipole(iproc,nproc,KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%dpbox%n3p,in%nspin,&
-             denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-             atoms,rxyz,denspot%dpbox%ngatherarr,denspot%rho_work)
+        call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
@@ -654,7 +667,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
 
-     call calculate_forces(iproc,nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
+     call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
           in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
@@ -803,13 +816,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            !this could have been calculated before
            ! Potential from electronic charge density
            !WARNING: this is good just because the TDDFT is done with LDA
-           call sumrho(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
-                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-                denspot%dpbox%nscatterarr,&
+           call sumrho(denspot%dpbox,KSwfn%orbs,KSwfn%Lzd,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
-           call communicate_density(iproc,nproc,KSwfn%orbs%nspin,&
-                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),KSwfn%Lzd,&
-                denspot%rhod,denspot%dpbox%nscatterarr,denspot%rho_psi,denspot%rhov,.false.)
+           call communicate_density(denspot%dpbox,KSwfn%orbs%nspin,&
+                denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
 
            if (OCLconv) then
@@ -825,7 +835,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               call memocc(i_stat,denspot%f_XC,'denspot%f_XC',subname)
            end if
 
-           call XC_potential(atoms%geocode,'D',iproc,nproc,&
+           call XC_potential(atoms%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
@@ -893,7 +903,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
   if (in%gaussian_help .and. DoLastRunThings .and.&
-&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
+&    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR .and. &
+      .not.inputpsi==INPUT_PSI_LINEAR_LCAO)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -906,19 +917,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (iproc == 0) call global_analysis(KSwfn%orbs, in%Tel,in%occopt)
   end if
 
-  i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
-  deallocate(denspot%pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel',subname)
+!!$  i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
+!!$  deallocate(denspot%pkernel,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'kernel',subname)
 
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
-     deallocate(denspot%pkernelseq,stat=i_stat)
-     call memocc(i_stat,i_all,'kernelseq',subname)
+     call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+!!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
+!!$     deallocate(denspot%pkernelseq,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'kernelseq',subname)
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
-     nullify(denspot%pkernelseq)
+     nullify(denspot%pkernelseq%kernel)
   end if
-
+  call deallocate_coulomb_operator(denspot%pkernel,subname)
 
 
   !------------------------------------------------------------------------
@@ -936,15 +948,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
-             &   mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-             mpidtypd,MPI_COMM_WORLD,ierr)
+             mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
+             mpidtypd,denspot%dpbox%mpi_comm,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),n1i*n2i*denspot%dpbox%n3p,&
                 mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-                mpidtypd,MPI_COMM_WORLD,ierr)
+                mpidtypd,denspot%dpbox%mpi_comm,ierr)
         end if
      else
         call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
@@ -1021,16 +1033,14 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
-          deallocate(denspot%pkernelseq,stat=i_stat)
-          call memocc(i_stat,i_all,'kernelseq',subname)
+          call deallocate_coulomb_operator(denspot%pkernelseq,subname)
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
-          nullify(denspot%pkernelseq)
+          nullify(denspot%pkernelseq%kernel)
        end if
-
-       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
-       deallocate(denspot%pkernel,stat=i_stat)
-       call memocc(i_stat,i_all,'kernel',subname)
+       call deallocate_coulomb_operator(denspot%pkernel,subname)
+!!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
+!!$       deallocate(denspot%pkernel,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
        i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
@@ -1074,7 +1084,8 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+        inputpsi /= INPUT_PSI_LINEAR_LCAO) then
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
@@ -1321,6 +1332,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            opt%iter = opt%iter + 1
         end do wfn_loop
+
+
         if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if

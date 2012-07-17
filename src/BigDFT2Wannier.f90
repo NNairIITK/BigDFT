@@ -153,6 +153,7 @@ program BigDFT2Wannier
 
    ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,Glr,orbs,comms)
+
    if(orbs%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
    if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
 
@@ -348,7 +349,7 @@ program BigDFT2Wannier
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
-         if(nproc > 1) then                                                                                                                                                              
+         if(nproc > 1) then
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
          end if
          !print *,'overlap_proj',overlap_proj
@@ -380,7 +381,9 @@ program BigDFT2Wannier
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
          ! Construction of the whole Amnk_guess matrix.
-         call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+         if(nproc > 1) then
+            call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+         end if
 
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
          ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
@@ -650,7 +653,7 @@ program BigDFT2Wannier
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
-         if(nproc > 1) then                                                                                                                                                              
+         if(nproc > 1) then
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
          end if
          !print *,'overlap_proj',overlap_proj
@@ -1230,6 +1233,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
       if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
       if(iproc==0)write(*,'(A39,I4)') 'Number of chosen unnocupied orbitals :', n_virt
    else
+      pre_check = .false.
       if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
    end if
 

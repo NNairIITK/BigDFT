@@ -1103,6 +1103,7 @@ subroutine copy_basis_specifications(bsin, bsout, subname)
   bsout%nit_basis_optimization=bsin%nit_basis_optimization
   bsout%nit_unitary_loop=bsin%nit_unitary_loop
   bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
+  bsout%correction_orthoconstraint=bsin%correction_orthoconstraint
 
 end subroutine copy_basis_specifications
 

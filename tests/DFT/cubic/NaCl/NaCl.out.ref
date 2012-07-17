@@ -1,91 +1,95 @@
-                             TTTT         F       DDDDD    
-                            T    T               D         
-                           T     T        F     D          
-                           T    T         F     D        D 
-                           TTTTT          F     D         D
-                           T    T         F     D         D
-                           T     T        F     D         D
-                           T      T       F     D         D
-                           T     T     FFFF     D         D
-                           T TTTT         F      D        D
-                           T             F        D      D 
-                       TTTTTTTTT    FFFFF          DDDDDD  
-                         gggggg          iiiii    BBBBBBBBB
-                        g      g        i             B    
-                       g        g      i         BBBB B    
-                       g         g     iiii     B     B    
-                       g         g     i       B      B    
-                       g         g     i        B     B    
-                       g         g     i         B    B    
-                       g         g     i          BBBBB    
-                        g        g     i         B    B    
-                                 g     i        B     B    
-                                g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.7-dev.4)
- ------------------------------------------------------------------------------------
- |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
- ------------------------------------------------------------------------------------
-                                   The Journal of Chemical Physics 129, 014109 (2008)
+---
+  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
+ Code logo:
+         TTTT         F       DDDDD
+        T    T               D
+       T     T        F     D
+       T    T         F     D        D
+       TTTTT          F     D         D
+       T    T         F     D         D
+       T     T        F     D         D
+       T      T       F     D         D
+       T     T     FFFF     D         D
+       T TTTT         F      D        D
+       T             F        D      D
+   TTTTTTTTT    FFFFF          DDDDDD
+     gggggg          iiiii    BBBBBBBBB
+    g      g        i             B
+   g        g      i         BBBB B
+   g         g     iiii     B     B
+   g         g     i       B      B
+   g         g     i        B     B
+   g         g     i         B    B
+   g         g     i          BBBBB
+    g        g     i         B    B
+             g     i        B     B
+            g               B    B
+       ggggg       i         BBBB
 
- |... (file:input.perf)...........................................Performance Options
- |debug F                    Debug option
- |fftcache 8192              Cache size for the FFT
- |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
- |blas F                     CUBLAS acceleration
- |projrad  1.50E+01          Radius of the projector as a function of the maxrad
- |exctxpar OP2P              Exact exchange parallelisation scheme
- |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
- |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
- |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
- |ig_tol  1.00E-04           Input guess: Tolerance criterion
- |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
- |rho_commun DBL             Density communication scheme
- |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
- |linear OFF                 Linear Input Guess approach
- |tolsym -1.00E+00           Tolerance for symmetry detection
- |signaling F                Expose calculation results on Network
- |signalTimeout 0            Time out on startup for signal connection
- |domain                     Domain to add to the hostname to find the IP
- |verbosity 0                verbosity of the output 0=low, 2=high
- |psp_onfly T                Calculate pseudopotential projectors on the fly
- |... (file:input.dft).....................................DFT Calculation Parameters
- |0.550 0.550 0.550  hx,hy,hz: grid spacing in the three directions                  
- |6.0 10.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
- |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
- |0 0.0   0.0 0. charge of the system, Electric field (Ex,Ey,Ez)                     
- |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
- |1.E-04         gnrm_cv: convergence criterion gradient                             
- |100 10         itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
- |7  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
- |0              dispersion correction potential (values 1,2,3), 0=none              
- |10 1  0        InputPsiId, output_wf, output_denspot                               
- |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
- |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
- |T              disable the symmetry detection                                      
- |... (file:input.mix.. not present)...............................Mixing Parameters 
- |0              Mixing parameters                                                   
- |1              Maximum number of diagonalisation iterations                        
- |1.e-4          Stop criterion on the residue of potential or density               
- |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
- |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
- |... (file:input.geopt)..........................................Geometry Parameters
- |VSSD           Geometry optimisation method                                        
- |4              Maximum number of force evaluations                                 
- |0.d0    1.d    fract_fluct,forcemax                                                
- |0.d0           random displacement amplitude                                       
- |100.d0         Stepsize for the geometry optimisation                              
- |... (file:input.tddft.. not present).............................TD-DFT Parameters 
- |NONE           TDDFT Method                                                        
- |... (file:input.sic.. not present)..................................SIC Parameters 
- |NONE           SIC method: NONE, PZ, NK                                            
- |0.0            SIC downscaling parameter                                           
- |0.0            Reference occupation fref (NK case only)                            
- |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
- |manual         K-point sampling method                                             
- |1              Number of K-points                                                  
- |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
- |----------------------------------------------------------------------------------
- |  Data Writing directory:    data/
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7-dev.11
+ Timestamp of this run                 :  2012-06-05 00:21:44.258
+ Hostname                              : athelas
+ #... (file:input.perf)..................................................Performance Options
+ #|debug F                   Debug option
+ #|fftcache 8192             Cache size for the FFT
+ #|accel NO                  Acceleration (NO, CUDAGPU, OCLGPU)
+ #|blas F                    CUBLAS acceleration
+ #|projrad  1.50E+01         Radius of the projector as a function of the maxrad
+ #|exctxpar OP2P             Exact exchange parallelisation scheme
+ #|ig_diag T                 Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ #|ig_norbp 5                Input guess: Orbitals per process for iterative diag.
+ #|ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ #|ig_tol  1.00E-04          Input guess: Tolerance criterion
+ #|methortho 0               Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ #|rho_commun DEF            Density communication scheme
+ #|psolver_groupsize 0       Size of Poisson Solver taskgroups (0=nproc)
+ #|unblock_comms OFF         Overlap Communications of fields (OFF,DEN,POT)
+ #|linear OFF                Linear Input Guess approach (OFF, LIG, FUL, TMO)
+ #|tolsym -1.00E+00          Tolerance for symmetry detection
+ #|signaling F               Expose calculation results on Network
+ #|signalTimeout 0           Time out on startup for signal connection
+ #|domain                    Domain to add to the hostname to find the IP 
+ #|verbosity 0               verbosity of the output 0=low, 2=high
+ #|psp_onfly T               Calculate pseudopotential projectors on the fly
+ #... (file:input.dft)............................................DFT Calculation Parameters
+ #|0.550 0.550 0.550  hx,hy,hz: grid spacing in the three directions                         
+ #|6.0 10.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
+ #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
+ #|0 0.0   0.0 0. charge of the system, Electric field (Ex,Ey,Ez)                            
+ #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
+ #|1.E-04         gnrm_cv: convergence criterion gradient                                    
+ #|100 10         itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
+ #|7  6           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
+ #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|10 1  0        InputPsiId, output_wf, output_denspot                                      
+ #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
+ #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
+ #|T              disable the symmetry detection                                             
+ #... (file:input.mix.. not present)......................................Mixing Parameters 
+ #|0              Mixing parameters                                                          
+ #|1              Maximum number of diagonalisation iterations                               
+ #|1.e-4          Stop criterion on the residue of potential or density                      
+ #|0 0.0 1        No. of additional bands, elec. temperature, smearing method                
+ #|0.0 2.0        Multiplying factors for the mixing and the electronic DIIS                 
+ #... (file:input.geopt).................................................Geometry Parameters
+ #|VSSD           Geometry optimisation method                                               
+ #|4              Maximum number of force evaluations                                        
+ #|0.d0    1.d    fract_fluct,forcemax                                                       
+ #|0.d0           random displacement amplitude                                              
+ #|100.d0         Stepsize for the geometry optimisation                                     
+ #... (file:input.tddft.. not present)....................................TD-DFT Parameters 
+ #|NONE           TDDFT Method                                                               
+ #... (file:input.sic.. not present).........................................SIC Parameters 
+ #|NONE           SIC method: NONE, PZ, NK                                                   
+ #|0.0            SIC downscaling parameter                                                  
+ #|0.0            Reference occupation fref (NK case only)                                   
+ #... (file:input.kpt.. not present).....................Brillouin Zone Sampling Parameters 
+ #|manual         K-point sampling method                                                    
+ #|1              Number of K-points                                                         
+ #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ #|----------------------------------------------------------------------------------
+ Data Writing directory                : data/
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | at.   1 (Na)   1         | N. sym.   = free BC     
@@ -99,24 +103,24 @@
         algorithm=VSSD    |   Max. in forces=1.0E-04 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=1.0E+02 |
 
- Number of MPI processes 1
+ Number of MPI processes 2
  Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  DFT parameters:
    eXchange Correlation:
-     XC ID                             : &ixc  1
+     XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.55,  0.55,  0.55 ]
    Coarse and Fine Radii Multipliers   :  [  6.0,  10.0 ]
  Ground State Optimization:
    Wavefunction:
-     Gradient Norm Threshold           : &gnrm_cv  1.0E-04
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
      CG Steps for Preconditioner       :  7
      DIIS History length               :  6
-     Max. Wfn Iterations               : &itermax  100
+     Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  10
    Density/Potential:
      Max. Iterations                   :  1
@@ -156,13 +160,16 @@
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        27<38     27<38     27<38
  wavelet localization is ON
+ MPI tasks                             :  2
+ OpenMP threads per task               :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1831 points=     59239
    Fine resolution grid: Number of segments=        117 points=       961
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     2 MB    13 KB   448 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 6 KB 736
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -177,61 +184,62 @@
  Poisson Solver:
    BC                                  : Isolated
    Dimensions                          :  [  125,  125,  125 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
- Total No. of Atomic Input Orbitals:  5]
+ Total No. of Atomic Input Orbitals:  5, 
+ Inputguess Orbitals Repartition: {MPI tasks  0- 0:  3, MPI tasks  1- 1:  2}]
  Deviation from normalization          :  1.21E-04
- EKS                                   : -1.50865423578742668E+01
+ EKS                                   : -1.50865423578817524E+01
   #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
  Orbitals: [
- {e: -7.476004096098E-01, f:  2.0000}, 
- {e: -3.095150532738E-01, f:  2.0000}, 
- {e: -3.086250676148E-01, f:  2.0000},  #<-deg
- {e: -3.086250676148E-01, f:  2.0000},  #<-deg
- {e: -1.009855252097E-01, f:  0.0000}]
+ {e: -7.476004102018E-01, f:  2.0000}, 
+ {e: -3.095150538686E-01, f:  2.0000}, 
+ {e: -3.086250682064E-01, f:  2.0000}, 
+ {e: -3.086250682060E-01, f:  2.0000}, 
+ {e: -1.009855261350E-01, f:  0.0000}]
  Accuracy estimation for this run:
    Energy                              :  6.55E-04
    Convergence Criterion               :  1.64E-04
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.50926713879704355E+01, gnrm:  1.06E-01}
-      -  {iter:  2, EKS: -1.51667803931909138E+01, gnrm:  3.44E-02}
-      -  {iter:  3, EKS: -1.51729431260615701E+01, gnrm:  1.13E-02}
-      -  {iter:  4, EKS: -1.51761518387002408E+01, gnrm:  8.08E-03}
-      -  {iter:  5, EKS: -1.51769734597573791E+01, gnrm:  7.12E-03}
-      -  {iter:  6, EKS: -1.51774782873226126E+01, gnrm:  6.23E-03}
-      -  {iter:  7, EKS: -1.51786556433667759E+01, gnrm:  6.69E-03}
-      -  {iter:  8, EKS: -1.51799840444077052E+01, gnrm:  4.59E-03}
-      -  {iter:  9, EKS: -1.51800138053283806E+01, gnrm:  6.57E-03}
-      -  {iter:  10, EKS: -1.51803733466244548E+01, gnrm:  6.10E-03}
-      -  {iter:  11, EKS: -1.51808656596602436E+01, gnrm:  2.16E-03}
-      -  {iter:  12, EKS: -1.51808529117085786E+01, gnrm:  8.97E-04}
-      -  {iter:  13, EKS: -1.51808774293948812E+01, gnrm:  4.28E-04}
-      -  {iter:  14, EKS: -1.51808769653326809E+01, gnrm:  2.55E-04}
-      -  {iter:  15, EKS: -1.51808783394941837E+01, gnrm:  1.31E-04}
-      -  {iter:  16, EKS: -1.51808783593224401E+01, gnrm:  5.28E-05}
-      -  &FINAL  {iter:  17, EKS: -1.51808783714024056E+01, gnrm:  5.28E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.50926713879918957E+01, gnrm:  1.06E-01}
+      -  {iter:  2, EKS: -1.51667803932105958E+01, gnrm:  3.44E-02}
+      -  {iter:  3, EKS: -1.51729431260806056E+01, gnrm:  1.13E-02}
+      -  {iter:  4, EKS: -1.51761518387157235E+01, gnrm:  8.08E-03}
+      -  {iter:  5, EKS: -1.51769734597727730E+01, gnrm:  7.12E-03}
+      -  {iter:  6, EKS: -1.51774782873266876E+01, gnrm:  6.23E-03}
+      -  {iter:  7, EKS: -1.51786556434056923E+01, gnrm:  6.69E-03}
+      -  {iter:  8, EKS: -1.51799840444566403E+01, gnrm:  4.59E-03}
+      -  {iter:  9, EKS: -1.51800138053815363E+01, gnrm:  6.57E-03}
+      -  {iter:  10, EKS: -1.51803733466859487E+01, gnrm:  6.10E-03}
+      -  {iter:  11, EKS: -1.51808656596813645E+01, gnrm:  2.16E-03}
+      -  {iter:  12, EKS: -1.51808529117339095E+01, gnrm:  8.97E-04}
+      -  {iter:  13, EKS: -1.51808774294102538E+01, gnrm:  4.28E-04}
+      -  {iter:  14, EKS: -1.51808769653484621E+01, gnrm:  2.55E-04}
+      -  {iter:  15, EKS: -1.51808783395096594E+01, gnrm:  1.31E-04}
+      -  {iter:  16, EKS: -1.51808783593383634E+01, gnrm:  5.28E-05}
+      -  &FINAL  {iter:  17, EKS: -1.51808783714181370E+01, gnrm:  5.28E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -5.755346231041E-01, f:  2.0000}, 
- {e: -1.585662826603E-01, f:  2.0000}, 
- {e: -1.465600128264E-01, f:  2.0000}, 
- {e: -1.465600128264E-01, f:  2.0000}] #<-deg
+ {e: -5.755346231573E-01, f:  2.0000}, 
+ {e: -1.585662827084E-01, f:  2.0000}, 
+ {e: -1.465600128738E-01, f:  2.0000}, 
+ {e: -1.465600128736E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- average noise along x direction:  -2.14837600E-04
+  MPI tasks                            :  2
+ average noise along x direction:  -2.14837546E-04
  average noise along y direction:  -2.14837600E-04
  average noise along z direction:  -2.14837600E-04
- total average noise            :   3.72109639E-04
- clean forces norm (Ha/Bohr): maxval=  1.522327404165E-02  fnrm2=  2.317480725470E-04
- raw forces:                  maxval=  1.548639529043E-02  fnrm2=  4.636346106772E-04
- CPU time/ELAPSED time for root process     0        29.39        55.28
+ total average noise            :   3.72109608E-04
+ clean forces norm (Ha/Bohr): maxval=  1.522327401820E-02  fnrm2=  2.317480718331E-04
+ raw forces:                  maxval=  1.548639524523E-02  fnrm2=  4.636346092264E-04
+ CPU time/ELAPSED time for root process     0        30.44        57.89
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  VSSD      
@@ -239,17 +247,17 @@ Poisson Solver:
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -289,13 +297,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        27<38     27<38     27<38
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1831 points=     59239
    Fine resolution grid: Number of segments=        117 points=       961
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     2 MB    13 KB   448 B
+Wavefunctions memory occupation for root MPI process:  1 MB 6 KB 736
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -310,50 +321,50 @@ Ground State Optimization:
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #----------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
  }
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.51808783714027538E+01, gnrm:  1.51E-05}
-      -  &FINAL  {iter:  2, EKS: -1.51808783734392865E+01, gnrm:  1.51E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.51808783714182542E+01, gnrm:  1.51E-05}
+      -  &FINAL  {iter:  2, EKS: -1.51808783734554975E+01, gnrm:  1.51E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -5.755324518548E-01, f:  2.0000}, 
- {e: -1.585645686535E-01, f:  2.0000}, 
- {e: -1.465580806174E-01, f:  2.0000}, 
- {e: -1.465580806174E-01, f:  2.0000}] #<-deg
+ {e: -5.755324515652E-01, f:  2.0000}, 
+ {e: -1.585645683718E-01, f:  2.0000}, 
+ {e: -1.465580803449E-01, f:  2.0000}, 
+ {e: -1.465580803441E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- average noise along x direction:  -2.13428299E-04
- average noise along y direction:  -2.13428299E-04
- average noise along z direction:  -2.13428299E-04
- total average noise            :   3.69668658E-04
- clean forces norm (Ha/Bohr): maxval=  1.522196795330E-02  fnrm2=  2.317083083714E-04
- raw forces:                  maxval=  1.548336316788E-02  fnrm2=  4.635532716592E-04
- CPU time/ELAPSED time for root process     0         5.21         9.14
-    0     0  GEOPT_VSSD  -1.51808783734393E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
+  MPI tasks                            :  2
+ average noise along x direction:  -2.13428328E-04
+ average noise along y direction:  -2.13428326E-04
+ average noise along z direction:  -2.13428326E-04
+ total average noise            :   3.69668706E-04
+ clean forces norm (Ha/Bohr): maxval=  1.522196798618E-02  fnrm2=  2.317083093723E-04
+ raw forces:                  maxval=  1.548336323475E-02  fnrm2=  4.635532736966E-04
+ CPU time/ELAPSED time for root process     0         5.40        10.21
+    0     0  GEOPT_VSSD  -1.51808783734555E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -393,13 +404,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        25<36     25<36     25<36
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     58142
    Fine resolution grid: Number of segments=        120 points=       979
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     1 MB  1007 KB    96 B
+Wavefunctions memory occupation for root MPI process:  0 MB 1015 KB 576
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -408,13 +422,13 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.04138673264750E+00
+ ion-ion interaction energy  1.04138673315685E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #----------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   59239   58142
@@ -422,58 +436,58 @@ Input Hamiltonian: { #----------------------------------------------- Wavefuncti
  }
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.26418564362055967E+01, gnrm:  9.17E-01}
-      -  {iter:  2, EKS: -1.47400840217977258E+01, gnrm:  3.55E-01}
-      -  {iter:  3, EKS: -1.50865881867975276E+01, gnrm:  2.09E-01}
-      -  {iter:  4, EKS: -1.51738639175594798E+01, gnrm:  1.08E-01}
-      -  {iter:  5, EKS: -1.52018220905275001E+01, gnrm:  4.70E-02}
-      -  {iter:  6, EKS: -1.52084413714798785E+01, gnrm:  1.79E-02}
-      -  {iter:  7, EKS: -1.52095792765493520E+01, gnrm:  8.48E-03}
-      -  {iter:  8, EKS: -1.52100709765764890E+01, gnrm:  3.76E-03}
-      -  {iter:  9, EKS: -1.52102005137071679E+01, gnrm:  3.90E-03}
-      -  {iter:  10, EKS: -1.52102498775472128E+01, gnrm:  2.87E-03}
-      -  {iter:  11, EKS: -1.52102736706611132E+01, gnrm:  1.75E-03}
-      -  {iter:  12, EKS: -1.52102818191598992E+01, gnrm:  4.61E-04}
-      -  {iter:  13, EKS: -1.52102824480757945E+01, gnrm:  2.19E-04}
-      -  {iter:  14, EKS: -1.52102825796128194E+01, gnrm:  1.21E-04}
-      -  {iter:  15, EKS: -1.52102826173132364E+01, gnrm:  4.95E-05}
-      -  &FINAL  {iter:  16, EKS: -1.52102826252746759E+01, gnrm:  4.95E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.26418564271016809E+01, gnrm:  9.17E-01}
+      -  {iter:  2, EKS: -1.47400840195238700E+01, gnrm:  3.55E-01}
+      -  {iter:  3, EKS: -1.50865881862726212E+01, gnrm:  2.09E-01}
+      -  {iter:  4, EKS: -1.51738639174563374E+01, gnrm:  1.08E-01}
+      -  {iter:  5, EKS: -1.52018220905832138E+01, gnrm:  4.70E-02}
+      -  {iter:  6, EKS: -1.52084413715663693E+01, gnrm:  1.79E-02}
+      -  {iter:  7, EKS: -1.52095792766414597E+01, gnrm:  8.48E-03}
+      -  {iter:  8, EKS: -1.52100709766661168E+01, gnrm:  3.76E-03}
+      -  {iter:  9, EKS: -1.52102005137987177E+01, gnrm:  3.90E-03}
+      -  {iter:  10, EKS: -1.52102498776399813E+01, gnrm:  2.87E-03}
+      -  {iter:  11, EKS: -1.52102736707546526E+01, gnrm:  1.75E-03}
+      -  {iter:  12, EKS: -1.52102818192531792E+01, gnrm:  4.61E-04}
+      -  {iter:  13, EKS: -1.52102824481691492E+01, gnrm:  2.19E-04}
+      -  {iter:  14, EKS: -1.52102825797065471E+01, gnrm:  1.21E-04}
+      -  {iter:  15, EKS: -1.52102826174062855E+01, gnrm:  4.95E-05}
+      -  &FINAL  {iter:  16, EKS: -1.52102826253682899E+01, gnrm:  4.95E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -5.843764080708E-01, f:  2.0000}, 
- {e: -1.705817605869E-01, f:  2.0000}, 
- {e: -1.562948425522E-01, f:  2.0000}, 
- {e: -1.562948425522E-01, f:  2.0000}] #<-deg
+ {e: -5.843764081726E-01, f:  2.0000}, 
+ {e: -1.705817606873E-01, f:  2.0000}, 
+ {e: -1.562948426437E-01, f:  2.0000}, 
+ {e: -1.562948426436E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- average noise along x direction:  -1.33276740E-04
- average noise along y direction:  -1.33276740E-04
- average noise along z direction:  -1.33276740E-04
- total average noise            :   2.30842085E-04
- clean forces norm (Ha/Bohr): maxval=  2.362673659192E-02  fnrm2=  5.582226819839E-04
- raw forces:                  maxval=  2.378996659555E-02  fnrm2=  1.116498652036E-03
- CPU time/ELAPSED time for root process     0        26.31        49.53
-    2     1  GEOPT_VSSD  -1.52102826252747E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
+  MPI tasks                            :  2
+ average noise along x direction:  -1.33276658E-04
+ average noise along y direction:  -1.33276669E-04
+ average noise along z direction:  -1.33276669E-04
+ total average noise            :   2.30841956E-04
+ clean forces norm (Ha/Bohr): maxval=  2.362673651494E-02  fnrm2=  5.582226783463E-04
+ raw forces:                  maxval=  2.378996642731E-02  fnrm2=  1.116498644701E-03
+ CPU time/ELAPSED time for root process     0        26.98        52.18
+    2     1  GEOPT_VSSD  -1.52102826253683E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -513,13 +527,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        22<33     22<33     22<33
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     57856
    Fine resolution grid: Number of segments=        120 points=       968
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     1 MB   995 KB   768 B
+Wavefunctions memory occupation for root MPI process:  0 MB 1009 KB 896
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -528,13 +545,13 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.85752057131260E+00
+ ion-ion interaction energy  1.85752056819002E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #----------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   58142   57856
@@ -542,28 +559,28 @@ Input Hamiltonian: { #----------------------------------------------- Wavefuncti
  }
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -8.49580210746889897E+00, gnrm:  1.27E+00}
+      -  {iter:  1, EKS: -8.49580213592188471E+00, gnrm:  1.27E+00}
  #WARNING:The norm of the residue is too large, need to recalculate input wavefunctions
 Energy inconsistencies:
-  Band Structure Energy                :  3.76264697433784E+00
+  Band Structure Energy                :  3.76264695051301E+00
   Sum of Eigenvalues                   :  0.00000000000000E+00
- CPU time/ELAPSED time for root process     0         4.01         6.59
+ CPU time/ELAPSED time for root process     0         3.85         7.00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -603,13 +620,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        22<33     22<33     22<33
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     57856
    Fine resolution grid: Number of segments=        120 points=       968
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     1 MB   995 KB   768 B
+Wavefunctions memory occupation for root MPI process:  0 MB 1009 KB 896
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -618,64 +638,64 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.85752057131260E+00
+ ion-ion interaction energy  1.85752056819002E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #------------------------ Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization:  5.67E-02}
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.51319413688138216E+01, gnrm:  1.26E-01}
-      -  {iter:  2, EKS: -1.52460128138703244E+01, gnrm:  4.75E-02}
-      -  {iter:  3, EKS: -1.52608612642776595E+01, gnrm:  2.14E-02}
-      -  {iter:  4, EKS: -1.52642543145337743E+01, gnrm:  1.10E-02}
-      -  {iter:  5, EKS: -1.52646935449382841E+01, gnrm:  6.12E-03}
-      -  {iter:  6, EKS: -1.52648782213582042E+01, gnrm:  2.49E-03}
-      -  {iter:  7, EKS: -1.52648993515406790E+01, gnrm:  8.62E-04}
-      -  {iter:  8, EKS: -1.52649009338512140E+01, gnrm:  2.58E-04}
-      -  {iter:  9, EKS: -1.52649010881578366E+01, gnrm:  1.24E-04}
-      -  {iter:  10, EKS: -1.52649011202998377E+01, gnrm:  6.10E-05}
-      -  &FINAL  {iter:  11, EKS: -1.52649011297331416E+01, gnrm:  6.10E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.51319413696338998E+01, gnrm:  1.26E-01}
+      -  {iter:  2, EKS: -1.52460128142105766E+01, gnrm:  4.75E-02}
+      -  {iter:  3, EKS: -1.52608612645620667E+01, gnrm:  2.14E-02}
+      -  {iter:  4, EKS: -1.52642543148144441E+01, gnrm:  1.10E-02}
+      -  {iter:  5, EKS: -1.52646935452173835E+01, gnrm:  6.12E-03}
+      -  {iter:  6, EKS: -1.52648782216356302E+01, gnrm:  2.49E-03}
+      -  {iter:  7, EKS: -1.52648993518180767E+01, gnrm:  8.62E-04}
+      -  {iter:  8, EKS: -1.52649009341292548E+01, gnrm:  2.58E-04}
+      -  {iter:  9, EKS: -1.52649010884356251E+01, gnrm:  1.24E-04}
+      -  {iter:  10, EKS: -1.52649011205783864E+01, gnrm:  6.10E-05}
+      -  &FINAL  {iter:  11, EKS: -1.52649011300111184E+01, gnrm:  6.10E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -6.412975844814E-01, f:  2.0000}, 
- {e: -2.260210233148E-01, f:  2.0000}, 
- {e: -2.126570888602E-01, f:  2.0000}, 
- {e: -2.126570888602E-01, f:  2.0000}] #<-deg
+ {e: -6.412975842494E-01, f:  2.0000}, 
+ {e: -2.260210231715E-01, f:  2.0000}, 
+ {e: -2.126570886070E-01, f:  2.0000}, 
+ {e: -2.126570886070E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- average noise along x direction:  -1.17529787E-05
- average noise along y direction:  -1.17529787E-05
- average noise along z direction:  -1.17529787E-05
- total average noise            :   2.03567562E-05
- clean forces norm (Ha/Bohr): maxval=  4.128482934930E-02  fnrm2=  1.704437134401E-03
- raw forces:                  maxval=  4.129922374968E-02  fnrm2=  3.408874683199E-03
- CPU time/ELAPSED time for root process     0        23.33        44.25
-    3     2  GEOPT_VSSD  -1.52649011297331E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
+  MPI tasks                            :  2
+ average noise along x direction:  -1.17528544E-05
+ average noise along y direction:  -1.17528534E-05
+ average noise along z direction:  -1.17528535E-05
+ total average noise            :   2.03565399E-05
+ clean forces norm (Ha/Bohr): maxval=  4.128482851748E-02  fnrm2=  1.704437065717E-03
+ raw forces:                  maxval=  4.129922276485E-02  fnrm2=  3.408874545823E-03
+ CPU time/ELAPSED time for root process     0        19.42        37.05
+    3     2  GEOPT_VSSD  -1.52649011300111E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -715,13 +735,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        26<37     26<37     26<37
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     2 MB     4 KB   704 B
+Wavefunctions memory occupation for root MPI process:  1 MB 2 KB 352
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -730,13 +753,13 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482032438E-01
+ ion-ion interaction energy  8.86418490658396E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #----------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   57856   58938
@@ -744,28 +767,28 @@ Input Hamiltonian: { #----------------------------------------------- Wavefuncti
  }
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -5.17955787133900714E+00, gnrm:  1.40E+00}
+      -  {iter:  1, EKS: -5.17955812076852595E+00, gnrm:  1.40E+00}
  #WARNING:The norm of the residue is too large, need to recalculate input wavefunctions
 Energy inconsistencies:
-  Band Structure Energy                :  8.46724230076418E+00
+  Band Structure Energy                :  8.46724204010956E+00
   Sum of Eigenvalues                   :  0.00000000000000E+00
- CPU time/ELAPSED time for root process     0         5.30         9.22
+ CPU time/ELAPSED time for root process     0         3.63         6.85
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -805,13 +828,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        26<37     26<37     26<37
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     2 MB     4 KB   704 B
+Wavefunctions memory occupation for root MPI process:  1 MB 2 KB 352
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -820,68 +846,68 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482032438E-01
+ ion-ion interaction energy  8.86418490658396E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #------------------------ Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization:  9.23E-02}
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.50747144303269156E+01, gnrm:  9.11E-02}
-      -  {iter:  2, EKS: -1.51601265006670243E+01, gnrm:  4.59E-02}
-      -  {iter:  3, EKS: -1.51806794852476923E+01, gnrm:  2.13E-02}
-      -  {iter:  4, EKS: -1.51858355440000512E+01, gnrm:  1.03E-02}
-      -  {iter:  5, EKS: -1.51861993853532855E+01, gnrm:  4.15E-03}
-      -  {iter:  6, EKS: -1.51863768514954405E+01, gnrm:  2.38E-03}
-      -  {iter:  7, EKS: -1.51864213226953577E+01, gnrm:  1.48E-03}
-      -  {iter:  8, EKS: -1.51864411936046881E+01, gnrm:  6.85E-04}
-      -  {iter:  9, EKS: -1.51864440281589683E+01, gnrm:  3.87E-04}
-      -  {iter:  10, EKS: -1.51864449746314190E+01, gnrm:  2.15E-04}
-      -  {iter:  11, EKS: -1.51864455903834052E+01, gnrm:  1.56E-04}
-      -  {iter:  12, EKS: -1.51864458659958945E+01, gnrm:  1.17E-04}
-      -  {iter:  13, EKS: -1.51864459306270749E+01, gnrm:  6.02E-05}
-      -  &FINAL  {iter:  14, EKS: -1.51864459376522856E+01, gnrm:  6.02E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.50747144324921862E+01, gnrm:  9.11E-02}
+      -  {iter:  2, EKS: -1.51601265024510639E+01, gnrm:  4.59E-02}
+      -  {iter:  3, EKS: -1.51806794867043244E+01, gnrm:  2.13E-02}
+      -  {iter:  4, EKS: -1.51858355453743847E+01, gnrm:  1.03E-02}
+      -  {iter:  5, EKS: -1.51861993867172238E+01, gnrm:  4.15E-03}
+      -  {iter:  6, EKS: -1.51863768528522662E+01, gnrm:  2.38E-03}
+      -  {iter:  7, EKS: -1.51864213240483643E+01, gnrm:  1.48E-03}
+      -  {iter:  8, EKS: -1.51864411949555311E+01, gnrm:  6.85E-04}
+      -  {iter:  9, EKS: -1.51864440295094063E+01, gnrm:  3.87E-04}
+      -  {iter:  10, EKS: -1.51864449759814164E+01, gnrm:  2.15E-04}
+      -  {iter:  11, EKS: -1.51864455917336763E+01, gnrm:  1.56E-04}
+      -  {iter:  12, EKS: -1.51864458673460128E+01, gnrm:  1.17E-04}
+      -  {iter:  13, EKS: -1.51864459319772074E+01, gnrm:  6.02E-05}
+      -  &FINAL  {iter:  14, EKS: -1.51864459390021871E+01, gnrm:  6.02E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -5.759777507853E-01, f:  2.0000}, 
- {e: -1.596355322545E-01, f:  2.0000}, 
- {e: -1.473197520309E-01, f:  2.0000}, 
- {e: -1.473197520309E-01, f:  2.0000}] #<-deg
+ {e: -5.759777510760E-01, f:  2.0000}, 
+ {e: -1.596355326890E-01, f:  2.0000}, 
+ {e: -1.473197524035E-01, f:  2.0000}, 
+ {e: -1.473197524035E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- average noise along x direction:  -2.35480367E-04
- average noise along y direction:  -2.35480367E-04
- average noise along z direction:  -2.35480367E-04
- total average noise            :   4.07863960E-04
- clean forces norm (Ha/Bohr): maxval=  1.708890039570E-02  fnrm2=  2.920305167342E-04
- raw forces:                  maxval=  1.737730376756E-02  fnrm2=  5.842273864782E-04
- CPU time/ELAPSED time for root process     0        30.80        58.93
-    4     3  GEOPT_VSSD  -1.51864459376523E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
+  MPI tasks                            :  2
+ average noise along x direction:  -2.35480376E-04
+ average noise along y direction:  -2.35480376E-04
+ average noise along z direction:  -2.35480376E-04
+ total average noise            :   4.07863975E-04
+ clean forces norm (Ha/Bohr): maxval=  1.708890083202E-02  fnrm2=  2.920305316465E-04
+ raw forces:                  maxval=  1.737730421461E-02  fnrm2=  5.842274163152E-04
+ CPU time/ELAPSED time for root process     0        23.96        45.79
+    4     3  GEOPT_VSSD  -1.51864459390022E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
 End of minimization using  VSSD      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
 DFT parameters:
   eXchange Correlation:
-    XC ID                              : &ixc  1
+    XC ID                              :  &ixc  1
     Name                               : "XC: Teter 93"
 Basis set definition:
   Suggested Grid Spacings (a0)         :  [  0.55,  0.55,  0.55 ]
   Coarse and Fine Radii Multipliers    :  [  6.0,  10.0 ]
 Ground State Optimization:
   Wavefunction:
-    Gradient Norm Threshold            : &gnrm_cv  1.0E-04
+    Gradient Norm Threshold            :  &gnrm_cv  1.0E-04
     CG Steps for Preconditioner        :  7
     DIIS History length                :  6
-    Max. Wfn Iterations                : &itermax  100
+    Max. Wfn Iterations                :  &itermax  100
     Max. Subspace Diagonalizations     :  10
   Density/Potential:
     Max. Iterations                    :  1
@@ -921,13 +947,16 @@ Ground State Optimization:
    Box Sizes=  2.58500E+01  2.58500E+01  2.58500E+01           47        47        47
        Extremes for the high resolution grid points:        26<37     26<37     26<37
  wavelet localization is ON
+MPI tasks                              :  2
+OpenMP threads per task                :  2
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
  Total Number of Electrons        8
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
- Wavefunctions memory occupation for root MPI process:     2 MB     4 KB   704 B
+Wavefunctions memory occupation for root MPI process:  1 MB 2 KB 352
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -936,46 +965,49 @@ Ground State Optimization:
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482032438E-01
+ ion-ion interaction energy  8.86418490658396E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
+  MPI tasks                            :  2
 Input Hamiltonian: { #----------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
  }
 Ground State Optimization:
 - Hamiltonian Optimization: &itrp0001
-  - Subspace Optimization:&itrep0001
+  - Subspace Optimization: &itrep0001
       Wavefunctions Iterations:
-      -  {iter:  1, EKS: -1.51864459376519054E+01, gnrm:  2.61E-05}
-      -  &FINAL  {iter:  2, EKS: -1.51864459386419259E+01, gnrm:  2.61E-05}
-       #-------------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+      -  {iter:  1, EKS: -1.51864459390016755E+01, gnrm:  2.61E-05}
+      -  &FINAL  {iter:  2, EKS: -1.51864459399920584E+01, gnrm:  2.61E-05}
+       #--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
       Orbitals: [
- {e: -5.759819707123E-01, f:  2.0000}, 
- {e: -1.596386482282E-01, f:  2.0000}, 
- {e: -1.473231229291E-01, f:  2.0000}, 
- {e: -1.473231229291E-01, f:  2.0000}] #<-deg
+ {e: -5.759819709530E-01, f:  2.0000}, 
+ {e: -1.596386486131E-01, f:  2.0000}, 
+ {e: -1.473231232512E-01, f:  2.0000}, 
+ {e: -1.473231232512E-01, f:  2.0000}]
  ---------------------------------------------------------- Gaussian Basis Projection
  Writing wavefunctions in wavefunction.gau file
 Deviation from normalization           :  1.27E-02
- Mean L2 norm of gaussian-wavelet difference:  4.0825E-03
+ Mean L2 norm of gaussian-wavelet difference:  4.0997E-03
  ----------------------------------------------------------------- Forces Calculation
 Poisson Solver:
   BC                                   : Isolated
   Dimensions                           :  [  125,  125,  125 ]
-  MPI tasks                            :  1
- ------------------------------------------------------------- Electric Dipole Moment
-  |P| =   6.116737E+00 (AU)       (Px,Py,Pz)=   -3.5315E+00  -3.5315E+00  -3.5315E+00
-  |P| =   1.554719E+01 (Debye)    (Px,Py,Pz)=   -8.9762E+00  -8.9762E+00  -8.9762E+00
- average noise along x direction:  -2.37581519E-04
- average noise along y direction:  -2.37581519E-04
- average noise along z direction:  -2.37581519E-04
- total average noise            :   4.11503261E-04
- clean forces norm (Ha/Bohr): maxval=  1.709140286559E-02  fnrm2=  2.921160519139E-04
- raw forces:                  maxval=  1.738237961208E-02  fnrm2=  5.844014387619E-04
+  MPI tasks                            :  2
+Electric Dipole Moment (AU):
+  P vector                             :  [ -3.5315E+00, -3.5315E+00, -3.5315E+00 ]
+  |P|                                  :  6.116737E+00
+Electric Dipole Moment (Debye):
+  P vector                             :  [ -8.9762E+00, -8.9762E+00, -8.9762E+00 ]
+  |P|                                  :  1.554719E+01
+ average noise along x direction:  -2.37581435E-04
+ average noise along y direction:  -2.37581435E-04
+ average noise along z direction:  -2.37581435E-04
+ total average noise            :   4.11503116E-04
+ clean forces norm (Ha/Bohr): maxval=  1.709140318845E-02  fnrm2=  2.921160629502E-04
+ raw forces:                  maxval=  1.738237983260E-02  fnrm2=  5.844014607153E-04
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
       1     |  s          |    1.52  |  0.10965 |  0.10965   |  0.21930  |  0.00000 |  0.78070
@@ -987,12 +1019,16 @@ Poisson Solver:
       2     |  pz         |    0.64  |  0.95154 |  0.95154   |  1.90308  |  0.00000 | -0.23642
                  Center Quantities : |  3.85342 |  3.85342   |  7.70683  |  0.00000 | -0.70683
  ---------------------------------------------------------------------------------------------
-                 Total Charge considered on the centers:        7.926130974005
- CPU time/ELAPSED time for root process     0         8.81        14.90
+                 Total Charge considered on the centers:        7.926130972696
+ CPU time/ELAPSED time for root process     0         7.06        12.08
  Final values of the Forces for each atom
      1     Na  0.00000E+00  0.00000E+00  0.00000E+00
      2     Cl -9.86773E-03 -9.86773E-03 -9.86773E-03
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 19175 allocations and 19175 deallocations, remaining memory(B): 0
- memory occupation peak: 169 MB
- for the array  zt in the routine G_Poisson_Solver
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 15006
+   Tot. No. of Deallocations: 15006
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 143
+      for the array: rmt
+      in the routine: iguess_generator

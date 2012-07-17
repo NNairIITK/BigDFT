@@ -26,14 +26,15 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR       = 100
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_LINEAR_LCAO  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(11), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_LINEAR_LCAO /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -139,12 +140,13 @@ module module_types
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: confinement_decrease_mode, communication_strategy_overlap
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
     real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge, decrease_amount, decrease_step 
+    real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -248,6 +250,9 @@ module module_types
      !!  DBL traditional scheme with double precision
      !!  MIX mixed single-double precision scheme (requires rho_descriptors)
      character(len=3) :: rho_commun
+     !> number of taskgroups for the poisson solver
+     !! works only if the number of MPI processes is a multiple of it
+     integer :: PSolver_groupsize
   end type input_variables
 
   type, public :: energy_terms
@@ -407,6 +412,8 @@ module module_types
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+     !copy of the values of the general poisson kernel
+     integer :: iproc_world,nproc_world,iproc,nproc,mpi_comm
   end type denspot_distribution
 
 !>  Structures of basis of gaussian functions
@@ -754,6 +761,7 @@ end type linear_scaling_control_variables
     logical:: use_derivative_basis !<use derivatives or not
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
+    real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
     real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
@@ -761,6 +769,7 @@ end type linear_scaling_control_variables
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
     integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
+    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
   end type basis_specifications
 
   type,public:: basis_performance_options
@@ -812,6 +821,23 @@ end type linear_scaling_control_variables
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 
+  !> Defines the fundamental structure for the kernel
+  type, public :: coulomb_operator
+     !variables with physical meaning
+     character(len=1) :: geocode !< Code for the boundary conditions
+     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+     integer, dimension(3) :: ndims !< dimension of the box of the density
+     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
+     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+     !variables with computational meaning
+     integer :: iproc_world !iproc in the general communicator
+     integer :: iproc,nproc
+     integer :: mpi_comm
+     integer :: igpu !< control the usage of the GPU
+  end type coulomb_operator
+
+
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
@@ -835,8 +861,8 @@ end type linear_scaling_control_variables
      type(denspot_distribution) :: dpbox !< distribution of density and potential box
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
-     real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
-     real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
+     type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
 
      integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
   end type DFT_local_fields
@@ -1047,6 +1073,21 @@ subroutine deallocate_orbs(orbs,subname)
 END SUBROUTINE deallocate_orbs
 
 
+subroutine deallocate_coulomb_operator(kernel,subname)
+  use module_base
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(coulomb_operator), intent(inout) :: kernel
+  !local variables
+  integer :: i_all,i_stat
+
+  if (associated(kernel%kernel)) then
+     i_all=-product(shape(kernel%kernel))*kind(kernel%kernel)
+     deallocate(kernel%kernel,stat=i_stat)
+     call memocc(i_stat,i_all,'kernel',subname)
+  end if
+end subroutine deallocate_coulomb_operator
+
 !> Allocate and nullify restart objects
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
     use module_base
@@ -1153,13 +1194,13 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_stat
 
-    allocate(wfd%keyglob(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyglob(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-    allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keygloc(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvloc(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    allocate(wfd%keyvglob(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
     call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
@@ -1568,7 +1609,9 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. in mem."
     case(INPUT_PSI_DISK_GAUSS)
        write(input_psi_names, "(A)") "gauss. on disk"
-    case(INPUT_PSI_LINEAR)
+    case(INPUT_PSI_LINEAR_AO)
+       write(input_psi_names, "(A)") "Linear AO"
+    case(INPUT_PSI_LINEAR_LCAO)
        write(input_psi_names, "(A)") "Linear LCAO"
     case(INPUT_PSI_MEMORY_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"

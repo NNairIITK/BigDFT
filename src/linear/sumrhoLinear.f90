@@ -1,7 +1,7 @@
 
 !!>   Here starts the routine for building partial density inside the localisation region
 !!!   This routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
+subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
   use module_base
   use module_types
@@ -10,7 +10,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   use Poisson_Solver
   implicit none
   logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: nproc
   integer,intent(inout):: nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -86,7 +86,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(mapping(iorb))/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(iorb)
 
-
+     Lzd%Llr(ilr)%hybrid_on=.false.
 
      if (hfac /= 0.d0) then
 
@@ -394,7 +394,7 @@ call wait_p2p_communication(iproc, nproc, comsr)
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
 !call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
+!call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
 
@@ -434,7 +434,6 @@ do iorb=1,comsr%noverlaps(iproc)
        
         !FRACTURE SECOND LOCREG
         call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
-
         do izones=1,azones
            do jzones=1,bzones
               ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
@@ -453,6 +452,7 @@ do iorb=1,comsr%noverlaps(iproc)
               end if
               ! Now loop over all points in the box in which the orbitals overlap.
               !if(i3s>i3e) write(*,*) 'no calculation done'
+
               do i3=i3s,i3e !bounds in z direction
                   i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
                   j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box
@@ -481,7 +481,7 @@ do iorb=1,comsr%noverlaps(iproc)
                           j1d0= jshift1
                           indri0 = indi3 + indi2 + istri + 1
                           indrj0 = indj3 + indj2 + istrj + 1
-                          indLarge0 = indl3 + indl2 + 1 
+                          indLarge0 = indl3 + indl2 + 1   
                           do i1=i1s,i1s+m-1
                               i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
                               j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box
@@ -536,9 +536,9 @@ do iorb=1,comsr%noverlaps(iproc)
        end do !izones
     end do
 end do
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!call cpu_time(t2)
+!!time=t2-t1
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
@@ -623,7 +623,7 @@ end subroutine sumrhoForLocalizedBasis2
 !!!!end subroutine setCommunicationInformation2
 
 
-subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel)
+subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel,  ovrlp)
   use module_base
   use module_types
   implicit none
@@ -632,19 +632,260 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
   real(8),dimension(ld_coeff,norb),intent(in):: coeff
   real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
+  real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
 
   ! Local variables
   integer:: ierr
+!!  integer :: i, j, lwork, k
+!!  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
+!!  real(8),dimension(:),allocatable:: eval,eval1,beta
+!!  real(8),dimension(:),allocatable:: work
+!!  real(8),dimension(norb,norb) :: kernelij
+!!  real(8),dimension(ld_coeff,norb):: ocoeff
+!!  real(dp) :: av_idem, av_k_sym_diff, tr, tr2
+!!  integer :: num_counted
+  call timing(iproc,'calc_kernel','ON') !lr408t
 
-  if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+  if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
   !call timing(iproc,'sumrho_TMB    ','ON')
   if(norbp>0) then
+      call to_zero(norb_tmb**2, kernel(1,1))
+      !!if(iproc==0)print *,' norb_tmb,ld_coeff',norb_tmb,ld_coeff
+      !!if(iproc==0)write(700,*)coeff
       call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
            coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
   else
       call to_zero(norb_tmb**2, kernel(1,1))
   end if
+  call timing(iproc,'calc_kernel','OF') !lr408t
+
+  call timing(iproc,'commun_kernel','ON') !lr408t
   call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
+
+!  ! Calculate the kernel in serial
+!  call dgemm('n', 't', norb_tmb, norb_tmb, norb, 1.d0, coeff(1,1), norb_tmb, &
+!       coeff(1,1), norb_tmb, 0.d0, kernel(1,1), norb_tmb)
+
+  call timing(iproc,'commun_kernel','OF') !lr408t
+
+
+!!$  ! calculate kernelij and print
+!!!  if (present(ovrlp)) then
+!!$     call gemm('t', 'n', norb_tmb, norb, norb_tmb, 1.d0, ovrlp(1,1), ld_coeff, &
+!!$          coeff(1,1), ld_coeff, 0.d0, ocoeff(1,1), norb_tmb)
+!!$  else
+!!$     call dcopy(ld_coeff*norb,coeff(1,1),1,ocoeff(1,1),1)
+!!$  end if
+!!$
+!!$  call gemm('t', 'n', norb, norb, norb_tmb, 1.d0, coeff(1,1), ld_coeff, &
+!!$       ocoeff(1,1), ld_coeff, 0.d0, kernelij(1,1), norb)
+!!$
+!!$  !!open(33,file='kernelij.dat',status='replace')
+!!$  !!do i=1,norb
+!!$  !!do j=1,norb
+!!$  !!  write(33,*) i,j,kernelij(i,j)
+!!$  !!end do
+!!$  !!end do
+!!$  !!close(33)
+!!$
+!!$  ! calculate eigenvalues
+!!$if (present(ovrlp)) then
+!!$
+!!$if (.false.) then
+!!$  allocate(rhoprime(norb_tmb,norb_tmb))
+!!$
+!!$  allocate(vl(1:norb_tmb,1:norb_tmb))
+!!$  allocate(vr(1:norb_tmb,1:norb_tmb))
+!!$  allocate(eval1(1:norb_tmb))
+!!$  allocate(beta(1:norb_tmb))
+!!$
+!!$  allocate(eval(1:norb_tmb))
+!!$  allocate(work(1:1))
+!!$  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
+!!$
+!!$  lwork = -1
+!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$  !call dggev('n', 'n',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$  !      vl,1,vr,1,work, lwork, ierr)
+!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$  lwork = work(1)
+!!$  deallocate(work)
+!!$  allocate(work(1:lwork))
+!!$
+!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$  !call dggev('n', 'n',norb_tmb,&
+!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$  !      vl,1,vr,1,work, lwork, ierr)
+!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
+!!$  write(32,*) 'Before',eval
+!!$  write(32,*) 'eval1',eval1
+!!$  !write(32,*) 'beta',beta
+!!$  write(32,*) sum(eval)  
+!!$  write(32,*) ''
+!!$  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
+!!$
+!!$  deallocate(work)
+!!$  deallocate(eval)
+!!$end if
+!!$
+!!$  !!!! Check symmetry and idempotency of kernel
+!!!  allocate(ks(1:norb_tmb,1:norb_tmb))
+!!!  allocate(ksk(1:norb_tmb,1:norb_tmb))
+!!!  allocate(ksksk(1:norb_tmb,1:norb_tmb))
+!!$
+!!$  !!av_k_sym_diff = 0.0_dp
+!!$  !!num_counted = 0
+!!$  !!do i=1,norb_tmb
+!!$  !!do j=i+1,norb_tmb
+!!$  !!   av_k_sym_diff = av_k_sym_diff + abs(kernel(j,i)-kernel(i,j))
+!!$  !!   kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!$  !!   num_counted = num_counted + 1
+!!$  !!   if (abs(kernel(j,i)-kernel(i,j)) > 1.0d-3) then !lr408 debug
+!!$  !!      if (iproc == 0) write(47,*) 'K not symmetric',i,j,kernel(j,i),kernel(i,j),&
+!!$  !!           kernel(j,i)-kernel(i,j)
+!!$  !!   end if
+!!$  !!end do
+!!$  !!end do
+!!$  !!!!if (iproc == 0) write (48,*) 'av_k_sym_diff',av_k_sym_diff / num_counted
+!!$
+!!$  ! purification
+!!!  do k=1,1
+!!!    call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+!!!         ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
+!!!     !call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
+!!!
+!!!     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+!!!          kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
+!!!
+!!!     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
+!!!     !     ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
+!!!
+!!!     !kernel = 3.0_dp * ksk - 2.0_dp * ksksk
+!!!
+!!!     !do i=1,norb_tmb
+!!!     !do j=i,norb_tmb
+!!!     !  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!!     !  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
+!!!     !end do
+!!!     !end do
+!!!
+!!!     !DEBUG test idempotency of density matrix
+!!!     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
+!!!     !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
+!!!     av_idem = 0.0_dp
+!!!     open(31)
+!!!     do i = 1, norb_tmb
+!!!       do j = 1, norb_tmb
+!!!         av_idem = av_idem + abs(ksk(i,j) - kernel(i,j))
+!!!         if(abs(ksk(i,j) - kernel(i,j))>1.0d-3) then
+!!!           if (iproc==0) write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j),ksk(i,j) - kernel(i,j)
+!!!         end if
+!!!       end do
+!!!       tr = tr + ks(i,i)
+!!!       tr2 = tr2 + kernel(i,i)
+!!!     end do
+!!!     close(31)
+!!!     if (iproc == 0) write(49,*) 'av_idem',av_idem / (norb_tmb **2)
+!!!     if (iproc == 0) write(49,*) 'trace',tr,tr2
+!!!
+!!!  end do
+
+!!$if (.false.) then
+!!$  allocate(eval(1:norb_tmb))
+!!$  allocate(work(1:1))
+!!$
+!!$  deallocate(beta)
+!!$  deallocate(eval1)
+!!$  deallocate(vr)
+!!$  deallocate(vl)
+!!$
+!!$!  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
+!!$
+!!$!  lwork = -1
+!!$
+!!$!  allocate(vl(1:norb_tmb,1:norb_tmb))
+!!$!  allocate(vr(1:norb_tmb,1:norb_tmb))
+!!$!  allocate(eval1(1:norb_tmb))
+!!$!  allocate(beta(1:norb_tmb))
+!!$
+!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$!  !call dggev('n', 'n',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$!   !     vl,1,vr,1,work, lwork, ierr)
+!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$!                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$!  lwork = work(1)
+!!$!  deallocate(work)
+!!$!  allocate(work(1:lwork))
+!!$
+!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
+!!$!  !call dggev('n', 'n',norb_tmb,&
+!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
+!!$!  !      vl,1,vr,1,work, lwork, ierr)
+!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
+!!$!                  norb_tmb, WORK, LWORK, ierr )
+!!$
+!!$!  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
+!!$!  write(32,*) 'After',eval
+!!$!  write(32,*) 'eval1',eval1
+!!$!  !write(32,*) 'beta',beta
+!!$!  write(32,*) sum(eval)  
+!!$!  write(32,*) ''
+!!$!  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
+!!$
+!!$!  deallocate(work)
+!!$!  deallocate(eval)
+!!$
+!!$!  deallocate(beta)
+!!$!  deallocate(eval1)
+!!$!  deallocate(vr)
+!!$!  deallocate(vl)
+!!$
+!!$  deallocate(rhoprime)
+!!$end if
+!!$
+!!$  !!!deallocate(ksksk)
+!!$  !!!deallocate(ksk)
+!!$  !!!deallocate(ks)
+!!$  !END DEBUG
+!!$
+!!$  !write(*,*) 'DEBUG KERNEL'
+!!$  !do i=1,norb_tmb
+!!$  !    do j=1,norb_tmb
+!!$  !        if(j==i) then
+!!$  !            kernel(j,i)=1.d0
+!!$  !        else
+!!$  !            kernel(j,i)=0.d0
+!!$  !        end if
+!!$  !    end do
+!!$  !end do
+!!$
+!!!end if
+
+!!!if (iproc==0) then ! lr408
+!!!   open(127,file='kernel.dat',status='replace')
+!!!   do i=1,norb_tmb
+!!!   do j=1,norb_tmb
+!!!      write(127,*) i,j,kernel(i,j)
+!!!   end do
+!!!   write(127,*) ''
+!!!   end do
+!!!   write(127,*) ''
+!!!   close(127)
+!!!end if
+
   !call timing(iproc,'sumrho_TMB    ','OF')
 
 end subroutine calculate_density_kernel

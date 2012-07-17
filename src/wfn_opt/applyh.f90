@@ -17,7 +17,7 @@
 !!                   3 is the application of the Non-Koopman's correction SIC
 subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
-     dpbox,potential,comgp)
+     dpbox,potential,comgp,all_ham)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
@@ -33,7 +33,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  integer, optional, intent(in) :: all_ham ! lr408 hc - 0 all, 1 kin, 2 pot
+
   type(denspot_distribution),intent(in),optional :: dpbox
   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -50,6 +52,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   real(wp), dimension(:,:), allocatable :: vsicpsir
   real(wp), dimension(:,:,:), allocatable :: psir
   !!write(*,*) 'condition',(present(dpbox) .and. present(potential) .and. present(comgp))
+
+  epot=0.d0
+  ekin=0.d0
 
   if(present(dpbox) .and. present(potential) .and. present(comgp)) then
      maxsize=0
@@ -98,7 +103,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
      stop
   end if
 
-  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
+  if (.not.(associated(pkernel%kernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop
@@ -212,9 +217,16 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
    
         !apply the potential to the psir wavefunction and calculate potential energy
         !write(*,*) 'iorb, orbs%ispot(iorb)',iorb, orbs%ispot(iorb)
-        if(nit_for_comm==1 .or. it==2) call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+     if(nit_for_comm==1 .or. it==2)then
+        if (present(all_ham)) then ! lr408 hc
+           if (all_ham /= 1) call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+                pot(orbs%ispot(iorb)),psir(1,1,iilr),epot,confdata=confdatarr(iorb))
+        else
+        call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
              pot(orbs%ispot(iorb)),psir(1,1,iilr),epot,confdata=confdatarr(iorb))
-        !!if((nit_for_comm==1 .or. it==2) .and. iproc==0) write(*,*) 'psir_to_vpsi, iilr',iilr
+        end if
+     end if
+
         !this ispot has to be better defined inside denspot structure
         !print *,'orbs, epot',orbs%isorb+iorb,epot
    
@@ -246,8 +258,20 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
            kx=orbs%kpts(1,orbs%iokpt(iorb))
            ky=orbs%kpts(2,orbs%iokpt(iorb))
            kz=orbs%kpts(3,orbs%iokpt(iorb))
+     if (present(all_ham)) then ! lr408 hc
+        if (all_ham /= 2) then
+           call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1,iilr))
            call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh_arr(iilr),&
                 psir(1,1,iilr),hpsi(ispsi),ekin)
+        else
+           !lr408 - memory allocation failed here - using psi_to_vlocpsi for pot only instead
+           !call isf_to_daub(Lzd%Llr(ilr),wrk_lh,psir,hpsi(ispsi))
+           call isf_to_daub(Lzd%Llr(ilr),wrk_lh_arr(iilr),psir(1,1,iilr),hpsi(ispsi))!+nvctr*(ispinor-1)))
+        end if
+     else
+        call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh_arr(iilr),&
+             psir(1,1,iilr),hpsi(ispsi),ekin)
+     end if
    
            ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
            epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -313,7 +337,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: epot_sum,evSIC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
-  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
@@ -332,7 +356,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      stop
   end if
 
-  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
+  if (.not.(associated(pkernel%kernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop
@@ -896,6 +920,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  i1et=i1e
               end if
               !no need of setting up to zero values outside wavefunction bounds
+              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
@@ -935,6 +960,7 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
 
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else

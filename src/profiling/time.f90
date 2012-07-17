@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=76,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=89,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -97,11 +97,25 @@ module timeData
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
        'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
-       'put_to_zero   ','Initialization' ,'razero        ' ,  &
+       'Init to Zero  ','Other         ' ,'Memset        ' ,  &
+       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allreduce ' ,  &
+       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
+       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
+       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
+       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
+       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
+       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
+       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
-  integer :: ncounters, ncaton,nproc = 0,nextra
+  integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
   real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
@@ -262,7 +276,7 @@ subroutine timing(iproc,category,action)
         nextra=0
         formatstring='1x,f5.1,a,1x,1pe9.2,a'
      end if
-
+     ncat_stopped=0 !no stopped category
      ncounters=0
 
   else if (action.eq.'PR') then !stop partial counters and restart from the beginning
@@ -370,7 +384,6 @@ subroutine timing(iproc,category,action)
      if (action == 'ON') then  ! ON
         !some other category was initalized before, overriding
         if (init) return
-
         t0=real(itns,kind=8)*1.d-9
         init=.true.
         ncaton=ii !category which has been activated
@@ -383,8 +396,43 @@ subroutine timing(iproc,category,action)
         timesum(ii)=timesum(ii)+t1-t0
         init=.false.
      else if (action == 'OF' .and. ii/=ncaton) then
+        if (ncat_stopped /=0) stop 'INTERRUPTS SHOULD NOT BE HALTED BY OF'
         !some other category was initalized before, taking that one
         return
+    !interrupt the active category and replace it by the proposed one
+     else if (action == 'IR') then
+        if (ncat_stopped /=0) then
+           print *, cats(1,ncat_stopped), 'already exclusively initialized'
+           stop
+        end if
+        !time
+        t1=real(itns,kind=8)*1.d-9
+        if (init) then !there is already something active
+           !stop the active counter
+           timesum(ncaton)=timesum(ncaton)+t1-t0
+           ncat_stopped=ncaton
+        else
+           init=.true.
+           ncat_stopped=-1
+        end if
+        ncaton=ii
+        t0=t1
+
+     else if (action == 'RS') then !resume the interrupted category
+        if (ncat_stopped ==0) then
+           stop 'NOTHING TO RESUME'
+        end if
+        if (ii /= ncaton) stop 'WRONG RESUMED CATEGORY'
+        !time
+        t1=real(itns,kind=8)*1.d-9
+        timesum(ii)=timesum(ii)+t1-t0
+        if (ncat_stopped == -1) then
+           init =.false. !restore normal counter
+        else
+           ncaton=ncat_stopped
+           t0=t1
+        end if       
+        ncat_stopped=0
      else
         print *,action,ii,ncaton,trim(category)
         stop 'TIMING ACTION UNDEFINED'

@@ -1278,20 +1278,18 @@ subroutine deallocate_overlapParameters(op, subname)
   integer:: iis1, iie1, iis2, iie2, i1, i2
 
   call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
-!  call checkAndDeallocatePointer(op%indexExpand, 'op%indexExpand', subname)
-!  call checkAndDeallocatePointer(op%indexExtract, 'op%indexExtract', subname)
   call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
   call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
   call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 
-  if(associated(op%wfd_overlap)) then
-      iis1=lbound(op%wfd_overlap,1)
-      iie1=ubound(op%wfd_overlap,1)
-      iis2=lbound(op%wfd_overlap,2)
-      iie2=ubound(op%wfd_overlap,2)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
+if(associated(op%wfd_overlap)) then
+   iis1=lbound(op%wfd_overlap,1)
+   iie1=ubound(op%wfd_overlap,1)
+   iis2=lbound(op%wfd_overlap,2)
+   iie2=ubound(op%wfd_overlap,2)
+   do i2=iis2,iie2
+       do i1=iis1,iie1
               call deallocate_wavefunctions_descriptors(op%wfd_overlap(i1,i2), subname)
           end do
       end do
@@ -1300,28 +1298,6 @@ subroutine deallocate_overlapParameters(op, subname)
   end if
 
 
-!!  iis1=lbound(op%expseg,1)
-!!  iie1=ubound(op%expseg,1)
-!!  iis2=lbound(op%expseg,2)
-!!  iie2=ubound(op%expseg,2)
-!!  do i2=iis2,iie2
-!!      do i1=iis1,iie1
-!!          call deallocate_expansionSegments(op%expseg(i1,i2), subname)
-!!      end do
-!!  end do
-
-
-!!  iis1=lbound(op%extseg,1)
-!!  iie1=ubound(op%extseg,1)
-!!  iis2=lbound(op%extseg,2)
-!!  iie2=ubound(op%extseg,2)
-!!  do i2=iis2,iie2
-!!      do i1=iis1,iie1
-!!          call deallocate_expansionSegments(op%extseg(i1,i2), subname)
-!!      end do
-!!  end do
-
-!!  deallocate(op%extseg,op%expseg)
 
 end subroutine deallocate_overlapParameters
 
