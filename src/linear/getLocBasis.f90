@@ -133,7 +133,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
-      if(iproc==0) write(*,'(1x,a)') 'done.'
+      if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
 
 
 
@@ -185,7 +185,7 @@ real(8),dimension(:,:),allocatable:: locregCenter
       end if
 
   else
-      if(iproc==0) write(*,*) 'SAVE APPLICATION'
+      if(iproc==0) write(*,*) 'No Hamiltonian application required.'
       call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   end if
 

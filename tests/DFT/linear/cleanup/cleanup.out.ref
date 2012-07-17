@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-16 15:02:42.840
+ Timestamp of this run                 :  2012-07-17 11:33:58.620
  Hostname                              : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                   Debug option
@@ -264,7 +264,7 @@ V3prb    5.4876E-02
                      Electronic charge changed by rho compression:  2.188170418194E-07, 
  Poisson Solver: {BC: Isolated, Dimensions:  [  85,  83,  83 ], MPI tasks:  8}, 
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -296,8 +296,9 @@ V3prb    5.4876E-02
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.7726881E-01  1.9867545E-01 -16.7525981
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -322,8 +323,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   3.63E-06   -1.70048717261809159E+01   -1.7005E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -348,8 +350,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   1.96E-06   -1.69278648139214241E+01    7.7007E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -407,8 +410,9 @@ Preconditioning.
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.3533362E-01  1.6169418E-01 -16.9282773
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -433,8 +437,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   4.85E-07   -1.69232488342055021E+01    8.4149E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -459,8 +464,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   2.43E-07   -1.69230365956707693E+01    2.1224E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -485,8 +491,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3   1.21E-07   -1.69229855419973454E+01    5.1054E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -545,8 +552,9 @@ target function seems to saturate, increase nsatur...
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.3621298E-01  1.6270181E-01 -16.9230365
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -571,8 +579,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1   3.03E-08   -1.69229820370927229E+01   -8.8399E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -597,8 +606,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2   1.51E-08   -1.69229813182677731E+01    7.1882E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -623,8 +633,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3   7.56E-09   -1.69229811441753313E+01    1.7409E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -687,14 +698,14 @@ done.
  total average noise            :   4.36690109E-01
  clean forces norm (Ha/Bohr): maxval=  5.464128602174E-01  fnrm2=  4.650705627295E-01
  raw forces:                  maxval=  8.069845080790E-01  fnrm2=  6.640188272970E-01
- CPU time/ELAPSED time for root process     0         1.63         1.62
+ CPU time/ELAPSED time for root process     0         1.57         1.54
  Final values of the Forces for each atom
      1      O  4.89373E-01 -1.64186E-01 -1.79231E-01
      2      H -3.35958E-01  6.83032E-02  8.01547E-02
      3      H -1.53416E-01  9.58827E-02  9.90759E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 5907
-   Tot. No. of Deallocations: 5907
+   Tot. No. of Allocations  : 5865
+   Tot. No. of Deallocations: 5865
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 56

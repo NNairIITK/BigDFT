@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-16 15:00:21.210
+ Timestamp of this run                 :  2012-07-17 11:31:57.940
  Hostname                              : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                   Debug option
@@ -472,7 +472,7 @@ max deviation from unity, position:  3.356914E-03  15  19
  Final values for fnrm, trace:   2.1624243E-01  7.5731723E+00
  ====================================================================================
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -532,8 +532,9 @@ max deviation from unity, position:  3.356914E-03  15  19
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.9230441E-02  4.2764274E-02   8.6531846
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
    calculating the density kernel... 
  Calculating charge density...
 done.
@@ -548,8 +549,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   1   2.45E-02   -8.06486891182342802E+00   -8.0649E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.100000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -565,8 +567,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   2   1.11E-01   -7.67620490536119249E+00    3.8866E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.110000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -582,8 +585,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   3   9.29E-02   -7.70601140546489560E+00   -2.9807E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.121000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -599,8 +603,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   4   7.60E-02   -7.78122469034576980E+00   -7.5213E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  6.050000000000001E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -616,8 +621,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5   3.05E-02   -7.77034987807176591E+00    1.0875E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  4.840000000000001E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -633,8 +639,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   6   1.80E-02   -7.77640982034602146E+00   -6.0599E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  3.100625000000001E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -650,8 +657,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   7   5.31E-03   -7.77476799738028390E+00    1.6418E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  2.662000000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -667,8 +675,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   8   9.32E-03   -7.77628809182278147E+00   -1.5201E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  1.331000000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -731,8 +740,9 @@ done.
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.4617133E-02  5.0305924E-02   6.8925463
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
    calculating the density kernel... 
  Calculating charge density...
 done.
@@ -747,8 +757,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   1   2.34E-02   -7.91662203425592637E+00   -1.4057E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.220000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -764,8 +775,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   2   1.46E-02   -7.91509759538885405E+00    1.5244E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.110000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -781,8 +793,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   3   1.84E-02   -7.91582096379172029E+00   -7.2337E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  7.975000000000002E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -798,8 +811,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   4   2.11E-03   -7.91412631037261249E+00    1.6947E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  4.895000000000001E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -815,8 +829,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5   5.44E-04   -7.91411639409711043E+00    9.9163E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  4.312000000000001E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -832,8 +847,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   6   2.14E-04   -7.91411700157431497E+00   -6.0748E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  2.692250000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -849,8 +865,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   7   5.61E-05   -7.91411701798962142E+00   -1.6415E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  1.459562500000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -866,8 +883,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   8   2.51E-05   -7.91411702017203922E+00   -2.1824E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  8.545625000000001E-003
    calculating the density kernel... 
  Calculating charge density...
@@ -949,8 +967,9 @@ Preconditioning.
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.6619765E-01  2.3725635E-01  -7.9151727
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ No Hamiltonian application required.
    calculating the density kernel... 
  Calculating charge density...
 done.
@@ -965,8 +984,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   1   4.57E-04   -7.91492824504581804E+00   -8.1122E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.115000000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -982,8 +1002,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   2   9.86E-05   -7.91492843852455863E+00   -1.9348E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  0.102500000000000     
    calculating the density kernel... 
  Calculating charge density...
@@ -999,8 +1020,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   3   2.89E-05   -7.91492845665091593E+00   -1.8126E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  6.775000000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -1016,8 +1038,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   4   4.06E-06   -7.91492845582886773E+00    8.2205E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  3.387500000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -1033,8 +1056,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5   1.31E-06   -7.91492843341512398E+00    2.2414E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  1.693750000000000E-002
    calculating the density kernel... 
  Calculating charge density...
@@ -1050,8 +1074,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   6   5.39E-07   -7.91492848098696200E+00   -4.7572E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  8.468750000000001E-003
    calculating the density kernel... 
  Calculating charge density...
@@ -1067,8 +1092,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   7   3.03E-07   -7.91492849552854594E+00   -1.4542E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  4.234375000000000E-003
    calculating the density kernel... 
  Calculating charge density...
@@ -1084,8 +1110,9 @@ done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   8   1.03E-07   -7.91492845593247196E+00    3.9596E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  mean_alpha  2.117187500000000E-003
    calculating the density kernel... 
  Calculating charge density...
@@ -1139,7 +1166,7 @@ done.
  total average noise            :   1.30819930E-01
  clean forces norm (Ha/Bohr): maxval=  1.594682961690E-01  fnrm2=  1.423629255817E-01
  raw forces:                  maxval=  1.973994560885E-01  fnrm2=  1.603290180081E-01
- CPU time/ELAPSED time for root process     0        22.02        21.92
+ CPU time/ELAPSED time for root process     0        22.31        22.20
  Final values of the Forces for each atom
      1     Be  9.99051E-02  6.73484E-02  4.52623E-02
      2     Be  1.27376E-02  1.18863E-02 -1.58514E-01
@@ -1154,10 +1181,10 @@ done.
     11      H  9.23805E-02  6.35988E-02  3.16250E-02
     12      H  1.09333E-02  4.35160E-03  9.85830E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 39618
-   Tot. No. of Deallocations: 39618
+   Tot. No. of Allocations  : 39497
+   Tot. No. of Deallocations: 39497
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 186
+      Peak Value (MB): 188
       for the array: ilrtable
       in the routine: full_local_potential

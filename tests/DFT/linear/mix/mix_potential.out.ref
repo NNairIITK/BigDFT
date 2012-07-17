@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.11
- Timestamp of this run                 :  2012-07-16 15:02:06.820
+ Timestamp of this run                 :  2012-07-17 11:33:23.750
  Hostname                              : phys-comp-03
  #... (file:default.perf.. not present).................................Performance Options 
  #|debug F                   Debug option
@@ -287,7 +287,7 @@ V3prb    5.4876E+01
                      Electronic charge changed by rho compression:  1.007550807230E-07, 
  Poisson Solver: {BC: Isolated, Dimensions:  [  89,  93,  157 ], MPI tasks:  8}, 
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -336,8 +336,9 @@ V3prb    5.4876E+01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.4163002E-01  3.0664807E-01  16.9504207
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -373,8 +374,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1   3.65E-05   -5.00536747222576537E+01   -5.0054E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -445,8 +447,9 @@ done.
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.3254391E-01  3.0084055E-01   9.5436852
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -482,8 +485,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1   1.72E-06   -5.02614182683064428E+01   -6.8847E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -552,11 +556,12 @@ Preconditioning.
  Energy grows in spite of decreased step size, will exit...
 Preconditioning.
  iter, fnrm, fnrmMax, ebs, diff, noise level     2  3.6218349E-01  4.6911948E-01   -49.3070567943   5.7402E-02   3.5716E-04
- WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   3.6218349E-01  4.6911948E-01 -49.3070568
+ WARNING: emergency exit after 2 iterations to keep presumably good TMBs before they deteriorate too much.
+ >>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace:   3.6218349E-01  4.6911948E-01 -49.3070568
  ============================= Basis functions created. =============================
+ tmb%wfnmd%bs%update_phi T
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -592,8 +597,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1   2.15E-07   -4.94093305268447125E+01   -3.0784E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -629,8 +635,9 @@ done.
    coefficients obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2   9.63E-08   -4.93605488982001361E+01    4.8782E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tmb%wfnmd%bs%update_phi F
  ----------------------------------- Determination of the orbitals in this new basis.
- done.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
@@ -704,7 +711,7 @@ done.
  total average noise            :   2.24211293E-02
  clean forces norm (Ha/Bohr): maxval=  3.334842106938E-01  fnrm2=  9.075594453480E-01
  raw forces:                  maxval=  3.349382232072E-01  fnrm2=  9.081969769948E-01
- CPU time/ELAPSED time for root process     0         7.76         7.69
+ CPU time/ELAPSED time for root process     0         7.91         7.79
  Final values of the Forces for each atom
      1      C  2.63668E-03 -1.66971E-01 -2.88661E-01
      2      C  9.15205E-03  2.75143E-01 -2.21524E-02
@@ -733,10 +740,10 @@ done.
     25      H -9.37441E-02  6.20235E-02  1.15298E-02
     26      H  6.51987E-05 -4.80273E-02  9.26632E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 32383
-   Tot. No. of Deallocations: 32383
+   Tot. No. of Allocations  : 32451
+   Tot. No. of Deallocations: 32451
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 190
-      for the array: pot
+      Peak Value (MB): 191
+      for the array: ilrtable
       in the routine: full_local_potential
