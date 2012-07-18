@@ -76,7 +76,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
               call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
-               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
           deallocate(hpsittmp_c, stat=istat)
           call memocc(istat, iall, 'hpsittmp_c', subname)
@@ -225,11 +225,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end do
 
 
-
+      call timing(iproc,'eglincomms','ON') ! lr408t
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmb%orbs%norb)
+      call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

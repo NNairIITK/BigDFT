@@ -94,7 +94,9 @@ real(8),dimension(3,at%nat):: fpulay
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+  if(input%lin%useDerivativeBasisFunctions) then
+     call allocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+  end if
 
   ! Initialize the DIIS mixing of the potential if required.
   if(input%lin%mixHist_lowaccuracy>0) then
@@ -135,7 +137,9 @@ real(8),dimension(3,at%nat):: fpulay
 
   !!! Allocate the communication arrays for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-  call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+  if(input%lin%useDerivativeBasisFunctions) then
+     call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
+  end if
 
   !!! Initialize DIIS...
   !!!!if(.not.lscv%lowaccur_converged) then
@@ -158,8 +162,8 @@ real(8),dimension(3,at%nat):: fpulay
   ! just to be sure...
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  nullify(tmbder%psit_c)
-  nullify(tmbder%psit_f)
+  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_c)
+  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_f)
 
 
   allocate(eval(tmb%orbs%norb), stat=istat)
@@ -206,8 +210,10 @@ real(8),dimension(3,at%nat):: fpulay
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
-      call set_optimization_variables(input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
-           tmbder%confdatarr, tmbder%wfnmd, lscv)
+      if(lscv%withder) then
+         call set_optimization_variables(input, at, tmbder%orbs, tmb%lzd%nlr, tmbder%orbs%onwhichatom, &
+              tmbder%confdatarr, tmbder%wfnmd, lscv)
+      end if
 
       if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
       if(nit_highaccur==1) lscv%enlarge_locreg=.true.
@@ -378,14 +384,14 @@ real(8),dimension(3,at%nat):: fpulay
                   !!nsatur=0
               end if
               tmb%can_use_transposed=.false. !since basis functions have changed...
-              tmbder%can_use_transposed=.false. !since basis functions have changed...
+              if(input%lin%useDerivativeBasisFunctions) tmbder%can_use_transposed=.false. !since basis functions have changed...
 
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               !reset counter for optimization of coefficients (otherwise step size will be decreases...)
               tmb%wfnmd%it_coeff_opt=0
-              tmbder%wfnmd%it_coeff_opt=0
+              if(input%lin%useDerivativeBasisFunctions) tmbder%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
-              tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
+              if(input%lin%useDerivativeBasisFunctions) tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
 
               !!! Reset DIIS if we are at the first iteration of the high accuracy regime
               !!! or if DIIS became unstable in the previous optimization of the TMBs.
@@ -693,13 +699,17 @@ real(8),dimension(3,at%nat):: fpulay
   call deallocateDIIS(ldiis)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-  call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+  if(input%lin%useDerivativeBasisFunctions) then
+     call deallocateCommunicationbufferSumrho(tmbder%comsr, subname)
+  end if
 
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  if(tmbder%wfnmd%bs%use_derivative_basis) then
-     call wait_p2p_communication(iproc, nproc, tmbder%comgp)
-     call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+  if(input%lin%useDerivativeBasisFunctions) then
+     if(tmbder%wfnmd%bs%use_derivative_basis) then
+        call wait_p2p_communication(iproc, nproc, tmbder%comgp)
+        call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
+     end if
   end if
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)

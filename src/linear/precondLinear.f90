@@ -224,9 +224,9 @@ integer:: istat, iall
   i_all=-product(shape(d))*kind(d)
   deallocate(d,stat=i_stat)
   call memocc(i_stat,i_all,'d',subname)
-
+  call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-
+  call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 

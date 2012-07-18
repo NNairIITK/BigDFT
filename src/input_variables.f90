@@ -348,7 +348,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
        comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10)
+  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
 
   !switch on the gaussian auxiliary treatment 
   !and the zero of the forces

@@ -1948,10 +1948,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
 
-     tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-     tmbder%orthpar%nItOrtho = 1
-     tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-     tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+     !*!tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     !*!tmbder%orthpar%nItOrtho = 1
+     !*!tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
+     !*!tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
   end if
 
   !SIC parameters
@@ -1981,8 +1981,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       inputpsi == INPUT_PSI_LINEAR_LCAO) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
-     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
-     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
+!*!     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
+!*!     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
      
      tmb%wfnmd%bs%update_phi=.false.
   end if
@@ -1995,10 +1995,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
           in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
      
-     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
-     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
-          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
+!*!     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
+!*!     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
+!*!          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+!*!          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
   else
      allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)

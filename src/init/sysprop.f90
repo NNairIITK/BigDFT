@@ -137,7 +137,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
         !what to do with derivatives?
      end if
      call update_wavefunctions_size(lzd_lin,lorbs)
-     !call update_wavefunctions_size(lzd_lin,dlorbs) !crashes here
+     call update_wavefunctions_size(lzd_lin,dlorbs) !crashes here with reading from file
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
