@@ -1478,8 +1478,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
-   real(kind=4) :: tt,builtin_rand
+   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
    real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
