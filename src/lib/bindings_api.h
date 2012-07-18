@@ -64,7 +64,7 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, const guint *n1, co
                                         int *grid);
 void FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
      (void *sym, const gchar *geocode, const guint *n1i, const guint *n2i,
-      const guint *n3i, const guint *nspin);
+      const guint *n3i, const guint *nspin, int ln);
 
 void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
