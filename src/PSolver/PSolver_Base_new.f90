@@ -47,9 +47,6 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   integer :: maxIter
 
-  !Variables for OpenMP
-  !$omp integer :: ithread,nthread,omp_get_num_threads,omp_get_thread_num
-
   !initialize stress tensor no matter of the BC
   call to_zero(6,strten(1))
 
