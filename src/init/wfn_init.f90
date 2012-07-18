@@ -937,8 +937,11 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      else if (minimal) then
         !clean the array of the IG occupation
         call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
-        !put the actual values on it
-        call dcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
+        !put the actual values on it, respecting kpoints
+        do ikpt = 1, orbs%nkpts, 1
+           call dcopy(orbs%norb,orbs%occup(1 + (ikpt - 1) * orbs%norb),1,&
+                & orbse%occup(1 + (ikpt - 1) * orbse%norb),1)
+        end do
      end if
 
      if (iproc ==0) then 
