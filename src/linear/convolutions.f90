@@ -1508,9 +1508,6 @@ subroutine ConvolSextic(n1, n2, n3, &
   !!real(wp),dimension(:,:,:),allocatable:: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
   !!real(wp),dimension(:,:,:),allocatable:: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
 real(8):: x0, y0, z0
-real(8):: x1, y1, z1
-real(8):: x2, y2, z2
-real(8):: x3, y3, z3
 integer:: ii, istat, iall
 character(len=*),parameter:: subname='ConvolSextic'
 real(8):: tt00, tt01, tt02, tt03
@@ -1550,9 +1547,9 @@ real(8):: tt6b0_2, tt6b1_2, tt6b2_2, tt6b3_2, tt6b0_4, tt6b1_4, tt6b2_4, tt6b3_4
 real(8):: tt6c0_2, tt6c1_2, tt6c2_2, tt6c3_2, tt6c0_4, tt6c1_4, tt6c2_4, tt6c3_4
 real(8):: tt6e0_2, tt6e1_2, tt6e2_2, tt6e3_2, tt6e0_4, tt6e1_4, tt6e2_4, tt6e3_4
 real(8):: tt7a0_2, tt7a1_2, tt7a2_2, tt7a3_2, tt7a0_4, tt7a1_4, tt7a2_4, tt7a3_4
-real(8):: tt7b0_2, tt7b1_2, tt7b2_2, tt7b3_2, tt7b0_4, tt7b1_4, tt7b2_4, tt7b3_4
-real(8):: tt7c0_2, tt7c1_2, tt7c2_2, tt7c3_2, tt7c0_4, tt7c1_4, tt7c2_4, tt7c3_4
-real(8):: tt7e0_2, tt7e1_2, tt7e2_2, tt7e3_2, tt7e0_4, tt7e1_4, tt7e2_4, tt7e3_4
+real(8):: tt7b0_2, tt7b1_2, tt7b2_2, tt7b3_2, tt7b0_4
+real(8):: tt7c0_2, tt7c1_2, tt7c2_2, tt7c3_2, tt7c0_4
+real(8):: tt7e0_2,                            tt7e0_4
 real(8):: ttaa0, ttab0, ttac0, ttae0
 real(8):: ttaa1, ttab1, ttac1, ttae1
 real(8):: ttaa2, ttab2, ttac2, ttae2
@@ -1615,7 +1612,7 @@ real(8):: tt7c0
 real(8):: tt7e0
 
 integer:: it=1!debug
-real(8):: t1, t2, time, t3, t4, ttt1, ttt2, time2
+real(8):: t1, t2, time, t3, t4, time2
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -4673,7 +4670,7 @@ subroutine createDerivativeBasis(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
-  real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp), dimension(-3+lowfil:lupfil+3) :: ad1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext

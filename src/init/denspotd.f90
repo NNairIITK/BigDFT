@@ -15,9 +15,15 @@ subroutine initialize_DFT_local_fields(denspot)
   type(DFT_local_fields), intent(inout) :: denspot
 
   denspot%rhov_is = EMPTY
-  nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
+  nullify(denspot%rho_C)
+  nullify(denspot%V_ext)
+  nullify(denspot%Vloc_KS)
+  nullify(denspot%rho_psi)
   nullify(denspot%V_XC)
-  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
+  nullify(denspot%f_XC)
+  nullify(denspot%rho_work)
+  nullify(denspot%pot_work)
+  nullify(denspot%rhov)
 
   denspot%psoffset=0.0_gp
 
@@ -592,7 +598,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
- 
+
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&

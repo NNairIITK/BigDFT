@@ -1491,6 +1491,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
+
+!!$   integer :: idum=0
+!!$   real(kind=4) :: tt,builtin_rand
+
 !yk
 !  integer :: i!,iorb,jorb,icplx
 
@@ -2216,6 +2220,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
 END SUBROUTINE input_wf
 
+
+!> Check for the input psi (wavefunctions)
+!! @inputpsi                  (in) indicate how check input psi, (out) give how to build psi
+!!    INPUT_PSI_DISK_WVL      : psi on the disk (wavelets), check if the wavefunctions are all present
+!!                              otherwise switch to normal input guess
+!!    INPUT_PSI_MEMORY_LINEAR : psi on memory (linear version)
+!!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
+!! @input_wf_format           (out) Format of WF
+!! @iproc                     (in) id proc
+!! @nproc                     (in) #proc
 subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
   implicit none
@@ -2227,9 +2241,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
 
   logical :: onefile
 
-
   input_wf_format=WF_FORMAT_NONE !default value
-  !for the inputPsiId==2 case, check 
+  !for the inputPsi == WF_FORMAT_NONE case, check 
   !if the wavefunctions are all present
   !otherwise switch to normal input guess
   if (inputpsi == INPUT_PSI_DISK_WVL) then

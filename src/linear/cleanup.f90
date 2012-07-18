@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
+!> Deallocation pointers used by linear version
 module deallocatePointers
 
   implicit none

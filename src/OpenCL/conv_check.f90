@@ -1,7 +1,7 @@
 !> @file
 !!   Test program for convolutions with OpenCL
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG) (BV)
+!!    Copyright (C) 2008-2012 BigDFT group (LG) (BV)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1325,7 +1325,7 @@ program conv_check_ocl
       deallocate(psi_cuda_k_out_a,stat=i_stat)
       call memocc(i_stat,i_all,'psi_cuda_k_out_a',subname)
 
-      write(*,'(a,i6,i6)')'CPU Analisys, dimensions:',n1,n2*n3
+      write(*,'(a,i6,i6)')'CPU Analysis, dimensions:',n1,n2*n3
 
       call nanosec(tsc0)
       do i=1,ntimes
@@ -1419,7 +1419,7 @@ program conv_check_ocl
 
       call compare_time(CPUtime,GPUtime,n1*n2*n3,32,ntimes,maxdiff,1.d-9)
 
-      write(*,'(a,i6,i6)')'CPU Analisys shrink, dimensions:',n1-14,n2*n3
+      write(*,'(a,i6,i6)')'CPU Analysis shrink, dimensions:',n1-14,n2*n3
 
       allocate(psi_in_s(n1,n2*n3,1+ndebug),stat=i_stat)
       call memocc(i_stat,psi_in_s,'psi_in_s',subname)

@@ -22,7 +22,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   !local variables
   logical :: dump
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,thread_id,temp_comm,grp,i,j,ierr,nthreads,group_size
+  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
   integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
   !$ integer :: omp_get_max_threads
 

@@ -19,12 +19,12 @@ MODULE ions_mod
   IMPLICIT NONE
 
   TYPE :: ions_obj
-    REAL(q2),ALLOCATABLE,DIMENSION(:,:) :: r_car,r_dir,r_lat
-    REAL(q2),ALLOCATABLE,DIMENSION(:) :: ion_chg
-    REAL(q2),DIMENSION(3,3) :: lattice,dir2car,car2dir
-    INTEGER,ALLOCATABLE,DIMENSION(:) :: num_ion
-    INTEGER,ALLOCATABLE,DIMENSION(:) :: atomic_num
-    CHARACTER*330:: name_ion
+    REAL(q2), ALLOCATABLE, DIMENSION(:,:) :: r_car,r_dir,r_lat
+    REAL(q2), ALLOCATABLE, DIMENSION(:) :: ion_chg
+    REAL(q2), DIMENSION(3,3) :: lattice,dir2car,car2dir
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: num_ion
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: atomic_num
+    CHARACTER(LEN=330) :: name_ion
     INTEGER :: niontypes,nions
   END TYPE
 

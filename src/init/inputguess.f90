@@ -1974,13 +1974,6 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 END SUBROUTINE iguess_generator
 
 
-
-!!****f* BigDFT/iguess_generator_modified
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
    use module_base
@@ -2188,8 +2181,6 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator_modified
-!!***
-
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given
