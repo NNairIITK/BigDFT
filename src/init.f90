@@ -2222,14 +2222,14 @@ END SUBROUTINE input_wf
 
 
 !> Check for the input psi (wavefunctions)
-!! @inputpsi                  (in) indicate how check input psi, (out) give how to build psi
+!! @param inputpsi            (in) indicate how check input psi, (out) give how to build psi
 !!    INPUT_PSI_DISK_WVL      : psi on the disk (wavelets), check if the wavefunctions are all present
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_MEMORY_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-!! @input_wf_format           (out) Format of WF
-!! @iproc                     (in) id proc
-!! @nproc                     (in) #proc
+!! @param input_wf_format     (out) Format of WF
+!! @param iproc               (in)  id proc
+!! @param nproc               (in)  #proc
 subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
   implicit none
