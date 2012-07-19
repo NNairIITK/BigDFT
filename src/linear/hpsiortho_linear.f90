@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! by default no quick exit
   emergency_exit=.false.
 
-  call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then

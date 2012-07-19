@@ -501,7 +501,6 @@ real(8),dimension(3,at%nat):: fpulay
           end if
 
           ! Calculate the coefficients
-          if(Iproc==0) write(*,*) 'tmb%wfnmd%bs%update_phi',tmb%wfnmd%bs%update_phi
           ! Check whether we can use the Hamiltonian matrix from the TMB optimization
           can_use=.true.
           if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
