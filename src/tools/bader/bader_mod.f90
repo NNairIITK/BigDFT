@@ -858,7 +858,7 @@ MODULE bader_mod
 
       REAL(q2), DIMENSION(3) :: v, dv_dir, dv_car
       INTEGER, DIMENSION(3) :: p
-      REAL :: dist
+      REAL(q2) :: dist
       INTEGER :: i, atom, n1, n2, n3
       INTEGER :: cr, count_max, t1, t2, tenths_done
 
