@@ -184,12 +184,12 @@ END SUBROUTINE call_bigdft
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-     KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
+     KSwfn,&
      rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
-!  use Poisson_Solver
+  use Poisson_Solver
   use module_xc
 !  use vdwcorrection
   use m_ab6_mixing
@@ -274,6 +274,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   nvirt=in%nvirt
 
   if (iproc == 0) then
+     !start a new document in the beginning of the output, if the document is closed before
+     call yaml_new_document()
      write( *,'(1x,a,1x,i0)') &
           &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
           in%inputPsiId
@@ -333,7 +335,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     if(in%lin%useDerivativeBasisFunctions) then
+        call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     end if
      
      if(in%lin%useDerivativeBasisFunctions) then
         call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
@@ -434,7 +438,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      DoLastRunThings=(in%last_run == 1 .and. optLoop%nrepmax == 0) .or. &
           & (in%last_run == 1 .and. optLoop%itrep >= optLoop%nrepmax)
               !print the energies only if they are meaningful
-     energy = energs%eKS
+     energy = energs%energy
      !Davidson is set to false first because used in deallocate_before_exiting
      DoDavidson= .false.
 
@@ -463,7 +467,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, i_all, 'denspot0', subname)
 
      call destroy_DFT_wavefunction(tmb)
-     call destroy_DFT_wavefunction(tmbder)
+     if(in%lin%useDerivativeBasisFunctions) then
+        call destroy_DFT_wavefunction(tmbder)
+     else ! tmp change to avoid memory leaks - more derivative cleaning can be done
+        call deallocate_orbitals_data(tmbder%orbs, subname)
+        call deallocate_communications_arrays(tmbder%comms, subname)
+     end if
 
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
@@ -923,14 +932,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-     call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+     
+     call pkernel_free(denspot%pkernelseq,subname)
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call deallocate_coulomb_operator(denspot%pkernel,subname)
+  call pkernel_free(denspot%pkernel,subname)
 
 
   !------------------------------------------------------------------------
@@ -983,7 +993,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'denspot%pot_work',subname)
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
-     energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp
+     energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
         write( *,'(1x,a,3(1x,1pe18.11))')&
@@ -1033,11 +1043,11 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          call deallocate_coulomb_operator(denspot%pkernelseq,subname)
+          call pkernel_free(denspot%pkernelseq,subname)
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
-       call deallocate_coulomb_operator(denspot%pkernel,subname)
+       call pkernel_free(denspot%pkernel,subname)
 !!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
 !!$       deallocate(denspot%pkernel,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'kernel',subname)
@@ -1089,7 +1099,7 @@ contains
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
-       deallocate(tmbder%confdatarr)
+       if(in%lin%useDerivativeBasisFunctions) deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf
@@ -1109,8 +1119,14 @@ contains
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    if (iproc == 0) &
-         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+    if (iproc == 0) then
+       call yaml_open_map('Timings for root process')
+       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
+       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
+       call yaml_close_map()
+    end if
+!       &
+!         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
     ! Stop signals
     if (in%signaling .and. iproc == 0) then
@@ -1130,6 +1146,9 @@ contains
 !!$        deallocate(atoms%rloc,stat=i_stat)
 !!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
 !!$    end if
+
+    !release the yaml document
+    call yaml_release_document()
 
   END SUBROUTINE deallocate_before_exiting
 
@@ -1161,14 +1180,9 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
-
-  !number of switching betweed DIIS and SD during self-consistent loop
-  ndiis_sd_sw=0
-  !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=KSwfn%diis%idsx
 
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
@@ -1177,10 +1191,16 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
        KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
 
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=KSwfn%diis%idsx
+
   gnrm_zero=0.0d0
   opt%gnrm=1.d10
   opt%rpnrm=1.d10
   endlooprp=.false.
+  energs%e_prev=0.0_gp
 
   !normal opt%infocode, if everything go through smoothly we should keep this
   opt%infocode=0
@@ -1195,19 +1215,21 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      if (iproc==0) then
         call yaml_sequence(advance='no')
         call yaml_open_sequence("Hamiltonian Optimization",label=&
-             'itrp'//adjustl(yaml_toa(opt%itrp,fmt='(i4.4)')))
+             'itrp'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)'))))
 
      end if
      !set the opt%infocode to the value it would have in the case of no convergence
      opt%infocode=1
      opt%itrep=1
+     iter_for_diis=0 !initialize it here for keeping the history also after a subspace diagonalization
      subd_loop: do
         if (opt%itrep > opt%nrepmax) exit subd_loop
         !yaml output 
         if (iproc==0) then
            call yaml_sequence(advance='no')
            call yaml_open_map("Subspace Optimization",label=&
-                'itrep'//adjustl(yaml_toa(opt%itrep,fmt='(i4.4)')))
+                'itrep'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)')))//'-'//&
+                trim(adjustl(yaml_toa(opt%itrep,fmt='(i2.2)'))))
         end if
 
         !yaml output
@@ -1215,6 +1237,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_open_sequence("Wavefunctions Iterations")
         end if
         opt%iter=1
+        iter_for_diis=0
         wfn_loop: do
            if (opt%iter > opt%itermax) exit wfn_loop
 
@@ -1223,8 +1246,14 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              if (endloop) then 
+              if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
+                   .and. opt%itrpmax==1) .or.&
+                   (endloop .and. opt%itrpmax >1 .and. endlooprp) ) then
+                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL',advance='no')
+              else if (endloop .and. opt%itrep == opt%nrepmax) then
+                 call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
+                      advance='no')
               else
                  call yaml_sequence(advance='no')
               end if
@@ -1245,8 +1274,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (endloop .and. opt%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
-                (opt%itrp==1 .and. opt%itrpmax/=1 .and. opt%gnrm > opt%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
+                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
@@ -1272,8 +1300,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
-
-           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn)
+           iter_for_diis=iter_for_diis+1
+           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
@@ -1298,7 +1326,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !flush all writings on standart output
            if (iproc==0) then
               !yaml output
-              call yaml_close_map()
+              call yaml_close_map() !iteration
               call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
@@ -1311,7 +1339,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !end if
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
-                 call yaml_close_map()
+                 !call yaml_close_map()
                  call yaml_close_sequence() !wfn iterations
                  call yaml_close_map()
                  call yaml_close_sequence() !itrep
@@ -1387,7 +1415,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               
               !opt%gnrm =1.d10
               KSwfn%diis%energy_min=1.d10
-              KSwfn%diis%alpha=2.d0
+              !KSwfn%diis%alpha=2.d0
+              KSwfn%diis%alpha=in%alphadiis
            end if
         end if
 
@@ -1402,8 +1431,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (iproc==0) then
            call yaml_close_map()
-           !yaml output
-           !         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',opt%itrep
         end if
 
         if (opt%infocode ==0) exit subd_loop
@@ -1425,8 +1452,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      if (opt%itrpmax > 1) then
 
-        !recalculate orbitals occupation numbers if the loop continues
-        if (.not.endlooprp) call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+        !recalculate orbitals occupation numbers 
+        call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 
         call eigensystem_info(iproc,nproc,opt%gnrm,&
              KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
@@ -1440,17 +1467,17 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
-        KSwfn%diis%alpha=2.d0
+        KSwfn%diis%alpha=in%alphadiis
      end if
 
      if (iproc == 0) then
         !yaml output
         !summarize the key elements in the opt%itrp element
         if (opt%itrp >1) then
-           call yaml_map('RhoPot Delta','*rpnrm')
-           call yaml_map('Energies','*FINAL',advance='no')
-           call yaml_comment('End RhoPot Iterations, itrp:'//&
-                yaml_toa(opt%itrp,fmt='(i6)'))
+           call yaml_map('RhoPot Delta','*rpnrm'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))))
+           call yaml_map('Energies','*final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))))
+!!$           call yaml_comment('End RhoPot Iterations, itrp:'//&
+!!$                yaml_toa(opt%itrp,fmt='(i6)'))
         end if
      end if
      if (opt%c_obj /= 0) then

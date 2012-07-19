@@ -2709,7 +2709,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   
   ! Local variables
   integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
-  
+       call timing(iproc,'small2large','ON') ! lr408t 
   call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
@@ -2732,7 +2732,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
       write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istk /= orbslarge%npsidim_orbs+1=',orbslarge%npsidim_orbs+1
       stop
   end if
-
+       call timing(iproc,'small2large','OF') ! lr408t 
 end subroutine small_to_large_locreg
 
 
@@ -2750,7 +2750,7 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   
   ! Local variables
   integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
-  
+       call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
   call to_zero(orbssmall%npsidim_orbs, phismall(1))
   ists=1
@@ -2768,7 +2768,7 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
 
   if(orbssmall%norbp>0 .and. ists/=orbssmall%npsidim_orbs+1) stop 'ists/=orbssmall%npsidim_orbs+1'
   if(orbslarge%norbp>0 .and. istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
-
+       call timing(iproc,'large2small','OF') ! lr408t 
 end subroutine large_to_small_locreg
 
 

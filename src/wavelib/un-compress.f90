@@ -730,7 +730,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
   !$omp shared(psifscf)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
 
   ! coarse part
   !$omp do
@@ -805,7 +805,7 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do

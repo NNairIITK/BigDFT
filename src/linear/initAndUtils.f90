@@ -327,7 +327,8 @@ real(8):: t1, t2
 allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
-    call nullify_locreg_descriptors(lzd%Llr(ilr))
+   lzd%Llr(ilr)=default_locreg()
+   call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
@@ -1108,7 +1109,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 
   if(linType /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug))
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
      Lzd%doHamAppl = .true. 
@@ -1837,9 +1838,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 
 end subroutine redefine_locregs_quantities
 
-
-
-
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
@@ -2134,6 +2132,7 @@ integer:: npsidim, ilr, iorb
   npsidim = 0
   do iorb=1,orbs%norbp
    ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+!print*,iorb,orbs%norbp,ilr,orbs%isorb
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   orbs%npsidim_orbs=max(npsidim,1)

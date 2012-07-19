@@ -30,6 +30,7 @@ else
 bindings_headers =
 endif
 
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -78,6 +79,7 @@ libmodules_a_SOURCES = base.f90 \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
 
+
 CLEANFILES = mpif.h $(mod_bigdft)
 
 # Hack for XLF strange DEFS option.
@@ -101,7 +103,7 @@ mpif.h:
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 types.o: base.o
-input.o: base.o
+input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o

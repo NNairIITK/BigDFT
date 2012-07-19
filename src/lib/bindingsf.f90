@@ -804,6 +804,7 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
 END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd)
   use module_types
+  use Poisson_Solver
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
@@ -823,21 +824,9 @@ subroutine localfields_free(denspotd)
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
      nullify(denspotd%pkernelseq%kernel)
   else if (associated(denspotd%pkernelseq%kernel)) then
-     call deallocate_coulomb_operator(denspotd%pkernelseq,subname)
+     call pkernel_free(denspotd%pkernelseq,subname)
   end if
-  call deallocate_coulomb_operator(denspotd%pkernel,subname)
-
-!!$  if (associated(denspotd%pkernelseq)) then
-!!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
-!!$     deallocate(denspotd%pkernelseq,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'kernelseq',subname)
-!!$  end if
-
-!!$  if (associated(denspotd%pkernel)) then
-!!$     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
-!!$     deallocate(denspotd%pkernel,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'kernel',subname)
-!!$  end if
+  call pkernel_free(denspotd%pkernel,subname)
 
   if (associated(denspotd%rhov)) then
      i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)

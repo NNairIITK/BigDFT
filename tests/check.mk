@@ -55,7 +55,7 @@ PSPS = psppar.H \
 
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
-CHECKS = $(TESTDIRS:=.check)
+CHECKS = $(TESTDIRS:=.check) $(TESTDIRS:=.yaml-check)
 DIFFS = $(TESTDIRS:=.diff)
 UPDATES = $(TESTDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
@@ -90,6 +90,7 @@ report:
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
 	   cat accel.perf >> $$file ; \
 	fi ; \
+	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
@@ -103,7 +104,16 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
+	name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	   cat accel.perf >> $$file ; \
+	fi ; \
+	echo $$file ; \
+	echo outdir ./ >> $$file ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
@@ -201,24 +211,41 @@ run_message:
         echo "Tests have run in "$$dir" dir. make $$dir.check available"
 	touch $@
 
-%.check: %.run
+%.check: %.run %.yaml-check
 	@dir=`basename $@ .check` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
 	tgts=`for c in $$chks ; do echo $$(basename $$c .ref)".report"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
+%.yaml-check: %.run
+	@dir=`basename $@ .yaml-check` ; \
+        chks="$(srcdir)/$$dir/*.ref.yaml" ; \
+	tgts=`for c in $$chks ; do echo $$(basename $$c .ref.yaml)".report.yaml"; done` ; \
+        cd $$dir && $(MAKE) -f ../Makefile $$tgts
+	touch $@
+
+
 %.diff: %.run
 	@dir=`basename $@ .diff` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
-	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out"; done ; \
+	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
+	done ; \
+        ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
+	for c in $$ychks ; do $$DIFF $$c $$dir/log.yaml;\
+	done ; \
 	touch $@
 
 %.updateref: #%.run %.diff
 	@dir=`basename $@ .updateref` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
 	for c in $$chks ; do echo "Update reference with " $$dir/$$(basename $$c .ref)".out"; \
-	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c; done ; \
+	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
+	done ; \
+        ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
+	for c in $$ychks ; do echo "Update reference with " $$dir/log.yaml; \
+	                     cp -vi $$dir/log.yaml $$c;\
+	done ; \
 	touch $@
 
 

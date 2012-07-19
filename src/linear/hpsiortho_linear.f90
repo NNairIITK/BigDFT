@@ -66,6 +66,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
               call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
                    tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
               tmblarge%can_use_transposed=.true.
+
           end if
           !!allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
           !!call memocc(istat, hpsit_c, 'hpsit_c', subname)
@@ -83,7 +84,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
           !!     tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
-               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
+               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
           deallocate(hpsittmp_c, stat=istat)
           call memocc(istat, iall, 'hpsittmp_c', subname)
@@ -237,11 +238,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end do
 
 
-
+      call timing(iproc,'eglincomms','ON') ! lr408t
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmb%orbs%norb)
+      call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

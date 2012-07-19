@@ -326,7 +326,7 @@ call to_zero(6,wbstr(1))
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0)
   else
      stop 'XC potential: geometry code not admitted'
   end if
@@ -750,9 +750,9 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:), allocatable :: exci
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rhov,sfactor
+  real(dp) :: elocal,vlocal,rhov,sfactor,t1,t2
   integer :: npts,i_all,offset,i_stat,ispden
-  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
+  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2,l
   logical :: use_gradient
 
   !check for the dimensions
@@ -1543,4 +1543,3 @@ if (nsp==1) wbstr=wbstr*2._gp
 !write(*,*) wbstress(4:6)
 
 end subroutine wb_stress
-

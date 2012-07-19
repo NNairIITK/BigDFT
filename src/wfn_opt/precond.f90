@@ -82,6 +82,8 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
            !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
+        !write(*,*) 'preconditionall: verbosity ',verbose
+!           write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
 
        if (scpr /= 0.0_wp) then
 
@@ -121,9 +123,11 @@ END SUBROUTINE preconditionall
 
 
 ! Generalized for the Linearscaling code
-subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,gnrm,gnrm_zero)
   use module_base
   use module_types
+  use Poisson_Solver
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,ncong
   real(gp), intent(in) :: hx,hy,hz
@@ -131,10 +135,17 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+  type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
+  character(len=*), parameter :: subname='preconditionall2'
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_stat,i_all,ispinor,nbox
   real(wp) :: cprecr,scpr,evalmax,eval_zero
-  real(gp) :: kx,ky,kz
+  real(gp) :: kx,ky,kz,eh
+  type(coulomb_operator) :: kernel
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:,:), allocatable :: hpsir
+  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
+
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
@@ -151,6 +162,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
 !        MPI_MAX,MPI_COMM_WORLD,ierr)
 
+  if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
@@ -183,6 +195,51 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         ncplx=1
      end if
 
+!!$     !helmholtz-based preconditioning
+!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+!!$     !box elements size
+!!$     nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+!!$
+!!$     ! Wavefunction in real space
+!!$     allocate(hpsir(nbox,orbs%nspinor+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsir,'hpsir',subname)
+!!$     call to_zero(nbox*orbs%nspinor,hpsir(1,1))
+!!$
+!!$     !case for helmholtz-based preconditioning
+!!$     do ispinor=1,orbs%nspinor
+!!$
+!!$        call daub_to_isf(Lzd%Llr(ilr),w,hpsi(1+ist),hpsir(1,ispinor))
+!!$
+!!$        !the nrm2 function can be replaced here by ddot
+!!$        scpr=nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)
+!!$        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+!!$           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+!!$        else
+!!$           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
+!!$           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+!!$        end if
+!!$
+!!$          call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
+!!$          !sequential kernel
+!!$          call createKernel(0,1,Lzd%Llr(ilr)%geocode,&
+!!$               (/Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i/),&
+!!$               Lzd%hgrids,16,kernel,.true.,1.0_gp)!sqrt(2.0_gp*cprecr))
+!!$
+!!$          !apply it to the gradient to smooth it
+!!$          call H_potential('D',kernel,hpsir(1,ispinor),hpsir(1,1),eh,0.d0,.false.)
+!!$
+!!$          !convert the gradient back to the locreg
+!!$          call isf_to_daub(Lzd%Llr(ilr),w,hpsir(1,ispinor),hpsi(1+ist))
+!!$          call vscal(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),1.0_gp/(16.0_gp*atan(1.0_gp)),hpsi(1+ist),1)
+!!$          print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1),eh
+!!$          ist=ist+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)
+!!$
+!!$     end do
+!!$     call deallocate_work_arrays_sumrho(w)
+!!$     i_all=-product(shape(hpsir))*kind(hpsir)
+!!$     deallocate(hpsir,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsir',subname)
+!!$
      do inds=1,orbs%nspinor,ncplx
 
         !the nrm2 function can be replaced here by ddot
@@ -193,6 +250,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
+        if (verbose.ge.3) write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr
 
        if (scpr /= 0.0_wp) then
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
@@ -215,7 +273,18 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
               end select
 
            else !normal preconditioner
-              if(.false.)then
+              !case active only in the linear scaling case
+              if(confdatarr(iorb)%prefac > 0.0_gp)then
+                 call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
+                 call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
+                      cprecr,&
+                      hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
+                      Lzd%Llr(ilr)%locregCenter, orbs,&
+                      confdatarr(iorb)%prefac,&
+                      confdatarr(iorb)%potorder, &
+                      it) !unused variable
+
+
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
 !                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
@@ -226,10 +295,12 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
            end if
 
        end if
+       !print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do
+
   enddo
 
 END SUBROUTINE preconditionall2

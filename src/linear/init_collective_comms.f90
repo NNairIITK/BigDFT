@@ -2624,7 +2624,8 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   integer, intent(in) :: iproc
   ! Local variables
   integer:: i0, ipt, ii, j, iiorb, jjorb, i, m
-  call timing(iproc,'lincombtrans','ON') !lr408t
+
+  call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
       if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
       if(collcom%ndimind_f>0) call to_zero(7*collcom%ndimind_f, psit_f(1))
@@ -2678,7 +2679,7 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       end do
       i0=i0+ii
   end do
-  call timing(iproc,'lincombtrans','OF') !lr408t
+  call timing(iproc,'lincombtrans  ','OF') !lr408t
 end subroutine build_linear_combination_transposed
 
 

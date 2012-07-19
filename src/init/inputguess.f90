@@ -89,7 +89,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !also for non-collinear case
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,basedist=orbs%norb_par(0:,1:))
+        nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+        basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -847,9 +848,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          stop 
       end if
    end do
-
-   call yaml_close_sequence()
-   call yaml_newline()
+   if (iproc == 0 .and. verbose > 1) then
+      call yaml_close_sequence()
+      call yaml_newline()
+   end if
 
    !print *,'nl',nl,norbe,G%ncoeff
    if (norbe /= G%ncoeff) then
@@ -1895,6 +1897,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
 
    if(present(quartic_prefactor)) then
+if (quartic_prefactor > 0.0_gp) then
        tt=rprb
        if(quartic_prefactor>0.d0) then
            ! There is a non-zero confinement
@@ -1906,6 +1909,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
        end if
        !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
        !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
+end if
    end if
 
    if (enlargerprb) then
@@ -1964,6 +1968,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
    if(present(quartic_prefactor)) then
+
        call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
           &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
           &   aeval,ng,psi,res,chrg,4)

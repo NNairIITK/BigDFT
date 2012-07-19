@@ -224,9 +224,9 @@ integer:: istat, iall
   i_all=-product(shape(d))*kind(d)
   deallocate(d,stat=i_stat)
   call memocc(i_stat,i_all,'d',subname)
-
+  call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-
+  call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 
@@ -633,50 +633,46 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
      end if
 
      do inds=1,orbs%nspinor,ncplx
+        
+        select case(lr%geocode)
+        case('F')
+           cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
+        case('S')
+           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
+        case('P')
+           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
+        end select
 
-
-       if (.true.) then
+        !cases with no CG iterations, diagonal preconditioning
+        !for Free BC it is incorporated in the standard procedure
+        if (ncong == 0 .and. lr%geocode /= 'F') then
            select case(lr%geocode)
            case('F')
-              cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
            case('S')
-              cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
+              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+                   lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
+                   cprecr,hx,hy,hz,hpsi(1,inds))
            case('P')
-              cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
+              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keygloc,lr%wfd%keyvloc, &
+                   cprecr,hx,hy,hz,hpsi(1,inds))
            end select
 
-           !cases with no CG iterations, diagonal preconditioning
-           !for Free BC it is incorporated in the standard procedure
-           if (ncong == 0 .and. lr%geocode /= 'F') then
-              select case(lr%geocode)
-              case('F')
-              case('S')
-                 call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                      lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
-                      cprecr,hx,hy,hz,hpsi(1,inds))
-              case('P')
-                 call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keygloc,lr%wfd%keyvloc, &
-                      cprecr,hx,hy,hz,hpsi(1,inds))
-              end select
+        else !normal preconditioner
 
-           else !normal preconditioner
-              
-              ! iiAt indicates on which atom orbital iorb is centered.
-              !iiAt=lin%onWhichAtom(iorb)
-              !iiAt=lin%orbs%inWhichLocregp(iorb)
-              iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
-              !!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-              !!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
-              !!!     potentialPrefac, confPotOrder, it)
+           ! iiAt indicates on which atom orbital iorb is centered.
+           !iiAt=lin%onWhichAtom(iorb)
+           !iiAt=lin%orbs%inWhichLocregp(iorb)
+           iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
+!!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
+!!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
+!!!     potentialPrefac, confPotOrder, it)
               !!write(*,*) 'cprecr',cprecr
-              call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
+           call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
+                hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
                    potentialPrefac, confPotOrder, tmb, kernel)
-
-           end if
 
         end if
 
