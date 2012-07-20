@@ -1565,7 +1565,6 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
    integer :: i_all,i_stat
-   real(wp), dimension(:,:,:), pointer :: mom_vec
 
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
@@ -1670,7 +1669,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    real(gp), intent(in) :: wf
    type(orbitals_data), intent(inout) :: orbs
    !local variables
-   integer :: ikpt,iorb,melec,ii,ierr
+   integer :: ikpt,iorb,melec,ii
    real(gp) :: charge, chargef
    real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    parameter(pi=3.1415926535897932d0)

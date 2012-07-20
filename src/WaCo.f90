@@ -17,13 +17,13 @@ program WaCo
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
-   type(orbitals_data) :: orbs,orbsw,orbsv,wannorbs
+   type(orbitals_data) :: orbs,orbsw,orbsv
    type(atoms_data) :: atoms
    type(input_variables) :: input
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: commsw, wanncomms
+   type(communications_arrays), target :: commsw
    type(local_zone_descriptors) :: Lzd   !debug only
-   integer :: ilr,iiband,ldim,gdim  !debug only
+   integer :: iiband,ldim,gdim  !debug only
    logical, dimension(:),allocatable :: calcbounds !Debug only
    real(gp), parameter :: b2a=0.5291772108_dp
    real :: tcpu0,tcpu1
@@ -43,7 +43,7 @@ program WaCo
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
-   real(wp), allocatable :: psi(:,:),psi2(:),wann(:),wannr(:),lwann(:)
+   real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
@@ -60,11 +60,14 @@ program WaCo
    integer, allocatable, dimension (:) :: virt_list
    integer :: nbandCon
    integer, dimension(:),allocatable :: bandlist
-   logical :: file_exist,idemp
+   logical :: idemp
    ! ONLY FOR DEBUG
-   real(gp) :: Gnorm, Lnorm
-   integer :: indL   !debug only
-   real(kind=8),dimension(:,:),allocatable :: coeff !debug only 
+!   real(gp) :: Gnorm, Lnorm
+!   integer :: indL,ilr
+!   real(kind=8),dimension(:,:),allocatable :: coeff
+!   type(orbitals_data) :: wannorbs
+!   type(communications_arrays), target :: wanncomms
+!   real(wp), allocatable :: psi2(:)
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
    interface
@@ -2509,7 +2512,7 @@ integer, intent(in) :: nproj, nband, nkpt
 real(gp),dimension(nband,nproj), intent(out) :: amn
 !Local variables
 logical :: file_exist
-integer :: int1, int2, int3, int4, nk, np, nb
+integer :: int2, int3, int4, nk, np, nb
 integer :: ierr
 real(gp) :: r1
 

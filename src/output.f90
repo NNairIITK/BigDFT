@@ -542,7 +542,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
   real(gp), dimension(:,:,:), pointer :: mom_vec
   !local variables
   logical :: degup,degdw
-  integer :: ikptw,iorb,ikpt,jorb,isorb,md,nwrtmsg,ndegen
+  integer :: ikptw,iorb,ikpt,jorb,isorb,nwrtmsg,ndegen
   real(gp) :: spinsignw,mx,my,mz,mpol,tolerance
   character(len=64) :: message
   character(len=150) :: commentline

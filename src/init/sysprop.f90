@@ -209,7 +209,8 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   end if
 END SUBROUTINE system_createKernels
 
-!>  Calculate the important objects related to the physical properties of the system
+
+!> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
@@ -231,8 +232,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 END SUBROUTINE system_properties
 
 
-!>  Check for the need of a core density and fill the rhocore array which
-!!  should be passed at the rhocore pointer
+!> Check for the need of a core density and fill the rhocore array which
+!! should be passed at the rhocore pointer
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -330,6 +331,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
+
 subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
@@ -360,7 +362,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-          & atoms%radii_cf(ityp, :), read_radii, exists)
+           & atoms%radii_cf(ityp, :), read_radii, exists)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -436,7 +438,8 @@ subroutine init_atomic_values(verb, atoms, ixc)
         end if
      end do fill_nlcc
   end if
-end subroutine init_atomic_values
+END SUBROUTINE init_atomic_values
+
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, radii_cf, read_radii, exists)
@@ -517,7 +520,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   close(11)
 
   read_radii = (ierror == 0)
-end subroutine psp_from_file
+END SUBROUTINE psp_from_file
+
 
 subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
   use module_base
@@ -561,8 +565,10 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      ngv=UNINITIALIZED(1)
      ngc=UNINITIALIZED(1)
   end if
-end subroutine nlcc_dim_from_file
+END SUBROUTINE nlcc_dim_from_file
 
+
+!> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
@@ -577,7 +583,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
-  ! Update radii_cf and occupation.
   do ityp=1,atoms%ntypes
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration

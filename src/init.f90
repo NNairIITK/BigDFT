@@ -2009,7 +2009,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   norbv=abs(in%norbv)
-  if (iproc ==0) call yaml_open_map("Input Hamiltonian",flow=.true.)
+  if (iproc == 0) call yaml_open_map("Input Hamiltonian",flow=.true.)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
