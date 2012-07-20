@@ -1,20 +1,30 @@
+!> @file 
+!!   Initializations
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
+
 subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc,nproc
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
-  type(p2pComms),intent(out):: comsr
+  integer,intent(in) :: iproc,nproc
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(p2pComms),intent(out) :: comsr
   
   ! Local variables
-  integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
-  integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj, istr, tag
-  integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
-  character(len=*),parameter:: subname='initialize_comms_sumrho'
+  integer :: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp,iiproc,isend
+  integer :: jlr, jorb, istr, tag
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,p2p_tag,istsource,ncount
+  character(len=*),parameter :: subname='initialize_comms_sumrho'
 
 
   call timing(iproc,'init_commSumro','ON')
@@ -195,13 +205,12 @@ subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   implicit none
   
   ! Calling arguments
-  integer:: nlr
-  type(linearInputParameters),intent(inout):: lin
+  type(linearInputParameters),intent(inout) :: lin
   integer, intent(in) :: ntypes, nat
   
   ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='allocateBasicArrays'
+  integer :: istat
+  character(len=*),parameter :: subname='allocateBasicArrays'
   
   allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
@@ -226,11 +235,11 @@ subroutine deallocateBasicArraysInput(lin)
   implicit none
   
   ! Calling arguments
-  type(linearinputParameters),intent(inout):: lin
+  type(linearinputParameters),intent(inout) :: lin
   
   ! Local variables
-  integer:: i_stat,i_all
-  character(len=*),parameter:: subname='deallocateBasicArrays'
+  integer :: i_stat,i_all
+  character(len=*),parameter :: subname='deallocateBasicArrays'
  
   if(associated(lin%potentialPrefac)) then
 !    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
@@ -305,22 +314,22 @@ use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nlr
-real(8),dimension(3,nlr),intent(in):: rxyz
-real(8),intent(in):: hx, hy, hz
-type(local_zone_descriptors),intent(inout):: lzd
-type(orbitals_data),intent(in):: orbs
-type(locreg_descriptors),intent(in):: Glr
-real(8),dimension(lzd%nlr),intent(in):: locrad
-character(len=1),intent(in):: locregShape
-type(orbitals_data),optional,intent(in):: lborbs
+integer,intent(in) :: iproc, nproc, nlr
+real(kind=8),dimension(3,nlr),intent(in) :: rxyz
+real(kind=8),intent(in) :: hx, hy, hz
+type(local_zone_descriptors),intent(inout) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(locreg_descriptors),intent(in) :: Glr
+real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
+character(len=1),intent(in) :: locregShape
+type(orbitals_data),optional,intent(in) :: lborbs
 
-!real(8),dimension(:),pointer:: phi, lphi
+!real(kind=8),dimension(:),pointer :: phi, lphi
 
 ! Local variables
-integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs'
-logical,dimension(:),allocatable:: calculateBounds
+integer :: istat, ilr, jorb, jjorb, jlr, iall
+character(len=*),parameter :: subname='initLocregs'
+logical,dimension(:),allocatable :: calculateBounds
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
@@ -400,8 +409,8 @@ end subroutine initLocregs
 function megabytes(bytes)
   implicit none
   
-  integer,intent(in):: bytes
-  integer:: megabytes
+  integer,intent(in) :: bytes
+  integer :: megabytes
   
   megabytes=nint(dble(bytes)/1048576.d0)
   
@@ -413,15 +422,15 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr, ndim
-  type(orbitals_data),intent(in):: orbs
-  integer,dimension(orbs%norb),intent(in):: noverlaps
-  integer,dimension(ndim,orbs%norb),intent(in):: overlaps
-  type(matrixDescriptors),intent(out):: mad
+  integer,intent(in) :: iproc, nproc, nlr, ndim
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(orbs%norb),intent(in) :: noverlaps
+  integer,dimension(ndim,orbs%norb),intent(in) :: overlaps
+  type(matrixDescriptors),intent(out) :: mad
   
   ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
-  character(len=*),parameter:: subname='initMatrixCompression'
+  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
+  character(len=*),parameter :: subname='initMatrixCompression'
   
   call timing(iproc,'init_matrCompr','ON')
 
@@ -594,13 +603,13 @@ subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts,
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(matrixDescriptors),intent(in):: mad
-  integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
   
   ! Local variables
-  integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
   
   sendcounts=0
   displs=0
@@ -636,8 +645,8 @@ subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts,
       stop
   end if
 
-  
 end subroutine getCommunArraysMatrixCompression
+  
 
 subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
   use module_base
@@ -645,15 +654,15 @@ subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb**2),intent(in):: mat
-  real(8),dimension(mad%nvctr),intent(out):: lmat
-  integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb**2),intent(in) :: mat
+  real(kind=8),dimension(mad%nvctr),intent(out) :: lmat
+  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
   
   ! Local variables
-  integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
   
   sendcounts=0
   displs=0
@@ -704,14 +713,14 @@ subroutine initCompressedMatmul(iproc, nproc, norb, mad)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  type(matrixDescriptors),intent(inout):: mad
+  integer,intent(in) :: iproc, nproc, norb
+  type(matrixDescriptors),intent(inout) :: mad
   
   ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg
-  logical:: segment
-  integer,dimension(:),allocatable:: row, column
-  character(len=*),parameter:: subname='initCompressedMatmul'
+  integer :: iorb, jorb, ii, j, istat, iall, ij, iseg
+  logical :: segment
+  integer,dimension(:),allocatable :: row, column
+  character(len=*),parameter :: subname='initCompressedMatmul'
   
   
   allocate(row(norb), stat=istat)
@@ -814,12 +823,12 @@ subroutine getRow(norb, mad, rowX, row)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: norb, rowX
-  type(matrixDescriptors),intent(in):: mad
-  integer,dimension(norb),intent(out):: row
+  integer,intent(in) :: norb, rowX
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(norb),intent(out) :: row
   
   ! Local variables
-  integer:: iseg, i, irow, icolumn
+  integer :: iseg, i, irow, icolumn
   
   row=0
   
@@ -844,17 +853,17 @@ end subroutine getRow
 !!!  implicit none
 !!!
 !!!  ! Calling arguments
-!!!  integer,intent(in):: norb, nseg
-!!!  integer,dimension(2,nseg),intent(in):: keyg
-!!!  integer,intent(out):: nsegmatmul
-!!!  integer,dimension(:,:),pointer,intent(out):: keygmatmul
-!!!  integer,dimension(:),pointer,intent(out):: keyvmatmul
+!!!  integer,intent(in) :: norb, nseg
+!!!  integer,dimension(2,nseg),intent(in) :: keyg
+!!!  integer,intent(out) :: nsegmatmul
+!!!  integer,dimension(:,:),pointer,intent(out) :: keygmatmul
+!!!  integer,dimension(:),pointer,intent(out) :: keyvmatmul
 !!!
 !!!  ! Local variables
-!!!  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
-!!!  logical:: segment
-!!!  character(len=*),parameter:: subname='initCompressedMatmul2'
-!!!  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+!!!  integer :: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+!!!  logical :: segment
+!!!  character(len=*),parameter :: subname='initCompressedMatmul2'
+!!!  real(kind=8),dimension(:),allocatable :: mat1, mat2, mat3
 !!!
 !!!
 !!!
@@ -952,14 +961,14 @@ subroutine initCompressedMatmul3(iproc, norb, mad)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, norb
-  type(matrixDescriptors),intent(inout):: mad
+  integer,intent(in) :: iproc, norb
+  type(matrixDescriptors),intent(inout) :: mad
 
   ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
-  logical:: segment
-  character(len=*),parameter:: subname='initCompressedMatmul3'
-  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+  integer :: iorb, istat, iall, ij, iseg, i
+  logical :: segment
+  character(len=*),parameter :: subname='initCompressedMatmul3'
+  real(kind=8),dimension(:),allocatable :: mat1, mat2, mat3
 
   call timing(iproc,'initMatmulComp','ON')
 
@@ -1064,11 +1073,10 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
-  logical :: linear,newvalue
-  integer :: iat,ityp,nspin_ig,i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
-  integer,dimension(:,:),allocatable:: ilrtable
+  logical :: linear
+  integer :: iat,ityp,nspin_ig,i_all,i_stat
   real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable:: calculateBounds
+  logical,dimension(:),allocatable :: calculateBounds
 
   !default variables
   Lzd%nlr = 1
@@ -1201,11 +1209,10 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 !  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
-  logical :: linear,newvalue
-  integer :: iat,ityp,nspin_ig,i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
-  integer,dimension(:,:),allocatable:: ilrtable
+  logical :: linear
+  integer :: iat,ityp,nspin_ig,i_all,i_stat
   real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable:: calculateBounds
+  logical,dimension(:),allocatable :: calculateBounds
 
   !default variables
   Lzd%nlr = 1
@@ -1342,7 +1349,7 @@ integer function optimalLength(totalLength, value)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: totalLength, value
+  integer,intent(in) :: totalLength, value
   
   optimalLength=totalLength-ceiling(log10(dble(value+1)+1.d-10))
 
@@ -1358,20 +1365,18 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(inout):: orbs
-type(collectiveComms),intent(out):: collcomms
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(input_variables),intent(in) :: input
+type(orbitals_data),intent(inout) :: orbs
+type(collectiveComms),intent(out) :: collcomms
 
 ! Local variables
-integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, gdim, ldim, ist
-integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
-integer:: transform_index, iseg, offset, iall
-integer,dimension(:),allocatable:: work_int
-character(len=*),parameter:: subname='initCollectiveComms'
-integer:: ii1s, ii1e, ii5s, ii5e, i1, i5
-logical:: stop1, stop5
+integer :: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, ldim, ist
+integer :: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
+integer :: transform_index, iseg, offset
+character(len=*),parameter :: subname='initCollectiveComms'
+integer :: ii1s, ii1e, ii5s, ii5e
 
 ! Allocate all arrays
 allocate(collComms%nvctr_par(orbs%norb,0:nproc-1), stat=istat)
@@ -1561,19 +1566,19 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nspinor
-  type(input_variables),intent(in):: input
-  type(atoms_data),intent(in):: at
-  type(locreg_descriptors),intent(in):: glr
-  logical,intent(in):: use_derivative_basis
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  type(orbitals_data),intent(out):: lorbs
+  integer,intent(in) :: iproc, nproc, nspinor
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  type(locreg_descriptors),intent(in) :: glr
+  logical,intent(in) :: use_derivative_basis
+  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  type(orbitals_data),intent(out) :: lorbs
   
   ! Local variables
-  integer:: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
-  integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
-  real(8),dimension(:,:),allocatable:: locregCenter
-  character(len=*),parameter:: subname='init_orbitals_data_for_linear'
+  integer :: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
+  integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
+  real(kind=8),dimension(:,:),allocatable :: locregCenter
+  character(len=*),parameter :: subname='init_orbitals_data_for_linear'
 
   call timing(iproc,'init_orbs_lin ','ON')
   
@@ -1669,18 +1674,18 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(input_variables),intent(in):: input
-  type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  type(orbitals_data),intent(in):: orbs, derorbs
-  type(local_zone_descriptors),intent(inout):: lzd
+  integer,intent(in) :: iproc, nproc
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  type(orbitals_data),intent(in) :: orbs, derorbs
+  type(local_zone_descriptors),intent(inout) :: lzd
   logical, intent(in) :: withderorbs
   
   ! Local variables
-  integer:: iat, ityp, ilr, istat, iorb, iall
-  real(8),dimension(:,:),allocatable:: locregCenter
-  character(len=*),parameter:: subname='lzd_init_llr'
+  integer :: iat, ityp, ilr, istat, iorb, iall
+  real(kind=8),dimension(:,:),allocatable :: locregCenter
+  character(len=*),parameter :: subname='lzd_init_llr'
 
   call timing(iproc,'init_locregs  ','ON')
   
@@ -1733,24 +1738,24 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  real(8),intent(in):: hx, hy, hz
-  type(local_zone_descriptors),intent(inout):: lzd
-  real(8),dimension(lzd%nlr),intent(in):: locrad
-  logical,intent(in):: transform
-  type(DFT_wavefunction),intent(inout):: tmb
-  type(DFT_wavefunction),intent(inout):: tmbmix
-  type(DFT_local_fields),intent(inout):: denspot
-  type(localizedDIISParameters),intent(inout),optional:: ldiis
+  integer,intent(in) :: iproc, nproc
+  real(kind=8),intent(in) :: hx, hy, hz
+  type(local_zone_descriptors),intent(inout) :: lzd
+  real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
+  logical,intent(in) :: transform
+  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmbmix
+  type(DFT_local_fields),intent(inout) :: denspot
+  type(localizedDIISParameters),intent(inout),optional :: ldiis
   
   ! Local variables
-  integer:: iall, istat, tag, nlr, ilr
-  type(orbitals_data):: orbs_tmp
-  character(len=*),parameter:: subname='redefine_locregs_quantities'
-  !!real(8),dimension(:),allocatable:: locrad
-  real(8),dimension(:,:),allocatable:: locregCenter
-  real(8),dimension(:),allocatable:: lphilarge
-  type(local_zone_descriptors):: lzd_tmp
+  integer :: iall, istat, ilr
+  type(orbitals_data) :: orbs_tmp
+  character(len=*),parameter :: subname='redefine_locregs_quantities'
+  !!real(kind=8),dimension(:),allocatable :: locrad
+  real(kind=8),dimension(:,:),allocatable :: locregCenter
+  real(kind=8),dimension(:),allocatable :: lphilarge
+  type(local_zone_descriptors) :: lzd_tmp
 
   !tag=1
   call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
@@ -1840,28 +1845,27 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr
-  logical,intent(in):: useDerivativeBasisFunctions
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(8),intent(in):: hx, hy, hz
-  real(8),dimension(nlr),intent(in):: locrad
-  type(orbitals_data),intent(in):: orbs_tmp
-  integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
-  real(8),dimension(3,nlr),intent(in):: locregCenter
-  type(locreg_descriptors),intent(in):: glr_tmp
-  type(local_zone_descriptors),intent(inout):: lzd
-  type(orbitals_data),intent(inout):: llborbs
-  type(overlapParameters),intent(inout):: lbop
-  type(p2pComms),intent(inout):: lbcomon
-  type(p2pComms),intent(inout):: lbcomgp
-  type(p2pComms),intent(inout):: comsr
-  type(matrixDescriptors),intent(inout):: lbmad
-  type(collective_comms),intent(inout):: lbcollcom
+  integer,intent(in) :: iproc, nproc, nlr
+  logical,intent(in) :: useDerivativeBasisFunctions
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(kind=8),intent(in) :: hx, hy, hz
+  real(kind=8),dimension(nlr),intent(in) :: locrad
+  type(orbitals_data),intent(in) :: orbs_tmp
+  integer,dimension(orbs_tmp%norb),intent(in) :: inwhichlocreg_reference
+  real(kind=8),dimension(3,nlr),intent(in) :: locregCenter
+  type(locreg_descriptors),intent(in) :: glr_tmp
+  type(local_zone_descriptors),intent(inout) :: lzd
+  type(orbitals_data),intent(inout) :: llborbs
+  type(overlapParameters),intent(inout) :: lbop
+  type(p2pComms),intent(inout) :: lbcomon
+  type(p2pComms),intent(inout) :: lbcomgp
+  type(p2pComms),intent(inout) :: comsr
+  type(matrixDescriptors),intent(inout) :: lbmad
+  type(collective_comms),intent(inout) :: lbcollcom
   
   ! Local variables
-  integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, i, tag, ii, ndim
-  integer,dimension(:),allocatable:: orbsPerLocreg, onwhichatom
-  character(len=*),parameter:: subname='update_locreg'
+  integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii, ndim
+  character(len=*),parameter :: subname='update_locreg'
 
 
   call nullify_orbitals_data(llborbs)
@@ -1929,8 +1933,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
-
 end subroutine update_locreg
+
 
 subroutine update_ldiis_arrays(tmb, subname, ldiis)
   use module_base
@@ -1938,12 +1942,12 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
   implicit none
 
   ! Calling arguments
-  type(DFT_wavefunction),intent(in):: tmb
-  character(len=*),intent(in):: subname
-  type(localizedDIISParameters),intent(inout):: ldiis
+  type(DFT_wavefunction),intent(in) :: tmb
+  character(len=*),intent(in) :: subname
+  type(localizedDIISParameters),intent(inout) :: ldiis
 
   ! Local variables
-  integer:: iall, istat, ii, iorb, ilr
+  integer :: iall, istat, ii, iorb, ilr
 
   iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
   deallocate(ldiis%phiHist, stat=istat)
@@ -1971,12 +1975,12 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphi
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: npsidim
-  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
-  character(len=*),intent(in):: subname
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in) :: subname
 
   ! Local variables
-  integer:: istat
+  integer :: istat
 
   allocate(lphi(npsidim), stat=istat)
   call memocc(istat, lphi, 'lphi', subname)
@@ -2000,11 +2004,11 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lh
   implicit none
 
   ! Calling arguments
-  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
-  character(len=*),intent(in):: subname
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in) :: subname
 
   ! Local variables
-  integer:: istat, iall
+  integer :: istat, iall
 
   iall=-product(shape(lphi))*kind(lphi)
   deallocate(lphi, stat=istat)
@@ -2030,12 +2034,11 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(DFT_wavefunction),intent(inout):: tmb
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb
 
   ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_new_locregs'
+  character(len=*),parameter :: subname='destroy_new_locregs'
 
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
  ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
@@ -2058,14 +2061,14 @@ subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, input, wfn)
   implicit none
   
   ! Calling arguments
-  character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, norb
-  type(input_variables),intent(in):: input
-  type(DFT_wavefunction),intent(out):: wfn
+  character(len=1),intent(in) :: mode
+  integer,intent(in) :: nphi, lnorb, norb
+  type(input_variables),intent(in) :: input
+  type(DFT_wavefunction),intent(out) :: wfn
 
   ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='create_DFT_wavefunction'
+  integer :: istat
+  character(len=*),parameter :: subname='create_DFT_wavefunction'
 
   call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, input, wfn%wfnmd)
 
@@ -2084,11 +2087,11 @@ subroutine destroy_DFT_wavefunction(wfn)
   implicit none
   
   ! Calling arguments
-  type(DFT_wavefunction),intent(inout):: wfn
+  type(DFT_wavefunction),intent(inout) :: wfn
 
   ! Local variables
-  integer:: istat, iall
-  character(len=*),parameter:: subname='destroy_DFT_wavefunction'
+  integer :: istat, iall
+  character(len=*),parameter :: subname='destroy_DFT_wavefunction'
 
   iall=-product(shape(wfn%psi))*kind(wfn%psi)
   deallocate(wfn%psi, stat=istat)
@@ -2114,11 +2117,11 @@ use module_types
 implicit none
 
 ! Calling arguments
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(inout):: orbs
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(inout) :: orbs
 
 ! Local variables
-integer:: npsidim, ilr, iorb
+integer :: npsidim, ilr, iorb
 
   npsidim = 0
   do iorb=1,orbs%norbp
@@ -2137,8 +2140,8 @@ subroutine init_basis_specifications(input, bs)
   implicit none
   
   ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(basis_specifications),intent(out):: bs
+  type(input_variables),intent(in) :: input
+  type(basis_specifications),intent(out) :: bs
   
   bs%update_phi=.false.
   bs%communicate_phi_for_lsumrho=.false.
@@ -2161,8 +2164,8 @@ subroutine init_basis_performance_options(input, bpo)
   implicit none
   
   ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(basis_performance_options),intent(out):: bpo
+  type(input_variables),intent(in) :: input
+  type(basis_performance_options),intent(out) :: bpo
   
   bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
   bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
@@ -2179,14 +2182,14 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, input, wfnmd)
   implicit none
   
   ! Calling arguments
-  character(len=1),intent(in):: mode
-  integer,intent(in):: nphi, lnorb, llbnorb, norb
-  type(input_variables),intent(in):: input
-  type(wfn_metadata),intent(out):: wfnmd
+  character(len=1),intent(in) :: mode
+  integer,intent(in) :: nphi, lnorb, llbnorb, norb
+  type(input_variables),intent(in) :: input
+  type(wfn_metadata),intent(out) :: wfnmd
 
   ! Local variables
-  integer:: istat
-  character(len=*),parameter:: subname='create_wfn_metadata'
+  integer :: istat
+  character(len=*),parameter :: subname='create_wfn_metadata'
 
   ! Determine which variables we need, depending on the mode we are in.
   if(mode=='l') then
@@ -2231,12 +2234,12 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: npsidim
-  real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
-  character(len=*),intent(in):: subname
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  character(len=*),intent(in) :: subname
 
   ! Local variables
-  integer:: istat, iall
+  integer :: istat, iall
 
   iall=-product(shape(lphi))*kind(lphi)
   deallocate(lphi, stat=istat)

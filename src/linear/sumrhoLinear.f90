@@ -1,6 +1,15 @@
+!> @file 
+!!   sumrho: linear version
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
 
-!!>   Here starts the routine for building partial density inside the localisation region
-!!!   This routine should be treated as a building-block for the linear scaling code
+!> Here starts the routine for building partial density inside the localisation region
+!! This routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
   use module_base
@@ -11,29 +20,25 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
-  integer,intent(inout):: nrhotot
+  integer,intent(inout) :: nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
-  integer,dimension(orbs%norb),intent(in):: mapping
+  integer,dimension(orbs%norb),intent(in) :: mapping
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-  real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho
+  real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out) :: rho
   !local variables
   character(len=*), parameter :: subname='local_partial_densityLinear'
-  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
+  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
-  integer :: nspincomp,i3s,i3e,ii1,ii2,ii3
+  integer :: nspincomp,ii1,ii2,ii3
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
-  real(8):: dnrm2
   integer, dimension(:,:), allocatable :: Lnscatterarr
-  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp,jproc 
-  character(len=8) :: filename
-  character(len=3) :: numb
  !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
   if (orbs%nspinor ==4) then
@@ -287,34 +292,30 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
-real(gp),intent(in):: hx, hy, hz
-type(local_zone_descriptors),intent(in):: lzd
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-!type(p2pCommsSumrho),intent(inout):: comsr
-type(p2pComms),intent(inout):: comsr
-!real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(ld_coeff,norb),intent(in):: coeff
-real(8),dimension(nrho),intent(out),target:: rho
-type(atoms_data),intent(in):: at
-integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,intent(in) :: iproc, nproc, nrho, norb, ld_coeff
+real(gp),intent(in) :: hx, hy, hz
+type(local_zone_descriptors),intent(in) :: lzd
+type(input_variables),intent(in) :: input
+type(orbitals_data),intent(in) :: orbs
+!type(p2pCommsSumrho),intent(inout) :: comsr
+type(p2pComms),intent(inout) :: comsr
+!real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
+real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
+real(kind=8),dimension(nrho),intent(out),target :: rho
+type(atoms_data),intent(in) :: at
+integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
 ! Local variables
-integer:: iorb, jorb, korb, istat, indLarge, i1, i2, i3, ilr, jlr
-integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, ldim, iall, istr, istri, istrj
-integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, jjorb
-integer:: ierr, jproc, is, ie, nreceives
-integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
-integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
+integer :: iorb, jorb, istat, indLarge, i1, i2, i3, ilr, jlr
+integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, iall, istri, istrj
+integer :: indi2, indi3, indj2, indj3, indl2, indl3, iiorb, jjorb
+integer :: ierr, is, ie
+integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
+integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
-real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-real(8),dimension(:,:),allocatable:: densKern
-integer,dimension(mpi_status_size):: stat
-logical:: sendComplete, receiveComplete
-character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
-integer :: i, j
-real(gp),dimension(:,:), allocatable :: rhoprime
+real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
+real(kind=8),dimension(:,:),allocatable :: densKern
+character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
@@ -553,14 +554,14 @@ end subroutine sumrhoForLocalizedBasis2
 !!!!implicit none
 !!!!
 !!!!! Calling arguments
-!!!!integer,intent(in):: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
-!!!!type(locreg_descriptors),dimension(nlr),intent(in):: Llr
-!!!!type(orbitals_data):: orbs
-!!!!integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-!!!!integer,dimension(6),intent(out):: commsSumrho
+!!!!integer,intent(in) :: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
+!!!!type(locreg_descriptors),dimension(nlr),intent(in) :: Llr
+!!!!type(orbitals_data) :: orbs
+!!!!integer,dimension(orbs%norb),intent(in) :: onWhichAtomAll
+!!!!integer,dimension(6),intent(out) :: commsSumrho
 !!!!
 !!!!! Local variables
-!!!!integer:: mpisource, ist, jorb, jlr
+!!!!integer :: mpisource, ist, jorb, jlr
 !!!!
 !!!!! on which MPI process is the orbital that has to be sent to jproc
 !!!!mpisource=orbs%onWhichMPI(iorb)

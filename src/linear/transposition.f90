@@ -1,39 +1,47 @@
+!> @file 
+!!   Transposition in linear
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
+
+!> Transposes the wave function(s) contained in psi. Each wave function may have its
+!!  own localization region. The transposition is done only among the processes
+!!  in the MPI communicator newComm.
+!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  ----------------
+!!    @param iproc              process ID
+!!    @param lproc              lowest process ID of the current MPI communicator
+!!    @param uproc              highest process ID of the current MPI communicator
+!!    @param orbs               type describing the orbitals
+!!    @param comms              type containing the communications parameters
+!!    @param newComm            the current MPI communicator
+!!  Input / Output arguments:
+!!  -------------------------
+!!    @param psi                the orbitals to be transposed.
+!!    @param work (optional)    work array
+!!    @param outadd (optional)  if present, the transposed wave function will be 
+!!                              assigned to outadd instead of psi
 subroutine transpose_linear(iproc, lproc, uproc, orbs, collComms, psi, newComm, work)
      !work,outadd) !optional
-! Purpose:
-! ========
-!   Transposes the wave function(s) contained in psi. Each wave function may have its
-!   own localization region. The transposition is done only among the processes
-!   in the MPI communicator newComm.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc              process ID
-!     lproc              lowest process ID of the current MPI communicator
-!     uproc              highest process ID of the current MPI communicator
-!     orbs               type describing the orbitals
-!     comms              type containing the communications parameters
-!     newComm            the current MPI communicator
-!   Input / Output arguments:
-!   -------------------------
-!     psi                the orbitals to be transposed.
-!     work (optional)    work array
-!     outadd (optional)  if present, the transposed wave function will be 
-!                        assigned to outadd instead of psi
-!
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc, newComm
-type(orbitals_data),intent(in):: orbs
-type(collectiveComms),intent(in):: collComms
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out):: psi
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
-!real(wp),dimension(*),intent(out),optional:: outadd
+integer,intent(in) :: iproc, lproc, uproc, newComm
+type(orbitals_data),intent(in) :: orbs
+type(collectiveComms),intent(in) :: collComms
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out) :: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)) :: work
+!real(wp),dimension(*),intent(out),optional :: outadd
 
 ! Local variables
 integer :: ierr, nproc
@@ -80,42 +88,40 @@ integer :: ierr, nproc
 END SUBROUTINE transpose_linear
 
 
+!> Untransposes the wave function(s) contained in psi. Each wave function may have its
+!!  own localization region. The untransposition is done only among the processes
+!!  in the MPI communicator newComm.
+!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  ----------------
+!!    @param iproc              process ID
+!!    @param lproc              lowest process ID of the current MPI communicator
+!!    @param uproc              highest process ID of the current MPI communicator
+!!    @param orbs               type describing the orbitals
+!!    @param comms              type containing the communications parameters
+!!    @param newComm            the current MPI communicator
+!!  Input / Output arguments:
+!!  -------------------------
+!!    @param psi                the orbitals to be untransposed.
+!!    @param work (optional)    work array
+!!    @param outadd (optional)  if present, the untransposed wave function will be 
+!!                              assigned to outadd instead of psi
 subroutine untranspose_linear(iproc, lproc, uproc, orbs, collComms, psi, newComm, work)
 !     work,outadd) !optional
-! Purpose:
-! ========
-!   Untransposes the wave function(s) contained in psi. Each wave function may have its
-!   own localization region. The untransposition is done only among the processes
-!   in the MPI communicator newComm.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc              process ID
-!     lproc              lowest process ID of the current MPI communicator
-!     uproc              highest process ID of the current MPI communicator
-!     orbs               type describing the orbitals
-!     comms              type containing the communications parameters
-!     newComm            the current MPI communicator
-!   Input / Output arguments:
-!   -------------------------
-!     psi                the orbitals to be untransposed.
-!     work (optional)    work array
-!     outadd (optional)  if present, the untransposed wave function will be 
-!                        assigned to outadd instead of psi
-!
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc,lproc, uproc, newComm
-type(orbitals_data),intent(in):: orbs
-type(collectiveComms),intent(in):: collComms
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out):: psi
+integer,intent(in) :: iproc,lproc, uproc, newComm
+type(orbitals_data),intent(in) :: orbs
+type(collectiveComms),intent(in) :: collComms
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out) :: psi
 !real(wp),dimension(:),pointer,optional :: work
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)) :: work
 !real(wp),dimension(*),intent(out),optional :: outadd
 
 ! Local variables
@@ -157,73 +163,59 @@ integer :: ierr, nproc
 END SUBROUTINE untranspose_linear
 
 
-
-
-
-
-
-
-
-
-
-
+!> This subroutine rearranges the orbitals such that they can be transposed using
+!!  a single call to mpi_alltoallv.
+!!  Here is an example how it works:
+!!
+!!      process 0                process 1            process 2        process 3        process 4
+!!  1   9       1  13   |   17  25      17  29   |   33      33   |   41      41   |   49      49
+!!  2  10       2  14   |   18  26      18  30   |   34      34   |   42      42   |   50      50
+!!  3  11       9   7   |   19  27      25  23   |   35      35   |   43      43   |   51      51
+!!  4  12      10   0   |   20  28      26   0   |   36      36   |   44      44   |   52      52
+!!  5  13  =>   3   8   |   21  29  =>  19  24   |   37  =>  37   |   45  =>  45   |   53  =>  53
+!!  6  14       4   0   |   22  30      20   0   |   38      38   |   46      46   |   54      54
+!!  7  15      11  15   |   23  31      27  31   |   39      39   |   47      47   |   55      55
+!!  8  16      12   0   |   24  32      28   0   |   40       0   |   48       0   |   56       0 
+!!  0   0       5  16   |    0   0      21  32   |    0      40   |    0      48   |    0      56
+!!  0   0       6   0   |    0   0      22   0   |    0       0   |    0       0   |    0       0 
+!!
+!!
+!!  After this step, we can transpose it with one call to mpi_alltoallv:
+!!
+!!      process 0               process 1                process 2                process 3                process 4
+!! 1  9 17 25 33 41 49  |   3 11 19 27 35 43 51  |   5 13 21 29 37 45 53  |   7 15 23 31 39 47 55  |   8 16 24 32 40 48 56
+!! 2 10 18 26 34 42 50  |   4 12 20 28 36 44 52  |   6 14 22 30 38 46 54  |   0  0  0  0  0  0  0  |   0  0  0  0  0  0  0
+!!
+!!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  ----------------
+!!    @param iproc      process ID
+!!    @param lproc      lowest process ID in the current communicator
+!!    @param uproc      highest process ID in the current communicator
+!!    @param orbs       type describing the orbitals
+!!    @param comms      type containing the communications parameters
+!!    @param psi        the orbitals to be rearranged
+!!  Output arguments:
+!!  -----------------
+!!    @param psiw       the rearranged orbitals
 subroutine switch_waves_linear(iproc, lproc, uproc, orbs, collComms, psi, psiw)
-!
-! Purpose:
-! ========
-!   This subroutine rearranges the orbitals such that they can be transposed using
-!   a single call to mpi_alltoallv.
-!   Here is an example how it works:
-!
-!       process 0                process 1            process 2        process 3        process 4
-!   1   9       1  13   |   17  25      17  29   |   33      33   |   41      41   |   49      49
-!   2  10       2  14   |   18  26      18  30   |   34      34   |   42      42   |   50      50
-!   3  11       9   7   |   19  27      25  23   |   35      35   |   43      43   |   51      51
-!   4  12      10   0   |   20  28      26   0   |   36      36   |   44      44   |   52      52
-!   5  13  =>   3   8   |   21  29  =>  19  24   |   37  =>  37   |   45  =>  45   |   53  =>  53
-!   6  14       4   0   |   22  30      20   0   |   38      38   |   46      46   |   54      54
-!   7  15      11  15   |   23  31      27  31   |   39      39   |   47      47   |   55      55
-!   8  16      12   0   |   24  32      28   0   |   40       0   |   48       0   |   56       0 
-!   0   0       5  16   |    0   0      21  32   |    0      40   |    0      48   |    0      56
-!   0   0       6   0   |    0   0      22   0   |    0       0   |    0       0   |    0       0 
-!
-!
-!   After this step, we can transpose it with one call to mpi_alltoallv:
-!
-!       process 0               process 1                process 2                process 3                process 4
-!  1  9 17 25 33 41 49  |   3 11 19 27 35 43 51  |   5 13 21 29 37 45 53  |   7 15 23 31 39 47 55  |   8 16 24 32 40 48 56
-!  2 10 18 26 34 42 50  |   4 12 20 28 36 44 52  |   6 14 22 30 38 46 54  |   0  0  0  0  0  0  0  |   0  0  0  0  0  0  0
-!
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     lproc      lowest process ID in the current communicator
-!     uproc      highest process ID in the current communicator
-!     orbs       type describing the orbitals
-!     comms      type containing the communications parameters
-!     psi        the orbitals to be rearranged
-!     Output arguments:
-!   -----------------
-!     psiw       the rearranged orbitals
-!  
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc
+integer,intent(in) :: iproc, lproc, uproc
 type(collectiveComms), intent(in) :: collComms
-type(orbitals_data),intent(in):: orbs
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiw
+type(orbitals_data),intent(in) :: orbs
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: psiw
 
 ! Local variables
-integer :: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc
+integer :: iorb, i, j, ij, ijproc, ind, it, ikptsp, nproc
 integer :: isorb, isorbp, ispsi, norbp_kpt, ikpt, kk, iiorb
-integer:: k, ii
+integer :: k, ii
 
   ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
@@ -300,44 +292,40 @@ integer:: k, ii
 END SUBROUTINE switch_waves_linear
 
 
-
+!> This subroutine rearranges the orbitals back. As an input it takes the psiw in the form
+!! which is used for the mpi_alltoallv.
+!!  The idea is the same as in switch_waves_vLIN, just now the other way around.
+!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  ----------------
+!!    @param iproc      process ID
+!!    @param lproc      lowest process ID in the current communicator
+!!    @param uproc      highest process ID in the current communicator
+!!    @param orbs       type describing the orbitals
+!!    @param comms      type containing the communications parameters
+!!    @param psiw       the orbitals to be rearranged
+!!  Output arguments:
+!!  -----------------
+!!    @param psi        the rearranged orbitals
 subroutine unswitch_waves_linear(iproc, lproc, uproc, orbs, collComms, psiw, psi)
-!
-! Purpose:
-! ========
-!   This subroutine rearranges the orbitals back. As an input it takes the psiw in the form
-!   which is used for the mpi_alltoallv.
-!   The idea is the same as in switch_waves_vLIN, just now the other way around.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     lproc      lowest process ID in the current communicator
-!     uproc      highest process ID in the current communicator
-!     orbs       type describing the orbitals
-!     comms      type containing the communications parameters
-!     psiw       the orbitals to be rearranged
-!     Output arguments:
-!   -----------------
-!     psi        the rearranged orbitals
-!  
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc
+integer,intent(in) :: iproc, lproc, uproc
 type(orbitals_data),intent(in) :: orbs
 type(collectiveComms),intent(in) :: collComms
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psiw
-real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psiw
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: psi
 
 ! Local variables
-integer:: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc, jproc
-integer:: isorb, isorbp, ispsi, norbp_kpt, ikpt, ierr
-integer:: k, ii, kk, iiorb
+integer :: iorb, i, j, ij, ijproc, ind, it, ikptsp, nproc
+integer :: isorb, isorbp, ispsi, norbp_kpt, ikpt
+integer :: k, ii, kk, iiorb
 
   ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
@@ -415,45 +403,40 @@ integer:: k, ii, kk, iiorb
 END SUBROUTINE unswitch_waves_linear
 
 
-
-
-
+!>  Transposes the wave function(s) contained in psi. Each wave function may have its
+!!  own localization region. The transposition is done only among the processes
+!!  in the MPI communicator newComm.
+!!
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!     @param iproc              process ID
+!!     @param lproc              lowest process ID of the current MPI communicator
+!!     @param uproc              highest process ID of the current MPI communicator
+!!     @param orbs               type describing the orbitals
+!!     @param comms              type containing the communications parameters
+!!     @param newComm            the current MPI communicator
+!!   Input / Output arguments:
+!!   -------------------------
+!!     @param psi                the orbitals to be transposed.
+!!     @param work (optional)    work array
+!!     @param outadd (optional)  if present, the transposed wave function will be 
+!!                               assigned to outadd instead of psi
 subroutine transpose_linear_int(iproc, lproc, uproc, orbs, collComms, psi, newComm, work)
      !work,outadd) !optional
-! Purpose:
-! ========
-!   Transposes the wave function(s) contained in psi. Each wave function may have its
-!   own localization region. The transposition is done only among the processes
-!   in the MPI communicator newComm.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc              process ID
-!     lproc              lowest process ID of the current MPI communicator
-!     uproc              highest process ID of the current MPI communicator
-!     orbs               type describing the orbitals
-!     comms              type containing the communications parameters
-!     newComm            the current MPI communicator
-!   Input / Output arguments:
-!   -------------------------
-!     psi                the orbitals to be transposed.
-!     work (optional)    work array
-!     outadd (optional)  if present, the transposed wave function will be 
-!                        assigned to outadd instead of psi
-!
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc, newComm
-type(orbitals_data),intent(in):: orbs
-type(collectiveComms),intent(in):: collComms
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out):: psi
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
-!real(wp),dimension(*),intent(out),optional:: outadd
+integer,intent(in) :: iproc, lproc, uproc, newComm
+type(orbitals_data),intent(in) :: orbs
+type(collectiveComms),intent(in) :: collComms
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out) :: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)) :: work
+!real(wp),dimension(*),intent(out),optional :: outadd
 
 ! Local variables
 integer :: ierr, nproc
@@ -508,41 +491,39 @@ integer :: ierr, nproc
 END SUBROUTINE transpose_linear_int
 
 
+!>  Untransposes the wave function(s) contained in psi. Each wave function may have its
+!!  own localization region. The untransposition is done only among the processes
+!!  in the MPI communicator newComm.
+!!
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!    @param iproc              process ID
+!!    @param lproc              lowest process ID of the current MPI communicator
+!!    @param uproc              highest process ID of the current MPI communicator
+!!    @param orbs               type describing the orbitals
+!!    @param comms              type containing the communications parameters
+!!    @param newComm            the current MPI communicator
+!!   Input / Output arguments:
+!!   -------------------------
+!!     @param psi                the orbitals to be untransposed.
+!!     @param work (optional)    work array
+!!     @param outadd (optional)  if present, the untransposed wave function will be 
+!!                               assigned to outadd instead of psi
 subroutine untranspose_linear_int(iproc, lproc, uproc, orbs, collComms, psi, newComm, work)
 !     work,outadd) !optional
-! Purpose:
-! ========
-!   Untransposes the wave function(s) contained in psi. Each wave function may have its
-!   own localization region. The untransposition is done only among the processes
-!   in the MPI communicator newComm.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc              process ID
-!     lproc              lowest process ID of the current MPI communicator
-!     uproc              highest process ID of the current MPI communicator
-!     orbs               type describing the orbitals
-!     comms              type containing the communications parameters
-!     newComm            the current MPI communicator
-!   Input / Output arguments:
-!   -------------------------
-!     psi                the orbitals to be untransposed.
-!     work (optional)    work array
-!     outadd (optional)  if present, the untransposed wave function will be 
-!                        assigned to outadd instead of psi
-!
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc,lproc, uproc, newComm
-type(orbitals_data),intent(in):: orbs
-type(collectiveComms),intent(in):: collComms
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out):: psi
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
+integer,intent(in) :: iproc,lproc, uproc, newComm
+type(orbitals_data),intent(in) :: orbs
+type(collectiveComms),intent(in) :: collComms
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out) :: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)) :: work
 
 ! Local variables
 integer :: ierr, nproc
@@ -583,73 +564,60 @@ integer :: ierr, nproc
 END SUBROUTINE untranspose_linear_int
 
 
-
-
-
-
-
-
-
-
-
-
+!> This subroutine rearranges the orbitals such that they can be transposed using
+!!  a single call to mpi_alltoallv.
+!!  Here is an example how it works:
+!!
+!!      process 0                process 1            process 2        process 3        process 4
+!!  1   9       1  13   |   17  25      17  29   |   33      33   |   41      41   |   49      49
+!!  2  10       2  14   |   18  26      18  30   |   34      34   |   42      42   |   50      50
+!!  3  11       9   7   |   19  27      25  23   |   35      35   |   43      43   |   51      51
+!!  4  12      10   0   |   20  28      26   0   |   36      36   |   44      44   |   52      52
+!!  5  13  =>   3   8   |   21  29  =>  19  24   |   37  =>  37   |   45  =>  45   |   53  =>  53
+!!  6  14       4   0   |   22  30      20   0   |   38      38   |   46      46   |   54      54
+!!  7  15      11  15   |   23  31      27  31   |   39      39   |   47      47   |   55      55
+!!  8  16      12   0   |   24  32      28   0   |   40       0   |   48       0   |   56       0 
+!!  0   0       5  16   |    0   0      21  32   |    0      40   |    0      48   |    0      56
+!!  0   0       6   0   |    0   0      22   0   |    0       0   |    0       0   |    0       0 
+!!
+!!
+!!  After this step, we can transpose it with one call to mpi_alltoallv:
+!!
+!!      process 0               process 1                process 2                process 3                process 4
+!! 1  9 17 25 33 41 49  |   3 11 19 27 35 43 51  |   5 13 21 29 37 45 53  |   7 15 23 31 39 47 55  |   8 16 24 32 40 48 56
+!! 2 10 18 26 34 42 50  |   4 12 20 28 36 44 52  |   6 14 22 30 38 46 54  |   0  0  0  0  0  0  0  |   0  0  0  0  0  0  0
+!!
+!!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  ----------------
+!!    @param iproc      process ID
+!!    @param lproc      lowest process ID in the current communicator
+!!    @param uproc      highest process ID in the current communicator
+!!    @param orbs       type describing the orbitals
+!!    @param comms      type containing the communications parameters
+!!    @param psi        the orbitals to be rearranged
+!!  Output arguments:
+!!  -----------------
+!!    @param psiw       the rearranged orbitals
 subroutine switch_waves_linear_int(iproc, lproc, uproc, orbs, collComms, psi, psiw)
-!
-! Purpose:
-! ========
-!   This subroutine rearranges the orbitals such that they can be transposed using
-!   a single call to mpi_alltoallv.
-!   Here is an example how it works:
-!
-!       process 0                process 1            process 2        process 3        process 4
-!   1   9       1  13   |   17  25      17  29   |   33      33   |   41      41   |   49      49
-!   2  10       2  14   |   18  26      18  30   |   34      34   |   42      42   |   50      50
-!   3  11       9   7   |   19  27      25  23   |   35      35   |   43      43   |   51      51
-!   4  12      10   0   |   20  28      26   0   |   36      36   |   44      44   |   52      52
-!   5  13  =>   3   8   |   21  29  =>  19  24   |   37  =>  37   |   45  =>  45   |   53  =>  53
-!   6  14       4   0   |   22  30      20   0   |   38      38   |   46      46   |   54      54
-!   7  15      11  15   |   23  31      27  31   |   39      39   |   47      47   |   55      55
-!   8  16      12   0   |   24  32      28   0   |   40       0   |   48       0   |   56       0 
-!   0   0       5  16   |    0   0      21  32   |    0      40   |    0      48   |    0      56
-!   0   0       6   0   |    0   0      22   0   |    0       0   |    0       0   |    0       0 
-!
-!
-!   After this step, we can transpose it with one call to mpi_alltoallv:
-!
-!       process 0               process 1                process 2                process 3                process 4
-!  1  9 17 25 33 41 49  |   3 11 19 27 35 43 51  |   5 13 21 29 37 45 53  |   7 15 23 31 39 47 55  |   8 16 24 32 40 48 56
-!  2 10 18 26 34 42 50  |   4 12 20 28 36 44 52  |   6 14 22 30 38 46 54  |   0  0  0  0  0  0  0  |   0  0  0  0  0  0  0
-!
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     lproc      lowest process ID in the current communicator
-!     uproc      highest process ID in the current communicator
-!     orbs       type describing the orbitals
-!     comms      type containing the communications parameters
-!     psi        the orbitals to be rearranged
-!     Output arguments:
-!   -----------------
-!     psiw       the rearranged orbitals
-!  
+
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc
+integer,intent(in) :: iproc, lproc, uproc
 type(collectiveComms), intent(in) :: collComms
-type(orbitals_data),intent(in):: orbs
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiw
+type(orbitals_data),intent(in) :: orbs
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: psiw
 
 ! Local variables
-integer :: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc
+integer :: iorb, i, j, ij, ijproc, ind, it, ikptsp, nproc
 integer :: isorb, isorbp, ispsi, norbp_kpt, ikpt, kk, iiorb
-integer:: k, ii
+integer :: k, ii
 
   ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
@@ -731,44 +699,39 @@ integer:: k, ii
 END SUBROUTINE switch_waves_linear_int
 
 
-
+!> This subroutine rearranges the orbitals back. As an input it takes the psiw in the form
+!! which is used for the mpi_alltoallv.
+!! The idea is the same as in switch_waves_vLIN, just now the other way around.
+!!
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!     @param iproc      process ID
+!!     @param lproc      lowest process ID in the current communicator
+!!     @param uproc      highest process ID in the current communicator
+!!     @param orbs       type describing the orbitals
+!!     @param comms      type containing the communications parameters
+!!     @param psiw       the orbitals to be rearranged
+!!   Output arguments:
+!!   -----------------
+!!     @param psi        the rearranged orbitals
 subroutine unswitch_waves_linear_int(iproc, lproc, uproc, orbs, collComms, psiw, psi)
-!
-! Purpose:
-! ========
-!   This subroutine rearranges the orbitals back. As an input it takes the psiw in the form
-!   which is used for the mpi_alltoallv.
-!   The idea is the same as in switch_waves_vLIN, just now the other way around.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc      process ID
-!     lproc      lowest process ID in the current communicator
-!     uproc      highest process ID in the current communicator
-!     orbs       type describing the orbitals
-!     comms      type containing the communications parameters
-!     psiw       the orbitals to be rearranged
-!     Output arguments:
-!   -----------------
-!     psi        the rearranged orbitals
-!  
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, lproc, uproc
+integer,intent(in) :: iproc, lproc, uproc
 type(orbitals_data),intent(in) :: orbs
 type(collectiveComms),intent(in) :: collComms
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psiw
-integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psiw
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: psi
 
 ! Local variables
-integer:: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc, jproc
-integer:: isorb, isorbp, ispsi, norbp_kpt, ikpt, ierr
-integer:: k, ii, kk, iiorb
+integer :: iorb, i, j, ij, ijproc, ind, it, ikptsp, nproc
+integer :: isorb, isorbp, ispsi, norbp_kpt, ikpt
+integer :: k, ii, kk, iiorb
 
   ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
@@ -842,25 +805,4 @@ integer:: k, ii, kk, iiorb
      !!ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
 
-  
 END SUBROUTINE unswitch_waves_linear_int
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,3 +1,13 @@
+!> @file 
+!!   Routines to do special convolution of linear toolbox
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
+
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac, with_kinetic, cprecr, &
@@ -9,90 +19,86 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz
-  real(gp),intent(in):: hgrid, potentialPrefac, cprecr
-  logical,intent(in):: with_kinetic
-  real(8),dimension(3):: rxyzConf
+  integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz
+  real(gp),intent(in) :: hgrid, potentialPrefac, cprecr
+  logical,intent(in) :: with_kinetic
+  real(8),dimension(3) :: rxyzConf
   integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer,dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer,dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
-  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
-  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
-  real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
-  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
-  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
-  real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
-  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
-  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
+  real(wp),dimension(0:n1,0:n2,0:n3),intent(in) :: xx_c
+  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f1
+  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f
+  real(wp),dimension(0:n2,0:n1,0:n3),intent(in) :: xy_c
+  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f2
+  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f
+  real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
+  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
+  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
   ! Local variables
-  integer,parameter:: lowfil=-14,lupfil=14
-  integer:: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
-  real(wp):: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(wp):: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
-  real(wp),dimension(-3+lowfil:lupfil+3):: a, aeff0, aeff1, aeff2, aeff3
-  real(wp),dimension(-3+lowfil:lupfil+3):: b, beff0, beff1, beff2, beff3
-  real(wp),dimension(-3+lowfil:lupfil+3):: c, ceff0, ceff1, ceff2, ceff3
-  real(wp),dimension(lowfil:lupfil):: e, eeff0, eeff1, eeff2, eeff3
-  real(wp),dimension(-3+lowfil:lupfil+3):: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3):: beff0_2, beff1_2, beff2_2, beff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  real(wp),dimension(lowfil:lupfil):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  real(wp),dimension(:,:),allocatable:: aeff0array, beff0array, ceff0array, eeff0array
-  real(wp),dimension(:,:),allocatable:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  real(wp),dimension(:,:),allocatable:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp),dimension(:,:,:),allocatable:: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
-  real(wp),dimension(:,:,:,:),allocatable:: xya_f, xyb_f, xyc_f, xye_f
-  real(wp),dimension(:,:,:,:),allocatable:: xza_f, xzb_f, xzc_f, xze_f
-  real(wp),dimension(:,:,:,:),allocatable:: yza_f, yzb_f, yzc_f, yze_f
-  real(8):: x0, y0, z0
-  real(8):: x1, y1, z1
-  real(8):: x2, y2, z2
-  real(8):: x3, y3, z3
-  real(8):: tt00, tt01, tt02, tt03
-  real(8):: tt10, tt11, tt12, tt13
-  real(8):: tt20, tt21, tt22, tt23
-  real(8):: tt30, tt31, tt32, tt33
-  real(8):: tt40, tt41, tt42, tt43
-  real(8):: tt50, tt51, tt52, tt53
-  real(8):: tt60, tt61, tt62, tt63
-  real(8):: tt70, tt71, tt72, tt73
-  real(8):: tt0a0, tt0a1, tt0a2, tt0a3
-  real(8):: tt0b0, tt0b1, tt0b2, tt0b3
-  real(8):: tt0c0, tt0c1, tt0c2, tt0c3
-  real(8):: tt0e0, tt0e1, tt0e2, tt0e3
-  real(8):: tt1a0, tt1a1, tt1a2, tt1a3
-  real(8):: tt1b0, tt1b1, tt1b2, tt1b3
-  real(8):: tt1c0, tt1c1, tt1c2, tt1c3
-  real(8):: tt1e0, tt1e1, tt1e2, tt1e3
-  real(8):: tt2a0, tt2a1, tt2a2, tt2a3
-  real(8):: tt2b0, tt2b1, tt2b2, tt2b3
-  real(8):: tt2c0, tt2c1, tt2c2, tt2c3
-  real(8):: tt2e0, tt2e1, tt2e2, tt2e3
-  real(8):: tt3a0, tt3a1, tt3a2, tt3a3
-  real(8):: tt3b0, tt3b1, tt3b2, tt3b3
-  real(8):: tt3c0, tt3c1, tt3c2, tt3c3
-  real(8):: tt3e0, tt3e1, tt3e2, tt3e3
-  real(8):: tt4a0, tt4a1, tt4a2, tt4a3
-  real(8):: tt4b0, tt4b1, tt4b2, tt4b3
-  real(8):: tt4c0, tt4c1, tt4c2, tt4c3
-  real(8):: tt4e0, tt4e1, tt4e2, tt4e3
-  real(8):: tt5a0, tt5a1, tt5a2, tt5a3
-  real(8):: tt5b0, tt5b1, tt5b2, tt5b3
-  real(8):: tt5c0, tt5c1, tt5c2, tt5c3
-  real(8):: tt5e0, tt5e1, tt5e2, tt5e3
-  real(8):: tt6a0, tt6a1, tt6a2, tt6a3
-  real(8):: tt6b0, tt6b1, tt6b2, tt6b3
-  real(8):: tt6c0, tt6c1, tt6c2, tt6c3
-  real(8):: tt6e0, tt6e1, tt6e2, tt6e3
-  real(8):: tt7a0, tt7a1, tt7a2, tt7a3
-  real(8):: tt7b0, tt7b1, tt7b2, tt7b3
-  real(8):: tt7c0, tt7c1, tt7c2, tt7c3
-  real(8):: tt7e0, tt7e1, tt7e2, tt7e3
-  character(len=*),parameter:: subname='ConvolQuartic4'
+  integer,parameter :: lowfil=-14,lupfil=14
+  integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
+  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
+  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0, aeff1, aeff2, aeff3
+  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0, beff1, beff2, beff3
+  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0, ceff1, ceff2, ceff3
+  real(wp),dimension(lowfil:lupfil) :: eeff0, eeff1, eeff2, eeff3
+  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
+  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
+  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
+  real(wp),dimension(:,:),allocatable :: aeff0array, beff0array, ceff0array, eeff0array
+  real(wp),dimension(:,:),allocatable :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+  real(wp),dimension(:,:),allocatable :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+  real(wp),dimension(:,:,:),allocatable :: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
+  real(wp),dimension(:,:,:,:),allocatable :: xya_f, xyb_f, xyc_f, xye_f
+  real(wp),dimension(:,:,:,:),allocatable :: xza_f, xzb_f, xzc_f, xze_f
+  real(wp),dimension(:,:,:,:),allocatable :: yza_f, yzb_f, yzc_f, yze_f
+  real(kind=8) :: x0, y0, z0
+  real(kind=8) :: tt10, tt11, tt12, tt13
+  real(kind=8) :: tt20, tt21, tt22, tt23
+  real(kind=8) :: tt30, tt31, tt32, tt33
+  real(kind=8) :: tt40, tt41, tt42, tt43
+  real(kind=8) :: tt50, tt51, tt52, tt53
+  real(kind=8) :: tt60, tt61, tt62, tt63
+  real(kind=8) :: tt70
+  real(kind=8) :: tt0a0, tt0a1, tt0a2, tt0a3
+  real(kind=8) :: tt0b0, tt0b1, tt0b2, tt0b3
+  real(kind=8) :: tt0c0, tt0c1, tt0c2, tt0c3
+  real(kind=8) :: tt0e0, tt0e1, tt0e2, tt0e3
+  real(kind=8) :: tt1a0                     
+  real(kind=8) :: tt1b0                     
+  real(kind=8) :: tt1c0                     
+  real(kind=8) :: tt1e0                     
+  real(kind=8) :: tt2a0                     
+  real(kind=8) :: tt2b0                     
+  real(kind=8) :: tt2c0                     
+  real(kind=8) :: tt2e0                     
+  real(kind=8) :: tt3a0                     
+  real(kind=8) :: tt3b0                     
+  real(kind=8) :: tt3c0                     
+  real(kind=8) :: tt3e0                     
+  real(kind=8) :: tt4a0                     
+  real(kind=8) :: tt4b0                     
+  real(kind=8) :: tt4c0                     
+  real(kind=8) :: tt4e0                     
+  real(kind=8) :: tt5a0                     
+  real(kind=8) :: tt5b0                     
+  real(kind=8) :: tt5c0                     
+  real(kind=8) :: tt5e0                     
+  real(kind=8) :: tt6a0                     
+  real(kind=8) :: tt6b0                     
+  real(kind=8) :: tt6c0                     
+  real(kind=8) :: tt6e0                     
+  real(kind=8) :: tt7a0                     
+  real(kind=8) :: tt7b0                     
+  real(kind=8) :: tt7c0                     
+  real(kind=8) :: tt7e0                     
+  character(len=*),parameter :: subname='ConvolQuartic4'
 
 
 call timing(iproc,'convolQuartic ','ON')
@@ -1447,20 +1453,20 @@ subroutine ConvolSextic(n1, n2, n3, &
   ! Calling arguments
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
   real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
-  logical,intent(in):: withKinetic
-  real(8),dimension(3):: rxyzConf
+  logical,intent(in) :: withKinetic
+  real(8),dimension(3) :: rxyzConf
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
-  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
-  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
-  real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
-  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
-  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
-  real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
-  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
-  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
+  real(wp),dimension(0:n1,0:n2,0:n3),intent(in) :: xx_c
+  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f1
+  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f
+  real(wp),dimension(0:n2,0:n1,0:n3),intent(in) :: xy_c
+  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f2
+  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f
+  real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
+  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
+  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
@@ -1471,8 +1477,8 @@ subroutine ConvolSextic(n1, n2, n3, &
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(wp):: tt112, tt121, tt122, tt212, tt221, tt222, tt211
-  real(wp):: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
+  real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211
+  real(wp) :: tt0
   real(wp), dimension(-3+lowfil:lupfil+3) :: a, aeff0, aeff1, aeff2, aeff3
   real(wp), dimension(-3+lowfil:lupfil+3) :: b, beff0, beff1, beff2, beff3
   real(wp), dimension(-3+lowfil:lupfil+3) :: c, ceff0, ceff1, ceff2, ceff3
@@ -1480,139 +1486,137 @@ subroutine ConvolSextic(n1, n2, n3, &
   real(wp), dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
   real(wp), dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
   real(wp), dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  real(wp),dimension(:,:),allocatable:: aeff0array, beff0array, ceff0array, eeff0array
-  real(wp),dimension(:,:),allocatable:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  real(wp),dimension(:,:),allocatable:: aeff0_4array, beff0_4array, ceff0_4array, eeff0_4array
-  real(wp),dimension(:,:),allocatable:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp),dimension(:,:),allocatable:: aeff0_4auxarray, beff0_4auxarray, ceff0_4auxarray, eeff0_4auxarray
+  real(wp),dimension(:,:),allocatable :: aeff0array, beff0array, ceff0array, eeff0array
+  real(wp),dimension(:,:),allocatable :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+  real(wp),dimension(:,:),allocatable :: aeff0_4array, beff0_4array, ceff0_4array, eeff0_4array
+  real(wp),dimension(:,:),allocatable :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+  real(wp),dimension(:,:),allocatable :: aeff0_4auxarray, beff0_4auxarray, ceff0_4auxarray, eeff0_4auxarray
   real(wp), dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  real(wp),dimension(:,:,:),allocatable:: x2ya_c, x2yb_c, x2yc_c, x2ye_c, x2za_c, x2zb_c, x2zc_c, x2ze_c, &
+  real(wp),dimension(:,:,:),allocatable :: x2ya_c, x2yb_c, x2yc_c, x2ye_c, x2za_c, x2zb_c, x2zc_c, x2ze_c, &
                                           y2za_c, y2zb_c, y2zc_c, y2ze_c
-  real(wp),dimension(:,:,:),allocatable:: x4ya_c, x4yb_c, x4yc_c, x4ye_c, x4za_c, x4zb_c, x4zc_c, x4ze_c, &
+  real(wp),dimension(:,:,:),allocatable :: x4ya_c, x4yb_c, x4yc_c, x4ye_c, x4za_c, x4zb_c, x4zc_c, x4ze_c, &
                                           y4za_c, y4zb_c, y4zc_c, y4ze_c
-  real(wp),dimension(:,:,:,:),allocatable:: x2ya_f, x2yb_f, x2yc_f, x2ye_f, x2za_f, x2zb_f, x2zc_f, x2ze_f, &
+  real(wp),dimension(:,:,:,:),allocatable :: x2ya_f, x2yb_f, x2yc_f, x2ye_f, x2za_f, x2zb_f, x2zc_f, x2ze_f, &
                                             y2za_f, y2zb_f, y2zc_f, y2ze_f
-  real(wp),dimension(:,:,:,:),allocatable:: x4ya_f, x4yb_f, x4yc_f, x4ye_f, x4za_f, x4zb_f, x4zc_f, x4ze_f, &
+  real(wp),dimension(:,:,:,:),allocatable :: x4ya_f, x4yb_f, x4yc_f, x4ye_f, x4za_f, x4zb_f, x4zc_f, x4ze_f, &
                                             y4za_f, y4zb_f, y4zc_f, y4ze_f
-  real(wp),dimension(:,:,:,:),allocatable:: x2ya_f2, x2yb_f2, x2yc_f2, x2ye_f2
-  real(wp),dimension(:,:,:),allocatable:: x2y2aa_c, x2y2ab_c, x2y2ac_c, x2y2ae_c
-  real(wp),dimension(:,:,:),allocatable:: x2y2ba_c, x2y2bb_c, x2y2bc_c, x2y2be_c
-  real(wp),dimension(:,:,:),allocatable:: x2y2ca_c, x2y2cb_c, x2y2cc_c, x2y2ce_c
-  real(wp),dimension(:,:,:),allocatable:: x2y2ea_c, x2y2eb_c, x2y2ec_c, x2y2ee_c
-  real(wp),dimension(:,:,:,:),allocatable:: x2y2aa_f, x2y2ab_f, x2y2ac_f, x2y2ae_f
-  real(wp),dimension(:,:,:,:),allocatable:: x2y2ba_f, x2y2bb_f, x2y2bc_f, x2y2be_f
-  real(wp),dimension(:,:,:,:),allocatable:: x2y2ca_f, x2y2cb_f, x2y2cc_f, x2y2ce_f
-  real(wp),dimension(:,:,:,:),allocatable:: x2y2ea_f, x2y2eb_f, x2y2ec_f, x2y2ee_f
+  real(wp),dimension(:,:,:,:),allocatable :: x2ya_f2, x2yb_f2, x2yc_f2, x2ye_f2
+  real(wp),dimension(:,:,:),allocatable :: x2y2aa_c, x2y2ab_c, x2y2ac_c, x2y2ae_c
+  real(wp),dimension(:,:,:),allocatable :: x2y2ba_c, x2y2bb_c, x2y2bc_c, x2y2be_c
+  real(wp),dimension(:,:,:),allocatable :: x2y2ca_c, x2y2cb_c, x2y2cc_c, x2y2ce_c
+  real(wp),dimension(:,:,:),allocatable :: x2y2ea_c, x2y2eb_c, x2y2ec_c, x2y2ee_c
+  real(wp),dimension(:,:,:,:),allocatable :: x2y2aa_f, x2y2ab_f, x2y2ac_f, x2y2ae_f
+  real(wp),dimension(:,:,:,:),allocatable :: x2y2ba_f, x2y2bb_f, x2y2bc_f, x2y2be_f
+  real(wp),dimension(:,:,:,:),allocatable :: x2y2ca_f, x2y2cb_f, x2y2cc_f, x2y2ce_f
+  real(wp),dimension(:,:,:,:),allocatable :: x2y2ea_f, x2y2eb_f, x2y2ec_f, x2y2ee_f
 
-  !!real(wp),dimension(:,:,:),allocatable:: xy_c, xz_c
-  !!real(wp),dimension(:,:,:),allocatable:: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
-  !!real(wp),dimension(:,:,:),allocatable:: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
-real(8):: x0, y0, z0
-integer:: ii, istat, iall
-character(len=*),parameter:: subname='ConvolSextic'
-real(8):: tt00, tt01, tt02, tt03
-real(8):: tt10, tt11, tt12, tt13
-real(8):: tt20, tt21, tt22, tt23
-real(8):: tt30, tt31, tt32, tt33
-real(8):: tt40, tt41, tt42, tt43
-real(8):: tt50, tt51, tt52, tt53
-real(8):: tt60, tt61, tt62, tt63
-real(8):: tt70, tt71, tt72, tt73
-real(8):: tt0a0_2, tt0a1_2, tt0a2_2, tt0a3_2, tt0a0_4, tt0a1_4, tt0a2_4, tt0a3_4
-real(8):: tt0b0_2, tt0b1_2, tt0b2_2, tt0b3_2, tt0b0_4, tt0b1_4, tt0b2_4, tt0b3_4
-real(8):: tt0c0_2, tt0c1_2, tt0c2_2, tt0c3_2, tt0c0_4, tt0c1_4, tt0c2_4, tt0c3_4
-real(8):: tt0e0_2, tt0e1_2, tt0e2_2, tt0e3_2, tt0e0_4, tt0e1_4, tt0e2_4, tt0e3_4
-real(8):: tt1a0_2, tt1a1_2, tt1a2_2, tt1a3_2, tt1a0_4, tt1a1_4, tt1a2_4, tt1a3_4
-real(8):: tt1b0_2, tt1b1_2, tt1b2_2, tt1b3_2, tt1b0_4, tt1b1_4, tt1b2_4, tt1b3_4
-real(8):: tt1c0_2, tt1c1_2, tt1c2_2, tt1c3_2, tt1c0_4, tt1c1_4, tt1c2_4, tt1c3_4
-real(8):: tt1e0_2, tt1e1_2, tt1e2_2, tt1e3_2, tt1e0_4, tt1e1_4, tt1e2_4, tt1e3_4
-real(8):: tt2a0_2, tt2a1_2, tt2a2_2, tt2a3_2, tt2a0_4, tt2a1_4, tt2a2_4, tt2a3_4
-real(8):: tt2b0_2, tt2b1_2, tt2b2_2, tt2b3_2, tt2b0_4, tt2b1_4, tt2b2_4, tt2b3_4
-real(8):: tt2c0_2, tt2c1_2, tt2c2_2, tt2c3_2, tt2c0_4, tt2c1_4, tt2c2_4, tt2c3_4
-real(8):: tt2e0_2, tt2e1_2, tt2e2_2, tt2e3_2, tt2e0_4, tt2e1_4, tt2e2_4, tt2e3_4
-real(8):: tt3a0_2, tt3a1_2, tt3a2_2, tt3a3_2, tt3a0_4, tt3a1_4, tt3a2_4, tt3a3_4
-real(8):: tt3b0_2, tt3b1_2, tt3b2_2, tt3b3_2, tt3b0_4, tt3b1_4, tt3b2_4, tt3b3_4
-real(8):: tt3c0_2, tt3c1_2, tt3c2_2, tt3c3_2, tt3c0_4, tt3c1_4, tt3c2_4, tt3c3_4
-real(8):: tt3e0_2, tt3e1_2, tt3e2_2, tt3e3_2, tt3e0_4, tt3e1_4, tt3e2_4, tt3e3_4
-real(8):: tt4a0_2, tt4a1_2, tt4a2_2, tt4a3_2, tt4a0_4, tt4a1_4, tt4a2_4, tt4a3_4
-real(8):: tt4b0_2, tt4b1_2, tt4b2_2, tt4b3_2, tt4b0_4, tt4b1_4, tt4b2_4, tt4b3_4
-real(8):: tt4c0_2, tt4c1_2, tt4c2_2, tt4c3_2, tt4c0_4, tt4c1_4, tt4c2_4, tt4c3_4
-real(8):: tt4e0_2, tt4e1_2, tt4e2_2, tt4e3_2, tt4e0_4, tt4e1_4, tt4e2_4, tt4e3_4
-real(8):: tt5a0_2, tt5a1_2, tt5a2_2, tt5a3_2, tt5a0_4, tt5a1_4, tt5a2_4, tt5a3_4
-real(8):: tt5b0_2, tt5b1_2, tt5b2_2, tt5b3_2, tt5b0_4, tt5b1_4, tt5b2_4, tt5b3_4
-real(8):: tt5c0_2, tt5c1_2, tt5c2_2, tt5c3_2, tt5c0_4, tt5c1_4, tt5c2_4, tt5c3_4
-real(8):: tt5e0_2, tt5e1_2, tt5e2_2, tt5e3_2, tt5e0_4, tt5e1_4, tt5e2_4, tt5e3_4
-real(8):: tt6a0_2, tt6a1_2, tt6a2_2, tt6a3_2, tt6a0_4, tt6a1_4, tt6a2_4, tt6a3_4
-real(8):: tt6b0_2, tt6b1_2, tt6b2_2, tt6b3_2, tt6b0_4, tt6b1_4, tt6b2_4, tt6b3_4
-real(8):: tt6c0_2, tt6c1_2, tt6c2_2, tt6c3_2, tt6c0_4, tt6c1_4, tt6c2_4, tt6c3_4
-real(8):: tt6e0_2, tt6e1_2, tt6e2_2, tt6e3_2, tt6e0_4, tt6e1_4, tt6e2_4, tt6e3_4
-real(8):: tt7a0_2, tt7a1_2, tt7a2_2, tt7a3_2, tt7a0_4, tt7a1_4, tt7a2_4, tt7a3_4
-real(8):: tt7b0_2, tt7b1_2, tt7b2_2, tt7b3_2, tt7b0_4
-real(8):: tt7c0_2, tt7c1_2, tt7c2_2, tt7c3_2, tt7c0_4
-real(8):: tt7e0_2,                            tt7e0_4
-real(8):: ttaa0, ttab0, ttac0, ttae0
-real(8):: ttaa1, ttab1, ttac1, ttae1
-real(8):: ttaa2, ttab2, ttac2, ttae2
-real(8):: ttaa3, ttab3, ttac3, ttae3
-real(8):: ttaa4, ttab4, ttac4, ttae4
-real(8):: ttaa5, ttab5, ttac5, ttae5
-real(8):: ttaa6, ttab6, ttac6, ttae6
-real(8):: ttaa7, ttab7, ttac7, ttae7
-real(8):: ttba0, ttbb0, ttbc0, ttbe0
-real(8):: ttba1, ttbb1, ttbc1, ttbe1
-real(8):: ttba2, ttbb2, ttbc2, ttbe2
-real(8):: ttba3, ttbb3, ttbc3, ttbe3
-real(8):: ttba4, ttbb4, ttbc4, ttbe4
-real(8):: ttba5, ttbb5, ttbc5, ttbe5
-real(8):: ttba6, ttbb6, ttbc6, ttbe6
-real(8):: ttba7, ttbb7, ttbc7, ttbe7
-real(8):: ttca0, ttcb0, ttcc0, ttce0
-real(8):: ttca1, ttcb1, ttcc1, ttce1
-real(8):: ttca2, ttcb2, ttcc2, ttce2
-real(8):: ttca3, ttcb3, ttcc3, ttce3
-real(8):: ttca4, ttcb4, ttcc4, ttce4
-real(8):: ttca5, ttcb5, ttcc5, ttce5
-real(8):: ttca6, ttcb6, ttcc6, ttce6
-real(8):: ttca7, ttcb7, ttcc7, ttce7
-real(8):: ttea0, tteb0, ttec0, ttee0
-real(8):: ttea1, tteb1, ttec1, ttee1
-real(8):: ttea2, tteb2, ttec2, ttee2
-real(8):: ttea3, tteb3, ttec3, ttee3
-real(8):: ttea4, tteb4, ttec4, ttee4
-real(8):: ttea5, tteb5, ttec5, ttee5
-real(8):: ttea6, tteb6, ttec6, ttee6
-real(8):: ttea7, tteb7, ttec7, ttee7
-real(8):: tt1a0
-real(8):: tt1b0
-real(8):: tt1c0
-real(8):: tt1e0
-real(8):: tt2a0
-real(8):: tt2b0
-real(8):: tt2c0
-real(8):: tt2e0
-real(8):: tt3a0
-real(8):: tt3b0
-real(8):: tt3c0
-real(8):: tt3e0
-real(8):: tt4a0
-real(8):: tt4b0
-real(8):: tt4c0
-real(8):: tt4e0
-real(8):: tt5a0
-real(8):: tt5b0
-real(8):: tt5c0
-real(8):: tt5e0
-real(8):: tt6a0
-real(8):: tt6b0
-real(8):: tt6c0
-real(8):: tt6e0
-real(8):: tt7a0
-real(8):: tt7b0
-real(8):: tt7c0
-real(8):: tt7e0
+  !!real(wp),dimension(:,:,:),allocatable :: xy_c, xz_c
+  !!real(wp),dimension(:,:,:),allocatable :: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
+  !!real(wp),dimension(:,:,:),allocatable :: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
+  real(kind=8) :: x0, y0, z0
+  integer :: istat, iall
+  character(len=*),parameter :: subname='ConvolSextic'
+  real(kind=8) :: tt10, tt11, tt12, tt13
+  real(kind=8) :: tt20, tt21, tt22, tt23
+  real(kind=8) :: tt30, tt31, tt32, tt33
+  real(kind=8) :: tt40, tt41, tt42, tt43
+  real(kind=8) :: tt50, tt51, tt52, tt53
+  real(kind=8) :: tt60, tt61, tt62, tt63
+  real(kind=8) :: tt70, tt71, tt72, tt73
+  real(kind=8) :: tt0a0_2, tt0a1_2, tt0a2_2, tt0a3_2, tt0a0_4, tt0a1_4, tt0a2_4, tt0a3_4
+  real(kind=8) :: tt0b0_2, tt0b1_2, tt0b2_2, tt0b3_2, tt0b0_4, tt0b1_4, tt0b2_4, tt0b3_4
+  real(kind=8) :: tt0c0_2, tt0c1_2, tt0c2_2, tt0c3_2, tt0c0_4, tt0c1_4, tt0c2_4, tt0c3_4
+  real(kind=8) :: tt0e0_2, tt0e1_2, tt0e2_2, tt0e3_2, tt0e0_4, tt0e1_4, tt0e2_4, tt0e3_4
+  real(kind=8) :: tt1a0_2,                            tt1a0_4                           
+  real(kind=8) :: tt1b0_2,                            tt1b0_4                           
+  real(kind=8) :: tt1c0_2,                            tt1c0_4                           
+  real(kind=8) :: tt1e0_2,                            tt1e0_4                           
+  real(kind=8) :: tt2a0_2,                            tt2a0_4                           
+  real(kind=8) :: tt2b0_2,                            tt2b0_4                           
+  real(kind=8) :: tt2c0_2,                            tt2c0_4                           
+  real(kind=8) :: tt2e0_2,                            tt2e0_4                           
+  real(kind=8) :: tt3a0_2,                            tt3a0_4                           
+  real(kind=8) :: tt3b0_2,                            tt3b0_4                           
+  real(kind=8) :: tt3c0_2,                            tt3c0_4                           
+  real(kind=8) :: tt3e0_2,                            tt3e0_4                           
+  real(kind=8) :: tt4a0_2,                            tt4a0_4                           
+  real(kind=8) :: tt4b0_2,                            tt4b0_4                           
+  real(kind=8) :: tt4c0_2,                            tt4c0_4                           
+  real(kind=8) :: tt4e0_2,                            tt4e0_4                           
+  real(kind=8) :: tt5a0_2,                            tt5a0_4                           
+  real(kind=8) :: tt5b0_2,                            tt5b0_4                           
+  real(kind=8) :: tt5c0_2,                            tt5c0_4                           
+  real(kind=8) :: tt5e0_2,                            tt5e0_4                           
+  real(kind=8) :: tt6a0_2,                            tt6a0_4                           
+  real(kind=8) :: tt6b0_2,                            tt6b0_4                           
+  real(kind=8) :: tt6c0_2,                            tt6c0_4                           
+  real(kind=8) :: tt6e0_2,                            tt6e0_4                           
+  real(kind=8) :: tt7a0_2,                            tt7a0_4                           
+  real(kind=8) :: tt7b0_2,                            tt7b0_4
+  real(kind=8) :: tt7c0_2,                            tt7c0_4
+  real(kind=8) :: tt7e0_2,                            tt7e0_4
+  real(kind=8) :: ttaa0, ttab0, ttac0, ttae0
+  real(kind=8) :: ttaa1, ttab1, ttac1, ttae1
+  real(kind=8) :: ttaa2, ttab2, ttac2, ttae2
+  real(kind=8) :: ttaa3, ttab3, ttac3, ttae3
+  real(kind=8) :: ttaa4, ttab4, ttac4, ttae4
+  real(kind=8) :: ttaa5, ttab5, ttac5, ttae5
+  real(kind=8) :: ttaa6, ttab6, ttac6, ttae6
+  real(kind=8) :: ttaa7, ttab7, ttac7, ttae7
+  real(kind=8) :: ttba0, ttbb0, ttbc0, ttbe0
+  real(kind=8) :: ttba1, ttbb1, ttbc1, ttbe1
+  real(kind=8) :: ttba2, ttbb2, ttbc2, ttbe2
+  real(kind=8) :: ttba3, ttbb3, ttbc3, ttbe3
+  real(kind=8) :: ttba4, ttbb4, ttbc4, ttbe4
+  real(kind=8) :: ttba5, ttbb5, ttbc5, ttbe5
+  real(kind=8) :: ttba6, ttbb6, ttbc6, ttbe6
+  real(kind=8) :: ttba7, ttbb7, ttbc7, ttbe7
+  real(kind=8) :: ttca0, ttcb0, ttcc0, ttce0
+  real(kind=8) :: ttca1, ttcb1, ttcc1, ttce1
+  real(kind=8) :: ttca2, ttcb2, ttcc2, ttce2
+  real(kind=8) :: ttca3, ttcb3, ttcc3, ttce3
+  real(kind=8) :: ttca4, ttcb4, ttcc4, ttce4
+  real(kind=8) :: ttca5, ttcb5, ttcc5, ttce5
+  real(kind=8) :: ttca6, ttcb6, ttcc6, ttce6
+  real(kind=8) :: ttca7, ttcb7, ttcc7, ttce7
+  real(kind=8) :: ttea0, tteb0, ttec0, ttee0
+  real(kind=8) :: ttea1, tteb1, ttec1, ttee1
+  real(kind=8) :: ttea2, tteb2, ttec2, ttee2
+  real(kind=8) :: ttea3, tteb3, ttec3, ttee3
+  real(kind=8) :: ttea4, tteb4, ttec4, ttee4
+  real(kind=8) :: ttea5, tteb5, ttec5, ttee5
+  real(kind=8) :: ttea6, tteb6, ttec6, ttee6
+  real(kind=8) :: ttea7, tteb7, ttec7, ttee7
+  real(kind=8) :: tt1a0
+  real(kind=8) :: tt1b0
+  real(kind=8) :: tt1c0
+  real(kind=8) :: tt1e0
+  real(kind=8) :: tt2a0
+  real(kind=8) :: tt2b0
+  real(kind=8) :: tt2c0
+  real(kind=8) :: tt2e0
+  real(kind=8) :: tt3a0
+  real(kind=8) :: tt3b0
+  real(kind=8) :: tt3c0
+  real(kind=8) :: tt3e0
+  real(kind=8) :: tt4a0
+  real(kind=8) :: tt4b0
+  real(kind=8) :: tt4c0
+  real(kind=8) :: tt4e0
+  real(kind=8) :: tt5a0
+  real(kind=8) :: tt5b0
+  real(kind=8) :: tt5c0
+  real(kind=8) :: tt5e0
+  real(kind=8) :: tt6a0
+  real(kind=8) :: tt6b0
+  real(kind=8) :: tt6c0
+  real(kind=8) :: tt6e0
+  real(kind=8) :: tt7a0
+  real(kind=8) :: tt7b0
+  real(kind=8) :: tt7c0
+  real(kind=8) :: tt7e0
 
-integer:: it=1!debug
-real(8):: t1, t2, time, t3, t4, time2
+  integer :: it=1!debug
 
 
   scale=-.5_wp/real(hgrid**2,wp)

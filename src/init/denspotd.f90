@@ -557,7 +557,6 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
-  integer :: ierr
 
   if (.not.xc_isgga()) then
      rhodsc%icomm=1

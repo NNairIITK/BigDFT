@@ -1139,6 +1139,7 @@ contains
 END SUBROUTINE cluster
 
 
+!> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -1502,4 +1503,4 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
   ! Clean denspot parts only needed in the SCF loop.
   call denspot_free_history(denspot)
-end subroutine kswfn_optimization_loop
+END SUBROUTINE kswfn_optimization_loop
