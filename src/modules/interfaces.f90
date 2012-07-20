@@ -572,7 +572,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
          use module_defs
          use module_types
          implicit none
@@ -593,6 +593,7 @@ module module_interfaces
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         logical, intent(in) :: linear_start
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2262,17 +2263,13 @@ module module_interfaces
     !!!  type(linearParameters),intent(in out):: lin
     !!!end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
-         rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-         energs,scpot,psi,energy)
+    subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmbder,at,input,&
+           rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
+           energs,scpot,energy)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
-      real(gp), intent(in) :: hx, hy, hz
-      type(locreg_descriptors),intent(in) :: Glr
-      type(orbitals_data),intent(inout):: orbs
-      type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(inout):: at
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -2284,12 +2281,11 @@ module module_interfaces
       type(GPU_pointers),intent(in out):: GPU
       type(energy_terms),intent(inout) :: energs
       logical,intent(in):: scpot
-      !real(8),dimension(orbs),intent(out):: psi
-      real(8),dimension(:),pointer,intent(out):: psi
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
       type(DFT_wavefunction),intent(inout),target:: tmb
       type(DFT_wavefunction),intent(inout),target:: tmbder
+      type(DFT_wavefunction),intent(inout),target:: KSwfn
     end subroutine linearScaling   
 
    subroutine createDerivativeBasis(n1,n2,n3, &
@@ -4650,9 +4646,9 @@ module module_interfaces
        type(communications_arrays):: comms
        type(input_variables),intent(in):: input
        real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
-       real(8),dimension(lorbs%npsidim_orbs),intent(inout):: lphi
+       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
-       real(8),dimension(:),pointer,intent(out):: psit
+       real(8),dimension(:),pointer,intent(inout):: psit
      end subroutine transformToGlobal
 
 

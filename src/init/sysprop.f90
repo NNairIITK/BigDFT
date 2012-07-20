@@ -32,7 +32,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB,ierr
+  integer :: nelec,nB,nKB,nMB,ierr,iall
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
@@ -96,8 +96,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputpsiId == INPUT_PSI_LINEAR_LCAO) then
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
+     !call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
+     !call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
 
      if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs, dlorbs)
   end if
@@ -136,8 +136,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)
         !what to do with derivatives?
      end if
-     call update_wavefunctions_size(lzd_lin,lorbs)
-     call update_wavefunctions_size(lzd_lin,dlorbs) !crashes here with reading from file
+     call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
+     call update_wavefunctions_size(lzd_lin,dlorbs,iproc,nproc) !crashes here with reading from file
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
