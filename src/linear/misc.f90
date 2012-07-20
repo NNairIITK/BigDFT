@@ -1,27 +1,35 @@
+!> @file 
+!!   Miscellaneous routines for linear toolbox
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
+
+!> Plots the orbitals
 subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, hxh, hyh, hzh, it)
-!
-! Plots the orbitals
-!
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer:: iproc
+integer :: iproc
 type(orbitals_data), intent(inout) :: orbs
 type(locreg_descriptors), intent(in) :: Glr
-real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
-integer:: nat
-real(8),dimension(3,nat):: rxyz
-real(8):: hxh, hyh, hzh
-integer:: it
+real(kind=8), dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) :: phi
+integer :: nat
+real(kind=8), dimension(3,nat) :: rxyz
+real(kind=8) :: hxh, hyh, hzh
+integer :: it
 
-integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
-integer:: unit1, unit2, unit3
-real(8),dimension(:),allocatable:: phir
+integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
+integer :: unit1, unit2, unit3
+real(kind=8), dimension(:), allocatable :: phir
 type(workarr_sumrho) :: w
-character(len=10):: c1, c2, c3
-character(len=50):: file1, file2, file3
+character(len=10) :: c1, c2, c3
+character(len=50) :: file1, file2, file3
 
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 
@@ -99,13 +107,13 @@ subroutine compressMatrix(norb, mad, mat, lmat)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: norb
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(norb**2),intent(in):: mat
-  real(8),dimension(mad%nvctr),intent(out):: lmat
+  integer, intent(in) :: norb
+  type(matrixDescriptors), intent(in) :: mad
+  real(kind=8), dimension(norb**2), intent(in) :: mat
+  real(kind=8), dimension(mad%nvctr), intent(out) :: lmat
   
   ! Local variables
-  integer:: iseg, jj, jorb, iiorb, jjorb
+  integer :: iseg, jj, jorb
   
   
   jj=0
@@ -130,15 +138,15 @@ subroutine compressMatrix2(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displ
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb**2),intent(in):: mat
-  real(8),dimension(mad%nvctr),intent(out):: lmat
-  integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+  integer, intent(in) :: iproc, nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(matrixDescriptors), intent(in) :: mad
+  real(kind=8), dimension(orbs%norb**2), intent(in) :: mat
+  real(kind=8), dimension(mad%nvctr), intent(out) :: lmat
+  integer, dimension(0:nproc-1), intent(out) :: sendcounts, displs
   
   ! Local variables
-  integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
+  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
   
   sendcounts=0
   displs=0
@@ -192,14 +200,14 @@ subroutine compressMatrixPerProcess(iproc, nproc, orbs, mad, mat, size_lmat, lma
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, size_lmat
-  type(orbitals_data),intent(in):: orbs
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb**2),intent(in):: mat
-  real(8),dimension(size_lmat),intent(out):: lmat
+  integer, intent(in) :: iproc, nproc, size_lmat
+  type(orbitals_data), intent(in) :: orbs
+  type(matrixDescriptors), intent(in) :: mad
+  real(kind=8), dimension(orbs%norb**2), intent(in) :: mat
+  real(kind=8), dimension(size_lmat), intent(out) :: lmat
   
   ! Local variables
-  integer:: iseg, jj, jorb, jjorb, jjproc
+  integer :: iseg, jj, jorb, jjorb, jjproc
   
   
   jj=0
@@ -225,13 +233,13 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: norb
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(mad%nvctr),intent(in):: lmat
-  real(8),dimension(norb**2),intent(out):: mat
+  integer, intent(in) :: norb
+  type(matrixDescriptors), intent(in) :: mad
+  real(kind=8), dimension(mad%nvctr), intent(in) :: lmat
+  real(kind=8), dimension(norb**2), intent(out) :: mat
   
   ! Local variables
-  integer:: iseg, jj, jorb, iiorb, jjorb
+  integer :: iseg, jj, jorb
   
   mat=0.d0
   
@@ -250,9 +258,6 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
 end subroutine uncompressMatrix
 
 
-
-
-
 subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, nseglinemax, keygline, nsegmatmul, keygmatmul, a, b, c)
 !! ATTENTION: A MUST BE SYMMETRIC
 use module_base
@@ -260,21 +265,19 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb, nseglinemax, nsegmatmul
-integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
-integer,dimension(norb):: nsegline
-!integer,dimension(2,maxval(nsegline),norb):: keygline
-integer,dimension(2,nseglinemax,norb):: keygline
-real(8),dimension(norb,norb),intent(in):: a, b
-real(8),dimension(norb,norb),intent(out):: c
+integer, intent(in) :: iproc, nproc, norb, nseglinemax, nsegmatmul
+integer, dimension(2,nsegmatmul), intent(in) :: keygmatmul
+integer, dimension(norb) :: nsegline
+!integer, dimension(2,maxval(nsegline),norb) :: keygline
+integer, dimension(2,nseglinemax,norb) :: keygline
+real(kind=8), dimension(norb,norb), intent(in) :: a, b
+real(kind=8), dimension(norb,norb), intent(out) :: c
 
 ! Local variables
-integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii
-integer:: ierr, istart, iend, iiseg, jjseg, ncount
-real(8):: tt, ddot
-logical:: iistop, jjstop
-
-
+integer :: iseg, i, irow, icolumn,  ii
+integer :: istart, iend, iiseg, jjseg, ncount
+real(kind=8) :: tt, ddot
+logical :: iistop, jjstop
 
 
 c=0.d0
@@ -320,8 +323,6 @@ end do
 !!    end do
 !!end do
 
-
-
 end subroutine dgemm_compressed2
 
 
@@ -334,22 +335,22 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
-integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
-integer,dimension(norb):: nsegline
-integer,dimension(2,nseglinemax,norb):: keygline
-integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
-real(8),dimension(norb,norb),intent(in):: a, b
-real(8),dimension(norb,norb),intent(out):: c
+integer, intent(in) :: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
+integer, dimension(2,nsegmatmul), intent(in) :: keygmatmul
+integer, dimension(norb) :: nsegline
+integer, dimension(2,nseglinemax,norb) :: keygline
+integer, dimension(0:nproc-1), intent(in) :: norb_par, isorb_par
+real(kind=8), dimension(norb,norb), intent(in) :: a, b
+real(kind=8), dimension(norb,norb), intent(out) :: c
 
 ! Local variables
-integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii
-integer:: ierr, istart, iend, iiseg, jjseg, ncount, jproc, istat, iall, iirow, iicolumn
-real(8):: tt, ddot
-logical:: iistop, jjstop
-integer,dimension(:),allocatable:: sendcounts, displs
-real(8),dimension(:,:),allocatable:: c_loc
-character(len=*),parameter:: subname='dgemm_compressed_parallel'
+integer :: iseg, i, irow, icolumn, ii
+integer :: ierr, istart, iend, iiseg, jjseg, ncount, jproc, istat, iall, iicolumn
+real(kind=8) :: tt, ddot
+logical :: iistop, jjstop
+integer, dimension(:), allocatable :: sendcounts, displs
+real(kind=8), dimension(:,:), allocatable :: c_loc
+character(len=*),parameter :: subname='dgemm_compressed_parallel'
 
 
 allocate(c_loc(norb,norbp), stat=istat)
@@ -455,17 +456,17 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb, nspinor, nspin, orbitalNumber
-  type(locreg_descriptors),intent(in):: llr, glr
-  type(atoms_data),intent(in)::atoms
-  real(8),dimension(3,atoms%nat),intent(in):: rxyz
-  real(8),intent(in):: hx, hy, hz
+  integer, intent(in) :: iproc, nproc, norb, nspinor, nspin, orbitalNumber
+  type(locreg_descriptors), intent(in) :: llr, glr
+  type(atoms_data), intent(in) ::atoms
+  real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(kind=8), intent(in) :: hx, hy, hz
   
   ! Local variables
-  integer:: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, istat
-  character(len=10):: num
-  character(len=20):: filename
-  real(8),dimension(:),allocatable:: lphi, phi
+  integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, istat
+  character(len=10) :: num
+  character(len=20) :: filename
+  real(kind=8), dimension(:), allocatable :: lphi, phi
 
 
     ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
@@ -553,7 +554,7 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   character(len=*), parameter :: subname='local_potential_dimensions'
   logical :: newvalue
   integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
-  integer,dimension(:,:),allocatable:: ilrtable
+  integer, dimension(:,:), allocatable :: ilrtable
   
   if(Lzd%nlr > 1) then
      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
@@ -653,12 +654,12 @@ use module_base
 use module_types
 implicit none
 
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, derorbs
+integer, intent(in) :: iproc, nproc
+type(orbitals_data), intent(in) :: orbs, derorbs
 
 ! Local variables
-integer:: jproc, len1, len2, space1, space2
-logical:: written
+integer :: jproc, len1, len2, space1, space2
+logical :: written
 
 write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 written=.false.

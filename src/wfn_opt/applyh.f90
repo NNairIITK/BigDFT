@@ -36,7 +36,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -221,9 +221,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
+  real(gp) :: epot,eSICi,eSIC_DCi !n(c) etest
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -1357,16 +1357,15 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
-  real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(wp), dimension(4,7,3,4) :: cproj,dproj !<scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
+!!$  integer :: jseg_c
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
   real(wp), dimension(:,:), allocatable :: cproj_i
   integer :: proj_count, i_proj
  
-  integer count1,count2,count_rate,count_max
-  real*8 :: tela
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)

@@ -138,12 +138,14 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_stat,i_all,ispinor,nbox
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it
   real(wp) :: cprecr,scpr,evalmax,eval_zero
-  real(gp) :: kx,ky,kz,eh
-  type(coulomb_operator) :: kernel
-  type(workarr_sumrho) :: w
-  real(wp), dimension(:,:), allocatable :: hpsir
+  real(gp) :: kx,ky,kz
+!!$  integer :: i_stat,i_all,ispinor,nbox
+!!$  real(gp) :: eh
+!!$  real(wp), dimension(:,:), allocatable :: hpsir
+!!$  type(coulomb_operator) :: kernel
+!!$  type(workarr_sumrho) :: w
 
 
   ! Preconditions all orbitals belonging to iproc

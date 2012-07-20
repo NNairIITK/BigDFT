@@ -1626,7 +1626,7 @@ end select
   do l=0,lmax
      do n=1,nmax
         !write(111,*) l,n,neleconf(n,l)
-        if ( neleconf(n,l) /= 0 ) nsum = nsum + neleconf(n,l)
+        if ( neleconf(n,l) /= 0 ) nsum = nsum + int(neleconf(n,l))
      end do
   end do
   if (nsum /= nvalelec) then
@@ -1656,7 +1656,7 @@ end select
   do l=0,lmax
      do i=1,nmax
         if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-           mxpl=mxpl+(  (2*l+1) - abs( (2*l+1)- neleconf(i,l)) ) 
+           mxpl = mxpl + (  (2*l+1) - abs( (2*l+1)- int(neleconf(i,l))) ) 
         end if
      end do
   end do

@@ -592,7 +592,8 @@ subroutine crtproj(geocode,nterm,lr, &
   real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
-  !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  !Variables for OpenMP
+  !$ integer :: ithread,nthread
 
   ! rename region boundaries
   ns1 = lr%ns1
