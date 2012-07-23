@@ -484,7 +484,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call destroy_DFT_wavefunction(tmbder)
      else ! tmp change to avoid memory leaks - more derivative cleaning can be done
         call deallocate_orbitals_data(tmbder%orbs, subname)
-        call deallocate_communications_arrays(tmbder%comms, subname)
+        !call deallocate_communications_arrays(tmbder%comms, subname)
      end if
 
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
