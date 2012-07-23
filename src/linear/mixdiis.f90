@@ -40,7 +40,7 @@ real(8):: tt
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
   pnrm=pnrm/alphaMix
 
-  if(pnrm<input%linconvCritMix) then
+  if(pnrm<input%lin%convCritMix) then
       if(iproc==0) write(*,*) 'keep old density / potential'
       call dcopy(Glr%d%n1i*Glr%d%n2i*n3p, rhopotOld(1), 1, rhopot(1), 1)
   end if
