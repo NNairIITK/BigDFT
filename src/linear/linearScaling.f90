@@ -951,12 +951,12 @@ type(communications_arrays):: gcomms
   call dgemm('n', 'n', nvctrp, orbs%norb, lorbs%norb, 1.d0, phi(1), nvctrp, coeff(1,1), &
        lorbs%norb, 0.d0, psi(1), nvctrp)
 
-
-  if(nproc>1) then
-      call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
-  else
-      psit => psi
-  end if
+  ! not used in linearscaling
+  !if(nproc>1) then
+  !    call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
+  !else
+  !    psit => psi
+  !end if
 
   call untranspose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, psi, work=phiWork)
 

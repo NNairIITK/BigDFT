@@ -130,14 +130,14 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_LINEAR_LCAO) then
-        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .false., lzd_lin) ! false as no tmbder for now
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)
         !what to do with derivatives?
      end if
      call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
-     call update_wavefunctions_size(lzd_lin,dlorbs,iproc,nproc) !crashes here with reading from file
+     !call update_wavefunctions_size(lzd_lin,dlorbs,iproc,nproc) !crashes here with reading from file
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
