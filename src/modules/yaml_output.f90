@@ -290,7 +290,8 @@ contains
        write(yaml_date_and_time_toa,'('//deffmt//')')vals(1:3),vals(5:8)
     end if
 
-    yaml_date_and_time_toa=yaml_adjust(yaml_date_and_time_toa)
+    !There is no - sign so we skip this step (TD)
+    !yaml_date_and_time_toa=yaml_adjust(yaml_date_and_time_toa)
 
   end function yaml_date_and_time_toa
 
