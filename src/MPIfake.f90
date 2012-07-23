@@ -184,7 +184,7 @@ subroutine MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   ierr=0
   namelen=9
   nodename_local(1:9)='localhost'
-  nodename_local(9:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
+  nodename_local(10:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
 END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()

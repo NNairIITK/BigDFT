@@ -338,7 +338,7 @@ character(len=*) :: filterCode
 
 ! Local variables
 integer :: i
-real(kind=8) :: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, hgrid4, hgrid5, x02, x03, x04, x05
+real(kind=8) :: fac, fac2, prefac1, hgrid2, hgrid3, hgrid4, hgrid5, x02, x03, x04, x05
 real(kind=8) :: scale
 
 scale=1.d0
