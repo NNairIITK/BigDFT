@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.13
- Timestamp of this run                 :  2012-06-29 23:38:29.367
+ Timestamp of this run                 : 2012-06-29 23:38:29.367
  Root process Hostname                 : athelas
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -127,7 +127,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -171,8 +171,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -240,7 +240,6 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.27E-04, 
              GPU acceleration:  No, Rho Commun: ALLRED (Mix), 
       Total electronic charge:  7.999999858136, 
-                     Electronic charge changed by rho compression:  2.887544869878E-08, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Expected kinetic energy:  5.0225194919, 
  Energies: {Ekin:  5.02378127043E+00, Epot: -7.89137341501E+00, Enl:  8.74950283601E-01, 
@@ -260,12 +259,11 @@
  IG wavefunctions defined:  Yes, 
  Accuracy estimation for this run: {Energy:  1.26E-03, Convergence Criterion:  3.15E-04}}
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999919137, 
- Electronic charge changed by rho compression:  3.713096941027E-08, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.53502728753E+00, Epot: -7.31527396036E+00, Enl:  8.93896445755E-01, 
@@ -274,7 +272,6 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999932714, 
- Electronic charge changed by rho compression:  1.761608636741E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.63946084455E+00, Epot: -7.36141318172E+00, Enl:  8.14439249651E-01, 
@@ -283,7 +280,6 @@
  DIIS weights: [-5.79E-01,  1.58E+00, -1.89E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999915706, 
- Electronic charge changed by rho compression:  4.466018665994E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.75306263087E+00, Epot: -7.42713284582E+00, Enl:  7.97952933681E-01, 
@@ -292,7 +288,6 @@
  DIIS weights: [ 8.49E-02, -5.35E-01,  1.45E+00, -1.91E-04], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910692, 
- Electronic charge changed by rho compression:  9.340404005798E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.79600227861E+00, Epot: -7.44877417158E+00, Enl:  7.82288623148E-01, 
@@ -302,7 +297,6 @@
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910297, 
- Electronic charge changed by rho compression:  1.168644736538E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.80894427150E+00, Epot: -7.45579637837E+00, Enl:  7.79517627881E-01, 
@@ -312,7 +306,6 @@
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910320, 
- Electronic charge changed by rho compression:  1.591772047504E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81231174322E+00, Epot: -7.45689247962E+00, Enl:  7.78350630536E-01, 
@@ -322,7 +315,6 @@
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910815, 
- Electronic charge changed by rho compression:  1.127551385594E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81239342829E+00, Epot: -7.45706148218E+00, Enl:  7.78553857144E-01, 
@@ -332,7 +324,6 @@
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910837, 
- Electronic charge changed by rho compression:  1.087035350622E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81231601644E+00, Epot: -7.45710834021E+00, Enl:  7.78588554846E-01, 
@@ -342,7 +333,6 @@
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911787, 
- Electronic charge changed by rho compression:  1.463682508529E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81228375434E+00, Epot: -7.45713849123E+00, Enl:  7.78633703374E-01, 
@@ -350,9 +340,8 @@
  iter:  9, EKS: -6.26982277373191099E+00, gnrm:  5.65E-05, 
  DIIS weights: [ 1.05E-03, -3.43E-03,  1.76E-02,  2.49E-02, -4.60E-01,  1.42E+00, -1.92E-10], 
  Orthogonalization Method:  0}
-       -  &FINAL  { #------------------------------------------------------------- iter: 10
+       -  { #------------------------------------------------------------- iter: 10
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911323, 
- Electronic charge changed by rho compression:  6.135234542626E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  10, EKS: -6.26982277959561873E+00, gnrm:  5.65E-05,  #FINAL
@@ -413,7 +402,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -457,8 +446,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -520,21 +509,19 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911559, 
- Electronic charge changed by rho compression:  3.775841861398E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81227576255E+00, Epot: -7.45714041249E+00, Enl:  7.78636818238E-01, 
               EH:  1.11633631149E+01,  EXC: -2.57629319637E+00, EvXC: -3.32437948030E+00}, 
  iter:  1, EKS: -6.26982277959561518E+00, gnrm:  4.55E-05, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 2
+       -  { #-------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911275, 
- Electronic charge changed by rho compression:  6.599014668041E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  2, EKS: -6.26982277987626890E+00, gnrm:  4.55E-05,  #FINAL
@@ -595,7 +582,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -639,8 +626,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -702,12 +689,11 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911296, 
- Electronic charge changed by rho compression:  6.390639128995E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81227899072E+00, Epot: -7.45806205815E+00, Enl:  7.78636523463E-01, 
@@ -716,7 +702,6 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910571, 
- Electronic charge changed by rho compression:  1.258971593643E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81267175111E+00, Epot: -7.45793143248E+00, Enl:  7.78757901668E-01, 
@@ -725,16 +710,14 @@
  DIIS weights: [-2.39E-01,  1.24E+00, -8.24E-10], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999909947, 
- Electronic charge changed by rho compression:  1.853901032689E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81274428784E+00, Epot: -7.45785313848E+00, Enl:  7.78742284488E-01, 
               EH:  1.11641933234E+01,  EXC: -2.57645721443E+00, EvXC: -3.32459140911E+00}, 
  iter:  3, EKS: -6.26982286349474283E+00, gnrm:  2.24E-05, 
  DIIS weights: [ 6.22E-02, -4.02E-01,  1.34E+00, -7.11E-11], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 4
+       -  { #-------------------------------------------------------------- iter: 4
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910303, 
- Electronic charge changed by rho compression:  1.496936796741E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  4, EKS: -6.26982286445026293E+00, gnrm:  2.24E-05,  #FINAL
@@ -795,7 +778,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -839,8 +822,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -907,7 +890,6 @@
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910393, 
- Electronic charge changed by rho compression:  1.406431415774E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81273562044E+00, Epot: -7.45803973514E+00, Enl:  7.78736964150E-01, 
@@ -916,16 +898,14 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910694, 
- Electronic charge changed by rho compression:  1.083868106377E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81282190511E+00, Epot: -7.45800737678E+00, Enl:  7.78761117177E-01, 
               EH:  1.11643511365E+01,  EXC: -2.57648714551E+00, EvXC: -3.32463019059E+00}, 
  iter:  2, EKS: -6.26982286614639150E+00, gnrm:  4.48E-05, 
  DIIS weights: [-2.71E-01,  1.27E+00, -7.57E-11], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 3
+       -  { #-------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911277, 
- Electronic charge changed by rho compression:  4.935065689438E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  3, EKS: -6.26982286788150489E+00, gnrm:  4.48E-05,  #FINAL
@@ -986,7 +966,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -1030,8 +1010,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -1093,12 +1073,11 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911103, 
- Electronic charge changed by rho compression:  6.680229702738E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81283949302E+00, Epot: -7.45811284327E+00, Enl:  7.78756827781E-01, 
@@ -1107,16 +1086,14 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910254, 
- Electronic charge changed by rho compression:  1.503457802698E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81289004318E+00, Epot: -7.45809206992E+00, Enl:  7.78772290840E-01, 
               EH:  1.11644774901E+01,  EXC: -2.57651144562E+00, EvXC: -3.32466161170E+00}, 
  iter:  2, EKS: -6.26982286645656917E+00, gnrm:  5.68E-05, 
  DIIS weights: [-3.82E-01,  1.38E+00, -1.43E-10], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 3
+       -  { #-------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910711, 
- Electronic charge changed by rho compression:  1.042389285999E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  3, EKS: -6.26982286955688028E+00, gnrm:  5.68E-05,  #FINAL
@@ -1177,7 +1154,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -1221,8 +1198,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -1284,12 +1261,11 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910807, 
- Electronic charge changed by rho compression:  9.463843042568E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81290149380E+00, Epot: -7.45797706304E+00, Enl:  7.78768342111E-01, 
@@ -1298,16 +1274,14 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911089, 
- Electronic charge changed by rho compression:  6.760849657894E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81285770143E+00, Epot: -7.45798999170E+00, Enl:  7.78753971091E-01, 
               EH:  1.11644246558E+01,  EXC: -2.57650099813E+00, EvXC: -3.32464813634E+00}, 
  iter:  2, EKS: -6.26982286693002067E+00, gnrm:  5.90E-05, 
  DIIS weights: [-3.55E-01,  1.35E+00, -7.80E-11], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 3
+       -  { #-------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910886, 
- Electronic charge changed by rho compression:  8.831060327452E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  3, EKS: -6.26982286872837413E+00, gnrm:  5.90E-05,  #FINAL
@@ -1368,7 +1342,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -1412,8 +1386,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -1475,12 +1449,11 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910449, 
- Electronic charge changed by rho compression:  1.319519604692E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81284787529E+00, Epot: -7.45820436973E+00, Enl:  7.78755209520E-01, 
@@ -1489,16 +1462,14 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910865, 
- Electronic charge changed by rho compression:  8.801572803918E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81293670290E+00, Epot: -7.45817591482E+00, Enl:  7.78781959841E-01, 
               EH:  1.11645594369E+01,  EXC: -2.57652819204E+00, EvXC: -3.32468325540E+00}, 
  iter:  2, EKS: -6.26982286530879840E+00, gnrm:  5.34E-05, 
  DIIS weights: [-2.40E-01,  1.24E+00, -6.07E-11], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 3
+       -  { #-------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911157, 
- Electronic charge changed by rho compression:  5.814912995561E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  3, EKS: -6.26982286665972666E+00, gnrm:  5.34E-05,  #FINAL
@@ -1559,7 +1530,7 @@
    Local PSeudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.26929,  0.00000,  0.00000,  0.00000 ]
-   NonLocal PSP Paramters:
+   NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.43563
      h_ij matrix:
@@ -1603,8 +1574,8 @@
    Angstroem                           :  [  9.5252,  9.5252,  9.5252 ]
    Grid Spacing Units                  :  [  40,  40,  40 ]
    High resolution region boundaries (GU):
-     Lower                             :  [  13,  13,  13 ]
-     Upper                             :  [  27,  27,  27 ]
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  27,  27,  27 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  2
@@ -1666,12 +1637,11 @@
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
- - Hamiltonian Optimization: &itrp0001
-   - Subspace Optimization: &itrep0001
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999910348, 
- Electronic charge changed by rho compression:  1.389588888401E-09, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81295404788E+00, Epot: -7.45799553842E+00, Enl:  7.78779352225E-01, 
@@ -1680,16 +1650,14 @@
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911174, 
- Electronic charge changed by rho compression:  5.828884042103E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81288341945E+00, Epot: -7.45801577621E+00, Enl:  7.78757130167E-01, 
               EH:  1.11644725575E+01,  EXC: -2.57651013640E+00, EvXC: -3.32465995156E+00}, 
  iter:  2, EKS: -6.26982286812950385E+00, gnrm:  5.15E-05, 
  DIIS weights: [-2.30E-01,  1.23E+00, -3.35E-11], Orthogonalization Method:  0}
-       -  &FINAL  { #-------------------------------------------------------------- iter: 3
+       -  { #-------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999911151, 
- Electronic charge changed by rho compression:  6.116369632991E-10, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
  iter:  3, EKS: -6.26982286878934580E+00, gnrm:  5.15E-05,  #FINAL
