@@ -38,6 +38,7 @@ real(8):: tt
   end do
   call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+  pnrm=pnrm/alphaMix
 
   call timing(iproc,'mix_linear    ','OF')
 
@@ -84,6 +85,7 @@ subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha
       end do
       call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
       pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+      ! Do not divide by alpha_mix here since it is the difference in the outer loop.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
   end if
 
