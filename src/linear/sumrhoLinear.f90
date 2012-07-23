@@ -657,8 +657,10 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
   allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
   call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-  call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-       coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  if(orbs_tmb%norbp>0) then
+      call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+           coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  end if
   call timing(iproc,'calc_kernel','OF') !lr408t
 
   call timing(iproc,'commun_kernel','ON') !lr408t

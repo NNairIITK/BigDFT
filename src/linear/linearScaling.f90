@@ -48,6 +48,9 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilar
 real(8),dimension(3,at%nat):: fpulay
 
 
+  
+
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   if(iproc==0) then
@@ -55,7 +58,8 @@ real(8),dimension(3,at%nat):: fpulay
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
-
+  call nullify_communications_arrays(tmbder%comms)
+  !!call nullify_orbitals_data(tmbder%orbs)
 
   allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
   call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
@@ -180,9 +184,6 @@ real(8),dimension(3,at%nat):: fpulay
 
   nsatur=0
 
-  ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-  ! that the outer part is not modified!
-  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
@@ -263,6 +264,9 @@ real(8),dimension(3,at%nat):: fpulay
       if(itout==1 .or. nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+               ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+               ! that the outer part is not modified!
+               if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
 
 
@@ -803,6 +807,7 @@ real(8),dimension(3,at%nat):: fpulay
 
   call timing(iproc,'WFN_OPT','PR')
 
+
 end subroutine linearScaling
 
 
@@ -1004,6 +1009,7 @@ type(communications_arrays):: gcomms
 
   call deallocate_orbitals_data(gorbs, subname)
   call deallocate_communications_arrays(gcomms, subname)
+
 
 end subroutine transformToGlobal
 

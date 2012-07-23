@@ -1,4 +1,3 @@
-
 subroutine nullifyInputLinparameters(lin)
   use module_base
   use module_types
@@ -412,3 +411,20 @@ end subroutine nullify_overlap_parameters_matrix
 !!  !!nullify(comom%olr)
 !!
 !!end subroutine nullify_p2pCommsOrthonormalityMatrix
+
+!!subroutine nullify_communications_arrays(comms)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(communications_arrays),intent(inout):: comms
+!!
+!!  nullify(comms%ncntd)
+!!  nullify(comms%ncntt)
+!!  nullify(comms%ndspld)
+!!  nullify(comms%ndsplt)
+!!  nullify(comms%nvctr_par)
+!!
+!!end subroutine nullify_communications_arrays
+
