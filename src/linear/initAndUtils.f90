@@ -1918,6 +1918,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
    ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
    npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
   end do
+
   allocate(llborbs%eval(llborbs%norb), stat=istat)
   call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
   llborbs%eval=-.5d0
@@ -2110,24 +2111,29 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_p2pComms(wfn%comsr, subname)
   call deallocate_matrixDescriptors(wfn%mad, subname)
   call deallocate_orbitals_data(wfn%orbs, subname)
-  call deallocate_communications_arrays(wfn%comms, subname)
+  !call deallocate_communications_arrays(wfn%comms, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
   call deallocate_collective_comms(wfn%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 
 
-subroutine update_wavefunctions_size(lzd,orbs)
-use module_base
-use module_types
-implicit none
+subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
+  use module_base
+  use module_types
+  implicit none
 
-! Calling arguments
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(inout):: orbs
+  ! Calling arguments
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_data),intent(inout):: orbs
+  integer, intent(in) :: iproc, nproc
 
-! Local variables
-integer:: npsidim, ilr, iorb
+  ! Local variables
+  integer:: npsidim, ilr, iorb 
+  integer :: nvctr_tot,jproc,istat,iall
+  integer, allocatable, dimension(:) :: ncntt 
+  integer, allocatable, dimension(:,:) :: nvctr_par
+  character(len = *), parameter :: subname = "update_wavefunctions_size"
 
   npsidim = 0
   do iorb=1,orbs%norbp
@@ -2136,6 +2142,37 @@ integer:: npsidim, ilr, iorb
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   orbs%npsidim_orbs=max(npsidim,1)
+
+
+  nvctr_tot = 1
+  do iorb=1,orbs%norb
+     ilr=orbs%inwhichlocreg(iorb)
+     nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
+  end do
+
+  allocate(nvctr_par(0:nproc-1,1),stat=istat)
+  call memocc(istat,nvctr_par,'nvctr_par',subname)
+
+  call kpts_to_procs_via_obj(nproc,1,nvctr_tot,nvctr_par)
+
+  allocate(ncntt(0:nproc-1+ndebug),stat=istat)
+  call memocc(istat,ncntt,'ncntt',subname)
+
+  ncntt(:) = 0
+  do jproc=0,nproc-1
+     ncntt(jproc)=ncntt(jproc)+&
+          nvctr_par(jproc,1)*orbs%norbp*orbs%nspinor
+  end do
+
+  orbs%npsidim_comp=sum(ncntt(0:nproc-1))
+
+  iall=-product(shape(nvctr_par))*kind(nvctr_par)
+  deallocate(nvctr_par,stat=istat)
+  call memocc(istat,iall,'nvctr_par',subname) 
+
+  iall=-product(shape(ncntt))*kind(ncntt)
+  deallocate(ncntt,stat=istat)
+  call memocc(istat,iall,'ncntt',subname)  
 
 end subroutine update_wavefunctions_size
 

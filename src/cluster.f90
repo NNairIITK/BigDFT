@@ -400,9 +400,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+                       inputpsi /= INPUT_PSI_LINEAR_LCAO) then 
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
+  else
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
+  end if
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -455,12 +462,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
-     call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-          KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
-          atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
+     !     KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
+     !     atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !     rxyz,fion,fdisp,denspot,denspot0,&
+     !     nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
+     !     energy)
+
+     call linearScaling(iproc,nproc,KSwfn,&
+          tmb,tmbder,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
-          energy)
+          nlpspd,proj,GPU,energs,scpot,energy)
+
 
      i_all=-product(shape(denspot0))*kind(denspot0)
      deallocate(denspot0, stat=i_stat)
@@ -486,6 +499,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      infocode = 0
   end if skip_if_linear
+
+
+  ! allocate KSwfn%psi here instead for case of linear?!
+  !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+  !                   inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  !   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
+  !   call memocc(i_stat,KSwfn%psi,'psi',subname)
+  !end if
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero

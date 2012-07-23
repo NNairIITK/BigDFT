@@ -1,6 +1,10 @@
-subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
+!subroutine linearScaling(iproc,nproc,Glr,orbs,comms,tmb,tmbder,at,input,hx,hy,hz,&
+!           rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
+!           energs,scpot,psi,energy)
+subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmbder,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,psi,energy)
+           energs,scpot,energy)
+
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => linearScaling
@@ -8,9 +12,6 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(locreg_descriptors),intent(in) :: Glr
-type(orbitals_data),intent(inout):: orbs
-type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -21,19 +22,17 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
 type(energy_terms),intent(inout) :: energs
-real(gp),intent(in):: hx,hy,hz
 logical,intent(in):: scpot
-real(8),dimension(:),pointer,intent(out):: psi
 real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: tmbder
+type(DFT_wavefunction),intent(inout),target:: KSwfn
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
 integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),pointer :: psit
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
@@ -65,7 +64,7 @@ real(8),dimension(3,at%nat):: fpulay
   call memocc(istat, ham, 'ham', subname)
 
   ! Allocate the old charge density (used to calculate the variation in the charge density)
-  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
   if(input%lin%nItInguess>0) then
@@ -86,7 +85,8 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! Copy the current potential
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-           call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+           call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
+                *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
 
@@ -201,8 +201,8 @@ real(8),dimension(3,at%nat):: fpulay
       lscv%withder=check_whether_derivatives_to_be_used(input, itout, lscv)
 
       if(lscv%withder .and. lscv%lowaccur_converged .and. .not.coeffs_copied) then
-          call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
-          do iorb=1,orbs%norb
+          call to_zero(tmbder%orbs%norb*KSwfn%orbs%norb, tmbder%wfnmd%coeff(1,1))
+          do iorb=1,KSwfn%orbs%norb
               jjorb=0
               do jorb=1,tmbder%orbs%norb,4
                   jjorb=jjorb+1
@@ -224,16 +224,16 @@ real(8),dimension(3,at%nat):: fpulay
       if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
       ! Adjust the confining potential if required.
-      call adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
+      call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            input, tmb, tmbder, denspot, ldiis, lscv)
 
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
 
       if(lscv%withder) then
-          call initialize_DIIS_coeff(3, tmbder, orbs, ldiis_coeff)
+          call initialize_DIIS_coeff(3, tmbder, KSwfn%orbs, ldiis_coeff)
       else
-          call initialize_DIIS_coeff(3, tmb, orbs, ldiis_coeff)
+          call initialize_DIIS_coeff(3, tmb, KSwfn%orbs, ldiis_coeff)
       end if
 
       ! Now all initializations are done...
@@ -376,12 +376,12 @@ real(8),dimension(3,at%nat):: fpulay
          ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-                  do iorb=1,orbs%norb
+                  do iorb=1,KSwfn%orbs%norb
                       call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
                   end do
               end if
 
-              call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
+              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
@@ -432,8 +432,8 @@ real(8),dimension(3,at%nat):: fpulay
               .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
-                  call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, tmb%lzd%llr(:)%locrad, &
-                       .false., tmb%lzd, tmb, tmbder, denspot)
+                  call redefine_locregs_quantities(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                       tmb%lzd%llr(:)%locrad, .false., tmb%lzd, tmb, tmbder, denspot)
                   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                        tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
               end if
@@ -457,7 +457,7 @@ real(8),dimension(3,at%nat):: fpulay
                       tmbmix => tmbder
                   end if
                   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-                  call getDerivativeBasisFunctions(iproc,nproc,hx,tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
+                  call getDerivativeBasisFunctions(iproc,nproc,KSwfn%Lzd%hgrids(1),tmb%lzd,tmb%orbs,tmbmix%orbs,tmbmix%comrp,&
                        max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),tmb%psi,tmbmix%psi)
                   if(iproc==0) write(*,'(a)') 'done.'
                   !! TEST ###############################################################################################
@@ -499,7 +499,7 @@ real(8),dimension(3,at%nat):: fpulay
               first_time_with_der=.true.
               !scf_mode=LINEAR_MIXDENS_SIMPLE
               scf_mode=input%lin%scf_mode
-              call transform_coeffs_to_derivatives(iproc, nproc, orbs, tmb%lzd, tmb, tmbder)
+              call transform_coeffs_to_derivatives(iproc, nproc, KSwfn%orbs, tmb%lzd, tmb, tmbder)
               tmb%wfnmd%alpha_coeff=1.d-2
               tmbder%wfnmd%alpha_coeff=1.d-2
           else
@@ -526,16 +526,16 @@ real(8),dimension(3,at%nat):: fpulay
           end if
           if(.not.lscv%withder) then
               if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
-                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                        input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                        tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
               else
-                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                        input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                        tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
               end if
           else
-              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                    tmblargeder, lhphilargeder, ldiis_coeff=ldiis_coeff)
           end if
@@ -560,14 +560,14 @@ real(8),dimension(3,at%nat):: fpulay
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
-               tmb%lzd, input, hx, hy ,hz, tmbmix%orbs, tmbmix%comsr, &
-               tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+               tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmbmix%orbs, tmbmix%comsr, &
+               tmbmix%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
+           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -578,7 +578,7 @@ real(8),dimension(3,at%nat):: fpulay
           ! Mix the potential
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, glr, lscv%alpha_mix, &
+           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
@@ -750,36 +750,41 @@ real(8),dimension(3,at%nat):: fpulay
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,tmb%Lzd,&
-       tmbmix%orbs,orbs%norb,hx,hy,hz,at,rxyz,tmbmix%psi,tmbmix%wfnmd%coeff)
+       tmbmix%orbs,KSwfn%orbs%norb,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,&
+       tmbmix%psi,tmbmix%wfnmd%coeff)
    end if
   ! Allocate the communication buffers for the calculation of the charge density.
 
   call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
-  call calculate_density_kernel(iproc, nproc, tmbmix%wfnmd%ld_coeff, orbs, tmbmix%orbs, &
+  call calculate_density_kernel(iproc, nproc, tmbmix%wfnmd%ld_coeff, KSwfn%orbs, tmbmix%orbs, &
        tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel)
-  call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, hx, hy, hz, &
-       tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%density_kernel, Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d, &
+  call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmbmix%orbs, tmbmix%comsr, tmbmix%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(tmbmix%comsr, subname)
 
+  ! allocating here instead of input_wf to save memory
+  allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
+  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+
   ! Build global orbitals psi (the physical ones).
   if(nproc>1) then
-     allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-     call memocc(istat, psit, 'psit', subname)
+     allocate(KSwfn%psit(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)), stat=istat)
+     call memocc(istat, KSwfn%psit, 'KSwfn%psit', subname)
   else
-     psit => psi
+     KSwfn%psit => KSwfn%psi
   end if
-  call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, orbs, comms, input, tmbmix%wfnmd%ld_coeff, &
-       tmbmix%wfnmd%coeff, tmbmix%psi, psi, psit)
+  call transformToGlobal(iproc, nproc, tmb%lzd, tmbmix%orbs, KSwfn%orbs, KSwfn%comms, input, tmbmix%wfnmd%ld_coeff, &
+       tmbmix%wfnmd%coeff, tmbmix%psi, KSwfn%psi, KSwfn%psit)
   if(nproc>1) then
-     iall=-product(shape(psit))*kind(psit)
-     deallocate(psit, stat=istat)
-     call memocc(istat, iall, 'psit', subname)
+     iall=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
+     deallocate(KSwfn%psit, stat=istat)
+     call memocc(istat, iall, 'KSwfn%psit', subname)
   else
-     nullify(psit)
+     nullify(KSwfn%psit)
   end if
 
   nullify(rho,pot)
@@ -928,9 +933,9 @@ type(orbitals_data),intent(in):: lorbs, orbs
 type(communications_arrays):: comms
 type(input_variables),intent(in):: input
 real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
-real(8),dimension(lorbs%npsidim_orbs),intent(inout):: lphi
+real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
-real(8),dimension(:),pointer,intent(out):: psit
+real(8),dimension(:),pointer,intent(inout):: psit
 
 ! Local variables
 integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
@@ -939,7 +944,6 @@ real(8),dimension(:),allocatable:: phi
 character(len=*),parameter:: subname='transformToGlobal'
 type(orbitals_data):: gorbs
 type(communications_arrays):: gcomms
-
 
   call nullify_orbitals_data(gorbs)
   call copy_orbitals_data(lorbs, gorbs, subname)
@@ -959,13 +963,14 @@ type(communications_arrays):: gcomms
       ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
       ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
+
       call Lpsi_to_global2(iproc,nproc,ldim,gdim,lorbs%norb,lorbs%nspinor,input%nspin,lzd%Glr,&
            lzd%Llr(ilr),lphi(ind2),phi(ind1))
       ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
       ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  call transpose_v(iproc, nproc, lorbs, lzd%Glr%wfd, gcomms, phi, work=phiWork)
 
+  end do
+  call transpose_v(iproc, nproc, gorbs, lzd%Glr%wfd, gcomms, phi, work=phiWork)
 
   if(iproc==0) then
       write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '
@@ -973,16 +978,17 @@ type(communications_arrays):: gcomms
   ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
   ! this has to replaced, but at the moment it is still needed.
   !call buildWavefunctionModified(iproc, nproc, orbs, gorbs, comms, gcomms, phi, psi, coeff)
+
   nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
   call dgemm('n', 'n', nvctrp, orbs%norb, lorbs%norb, 1.d0, phi(1), nvctrp, coeff(1,1), &
        lorbs%norb, 0.d0, psi(1), nvctrp)
 
-
-  if(nproc>1) then
-      call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
-  else
-      psit => psi
-  end if
+  ! not used in linearscaling
+  !if(nproc>1) then
+  !    call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
+  !else
+  !    psit => psi
+  !end if
 
   call untranspose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, psi, work=phiWork)
 

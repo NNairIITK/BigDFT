@@ -1906,7 +1906,7 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -1933,6 +1933,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  logical, intent(in) :: linear_start
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all
@@ -1955,7 +1956,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   !SIC parameters
-  KSwfn%SIC = in%SIC
+  KSwfn%SIC=in%SIC
   !exact exchange parallelization parameter
   KSwfn%exctxpar=in%exctxpar
 
@@ -1973,7 +1974,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO) then
+  if (inputpsi /= INPUT_PSI_LCAO .and. .not. linear_start) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
