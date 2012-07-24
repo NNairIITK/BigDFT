@@ -1929,8 +1929,8 @@ subroutine position_operators(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n
   !local variables
   integer :: ii1,ii2,ii3,i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
   real(wp) :: ttx, tty, ttz, psir1, potx, poty, potz
-!!$   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-!!$ real(wp) :: pot1,pot2,pot3,pot4,psir2,psir3,psir4
+  !$ real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  !$ real(wp) :: pot1,pot2,pot3,pot4,psir2,psir3,psir4
 
   !loop on wavefunction
   !calculate the limits in all the directions
@@ -2332,9 +2332,9 @@ subroutine r_operator(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   !local variables
   integer :: i1,i2,i3,ii1,ii2,ii3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
   real(wp) :: tt,ttx,tty,ttz,psir1
-!!$  real(wp) :: potx, poty, potz
-!!$  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
-!!$  real(wp) :: psir2,psir3,psir4,pot1,pot2,pot3,pot4
+  !$  real(wp) :: potx, poty, potz
+  !$ real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+  !$  real(wp) :: psir2,psir3,psir4,pot1,pot2,pot3,pot4
 
   if(order/=1 .and. order/=2) stop 'wrong order'
 
