@@ -1064,8 +1064,8 @@ subroutine conv_kin_x_new(n1,x,y,ndat,lowfil,lupfil,fil,ekin,mod_arr1)
   real(wp),intent(in):: x(0:n1,ndat)
   real(wp),intent(inout)::y(0:n1,ndat),ekin
   integer,intent(in) :: mod_arr1(lowfil:n1+lupfil)   
-  real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,ekin_tmp
-  integer :: i,i1,l,j,tt
+  real(wp) :: tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,ekin_tmp
+  integer :: i,i1,l,j
 
   ekin_tmp=0.0_wp
   !$omp parallel do default(private)&

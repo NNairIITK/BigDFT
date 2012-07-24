@@ -1,49 +1,54 @@
+!> @file 
+!!   energy and forces in linear
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+ 
 
+!> Calculates the potential and energy and writes them. This is subroutine is copied
+!! from cluster.
+!!
+!! Calling arguments:
+!! ==================
+!!  Input arguments:
+!!  -----------------
+!!     @param iproc       process ID
+!!     @param nproc       total number of processes
+!!     @param n3d         ??
+!!     @param n3p         ??
+!!     @param Glr         type describing the localization region
+!!     @param orbs        type describing the physical orbitals psi
+!!     @param atoms       type containing the parameters for the atoms
+!!     @param in          type  containing some very general parameters
+!!     @param lin         type containing parameters for the linear version
+!!     @param psi         the physical orbitals
+!!     @param rxyz        atomic positions
+!!     @param rhopot      the charge density
+!!     @param nscatterarr ??
+!!     @param nlpspd      ??
+!!     @param proj        ??
+!!     @param pkernelseq  ??
+!!     @param radii_cf    coarse and fine radii around the atoms
+!!     @param irrzon      ??
+!!     @param phnons      ??
+!!     @param pkernel     ??
+!!     @param pot_ion     the ionic potential
+!!     @param rhocore     ??
+!!     @param potxc       ??
+!!     @param PSquiet     flag to control the output from the Poisson solver
+!!     @param eion        ionic energy
+!!     @param edisp       dispersion energy
+!!     @param fion        ionic forces
+!!     @param fdisp       dispersion forces
+!!  Input / Output arguments
+!!  ------------------------
+!!     @param rhopot      the charge density
+!!  Output arguments:
+!!  -----------------
 subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
-!
-! Purpose:
-! ========
-!   Calculates the potential and energy and writes them. This is subroutine is copied
-!   from cluster.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   -----------------
-!     iproc       process ID
-!     nproc       total number of processes
-!     n3d         ??
-!     n3p         ??
-!     Glr         type describing the localization region
-!     orbs        type describing the physical orbitals psi
-!     atoms       type containing the parameters for the atoms
-!     in          type  containing some very general parameters
-!     lin         type containing parameters for the linear version
-!     psi         the physical orbitals
-!     rxyz        atomic positions
-!     rhopot      the charge density
-!     nscatterarr ??
-!     nlpspd      ??
-!     proj        ??
-!     pkernelseq  ??
-!     radii_cf    coarse and fine radii around the atoms
-!     irrzon      ??
-!     phnons      ??
-!     pkernel     ??
-!     pot_ion     the ionic potential
-!     rhocore     ??
-!     potxc       ??
-!     PSquiet     flag to control the output from the Poisson solver
-!     eion        ionic energy
-!     edisp       dispersion energy
-!     fion        ionic forces
-!     fdisp       dispersion forces
-!   Input / Output arguments
-!   ------------------------
-!     rhopot      the charge density
-!   Output arguments:
-!   -----------------
-
 
 use module_base
 use module_types
@@ -54,14 +59,12 @@ implicit none
 ! Calling arguments
 integer, intent(in) :: ixc,nspin
 type(DFT_local_fields), intent(inout) :: denspot
-real(8),intent(out):: ehart, eexcu, vexcu
+real(kind=8),intent(out) :: ehart, eexcu, vexcu
 
 ! Local variables
 character(len=*), parameter :: subname='updatePotential'
 logical :: nullifyVXC
-real(8):: ekin_sum, epot_sum, eproj_sum, energybs, energyMod
-real(8):: energyMod2, ehartMod, t1, t2, time
-integer:: istat, iall, infoCoeff, ilr, ierr, sizeLphir, sizePhibuffr
+integer :: istat, iall
 real(dp), dimension(6) :: xcstr
 
 nullifyVXC=.false.
@@ -113,6 +116,4 @@ else
 
 end if
 
-end subroutine updatePotential
-
-
+END SUBROUTINE updatePotential

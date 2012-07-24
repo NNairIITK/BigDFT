@@ -30,7 +30,8 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
   integer(kind=8) :: mworkham, mworkrho
   real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj,nden,npotden,npotham,narr
-  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
+  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha
+!!$ real(kind=8) :: timinamount
 
   n1=lr%d%n1
   n2=lr%d%n2

@@ -281,6 +281,7 @@ contains
 
 end subroutine forces_via_finite_differences
 
+
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
@@ -3966,7 +3967,8 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8) :: pi,p(3),g2,rloc,set,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
-  integer :: Zion,iat,ityp
+  real(kind=8) :: Zion
+  integer :: iat,ityp
   integer :: j1,j2,j3,i1,i2,i3,inzee,ind
 
   !write(*,*) 'iproc,n3i,n3p',iproc,n3i,n3p

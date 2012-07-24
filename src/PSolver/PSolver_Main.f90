@@ -10,6 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 !!
 
+
 !>    Calculate the Hartree potential by solving Poisson equation 
 !!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
 !!    from a given @f$\rho@f$, 
@@ -505,8 +506,10 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      wrtmsg=.true.
   end if
 
- 
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  if (present(alpha).and.present(beta).and.present(gamma)) then
+     !Not used ?? (TD)
+     detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  end if
 
   
   !calculate the dimensions wrt the geocode

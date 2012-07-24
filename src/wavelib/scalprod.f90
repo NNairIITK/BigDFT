@@ -466,7 +466,7 @@ subroutine wpdot_4(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -681,7 +681,7 @@ subroutine wpdot_5(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -904,7 +904,7 @@ subroutine wpdot_8(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1158,7 +1158,7 @@ subroutine wpdot_13(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1458,7 +1458,7 @@ subroutine wpdot_14(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -1769,7 +1769,7 @@ subroutine wpdot_18(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2118,7 +2118,7 @@ subroutine wpdot_19(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2476,7 +2476,7 @@ subroutine wpdot_20(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,bpsi_f20
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -2844,7 +2844,7 @@ subroutine wpdot_22(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f21,bpsi_f22
   real(dp), dimension(proj_count),intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1,i_proj
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp),dimension(proj_count) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c

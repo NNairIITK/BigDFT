@@ -1148,6 +1148,7 @@ contains
 END SUBROUTINE cluster
 
 
+!> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -1241,8 +1242,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !yaml output
               if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
                    .and. opt%itrpmax==1) .or.&
-                   (endloop .and. &
-                   ((opt%itrpmax >1 .and. endlooprp) .or. opt%itrpmax == 1)) ) then 
+                   (endloop .and. opt%itrpmax >1 .and. endlooprp) ) then
+                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL',advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1513,4 +1514,4 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
   ! Clean denspot parts only needed in the SCF loop.
   call denspot_free_history(denspot)
-end subroutine kswfn_optimization_loop
+END SUBROUTINE kswfn_optimization_loop

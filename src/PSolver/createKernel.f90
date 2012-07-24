@@ -205,7 +205,6 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   real(kind=8), dimension(:), pointer :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all
   integer,dimension(3) :: n
-  !$ integer :: omp_get_max_threads
 
   call timing(kernel%iproc_world,'PSolvKernel   ','ON')
 

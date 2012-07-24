@@ -1332,7 +1332,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
   integer :: iorb_out,ispinor,ilr,ind
   integer :: confPotOrder
   real(gp) :: locrad, confPotprefac
