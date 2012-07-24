@@ -70,8 +70,8 @@ subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  character(len=15) :: intsb,ptintsb,ptschsb,schsb
  character(len=35) :: intsbl
 !arrays
- real(dp) :: genm(3,3),genmmp(3,3),genswm(3,3),genswmmm(3,3),genswmmp(3,3)
- real(dp) :: genswp(3,3)
+ integer :: genm(3,3),genmmp(3,3),genswm(3,3),genswmmm(3,3),genswmmp(3,3)
+ integer :: genswp(3,3)
 
 !*************************************************************************
 
