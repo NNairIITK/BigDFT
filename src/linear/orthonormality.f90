@@ -1,30 +1,40 @@
+!> @file
+!! Orthonormalization
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
            orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, ovrlp)
+
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
-  type(orbitals_data),intent(in):: orbs
-  type(overlapParameters),intent(inout):: op
-  type(p2pComms),intent(inout):: comon
-  type(local_zone_descriptors),intent(in):: lzd
-  type(matrixDescriptors),intent(in):: mad
-  type(collective_comms),intent(in):: collcom
-  type(orthon_data),intent(in):: orthpar
-  type(basis_performance_options),intent(in):: bpo
-  real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+  integer,intent(in) :: iproc,nproc,methTransformOverlap,nItOrtho
+  type(orbitals_data),intent(in) :: orbs
+  type(overlapParameters),intent(inout) :: op
+  type(p2pComms),intent(inout) :: comon
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(matrixDescriptors),intent(in) :: mad
+  type(collective_comms),intent(in) :: collcom
+  type(orthon_data),intent(in) :: orthpar
+  type(basis_performance_options),intent(in) :: bpo
+  real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  integer:: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb
-  real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, psittemp_c, psittemp_f
-  character(len=*),parameter:: subname='orthonormalizeLocalized'
-  real(8):: maxError, tt, dnrm2
-
-
+  integer :: it, istat, iall, iorb, ilr, ncount, ist, iiorb
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, psit_c, psit_f, psittemp_c, psittemp_f
+  character(len=*),parameter :: subname='orthonormalizeLocalized'
+  real(kind=8) :: tt, dnrm2
+!!  real(kind=8) :: maxError
 
 
   do it=1,nItOrtho
@@ -118,24 +128,24 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_Data),intent(in):: orbs
-  type(overlapParameters),intent(inout):: op
-  type(p2pComms),intent(inout):: comon
-  type(matrixDescriptors),intent(in):: mad
-  type(collective_comms),intent(in):: collcom
-  type(orthon_data),intent(in):: orthpar
-  type(basis_performance_options),intent(in):: bpo
-  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi !inout due to tranposition...
-  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_Data),intent(in) :: orbs
+  type(overlapParameters),intent(inout) :: op
+  type(p2pComms),intent(inout) :: comon
+  type(matrixDescriptors),intent(in) :: mad
+  type(collective_comms),intent(in) :: collcom
+  type(orthon_data),intent(in) :: orthpar
+  type(basis_performance_options),intent(in) :: bpo
+  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi !inout due to tranposition...
+  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lhphi
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: lagmat
 
   ! Local variables
-  integer:: istat, iall, ierr, iorb, jorb
-  real(8),dimension(:),allocatable:: lphiovrlp, psit_c, psit_f, hpsit_c, hpsit_f
-  real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
-  character(len=*),parameter:: subname='orthoconstraintLocalized'
+  integer :: istat, iall, iorb, jorb
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, psit_c, psit_f, hpsit_c, hpsit_f
+  real(kind=8),dimension(:,:),allocatable :: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  character(len=*),parameter :: subname='orthoconstraintLocalized'
 
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
@@ -284,18 +294,18 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
-  type(p2pComms),intent(inout):: comon_lb
-  type(overlapParameters),intent(inout):: op_lb
-  real(8),dimension(orbs%npsidim_orbs),intent(inout):: lphi
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(p2pComms),intent(inout) :: comon_lb
+  type(overlapParameters),intent(inout) :: op_lb
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(inout) :: lphi
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  character(len=*),parameter:: subname='getOverlapMatrix2'
-  real(8):: tt1, tt2, tt3
+  character(len=*),parameter :: subname='getOverlapMatrix2'
+!!  real(kind=8) :: tt1, tt2, tt3
 
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
   call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,&
@@ -325,18 +335,18 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nspin
-  real(8),intent(in):: hx, hy, hz
-  type(local_zone_descriptors),intent(in):: lzd, lzdig
-  type(orbitals_data),intent(in):: orbs
-  character(len=1),intent(in):: locregShape
-  type(overlapParameters),intent(out):: op
-  type(p2pComms),intent(out):: comon
+  integer,intent(in) :: iproc, nproc, nspin
+  real(kind=8),intent(in) :: hx, hy, hz
+  type(local_zone_descriptors),intent(in) :: lzd, lzdig
+  type(orbitals_data),intent(in) :: orbs
+  character(len=1),intent(in) :: locregShape
+  type(overlapParameters),intent(out) :: op
+  type(p2pComms),intent(out) :: comon
 
   ! Local variables
-  integer:: iorb, jorb, iiorb
-  integer::  istat, i1, i2, jjorb, nsub, ierr
-  character(len=*),parameter:: subname='initCommsOrtho'
+  integer :: iorb, jorb, iiorb
+  integer ::  istat, jjorb, nsub, ierr
+  character(len=*),parameter :: subname='initCommsOrtho'
 
 
   call timing(iproc,'init_commOrtho','ON')
@@ -449,8 +459,8 @@ subroutine getIndices(lr, is1, ie1, is2, ie2, is3, ie3)
   implicit none
 
   ! Calling arguments
-  type(locreg_descriptors),intent(in):: lr
-  integer,intent(out):: is1, ie1, is2, ie2, is3, ie3
+  type(locreg_descriptors),intent(in) :: lr
+  integer,intent(out) :: is1, ie1, is2, ie2, is3, ie3
 
   is1=lr%ns1!+1 !PB: should not have a +1
   ie1=lr%ns1+lr%d%n1
@@ -471,14 +481,14 @@ subroutine countOverlaps(iproc, nproc, orbs, lzd, op, comon)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(out):: op
-  type(p2pComms),intent(out):: comon
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(out) :: op
+  type(p2pComms),intent(out) :: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+  integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
    logical :: isoverlap
 
   iiorb=0
@@ -526,16 +536,16 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, op, comon)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(out):: op
-  type(p2pComms),intent(out):: comon
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(out) :: op
+  type(p2pComms),intent(out) :: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+  integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
 !  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
-!  logical:: ovrlpx, ovrlpy, ovrlpz
+!  logical :: ovrlpx, ovrlpy, ovrlpz
   logical :: isoverlap
 
   ! Initialize to some value which will never be used.
@@ -588,18 +598,18 @@ end subroutine determineOverlaps
 !!!  implicit none
 !!!
 !!!  ! Calling arguments
-!!!  integer,intent(in):: iproc, nproc
-!!!  type(orbitals_data),intent(in):: orbs
-!!!  type(local_zone_descriptors),intent(in):: lzd
-!!!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
-!!!  type(overlapParameters),intent(out):: op
-!!!  type(p2pComms),intent(out):: comon
+!!!  integer,intent(in) :: iproc, nproc
+!!!  type(orbitals_data),intent(in) :: orbs
+!!!  type(local_zone_descriptors),intent(in) :: lzd
+!!!  integer,dimension(orbs%norb),intent(in) :: onWhichAtom
+!!!  type(overlapParameters),intent(out) :: op
+!!!  type(p2pComms),intent(out) :: comon
 !!!
 !!!  ! Local variables
-!!!  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
-!!!  integer:: js1, je1, js2, je2, js3, je3, iiorb
-!!!  logical:: ovrlpx, ovrlpy, ovrlpz
-!!!  real(8):: dx, dy, dz, rr
+!!!  integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
+!!!  integer :: js1, je1, js2, je2, js3, je3, iiorb
+!!!  logical :: ovrlpx, ovrlpy, ovrlpz
+!!!  real(kind=8) :: dx, dy, dz, rr
 !!!
 !!!  ! Initialize to some value which will never be used.
 !!!  op%overlaps=-1
@@ -653,18 +663,18 @@ subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(inout):: op
-  type(p2pComms),intent(out):: comon
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(inout) :: op
+  type(p2pComms),intent(out) :: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
-  integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag, tag
-  integer,dimension(:),allocatable:: istsourceArr, istdestArr
-  character(len=*),parameter:: subname='set_comms_ortho'
-  logical,dimension(:),allocatable:: receivedOrbital
+  integer :: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
+  integer :: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag, tag
+  integer,dimension(:),allocatable :: istsourceArr, istdestArr
+  character(len=*),parameter :: subname='set_comms_ortho'
+  logical,dimension(:),allocatable :: receivedOrbital
 
   allocate(istsourceArr(0:nproc-1), stat=istat)
   call memocc(istat, istsourceArr, 'istsourceArr',subname)
@@ -789,8 +799,8 @@ subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, ta
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: mpisource, mpidest, istsource, istdest, ncount, tag
-  integer,dimension(6),intent(out):: comarr
+  integer,intent(in) :: mpisource, mpidest, istsource, istdest, ncount, tag
+  integer,dimension(6),intent(out) :: comarr
 
 
   ! From which MPI process shall the orbital be sent.
@@ -825,18 +835,19 @@ subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, lzd, lzdig, op, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, sizePhi
-  type(orbitals_data),intent(in):: orbs, orbsig
-  type(local_zone_descriptors),intent(in):: lzd, lzdig
-  type(overlapParameters),intent(inout):: op, opig
-  real(8),dimension(sizePhi),intent(in):: phi
-  integer,intent(in):: nsendBuf
-  real(8),dimension(nsendBuf),intent(out):: sendBuf
+  integer,intent(in) :: iproc, nproc, sizePhi
+  type(orbitals_data),intent(in) :: orbs, orbsig
+  type(local_zone_descriptors),intent(in) :: lzd, lzdig
+  type(overlapParameters),intent(inout) :: op, opig
+  real(kind=8),dimension(sizePhi),intent(in) :: phi
+  integer,intent(in) :: nsendBuf
+  real(kind=8),dimension(nsendBuf),intent(out) :: sendBuf
 
 
   ! Local variables
-  integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-  integer:: i, indSource, jst, istart, iend, ncount, iseg, kstart, kend, start, kold, kseg, knseg
+  integer :: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
+  integer :: i, jst, istart, iend, ncount, iseg, kstart, kend, start, kold, kseg, knseg
+!! integer :: indSource
 
   call timing(iproc,'extract_orbs  ','ON')
 
@@ -991,20 +1002,20 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
-  type(orbitals_data),intent(in):: orbs
-  type(overlapParameters),intent(in):: op
-  real(8),dimension(nsendBuf),intent(in):: sendBuf
-  real(8),dimension(nrecvBuf),intent(in):: recvBuf
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+  integer,intent(in) :: iproc, nproc, nsendBuf, nrecvBuf
+  type(orbitals_data),intent(in) :: orbs
+  type(overlapParameters),intent(in) :: op
+  real(kind=8),dimension(nsendBuf),intent(in) :: sendBuf
+  real(kind=8),dimension(nrecvBuf),intent(in) :: recvBuf
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, jjorb, ist, jst, ncount, ierr, istat, iall
-  real(8):: ddot, tt, ttmax
-  real(8),dimension(:),allocatable:: ovrlpCompressed_send, ovrlpCompressed_receive
-  character(len=*),parameter:: subname='calculateOverlapMatrix3'
-  integer,dimension(:),allocatable:: sendcounts, displs
+  integer :: iorb, jorb, iiorb, jjorb, ist, jst, ncount, ierr, istat, iall
+  real(kind=8) :: ddot ! , tt, ttmax
+  real(kind=8),dimension(:),allocatable :: ovrlpCompressed_send, ovrlpCompressed_receive
+  character(len=*),parameter :: subname='calculateOverlapMatrix3'
+  integer,dimension(:),allocatable :: sendcounts, displs
 
 
   call timing(iproc,'lovrlp_comp   ','ON')
@@ -1097,18 +1108,18 @@ subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
-  type(orbitals_data),intent(in):: orbs
-  type(overlapParameters),intent(in):: op
-  real(8),dimension(nsendBuf),intent(in):: sendBuf
-  real(8),dimension(nrecvBuf),intent(in):: recvBuf
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+  integer,intent(in) :: iproc, nproc, nsendBuf, nrecvBuf
+  type(orbitals_data),intent(in) :: orbs
+  type(overlapParameters),intent(in) :: op
+  real(kind=8),dimension(nsendBuf),intent(in) :: sendBuf
+  real(kind=8),dimension(nrecvBuf),intent(in) :: recvBuf
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, jjorb, ist, jst, ncount
-  real(8):: ddot
-  character(len=*),parameter:: subname='calculateOverlapMatrix3'
+  integer :: iorb, jorb, iiorb, jjorb, ist, jst, ncount
+  real(kind=8) :: ddot
+  character(len=*),parameter :: subname='calculateOverlapMatrix3'
 
 
   ovrlp=0.d0
@@ -1136,19 +1147,19 @@ end subroutine calculateOverlapMatrix3Partial
 !!!  implicit none
 !!!
 !!!  ! Calling arguments
-!!!  integer,intent(in):: iproc, nproc
-!!!  type(orbitals_data),intent(in):: orbs
-!!!  type(input_variables),intent(in):: input
-!!!  type(local_zone_descriptors),intent(in):: lzd
-!!!  type(overlapParameters),intent(in):: op
-!!!  type(p2pComms),intent(in):: comon
-!!!  real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+!!!  integer,intent(in) :: iproc, nproc
+!!!  type(orbitals_data),intent(in) :: orbs
+!!!  type(input_variables),intent(in) :: input
+!!!  type(local_zone_descriptors),intent(in) :: lzd
+!!!  type(overlapParameters),intent(in) :: op
+!!!  type(p2pComms),intent(in) :: comon
+!!!  real(kind=8),dimension(op%ndim_lphiovrlp),intent(out) :: lphiovrlp
 !!!
 !!!  ! Local variables
-!!!  integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m, ii
-!!!  integer:: start, iseg, istart, iend, ncount, kseg, kstart, kend, jst2, kold, ifine, isend
-!!!  integer:: igrid 
-!!!!!real(8):: t1, t2, time1, time2
+!!!  integer :: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m, ii
+!!!  integer :: start, iseg, istart, iend, ncount, kseg, kstart, kend, jst2, kold, ifine, isend
+!!!  integer :: igrid 
+!!!!!real(kind=8) :: t1, t2, time1, time2
 !!!
 !!!!!t1=mpi_wtime()
 !!!  lphiovrlp=0.d0
@@ -1263,18 +1274,18 @@ subroutine globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, l
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(in):: lzd
-  type(overlapParameters),intent(in):: op
-  type(p2pComms),intent(in):: comon
-  real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
-  real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-  real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(in) :: op
+  type(p2pComms),intent(in) :: comon
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: ovrlp
+  real(kind=8),dimension(op%ndim_lphiovrlp),intent(in) :: lphiovrlp
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(out) :: lphi
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, ist, ncount
-  real(8):: tt, dnrm2
+  integer :: iorb, iiorb, ilr, ist, ncount
+  real(kind=8) :: tt, dnrm2
 
 
   call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
@@ -1305,18 +1316,19 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
-  type(orbitals_data),intent(in):: orbs
-  real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
-  real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  integer,intent(in) :: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: ovrlp
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: lagmat
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr, iseg
-  real(8):: tt, t1, t2, time_dsymm, time_daxpy
-  real(8),dimension(:,:),allocatable:: ovrlp2
-  character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
+  integer :: iorb, jorb, istat, iall, ierr
+  real(kind=8) :: tt, t1, t2, time_dsymm
+!!  real(kind=8) :: time_daxpy
+  real(kind=8),dimension(:,:),allocatable :: ovrlp2
+  character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
   call timing(iproc,'lagmat_orthoco','ON')
 
@@ -1330,8 +1342,6 @@ correctionIf: if(correction_orthoconstraint==0) then
   ! Invert the overlap matrix
   call mpi_barrier(mpi_comm_world, ierr)
   call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
-
-
 
 
   ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -1452,15 +1462,15 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, iorder, norb
-  type(orbitals_data),intent(in):: orbs
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(norb,norb),intent(inout):: ovrlp
+  integer,intent(in) :: iproc, nproc, iorder, norb
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables
-  integer:: lwork, istat, iall, iorb, jorb, info
-  character(len=*),parameter:: subname='overlapPowerMinusOne'
-  real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
+  integer :: istat, iall, iorb, jorb, info
+  character(len=*),parameter :: subname='overlapPowerMinusOne'
+  real(kind=8),dimension(:,:),allocatable :: ovrlp2
 
   call timing(iproc,'lovrlp^-1     ','ON')
 
@@ -1533,16 +1543,16 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(norb,norb),intent(inout):: ovrlp
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables
-  integer:: lwork, istat, iall, iorb, jorb, info
-  character(len=*),parameter:: subname='overlapPowerMinusOneHalf'
-  real(8),dimension(:),allocatable:: eval, work
-  real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
-  real(8),dimension(:,:,:),allocatable:: tempArr
+  integer :: lwork, istat, iall, iorb, jorb, info
+  character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
+  real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:,:),allocatable :: ovrlp2
+  real(kind=8),dimension(:,:,:),allocatable :: tempArr
 
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
@@ -1676,21 +1686,20 @@ use module_interfaces, exceptThisOne => getMatrixElements2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(overlapParameters),intent(inout):: op_lb
-type(p2pComms),intent(inout):: comon_lb
-real(8),dimension(orbs%npsidim_orbs),intent(in):: lphi, lhphi
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(overlapParameters),intent(inout) :: op_lb
+type(p2pComms),intent(inout) :: comon_lb
+real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi, lhphi
+type(matrixDescriptors),intent(in) :: mad
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: matrixElements
 
 ! Local variables
-integer:: it, istat, iall, iorb
-real(8),dimension(:),allocatable:: lphiovrlp
-character(len=*),parameter:: subname='getMatrixElements2'
-real(8):: tt1, tt2, tt3
-type(input_variables):: input
+character(len=*),parameter :: subname='getMatrixElements2'
+!! real(kind=8),dimension(:),allocatable :: lphiovrlp
+!! real(kind=8) :: tt1, tt2, tt3
+!! type(input_variables) :: input
 
 
   ! Put lphi in the sendbuffer,i.e. lphi will be sent to other processes' receive buffer.
@@ -1716,13 +1725,13 @@ subroutine getStartingIndices(iorb, jorb, op, orbs, ist, jst)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iorb, jorb
-  type(overlapParameters),intent(in):: op
-  type(orbitals_data),intent(in):: orbs
-  integer,intent(out):: ist, jst
+  integer,intent(in) :: iorb, jorb
+  type(overlapParameters),intent(in) :: op
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(out) :: ist, jst
   
   ! Local variables
-  integer:: jjlr, jjproc, jj, iilr, iiproc, korb, kkorb, ii, iiorb, jjorb
+  integer :: jjlr, jjproc, jj, iilr, iiproc, korb, kkorb, ii, iiorb, jjorb
 
 
   iiorb=orbs%isorb+iorb
@@ -1763,13 +1772,13 @@ subroutine getStartingIndicesGlobal(iiorbx, jjorbx, op, orbs, ist, jst, ncount)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iiorbx, jjorbx
-  type(overlapParameters),intent(in):: op
-  type(orbitals_data),intent(in):: orbs
-  integer,intent(out):: ist, jst, ncount
+  integer,intent(in) :: iiorbx, jjorbx
+  type(overlapParameters),intent(in) :: op
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(out) :: ist, jst, ncount
   
   ! Local variables
-  integer:: iiorb, jjorb, iorb, jorb
+  integer :: iiorb, jjorb, iorb, jorb
 
   ! This only works localy on a process, i.e. we can only get the informations related
   ! to the currect process (but this is enough)

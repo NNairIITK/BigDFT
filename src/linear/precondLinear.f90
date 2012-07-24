@@ -1,41 +1,45 @@
+!> @file
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
+
+!> Solves the preconditioning equation by conjugate gradient iterations.
+!! The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
+!! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
+!! x is the right hand side on input and the solution on output
+!! 
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------   
+!!     lr               type describing the localization region
+!!     ncplx            real or complex??
+!!     ncong            number of CG iterations
+!!     cprecr           preconditioning constant
+!!     hx               hgrid in x direction
+!!     hy               hgrid in y direction
+!!     hz               hgrid in z direction
+!!     kx               kpoints in x direction?
+!!     ky               kpoints in y direction?
+!!     kz               kpoints in z direction?
+!!     rxyzParab        the center of the confinement potential
+!!     orbs             type describing the orbitals
+!!     potentialPrefac  prefactor for the confinement potential
+!!     it               delete later??
+!!   Input / Output arguments:
+!!   -------------------------
+!!     x                on input: the right hand side of the equation (i.e. y)
+!!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
-!
-! Purpose:
-! ========
-!   Solves the preconditioning equation by conjugate gradient iterations.
-!   The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
-!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
-! 
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------   
-!     lr               type describing the localization region
-!     ncplx            real or complex??
-!     ncong            number of CG iterations
-!     cprecr           preconditioning constant
-!     hx               hgrid in x direction
-!     hy               hgrid in y direction
-!     hz               hgrid in z direction
-!     kx               kpoints in x direction?
-!     ky               kpoints in y direction?
-!     kz               kpoints in z direction?
-!     rxyzParab        the center of the confinement potential
-!     orbs             type describing the orbitals
-!     potentialPrefac  prefactor for the confinement potential
-!     it               delete later??
-!   Input / Output arguments:
-!   -------------------------
-!     x                on input: the right hand side of the equation (i.e. y)
-!                      on output: the solution of the equation (i.e. x)
-!
+
 use module_base
 use module_types
-! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-! x is the right hand side on input and the solution on output
-! Calling arguments
+
 implicit none
 integer, intent(in) :: iproc,nproc,ncong,ncplx
 real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
@@ -122,10 +126,6 @@ real(wp), dimension(:), allocatable :: b,r,d
 END SUBROUTINE solvePrecondEquation
 
 
-
-
-
-
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, it)! y:=Ax
   use module_base
@@ -209,24 +209,22 @@ END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
 
+!>   WRONG DESCRIPTION
+!!   This subroutine uncompresses the wave function, applies the operators on it, 
+!!   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
+!!   Here cprecr is a constant and r^4 is the confinement potential of the form
+!!   lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
 subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
      rxyzParab, lr, parabPrefac, confPotOrder, &
      xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
-!
-! Purpose:
-! ========
-!   WRONG DESCRIPTION
-!   This subroutine uncompresses the wave function, applies the operators on it, 
-!   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
-!   Here cprecr is a constant and r^4 is the confinement potential of the form
-!   lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
-!
+
   use module_base
   use module_types
   use module_interfaces
+
   implicit none
   integer, intent(in) :: iproc, nproc, n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
@@ -258,13 +256,13 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   ! Local variables
   type(workarrays_quartic_convolutions):: work_conv
   character(len=*),parameter:: subname='applyOperator'
-  real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-  real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+!!  real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+!!  real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 
-  type(workarr_sumrho):: work_sr
-  real(8),dimension(:,:),allocatable:: psir
-  real(8),dimension(:),allocatable:: psi
-  integer:: i_stat, i_all
+!!  type(workarr_sumrho):: work_sr
+!!  real(8),dimension(:,:),allocatable:: psir
+!!  real(8),dimension(:),allocatable:: psi
+!!  integer:: i_stat, i_all
 
 
 
@@ -442,40 +440,33 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 END SUBROUTINE applyOperator
 
 
-
-
-
-
-
+!>   Preconditions all orbitals belonging to iproc.
+!!  
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!     iproc     process ID
+!!     nproc     total number of processes
+!!     orbs      type describing the physical orbitals psi
+!!     lin       type containing parameters for the linear version
+!!     lr        type describing the localization region
+!!     hx        grid spacing in x direction
+!!     hy        grid spacing in y direction
+!!     hz        grid spacing in z direction
+!!     ncong     number of CG iterations 
+!!     rxyz      the center of the confinement potential
+!!     at        type containing the paraneters for the atoms
+!!     it        iteration -- delete maybe??
+!!  Input/Output arguments
+!!  ---------------------
+!!     hpsi      the gradient to be preconditioned
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
            confpotorder, potentialprefac, it, iorb, eval_zero)
-!
-! Purpose:
-! ========
-!   Preconditions all orbitals belonging to iproc.
-!  
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc     process ID
-!     nproc     total number of processes
-!     orbs      type describing the physical orbitals psi
-!     lin       type containing parameters for the linear version
-!     lr        type describing the localization region
-!     hx        grid spacing in x direction
-!     hy        grid spacing in y direction
-!     hz        grid spacing in z direction
-!     ncong     number of CG iterations 
-!     rxyz      the center of the confinement potential
-!     at        type containing the paraneters for the atoms
-!     it        iteration -- delete maybe??
-!  Input/Output arguments
-!  ---------------------
-!     hpsi      the gradient to be preconditioned
-!
+
 use module_base
 use module_types
+
 implicit none
 integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
 real(gp), intent(in) :: hx,hy,hz
@@ -487,8 +478,8 @@ real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout)
 integer,intent(in):: it
 real(8),intent(in):: eval_zero
 !local variables
-integer :: inds, ncplx, ikpt, ierr, iiAt
-real(wp) :: cprecr,scpr!,eval_zero,evalmax 
+integer :: inds, ncplx, iiAt!,ikpt,ierr
+real(wp) :: cprecr!,scpr,eval_zero,evalmax 
 real(gp) :: kx,ky,kz
 
 
@@ -570,5 +561,3 @@ real(gp) :: kx,ky,kz
   !enddo
 
 END SUBROUTINE choosePreconditioner2
-
-

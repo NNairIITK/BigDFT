@@ -17,37 +17,37 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, scf_mode
-integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
-type(local_zone_descriptors),intent(inout):: lzd
+integer,intent(in) :: iproc, nproc, scf_mode
+integer,intent(in) :: blocksize_pdsyev, nproc_pdsyev
+type(local_zone_descriptors),intent(inout) :: lzd
 type(orbitals_data),intent(in) :: orbs
-type(atoms_data),intent(in):: at
-real(8),dimension(3,at%nat),intent(in):: rxyz
+type(atoms_data),intent(in) :: at
+real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
-type(GPU_pointers),intent(inout):: GPU
-integer,intent(out):: infoCoeff
-real(8),intent(out):: ebs, fnrm
-real(8),intent(in):: hx, hy, hz
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-type(SIC_data),intent(in):: SIC
-type(DFT_wavefunction),intent(inout):: tmbmix, tmb
-type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
+type(GPU_pointers),intent(inout) :: GPU
+integer,intent(out) :: infoCoeff
+real(kind=8),intent(out) :: ebs, fnrm
+real(kind=8),intent(in) :: hx, hy, hz
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+type(SIC_data),intent(in) :: SIC
+type(DFT_wavefunction),intent(inout) :: tmbmix, tmb
+type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
-real(8),dimension(:),allocatable:: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
-real(8),dimension(:,:),allocatable:: ovrlp, overlapmatrix
-real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: tt
-logical:: withConfinement
+integer :: istat, iall, iorb, jorb, korb, info, inc, jjorb
+real(kind=8),dimension(:),allocatable :: eval, lhphi, psit_c, psit_f, hpsit_c, hpsit_f
+real(kind=8),dimension(:,:),allocatable :: ovrlp, overlapmatrix
+real(kind=8),dimension(:,:,:),allocatable :: matrixElements
+real(kind=8) :: tt
+logical :: withConfinement
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
-character(len=*),parameter:: subname='get_coeff'
+character(len=*),parameter :: subname='get_coeff'
 !For debug
-integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
-character(len=1) :: num
-real(8),dimension(:),allocatable :: Gphi, Ghphi, work
+!! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
+!! character(len=1) :: num
+!! real(kind=8),dimension(:),allocatable :: Gphi, Ghphi, work
 
 
   ! Allocate the local arrays.  
@@ -348,38 +348,37 @@ use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A =
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-integer,intent(out):: infoBasisFunctions
+integer,intent(in) :: iproc, nproc
+integer,intent(out) :: infoBasisFunctions
 type(atoms_data), intent(in) :: at
-type(orbitals_data):: orbs
-real(8),dimension(3,at%nat):: rxyz
+type(orbitals_data) :: orbs
+real(kind=8),dimension(3,at%nat) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
-real(8),intent(out):: trH
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-type(localizedDIISParameters),intent(inout):: ldiis
-type(DFT_wavefunction),target,intent(inout):: tmb
+real(kind=8),intent(out) :: trH
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+type(localizedDIISParameters),intent(inout) :: ldiis
+type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
-real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
+real(kind=8),dimension(tmb%lzd%nlr),intent(in) :: locrad
 
 ! Local variables
-!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
-real(8):: timecommunp2p, timeextract, timecommuncoll, timecompress
-real(8):: trHold, factor, fnrmMax, fnrm, meanAlpha
-integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr
-integer,dimension(:),allocatable:: inwhichlocreg_reference, onwhichatom_reference
-real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
-real(8),dimension(:,:),allocatable:: kernel, locregCenter, ovrlp
-logical:: withConfinement, variable_locregs
-character(len=*),parameter:: subname='getLocalizedBasis'
-real(8),dimension(:),allocatable:: locrad_tmp
-real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
-real(8),dimension(:),pointer:: lhphiopt,lhphioldopt
-type(local_zone_descriptors):: lzdlarge
-type(DFT_wavefunction),target:: tmblarge
-type(DFT_wavefunction),pointer:: tmbopt
+!real(kind=8) :: epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,eSIC_DC
+!real(kind=8) :: timecommuncoll
+real(kind=8) :: trHold, factor, fnrmMax, fnrm, meanAlpha
+integer :: iorb, consecutive_rejections,istat,ierr,it,iall,ilr
+integer,dimension(:),allocatable :: inwhichlocreg_reference, onwhichatom_reference
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
+real(kind=8),dimension(:,:),allocatable :: fnrmArr, fnrmOvrlpArr, Umat, locregCenterTemp
+real(kind=8),dimension(:,:),allocatable :: kernel, locregCenter, ovrlp
+logical :: withConfinement, variable_locregs
+character(len=*),parameter :: subname='getLocalizedBasis'
+real(kind=8),dimension(:),allocatable :: locrad_tmp
+real(kind=8),dimension(:),pointer :: lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold, lphioldopt
+real(kind=8),dimension(:),pointer :: lhphiopt,lhphioldopt
+type(DFT_wavefunction),target :: tmblarge
+type(DFT_wavefunction),pointer :: tmbopt
 type(energy_terms) :: energs
 
 
@@ -875,15 +874,15 @@ use module_interfaces, except_this_one => improveOrbitals
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, it
-logical,intent(in):: variable_locregs
-type(DFT_wavefunction),intent(inout):: tmb
-type(localizedDIISParameters),intent(inout):: ldiis
-real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
-real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
+integer,intent(in) :: iproc, nproc, it
+logical,intent(in) :: variable_locregs
+type(DFT_wavefunction),intent(inout) :: tmb
+type(localizedDIISParameters),intent(inout) :: ldiis
+real(kind=8),dimension(tmb%wfnmd%nphi),intent(in) :: lhphi
+real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
 
 ! Local variables
-integer:: istart, iorb, iiorb, ilr, ncount
+integer :: istart, iorb, iiorb, ilr, ncount
 
 if (ldiis%isx > 0) then
     ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -967,16 +966,16 @@ end subroutine my_geocode_buffers
 !!$implicit none
 !!$
 !!$! Calling arguments
-!!$integer,intent(in):: iproc, nproc
+!!$integer,intent(in) :: iproc, nproc
 !!$type(orbitals_data), intent(in) :: orbs
 !!$type(communications_arrays), intent(in) :: comms
-!!$real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
-!!$real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
+!!$real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
+!!$real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: HamSmall
 !!$
 !!$! Local variables
-!!$integer:: istat, ierr, nvctrp, iall
-!!$real(8),dimension(:,:),allocatable:: HamTemp
-!!$character(len=*),parameter:: subname='transformHam'
+!!$integer :: istat, ierr, nvctrp, iall
+!!$real(kind=8),dimension(:,:),allocatable :: HamTemp
+!!$character(len=*),parameter :: subname='transformHam'
 !!$
 !!$
 !!$
@@ -1039,15 +1038,15 @@ end subroutine my_geocode_buffers
 !!!implicit none
 !!!
 !!!! Calling arguments
-!!!integer:: iproc, nproc
+!!!integer :: iproc, nproc
 !!!type(orbitals_data), intent(inout) :: orbs
-!!!real(8),dimension(orbs%norb, orbs%norb):: HamSmall
-!!!real(8),dimension(orbs%norb):: eval
+!!!real(kind=8),dimension(orbs%norb, orbs%norb) :: HamSmall
+!!!real(kind=8),dimension(orbs%norb) :: eval
 !!!
 !!!! Local variables
-!!!integer:: lwork, info, istat, iall, i, iorb, jorb
-!!!real(8),dimension(:),allocatable:: work
-!!!character(len=*),parameter:: subname='diagonalizeHamiltonian'
+!!!integer :: lwork, info, istat, iall, i, iorb, jorb
+!!!real(kind=8),dimension(:),allocatable :: work
+!!!character(len=*),parameter :: subname='diagonalizeHamiltonian'
 !!!
 !!!  ! Get the optimal work array size
 !!!  lwork=-1 
@@ -1112,16 +1111,15 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, nsubmax
+integer :: iproc, nproc, nsubmax
 type(orbitals_data), intent(inout) :: orbs
-real(8),dimension(orbs%norb, orbs%norb):: HamSmall, ovrlp
-real(8),dimension(orbs%norb):: eval
+real(kind=8),dimension(orbs%norb, orbs%norb) :: HamSmall, ovrlp
+real(kind=8),dimension(orbs%norb) :: eval
 
 ! Local variables
-integer:: lwork, info, istat, iall, i, iorb, jorb, nsub
-real(8),dimension(:),allocatable:: work
-real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
-character(len=*),parameter:: subname='diagonalizeHamiltonian'
+integer :: lwork, info, istat, iall, iorb, jorb
+real(kind=8),dimension(:),allocatable :: work
+character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call timing(iproc,'diagonal_seq  ','ON')
 
@@ -1131,7 +1129,7 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
   allocate(work(1), stat=istat)
   call memocc(istat, work, 'work', subname)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  lwork=work(1) 
+  lwork=int(work(1))
 
   ! Deallocate the work array ane reallocate it with the optimal size
   iall=-product(shape(work))*kind(work)
@@ -1279,17 +1277,17 @@ end subroutine diagonalizeHamiltonian2
 !!!implicit none
 !!!
 !!!! Calling arguments
-!!!integer:: iproc, nproc
+!!!integer :: iproc, nproc
 !!!type(orbitals_data), intent(in) :: orbs
 !!!type(orbitals_data), intent(in) :: orbsLIN
 !!!type(communications_arrays), intent(in) :: comms
 !!!type(communications_arrays), intent(in) :: commsLIN
-!!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
-!!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
-!!!real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
+!!!real(kind=8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
+!!!real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
+!!!real(kind=8),dimension(orbsLIN%norb,orbsLIN%norb) :: HamSmall
 !!!
 !!!! Local variables
-!!!integer:: nvctrp
+!!!integer :: nvctrp
 !!!
 !!!
 !!!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -1333,17 +1331,17 @@ end subroutine diagonalizeHamiltonian2
 !!!implicit none
 !!!
 !!!! Calling arguments
-!!!integer:: iproc, nproc
+!!!integer :: iproc, nproc
 !!!type(orbitals_data), intent(in) :: orbs
 !!!type(orbitals_data), intent(in) :: orbsLIN
 !!!type(communications_arrays), intent(in) :: comms
 !!!type(communications_arrays), intent(in) :: commsLIN
-!!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
-!!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
-!!!real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
+!!!real(kind=8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
+!!!real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
+!!!real(kind=8),dimension(orbsLIN%norb,orbs%norb) :: coeff
 !!!
 !!!! Local variables
-!!!integer:: nvctrp
+!!!integer :: nvctrp
 !!!
 !!!
 !!!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -1366,28 +1364,23 @@ use module_interfaces, except_this_one => apply_orbitaldependent_potential
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, centralLocreg
-type(atoms_data),intent(in):: at
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(3,at%nat),intent(in):: rxyz
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),intent(in):: hx
-!real(8),dimension(lzd%lpsidimtot),intent(in):: psi  !!!! ATENTION, intent should be in !
-!real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
+integer,intent(in) :: iproc, nproc, centralLocreg
+type(atoms_data),intent(in) :: at
+type(orbitals_data),intent(in) :: orbs
+type(local_zone_descriptors),intent(in) :: lzd
+real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+real(kind=8),intent(in) :: hx
+!real(kind=8),dimension(lzd%lpsidimtot),intent(in) :: psi  !!!! ATENTION, intent should be in !
+!real(kind=8),dimension(lzd%lpsidimtot),intent(inout) :: psi
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout) :: psi
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: vpsi
 
 ! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
-real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-real(8),dimension(:,:),allocatable:: psir, vpsir
-type(workarr_precond) :: work
-type(workarrays_quartic_convolutions):: work_conv
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+integer :: iorb, ilr, npot, icenter, ist_c, ist_f, iiorb
+type(workarrays_quartic_convolutions) :: work_conv
+real(kind=8),dimension(0:3),parameter :: scal=1.d0
+character(len=*),parameter :: subname='apply_orbitaldependent_potential'
 
 
 
@@ -1469,11 +1462,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 
   end do
 
-
-
 end subroutine apply_orbitaldependent_potential
-
-
 
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
@@ -1485,15 +1474,15 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   use module_base
   use module_types
   implicit none
-  integer,intent(in):: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
-  integer,dimension(mseg_c),intent(in):: keyv_c
-  integer,dimension(mseg_f),intent(in):: keyv_f
-  integer,dimension(2,mseg_c),intent(in):: keyg_c
-  integer,dimension(2,mseg_f),intent(in):: keyg_f
-  real(wp),dimension(0:3),intent(in):: scal
-  real(wp),dimension(mvctr_c),intent(in):: psi_c
-  real(wp),dimension(7,mvctr_f),intent(in):: psi_f
-  type(workarrays_quartic_convolutions),intent(out):: work
+  integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
+  integer,dimension(mseg_c),intent(in) :: keyv_c
+  integer,dimension(mseg_f),intent(in) :: keyv_f
+  integer,dimension(2,mseg_c),intent(in) :: keyg_c
+  integer,dimension(2,mseg_f),intent(in) :: keyg_f
+  real(wp),dimension(0:3),intent(in) :: scal
+  real(wp),dimension(mvctr_c),intent(in) :: psi_c
+  real(wp),dimension(7,mvctr_f),intent(in) :: psi_f
+  type(workarrays_quartic_convolutions),intent(out) :: work
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
@@ -1577,11 +1566,11 @@ function dfactorial(n)
 implicit none
 
 ! Calling arguments
-integer,intent(in):: n
-real(8):: dfactorial
+integer,intent(in) :: n
+real(kind=8) :: dfactorial
 
 ! Local variables
-integer:: i
+integer :: i
 
   dfactorial=1.d0
   do i=1,n
@@ -1599,20 +1588,20 @@ use module_types
 implicit none
 
 !Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(overlapParameters),intent(in):: op
-integer,intent(in):: nrecvbuf
-real(8),dimension(nrecvbuf),intent(in):: recvbuf
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
-logical,intent(in):: reset
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(overlapParameters),intent(in) :: op
+integer,intent(in) :: nrecvbuf
+real(kind=8),dimension(nrecvbuf),intent(in) :: recvbuf
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: omat
+logical,intent(in) :: reset
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: lphi
 
 ! Local variables
-integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
-integer:: istart, iend, iseg, start, ifine, igrid, irecv, kseg, kold, kstart, kend 
-real(8):: tt
+integer :: jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, ldim, indout, gdim, iorbref
+integer :: istart, iend, iseg, start, kseg, kold, kstart, kend 
+real(kind=8) :: tt
 
    call timing(iproc,'build_lincomb ','ON')
 
@@ -1699,25 +1688,25 @@ end subroutine build_new_linear_combinations
 !!!implicit none
 !!!
 !!!! Calling arguments
-!!!integer,intent(in):: iproc, nproc
-!!!type(atoms_data),intent(in):: at
-!!!type(orbitals_data),intent(in):: orbs
-!!!type(local_zone_descriptors),intent(in):: lzd
-!!!type(overlapParameters),intent(inout):: op
-!!!type(p2pComms),intent(inout):: comon
-!!!type(matrixDescriptors),intent(in):: mad
-!!!real(8),dimension(3,at%nat),intent(in):: rxyz
-!!!real(8),intent(in):: hx
-!!!type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-!!!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-!!!real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
+!!!integer,intent(in) :: iproc, nproc
+!!!type(atoms_data),intent(in) :: at
+!!!type(orbitals_data),intent(in) :: orbs
+!!!type(local_zone_descriptors),intent(in) :: lzd
+!!!type(overlapParameters),intent(inout) :: op
+!!!type(p2pComms),intent(inout) :: comon
+!!!type(matrixDescriptors),intent(in) :: mad
+!!!real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+!!!real(kind=8),intent(in) :: hx
+!!!type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+!!!real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout) :: psi
+!!!real(kind=8),dimension(orbs%norb,orbs%norb,at%nat),intent(out) :: potmat
 !!!
 !!!! Local variables
-!!!integer:: iorb, ilr, ilrold, istat, iall
-!!!real(8),dimension(:,:),allocatable:: ttmat
-!!!real(8):: tt1, tt2, tt3, tt4, tt5
-!!!real(8),dimension(:),allocatable:: vpsi
-!!!character(len=*),parameter:: subname='get_potential_matrices'
+!!!integer :: iorb, ilr, ilrold, istat, iall
+!!!real(kind=8),dimension(:,:),allocatable :: ttmat
+!!!real(kind=8) :: tt1, tt2, tt3, tt4, tt5
+!!!real(kind=8),dimension(:),allocatable :: vpsi
+!!!character(len=*),parameter :: subname='get_potential_matrices'
 !!!
 !!!allocate(vpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
 !!!call memocc(istat, vpsi, 'vpsi', subname)
@@ -1760,23 +1749,25 @@ use module_interfaces, except_this_one => apply_position_operators
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, order
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),intent(in):: hx, hy, hz
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: xpsi, ypsi, zpsi
+integer,intent(in) :: iproc, nproc, order
+type(orbitals_data),intent(in) :: orbs
+type(local_zone_descriptors),intent(in) :: lzd
+real(kind=8),intent(in) :: hx, hy, hz
+type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psi
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: xpsi, ypsi, zpsi
 
 ! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
-real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-real(8),dimension(:,:),allocatable:: psir, psirx, psiry, psirz
-type(workarr_sumrho):: work_sr
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-character(len=*),parameter:: subname='apply_position_operators'
+integer :: oidx, iorb, ilr, npot, i_stat, i_all, iiorb
+real(kind=8) :: hxh, hyh, hzh
+!! integer :: icenter,iall,ierr,ist,ist_c,ist_f
+!! real(kind=8) :: tt, t1, t2, time
+real(kind=8),dimension(:,:),allocatable :: psir, psirx, psiry, psirz
+type(workarr_sumrho) :: work_sr
+real(kind=8),dimension(0:3),parameter :: scal=1.d0
+!! real(kind=8),dimension(:,:,:),allocatable :: ypsitemp_c
+!! real(kind=8),dimension(:,:,:,:),allocatable :: ypsitemp_f
+character(len=*),parameter :: subname='apply_position_operators'
 integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 !!interface
 !!subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
@@ -1786,8 +1777,8 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 !!implicit none
 !!integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
 !!real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-!!real(8),intent(in):: hxh, hyh, hzh
-!!character(len=1),intent(in):: dir
+!!real(kind=8),intent(in) :: hxh, hyh, hzh
+!!character(len=1),intent(in) :: dir
 !!integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
 !!end subroutine
 !!end interface
@@ -1937,10 +1928,9 @@ subroutine position_operators(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
   !local variables
   integer :: ii1,ii2,ii3,i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-  real(wp):: ttx, tty, ttz, potx, poty, potz
-
+  real(wp) :: ttx, tty, ttz, psir1, potx, poty, potz
+!!$   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+!!$ real(wp) :: pot1,pot2,pot3,pot4,psir2,psir3,psir4
 
   !loop on wavefunction
   !calculate the limits in all the directions
@@ -2160,12 +2150,12 @@ subroutine commutator(norb, A, B, res)
 implicit none
 
 ! Calling arguments
-integer,intent(in):: norb
-real(8),dimension(norb,norb),intent(in):: A, B
-real(8),dimension(norb,norb),intent(out):: res
+integer,intent(in) :: norb
+real(kind=8),dimension(norb,norb),intent(in) :: A, B
+real(kind=8),dimension(norb,norb),intent(out) :: res
 
 ! Local variables
-real(8),dimension(norb,norb):: AB, BA
+real(kind=8),dimension(norb,norb) :: AB, BA
 
 call dgemm('n', 'n', norb, norb, norb, 1.d0, A, norb, B, norb, 0.d0, AB, norb)
 call dgemm('n', 'n', norb, norb, norb, 1.d0, B, norb, A, norb, 0.d0, BA, norb)
@@ -2181,23 +2171,26 @@ use module_interfaces, except_this_one => apply_r_operators
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, order
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),intent(in):: hx, hy, hz
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
+integer,intent(in) :: iproc, nproc, order
+type(orbitals_data),intent(in) :: orbs
+type(local_zone_descriptors),intent(in) :: lzd
+real(kind=8),intent(in) :: hx, hy, hz
+type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: psi
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: vpsi
 
 ! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
-real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-real(8),dimension(:,:),allocatable:: psir, psirx, psiry, psirz
-type(workarr_sumrho):: work_sr
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+integer :: oidx, iorb, ilr, npot, i_stat, i_all, iiorb
+real(kind=8) :: hxh, hyh, hzh
+real(kind=8),dimension(:,:),allocatable :: psir
+!! integer :: iall,icenter,ierr,ist,ist_c,ist_f
+!! real(kind=8) :: t1, t2, time,ddot,tt
+!! real(kind=8),dimension(:,:),allocatable :: psirx, psiry, psirz
+type(workarr_sumrho) :: work_sr
+real(kind=8),dimension(0:3),parameter :: scal=1.d0
+!! real(kind=8),dimension(:,:,:),allocatable :: ypsitemp_c
+!! real(kind=8),dimension(:,:,:,:),allocatable :: ypsitemp_f
+character(len=*),parameter :: subname='apply_orbitaldependent_potential'
 integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   ishift=(/0,0,0/)
@@ -2326,12 +2319,6 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
 end subroutine apply_r_operators
 
 
-
-
-
-
-
-
 subroutine r_operator(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order,&
      confdata,ibyyzz_r) !optional
   use module_base
@@ -2344,9 +2331,10 @@ subroutine r_operator(Gn1i,Gn2i,Gn3i,n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
   !local variables
   integer :: i1,i2,i3,ii1,ii2,ii3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-  real(wp):: ttx, tty, ttz, potx, poty, potz
+  real(wp) :: tt,ttx,tty,ttz,psir1
+!!$  real(wp) :: potx, poty, potz
+!!$  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+!!$  real(wp) :: psir2,psir3,psir4,pot1,pot2,pot3,pot4
 
   if(order/=1 .and. order/=2) stop 'wrong order'
 
@@ -2567,13 +2555,13 @@ subroutine update_confdatarr(lzd, orbs, locregCenter, confdatarr)
   implicit none
   
   ! Calling arguments
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
-  real(8),dimension(3,lzd%nlr),intent(in):: locregCenter
-  type(confpot_data),dimension(orbs%norbp),intent(inout):: confdatarr
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregCenter
+  type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
   
   ! Local variables
-  integer:: iorb, iiorb, ilr, icenter, nl1, nl2, nl3
+  integer :: iorb, iiorb, ilr, icenter, nl1, nl2, nl3
   
   ! Update confdatarr...
   do iorb=1,orbs%norbp
@@ -2602,14 +2590,14 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in):: orbssmall, orbslarge
-  real(8),dimension(orbssmall%npsidim_orbs),intent(in):: phismall
-  real(8),dimension(orbslarge%npsidim_orbs),intent(out):: philarge
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+  type(orbitals_data),intent(in) :: orbssmall, orbslarge
+  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(in) :: phismall
+  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(out) :: philarge
   
   ! Local variables
-  integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
+  integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
   
   philarge=0.d0
   ists=1
@@ -2643,14 +2631,14 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in):: orbssmall, orbslarge
-  real(8),dimension(orbslarge%npsidim_orbs),intent(in):: philarge
-  real(8),dimension(orbssmall%npsidim_orbs),intent(out):: phismall
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+  type(orbitals_data),intent(in) :: orbssmall, orbslarge
+  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(in) :: philarge
+  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(out) :: phismall
   
   ! Local variables
-  integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
+  integer :: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
   
   ! Transform back to small locreg
   phismall=0.d0
@@ -2680,13 +2668,13 @@ subroutine check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc
-  type(local_zone_descriptors),intent(in):: lzd
-  real(8),dimension(3,lzd%nlr),intent(in):: locregCenter
-  real(8),intent(in):: hx, hy, hz
+  integer,intent(in) :: iproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregCenter
+  real(kind=8),intent(in) :: hx, hy, hz
   
   ! Local variables
-  integer:: ilr, ierr
+  integer :: ilr, ierr
   
   do ilr=1,lzd%nlr
       if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
@@ -2733,15 +2721,15 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: llborbs
-  real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
-  type(p2pComms),intent(inout):: comsr
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: llborbs
+  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
+  type(p2pComms),intent(inout) :: comsr
   
   ! Local variables
-  integer:: ist, istr, iorb, iiorb, ilr, ierr
-  type(workarr_sumrho):: w
+  integer :: ist, istr, iorb, iiorb, ilr
+  type(workarr_sumrho) :: w
 
   ! Allocate the communication buffers for the calculation of the charge density.
   !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
@@ -2777,15 +2765,15 @@ subroutine update_kernel(norb, Umat, kernel)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: norb
-  real(8),dimension(norb,norb),intent(in):: Umat
-  real(8),dimension(norb,norb),intent(inout):: kernel
+  integer,intent(in) :: norb
+  real(kind=8),dimension(norb,norb),intent(in) :: Umat
+  real(kind=8),dimension(norb,norb),intent(inout) :: kernel
   
   ! Local variables
-  integer:: iorb, jorb, korb, lorb, istat, iall
-  real(8):: tt
-  real(8),dimension(:,:),allocatable:: kernelold
-  character(len=*),parameter:: subname='update_kernel'
+  integer :: iorb, jorb, korb, lorb, istat, iall
+  real(kind=8) :: tt
+  real(kind=8),dimension(:,:),allocatable :: kernelold
+  character(len=*),parameter :: subname='update_kernel'
   
   allocate(kernelold(norb,norb), stat=istat)
   call memocc(istat, kernelold, 'kernelold', subname)
@@ -2818,15 +2806,15 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  real(8),intent(in):: trH
-  type(DFT_wavefunction),intent(inout):: tmbopt
-  type(localizedDIISParameters),intent(inout):: ldiis
-  real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
+  integer,intent(in) :: iproc, nproc, it
+  real(kind=8),intent(in) :: trH
+  type(DFT_wavefunction),intent(inout) :: tmbopt
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  real(kind=8),dimension(tmbopt%orbs%norbp),intent(out) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(out) :: lphioldopt
   
   ! Local variables
-  integer:: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
+  integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
   
   !
   ! Purpose:

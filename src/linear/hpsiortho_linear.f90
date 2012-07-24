@@ -1,3 +1,13 @@
+!> @file
+!! H|psi> and orthonormalization
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            variable_locregs, tmbopt, kernel, &
            ldiis, lhphiopt, lphioldopt, lhphioldopt, consecutive_rejections, fnrmArr, &
@@ -8,24 +18,26 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  logical,intent(in):: variable_locregs
-  type(DFT_wavefunction),intent(inout):: tmbopt
-  real(8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in):: kernel
-  type(localizedDIISParameters),intent(inout):: ldiis
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lhphiopt
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(inout):: lphioldopt, lhphioldopt
-  integer,intent(inout):: consecutive_rejections
-  real(8),dimension(tmbopt%orbs%norb,2),intent(inout):: fnrmArr, fnrmOvrlpArr
-  real(8),dimension(tmbopt%orbs%norb),intent(inout):: fnrmOldArr
-  real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  integer,intent(in) :: iproc, nproc, it
+  logical,intent(in) :: variable_locregs
+  type(DFT_wavefunction),intent(inout) :: tmbopt
+  real(kind=8),dimension(tmbopt%orbs%norb,tmbopt%orbs%norb),intent(in) :: kernel
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(inout) :: lhphiopt
+  real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(inout) :: lphioldopt, lhphioldopt
+  integer,intent(inout) :: consecutive_rejections
+  real(kind=8),dimension(tmbopt%orbs%norb,2),intent(inout) :: fnrmArr, fnrmOvrlpArr
+  real(kind=8),dimension(tmbopt%orbs%norb),intent(inout) :: fnrmOldArr
+  real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha
+  real(kind=8),intent(out) :: trH, trHold, fnrm, fnrmMax, meanAlpha
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall
-  real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
-  character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:,:),allocatable:: lagmat
+  integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
+  real(kind=8) :: ddot,tt, eval_zero
+  character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
+  real(kind=8),dimension(:,:),allocatable :: lagmat
+!!  integer :: nvctr_c, nvctr_f
+!!  real(kind=8) :: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress
 
   allocate(lagmat(tmbopt%orbs%norb,tmbopt%orbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
@@ -195,33 +207,33 @@ subroutine hpsitopsi_linear(iproc, nproc, it, variable_locregs, ldiis, tmblarge,
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  logical,intent(in):: variable_locregs
-  type(localizedDIISParameters),intent(inout):: ldiis
-  type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  type(DFT_wavefunction),pointer,intent(inout):: tmbopt
-  type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
-  real(8),dimension(:),pointer,intent(inout):: lhphilarge, lphilargeold, lhphilargeold
-  real(8),dimension(:),pointer,intent(inout):: lhphi, lphiold, lhphiold
-  real(8),dimension(:),pointer,intent(inout):: lhphiopt
-  real(8),dimension(:),pointer,intent(out):: lphioldopt
-  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenter
-  real(8),dimension(3,tmb%lzd%nlr),intent(inout):: locregCenterTemp
-  type(DFT_local_fields),intent(inout):: denspot
-  real(8),dimension(tmb%lzd%nlr),intent(in):: locrad
-  integer,dimension(tmb%orbs%norb),intent(in):: inwhichlocreg_reference
-  real(8),intent(in):: factor, trH, meanAlpha
-  real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+  integer,intent(in) :: iproc, nproc, it
+  logical,intent(in) :: variable_locregs
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(DFT_wavefunction),target,intent(inout) :: tmblarge, tmb
+  type(DFT_wavefunction),pointer,intent(inout) :: tmbopt
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: kernel
+  real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge, lphilargeold, lhphilargeold
+  real(kind=8),dimension(:),pointer,intent(inout) :: lhphi, lphiold, lhphiold
+  real(kind=8),dimension(:),pointer,intent(inout) :: lhphiopt
+  real(kind=8),dimension(:),pointer,intent(out) :: lphioldopt
+  real(kind=8),dimension(3,tmb%lzd%nlr),intent(inout) :: locregCenter
+  real(kind=8),dimension(3,tmb%lzd%nlr),intent(inout) :: locregCenterTemp
+  type(DFT_local_fields),intent(inout) :: denspot
+  real(kind=8),dimension(tmb%lzd%nlr),intent(in) :: locrad
+  integer,dimension(tmb%orbs%norb),intent(in) :: inwhichlocreg_reference
+  real(kind=8),intent(in) :: factor, trH, meanAlpha
+  real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
-  integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
-  real(8):: tt, dnrm2
-  real(8),dimension(:,:),allocatable:: Umat, ovrlp
-  integer,dimension(:),allocatable:: onwhichatom_reference
-  real(8),dimension(:),allocatable:: locrad_tmp
-  character(len=*),parameter:: subname='hpsitopsi_linear'
+  integer :: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
+  real(kind=8) :: tt, dnrm2
+  real(kind=8),dimension(:,:),allocatable :: Umat, ovrlp
+  integer,dimension(:),allocatable :: onwhichatom_reference
+  real(kind=8),dimension(:),allocatable :: locrad_tmp
+  character(len=*),parameter :: subname='hpsitopsi_linear'
 
 
   allocate(Umat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)

@@ -10,44 +10,6 @@
 
 !> Calculates the potential and energy and writes them. This is subroutine is copied
 !! from cluster.
-!!
-!! Calling arguments:
-!! ==================
-!!  Input arguments:
-!!  -----------------
-!!     @param iproc       process ID
-!!     @param nproc       total number of processes
-!!     @param n3d         ??
-!!     @param n3p         ??
-!!     @param Glr         type describing the localization region
-!!     @param orbs        type describing the physical orbitals psi
-!!     @param atoms       type containing the parameters for the atoms
-!!     @param in          type  containing some very general parameters
-!!     @param lin         type containing parameters for the linear version
-!!     @param psi         the physical orbitals
-!!     @param rxyz        atomic positions
-!!     @param rhopot      the charge density
-!!     @param nscatterarr ??
-!!     @param nlpspd      ??
-!!     @param proj        ??
-!!     @param pkernelseq  ??
-!!     @param radii_cf    coarse and fine radii around the atoms
-!!     @param irrzon      ??
-!!     @param phnons      ??
-!!     @param pkernel     ??
-!!     @param pot_ion     the ionic potential
-!!     @param rhocore     ??
-!!     @param potxc       ??
-!!     @param PSquiet     flag to control the output from the Poisson solver
-!!     @param eion        ionic energy
-!!     @param edisp       dispersion energy
-!!     @param fion        ionic forces
-!!     @param fdisp       dispersion forces
-!!  Input / Output arguments
-!!  ------------------------
-!!     @param rhopot      the charge density
-!!  Output arguments:
-!!  -----------------
 subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
 
 use module_base

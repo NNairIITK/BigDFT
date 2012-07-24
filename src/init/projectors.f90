@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Localize the projectors for pseudopotential calculations
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nlpspd)
   use module_base

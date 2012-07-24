@@ -1,24 +1,34 @@
-!! ATTENTION: This works only if the matrices have the same sizes for all processes!!
+!> @file
+!! Wavefunction put into a localisation region
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> @warning This works only if the matrices have the same sizes for all processes!!
 subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
 use module_base
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
-character(len=1),intent(in):: transa, transb
-real(8),intent(in):: alpha, beta
-real(8),dimension(lda,k),intent(in):: a
-real(8),dimension(ldb,n),intent(in):: b
-real(8),dimension(ldc,n),intent(out):: c
+integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
+character(len=1),intent(in) :: transa, transb
+real(kind=8),intent(in) :: alpha, beta
+real(kind=8),dimension(lda,k),intent(in) :: a
+real(kind=8),dimension(ldb,n),intent(in) :: b
+real(kind=8),dimension(ldc,n),intent(out) :: c
 
 ! Local variables
-integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, info
-integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(8):: tt1, tt2
-real(8),dimension(:,:),allocatable:: la, lb, lc
-integer,dimension(9):: desc_lc, desc_la, desc_lb
-character(len=*),parameter:: subname='dgemm_parallel'
+integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+integer :: context, irow, icol, numroc, info
+integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+real(kind=8) :: tt1, tt2
+real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+integer,dimension(9) :: desc_lc, desc_la, desc_lb
+character(len=*),parameter :: subname='dgemm_parallel'
 
   ! Block size for scalapack
   mbrow=blocksize
@@ -144,21 +154,21 @@ use module_base
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
-character(len=1),intent(in):: side, uplo
-real(8),intent(in):: alpha, beta
-real(8),dimension(lda,m),intent(in):: a
-real(8),dimension(ldb,n),intent(in):: b
-real(8),dimension(ldc,n),intent(out):: c
+integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
+character(len=1),intent(in) :: side, uplo
+real(kind=8),intent(in) :: alpha, beta
+real(kind=8),dimension(lda,m),intent(in) :: a
+real(kind=8),dimension(ldb,n),intent(in) :: b
+real(kind=8),dimension(ldc,n),intent(out) :: c
 
 ! Local variables
-integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, info
-integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(8):: tt1, tt2
-real(8),dimension(:,:),allocatable:: la, lb, lc
-integer,dimension(9):: desc_lc, desc_la, desc_lb
-character(len=*),parameter:: subname='dgemm_parallel'
+integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+integer :: context, irow, icol, numroc, info
+integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+real(kind=8) :: tt1, tt2
+real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+integer,dimension(9) :: desc_lc, desc_la, desc_lb
+character(len=*),parameter :: subname='dgemm_parallel'
 
 
   ! Block size for scalapack
@@ -272,10 +282,7 @@ character(len=*),parameter:: subname='dgemm_parallel'
   ! Gather the result on all processes.
   call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
 
-
 end subroutine dsymm_parallel
-
-
 
 
 subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
@@ -284,20 +291,20 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, blocksize, comm, n, lda, info
-  character(len=1),intent(in):: jobz, uplo
-  real(8),dimension(lda,n),intent(inout):: a
-  real(8),dimension(n),intent(out):: w
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda, info
+  character(len=1),intent(in) :: jobz, uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+  real(kind=8),dimension(n),intent(out) :: w
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
-  real(8):: tt1, tt2
-  real(8),dimension(:,:),allocatable:: la, lz
-  real(8),dimension(:),allocatable:: work, gap
-  integer,dimension(9):: desc_lz, desc_la
-  integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='dsyev_parallel'
+  integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
+  integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lz
+  real(kind=8),dimension(:),allocatable :: work, gap
+  integer,dimension(9) :: desc_lz, desc_la
+  integer,dimension(:),allocatable :: iwork, ifail, icluster
+  character(len=*),parameter :: subname='dsyev_parallel'
   
   
   
@@ -474,21 +481,21 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
-  character(len=1),intent(in):: jobz, uplo
-  real(8),dimension(lda,n),intent(inout):: a
-  real(8),dimension(ldb,n),intent(inout):: b
-  real(8),dimension(n),intent(out):: w
+  integer,intent(in) :: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
+  character(len=1),intent(in) :: jobz, uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
+  real(kind=8),dimension(ldb,n),intent(inout) :: b
+  real(kind=8),dimension(n),intent(out) :: w
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
-  real(8):: tt1, tt2
-  real(8),dimension(:,:),allocatable:: la, lb, lz
-  real(8),dimension(:),allocatable:: work, gap
-  integer,dimension(9):: desc_lz, desc_la, desc_lb
-  integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='dsygv_parallel'
+  integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
+  integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lb, lz
+  real(kind=8),dimension(:),allocatable :: work, gap
+  integer,dimension(9) :: desc_lz, desc_la, desc_lb
+  integer,dimension(:),allocatable :: iwork, ifail, icluster
+  character(len=*),parameter :: subname='dsygv_parallel'
   
  call timing(iproc,'diagonal_par  ','ON') 
   
