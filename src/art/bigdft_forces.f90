@@ -11,6 +11,7 @@
 !! -EM 2010, see ~/AUTHORS
 !! -Laurent Karim Beland, UdeM, 2011. For working with QM/MM !!
 
+
 !> ART Module bigdft_forces
 !! Module which contains information for Bigdft run inside art
 module bigdft_forces
@@ -271,14 +272,9 @@ module bigdft_forces
       deallocate(fcart)
 
    END SUBROUTINE calcforce_bigdft
-   !!***
 
 
-   !!****f* bigdft_forces/mingeo
-   !! FUNCTION
-   !!   Minimise geometry
-   !! SOURCE
-   !!
+   !> Minimise geometry
    subroutine mingeo( posa, forca, boxl, evalf_number, total_energy, success )
 
       implicit none
@@ -343,14 +339,9 @@ module bigdft_forces
       deallocate(fcart)
 
    END SUBROUTINE mingeo
-   !!***
 
 
-   !!****f* bigdft_forces/bigdft_finalise
-   !! FUNCTION
-   !!   Routine to finalise all BigDFT stuff
-   !! SOURCE
-   !!
+   !> Routine to finalise all BigDFT stuff
    subroutine bigdft_finalise ( )
 
       implicit none
@@ -366,14 +357,8 @@ module bigdft_forces
       call memocc( 0, 0, 'count', 'stop' )  ! finalize memory counting.
 
    END SUBROUTINE bigdft_finalise
-   !!***
 
-   !!****f* bigdft_forces/center_f
-   !! FUNCTION
-   !!   Removes the net force taking into account the blocked atoms
-   !!
-   !! SOURCE
-   !!
+   !> Removes the net force taking into account the blocked atoms
    subroutine center_f( vector, natoms )
 
       implicit none
@@ -430,7 +415,6 @@ module bigdft_forces
       end do 
 
    END SUBROUTINE center_f
-   !!***
 
 
    subroutine copy_atoms_object(atoms1,atoms2,rxyz,nat,total_nb_atoms,posquant)
@@ -614,10 +598,6 @@ module bigdft_forces
    END SUBROUTINE prepare_quantum_atoms_Si
 
 
-   !!****f* bigdft_forces/check_force_clean_wf
-   !! FUNCTION
-   !! SOURCE
-   !!
    subroutine check_force_clean_wf( posa, boxl, evalf_number, total_energy, success )
 
       implicit none
@@ -698,4 +678,3 @@ module bigdft_forces
 
 
 END MODULE bigdft_forces
-!!***

@@ -68,7 +68,7 @@ subroutine mpi_test(request,flag,MPI_Status)
   integer, intent(in) :: request
   integer, intent(out) :: flag
   integer, intent(out) :: MPI_Status
-  flag = 1
+  flag = 1 + 0*request
   MPI_Status = 1
 end subroutine mpi_test
 
@@ -76,7 +76,7 @@ subroutine mpi_wait(request,MPI_Status)
   implicit none
   integer, intent(in) :: request
   integer, intent(out) :: MPI_Status
-  MPI_Status = 1
+  MPI_Status = 1 + 0*request
 end subroutine mpi_wait
 
 
@@ -184,7 +184,7 @@ subroutine MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   ierr=0
   namelen=9
   nodename_local(1:9)='localhost'
-  nodename_local(9:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
+  nodename_local(10:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
 END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()

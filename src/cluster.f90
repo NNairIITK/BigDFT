@@ -1176,6 +1176,7 @@ contains
 END SUBROUTINE cluster
 
 
+!> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -1201,7 +1202,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl,iter_for_diis
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
 
@@ -1540,9 +1541,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   ! Clean KSwfn parts only needed in the SCF loop.
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
-
-  if (opt%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-     call ab6_mixing_deallocate(denspot%mix)
-     deallocate(denspot%mix)
-  end if
-end subroutine kswfn_optimization_loop
+  ! Clean denspot parts only needed in the SCF loop.
+  call denspot_free_history(denspot)
+END SUBROUTINE kswfn_optimization_loop

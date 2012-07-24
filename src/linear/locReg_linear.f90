@@ -21,17 +21,16 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-  logical,dimension(nlr),intent(in):: calculateBounds
+  logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
-  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz, calculate
+  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
   logical :: warningx,warningy,warningz
   integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
-  integer :: ln1,ln2,ln3, iorb, jproc, jlr
-  integer :: ierr 
+  integer :: ln1,ln2,ln3
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff  
   !!if (iproc == 0) then
@@ -413,17 +412,17 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-  logical,dimension(nlr),intent(in):: calculateBounds
+  logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
-  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz,communicate_bounds
+  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
   logical :: warningx,warningy,warningz,xperiodic,yperiodic,zperiodic
   integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
-  integer :: ln1,ln2,ln3, iorb, jproc, jlr
-  integer :: ierr, ii, istat, root, iall
+  integer :: ln1,ln2,ln3
+  integer :: ii, root
   integer,dimension(3) :: outofzone
   !integer,dimension(6,3):: ncounts
   integer(kind=mpi_address_kind),dimension(6,4):: mpi_ncounts
@@ -829,7 +828,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   ! Subroutine Scalar Arguments
   integer,intent(in) :: ilr,nlr
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  real(8),intent(in):: hx, hy, hz
+  real(kind=8),intent(in) :: hx, hy, hz
   type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr  ! Localization grid descriptors 
   
   !Subroutine Array Arguments
@@ -838,8 +837,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   !local variables
   integer :: ii
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
-  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
+!!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
 
    !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -1039,15 +1038,15 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, n
      nsegglob, keygglob, keyvglob, nseg, nvctr)
   implicit none
   integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nsegglob
-  real(8),intent(in):: hx, hy, hz, locrad
-  real(8),dimension(3),intent(in):: locregCenter
-  integer,dimension(2,nsegglob),intent(in):: keygglob
-  integer,dimension(nsegglob),intent(in):: keyvglob
-  integer,intent(out):: nseg, nvctr
+  real(kind=8),intent(in) :: hx, hy, hz, locrad
+  real(kind=8),dimension(3),intent(in) :: locregCenter
+  integer,dimension(2,nsegglob),intent(in) :: keygglob
+  integer,dimension(nsegglob),intent(in) :: keyvglob
+  integer,intent(out) :: nseg, nvctr
   !local variables
   logical :: segment
   integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
-  real(8):: cut, dx,dy, dz
+  real(kind=8) :: cut, dx,dy, dz
 
 
   nvctr=0
@@ -1115,17 +1114,16 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
   implicit none
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
-  real(8),intent(in):: hx, hy, hz, locrad
-  real(8),dimension(3),intent(in):: locregCenter
-  integer,dimension(2,nsegglob),intent(in):: keygglob
-  integer,dimension(nsegglob),intent(in):: keyvglob
-  integer,intent(out):: ixmin, iymin, izmin, ixmax, iymax, izmax
+  real(kind=8),intent(in) :: hx, hy, hz, locrad
+  real(kind=8),dimension(3),intent(in) :: locregCenter
+  integer,dimension(2,nsegglob),intent(in) :: keygglob
+  integer,dimension(nsegglob),intent(in) :: keyvglob
+  integer,intent(out) :: ixmin, iymin, izmin, ixmax, iymax, izmax
   !local variables
-  logical :: segment
-  integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
-  real(8):: cut, dx,dy, dz
+  integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  real(kind=8) :: cut, dx,dy, dz
   !debug
-  integer:: iiimin, isegmin
+  integer :: iiimin, isegmin
   iiimin=0
   isegmin=0
 
@@ -1187,7 +1185,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   !local variables
   character(len=*),parameter :: subname = 'segkeys_periodic'
   logical :: go1,go2,go3,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
   integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
@@ -1301,19 +1299,19 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
      nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob)
   use module_base
   implicit none
-  integer,intent(in):: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
-  real(8):: hx, hy, hz, locrad
-  real(8),dimension(3):: locregCenter
-  integer,dimension(2,nsegglob),intent(in):: keygglob
-  integer,dimension(nsegglob),intent(in):: keyvglob
-  integer,dimension(2,nseg),intent(out):: keyg_loc, keyg_glob
-  integer,dimension(nseg),intent(out):: keyv_loc, keyv_glob
+  integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
+  real(kind=8) :: hx, hy, hz, locrad
+  real(kind=8),dimension(3) :: locregCenter
+  integer,dimension(2,nsegglob),intent(in) :: keygglob
+  integer,dimension(nsegglob),intent(in) :: keyvglob
+  integer,dimension(2,nseg),intent(out) :: keyg_loc, keyg_glob
+  integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer:: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc
-  real(8):: cut, dx, dy, dz
-  logical:: segment
+  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc
+  real(kind=8) :: cut, dx, dy, dz
+  logical :: segment
   integer, allocatable :: keygloc(:,:)
 
   allocate(keygloc(2,nseg),stat=istat)
@@ -1594,7 +1592,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   type(orbitals_data),intent(in) :: orbs
-  logical,dimension(nlr),intent(in):: calculateBounds
+  logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg_parallel'
@@ -1604,10 +1602,10 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez,iorb
   integer :: ln1,ln2,ln3
-  integer :: iilr,ierr
   integer,dimension(3) :: outofzone
-  integer,dimension(0:nproc-1) :: nlr_par,islr_par
   real(gp) :: rx,ry,rz,cutoff
+!!  integer :: iilr,ierr
+!!  integer,dimension(0:nproc-1) :: nlr_par,islr_par
 
   !!if (iproc == 0) then
   !!   write(*,*)'Inside determine_locreg_periodic:'
@@ -1875,26 +1873,26 @@ use module_interfaces, except_this_one => determine_overlap_from_descriptors
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs, orbsig
-type(local_zone_descriptors),intent(in):: lzd, lzdig
-type(overlapParameters),intent(out):: op
-type(p2pComms),intent(out):: comon
+integer,intent(in) :: iproc, nproc
+type(orbitals_data),intent(in) :: orbs, orbsig
+type(local_zone_descriptors),intent(in) :: lzd, lzdig
+type(overlapParameters),intent(out) :: op
+type(p2pComms),intent(out) :: comon
 ! Local variables
-integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
+integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
 !integer :: is1, ie1, is2, ie2, is3, ie3
 !integer :: js1, je1, js2, je2, js3, je3
 integer :: iiorb, istat, iall, noverlaps, ierr
-!logical:: ovrlpx, ovrlpy, ovrlpz
+!logical :: ovrlpx, ovrlpy, ovrlpz
 logical :: isoverlap
-integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp, i1, i2, jjorb, ii
+integer :: i1, i2, ii
 integer :: onseg
-logical,dimension(:,:,:),allocatable:: overlapMatrix
-integer,dimension(:),allocatable:: noverlapsarr, displs, recvcnts, overlaps_comon
-integer,dimension(:,:),allocatable:: overlaps_op
+logical,dimension(:,:,:),allocatable :: overlapMatrix
+integer,dimension(:),allocatable :: noverlapsarr, displs, recvcnts, overlaps_comon
+integer,dimension(:,:),allocatable :: overlaps_op
 integer,dimension(:,:,:),allocatable :: overlaps_nseg
 !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
-character(len=*),parameter:: subname='determine_overlap_from_descriptors'
+character(len=*),parameter :: subname='determine_overlap_from_descriptors'
 
 allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
@@ -2138,12 +2136,12 @@ use module_types
 implicit none
 
 ! Calling arguments
-type(locreg_descriptors),intent(in):: llr_i, llr_j, glr
-type(locreg_descriptors),intent(out):: olr
+type(locreg_descriptors),intent(in) :: llr_i, llr_j, glr
+type(locreg_descriptors),intent(out) :: olr
 
 ! Local variables
-integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp
-character(len=*),parameter:: subname='determine_overlapdescriptors_from_descriptors'
+integer :: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp
+character(len=*),parameter :: subname='determine_overlapdescriptors_from_descriptors'
 
 
 
@@ -2242,7 +2240,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-type(locreg_descriptors),intent(in):: glr, llr_i, llr_j, olr
+type(locreg_descriptors),intent(in) :: glr, llr_i, llr_j, olr
 
   if(olr%ns1<glr%ns1) then
       write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', glr%ns1, '= glr%ns1'
@@ -2341,20 +2339,20 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g
-integer,intent(in):: ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g
-integer:: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in):: keyg_i
-integer,dimension(nseg_i),intent(in):: keyv_i
-integer,dimension(2,nseg_j),intent(in):: keyg_j
-integer,dimension(nseg_j),intent(in):: keyv_j
-integer,intent(out):: n1_k, n2_k, n3_k, ns1_k, ns2_k, ns3_k, nseg_k
+integer,intent(in) :: n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g
+integer,intent(in) :: ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g
+integer :: nseg_i, nseg_j
+integer,dimension(2,nseg_i),intent(in) :: keyg_i
+integer,dimension(nseg_i),intent(in) :: keyv_i
+integer,dimension(2,nseg_j),intent(in) :: keyg_j
+integer,dimension(nseg_j),intent(in) :: keyv_j
+integer,intent(out) :: n1_k, n2_k, n3_k, ns1_k, ns2_k, ns3_k, nseg_k
 
 ! Local variables
-integer:: iseg, jseg, knvctr, istart, jstart, kstart, istartg, jstartg, kstartg
-integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
-integer:: kxs, kys, kzs, kxe, kye, kze, kxemax, kyemax, kzemax
-character(len=1):: increase
+integer :: iseg, jseg, istart, jstart, istartg, jstartg, kstartg
+integer :: iend, jend, iendg, jendg, kendg, transform_index
+integer :: kxs, kys, kzs, kxe, kye, kze, kxemax, kyemax, kzemax
+character(len=1) :: increase
 
 
 ! Initialize the return values such that they represent a box with no volume
@@ -2445,9 +2443,8 @@ n1_k=kxemax-ns1_k
 n2_k=kyemax-ns2_k
 n3_k=kzemax-ns3_k
 
-
-
 end subroutine overlapbox_from_descriptors
+
 
 ! check if Llrs overlap from there descriptors
 ! The periodicity is hidden in the fact that we are using the keyglobs
@@ -2458,15 +2455,15 @@ use module_base
 use module_types
 implicit none
 ! Calling arguments
-integer:: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in):: keyg_i
-integer,dimension(2,nseg_j),intent(in):: keyg_j
+integer :: nseg_i, nseg_j
+integer,dimension(2,nseg_i),intent(in) :: keyg_i
+integer,dimension(2,nseg_j),intent(in) :: keyg_j
 logical,intent(out) :: isoverlap
 integer, intent(out) :: onseg
 ! Local variables
 character(len=*), parameter :: subname='check_overlap_from_descriptors_periodic'
-integer:: iseg, jseg, knvctr, istart, jstart, kstart, kstartg
-integer:: iend, jend, kend, kendg, i_stat,nseg_k
+integer :: iseg, jseg, istart, jstart, kstartg
+integer :: iend, jend, kendg, nseg_k
 
 
 ! Initialize some counters
@@ -2518,9 +2515,9 @@ use module_base
 use module_types
 implicit none
 ! Calling arguments
-integer:: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in):: keyg_i
-integer,dimension(2,nseg_j),intent(in):: keyg_j
+integer :: nseg_i, nseg_j
+integer,dimension(2,nseg_i),intent(in) :: keyg_i
+integer,dimension(2,nseg_j),intent(in) :: keyg_j
 logical, intent(in) :: isoverlap
 integer, intent(in) :: onseg
 integer, intent(out) :: onvctr
@@ -2528,8 +2525,8 @@ integer, dimension(2,max(onseg,1)),intent(out) :: keyglob
 integer, dimension(max(onseg,1)), intent(out) :: keyvglob
 ! Local variables
 character(len=*), parameter :: subname='get_overlap_from_descriptors_periodic'
-integer:: iseg, jseg, knvctr, istart, jstart, kstart, kstartg
-integer:: iend, jend, kend, kendg, i_stat,nseg_k
+integer :: iseg, jseg, knvctr, istart, jstart, kstartg
+integer :: iend, jend, kendg, nseg_k
 
 if(.not. isoverlap) then
 !initialize the variable
@@ -2602,21 +2599,21 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k
-integer,intent(in):: ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k
-integer,intent(in):: nseg_i, nseg_j, nseg_k
-integer,dimension(2,nseg_i),intent(in):: keyg_i
-integer,dimension(nseg_i),intent(in):: keyv_i
-integer,dimension(2,nseg_j),intent(in):: keyg_j
-integer,dimension(nseg_j),intent(in):: keyv_j
-integer,dimension(2,nseg_k),intent(out):: keyg_k
-integer,dimension(nseg_k),intent(out):: keyv_k
-integer,intent(out):: nvctr_k
+integer,intent(in) :: n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k
+integer,intent(in) :: ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k
+integer,intent(in) :: nseg_i, nseg_j, nseg_k
+integer,dimension(2,nseg_i),intent(in) :: keyg_i
+integer,dimension(nseg_i),intent(in) :: keyv_i
+integer,dimension(2,nseg_j),intent(in) :: keyg_j
+integer,dimension(nseg_j),intent(in) :: keyv_j
+integer,dimension(2,nseg_k),intent(out) :: keyg_k
+integer,dimension(nseg_k),intent(out) :: keyv_k
+integer,intent(out) :: nvctr_k
 
 ! Local variables
-integer:: iseg, jseg, kseg, knvctr, istart, jstart, kstart, istartg, jstartg, kstartg
-integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
-character(len=1):: increase
+integer :: iseg, jseg, kseg, knvctr, istart, jstart, kstart, istartg, jstartg, kstartg
+integer :: iend, jend, kend, iendg, jendg, kendg, transform_index
+character(len=1) :: increase
 
 ! Initialize some counters
 iseg=min(1,nseg_i)
@@ -2699,11 +2696,11 @@ function transform_index(ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, ns
 implicit none
 
 ! Calling arguments
-integer,intent(in):: ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, nshift3
-integer:: transform_index
+integer,intent(in) :: ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, nshift3
+integer :: transform_index
 
 ! Local variables
-integer:: ii, ix, iy, iz, ixg, iyg, izg, istg
+integer :: ii, ix, iy, iz, ixg, iyg, izg, istg
 
   ! Get the coordinates with respect to localization region A
   ii = ist - 1
@@ -2741,11 +2738,11 @@ subroutine get_coordinates(ist, n1, n2, n3, ix, iy, iz)
 implicit none
 
 ! Calling arguments
-integer,intent(in):: ist, n1, n2, n3
-integer,intent(out):: ix, iy, iz
+integer,intent(in) :: ist, n1, n2, n3
+integer,intent(out) :: ix, iy, iz
 
 ! Local variable
-integer:: ii
+integer :: ii
 
   ! Get the coordinates ix, iy, iz
   ii = ist - 1
@@ -2764,12 +2761,11 @@ use module_interfaces
 implicit none
 
 ! Calling arguments
-type(locreg_descriptors),intent(in):: Llr_i, Llr_j, Glr
+type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
 logical, intent(out) :: overlap
 
 ! Local variables
-integer:: onseg
-logical:: go1, go2, go3
+integer :: onseg
 
   call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
   if(overlap) then
@@ -2785,7 +2781,7 @@ use module_base
 use module_types
 use module_interfaces
 implicit none
-type(locreg_descriptors),intent(in):: Glr, Llr
+type(locreg_descriptors),intent(in) :: Glr, Llr
 integer, intent(in) :: nseg
 integer, dimension(2,nseg),intent(in) :: keyglob
 integer, dimension(2,nseg),intent(out) :: keygloc
@@ -2884,7 +2880,7 @@ type(locreg_descriptors), intent(in) :: Jlr
 logical, intent(out) :: isoverlap
 !Local variables
 character(len=*), parameter :: subname='check_overlap_cubic_periodic'
-integer :: azones,bzones,ii,izones,jzones, i_stat, i_all
+integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
 logical :: go1, go2, go3
 integer,dimension(3,8) :: astart,bstart,aend,bend
 

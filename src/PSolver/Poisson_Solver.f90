@@ -10,6 +10,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
 !! USAGE
@@ -44,7 +45,7 @@
 !!       Any other changment of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
 !! @warning
-!!    This module REQUIRE the module of XC functional from ABINIT, defs_xc, which
+!!    This module REQUIRES the module of XC functional from ABINIT, defs_xc, which
 !!    require defs_basis and defs_datatypes. 
 !!    Such routines are provided inside the abinit directory of this bundle.
 !!    They are based on XC functionals present in ABINIT 5.x

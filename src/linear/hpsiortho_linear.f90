@@ -3,33 +3,38 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
            tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge2, overlap_calculated, ovrlp)
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
+  integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
-  type(localizedDIISParameters),intent(inout):: ldiis
-  integer,intent(inout):: consecutive_rejections
-  real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
-  real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
-  logical,intent(out):: emergency_exit
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: kernel
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  integer,intent(inout) :: consecutive_rejections
+  real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
+  real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
+  real(8),intent(out) :: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
+  logical,intent(out) :: emergency_exit
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
-  real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
-  character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
-  real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-  real(8),dimension(:,:),allocatable:: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
-  real(8):: closesteval, gnrm_temple
+  integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
+  real(kind=8) :: ddot,tt, eval_zero
+  character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
+  real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
+  real(kind=8),dimension(:,:),allocatable :: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
+  real(kind=8) :: closesteval, gnrm_temple
   integer:: owa, owanext
 
   nullify(hpsit_c)
@@ -257,18 +262,18 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  type(localizedDIISParameters),intent(inout):: ldiis
-  type(DFT_wavefunction),target,intent(inout):: tmb
-  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
-  real(8),intent(in):: trH, meanAlpha
-  real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+  integer,intent(in) :: iproc, nproc, it
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(DFT_wavefunction),target,intent(inout) :: tmb
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
+  real(kind=8),intent(in) :: trH, meanAlpha
+  real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
-  integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
-  real(8):: tt
-  real(8),dimension(:,:),allocatable:: ovrlp
-  character(len=*),parameter:: subname='hpsitopsi_linear'
+  integer :: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
+  real(kind=8) :: tt
+  real(kind=8),dimension(:,:),allocatable :: ovrlp
+  character(len=*),parameter :: subname='hpsitopsi_linear'
 
 
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)

@@ -1,4 +1,5 @@
 !> @file
+!!  Activation Relaxation Technique (ART) to determine saddle points
 !! @author
 !!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group

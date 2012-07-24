@@ -21,11 +21,12 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
-  logical :: gox,goy,goz,perx,pery,perz
+  logical :: gox,goy,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
   integer :: i1,i2,i3,j1,j2,j3,ind
-  real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc,charge_from_gaussians,spherical_gaussian_value
+  real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc
+  real(gp) :: charge_from_gaussians,spherical_gaussian_value
   real(gp) :: drhoc,drhov,drhodr2
   !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
   !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
@@ -181,7 +182,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   
 END SUBROUTINE calc_rhocore_iat
 
-!> Calculate the core charge describe by a sum of spherical harmonics of s-channel with 
+
+!> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function charge_from_gaussians(expo,rhoc)
@@ -195,6 +197,7 @@ function charge_from_gaussians(expo,rhoc)
        15.0_gp*rhoc(3)*expo**7+105.0_gp*rhoc(4)*expo**9
 
 end function charge_from_gaussians
+
 
 !> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
@@ -294,7 +297,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   integer :: ndvxc,order
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
-  real(dp), dimension(:), allocatable :: rho_G,work
+  real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
@@ -750,9 +753,9 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:), allocatable :: exci
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rhov,sfactor,t1,t2
+  real(dp) :: elocal,vlocal,rhov,sfactor
   integer :: npts,i_all,offset,i_stat,ispden
-  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2,l
+  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
   !check for the dimensions

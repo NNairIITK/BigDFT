@@ -1,12 +1,16 @@
 !> @file
 !!    Calculate the electronic density (rho)
 !! @author
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2007-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
+!> Selfconsistent potential is saved in rhopot, 
+!! new arrays rho,pot for calculation of forces ground state electronic density
+!! Potential from electronic charge density
 subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
   use module_base
   use module_types
@@ -28,10 +32,6 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   integer :: i_stat
   real(gp) :: ehart_fake
   real(dp), dimension(:,:), pointer :: rho_p
-  ! Selfconsistent potential is saved in rhopot, 
-  ! new arrays rho,pot for calculation of forces ground state electronic density
-
-  ! Potential from electronic charge density
 
   if (.not. associated(rho)) then
      if (dpbox%ndimpot>0) then
@@ -946,7 +946,7 @@ subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
    integer,intent(in) :: nspin,ndimgrid
    real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p
    real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp
-   real(4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp
+   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp
    integer :: irho,jrho,iseg,ispin
 
    do ispin=1,nspin
@@ -955,7 +955,7 @@ subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
       do iseg=1,rhodsc%n_csegs
          jrho=rhodsc%cseg_b(iseg)
          do irho=rhodsc%spkey(iseg,1),rhodsc%spkey(iseg,2)
-            sprho_comp(jrho,ispin)=rho_p(irho,ispin)
+            sprho_comp(jrho,ispin)=real(rho_p(irho,ispin),kind=4)
             jrho=jrho+1
          enddo
       enddo
@@ -973,7 +973,8 @@ subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
    enddo
 END SUBROUTINE compress_rho
 
-! restore the necessary rho planes for using in GGA
+
+!> Restore the necessary rho planes for using in GGA
 subroutine uncompress_rho(sprho_comp,dprho_comp,ndims,nspin,rhodsc,rho_uncomp,i3s,n3d)
    use module_base
    use module_types
@@ -1145,7 +1146,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    !these give stack overflow!!!!
    !integer, dimension(n1i*n2i*n3i) :: reg
    !integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
-   integer :: n_fsegs,n_csegs,ierr
+   integer :: n_fsegs,n_csegs
    character(len=*), parameter :: subname='rhokey'
    integer :: nbx,nby,nbz,nl1,nl2,nl3,nat,i_all
    real(gp) :: dpmult,dsq,spadd

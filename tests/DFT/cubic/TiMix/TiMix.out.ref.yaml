@@ -289,7 +289,11 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  iter:  3, tr(H): -9.94941132252269256E+00, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.55E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
+<<<<<<< TREE
        -  &final0001  { #---------------------------------------------------------- iter: 4
+=======
+       -  &final0001  { #-------------------------------------------------------------- iter: 4
+>>>>>>> MERGE-SOURCE
  Hamiltonian Applied:  Yes, 
  iter:  4, FKS: -5.82753881208917477E+01, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.11E-01,  #final
  Energies: {Ekin:  2.22420905160E+01, Epot: -2.98364634029E+01, Enl: -2.72911540494E+00, 

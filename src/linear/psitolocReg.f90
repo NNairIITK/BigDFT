@@ -155,7 +155,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
@@ -167,7 +167,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   character(len=*), parameter :: subname='Lpsi_to_global'
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
-  integer :: lfinc,Gfinc,spinshift,ispin,Gindex
+  integer :: lfinc,Gfinc,spinshift,Gindex!,ispin
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -301,7 +301,7 @@ subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_ha
   real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
   real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,psi2,hpsi
   !local variables
-  integer :: ispin,ncomp,ncplx
+  integer :: ncomp,ncplx!,ispin
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
@@ -355,7 +355,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   real(wp),dimension(ldim),intent(out) :: lpsi   !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
@@ -523,7 +523,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg

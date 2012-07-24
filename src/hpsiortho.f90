@@ -1644,7 +1644,6 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
    integer :: i_all,i_stat
-   real(wp), dimension(:,:,:), pointer :: mom_vec
 
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
@@ -1749,7 +1748,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    real(gp), intent(in) :: wf
    type(orbitals_data), intent(inout) :: orbs
    !local variables
-   integer :: ikpt,iorb,melec,ii,ierr
+   integer :: ikpt,iorb,melec,ii
    real(gp) :: charge, chargef
    real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    parameter(pi=3.1415926535897932d0)
@@ -2100,7 +2099,7 @@ END SUBROUTINE calc_moments
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, except_this_one => check_communications
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs

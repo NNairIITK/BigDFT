@@ -10,6 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 !!
 
+
 !>    Calculate the Hartree potential by solving Poisson equation 
 !!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
 !!    from a given @f$\rho@f$, 

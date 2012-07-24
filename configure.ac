@@ -573,6 +573,8 @@ if test x"$ac_use_libyaml" != x"no" ; then
       ac_build_libyaml="no"
    fi
    AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+else
+   ac_build_libyaml="no"
 fi
 AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
 AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
@@ -738,9 +740,8 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 
-AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
-
 fi # End of the if library compilation
+AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 
 dnl Test the libXC library
 ac_internal_libxc="yes"

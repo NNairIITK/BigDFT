@@ -85,7 +85,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 !real(dp) :: tsec(2)
 !scalars
  integer :: bckbrvltt,ii,inversion,jj,kk
- real(dp) :: intsym,inttn
+ integer :: intsym
+ real(dp) :: inttn
  character(len=500) :: message
 
 ! *************************************************************************
